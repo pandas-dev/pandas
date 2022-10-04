@@ -827,7 +827,7 @@ def _get_counts_nanvar(
     axis: int | None,
     ddof: int,
     dtype: np.dtype = np.dtype(np.float64),
-) -> tuple[int | float | np.ndarray, int | float | np.ndarray]:
+) -> tuple[float | np.ndarray, float | np.ndarray]:
     """
     Get the count of non-null values along an axis, accounting
     for degrees of freedom.
@@ -1414,7 +1414,7 @@ def _get_counts(
     mask: npt.NDArray[np.bool_] | None,
     axis: int | None,
     dtype: np.dtype = np.dtype(np.float64),
-) -> int | float | np.ndarray:
+) -> float | np.ndarray:
     """
     Get the count of non-null values along an axis
 

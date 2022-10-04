@@ -388,7 +388,7 @@ We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by
 
 .. _timeseries.origin:
 
-Using the ``origin`` Parameter
+Using the ``origin`` parameter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Using the ``origin`` parameter, one can specify an alternative starting point for creation
@@ -1523,7 +1523,7 @@ or calendars with additional rules.
 
 .. _timeseries.advanced_datetime:
 
-Time series-related instance methods
+Time Series-related instance methods
 ------------------------------------
 
 Shifting / lagging
@@ -1981,7 +1981,6 @@ frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` 
    p = pd.Period("2012-01", freq="2M")
    p + 2
    p - 1
-   @okexcept
    p == pd.Period("2012-01", freq="3M")
 
 
@@ -2601,7 +2600,7 @@ Transform nonexistent times to ``NaT`` or shift the times.
 
 .. _timeseries.timezone_series:
 
-Time zone series operations
+Time zone Series operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A :class:`Series` with time zone **naive** values is

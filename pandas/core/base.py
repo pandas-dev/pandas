@@ -4,6 +4,7 @@ Base and utility classes for pandas objects.
 
 from __future__ import annotations
 
+import inspect
 import textwrap
 from typing import (
     TYPE_CHECKING,
@@ -79,6 +80,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
+        ScalarLike_co,
     )
 
     from pandas import (
@@ -1054,8 +1056,11 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic(self) -> bool:
         """
-        Return boolean if values in the object are
-        monotonic_increasing.
+        Return boolean if values in the object are monotonically increasing.
+
+        .. deprecated:: 1.5.0
+            is_monotonic is deprecated and will be removed in a future version.
+            Use is_monotonic_increasing instead.
 
         Returns
         -------
@@ -1065,15 +1070,14 @@ class IndexOpsMixin(OpsMixin):
             "is_monotonic is deprecated and will be removed in a future version. "
             "Use is_monotonic_increasing instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.is_monotonic_increasing
 
     @property
     def is_monotonic_increasing(self) -> bool:
         """
-        Return boolean if values in the object are
-        monotonic_increasing.
+        Return boolean if values in the object are monotonically increasing.
 
         Returns
         -------
@@ -1086,8 +1090,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic_decreasing(self) -> bool:
         """
-        Return boolean if values in the object are
-        monotonic_decreasing.
+        Return boolean if values in the object are monotonically decreasing.
 
         Returns
         -------
@@ -1265,7 +1268,7 @@ class IndexOpsMixin(OpsMixin):
     # return types  [misc]
     def searchsorted(  # type: ignore[misc]
         self,
-        value: npt._ScalarLike_co,
+        value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
         sorter: NumpySorter = ...,
     ) -> np.intp:

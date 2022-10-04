@@ -1,6 +1,7 @@
 """This module is designed for community supported date conversion functions"""
 from __future__ import annotations
 
+import inspect
 import warnings
 
 import numpy as np
@@ -22,7 +23,7 @@ def parse_date_time(date_col, time_col) -> npt.NDArray[np.object_]:
         Use pd.to_datetime(date_col + " " + time_col).to_pydatetime() instead to get a Numpy array.
 """,  # noqa: E501
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
     date_col = _maybe_cast(date_col)
     time_col = _maybe_cast(time_col)
@@ -42,7 +43,7 @@ def parse_date_fields(year_col, month_col, day_col) -> npt.NDArray[np.object_]:
         np.array([s.to_pydatetime() for s in ser]) instead to get a Numpy array.
 """,  # noqa: E501
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
 
     year_col = _maybe_cast(year_col)
@@ -69,7 +70,7 @@ def parse_all_fields(
         np.array([s.to_pydatetime() for s in ser]) instead to get a Numpy array.
 """,  # noqa: E501
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
 
     year_col = _maybe_cast(year_col)
@@ -95,7 +96,7 @@ def generic_parser(parse_func, *cols) -> np.ndarray:
         Use pd.to_datetime instead.
 """,
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
 
     N = _check_columns(cols)

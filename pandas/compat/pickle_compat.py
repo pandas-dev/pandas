@@ -224,7 +224,7 @@ def load_newobj(self):
         arr = np.array([], dtype="m8[ns]")
         obj = cls.__new__(cls, arr, arr.dtype)
     elif cls is BlockManager and not args:
-        obj = cls.__new__(cls, (), [], False)
+        obj = cls.__new__(cls, (), [], None, False)
     else:
         obj = cls.__new__(cls, *args)
 

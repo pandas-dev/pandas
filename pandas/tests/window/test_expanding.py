@@ -59,12 +59,16 @@ def test_numpy_compat(method):
     # see gh-12811
     e = Expanding(Series([2, 4, 6]))
 
-    msg = "numpy operations are not valid with window objects"
+    error_msg = "numpy operations are not valid with window objects"
 
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(e, method)(1, 2, 3)
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(e, method)(dtype=np.float64)
+    warn_msg = f"Passing additional args to Expanding.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(e, method)(1, 2, 3)
+    warn_msg = f"Passing additional kwargs to Expanding.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(e, method)(dtype=np.float64)
 
 
 @pytest.mark.parametrize(

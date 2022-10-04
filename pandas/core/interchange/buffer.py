@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import numpy as np
-from packaging import version
 
-from pandas.core.exchange.dataframe_protocol import (
+from pandas.core.interchange.dataframe_protocol import (
     Buffer,
     DlpackDeviceType,
 )
+from pandas.util.version import Version
 
-_NUMPY_HAS_DLPACK = version.parse(np.__version__) >= version.parse("1.22.0")
+_NUMPY_HAS_DLPACK = Version(np.__version__) >= Version("1.22.0")
 
 
 class PandasBuffer(Buffer):

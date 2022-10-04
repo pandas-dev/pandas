@@ -20,6 +20,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Final,
     Hashable,
     Iterable,
     Iterator,
@@ -50,6 +51,7 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     ArrayLike,
+    Axes,
     ColspaceArgType,
     ColspaceType,
     CompressionOptions,
@@ -66,7 +68,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -77,6 +78,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -117,7 +119,7 @@ if TYPE_CHECKING:
     )
 
 
-common_docstring = """
+common_docstring: Final = """
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -190,7 +192,7 @@ _VALID_JUSTIFY_PARAMETERS = (
     "unset",
 )
 
-return_docstring = """
+return_docstring: Final = """
         Returns
         -------
         str or None
@@ -688,7 +690,9 @@ class DataFrameFormatter:
 
     def _initialize_columns(self, columns: Sequence[Hashable] | None) -> Index:
         if columns is not None:
-            cols = ensure_index(columns)
+            # GH 47231 - columns doesn't have to be `Sequence[str]`
+            # Will fix in later PR
+            cols = ensure_index(cast(Axes, columns))
             self.frame = self.frame[cols]
             return cols
         else:
@@ -1032,7 +1036,7 @@ class DataFrameRenderer:
         multicolumn: bool = False,
         multicolumn_format: str | None = None,
         multirow: bool = False,
-        caption: str | None = None,
+        caption: str | tuple[str, str] | None = None,
         label: str | None = None,
         position: str | None = None,
     ) -> str | None:
@@ -1286,7 +1290,7 @@ def format_array(
     fmt_klass: type[GenericArrayFormatter]
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
-    elif is_datetime64tz_dtype(values.dtype):
+    elif isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
@@ -1446,7 +1450,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def _value_formatter(
         self,
         float_format: FloatFormatType | None = None,
-        threshold: float | int | None = None,
+        threshold: float | None = None,
     ) -> Callable:
         """Returns a function to be applied on each value to format it"""
         # the float_format parameter supersedes self.float_format
@@ -2046,7 +2050,7 @@ class EngFormatter:
         self.accuracy = accuracy
         self.use_eng_prefix = use_eng_prefix
 
-    def __call__(self, num: int | float) -> str:
+    def __call__(self, num: float) -> str:
         """
         Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:

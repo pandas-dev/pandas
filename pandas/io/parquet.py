@@ -151,7 +151,7 @@ class PyArrowImpl(BaseImpl):
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
-        import pandas.core.arrays.arrow._arrow_utils  # pyright: ignore # noqa:F401
+        import pandas.core.arrays.arrow.extension_types  # pyright: ignore # noqa:F401
 
         self.api = pyarrow
 
@@ -444,9 +444,9 @@ def to_parquet(
 
 @doc(storage_options=_shared_docs["storage_options"])
 def read_parquet(
-    path,
+    path: FilePath | ReadBuffer[bytes],
     engine: str = "auto",
-    columns=None,
+    columns: list[str] | None = None,
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool = False,
     **kwargs,

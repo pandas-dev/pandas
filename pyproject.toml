@@ -4,7 +4,7 @@
 requires = [
     "setuptools>=51.0.0",
     "wheel",
-    "Cython>=0.29.24,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython>=0.29.32,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=0.10"
 ]
 # uncomment to enable pep517 after versioneer problem is fixed.

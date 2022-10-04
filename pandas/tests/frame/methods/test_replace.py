@@ -6,8 +6,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p20
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -1316,12 +1314,6 @@ class TestDataFrameReplace:
     )
     def test_replace_replacer_dtype(self, request, replacer):
         # GH26632
-        if np.isscalar(replacer) and replacer.dtype.itemsize < 8:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    np_version_under1p20, reason="np.putmask doesn't coerce dtype"
-                )
-            )
         df = DataFrame(["a"])
         result = df.replace({"a": replacer, "b": replacer})
         expected = DataFrame([replacer])
@@ -1566,4 +1558,18 @@ class TestDataFrameReplaceRegex:
         df = DataFrame({"A": [0, 1, 2], "B": [1, 0, 2]})
         result = df.replace({0: 1, 1: np.nan})
         expected = DataFrame({"A": [1, np.nan, 2], "B": [np.nan, 1, 2]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_categorical_no_replacement(self):
+        # GH#46672
+        df = DataFrame(
+            {
+                "a": ["one", "two", None, "three"],
+                "b": ["one", None, "two", "three"],
+            },
+            dtype="category",
+        )
+        expected = df.copy()
+
+        result = df.replace(to_replace=[".", "def"], value=["_", None])
         tm.assert_frame_equal(result, expected)

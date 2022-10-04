@@ -5,11 +5,13 @@ from collections import (
     defaultdict,
 )
 import csv
+import inspect
 from io import StringIO
 import re
 import sys
 from typing import (
     IO,
+    TYPE_CHECKING,
     DefaultDict,
     Hashable,
     Iterator,
@@ -38,15 +40,16 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
 
-from pandas import (
-    Index,
-    MultiIndex,
-)
-
 from pandas.io.parsers.base_parser import (
     ParserBase,
     parser_defaults,
 )
+
+if TYPE_CHECKING:
+    from pandas import (
+        Index,
+        MultiIndex,
+    )
 
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness
@@ -597,7 +600,7 @@ class PythonParser(ParserBase):
                         "Defining usecols with out of bounds indices is deprecated "
                         "and will raise a ParserError in a future version.",
                         FutureWarning,
-                        stacklevel=find_stack_level(),
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
                 col_indices = self.usecols
 

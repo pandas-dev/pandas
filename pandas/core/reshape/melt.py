@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import re
 from typing import TYPE_CHECKING
 import warnings
@@ -59,7 +60,7 @@ def melt(
             "In the future this will raise an error, please set the 'value_name' "
             "parameter of DataFrame.melt to a unique name.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     if id_vars is not None:

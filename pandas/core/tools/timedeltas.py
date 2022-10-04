@@ -45,7 +45,7 @@ if TYPE_CHECKING:
 
 @overload
 def to_timedelta(
-    arg: str | int | float | timedelta,
+    arg: str | float | timedelta,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
 ) -> Timedelta:

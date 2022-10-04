@@ -6,6 +6,7 @@ from datetime import (
     timedelta,
     tzinfo,
 )
+import inspect
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -473,7 +474,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     "timezone. To retain the old behavior, explicitly cast to "
                     "object dtype before the operation.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
                 raise ValueError(f"Timezones don't match. '{self.tz}' != '{other.tz}'")
 
@@ -629,6 +630,22 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             return type(self)._simple_new(res_values, dtype=dtype)
             # TODO: preserve freq?
 
+        elif (
+            self.tz is None
+            and is_datetime64_dtype(dtype)
+            and dtype != self.dtype
+            and is_unitless(dtype)
+        ):
+            # TODO(2.0): just fall through to dtl.DatetimeLikeArrayMixin.astype
+            warnings.warn(
+                "Passing unit-less datetime64 dtype to .astype is deprecated "
+                "and will raise in a future version. Pass 'datetime64[ns]' instead",
+                FutureWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
+            # unit conversion e.g. datetime64[s]
+            return self._ndarray.astype(dtype)
+
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy)
@@ -701,6 +718,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             warnings.warn(
                 "Non-vectorized DateOffset being applied to Series or DatetimeIndex.",
                 PerformanceWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             result = self.astype("O") + offset
             result = type(self)._from_sequence(result)
@@ -810,8 +828,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     @dtl.ravel_compat
     def tz_localize(self, tz, ambiguous="raise", nonexistent="raise") -> DatetimeArray:
         """
-        Localize tz-naive Datetime Array/Index to tz-aware
-        Datetime Array/Index.
+        Localize tz-naive Datetime Array/Index to tz-aware Datetime Array/Index.
 
         This method takes a time zone (tz) naive Datetime Array/Index object
         and makes this time zone aware. It does not move the time to another
@@ -993,8 +1010,7 @@ default 'raise'
 
     def to_pydatetime(self) -> npt.NDArray[np.object_]:
         """
-        Return Datetime Array/Index as object ndarray of datetime.datetime
-        objects.
+        Return an ndarray of datetime.datetime objects.
 
         Returns
         -------
@@ -1100,6 +1116,7 @@ default 'raise'
                 "Converting to PeriodArray/Index representation "
                 "will drop timezone information.",
                 UserWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         if freq is None:
@@ -1122,9 +1139,9 @@ default 'raise'
 
     def to_perioddelta(self, freq) -> TimedeltaArray:
         """
-        Calculate TimedeltaArray of difference between index
-        values and index converted to PeriodArray at specified
-        freq. Used for vectorized offsets.
+        Calculate deltas between self values and self converted to Periods at a freq.
+
+        Used for vectorized offsets.
 
         Parameters
         ----------
@@ -1141,7 +1158,7 @@ default 'raise'
             "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead.",
             FutureWarning,
             # stacklevel chosen to be correct for when called from DatetimeIndex
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         from pandas.core.arrays.timedeltas import TimedeltaArray
 
@@ -1157,8 +1174,7 @@ default 'raise'
 
     def month_name(self, locale=None) -> npt.NDArray[np.object_]:
         """
-        Return the month names of the :class:`~pandas.Series` or
-        :class:`~pandas.DatetimeIndex` with specified locale.
+        Return the month names with specified locale.
 
         Parameters
         ----------
@@ -1202,8 +1218,7 @@ default 'raise'
 
     def day_name(self, locale=None) -> npt.NDArray[np.object_]:
         """
-        Return the day names of the :class:`~pandas.Series` or
-        :class:`~pandas.DatetimeIndex` with specified locale.
+        Return the day names with specified locale.
 
         Parameters
         ----------
@@ -1262,8 +1277,7 @@ default 'raise'
     @property
     def timetz(self) -> npt.NDArray[np.object_]:
         """
-        Returns numpy array of :class:`datetime.time` objects with timezone
-        information.
+        Returns numpy array of :class:`datetime.time` objects with timezones.
 
         The time part of the Timestamps.
         """
@@ -1346,7 +1360,7 @@ default 'raise'
             "weekofyear and return an Index, you may call "
             "pd.Int64Index(idx.isocalendar().week)",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         week_series = self.isocalendar().week
         if week_series.hasnans:
@@ -2243,7 +2257,7 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
                 "before passing the data to pandas. To get the future behavior, "
                 "first cast to 'int64'.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
     elif is_timedelta64_dtype(data.dtype) or is_bool_dtype(data.dtype):

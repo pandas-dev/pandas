@@ -521,7 +521,7 @@ class TestDatetimeIndex:
         # coerces to object
         tm.assert_index_equal(Index(dates), exp)
 
-        msg = "Out of bounds nanosecond timestamp"
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
@@ -1137,7 +1137,10 @@ def test_timestamp_constructor_retain_fold(tz, fold):
 
 _tzs = ["dateutil/Europe/London"]
 if PY39:
-    _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
+    try:
+        _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
+    except zoneinfo.ZoneInfoNotFoundError:
+        pass
 
 
 @pytest.mark.parametrize("tz", _tzs)

@@ -3,7 +3,7 @@
 {{ header }}
 
 ********************
-Windowing Operations
+Windowing operations
 ********************
 
 pandas contains a compact set of APIs for performing windowing operations - an operation that performs
@@ -490,7 +490,7 @@ For all supported aggregation functions, see :ref:`api.functions_expanding`.
 
 .. _window.exponentially_weighted:
 
-Exponentially Weighted window
+Exponentially weighted window
 -----------------------------
 
 An exponentially weighted window is similar to an expanding window but with each prior point

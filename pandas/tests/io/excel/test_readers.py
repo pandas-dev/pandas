@@ -89,6 +89,7 @@ def _transfer_marks(engine, read_ext):
         for ext in read_ext_params
         if _is_valid_engine_ext_pair(eng, ext)
     ],
+    ids=str,
 )
 def engine_and_read_ext(request):
     """
@@ -654,6 +655,7 @@ class TestReaders:
         actual = pd.read_excel("blank_with_header" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
 
+    @pytest.mark.filterwarnings("ignore:Cell A4 is marked:UserWarning:openpyxl")
     def test_date_conversion_overflow(self, request, engine, read_ext):
         # GH 10001 : pandas.ExcelFile ignore parse_dates=False
         if engine == "pyxlsb":

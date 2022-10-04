@@ -12,6 +12,9 @@ from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class Dim2CompatTests(BaseExtensionTests):
+    # Note: these are ONLY for ExtensionArray subclasses that support 2D arrays.
+    #  i.e. not for pyarrow-backed EAs.
+
     def test_transpose(self, data):
         arr2d = data.repeat(2).reshape(-1, 2)
         shape = arr2d.shape

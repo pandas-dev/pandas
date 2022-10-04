@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from collections import abc
 import csv
+import inspect
 import sys
 from textwrap import fill
 from typing import (
@@ -38,6 +39,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     Appender,
+    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
 )
 from pandas.util._exceptions import find_stack_level
@@ -57,6 +59,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import (
     IOHandles,
     get_handle,
+    stringify_path,
     validate_header_arg,
 )
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
@@ -162,6 +165,10 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
+
+    .. deprecated:: 1.5.0
+        Not implemented, and a new argument to specify the pattern for the
+        names of duplicated columns will be added instead
 dtype : Type name or dict of column -> type, optional
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
     'c': 'Int64'}}
@@ -499,7 +506,7 @@ def validate_integer(name, val: None, min_val=...) -> None:
 
 
 @overload
-def validate_integer(name, val: int | float, min_val=...) -> int:
+def validate_integer(name, val: float, min_val=...) -> int:
     ...
 
 
@@ -845,6 +852,7 @@ def read_csv(
     ...
 
 
+@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @Appender(
     _doc_read_csv_and_table.format(
@@ -1183,6 +1191,7 @@ def read_table(
     ...
 
 
+@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @Appender(
     _doc_read_csv_and_table.format(
@@ -1609,7 +1618,7 @@ class TextFileReader(abc.Iterator):
                     "engine='python'."
                 ),
                 ParserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         index_col = options["index_col"]
@@ -1628,7 +1637,11 @@ class TextFileReader(abc.Iterator):
                     f"The {arg} argument has been deprecated and will be "
                     f"removed in a future version. {depr_default.msg}\n\n"
                 )
-                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+                warnings.warn(
+                    msg,
+                    FutureWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
             else:
                 result[arg] = parser_default
 
@@ -1714,6 +1727,16 @@ class TextFileReader(abc.Iterator):
             if engine == "pyarrow":
                 is_text = False
                 mode = "rb"
+            elif (
+                engine == "c"
+                and self.options.get("encoding", "utf-8") == "utf-8"
+                and isinstance(stringify_path(f), str)
+            ):
+                # c engine can decode utf-8 bytes, adding TextIOWrapper makes
+                # the c-engine especially for memory_map=True far slower
+                is_text = False
+                if "b" not in mode:
+                    mode += "b"
             self.handles = get_handle(
                 f,
                 mode,
@@ -1910,7 +1933,7 @@ def _floatify_na_values(na_values):
 
 def _stringify_na_values(na_values):
     """return a stringified and numeric for these values"""
-    result: list[int | str | float] = []
+    result: list[str | float] = []
     for x in na_values:
         result.append(str(x))
         result.append(x)
@@ -2203,7 +2226,9 @@ def _merge_with_dialect_properties(
 
         if conflict_msgs:
             warnings.warn(
-                "\n\n".join(conflict_msgs), ParserWarning, stacklevel=find_stack_level()
+                "\n\n".join(conflict_msgs),
+                ParserWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         kwds[param] = dialect_val
     return kwds

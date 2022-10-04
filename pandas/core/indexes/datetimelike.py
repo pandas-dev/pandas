@@ -4,6 +4,7 @@ Base and utility classes for tseries type pandas objects.
 from __future__ import annotations
 
 from datetime import datetime
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -222,7 +223,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     def _parse_with_reso(self, label: str):
         # overridden by TimedeltaIndex
-        parsed, reso_str = parsing.parse_time_string(label, self.freq)
+        try:
+            if self.freq is None or hasattr(self.freq, "rule_code"):
+                freq = self.freq
+        except NotImplementedError:
+            freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
+        parsed, reso_str = parsing.parse_time_string(label, freq)
         reso = Resolution.from_attrname(reso_str)
         return parsed, reso
 
@@ -393,7 +399,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             f"{type(self).__name__}.is_type_compatible is deprecated and will be "
             "removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return kind in self._data._infer_matches
 

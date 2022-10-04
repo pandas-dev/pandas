@@ -7,6 +7,7 @@ from functools import (
     partial,
     wraps,
 )
+import inspect
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -131,7 +132,9 @@ def _align_core(terms):
                         f"by more than {ordm:.4g}; performance may suffer."
                     )
                     warnings.warn(
-                        w, category=PerformanceWarning, stacklevel=find_stack_level()
+                        w,
+                        category=PerformanceWarning,
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
 
                 f = partial(ti.reindex, reindexer, axis=axis, copy=False)

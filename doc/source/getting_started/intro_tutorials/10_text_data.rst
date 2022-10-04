@@ -179,7 +179,7 @@ applied to integers, so no ``str`` is used.
 
 Based on the index name of the row (``307``) and the column (``Name``),
 we can do a selection using the ``loc`` operator, introduced in the
-`tutorial on subsetting <3_subset_data.ipynb>`__.
+:ref:`tutorial on subsetting <10min_tut_03_subset>`.
 
 .. raw:: html
 

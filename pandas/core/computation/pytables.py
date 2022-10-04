@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import ast
 from functools import partial
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -12,7 +15,6 @@ from pandas._libs.tslibs import (
     Timestamp,
 )
 from pandas._typing import npt
-from pandas.compat.chainmap import DeepChainMap
 from pandas.errors import UndefinedVariableError
 
 from pandas.core.dtypes.common import is_list_like
@@ -33,6 +35,9 @@ from pandas.io.formats.printing import (
     pprint_thing,
     pprint_thing_encoded,
 )
+
+if TYPE_CHECKING:
+    from pandas.compat.chainmap import DeepChainMap
 
 
 class PyTablesScope(_scope.Scope):

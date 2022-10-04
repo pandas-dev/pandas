@@ -6,6 +6,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import copy
 from functools import partial
+import inspect
 import operator
 from typing import (
     Any,
@@ -25,7 +26,6 @@ from pandas._typing import (
     Axis,
     FilePath,
     IndexLabel,
-    IntervalInclusiveType,
     Level,
     QuantileInterpolation,
     Scalar,
@@ -443,7 +443,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.to_html()`",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
@@ -1479,8 +1479,7 @@ class Styler(StylerRenderer):
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
-        Set the DataFrame of strings added to the ``class`` attribute of ``<td>``
-        HTML elements.
+        Set the ``class`` attribute of ``<td>`` HTML elements.
 
         Parameters
         ----------
@@ -2124,7 +2123,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.applymap()`",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         if other is None:
@@ -2156,7 +2155,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.format(precision=..)`",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         self.precision = precision
         return self.format(precision=precision, na_rep=self.na_rep)
@@ -2668,7 +2667,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.format(na_rep=..)`",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
@@ -2722,7 +2721,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             'this method is deprecated in favour of `Styler.hide(axis="index")`',
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.hide(axis="index", level=level, subset=subset, names=names)
 
@@ -2775,7 +2774,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             'this method is deprecated in favour of `Styler.hide(axis="columns")`',
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.hide(axis="columns", level=level, subset=subset, names=names)
 
@@ -2977,11 +2976,20 @@ class Styler(StylerRenderer):
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
 
+    def _get_numeric_subset_default(self):
+        # Returns a boolean mask indicating where `self.data` has numerical columns.
+        # Choosing a mask as opposed to the column names also works for
+        # boolean column labels (GH47838).
+        return self.data.columns.isin(self.data.select_dtypes(include=np.number))
+
     @doc(
         name="background",
         alt="text",
         image_prefix="bg",
-        text_threshold="",
+        text_threshold="""text_color_threshold : float or int\n
+            Luminance threshold for determining text color in [0, 1]. Facilitates text\n
+            visibility across varying background colors. All text is dark if 0, and\n
+            light if 1, defaults to 0.408.""",
     )
     @Substitution(subset=subset)
     def background_gradient(
@@ -3020,11 +3028,7 @@ class Styler(StylerRenderer):
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         %(subset)s
-        text_color_threshold : float or int
-            {text_threshold}
-            Luminance threshold for determining text color in [0, 1]. Facilitates text
-            visibility across varying background colors. All text is dark if 0, and
-            light if 1, defaults to 0.408.
+        {text_threshold}
         vmin : float, optional
             Minimum data value that corresponds to colormap minimum value.
             If not specified the minimum value of the data (or gmap) will be used.
@@ -3120,7 +3124,7 @@ class Styler(StylerRenderer):
         .. figure:: ../../_static/style/{image_prefix}_axNone_gmap.png
         """
         if subset is None and gmap is None:
-            subset = self.data.select_dtypes(include=np.number).columns
+            subset = self._get_numeric_subset_default()
 
         self.apply(
             _background_gradient,
@@ -3141,7 +3145,7 @@ class Styler(StylerRenderer):
         name="text",
         alt="background",
         image_prefix="tg",
-        text_threshold="This argument is ignored (only used in `background_gradient`).",
+        text_threshold="",
     )
     def text_gradient(
         self,
@@ -3155,7 +3159,7 @@ class Styler(StylerRenderer):
         gmap: Sequence | None = None,
     ) -> Styler:
         if subset is None and gmap is None:
-            subset = self.data.select_dtypes(include=np.number).columns
+            subset = self._get_numeric_subset_default()
 
         return self.apply(
             _background_gradient,
@@ -3173,8 +3177,7 @@ class Styler(StylerRenderer):
     @Substitution(subset=subset)
     def set_properties(self, subset: Subset | None = None, **kwargs) -> Styler:
         """
-        Set defined CSS-properties to each ``<td>`` HTML element within the given
-        subset.
+        Set defined CSS-properties to each ``<td>`` HTML element for the given subset.
 
         Parameters
         ----------
@@ -3213,7 +3216,7 @@ class Styler(StylerRenderer):
         cmap: Any | None = None,
         width: float = 100,
         height: float = 100,
-        align: str | float | int | Callable = "mid",
+        align: str | float | Callable = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
         props: str = "width: 10em;",
@@ -3308,7 +3311,7 @@ class Styler(StylerRenderer):
             raise ValueError(f"`height` must be a value in [0, 100], got {height}")
 
         if subset is None:
-            subset = self.data.select_dtypes(include=np.number).columns
+            subset = self._get_numeric_subset_default()
 
         self.apply(
             _bar,
@@ -3332,7 +3335,7 @@ class Styler(StylerRenderer):
         color: str | None = None,
         subset: Subset | None = None,
         props: str | None = None,
-        null_color=lib.no_default,
+        null_color: str | lib.NoDefault = lib.no_default,
     ) -> Styler:
         """
         Highlight missing values with a style.
@@ -3377,7 +3380,7 @@ class Styler(StylerRenderer):
             warnings.warn(
                 "`null_color` is deprecated: use `color` instead",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         if color is None and null_color == lib.no_default:
@@ -3484,7 +3487,7 @@ class Styler(StylerRenderer):
         axis: Axis | None = 0,
         left: Scalar | Sequence | None = None,
         right: Scalar | Sequence | None = None,
-        inclusive: IntervalInclusiveType = "both",
+        inclusive: str = "both",
         props: str | None = None,
     ) -> Styler:
         """
@@ -3589,7 +3592,7 @@ class Styler(StylerRenderer):
         q_left: float = 0.0,
         q_right: float = 1.0,
         interpolation: QuantileInterpolation = "linear",
-        inclusive: IntervalInclusiveType = "both",
+        inclusive: str = "both",
         props: str | None = None,
     ) -> Styler:
         """
@@ -3974,7 +3977,7 @@ def _highlight_between(
     props: str,
     left: Scalar | Sequence | np.ndarray | NDFrame | None = None,
     right: Scalar | Sequence | np.ndarray | NDFrame | None = None,
-    inclusive: bool | IntervalInclusiveType = True,
+    inclusive: bool | str = True,
 ) -> np.ndarray:
     """
     Return an array of css props based on condition of data values within given range.
@@ -4039,7 +4042,7 @@ def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarra
 
 def _bar(
     data: NDFrame,
-    align: str | float | int | Callable,
+    align: str | float | Callable,
     colors: str | list | tuple,
     cmap: Any,
     width: float,

@@ -680,12 +680,12 @@ Converting the raw grades to a categorical data type:
     df["grade"] = df["raw_grade"].astype("category")
     df["grade"]
 
-Rename the categories to more meaningful names (assigning to
-:meth:`Series.cat.categories` is in place!):
+Rename the categories to more meaningful names:
 
 .. ipython:: python
 
-    df["grade"].cat.categories = ["very good", "good", "very bad"]
+    new_categories = ["very good", "good", "very bad"]
+    df["grade"] = df["grade"].cat.rename_categories(new_categories)
 
 Reorder the categories and simultaneously add the missing categories (methods under :meth:`Series.cat` return a new :class:`Series` by default):
 

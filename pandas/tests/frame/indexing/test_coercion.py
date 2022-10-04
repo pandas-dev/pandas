@@ -164,7 +164,6 @@ def test_12499():
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.xfail(reason="Too many columns cast to float64")
 def test_20476():
     mi = MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
     df = DataFrame(-1, index=range(3), columns=mi)

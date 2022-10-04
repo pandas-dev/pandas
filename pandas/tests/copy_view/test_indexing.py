@@ -150,7 +150,7 @@ def test_subset_column_slice(using_copy_on_write, using_array_manager, dtype):
     ids=["slice", "mask", "array"],
 )
 def test_subset_loc_rows_columns(
-    dtype, row_indexer, column_indexer, using_array_manager
+    dtype, row_indexer, column_indexer, using_array_manager, using_copy_on_write
 ):
     # Case: taking a subset of the rows+columns of a DataFrame using .loc
     # + afterwards modifying the subset
@@ -177,7 +177,7 @@ def test_subset_loc_rows_columns(
     if (
         isinstance(row_indexer, slice)
         and isinstance(column_indexer, slice)
-        and (using_array_manager or dtype == "int64")
+        and (using_array_manager or (dtype == "int64" and not using_copy_on_write))
     ):
         df_orig.iloc[1, 1] = 0
     tm.assert_frame_equal(df, df_orig)
@@ -197,7 +197,7 @@ def test_subset_loc_rows_columns(
     ids=["slice", "mask", "array"],
 )
 def test_subset_iloc_rows_columns(
-    dtype, row_indexer, column_indexer, using_array_manager
+    dtype, row_indexer, column_indexer, using_array_manager, using_copy_on_write
 ):
     # Case: taking a subset of the rows+columns of a DataFrame using .iloc
     # + afterwards modifying the subset
@@ -224,7 +224,7 @@ def test_subset_iloc_rows_columns(
     if (
         isinstance(row_indexer, slice)
         and isinstance(column_indexer, slice)
-        and (using_array_manager or dtype == "int64")
+        and (using_array_manager or (dtype == "int64" and not using_copy_on_write))
     ):
         df_orig.iloc[1, 1] = 0
     tm.assert_frame_equal(df, df_orig)

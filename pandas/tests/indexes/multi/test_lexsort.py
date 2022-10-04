@@ -24,7 +24,10 @@ class TestIsLexsorted:
 
     def test_is_lexsorted_deprecation(self):
         # GH 32259
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="MultiIndex.is_lexsorted is deprecated as a public function",
+        ):
             MultiIndex.from_arrays([["a", "b", "c"], ["d", "f", "e"]]).is_lexsorted()
 
 
@@ -53,5 +56,8 @@ class TestLexsortDepth:
 
     def test_lexsort_depth_deprecation(self):
         # GH 32259
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="MultiIndex.lexsort_depth is deprecated as a public function",
+        ):
             MultiIndex.from_arrays([["a", "b", "c"], ["d", "f", "e"]]).lexsort_depth

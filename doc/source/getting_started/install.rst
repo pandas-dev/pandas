@@ -235,7 +235,7 @@ Dependencies
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`NumPy <https://numpy.org>`__                                    1.19.5
+`NumPy <https://numpy.org>`__                                    1.20.3
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.1
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
 ================================================================ ==========================
@@ -444,10 +444,10 @@ Can be managed as optional_extra with ``pandas[aws, gcp]``, depending on require
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-fsspec                    2021.5.0           Handling files aside from simple local and HTTP
-gcsfs                     2021.5.0           Google Cloud Storage access
+fsspec                    2021.7.0           Handling files aside from simple local and HTTP
+gcsfs                     2021.7.0           Google Cloud Storage access
 pandas-gbq                0.15.0             Google Big Query access
-s3fs                      2021.05.0          Amazon S3 access
+s3fs                      2021.08.0          Amazon S3 access
 ========================= ================== =============================================================
 
 Clipboard

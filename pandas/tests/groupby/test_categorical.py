@@ -14,6 +14,7 @@ from pandas import (
     qcut,
 )
 import pandas._testing as tm
+from pandas.tests.groupby import get_groupby_method_args
 
 
 def cartesian_product_for_groupers(result, args, names, fill_value=np.NaN):
@@ -1373,7 +1374,7 @@ def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, r
             "value": [0.1] * 4,
         }
     )
-    args = {"nth": [0]}.get(reduction_func, [])
+    args = get_groupby_method_args(reduction_func, df)
 
     expected_length = 4 if observed else 16
 
@@ -1409,7 +1410,7 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
         }
     )
     unobserved = [tuple("AC"), tuple("BC"), tuple("CA"), tuple("CB"), tuple("CC")]
-    args = {"nth": [0]}.get(reduction_func, [])
+    args = get_groupby_method_args(reduction_func, df)
 
     series_groupby = df.groupby(["cat_1", "cat_2"], observed=False)["value"]
     agg = getattr(series_groupby, reduction_func)
@@ -1450,7 +1451,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
 
     df_grp = df.groupby(["cat_1", "cat_2"], observed=True)
 
-    args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
+    args = get_groupby_method_args(reduction_func, df)
     with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
         res = getattr(df_grp, reduction_func)(*args)
 
@@ -1482,7 +1483,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
 
     df_grp = df.groupby(["cat_1", "cat_2"], observed=observed)
 
-    args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
+    args = get_groupby_method_args(reduction_func, df)
     with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
         res = getattr(df_grp, reduction_func)(*args)
 
@@ -1827,3 +1828,20 @@ def test_groupby_categorical_aggregate_functions():
     )
 
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_categorical_dropna(observed, dropna):
+    # GH#48645 - dropna should have no impact on the result when there are no NA values
+    cat = Categorical([1, 2], categories=[1, 2, 3])
+    df = DataFrame({"x": Categorical([1, 2], categories=[1, 2, 3]), "y": [3, 4]})
+    gb = df.groupby("x", observed=observed, dropna=dropna)
+    result = gb.sum()
+
+    if observed:
+        expected = DataFrame({"y": [3, 4]}, index=cat)
+    else:
+        index = CategoricalIndex([1, 2, 3], [1, 2, 3])
+        expected = DataFrame({"y": [3, 4, 0]}, index=index)
+    expected.index.name = "x"
+
+    tm.assert_frame_equal(result, expected)
