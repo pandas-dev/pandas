@@ -7,6 +7,7 @@ import pytest
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 
 from pandas import (
+    NaT,
     Timedelta,
     offsets,
     to_timedelta,
@@ -371,6 +372,17 @@ def test_timedelta_constructor_identity():
     assert result is expected
 
 
+def test_timedelta_pass_td_and_kwargs_raises():
+    # don't silently ignore the kwargs GH#48898
+    td = Timedelta(days=1)
+    msg = (
+        "Cannot pass both a Timedelta input and timedelta keyword arguments, "
+        r"got \['days'\]"
+    )
+    with pytest.raises(ValueError, match=msg):
+        Timedelta(td, days=2)
+
+
 @pytest.mark.parametrize(
     "constructor, value, unit, expectation",
     [
@@ -402,3 +414,9 @@ def test_string_without_numbers(value):
     )
     with pytest.raises(ValueError, match=msg):
         Timedelta(value)
+
+
+def test_timedelta_new_npnat():
+    # GH#48898
+    nat = np.timedelta64("NaT", "h")
+    assert Timedelta(nat) is NaT
