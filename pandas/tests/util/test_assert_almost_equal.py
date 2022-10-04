@@ -462,12 +462,13 @@ Iterable values are different \\(50\\.0 %\\)
 
 
 @pytest.mark.parametrize(
-    "obj,description",
+    "obj",
     [
-        (MockNumpyLikeArray(np.ndarray((2,) * 1)), "duck-ndarray-1d"),
-        (MockNumpyLikeArray(np.array([])), "duck-ndarray-1d-empty"),
-        (MockNumpyLikeArray(np.array(2)), "duck-ndarray-0d"),
+        MockNumpyLikeArray(np.ndarray((2,) * 1)),
+        MockNumpyLikeArray(np.array([])),
+        MockNumpyLikeArray(np.array(2)),
     ],
+    ids=["duck-ndarray-1d", "duck-ndarray-1d-empty", "duck-ndarray-0d"],
 )
-def test_assert_almost_equal_not_iterable(obj, description):
+def test_assert_almost_equal_not_iterable(obj):
     tm.assert_almost_equal(obj, obj)

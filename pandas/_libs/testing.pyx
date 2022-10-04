@@ -22,9 +22,11 @@ from pandas.core.dtypes.missing import (
 
 cdef bint isiterable(obj):
     if hasattr(obj, '__iter__'):
-        if hasattr(obj, "ndim") and obj.ndim == 0:
+        try:
+            iter(obj)
+            return True
+        except (TypeError, IndexError) as e:
             return False
-        return True
     return False
 
 
