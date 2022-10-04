@@ -50,7 +50,7 @@ class ReplaceList:
         self.df.replace([np.inf, -np.inf], np.nan, inplace=inplace)
 
     def time_replace_list_one_match(self, inplace):
-        # the 1 can be held in self._df.blocks[0], while the inf and -inf cant
+        # the 1 can be held in self._df.blocks[0], while the inf and -inf can't
         self.df.replace([np.inf, -np.inf, 1], np.nan, inplace=inplace)
 
 

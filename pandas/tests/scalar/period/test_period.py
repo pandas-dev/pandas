@@ -301,7 +301,7 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period(month=1)
 
-        msg = "Given date string not likely a datetime"
+        msg = "Given date string -2000 not likely a datetime"
         with pytest.raises(ValueError, match=msg):
             Period("-2000", "A")
         msg = "day is out of range for month"
@@ -840,6 +840,7 @@ class TestPeriodProperties:
             assert isinstance(p1, Period)
             assert isinstance(p2, Period)
 
+    @staticmethod
     def _period_constructor(bound, offset):
         return Period(
             year=bound.year,

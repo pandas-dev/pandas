@@ -15,8 +15,10 @@ import pandas.util._test_decorators as td
 from pandas import (
     Index,
     Period,
+    PeriodIndex,
     Series,
     Timestamp,
+    arrays,
     date_range,
 )
 import pandas._testing as tm
@@ -375,3 +377,32 @@ class TestTimeDeltaConverter:
         tdc = converter.TimeSeries_TimedeltaFormatter()
         monkeypatch.setattr(tdc, "axis", mock_axis())
         tdc(0.0, 0)
+
+
+@pytest.mark.parametrize("year_span", [11.25, 30, 80, 150, 400, 800, 1500, 2500, 3500])
+# The range is limited to 11.25 at the bottom by if statements in
+# the _quarterly_finder() function
+def test_quarterly_finder(year_span):
+    vmin = -1000
+    vmax = vmin + year_span * 4
+    span = vmax - vmin + 1
+    if span < 45:  # the quarterly finder is only invoked if the span is >= 45
+        return
+    nyears = span / 4
+    (min_anndef, maj_anndef) = converter._get_default_annual_spacing(nyears)
+    result = converter._quarterly_finder(vmin, vmax, "Q")
+    quarters = PeriodIndex(
+        arrays.PeriodArray(np.array([x[0] for x in result]), freq="Q")
+    )
+    majors = np.array([x[1] for x in result])
+    minors = np.array([x[2] for x in result])
+    major_quarters = quarters[majors]
+    minor_quarters = quarters[minors]
+    check_major_years = major_quarters.year % maj_anndef == 0
+    check_minor_years = minor_quarters.year % min_anndef == 0
+    check_major_quarters = major_quarters.quarter == 1
+    check_minor_quarters = minor_quarters.quarter == 1
+    assert np.all(check_major_years)
+    assert np.all(check_minor_years)
+    assert np.all(check_major_quarters)
+    assert np.all(check_minor_quarters)

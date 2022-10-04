@@ -1567,6 +1567,20 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "compression",
+        ["", ".gz", ".bz2", ".tar"],
+    )
+    def test_read_json_with_very_long_file_path(self, compression):
+        # GH 46718
+        long_json_path = f'{"a" * 1000}.json{compression}'
+        with pytest.raises(
+            FileNotFoundError, match=f"File {long_json_path} does not exist"
+        ):
+            # path too long for Windows is handled in file_exists() but raises in
+            # _get_data_from_filepath()
+            read_json(long_json_path)
+
+    @pytest.mark.parametrize(
         "date_format,key", [("epoch", 86400000), ("iso", "P1DT0H0M0S")]
     )
     def test_timedelta_as_label(self, date_format, key):
@@ -1893,4 +1907,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_complex_data_tojson(self, data, expected):
         # GH41174
         result = data.to_json()
+        assert result == expected
+
+    def test_json_uint64(self):
+        # GH21073
+        expected = (
+            '{"columns":["col1"],"index":[0,1],'
+            '"data":[[13342205958987758245],[12388075603347835679]]}'
+        )
+        df = DataFrame(data={"col1": [13342205958987758245, 12388075603347835679]})
+        result = df.to_json(orient="split")
         assert result == expected

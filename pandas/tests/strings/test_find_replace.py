@@ -25,7 +25,11 @@ def test_contains(any_string_dtype):
     values = Series(values, dtype=any_string_dtype)
     pat = "mmm[_]+"
 
-    result = values.str.contains(pat)
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
+    ):
+        result = values.str.contains(pat)
     expected_dtype = "object" if any_string_dtype == "object" else "boolean"
     expected = Series(
         np.array([False, np.nan, True, True, False], dtype=np.object_),
@@ -88,7 +92,11 @@ def test_contains(any_string_dtype):
     )
     tm.assert_series_equal(result, expected)
 
-    result = values.str.contains(pat, na=False)
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
+    ):
+        result = values.str.contains(pat, na=False)
     expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
     expected = Series(np.array([False, False, True, True]), dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
@@ -181,7 +189,11 @@ def test_contains_moar(any_string_dtype):
         dtype=any_string_dtype,
     )
 
-    result = s.str.contains("a")
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
+    ):
+        result = s.str.contains("a")
     expected_dtype = "object" if any_string_dtype == "object" else "boolean"
     expected = Series(
         [False, False, False, True, True, False, np.nan, False, False, True],
@@ -279,21 +291,22 @@ def test_contains_nan(any_string_dtype):
 # --------------------------------------------------------------------------------------
 
 
+@pytest.mark.parametrize("pat", ["foo", ("foo", "baz")])
 @pytest.mark.parametrize("dtype", [None, "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
 @pytest.mark.parametrize("na", [True, False])
-def test_startswith(dtype, null_value, na):
+def test_startswith(pat, dtype, null_value, na):
     # add category dtype parametrizations for GH-36241
     values = Series(
         ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
         dtype=dtype,
     )
 
-    result = values.str.startswith("foo")
+    result = values.str.startswith(pat)
     exp = Series([False, np.nan, True, False, False, np.nan, True])
     tm.assert_series_equal(result, exp)
 
-    result = values.str.startswith("foo", na=na)
+    result = values.str.startswith(pat, na=na)
     exp = Series([False, na, True, False, False, na, True])
     tm.assert_series_equal(result, exp)
 
@@ -339,21 +352,22 @@ def test_startswith_nullable_string_dtype(nullable_string_dtype, na):
 # --------------------------------------------------------------------------------------
 
 
+@pytest.mark.parametrize("pat", ["foo", ("foo", "baz")])
 @pytest.mark.parametrize("dtype", [None, "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
 @pytest.mark.parametrize("na", [True, False])
-def test_endswith(dtype, null_value, na):
+def test_endswith(pat, dtype, null_value, na):
     # add category dtype parametrizations for GH-36241
     values = Series(
         ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
         dtype=dtype,
     )
 
-    result = values.str.endswith("foo")
+    result = values.str.endswith(pat)
     exp = Series([False, np.nan, False, False, True, np.nan, True])
     tm.assert_series_equal(result, exp)
 
-    result = values.str.endswith("foo", na=na)
+    result = values.str.endswith(pat, na=na)
     exp = Series([False, na, False, False, True, na, True])
     tm.assert_series_equal(result, exp)
 
@@ -619,7 +633,11 @@ def test_replace_moar(any_string_dtype):
         dtype=any_string_dtype,
     )
 
-    result = ser.str.replace("A", "YYY")
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
+    ):
+        result = ser.str.replace("A", "YYY")
     expected = Series(
         ["YYY", "B", "C", "YYYaba", "Baca", "", np.nan, "CYYYBYYY", "dog", "cat"],
         dtype=any_string_dtype,
@@ -727,7 +745,11 @@ def test_replace_regex_single_character(regex, any_string_dtype):
         ):
             result = s.str.replace(".", "a", regex=regex)
     else:
-        result = s.str.replace(".", "a", regex=regex)
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
+        ):
+            result = s.str.replace(".", "a", regex=regex)
 
     expected = Series(["aab", "a", "b", np.nan, ""], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)

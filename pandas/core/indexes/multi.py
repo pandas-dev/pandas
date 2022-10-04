@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import wraps
+import inspect
 from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
@@ -14,6 +15,7 @@ from typing import (
     Sequence,
     Tuple,
     cast,
+    overload,
 )
 import warnings
 
@@ -28,9 +30,14 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import duplicated
 from pandas._typing import (
+    AnyAll,
     AnyArrayLike,
+    Axis,
+    DropKeep,
     DtypeObj,
     F,
+    IgnoreRaise,
+    IndexLabel,
     Scalar,
     Shape,
     npt,
@@ -54,6 +61,7 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_categorical_dtype,
+    is_extension_array_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -305,10 +313,10 @@ class MultiIndex(Index):
         sortorder=None,
         names=None,
         dtype=None,
-        copy=False,
+        copy: bool = False,
         name=None,
         verify_integrity: bool = True,
-    ):
+    ) -> MultiIndex:
 
         # compat with Index
         if name is not None:
@@ -363,8 +371,9 @@ class MultiIndex(Index):
         """
         null_mask = isna(level)
         if np.any(null_mask):
-            # Incompatible types in assignment (expression has type
-            # "ndarray[Any, dtype[Any]]", variable has type "List[Any]")
+            # error: Incompatible types in assignment
+            # (expression has type "ndarray[Any, dtype[Any]]",
+            # variable has type "List[Any]")
             code = np.where(null_mask[code], -1, code)  # type: ignore[assignment]
         return code
 
@@ -431,7 +440,12 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> MultiIndex:
+    def from_arrays(
+        cls,
+        arrays,
+        sortorder=None,
+        names: Sequence[Hashable] | Hashable | lib.NoDefault = lib.no_default,
+    ) -> MultiIndex:
         """
         Convert arrays to MultiIndex.
 
@@ -502,7 +516,7 @@ class MultiIndex(Index):
         cls,
         tuples: Iterable[tuple[Hashable, ...]],
         sortorder: int | None = None,
-        names: Sequence[Hashable] | None = None,
+        names: Sequence[Hashable] | Hashable = None,
     ) -> MultiIndex:
         """
         Convert list of tuples to MultiIndex.
@@ -561,7 +575,9 @@ class MultiIndex(Index):
         if len(tuples) == 0:
             if names is None:
                 raise TypeError("Cannot infer number of levels from empty list")
-            arrays = [[]] * len(names)
+            # error: Argument 1 to "len" has incompatible type "Hashable";
+            # expected "Sized"
+            arrays = [[]] * len(names)  # type: ignore[arg-type]
         elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = np.asarray(tuples._values)
@@ -577,7 +593,10 @@ class MultiIndex(Index):
 
     @classmethod
     def from_product(
-        cls, iterables, sortorder=None, names=lib.no_default
+        cls,
+        iterables: Sequence[Iterable[Hashable]],
+        sortorder: int | None = None,
+        names: Sequence[Hashable] | Hashable | lib.NoDefault = lib.no_default,
     ) -> MultiIndex:
         """
         Make a MultiIndex from the cartesian product of multiple iterables.
@@ -763,10 +782,18 @@ class MultiIndex(Index):
         from pandas import Series
 
         names = com.fill_missing_names([level.name for level in self.levels])
-        return Series([level.dtype for level in self.levels], index=names)
+        return Series([level.dtype for level in self.levels], index=Index(names))
 
     def __len__(self) -> int:
         return len(self.codes[0])
+
+    @property
+    def size(self) -> int:
+        """
+        Return the number of elements in the underlying data.
+        """
+        # override Index.size to avoid materializing _values
+        return len(self)
 
     # --------------------------------------------------------------------
     # Levels Methods
@@ -916,7 +943,7 @@ class MultiIndex(Index):
             warnings.warn(
                 "inplace is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         else:
             inplace = False
@@ -1077,7 +1104,7 @@ class MultiIndex(Index):
             warnings.warn(
                 "inplace is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         else:
             inplace = False
@@ -1144,13 +1171,14 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
-    def copy(
+    # error: Signature of "copy" incompatible with supertype "Index"
+    def copy(  # type: ignore[override]
         self,
         names=None,
         dtype=None,
         levels=None,
         codes=None,
-        deep=False,
+        deep: bool = False,
         name=None,
     ):
         """
@@ -1184,20 +1212,23 @@ class MultiIndex(Index):
         This could be potentially expensive on large MultiIndex objects.
         """
         names = self._validate_names(name=name, names=names, deep=deep)
+        keep_id = not deep
         if levels is not None:
             warnings.warn(
                 "parameter levels is deprecated and will be removed in a future "
                 "version. Use the set_levels method instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
+            keep_id = False
         if codes is not None:
             warnings.warn(
                 "parameter codes is deprecated and will be removed in a future "
                 "version. Use the set_codes method instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
+            keep_id = False
 
         if deep:
             from copy import deepcopy
@@ -1219,13 +1250,15 @@ class MultiIndex(Index):
         )
         new_index._cache = self._cache.copy()
         new_index._cache.pop("levels", None)  # GH32669
+        if keep_id:
+            new_index._id = self._id
 
         if dtype:
             warnings.warn(
                 "parameter dtype is deprecated and will be removed in a future "
                 "version. Use the astype method instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             new_index = new_index.astype(dtype)
         return new_index
@@ -1256,7 +1289,7 @@ class MultiIndex(Index):
     def _is_memory_usage_qualified(self) -> bool:
         """return a boolean if we need a qualified .info display"""
 
-        def f(level):
+        def f(level) -> bool:
             return "mixed" in level or "string" in level or "unicode" in level
 
         return any(f(level) for level in self._inferred_type_levels)
@@ -1306,7 +1339,7 @@ class MultiIndex(Index):
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
     def _format_native_types(
-        self, *, na_rep="nan", **kwargs
+        self, *, na_rep: str = "nan", **kwargs
     ) -> npt.NDArray[np.object_]:
         new_levels = []
         new_codes = []
@@ -1359,7 +1392,7 @@ class MultiIndex(Index):
 
         stringified_levels = []
         for lev, level_codes in zip(self.levels, self.codes):
-            na = na_rep if na_rep is not None else _get_na_rep(lev.dtype.type)
+            na = na_rep if na_rep is not None else _get_na_rep(lev.dtype)
 
             if len(lev) > 0:
 
@@ -1503,42 +1536,29 @@ class MultiIndex(Index):
 
     @doc(Index._get_grouper_for_level)
     def _get_grouper_for_level(
-        self, mapper, *, level=None
+        self,
+        mapper,
+        *,
+        level=None,
+        dropna: bool = True,
     ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
-        indexer = self.codes[level]
-        level_index = self.levels[level]
-
         if mapper is not None:
+            indexer = self.codes[level]
             # Handle group mapping function and return
             level_values = self.levels[level].take(indexer)
             grouper = level_values.map(mapper)
             return grouper, None, None
 
-        codes, uniques = algos.factorize(indexer, sort=True)
+        values = self.get_level_values(level)
+        codes, uniques = algos.factorize(values, sort=True, use_na_sentinel=dropna)
+        assert isinstance(uniques, Index)
 
-        if len(uniques) > 0 and uniques[0] == -1:
-            # Handle NAs
-            mask = indexer != -1
-            ok_codes, uniques = algos.factorize(indexer[mask], sort=True)
-
-            codes = np.empty(len(indexer), dtype=indexer.dtype)
-            codes[mask] = ok_codes
-            codes[~mask] = -1
-
-        if len(uniques) < len(level_index):
-            # Remove unobserved levels from level_index
-            level_index = level_index.take(uniques)
+        if self.levels[level]._can_hold_na:
+            grouper = uniques.take(codes, fill_value=True)
         else:
-            # break references back to us so that setting the name
-            # on the output of a groupby doesn't reflect back here.
-            level_index = level_index.copy()
+            grouper = uniques.take(codes)
 
-        if level_index._can_hold_na:
-            grouper = level_index.take(codes, fill_value=True)
-        else:
-            grouper = level_index.take(codes)
-
-        return grouper, codes, level_index
+        return grouper, codes, uniques
 
     @cache_readonly
     def inferred_type(self) -> str:
@@ -1574,8 +1594,7 @@ class MultiIndex(Index):
     @cache_readonly
     def is_monotonic_increasing(self) -> bool:
         """
-        return if the index is monotonic increasing (only equal or
-        increasing) values.
+        Return a boolean if the values are equal or increasing.
         """
         if any(-1 in code for code in self.codes):
             return False
@@ -1591,11 +1610,12 @@ class MultiIndex(Index):
             self._get_level_values(i)._values for i in reversed(range(len(self.levels)))
         ]
         try:
-            # Argument 1 to "lexsort" has incompatible type "List[Union[ExtensionArray,
-            # ndarray[Any, Any]]]"; expected "Union[_SupportsArray[dtype[Any]],
+            # error: Argument 1 to "lexsort" has incompatible type
+            # "List[Union[ExtensionArray, ndarray[Any, Any]]]";
+            # expected "Union[_SupportsArray[dtype[Any]],
             # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
-            #  int, float, complex, str, bytes, _NestedSequence[Union[bool, int, float,
-            #  complex, str, bytes]]]"  [arg-type]
+            # int, float, complex, str, bytes, _NestedSequence[Union
+            # [bool, int, float, complex, str, bytes]]]"
             sort_order = np.lexsort(values)  # type: ignore[arg-type]
             return Index(sort_order).is_monotonic_increasing
         except TypeError:
@@ -1606,8 +1626,7 @@ class MultiIndex(Index):
     @cache_readonly
     def is_monotonic_decreasing(self) -> bool:
         """
-        return if the index is monotonic decreasing (only equal or
-        decreasing) values.
+        Return a boolean if the values are equal or decreasing.
         """
         # monotonic decreasing if and only if reverse is monotonic increasing
         return self[::-1].is_monotonic_increasing
@@ -1618,7 +1637,7 @@ class MultiIndex(Index):
         return [i.inferred_type for i in self.levels]
 
     @doc(Index.duplicated)
-    def duplicated(self, keep="first") -> npt.NDArray[np.bool_]:
+    def duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
         shape = tuple(len(lev) for lev in self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
 
@@ -1635,7 +1654,7 @@ class MultiIndex(Index):
         raise NotImplementedError("isna is not defined for MultiIndex")
 
     @doc(Index.dropna)
-    def dropna(self, how: str = "any") -> MultiIndex:
+    def dropna(self, how: AnyAll = "any") -> MultiIndex:
         nans = [level_codes == -1 for level_codes in self.codes]
         if how == "any":
             indexer = np.any(nans, axis=0)
@@ -1711,7 +1730,7 @@ class MultiIndex(Index):
         Index(['d', 'e', 'f'], dtype='object', name='level_2')
 
         If a level contains missing values, the return type of the level
-        maybe casted to ``float``.
+        may be cast to ``float``.
 
         >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).dtypes
         level_0    int64
@@ -1728,7 +1747,7 @@ class MultiIndex(Index):
     def unique(self, level=None):
 
         if level is None:
-            return super().unique()
+            return self.drop_duplicates()
         else:
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
@@ -1802,7 +1821,7 @@ class MultiIndex(Index):
                 "the future `None` will be used as the name of the resulting "
                 "DataFrame column.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             name = lib.no_default
 
@@ -1834,7 +1853,9 @@ class MultiIndex(Index):
             result.index = self
         return result
 
-    def to_flat_index(self) -> Index:
+    # error: Return type "Index" of "to_flat_index" incompatible with return type
+    # "MultiIndex" in supertype "Index"
+    def to_flat_index(self) -> Index:  # type: ignore[override]
         """
         Convert a MultiIndex to an Index of Tuples containing the level values.
 
@@ -1869,7 +1890,7 @@ class MultiIndex(Index):
             "MultiIndex.is_lexsorted is deprecated as a public function, "
             "users should use MultiIndex.is_monotonic_increasing instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self._is_lexsorted()
 
@@ -1910,10 +1931,10 @@ class MultiIndex(Index):
     @property
     def lexsort_depth(self) -> int:
         warnings.warn(
-            "MultiIndex.is_lexsorted is deprecated as a public function, "
+            "MultiIndex.lexsort_depth is deprecated as a public function, "
             "users should use MultiIndex.is_monotonic_increasing instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self._lexsort_depth
 
@@ -2156,7 +2177,7 @@ class MultiIndex(Index):
     def take(
         self: MultiIndex,
         indices,
-        axis: int = 0,
+        axis: Axis = 0,
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
@@ -2202,23 +2223,31 @@ class MultiIndex(Index):
         if all(
             (isinstance(o, MultiIndex) and o.nlevels >= self.nlevels) for o in other
         ):
-            arrays = []
+            arrays, names = [], []
             for i in range(self.nlevels):
                 label = self._get_level_values(i)
                 appended = [o._get_level_values(i) for o in other]
                 arrays.append(label.append(appended))
-            return MultiIndex.from_arrays(arrays, names=self.names)
+                single_label_name = all(label.name == x.name for x in appended)
+                names.append(label.name if single_label_name else None)
+            return MultiIndex.from_arrays(arrays, names=names)
 
         to_concat = (self._values,) + tuple(k._values for k in other)
         new_tuples = np.concatenate(to_concat)
 
         # if all(isinstance(x, MultiIndex) for x in other):
         try:
-            return MultiIndex.from_tuples(new_tuples, names=self.names)
+            # We only get here if other contains at least one index with tuples,
+            # setting names to None automatically
+            return MultiIndex.from_tuples(new_tuples)
         except (TypeError, IndexError):
             return Index._with_infer(new_tuples)
 
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
+        if len(args) == 0 and len(kwargs) == 0:
+            # np.lexsort is significantly faster than self._values.argsort()
+            values = [self._get_level_values(i) for i in reversed(range(self.nlevels))]
+            return np.lexsort(values)
         return self._values.argsort(*args, **kwargs)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
@@ -2238,7 +2267,13 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
 
-    def drop(self, codes, level=None, errors="raise"):
+    # error: Signature of "drop" incompatible with supertype "Index"
+    def drop(  # type: ignore[override]
+        self,
+        codes,
+        level: Index | np.ndarray | Iterable[Hashable] | None = None,
+        errors: IgnoreRaise = "raise",
+    ) -> MultiIndex:
         """
         Make new MultiIndex with passed list of codes deleted
 
@@ -2279,7 +2314,7 @@ class MultiIndex(Index):
                             "dropping on a non-lexsorted multi-index "
                             "without a level parameter may impact performance.",
                             PerformanceWarning,
-                            stacklevel=find_stack_level(),
+                            stacklevel=find_stack_level(inspect.currentframe()),
                         )
                     loc = loc.nonzero()[0]
                     inds.extend(loc)
@@ -2292,7 +2327,9 @@ class MultiIndex(Index):
 
         return self.delete(inds)
 
-    def _drop_from_level(self, codes, level, errors="raise") -> MultiIndex:
+    def _drop_from_level(
+        self, codes, level, errors: IgnoreRaise = "raise"
+    ) -> MultiIndex:
         codes = com.index_labels_to_array(codes)
         i = self._get_level_number(level)
         index = self.levels[i]
@@ -2436,7 +2473,10 @@ class MultiIndex(Index):
         ]
 
     def sortlevel(
-        self, level=0, ascending: bool = True, sort_remaining: bool = True
+        self,
+        level: IndexLabel = 0,
+        ascending: bool | list[bool] = True,
+        sort_remaining: bool = True,
     ) -> tuple[MultiIndex, npt.NDArray[np.intp]]:
         """
         Sort MultiIndex at the requested level.
@@ -2489,9 +2529,13 @@ class MultiIndex(Index):
                     (0, 1)],
                    ), array([0, 1]))
         """
-        if isinstance(level, (str, int)):
+        if not is_list_like(level):
             level = [level]
-        level = [self._get_level_number(lev) for lev in level]
+        # error: Item "Hashable" of "Union[Hashable, Sequence[Hashable]]" has
+        # no attribute "__iter__" (not iterable)
+        level = [
+            self._get_level_number(lev) for lev in level  # type: ignore[union-attr]
+        ]
         sortorder = None
 
         # we have a directed ordering via ascending
@@ -2654,7 +2698,10 @@ class MultiIndex(Index):
         return ci.get_indexer_for(target)
 
     def get_slice_bound(
-        self, label: Hashable | Sequence[Hashable], side: str, kind=lib.no_default
+        self,
+        label: Hashable | Sequence[Hashable],
+        side: Literal["left", "right"],
+        kind=lib.no_default,
     ) -> int:
         """
         For an ordered MultiIndex, compute slice bound
@@ -2769,7 +2816,7 @@ class MultiIndex(Index):
         # happens in get_slice_bound method), but it adds meaningful doc.
         return super().slice_locs(start, end, step)
 
-    def _partial_tup_index(self, tup: tuple, side="left"):
+    def _partial_tup_index(self, tup: tuple, side: Literal["left", "right"] = "left"):
         if len(tup) > self._lexsort_depth:
             raise UnsortedIndexError(
                 f"Key length ({len(tup)}) was greater than MultiIndex lexsort depth "
@@ -2952,7 +2999,7 @@ class MultiIndex(Index):
         warnings.warn(
             "indexing past lexsort depth may impact performance.",
             PerformanceWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         loc = np.arange(start, stop, dtype=np.intp)
@@ -2968,7 +3015,7 @@ class MultiIndex(Index):
 
         return _maybe_to_slice(loc) if len(loc) != stop - start else slice(start, stop)
 
-    def get_loc_level(self, key, level=0, drop_level: bool = True):
+    def get_loc_level(self, key, level: IndexLabel = 0, drop_level: bool = True):
         """
         Get location and sliced index for requested label(s)/level(s).
 
@@ -3391,7 +3438,7 @@ class MultiIndex(Index):
                                 # TODO: how to handle IntervalIndex level?
                                 #  (no test cases)
                                 FutureWarning,
-                                stacklevel=find_stack_level(),
+                                stacklevel=find_stack_level(inspect.currentframe()),
                             )
                             continue
                         else:
@@ -3453,22 +3500,35 @@ class MultiIndex(Index):
         -------
         indexer : a sorted position indexer of self ordered as seq
         """
-        # If the index is lexsorted and the list_like label in seq are sorted
-        # then we do not need to sort
-        if self._is_lexsorted():
-            need_sort = False
-            for i, k in enumerate(seq):
-                if is_list_like(k):
-                    if not need_sort:
-                        k_codes = self.levels[i].get_indexer(k)
-                        k_codes = k_codes[k_codes >= 0]  # Filter absent keys
-                        # True if the given codes are not ordered
-                        need_sort = (k_codes[:-1] > k_codes[1:]).any()
-                elif isinstance(k, slice) and k.step is not None and k.step < 0:
+
+        # check if sorting is necessary
+        need_sort = False
+        for i, k in enumerate(seq):
+            if com.is_null_slice(k) or com.is_bool_indexer(k) or is_scalar(k):
+                pass
+            elif is_list_like(k):
+                if len(k) <= 1:  # type: ignore[arg-type]
+                    pass
+                elif self._is_lexsorted():
+                    # If the index is lexsorted and the list_like label
+                    # in seq are sorted then we do not need to sort
+                    k_codes = self.levels[i].get_indexer(k)
+                    k_codes = k_codes[k_codes >= 0]  # Filter absent keys
+                    # True if the given codes are not ordered
+                    need_sort = (k_codes[:-1] > k_codes[1:]).any()
+                else:
                     need_sort = True
-            # Bail out if both index and seq are sorted
-            if not need_sort:
-                return indexer
+            elif isinstance(k, slice):
+                if self._is_lexsorted():
+                    need_sort = k.step is not None and k.step < 0
+                else:
+                    need_sort = True
+            else:
+                need_sort = True
+            if need_sort:
+                break
+        if not need_sort:
+            return indexer
 
         n = len(self)
         keys: tuple[np.ndarray, ...] = ()
@@ -3625,17 +3685,38 @@ class MultiIndex(Index):
         if (
             any(-1 in code for code in self.codes)
             and any(-1 in code for code in other.codes)
-            or self.has_duplicates
             or other.has_duplicates
         ):
-            # This is only necessary if both sides have nans or one has dups,
+            # This is only necessary if both sides have nans or other has dups,
             # fast_unique_multiple is faster
             result = super()._union(other, sort)
+
+            if isinstance(result, MultiIndex):
+                return result
+            return MultiIndex.from_arrays(
+                zip(*result), sortorder=None, names=result_names
+            )
+
         else:
             rvals = other._values.astype(object, copy=False)
-            result = lib.fast_unique_multiple([self._values, rvals], sort=sort)
+            right_missing = lib.fast_unique_multiple(self._values, rvals)
+            if right_missing:
+                result = self.append(other.take(right_missing))
+            else:
+                result = self._get_reconciled_name_object(other)
 
-        return MultiIndex.from_arrays(zip(*result), sortorder=None, names=result_names)
+            if sort is None:
+                try:
+                    result = result.sort_values()
+                except TypeError:
+                    warnings.warn(
+                        "The values in the array are unorderable. "
+                        "Pass `sort=False` to suppress this warning.",
+                        RuntimeWarning,
+                        stacklevel=find_stack_level(inspect.currentframe()),
+                    )
+                    pass
+            return result
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return is_object_dtype(dtype)
@@ -3648,9 +3729,8 @@ class MultiIndex(Index):
         """
         names = self._maybe_match_names(other)
         if self.names != names:
-            # Incompatible return value type (got "Optional[MultiIndex]", expected
-            # "MultiIndex")
-            return self.rename(names)  # type: ignore[return-value]
+            # error: Cannot determine type of "rename"
+            return self.rename(names)  # type: ignore[has-type]
         return self
 
     def _maybe_match_names(self, other):
@@ -3672,29 +3752,15 @@ class MultiIndex(Index):
 
     def _wrap_intersection_result(self, other, result) -> MultiIndex:
         _, result_names = self._convert_can_do_setop(other)
+        return result.set_names(result_names)
 
-        if len(result) == 0:
-            return MultiIndex(
-                levels=self.levels,
-                codes=[[]] * self.nlevels,
-                names=result_names,
-                verify_integrity=False,
-            )
-        else:
-            return MultiIndex.from_arrays(zip(*result), sortorder=0, names=result_names)
-
-    def _wrap_difference_result(self, other, result) -> MultiIndex:
+    def _wrap_difference_result(self, other, result: MultiIndex) -> MultiIndex:
         _, result_names = self._convert_can_do_setop(other)
 
         if len(result) == 0:
-            return MultiIndex(
-                levels=[[]] * self.nlevels,
-                codes=[[]] * self.nlevels,
-                names=result_names,
-                verify_integrity=False,
-            )
+            return result.remove_unused_levels().set_names(result_names)
         else:
-            return MultiIndex.from_tuples(result, sortorder=0, names=result_names)
+            return result.set_names(result_names)
 
     def _convert_can_do_setop(self, other):
         result_names = self.names
@@ -3801,8 +3867,7 @@ class MultiIndex(Index):
     @doc(Index.isin)
     def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
         if level is None:
-            values = MultiIndex.from_tuples(values, names=self.names)._values
-            return algos.isin(self._values, values)
+            return MultiIndex.from_tuples(algos.unique(values)).get_indexer(self) != -1
         else:
             num = self._get_level_number(level)
             levs = self.get_level_values(num)
@@ -3811,15 +3876,30 @@ class MultiIndex(Index):
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
 
+    @overload
+    def set_names(
+        self, names, *, level=..., inplace: Literal[False] = ...
+    ) -> MultiIndex:
+        ...
+
+    @overload
+    def set_names(self, names, *, level=..., inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_names(self, names, *, level=..., inplace: bool = ...) -> MultiIndex | None:
+        ...
+
+    # error: Signature of "set_names" incompatible with supertype "Index"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "names"])
-    def set_names(self, names, level=None, inplace: bool = False) -> MultiIndex | None:
+    def set_names(  # type: ignore[override]
+        self, names, level=None, inplace: bool = False
+    ) -> MultiIndex | None:
         return super().set_names(names=names, level=level, inplace=inplace)
 
-    rename = set_names
-
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(self, keep: str | bool = "first") -> MultiIndex:
-        return super().drop_duplicates(keep=keep)
+    # error: Incompatible types in assignment (expression has type overloaded function,
+    # base class "Index" defined the type as "Callable[[Index, Any, bool], Any]")
+    rename = set_names  # type: ignore[assignment]
 
     # ---------------------------------------------------------------
     # Arithmetic/Numeric Methods - Disabled
@@ -3858,7 +3938,7 @@ def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
     return 0
 
 
-def sparsify_labels(label_list, start: int = 0, sentinel=""):
+def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
     pivoted = list(zip(*label_list))
     k = len(label_list)
 
@@ -3887,6 +3967,11 @@ def sparsify_labels(label_list, start: int = 0, sentinel=""):
 
 
 def _get_na_rep(dtype) -> str:
+    if is_extension_array_dtype(dtype):
+        return f"{dtype.na_value}"
+    else:
+        dtype = dtype.type
+
     return {np.datetime64: "NaT", np.timedelta64: "NaT"}.get(dtype, "NaN")
 
 
@@ -3951,7 +4036,7 @@ def _require_listlike(level, arr, arrname: str):
     if level is not None and not is_list_like(level):
         if not is_list_like(arr):
             raise TypeError(f"{arrname} must be list-like")
-        if is_list_like(arr[0]):
+        if len(arr) > 0 and is_list_like(arr[0]):
             raise TypeError(f"{arrname} must be list-like")
         level = [level]
         arr = [arr]

@@ -59,7 +59,7 @@ def test_constructor_not_string_type_raises(array, chunked):
             pytest.skip("chunked not applicable to numpy array")
         arr = pa.chunked_array(arr)
     if array is np:
-        msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowStringArray"
+        msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
     else:
         msg = re.escape(
             "ArrowStringArray requires a PyArrow (chunked) array of string type"
@@ -122,7 +122,7 @@ def test_from_sequence_wrong_dtype_raises():
     reason="pyarrow is installed",
 )
 def test_pyarrow_not_installed_raises():
-    msg = re.escape("pyarrow>=1.0.0 is required for PyArrow backed StringArray")
+    msg = re.escape("pyarrow>=1.0.0 is required for PyArrow backed")
 
     with pytest.raises(ImportError, match=msg):
         StringDtype(storage="pyarrow")

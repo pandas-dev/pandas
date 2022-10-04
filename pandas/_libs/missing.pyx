@@ -42,6 +42,37 @@ cdef:
     type cDecimal = Decimal  # for faster isinstance checks
 
 
+cpdef bint check_na_tuples_nonequal(object left, object right):
+    """
+    When we have NA in one of the tuples but not the other we have to check here,
+    because our regular checks fail before with ambigous boolean value.
+
+    Parameters
+    ----------
+    left: Any
+    right: Any
+
+    Returns
+    -------
+    True if we are dealing with tuples that have NA on one side and non NA on
+    the other side.
+
+    """
+    if not isinstance(left, tuple) or not isinstance(right, tuple):
+        return False
+
+    if len(left) != len(right):
+        return False
+
+    for left_element, right_element in zip(left, right):
+        if left_element is C_NA and right_element is not C_NA:
+            return True
+        elif right_element is C_NA and left_element is not C_NA:
+            return True
+
+    return False
+
+
 cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False):
     """
     Check if two scalars are both NA of matching types.

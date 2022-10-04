@@ -6,12 +6,11 @@ from pandas.util.version import Version
 # numpy versioning
 _np_version = np.__version__
 _nlv = Version(_np_version)
-np_version_under1p19 = _nlv < Version("1.19")
-np_version_under1p20 = _nlv < Version("1.20")
+np_version_under1p21 = _nlv < Version("1.21")
 np_version_under1p22 = _nlv < Version("1.22")
 np_version_gte1p22 = _nlv >= Version("1.22")
 is_numpy_dev = _nlv.dev is not None
-_min_numpy_ver = "1.18.5"
+_min_numpy_ver = "1.20.3"
 
 if is_numpy_dev or not np_version_under1p22:
     np_percentile_argname = "method"

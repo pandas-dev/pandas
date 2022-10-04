@@ -190,7 +190,7 @@ def test_nat_iso_format(get_nat):
 @pytest.mark.parametrize(
     "klass,expected",
     [
-        (Timestamp, ["freqstr", "normalize", "to_julian_date", "to_period", "tz"]),
+        (Timestamp, ["freqstr", "normalize", "to_julian_date", "to_period"]),
         (
             Timedelta,
             [
@@ -320,6 +320,7 @@ def test_overlap_public_nat_methods(klass, expected):
         _get_overlap_public_nat_methods(Timestamp, True)
         + _get_overlap_public_nat_methods(Timedelta, True)
     ),
+    ids=lambda x: f"{x[0].__name__}.{x[1]}",
 )
 def test_nat_doc_strings(compare):
     # see gh-17327

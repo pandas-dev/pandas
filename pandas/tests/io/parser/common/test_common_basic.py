@@ -732,8 +732,15 @@ def test_no_header_two_extra_columns(all_parsers):
     ref = DataFrame([["foo", "bar", "baz"]], columns=column_names)
     stream = StringIO("foo,bar,baz,bam,blah")
     parser = all_parsers
-    with tm.assert_produces_warning(ParserWarning):
-        df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
+    df = parser.read_csv_check_warnings(
+        ParserWarning,
+        "Length of header or names does not match length of data. "
+        "This leads to a loss of data with index_col=False.",
+        stream,
+        header=None,
+        names=column_names,
+        index_col=False,
+    )
     tm.assert_frame_equal(df, ref)
 
 
@@ -806,8 +813,7 @@ def test_read_csv_posargs_deprecation(all_parsers):
         "In a future version of pandas all arguments of read_csv "
         "except for the argument 'filepath_or_buffer' will be keyword-only"
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        parser.read_csv(f, " ")
+    parser.read_csv_check_warnings(FutureWarning, msg, f, " ")
 
 
 @pytest.mark.parametrize("delimiter", [",", "\t"])
@@ -921,5 +927,18 @@ def test_read_table_posargs_deprecation(all_parsers):
         "In a future version of pandas all arguments of read_table "
         "except for the argument 'filepath_or_buffer' will be keyword-only"
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        parser.read_table(data, " ")
+    parser.read_table_check_warnings(FutureWarning, msg, data, " ")
+
+
+def test_read_seek(all_parsers):
+    # GH48646
+    parser = all_parsers
+    prefix = "### DATA\n"
+    content = "nkey,value\ntables,rectangular\n"
+    with tm.ensure_clean() as path:
+        Path(path).write_text(prefix + content)
+        with open(path, encoding="utf-8") as file:
+            file.readline()
+            actual = parser.read_csv(file)
+        expected = parser.read_csv(StringIO(content))
+    tm.assert_frame_equal(actual, expected)

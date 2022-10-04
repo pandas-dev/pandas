@@ -288,6 +288,26 @@ class ToNumpy:
         self.df_mixed_wide.values
 
 
+class ToRecords:
+    def setup(self):
+        N = 100_000
+        data = np.random.randn(N, 2)
+        mi = MultiIndex.from_arrays(
+            [
+                np.arange(N),
+                date_range("1970-01-01", periods=N, freq="ms"),
+            ]
+        )
+        self.df = DataFrame(data)
+        self.df_mi = DataFrame(data, index=mi)
+
+    def time_to_records(self):
+        self.df.to_records(index=True)
+
+    def time_to_records_multiindex(self):
+        self.df_mi.to_records(index=True)
+
+
 class Repr:
     def setup(self):
         nrows = 10000

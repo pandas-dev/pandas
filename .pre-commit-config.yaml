@@ -11,24 +11,27 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.4'
+    rev: 'v2.6'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/python/black
-    rev: 22.3.0
+    rev: 22.8.0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.1.0
+    rev: v2.2.1
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
-        files: ^(pandas|doc)/
+-   repo: https://github.com/MarcoGorelli/cython-lint
+    rev: v0.1.8
+    hooks:
+    -   id: cython-lint
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.2.0
+    rev: v4.3.0
     hooks:
     -   id: debug-statements
     -   id: end-of-file-fixer
@@ -37,7 +40,7 @@ repos:
     -   id: trailing-whitespace
         stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
 -   repo: https://github.com/cpplint/cpplint
-    rev: 1.6.0
+    rev: 1.6.1
     hooks:
     -   id: cpplint
         # We don't lint all C files because we don't want to lint any that are built
@@ -47,20 +50,25 @@ repos:
         exclude: ^pandas/_libs/src/(klib|headers)/
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
 -   repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
+    rev: 5.0.4
     hooks:
     -   id: flake8
+        # Need to patch os.remove rule in pandas-dev-flaker
+        exclude: ^ci/fix_wheels.py
         additional_dependencies: &flake8_dependencies
-        - flake8==4.0.1
-        - flake8-comprehensions==3.7.0
-        - flake8-bugbear==21.3.2
+        - flake8==5.0.4
+        - flake8-bugbear==22.7.1
         - pandas-dev-flaker==0.5.0
+-   repo: https://github.com/pycqa/pylint
+    rev: v2.15.3
+    hooks:
+    -   id: pylint
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.32.1
+    rev: v2.38.2
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -75,37 +83,53 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.6
+    rev: v0.6.1
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/asottile/yesqa
-    rev: v1.3.0
+    rev: v1.4.0
     hooks:
     -   id: yesqa
         additional_dependencies: *flake8_dependencies
 -   repo: local
     hooks:
     -   id: pyright
+        # note: assumes python env is setup and activated
         name: pyright
         entry: pyright
-        # note: assumes python env is setup and activated
         language: node
         pass_filenames: false
         types: [python]
         stages: [manual]
-        additional_dependencies: ['pyright@1.1.248']
--   repo: local
-    hooks:
+        additional_dependencies: &pyright_dependencies
+        - pyright@1.1.264
+    -   id: pyright_reportGeneralTypeIssues
+        # note: assumes python env is setup and activated
+        name: pyright reportGeneralTypeIssues
+        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json
+        language: node
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
+        additional_dependencies: *pyright_dependencies
     -   id: mypy
+        # note: assumes python env is setup and activated
         name: mypy
         entry: mypy
-        # note: assumes python env is setup and activated
         language: system
         pass_filenames: false
         types: [python]
         stages: [manual]
--   repo: local
-    hooks:
+    -   id: stubtest
+        # note: assumes python env is setup and activated
+        # note: requires pandas dev to be installed
+        name: mypy (stubtest)
+        entry: python
+        language: system
+        pass_filenames: false
+        types: [pyi]
+        args: [scripts/run_stubtest.py]
+        stages: [manual]
     -   id: flake8-rst
         name: flake8-rst
         description: Run flake8 on code snippets in docstrings or RST files
@@ -218,3 +242,42 @@ repos:
         entry: python scripts/validate_min_versions_in_sync.py
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+    -   id: validate-errors-locations
+        name: Validate errors locations
+        description: Validate errors are in approriate locations.
+        entry: python scripts/validate_exception_location.py
+        language: python
+        files: ^pandas/
+        exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
+        types: [python]
+    -   id: flake8-pyi
+        name: flake8-pyi
+        entry: flake8 --extend-ignore=E301,E302,E305,E701,E704
+        types: [pyi]
+        language: python
+        additional_dependencies:
+        - flake8==5.0.4
+        - flake8-pyi==22.8.1
+    -   id: future-annotations
+        name: import annotations from __future__
+        entry: 'from __future__ import annotations'
+        language: pygrep
+        args: [--negate]
+        files: ^pandas/
+        types: [python]
+        exclude: |
+            (?x)
+            /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
+            |/tests/
+            |/_testing/
+    -   id: autotyping
+        name: autotyping
+        entry: python -m scripts.run_autotyping
+        types_or: [python, pyi]
+        files: ^pandas
+        exclude: ^(pandas/tests|pandas/_version.py|pandas/io/clipboard)
+        language: python
+        additional_dependencies:
+        - autotyping==22.9.0
+        - black==22.6.0
+        - libcst==0.4.7

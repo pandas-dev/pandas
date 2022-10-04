@@ -450,7 +450,7 @@ class TestCategoricalConstructors:
             Categorical([1, 2], dtype="foo")
 
     def test_constructor_np_strs(self):
-        # GH#31499 Hastable.map_locations needs to work on np.str_ objects
+        # GH#31499 Hashtable.map_locations needs to work on np.str_ objects
         cat = Categorical(["1", "0", "1"], [np.str_("0"), np.str_("1")])
         assert all(isinstance(x, np.str_) for x in cat.categories)
 
@@ -751,7 +751,7 @@ class TestCategoricalConstructors:
 
     @pytest.mark.xfail(
         not IS64 or is_platform_windows(),
-        reason="Incorrectly raising in ensure_datetime64ns",
+        reason="Incorrectly raising in astype_overflowsafe",
     )
     def test_constructor_datetime64_non_nano(self):
         categories = np.arange(10).view("M8[D]")

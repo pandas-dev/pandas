@@ -6,6 +6,7 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -48,6 +49,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
@@ -327,6 +329,14 @@ def array(
     if isinstance(dtype, str):
         dtype = registry.find(dtype) or dtype
 
+    if isinstance(data, ExtensionArray) and (
+        dtype is None or is_dtype_equal(dtype, data.dtype)
+    ):
+        # e.g. TimedeltaArray[s], avoid casting to PandasArray
+        if copy:
+            return data.copy()
+        return data
+
     if is_extension_array_dtype(dtype):
         cls = cast(ExtensionDtype, dtype).construct_array_type()
         return cls._from_sequence(data, dtype=dtype, copy=copy)
@@ -531,7 +541,7 @@ def sanitize_array(
         dtype = dtype.numpy_dtype
 
     # extract ndarray or ExtensionArray, ensure we have no PandasArray
-    data = extract_array(data, extract_numpy=True)
+    data = extract_array(data, extract_numpy=True, extract_range=True)
 
     if isinstance(data, np.ndarray) and data.ndim == 0:
         if dtype is None:
@@ -556,7 +566,10 @@ def sanitize_array(
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
             # possibility of nan -> garbage
             try:
-                subarr = _try_cast(data, dtype, copy, True)
+                # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
+                # casting aligning with IntCastingNaNError below
+                with np.errstate(invalid="ignore"):
+                    subarr = _try_cast(data, dtype, copy, True)
             except IntCastingNaNError:
                 warnings.warn(
                     "In a future version, passing float-dtype values containing NaN "
@@ -565,7 +578,7 @@ def sanitize_array(
                     "passed dtype. To retain the old behavior, call Series(arr) or "
                     "DataFrame(arr) without passing a dtype.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
                 subarr = np.array(data, copy=copy)
             except ValueError:
@@ -577,7 +590,7 @@ def sanitize_array(
                         "if they cannot be cast losslessly (matching Series behavior). "
                         "To retain the old behavior, use DataFrame(data).astype(dtype)",
                         FutureWarning,
-                        stacklevel=find_stack_level(),
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
                     # GH#40110 until the deprecation is enforced, we _dont_
                     #  ignore the dtype for DataFrame, and _do_ cast even though
@@ -610,7 +623,7 @@ def sanitize_array(
         # materialize e.g. generators, convert e.g. tuples, abc.ValueView
         if hasattr(data, "__array__"):
             # e.g. dask array GH#38645
-            data = np.asarray(data)
+            data = np.array(data, copy=copy)
         else:
             data = list(data)
 
@@ -849,7 +862,7 @@ def _try_cast(
                 "passed to 'DataFrame', either all columns will be cast to that "
                 "dtype, or a TypeError will be raised.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             subarr = np.array(arr, dtype=object, copy=copy)
     return subarr

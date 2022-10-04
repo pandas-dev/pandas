@@ -90,7 +90,7 @@ class ODFReader(BaseExcelReader):
         raise ValueError(f"sheet {name} not found")
 
     def get_sheet_data(
-        self, sheet, convert_float: bool
+        self, sheet, convert_float: bool, file_rows_needed: int | None = None
     ) -> list[list[Scalar | NaTType]]:
         """
         Parse an ODF Table into a list of lists
@@ -148,6 +148,8 @@ class ODFReader(BaseExcelReader):
                 empty_rows = 0
                 for _ in range(row_repeat):
                     table.append(table_row)
+            if file_rows_needed is not None and len(table) >= file_rows_needed:
+                break
 
         # Make our table square
         for row in table:

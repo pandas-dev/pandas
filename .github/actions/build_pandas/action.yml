@@ -6,8 +6,8 @@ runs:
 
     - name: Environment Detail
       run: |
-        conda info
-        conda list
+        micromamba info
+        micromamba list
       shell: bash -el {0}
 
     - name: Build Pandas
@@ -17,4 +17,6 @@ runs:
       shell: bash -el {0}
       env:
         # Cannot use parallel compilation on Windows, see https://github.com/pandas-dev/pandas/issues/30873
-        N_JOBS: ${{ runner.os == 'Windows' && 1 || 2 }}
+        # GH 47305: Parallel build causes flaky ImportError: /home/runner/work/pandas/pandas/pandas/_libs/tslibs/timestamps.cpython-38-x86_64-linux-gnu.so: undefined symbol: pandas_datetime_to_datetimestruct
+        N_JOBS: 1
+        #N_JOBS: ${{ runner.os == 'Windows' && 1 || 2 }}

@@ -22,7 +22,7 @@ cdef _Timestamp create_timestamp_from_ts(int64_t value,
 
 cdef class _Timestamp(ABCTimestamp):
     cdef readonly:
-        int64_t value, nanosecond
+        int64_t value, nanosecond, year
         BaseOffset _freq
         NPY_DATETIMEUNIT _reso
 
@@ -37,3 +37,4 @@ cdef class _Timestamp(ABCTimestamp):
     cpdef void _set_freq(self, freq)
     cdef _warn_on_field_deprecation(_Timestamp self, freq, str field)
     cdef bint _compare_mismatched_resos(_Timestamp self, _Timestamp other, int op)
+    cdef _Timestamp _as_reso(_Timestamp self, NPY_DATETIMEUNIT reso, bint round_ok=*)

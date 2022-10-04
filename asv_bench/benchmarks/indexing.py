@@ -157,25 +157,39 @@ class DataFrameStringIndexing:
 
 
 class DataFrameNumericIndexing:
-    def setup(self):
-        self.idx_dupe = np.array(range(30)) * 99
-        self.df = DataFrame(np.random.randn(100000, 5))
-        self.df_dup = concat([self.df, 2 * self.df, 3 * self.df])
-        self.bool_indexer = [True] * 50000 + [False] * 50000
 
-    def time_iloc_dups(self):
+    params = [
+        (Int64Index, UInt64Index, Float64Index),
+        ("unique_monotonic_inc", "nonunique_monotonic_inc"),
+    ]
+    param_names = ["index_dtype", "index_structure"]
+
+    def setup(self, index, index_structure):
+        N = 10**5
+        indices = {
+            "unique_monotonic_inc": index(range(N)),
+            "nonunique_monotonic_inc": index(
+                list(range(55)) + [54] + list(range(55, N - 1))
+            ),
+        }
+        self.idx_dupe = np.array(range(30)) * 99
+        self.df = DataFrame(np.random.randn(N, 5), index=indices[index_structure])
+        self.df_dup = concat([self.df, 2 * self.df, 3 * self.df])
+        self.bool_indexer = [True] * (N // 2) + [False] * (N - N // 2)
+
+    def time_iloc_dups(self, index, index_structure):
         self.df_dup.iloc[self.idx_dupe]
 
-    def time_loc_dups(self):
+    def time_loc_dups(self, index, index_structure):
         self.df_dup.loc[self.idx_dupe]
 
-    def time_iloc(self):
+    def time_iloc(self, index, index_structure):
         self.df.iloc[:100, 0]
 
-    def time_loc(self):
+    def time_loc(self, index, index_structure):
         self.df.loc[:100, 0]
 
-    def time_bool_indexer(self):
+    def time_bool_indexer(self, index, index_structure):
         self.df[self.bool_indexer]
 
 

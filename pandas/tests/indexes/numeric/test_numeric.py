@@ -509,6 +509,20 @@ class TestIntNumericIndex(NumericInt):
         with pytest.raises(OverflowError, match=msg):
             Index([-1], dtype=any_unsigned_int_numpy_dtype)
 
+    def test_constructor_np_signed(self, any_signed_int_numpy_dtype):
+        # GH#47475
+        scalar = np.dtype(any_signed_int_numpy_dtype).type(1)
+        result = Index([scalar])
+        expected = Int64Index([1])
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_np_unsigned(self, any_unsigned_int_numpy_dtype):
+        # GH#47475
+        scalar = np.dtype(any_unsigned_int_numpy_dtype).type(1)
+        result = Index([scalar])
+        expected = UInt64Index([1])
+        tm.assert_index_equal(result, expected)
+
     def test_coerce_list(self):
         # coerce things
         arr = Index([1, 2, 3, 4])

@@ -5,8 +5,14 @@ on:
     - cron: "0 7 1 * *" # At 07:00 on 1st of every month.
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   update-pre-commit:
+    permissions:
+      contents: write  # for technote-space/create-pr-action to push code
+      pull-requests: write  # for technote-space/create-pr-action to create a PR
     if: github.repository_owner == 'pandas-dev'
     name: Autoupdate pre-commit config
     runs-on: ubuntu-latest

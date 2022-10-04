@@ -39,6 +39,21 @@ class UniqueAndFactorizeArange:
         pd.unique(self.a2)
 
 
+class Unique:
+    params = ["Int64", "Float64"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        self.ser = pd.Series(([1, pd.NA, 2] + list(range(100_000))) * 3, dtype=dtype)
+        self.ser_unique = pd.Series(list(range(300_000)) + [pd.NA], dtype=dtype)
+
+    def time_unique_with_duplicates(self, exponent):
+        pd.unique(self.ser)
+
+    def time_unique(self, exponent):
+        pd.unique(self.ser_unique)
+
+
 class NumericSeriesIndexing:
 
     params = [

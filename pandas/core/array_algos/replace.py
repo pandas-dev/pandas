@@ -119,7 +119,7 @@ def compare_or_regex_search(
 
 def replace_regex(
     values: ArrayLike, rx: re.Pattern, value, mask: npt.NDArray[np.bool_] | None
-):
+) -> None:
     """
     Parameters
     ----------

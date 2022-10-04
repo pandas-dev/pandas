@@ -589,7 +589,6 @@ def test_store_series_name(setup_path):
         tm.assert_series_equal(recons, series)
 
 
-@pytest.mark.filterwarnings("ignore:\\nduplicate:pandas.io.pytables.DuplicateWarning")
 def test_overwrite_node(setup_path):
 
     with ensure_clean_store(setup_path) as store:
@@ -1019,3 +1018,24 @@ def test_hdfstore_iteritems_deprecated(setup_path):
             hdf.put("table", df)
             with tm.assert_produces_warning(FutureWarning):
                 next(hdf.iteritems())
+
+
+def test_hdfstore_strides(setup_path):
+    # GH22073
+    df = DataFrame({"a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
+    with ensure_clean_store(setup_path) as store:
+        store.put("df", df)
+        assert df["a"].values.strides == store["df"]["a"].values.strides
+
+
+def test_store_bool_index(setup_path):
+    # GH#48667
+    df = DataFrame([[1]], columns=[True], index=Index([False], dtype="bool"))
+    expected = df.copy()
+
+    # # Test to make sure defaults are to not drop.
+    # # Corresponding to Issue 9382
+    with ensure_clean_path(setup_path) as path:
+        df.to_hdf(path, "a")
+        result = read_hdf(path, "a")
+        tm.assert_frame_equal(expected, result)

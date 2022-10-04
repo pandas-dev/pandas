@@ -43,7 +43,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 
 /* objToJSON */
 PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs);
-void initObjToJSON(void);
+void *initObjToJSON(void);
 
 /* JSONToObj */
 PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs);

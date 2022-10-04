@@ -2,7 +2,9 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     Categorical,
+    Float64Dtype,
     Index,
     MultiIndex,
     NaT,
@@ -408,3 +410,16 @@ def test_reindex_missing_category():
     msg = r"Cannot setitem on a Categorical with a new category \(-1\)"
     with pytest.raises(TypeError, match=msg):
         ser.reindex([1, 2, 3, 4, 5], fill_value=-1)
+
+
+def test_reindexing_with_float64_NA_log():
+    # GH 47055
+    s = Series([1.0, NA], dtype=Float64Dtype())
+    s_reindex = s.reindex(range(3))
+    result = s_reindex.values._data
+    expected = np.array([1, np.NaN, np.NaN])
+    tm.assert_numpy_array_equal(result, expected)
+    with tm.assert_produces_warning(None):
+        result_log = np.log(s_reindex)
+        expected_log = Series([0, np.NaN, np.NaN], dtype=Float64Dtype())
+        tm.assert_series_equal(result_log, expected_log)

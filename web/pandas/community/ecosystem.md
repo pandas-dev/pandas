@@ -177,7 +177,7 @@ users to view, manipulate and edit pandas `Index`, `Series`, and
 `DataFrame` objects like a "spreadsheet", including copying and
 modifying values, sorting, displaying a "heatmap", converting data
 types and more. Pandas objects can also be renamed, duplicated, new
-columns added, copyed/pasted to/from the clipboard (as TSV), and
+columns added, copied/pasted to/from the clipboard (as TSV), and
 saved/loaded to/from a file. Spyder can also import data from a variety
 of plain text and binary files or the clipboard into a new pandas
 DataFrame via a sophisticated import wizard.
@@ -379,8 +379,8 @@ A directory of projects providing
 `extension accessors <extending.register-accessors>`. This is for users to discover new accessors and for library
 authors to coordinate on the namespace.
 
-  | Library                                                              | Accessor   |  Classes              |
-  | ---------------------------------------------------------------------|------------|-----------------------|
+  | Library                                                              | Accessor   | Classes               |
+  | -------------------------------------------------------------------- | ---------- | --------------------- |
   | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)          | `ip`       | `Series`              |
   | [pdvega](https://altair-viz.github.io/pdvega/)                       | `vgplot`   | `Series`, `DataFrame` |
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
@@ -400,3 +400,20 @@ Learn more by reading through these issues [14468](https://github.com/pandas-dev
 [26766](https://github.com/pandas-dev/pandas/issues/26766), [28142](https://github.com/pandas-dev/pandas/issues/28142).
 
 See installation and usage instructions on the [github page](https://github.com/VirtusLab/pandas-stubs).
+
+### [Hamilton](https://github.com/stitchfix/hamilton)
+
+Hamilton is a declarative dataflow framework that came out of Stitch Fix. It was designed to help one manage a
+Pandas code base, specifically with respect to feature engineering for machine learning models.
+
+It prescibes an opinionated paradigm, that ensures all code is:
+
+* unit testable
+* integration testing friendly
+* documentation friendly
+* transformation logic is reuseable, as it is decoupled from the context of where it is used.
+* integrateable with runtime data quality checks.
+
+This helps one to scale your pandas code base, at the same time, keeping maintenance costs low.
+
+For more information, see [documentation](https://hamilton-docs.gitbook.io/).

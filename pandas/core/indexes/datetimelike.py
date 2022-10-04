@@ -4,6 +4,7 @@ Base and utility classes for tseries type pandas objects.
 from __future__ import annotations
 
 from datetime import datetime
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -29,6 +30,7 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
+from pandas._typing import Axis
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -222,7 +224,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     def _parse_with_reso(self, label: str):
         # overridden by TimedeltaIndex
-        parsed, reso_str = parsing.parse_time_string(label, self.freq)
+        try:
+            if self.freq is None or hasattr(self.freq, "rule_code"):
+                freq = self.freq
+        except NotImplementedError:
+            freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
+        parsed, reso_str = parsing.parse_time_string(label, freq)
         reso = Resolution.from_attrname(reso_str)
         return parsed, reso
 
@@ -393,7 +400,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             f"{type(self).__name__}.is_type_compatible is deprecated and will be "
             "removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return kind in self._data._infer_matches
 
@@ -451,7 +458,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         res_i8 = left.union(right, sort=sort)
         return self._wrap_range_setop(other, res_i8)
 
-    def _intersection(self, other: Index, sort=False) -> Index:
+    def _intersection(self, other: Index, sort: bool = False) -> Index:
         """
         intersection specialized to the case with matching dtypes and both non-empty.
         """
@@ -672,7 +679,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return freq
 
     @doc(NDArrayBackedExtensionIndex.delete)
-    def delete(self, loc):
+    def delete(self, loc) -> DatetimeTimedeltaMixin:
         result = super().delete(loc)
         result._data._freq = self._get_delete_freq(loc)
         return result
@@ -689,7 +696,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     # NDArray-Like Methods
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
+    def take(
+        self,
+        indices,
+        axis: Axis = 0,
+        allow_fill: bool = True,
+        fill_value=None,
+        **kwargs,
+    ):
         nv.validate_take((), kwargs)
         indices = np.asarray(indices, dtype=np.intp)
 

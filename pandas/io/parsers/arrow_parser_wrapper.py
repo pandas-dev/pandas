@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pandas._typing import ReadBuffer
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
 
-from pandas.core.frame import DataFrame
-
 from pandas.io.parsers.base_parser import ParserBase
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 class ArrowParserWrapper(ParserBase):
@@ -39,7 +42,7 @@ class ArrowParserWrapper(ParserBase):
             )
         self.na_values = list(self.kwds["na_values"])
 
-    def _get_pyarrow_options(self):
+    def _get_pyarrow_options(self) -> None:
         """
         Rename some arguments to pass to pyarrow
         """
@@ -105,12 +108,7 @@ class ArrowParserWrapper(ParserBase):
                 multi_index_named = False
             frame.columns = self.names
         # we only need the frame not the names
-        # error: Incompatible types in assignment (expression has type
-        # "Union[List[Union[Union[str, int, float, bool], Union[Period, Timestamp,
-        # Timedelta, Any]]], Index]", variable has type "Index")  [assignment]
-        frame.columns, frame = self._do_date_conversions(  # type: ignore[assignment]
-            frame.columns, frame
-        )
+        frame.columns, frame = self._do_date_conversions(frame.columns, frame)
         if self.index_col is not None:
             for i, item in enumerate(self.index_col):
                 if is_integer(item):

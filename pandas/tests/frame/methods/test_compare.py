@@ -180,3 +180,75 @@ def test_compare_unaligned_objects():
         df1 = pd.DataFrame(np.ones((3, 3)))
         df2 = pd.DataFrame(np.zeros((2, 1)))
         df1.compare(df2)
+
+
+def test_compare_result_names():
+    # GH 44354
+    df1 = pd.DataFrame(
+        {"col1": ["a", "b", "c"], "col2": [1.0, 2.0, np.nan], "col3": [1.0, 2.0, 3.0]},
+    )
+    df2 = pd.DataFrame(
+        {
+            "col1": ["c", "b", "c"],
+            "col2": [1.0, 2.0, np.nan],
+            "col3": [1.0, 2.0, np.nan],
+        },
+    )
+    result = df1.compare(df2, result_names=("left", "right"))
+    expected = pd.DataFrame(
+        {
+            ("col1", "left"): {0: "a", 2: np.nan},
+            ("col1", "right"): {0: "c", 2: np.nan},
+            ("col3", "left"): {0: np.nan, 2: 3.0},
+            ("col3", "right"): {0: np.nan, 2: np.nan},
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "result_names",
+    [
+        [1, 2],
+        "HK",
+        {"2": 2, "3": 3},
+        3,
+        3.0,
+    ],
+)
+def test_invalid_input_result_names(result_names):
+    # GH 44354
+    df1 = pd.DataFrame(
+        {"col1": ["a", "b", "c"], "col2": [1.0, 2.0, np.nan], "col3": [1.0, 2.0, 3.0]},
+    )
+    df2 = pd.DataFrame(
+        {
+            "col1": ["c", "b", "c"],
+            "col2": [1.0, 2.0, np.nan],
+            "col3": [1.0, 2.0, np.nan],
+        },
+    )
+    with pytest.raises(
+        TypeError,
+        match=(
+            f"Passing 'result_names' as a {type(result_names)} is not "
+            "supported. Provide 'result_names' as a tuple instead."
+        ),
+    ):
+        df1.compare(df2, result_names=result_names)
+
+
+def test_compare_ea_and_np_dtype():
+    # GH#44014
+    df1 = pd.DataFrame({"a": [4.0, 4], "b": [1.0, 2]})
+    df2 = pd.DataFrame({"a": pd.Series([1, pd.NA], dtype="Int64"), "b": [1.0, 2]})
+    result = df1.compare(df2, keep_shape=True)
+    expected = pd.DataFrame(
+        {
+            ("a", "self"): [4.0, np.nan],
+            ("a", "other"): pd.Series([1, pd.NA], dtype="Int64"),
+            ("b", "self"): np.nan,
+            ("b", "other"): np.nan,
+        }
+    )
+    tm.assert_frame_equal(result, expected)

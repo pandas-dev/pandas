@@ -4,6 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import inspect
 from typing import Hashable
 import warnings
 
@@ -159,8 +160,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     dtype: PeriodDtype
 
     _data_cls = PeriodArray
-    _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
+
+    @property
+    def _engine_type(self) -> type[libindex.PeriodEngine]:
+        return libindex.PeriodEngine
 
     @cache_readonly
     # Signature of "_resolution_obj" incompatible with supertype "DatetimeIndexOpsMixin"
@@ -187,23 +191,17 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         arr = self._data.to_timestamp(freq, how)
         return DatetimeIndex._simple_new(arr, name=self.name)
 
-    # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported
-    @property  # type: ignore[misc]
+    @property
     @doc(PeriodArray.hour.fget)
     def hour(self) -> Int64Index:
         return Int64Index(self._data.hour, name=self.name)
 
-    # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported
-    @property  # type: ignore[misc]
+    @property
     @doc(PeriodArray.minute.fget)
     def minute(self) -> Int64Index:
         return Int64Index(self._data.minute, name=self.name)
 
-    # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported
-    @property  # type: ignore[misc]
+    @property
     @doc(PeriodArray.second.fget)
     def second(self) -> Int64Index:
         return Int64Index(self._data.second, name=self.name)
@@ -363,7 +361,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 "will be removed in a future version. "
                 "Use index.to_timestamp(how=how) instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         else:
             how = "start"

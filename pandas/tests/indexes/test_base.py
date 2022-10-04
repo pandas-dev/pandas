@@ -2,13 +2,20 @@ from collections import defaultdict
 from datetime import datetime
 from io import StringIO
 import math
+import operator
 import re
 
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-from pandas.errors import InvalidIndexError
+from pandas.compat import (
+    IS64,
+    pa_version_under7p0,
+)
+from pandas.errors import (
+    InvalidIndexError,
+    PerformanceWarning,
+)
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -60,6 +67,22 @@ class TestIndex(Base):
             new_index = index[None, :]
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
+
+    def test_argsort(self, index):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_argsort(index)
+
+    def test_numpy_argsort(self, index):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_numpy_argsort(index)
 
     def test_constructor_regular(self, index):
         tm.assert_contains_all(index, index)
@@ -1431,10 +1454,10 @@ class TestIndexUtils:
     def test_ensure_index_mixed_closed_intervals(self):
         # GH27172
         intervals = [
-            pd.Interval(0, 1, inclusive="left"),
-            pd.Interval(1, 2, inclusive="right"),
-            pd.Interval(2, 3, inclusive="neither"),
-            pd.Interval(3, 4, inclusive="both"),
+            pd.Interval(0, 1, closed="left"),
+            pd.Interval(1, 2, closed="right"),
+            pd.Interval(2, 3, closed="neither"),
+            pd.Interval(3, 4, closed="both"),
         ]
         result = ensure_index(intervals)
         expected = Index(intervals, dtype=object)
@@ -1604,3 +1627,16 @@ def test_get_attributes_dict_deprecated():
     with tm.assert_produces_warning(DeprecationWarning):
         attrs = idx._get_attributes_dict()
     assert attrs == {"name": None}
+
+
+@pytest.mark.parametrize("op", [operator.lt, operator.gt])
+def test_nan_comparison_same_object(op):
+    # GH#47105
+    idx = Index([np.nan])
+    expected = np.array([False])
+
+    result = op(idx, idx)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = op(idx, idx.copy())
+    tm.assert_numpy_array_equal(result, expected)

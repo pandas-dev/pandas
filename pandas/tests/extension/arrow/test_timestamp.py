@@ -46,7 +46,7 @@ class ArrowTimestampUSArray(ArrowExtensionArray):
 
         assert values.type == pa.timestamp("us")
         self._data = values
-        self._dtype = ArrowTimestampUSDtype()
+        self._dtype = ArrowTimestampUSDtype()  # type: ignore[assignment]
 
 
 def test_constructor_extensionblock():

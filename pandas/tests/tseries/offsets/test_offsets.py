@@ -33,6 +33,7 @@ from pandas.errors import PerformanceWarning
 
 from pandas import (
     DatetimeIndex,
+    Series,
     date_range,
 )
 import pandas._testing as tm
@@ -556,10 +557,6 @@ class TestCommon(Base):
         # check that the result with non-nano matches nano
         off = self._get_offset(offset_types)
 
-        if type(off) is DateOffset:
-            mark = pytest.mark.xfail(reason="non-nano not implemented")
-            request.node.add_marker(mark)
-
         dti = date_range("2016-01-01", periods=35, freq="D")
 
         arr = dti._data._ndarray.astype(f"M8[{unit}]")
@@ -991,7 +988,7 @@ def test_dateoffset_add_sub(offset_kwargs, expected_arg):
     assert result == expected
 
 
-def test_dataoffset_add_sub_timestamp_with_nano():
+def test_dateoffset_add_sub_timestamp_with_nano():
     offset = DateOffset(minutes=2, nanoseconds=9)
     ts = Timestamp(4)
     result = ts + offset
@@ -1036,3 +1033,26 @@ def test_construct_int_arg_no_kwargs_assumed_days(n):
     result = Timestamp(2022, 1, 2) + offset
     expected = Timestamp(2022, 1, 2 + n)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "offset, expected",
+    [
+        (
+            DateOffset(minutes=7, nanoseconds=18),
+            Timestamp("2022-01-01 00:07:00.000000018"),
+        ),
+        (DateOffset(nanoseconds=3), Timestamp("2022-01-01 00:00:00.000000003")),
+    ],
+)
+def test_dateoffset_add_sub_timestamp_series_with_nano(offset, expected):
+    # GH 47856
+    start_time = Timestamp("2022-01-01")
+    teststamp = start_time
+    testseries = Series([start_time])
+    testseries = testseries + offset
+    assert testseries[0] == expected
+    testseries -= offset
+    assert testseries[0] == teststamp
+    testseries = offset + testseries
+    assert testseries[0] == expected

@@ -33,6 +33,7 @@ from pandas.core.arrays.timedeltas import sequence_to_td64ns
 # TODO: more freq variants
 @pytest.fixture(params=["D", "B", "W", "M", "Q", "Y"])
 def freqstr(request):
+    """Fixture returning parametrized frequency in string format."""
     return request.param
 
 
@@ -81,6 +82,7 @@ class SharedTests:
 
     @pytest.fixture
     def arr1d(self):
+        """Fixture returning DatetimeArray with daily frequency."""
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
         return arr
@@ -562,7 +564,7 @@ class SharedTests:
 
         expected = arr.copy()
         if self.array_cls is PeriodArray:
-            fill_val = PeriodArray._scalar_type._from_ordinal(1, freq=arr.freq)
+            fill_val = arr._scalar_type._from_ordinal(1, freq=arr.freq)
         else:
             fill_val = arr._scalar_type(1)
         expected[0] = fill_val
@@ -635,6 +637,10 @@ class TestDatetimeArray(SharedTests):
 
     @pytest.fixture
     def arr1d(self, tz_naive_fixture, freqstr):
+        """
+        Fixture returning DatetimeArray with parametrized frequency and
+        timezones
+        """
         tz = tz_naive_fixture
         dti = pd.date_range("2016-01-01 01:01:00", periods=5, freq=freqstr, tz=tz)
         dta = dti._data
@@ -1068,6 +1074,9 @@ class TestPeriodArray(SharedTests):
 
     @pytest.fixture
     def arr1d(self, period_index):
+        """
+        Fixture returning DatetimeArray from parametrized PeriodIndex objects
+        """
         return period_index._data
 
     def test_from_pi(self, arr1d):
@@ -1389,6 +1398,10 @@ def test_from_pandas_array(dtype):
     ]
 )
 def array_likes(request):
+    """
+    Fixture giving a numpy array and a parametrized 'data' object, which can
+    be a memoryview, array, dask or xarray object created from the numpy array.
+    """
     # GH#24539 recognize e.g xarray, dask, ...
     arr = np.array([1, 2, 3], dtype=np.int64)
 

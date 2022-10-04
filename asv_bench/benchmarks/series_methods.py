@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 
 from pandas import (
+    NA,
     Index,
     NaT,
     Series,
@@ -144,6 +145,16 @@ class Clip:
         self.s.clip(0, 1)
 
 
+class ClipDt:
+    def setup(self):
+        dr = date_range("20220101", periods=100_000, freq="s", tz="UTC")
+        self.clipper_dt = dr[0:1_000].repeat(100)
+        self.s = Series(dr)
+
+    def time_clip(self):
+        self.s.clip(upper=self.clipper_dt)
+
+
 class ValueCounts:
 
     params = [[10**3, 10**4, 10**5], ["int", "uint", "float", "object"]]
@@ -154,6 +165,19 @@ class ValueCounts:
 
     def time_value_counts(self, N, dtype):
         self.s.value_counts()
+
+
+class ValueCountsEA:
+
+    params = [[10**3, 10**4, 10**5], [True, False]]
+    param_names = ["N", "dropna"]
+
+    def setup(self, N, dropna):
+        self.s = Series(np.random.randint(0, N, size=10 * N), dtype="Int64")
+        self.s.loc[1] = NA
+
+    def time_value_counts(self, N, dropna):
+        self.s.value_counts(dropna=dropna)
 
 
 class ValueCountsObjectDropNAFalse:

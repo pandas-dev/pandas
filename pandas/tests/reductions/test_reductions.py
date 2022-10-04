@@ -198,6 +198,18 @@ class TestReductions:
         result = getattr(np, func)(expected, expected)
         tm.assert_series_equal(result, expected)
 
+    def test_nan_int_timedelta_sum(self):
+        # GH 27185
+        df = DataFrame(
+            {
+                "A": Series([1, 2, NaT], dtype="timedelta64[ns]"),
+                "B": Series([1, 2, np.nan], dtype="Int64"),
+            }
+        )
+        expected = Series({"A": Timedelta(3), "B": 3})
+        result = df.sum()
+        tm.assert_series_equal(result, expected)
+
 
 class TestIndexReductions:
     # Note: the name TestIndexReductions indicates these tests
@@ -684,7 +696,7 @@ class TestSeriesReductions:
         expected = Series([1, np.nan], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("method", ["mean"])
+    @pytest.mark.parametrize("method", ["mean", "var"])
     @pytest.mark.parametrize("dtype", ["Float64", "Int64", "boolean"])
     def test_ops_consistency_on_empty_nullable(self, method, dtype):
 
@@ -762,6 +774,28 @@ class TestSeriesReductions:
             assert np.allclose(float(result), 0.0)
             result = s.max(skipna=False)
             assert np.allclose(float(result), v[-1])
+
+    def test_mean_masked_overflow(self):
+        # GH#48378
+        val = 100_000_000_000_000_000
+        n_elements = 100
+        na = np.array([val] * n_elements)
+        ser = Series([val] * n_elements, dtype="Int64")
+
+        result_numpy = np.mean(na)
+        result_masked = ser.mean()
+        assert result_masked - result_numpy == 0
+        assert result_masked == 1e17
+
+    @pytest.mark.parametrize("ddof, exp", [(1, 2.5), (0, 2.0)])
+    def test_var_masked_array(self, ddof, exp):
+        # GH#48379
+        ser = Series([1, 2, 3, 4, 5], dtype="Int64")
+        ser_numpy_dtype = Series([1, 2, 3, 4, 5], dtype="int64")
+        result = ser.var(ddof=ddof)
+        result_numpy_dtype = ser_numpy_dtype.var(ddof=ddof)
+        assert result == result_numpy_dtype
+        assert result == exp
 
     @pytest.mark.parametrize("dtype", ("m8[ns]", "m8[ns]", "M8[ns]", "M8[ns, UTC]"))
     @pytest.mark.parametrize("skipna", [True, False])
@@ -890,10 +924,9 @@ class TestSeriesReductions:
         s = Series(["abc", True])
         assert s.any()
 
-    @pytest.mark.parametrize("klass", [Index, Series])
-    def test_numpy_all_any(self, klass):
+    def test_numpy_all_any(self, index_or_series):
         # GH#40180
-        idx = klass([0, 1, 2])
+        idx = index_or_series([0, 1, 2])
         assert not np.all(idx)
         assert np.any(idx)
         idx = Index([1, 2, 3])
@@ -923,13 +956,9 @@ class TestSeriesReductions:
             with tm.assert_produces_warning(FutureWarning):
                 s.all(bool_only=True, level=0)
 
-        # GH#38810 bool_only is not implemented alone.
-        msg = "Series.any does not implement bool_only"
-        with pytest.raises(NotImplementedError, match=msg):
-            s.any(bool_only=True)
-        msg = "Series.all does not implement bool_only."
-        with pytest.raises(NotImplementedError, match=msg):
-            s.all(bool_only=True)
+        # GH#47500 - test bool_only works
+        assert s.any(bool_only=True)
+        assert not s.all(bool_only=True)
 
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize("skipna", [True, False])

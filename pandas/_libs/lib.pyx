@@ -2,7 +2,6 @@ from collections import abc
 from decimal import Decimal
 from enum import Enum
 from typing import Literal
-import warnings
 
 cimport cython
 from cpython.datetime cimport (
@@ -17,6 +16,7 @@ from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
     Py_EQ,
     PyObject_RichCompareBool,
+    PyTypeObject,
 )
 from cpython.ref cimport Py_INCREF
 from cpython.sequence cimport PySequence_Check
@@ -28,6 +28,8 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+
+from pandas._libs.missing import check_na_tuples_nonequal
 
 import_datetime()
 
@@ -43,7 +45,6 @@ from numpy cimport (
     PyArray_IterNew,
     complex128_t,
     flatiter,
-    float32_t,
     float64_t,
     int64_t,
     intp_t,
@@ -53,6 +54,11 @@ from numpy cimport (
 )
 
 cnp.import_array()
+
+cdef extern from "Python.h":
+    # Note: importing extern-style allows us to declare these as nogil
+    # functions, whereas `from cpython cimport` does not.
+    bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
 cdef extern from "numpy/arrayobject.h":
     # cython's numpy.dtype specification is incorrect, which leads to
@@ -70,6 +76,9 @@ cdef extern from "numpy/arrayobject.h":
             char byteorder
             object fields
             tuple names
+
+    PyTypeObject PySignedIntegerArrType_Type
+    PyTypeObject PyUnsignedIntegerArrType_Type
 
 cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_CheckScalar(obj) nogil
@@ -303,50 +312,42 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays, sort: bool = True):
+def fast_unique_multiple(ndarray left, ndarray right) -> list:
     """
-    Generate a list of unique values from a list of arrays.
+    Generate a list indices we have to add to the left to get the union
+    of both arrays.
 
     Parameters
     ----------
-    list : array-like
-        List of array-like objects.
-    sort : bool
-        Whether or not to sort the resulting unique list.
+    left : np.ndarray
+        Left array that is used as base.
+    right : np.ndarray
+        right array that is checked for values that are not in left.
+        right can not have duplicates.
 
     Returns
     -------
-    list of unique values
+    list of indices that we have to add to the left array.
     """
     cdef:
-        ndarray[object] buf
-        Py_ssize_t k = len(arrays)
-        Py_ssize_t i, j, n
-        list uniques = []
-        dict table = {}
+        Py_ssize_t j, n
+        list indices = []
+        set table = set()
         object val, stub = 0
 
-    for i in range(k):
-        buf = arrays[i]
-        n = len(buf)
-        for j in range(n):
-            val = buf[j]
-            if val not in table:
-                table[val] = stub
-                uniques.append(val)
+    n = len(left)
+    for j in range(n):
+        val = left[j]
+        if val not in table:
+            table.add(val)
 
-    if sort is None:
-        try:
-            uniques.sort()
-        except TypeError:
-            warnings.warn(
-                "The values in the array are unorderable. "
-                "Pass `sort=False` to suppress this warning.",
-                RuntimeWarning,
-            )
-            pass
+    n = len(right)
+    for j in range(n):
+        val = right[j]
+        if val not in table:
+            indices.append(j)
 
-    return uniques
+    return indices
 
 
 @cython.wraparound(False)
@@ -637,7 +638,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                 or is_matching_na(x, y, nan_matches_none=True)
             ):
                 return False
-        except ValueError:
+        except (ValueError, TypeError):
             # Avoid raising ValueError when comparing Numpy arrays to other types
             if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
                 # Only compare scalars to scalars and non-scalars to non-scalars
@@ -646,7 +647,12 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                   and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
                 # Check if non-scalars have the same type
                 return False
+            elif check_na_tuples_nonequal(x, y):
+                # We have tuples where one Side has a NA and the other side does not
+                # Only condition we may end up with a TypeError
+                return False
             raise
+
     return True
 
 
@@ -1283,9 +1289,9 @@ cdef class Seen:
         In addition to setting a flag that an integer was seen, we
         also set two flags depending on the type of integer seen:
 
-        1) sint_ : a negative (signed) number in the
+        1) sint_ : a signed numpy integer type or a negative (signed) number in the
                    range of [-2**63, 0) was encountered
-        2) uint_ : a positive number in the range of
+        2) uint_ : an unsigned numpy integer type or a positive number in the range of
                    [2**63, 2**64) was encountered
 
         Parameters
@@ -1294,8 +1300,18 @@ cdef class Seen:
             Value with which to set the flags.
         """
         self.int_ = True
-        self.sint_ = self.sint_ or (oINT64_MIN <= val < 0)
-        self.uint_ = self.uint_ or (oINT64_MAX < val <= oUINT64_MAX)
+        self.sint_ = (
+            self.sint_
+            or (oINT64_MIN <= val < 0)
+            # Cython equivalent of `isinstance(val, np.signedinteger)`
+            or PyObject_TypeCheck(val, &PySignedIntegerArrType_Type)
+        )
+        self.uint_ = (
+            self.uint_
+            or (oINT64_MAX < val <= oUINT64_MAX)
+            # Cython equivalent of `isinstance(val, np.unsignedinteger)`
+            or PyObject_TypeCheck(val, &PyUnsignedIntegerArrType_Type)
+        )
 
     @property
     def numeric_(self):
@@ -1328,8 +1344,7 @@ cdef object _try_infer_map(object dtype):
 
 def infer_dtype(value: object, skipna: bool = True) -> str:
     """
-    Efficiently infer the type of a passed val, or list-like
-    array of values. Return a string describing the type.
+    Return a string label of the type of a scalar or list-like of values.
 
     Parameters
     ----------
@@ -2142,7 +2157,7 @@ cpdef bint is_interval_array(ndarray values):
     """
     cdef:
         Py_ssize_t i, n = len(values)
-        str inclusive = None
+        str closed = None
         bint numeric = False
         bint dt64 = False
         bint td64 = False
@@ -2155,15 +2170,15 @@ cpdef bint is_interval_array(ndarray values):
         val = values[i]
 
         if is_interval(val):
-            if inclusive is None:
-                inclusive = val.inclusive
+            if closed is None:
+                closed = val.closed
                 numeric = (
                     util.is_float_object(val.left)
                     or util.is_integer_object(val.left)
                 )
                 td64 = is_timedelta(val.left)
                 dt64 = PyDateTime_Check(val.left)
-            elif val.inclusive != inclusive:
+            elif val.closed != closed:
                 # mismatched closedness
                 return False
             elif numeric:
@@ -2186,7 +2201,7 @@ cpdef bint is_interval_array(ndarray values):
         else:
             return False
 
-    if inclusive is None:
+    if closed is None:
         # we saw all-NAs, no actual Intervals
         return False
     return True
@@ -2542,7 +2557,6 @@ def maybe_convert_objects(ndarray[object] objects,
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
             if not seen.null_:
-                val = int(val)
                 seen.saw_int(val)
 
                 if ((seen.uint_ and seen.sint_) or

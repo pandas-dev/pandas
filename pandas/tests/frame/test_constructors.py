@@ -10,6 +10,7 @@ from datetime import (
 import functools
 import itertools
 import re
+from typing import Iterator
 import warnings
 
 import numpy as np
@@ -18,7 +19,6 @@ import numpy.ma.mrecords as mrecords
 import pytest
 import pytz
 
-from pandas.compat import np_version_under1p19
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -53,6 +53,7 @@ from pandas.arrays import (
     IntervalArray,
     PeriodArray,
     SparseArray,
+    TimedeltaArray,
 )
 from pandas.core.api import Int64Index
 
@@ -271,15 +272,22 @@ class TestDataFrameConstructors:
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
 
-    def test_constructor_dtype_nocast_view_dataframe(self):
+    def test_constructor_dtype_nocast_view_dataframe(self, using_copy_on_write):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
-        should_be_view[0][0] = 99
-        assert df.values[0, 0] == 99
+        if using_copy_on_write:
+            # INFO(CoW) doesn't mutate original
+            should_be_view.iloc[0, 0] = 99
+            assert df.values[0, 0] == 1
+        else:
+            should_be_view[0][0] = 99
+            assert df.values[0, 0] == 99
 
-    def test_constructor_dtype_nocast_view_2d_array(self, using_array_manager):
+    def test_constructor_dtype_nocast_view_2d_array(
+        self, using_array_manager, using_copy_on_write
+    ):
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
-        if not using_array_manager:
+        if not using_array_manager and not using_copy_on_write:
             should_be_view = DataFrame(df.values, dtype=df[0].dtype)
             should_be_view[0][0] = 97
             assert df.values[0, 0] == 97
@@ -308,7 +316,6 @@ class TestDataFrameConstructors:
         assert df.loc[1, 0] is None
         assert df.loc[0, 1] == "2"
 
-    @pytest.mark.skipif(np_version_under1p19, reason="NumPy change.")
     def test_constructor_list_of_2d_raises(self):
         # https://github.com/pandas-dev/pandas/issues/32289
         a = DataFrame()
@@ -433,6 +440,25 @@ class TestDataFrameConstructors:
         result = DataFrame(values)
 
         assert result[0].dtype == object
+        assert result[0][0] == value
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            np.array([1], dtype=np.uint16),
+            np.array([1], dtype=np.uint32),
+            np.array([1], dtype=np.uint64),
+            [np.uint16(1)],
+            [np.uint32(1)],
+            [np.uint64(1)],
+        ],
+    )
+    def test_constructor_numpy_uints(self, values):
+        # GH#47294
+        value = values[0]
+        result = DataFrame(values)
+
+        assert result[0].dtype == value.dtype
         assert result[0][0] == value
 
     def test_constructor_ordereddict(self):
@@ -884,10 +910,7 @@ class TestDataFrameConstructors:
         "data,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (
-                Interval(left=0, right=5, inclusive="right"),
-                IntervalDtype("int64", "right"),
-            ),
+            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
@@ -1372,7 +1395,7 @@ class TestDataFrameConstructors:
             def __getitem__(self, n):
                 return self._lst.__getitem__(n)
 
-            def __len__(self, n):
+            def __len__(self) -> int:
                 return self._lst.__len__()
 
         lst_containers = [DummyContainer([1, "a"]), DummyContainer([2, "b"])]
@@ -1408,7 +1431,7 @@ class TestDataFrameConstructors:
     def test_constructor_iterable(self):
         # GH 21987
         class Iter:
-            def __iter__(self):
+            def __iter__(self) -> Iterator:
                 for i in range(10):
                     yield [1, 2, 3]
 
@@ -2413,16 +2436,16 @@ class TestDataFrameConstructors:
         result = DataFrame({"1": ser1, "2": ser2})
         index = CategoricalIndex(
             [
-                Interval(-0.099, 9.9, inclusive="right"),
-                Interval(9.9, 19.8, inclusive="right"),
-                Interval(19.8, 29.7, inclusive="right"),
-                Interval(29.7, 39.6, inclusive="right"),
-                Interval(39.6, 49.5, inclusive="right"),
-                Interval(49.5, 59.4, inclusive="right"),
-                Interval(59.4, 69.3, inclusive="right"),
-                Interval(69.3, 79.2, inclusive="right"),
-                Interval(79.2, 89.1, inclusive="right"),
-                Interval(89.1, 99, inclusive="right"),
+                Interval(-0.099, 9.9, closed="right"),
+                Interval(9.9, 19.8, closed="right"),
+                Interval(19.8, 29.7, closed="right"),
+                Interval(29.7, 39.6, closed="right"),
+                Interval(39.6, 49.5, closed="right"),
+                Interval(49.5, 59.4, closed="right"),
+                Interval(59.4, 69.3, closed="right"),
+                Interval(69.3, 79.2, closed="right"),
+                Interval(79.2, 89.1, closed="right"),
+                Interval(89.1, 99, closed="right"),
             ],
             ordered=True,
         )
@@ -2505,7 +2528,13 @@ class TestDataFrameConstructors:
 
     @pytest.mark.parametrize("copy", [False, True])
     def test_dict_nocopy(
-        self, request, copy, any_numeric_ea_dtype, any_numpy_dtype, using_array_manager
+        self,
+        request,
+        copy,
+        any_numeric_ea_dtype,
+        any_numpy_dtype,
+        using_array_manager,
+        using_copy_on_write,
     ):
         if (
             using_array_manager
@@ -2576,9 +2605,10 @@ class TestDataFrameConstructors:
 
         # FIXME(GH#35417): until GH#35417, iloc.setitem into EA values does not preserve
         #  view, so we have to check in the other direction
-        df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
+        with tm.assert_produces_warning(FutureWarning, match="will attempt to set"):
+            df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
         assert df.dtypes.iloc[2] == c.dtype
-        if not copy:
+        if not copy and not using_copy_on_write:
             check_views(True)
 
         if copy:
@@ -2590,7 +2620,7 @@ class TestDataFrameConstructors:
                 assert b[0] == b.dtype.type(3)
             # FIXME(GH#35417): enable after GH#35417
             assert c[0] == c_orig[0]  # i.e. df.iloc[0, 2]=45 did *not* update c
-        else:
+        elif not using_copy_on_write:
             # TODO: we can call check_views if we stop consolidating
             #  in setitem_with_indexer
             assert c[0] == 45  # i.e. df.iloc[0, 2]=45 *did* update c
@@ -2665,6 +2695,12 @@ class TestDataFrameConstructors:
             dtype=object,
         )
         tm.assert_frame_equal(df, expected)
+
+    def test_construction_empty_array_multi_column_raises(self):
+        # GH#46822
+        msg = "Empty data passed with indices specified."
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(data=np.array([]), columns=["a", "b"])
 
 
 class TestDataFrameConstructorIndexInference:
@@ -3094,3 +3130,51 @@ class TestFromScalar:
 
         assert np.all(result.dtypes == "M8[ns]")
         assert np.all(result == ts_naive)
+
+
+# TODO: better location for this test?
+class TestAllowNonNano:
+    # Until 2.0, we do not preserve non-nano dt64/td64 when passed as ndarray,
+    #  but do preserve it when passed as DTA/TDA
+
+    @pytest.fixture(params=[True, False])
+    def as_td(self, request):
+        return request.param
+
+    @pytest.fixture
+    def arr(self, as_td):
+        values = np.arange(5).astype(np.int64).view("M8[s]")
+        if as_td:
+            values = values - values[0]
+            return TimedeltaArray._simple_new(values, dtype=values.dtype)
+        else:
+            return DatetimeArray._simple_new(values, dtype=values.dtype)
+
+    def test_index_allow_non_nano(self, arr):
+        idx = Index(arr)
+        assert idx.dtype == arr.dtype
+
+    def test_dti_tdi_allow_non_nano(self, arr, as_td):
+        if as_td:
+            idx = pd.TimedeltaIndex(arr)
+        else:
+            idx = DatetimeIndex(arr)
+        assert idx.dtype == arr.dtype
+
+    def test_series_allow_non_nano(self, arr):
+        ser = Series(arr)
+        assert ser.dtype == arr.dtype
+
+    def test_frame_allow_non_nano(self, arr):
+        df = DataFrame(arr)
+        assert df.dtypes[0] == arr.dtype
+
+    @pytest.mark.xfail(
+        # TODO(2.0): xfail should become unnecessary
+        strict=False,
+        reason="stack_arrays converts TDA to ndarray, then goes "
+        "through ensure_wrapped_if_datetimelike",
+    )
+    def test_frame_from_dict_allow_non_nano(self, arr):
+        df = DataFrame({0: arr})
+        assert df.dtypes[0] == arr.dtype

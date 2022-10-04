@@ -13,7 +13,7 @@ import pytz
 
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
-    conversion,
+    astype_overflowsafe,
 )
 from pandas.compat import PY39
 
@@ -37,6 +37,21 @@ if PY39:
 
 
 class TestDatetimeIndex:
+    def test_explicit_tz_none(self):
+        # GH#48659
+        dti = date_range("2016-01-01", periods=10, tz="UTC")
+
+        msg = "Passed data is timezone-aware, incompatible with 'tz=None'"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, tz=None)
+
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(np.array(dti), tz=None)
+
+        msg = "Cannot pass both a timezone-aware dtype and tz=None"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex([], dtype="M8[ns, UTC]", tz=None)
+
     @pytest.mark.parametrize(
         "dt_cls", [DatetimeIndex, DatetimeArray._from_sequence_not_strict]
     )
@@ -521,7 +536,7 @@ class TestDatetimeIndex:
         # coerces to object
         tm.assert_index_equal(Index(dates), exp)
 
-        msg = "Out of bounds nanosecond timestamp"
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
@@ -925,6 +940,9 @@ class TestTimeSeries:
         result = DatetimeIndex(rng._data, freq=None)
         assert result.freq is None
 
+        dta = DatetimeArray(rng, freq=None)
+        assert dta.freq is None
+
     def test_dti_constructor_years_only(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH 6961
@@ -975,7 +993,7 @@ class TestTimeSeries:
         arr = np.arange(0, 100, 10, dtype=np.int64).view("M8[D]")
         idx = Index(arr)
 
-        assert (idx.values == conversion.ensure_datetime64ns(arr)).all()
+        assert (idx.values == astype_overflowsafe(arr, dtype=np.dtype("M8[ns]"))).all()
 
     def test_constructor_int64_nocopy(self):
         # GH#1624
@@ -1134,7 +1152,10 @@ def test_timestamp_constructor_retain_fold(tz, fold):
 
 _tzs = ["dateutil/Europe/London"]
 if PY39:
-    _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
+    try:
+        _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
+    except zoneinfo.ZoneInfoNotFoundError:
+        pass
 
 
 @pytest.mark.parametrize("tz", _tzs)

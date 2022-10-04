@@ -33,7 +33,7 @@ def data_test_ix(request, dirpath):
     for k in range(df.shape[1]):
         col = df.iloc[:, k]
         if col.dtype == np.int64:
-            df.iloc[:, k] = df.iloc[:, k].astype(np.float64)
+            df.isetitem(k, df.iloc[:, k].astype(np.float64))
     return df, test_ix
 
 
@@ -134,6 +134,21 @@ def test_encoding_options(datapath):
         df3 = rdr.read()
     for x, y in zip(df1.columns, df3.columns):
         assert x == y.decode()
+
+
+def test_encoding_infer(datapath):
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+
+    with pd.read_sas(fname, encoding="infer", iterator=True) as df1_reader:
+        # check: is encoding inferred correctly from file
+        assert df1_reader.inferred_encoding == "cp1252"
+        df1 = df1_reader.read()
+
+    with pd.read_sas(fname, encoding="cp1252", iterator=True) as df2_reader:
+        df2 = df2_reader.read()
+
+    # check: reader reads correct information
+    tm.assert_frame_equal(df1, df2)
 
 
 def test_productsales(datapath):
@@ -341,3 +356,45 @@ def test_null_date(datapath):
         },
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_meta2_page(datapath):
+    # GH 35545
+    fname = datapath("io", "sas", "data", "test_meta2_page.sas7bdat")
+    df = pd.read_sas(fname)
+    assert len(df) == 1000
+
+
+@pytest.mark.parametrize(
+    "test_file, override_offset, override_value, expected_msg",
+    [
+        ("test2.sas7bdat", 0x10000 + 55229, 0x80 | 0x0F, "Out of bounds"),
+        ("test2.sas7bdat", 0x10000 + 55229, 0x10, "unknown control byte"),
+        ("test3.sas7bdat", 118170, 184, "Out of bounds"),
+    ],
+)
+def test_rle_rdc_exceptions(
+    datapath, test_file, override_offset, override_value, expected_msg
+):
+    """Errors in RLE/RDC decompression should propagate."""
+    with open(datapath("io", "sas", "data", test_file), "rb") as fd:
+        data = bytearray(fd.read())
+    data[override_offset] = override_value
+    with pytest.raises(Exception, match=expected_msg):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat")
+
+
+def test_0x40_control_byte(datapath):
+    # GH 31243
+    fname = datapath("io", "sas", "data", "0x40controlbyte.sas7bdat")
+    df = pd.read_sas(fname, encoding="ascii")
+    fname = datapath("io", "sas", "data", "0x40controlbyte.csv")
+    df0 = pd.read_csv(fname, dtype="object")
+    tm.assert_frame_equal(df, df0)
+
+
+def test_0x00_control_byte(datapath):
+    # GH 47099
+    fname = datapath("io", "sas", "data", "0x00controlbyte.sas7bdat.bz2")
+    df = next(pd.read_sas(fname, chunksize=11_000))
+    assert df.shape == (11_000, 20)

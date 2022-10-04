@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -37,42 +38,42 @@ def test_is_unitless():
 
 def test_get_unit_from_dtype():
     # datetime64
-    assert py_get_unit_from_dtype(np.dtype("M8[Y]")) == 0
-    assert py_get_unit_from_dtype(np.dtype("M8[M]")) == 1
-    assert py_get_unit_from_dtype(np.dtype("M8[W]")) == 2
+    assert py_get_unit_from_dtype(np.dtype("M8[Y]")) == NpyDatetimeUnit.NPY_FR_Y.value
+    assert py_get_unit_from_dtype(np.dtype("M8[M]")) == NpyDatetimeUnit.NPY_FR_M.value
+    assert py_get_unit_from_dtype(np.dtype("M8[W]")) == NpyDatetimeUnit.NPY_FR_W.value
     # B has been deprecated and removed -> no 3
-    assert py_get_unit_from_dtype(np.dtype("M8[D]")) == 4
-    assert py_get_unit_from_dtype(np.dtype("M8[h]")) == 5
-    assert py_get_unit_from_dtype(np.dtype("M8[m]")) == 6
-    assert py_get_unit_from_dtype(np.dtype("M8[s]")) == 7
-    assert py_get_unit_from_dtype(np.dtype("M8[ms]")) == 8
-    assert py_get_unit_from_dtype(np.dtype("M8[us]")) == 9
-    assert py_get_unit_from_dtype(np.dtype("M8[ns]")) == 10
-    assert py_get_unit_from_dtype(np.dtype("M8[ps]")) == 11
-    assert py_get_unit_from_dtype(np.dtype("M8[fs]")) == 12
-    assert py_get_unit_from_dtype(np.dtype("M8[as]")) == 13
+    assert py_get_unit_from_dtype(np.dtype("M8[D]")) == NpyDatetimeUnit.NPY_FR_D.value
+    assert py_get_unit_from_dtype(np.dtype("M8[h]")) == NpyDatetimeUnit.NPY_FR_h.value
+    assert py_get_unit_from_dtype(np.dtype("M8[m]")) == NpyDatetimeUnit.NPY_FR_m.value
+    assert py_get_unit_from_dtype(np.dtype("M8[s]")) == NpyDatetimeUnit.NPY_FR_s.value
+    assert py_get_unit_from_dtype(np.dtype("M8[ms]")) == NpyDatetimeUnit.NPY_FR_ms.value
+    assert py_get_unit_from_dtype(np.dtype("M8[us]")) == NpyDatetimeUnit.NPY_FR_us.value
+    assert py_get_unit_from_dtype(np.dtype("M8[ns]")) == NpyDatetimeUnit.NPY_FR_ns.value
+    assert py_get_unit_from_dtype(np.dtype("M8[ps]")) == NpyDatetimeUnit.NPY_FR_ps.value
+    assert py_get_unit_from_dtype(np.dtype("M8[fs]")) == NpyDatetimeUnit.NPY_FR_fs.value
+    assert py_get_unit_from_dtype(np.dtype("M8[as]")) == NpyDatetimeUnit.NPY_FR_as.value
 
     # timedelta64
-    assert py_get_unit_from_dtype(np.dtype("m8[Y]")) == 0
-    assert py_get_unit_from_dtype(np.dtype("m8[M]")) == 1
-    assert py_get_unit_from_dtype(np.dtype("m8[W]")) == 2
+    assert py_get_unit_from_dtype(np.dtype("m8[Y]")) == NpyDatetimeUnit.NPY_FR_Y.value
+    assert py_get_unit_from_dtype(np.dtype("m8[M]")) == NpyDatetimeUnit.NPY_FR_M.value
+    assert py_get_unit_from_dtype(np.dtype("m8[W]")) == NpyDatetimeUnit.NPY_FR_W.value
     # B has been deprecated and removed -> no 3
-    assert py_get_unit_from_dtype(np.dtype("m8[D]")) == 4
-    assert py_get_unit_from_dtype(np.dtype("m8[h]")) == 5
-    assert py_get_unit_from_dtype(np.dtype("m8[m]")) == 6
-    assert py_get_unit_from_dtype(np.dtype("m8[s]")) == 7
-    assert py_get_unit_from_dtype(np.dtype("m8[ms]")) == 8
-    assert py_get_unit_from_dtype(np.dtype("m8[us]")) == 9
-    assert py_get_unit_from_dtype(np.dtype("m8[ns]")) == 10
-    assert py_get_unit_from_dtype(np.dtype("m8[ps]")) == 11
-    assert py_get_unit_from_dtype(np.dtype("m8[fs]")) == 12
-    assert py_get_unit_from_dtype(np.dtype("m8[as]")) == 13
+    assert py_get_unit_from_dtype(np.dtype("m8[D]")) == NpyDatetimeUnit.NPY_FR_D.value
+    assert py_get_unit_from_dtype(np.dtype("m8[h]")) == NpyDatetimeUnit.NPY_FR_h.value
+    assert py_get_unit_from_dtype(np.dtype("m8[m]")) == NpyDatetimeUnit.NPY_FR_m.value
+    assert py_get_unit_from_dtype(np.dtype("m8[s]")) == NpyDatetimeUnit.NPY_FR_s.value
+    assert py_get_unit_from_dtype(np.dtype("m8[ms]")) == NpyDatetimeUnit.NPY_FR_ms.value
+    assert py_get_unit_from_dtype(np.dtype("m8[us]")) == NpyDatetimeUnit.NPY_FR_us.value
+    assert py_get_unit_from_dtype(np.dtype("m8[ns]")) == NpyDatetimeUnit.NPY_FR_ns.value
+    assert py_get_unit_from_dtype(np.dtype("m8[ps]")) == NpyDatetimeUnit.NPY_FR_ps.value
+    assert py_get_unit_from_dtype(np.dtype("m8[fs]")) == NpyDatetimeUnit.NPY_FR_fs.value
+    assert py_get_unit_from_dtype(np.dtype("m8[as]")) == NpyDatetimeUnit.NPY_FR_as.value
 
 
 def test_td64_to_tdstruct():
     val = 12454636234  # arbitrary value
 
-    res1 = py_td64_to_tdstruct(val, 10)  # ns
+    res1 = py_td64_to_tdstruct(val, NpyDatetimeUnit.NPY_FR_ns.value)
     exp1 = {
         "days": 0,
         "hrs": 0,
@@ -87,7 +88,7 @@ def test_td64_to_tdstruct():
     }
     assert res1 == exp1
 
-    res2 = py_td64_to_tdstruct(val, 9)  # us
+    res2 = py_td64_to_tdstruct(val, NpyDatetimeUnit.NPY_FR_us.value)
     exp2 = {
         "days": 0,
         "hrs": 3,
@@ -102,7 +103,7 @@ def test_td64_to_tdstruct():
     }
     assert res2 == exp2
 
-    res3 = py_td64_to_tdstruct(val, 8)  # ms
+    res3 = py_td64_to_tdstruct(val, NpyDatetimeUnit.NPY_FR_ms.value)
     exp3 = {
         "days": 144,
         "hrs": 3,
@@ -118,7 +119,7 @@ def test_td64_to_tdstruct():
     assert res3 == exp3
 
     # Note this out of bounds for nanosecond Timedelta
-    res4 = py_td64_to_tdstruct(val, 7)  # s
+    res4 = py_td64_to_tdstruct(val, NpyDatetimeUnit.NPY_FR_s.value)
     exp4 = {
         "days": 144150,
         "hrs": 21,
@@ -206,4 +207,16 @@ class TestAstypeOverflowSafe:
         dtype2 = np.dtype("m8[us]")
         result = astype_overflowsafe(arr, dtype2)
         expected = arr.astype(dtype2)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_astype_overflowsafe_disallow_rounding(self):
+        arr = np.array([-1500, 1500], dtype="M8[ns]")
+        dtype = np.dtype("M8[us]")
+
+        msg = "Cannot losslessly cast '-1500 ns' to us"
+        with pytest.raises(ValueError, match=msg):
+            astype_overflowsafe(arr, dtype, round_ok=False)
+
+        result = astype_overflowsafe(arr, dtype, round_ok=True)
+        expected = arr.astype(dtype)
         tm.assert_numpy_array_equal(result, expected)

@@ -29,13 +29,19 @@ __all__ = [
     "astype_overflowsafe",
     "get_unit_from_dtype",
     "periods_per_day",
+    "periods_per_second",
+    "is_supported_unit",
+    "npy_unit_to_abbrev",
 ]
 
 from pandas._libs.tslibs import dtypes
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.dtypes import (
     Resolution,
+    is_supported_unit,
+    npy_unit_to_abbrev,
     periods_per_day,
+    periods_per_second,
 )
 from pandas._libs.tslibs.nattype import (
     NaT,

@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    SpecificationError,
+    UnsupportedFunctionCall,
+)
 
 from pandas import (
     DataFrame,
@@ -409,3 +412,78 @@ def test_rolling_max_min_periods(step):
     msg = "min_periods 5 must be <= window 3"
     with pytest.raises(ValueError, match=msg):
         Series([1, 2, 3]).rolling(window=3, min_periods=5, step=step).max()
+
+
+@pytest.mark.parametrize(
+    "roll_type, class_name",
+    [
+        ("rolling", "Rolling"),
+        ("expanding", "Expanding"),
+        ("ewm", "ExponentialMovingWindow"),
+    ],
+)
+@pytest.mark.parametrize(
+    "kernel, has_args, raises",
+    [
+        ("sum", True, True),
+        ("max", True, True),
+        ("min", True, True),
+        ("mean", True, True),
+        ("median", False, False),
+        ("std", True, True),
+        ("var", True, True),
+        ("skew", False, False),
+        ("sem", True, True),
+        ("kurt", False, False),
+        ("quantile", False, False),
+        ("rank", False, False),
+        ("cov", False, False),
+        ("corr", False, False),
+    ],
+)
+def test_args_kwargs_depr(roll_type, class_name, kernel, has_args, raises):
+    # GH#47836
+    r = getattr(Series([2, 4, 6]), roll_type)(2)
+    error_msg = "numpy operations are not valid with window objects"
+    if kernel == "quantile":
+        required_args = (0.5,)
+    else:
+        required_args = ()
+
+    if roll_type == "ewm" and kernel not in (
+        "sum",
+        "mean",
+        "std",
+        "var",
+        "cov",
+        "corr",
+    ):
+        # kernels not implemented for ewm
+        with pytest.raises(AttributeError, match=f"has no attribute '{kernel}'"):
+            getattr(r, kernel)
+    else:
+        warn_msg = f"Passing additional kwargs to {class_name}.{kernel}"
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            if raises:
+                with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+                    getattr(r, kernel)(*required_args, dtype=np.float64)
+            else:
+                getattr(r, kernel)(*required_args, dtype=np.float64)
+
+        if has_args:
+            warn_msg = f"Passing additional args to {class_name}.{kernel}"
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                # sem raises for rolling but not expanding
+                if raises and (roll_type != "expanding" or kernel != "sem"):
+                    with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+                        getattr(r, kernel)(*required_args, 1, 2, 3, 4)
+                else:
+                    getattr(r, kernel)(*required_args, 1, 2, 3, 4)
+
+            warn_msg = f"Passing additional args and kwargs to {class_name}.{kernel}"
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                if raises:
+                    with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+                        getattr(r, kernel)(*required_args, 1, 2, 3, 4, dtype=np.float64)
+                else:
+                    getattr(r, kernel)(*required_args, 1, 2, 3, 4, dtype=np.float64)

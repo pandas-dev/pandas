@@ -5,6 +5,7 @@ inherit from this class.
 from __future__ import annotations
 
 from typing import (
+    Literal,
     TypeVar,
     final,
 )
@@ -13,6 +14,7 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     DtypeObj,
     Shape,
 )
@@ -55,7 +57,7 @@ class DataManager(PandasObject):
         return tuple(len(ax) for ax in self.axes)
 
     @final
-    def _validate_set_axis(self, axis: int, new_labels: Index) -> None:
+    def _validate_set_axis(self, axis: AxisInt, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
         old_len = len(self.axes[axis])
         new_len = len(new_labels)
@@ -75,7 +77,7 @@ class DataManager(PandasObject):
         self: T,
         new_axis,
         indexer,
-        axis: int,
+        axis: AxisInt,
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
@@ -87,7 +89,7 @@ class DataManager(PandasObject):
     def reindex_axis(
         self: T,
         new_index: Index,
-        axis: int,
+        axis: AxisInt,
         fill_value=None,
         only_slice: bool = False,
     ) -> T:
@@ -155,7 +157,9 @@ class DataManager(PandasObject):
 
 
 class SingleDataManager(DataManager):
-    ndim = 1
+    @property
+    def ndim(self) -> Literal[1]:
+        return 1
 
     @final
     @property

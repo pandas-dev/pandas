@@ -18,6 +18,7 @@ from typing import (
 import numpy as np
 
 from pandas.compat import PY39
+from pandas.errors import UndefinedVariableError
 
 import pandas.core.common as com
 from pandas.core.computation.ops import (
@@ -35,7 +36,6 @@ from pandas.core.computation.ops import (
     Op,
     Term,
     UnaryOp,
-    UndefinedVariableError,
     is_term,
 )
 from pandas.core.computation.parsing import (
@@ -548,13 +548,13 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit_Name(self, node, **kwargs):
         return self.term_type(node.id, self.env, **kwargs)
 
-    def visit_NameConstant(self, node, **kwargs):
+    def visit_NameConstant(self, node, **kwargs) -> Term:
         return self.const_type(node.value, self.env)
 
-    def visit_Num(self, node, **kwargs):
+    def visit_Num(self, node, **kwargs) -> Term:
         return self.const_type(node.n, self.env)
 
-    def visit_Constant(self, node, **kwargs):
+    def visit_Constant(self, node, **kwargs) -> Term:
         return self.const_type(node.n, self.env)
 
     def visit_Str(self, node, **kwargs):
@@ -693,7 +693,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         else:
 
-            new_args = [self.visit(arg).value for arg in node.args]
+            new_args = [self.visit(arg)(self.env) for arg in node.args]
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
@@ -704,7 +704,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     )
 
                 if key.arg:
-                    kwargs[key.arg] = self.visit(key.value).value
+                    kwargs[key.arg] = self.visit(key.value)(self.env)
 
             name = self.env.add_tmp(res(*new_args, **kwargs))
             return self.term_type(name=name, env=self.env)
@@ -774,7 +774,9 @@ class PandasExprVisitor(BaseExprVisitor):
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(["Not"]))
 class PythonExprVisitor(BaseExprVisitor):
-    def __init__(self, env, engine, parser, preparser=lambda x: x) -> None:
+    def __init__(
+        self, env, engine, parser, preparser=lambda source, f=None: source
+    ) -> None:
         super().__init__(env, engine, parser, preparser=preparser)
 
 

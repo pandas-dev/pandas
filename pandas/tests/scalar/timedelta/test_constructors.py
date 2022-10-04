@@ -7,10 +7,20 @@ import pytest
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 
 from pandas import (
+    NaT,
     Timedelta,
     offsets,
     to_timedelta,
 )
+
+
+def test_construct_with_weeks_unit_overflow():
+    # GH#47268 don't silently wrap around
+    with pytest.raises(OutOfBoundsTimedelta, match="without overflow"):
+        Timedelta(1000000000000000000, unit="W")
+
+    with pytest.raises(OutOfBoundsTimedelta, match="without overflow"):
+        Timedelta(1000000000000000000.0, unit="W")
 
 
 def test_construct_from_td64_with_unit():
@@ -204,15 +214,15 @@ def test_td_from_repr_roundtrip(val):
 
 
 def test_overflow_on_construction():
-    msg = "int too (large|big) to convert"
-
     # GH#3374
     value = Timedelta("1day").value * 20169940
-    with pytest.raises(OverflowError, match=msg):
+    msg = "Cannot cast 1742682816000000000000 from ns to 'ns' without overflow"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(value)
 
     # xref GH#17637
-    with pytest.raises(OverflowError, match=msg):
+    msg = "Cannot cast 139993 from D to 'ns' without overflow"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(7 * 19999, unit="D")
 
     msg = "Cannot cast 259987 days, 0:00:00 to unit=ns without overflow"
@@ -362,6 +372,17 @@ def test_timedelta_constructor_identity():
     assert result is expected
 
 
+def test_timedelta_pass_td_and_kwargs_raises():
+    # don't silently ignore the kwargs GH#48898
+    td = Timedelta(days=1)
+    msg = (
+        "Cannot pass both a Timedelta input and timedelta keyword arguments, "
+        r"got \['days'\]"
+    )
+    with pytest.raises(ValueError, match=msg):
+        Timedelta(td, days=2)
+
+
 @pytest.mark.parametrize(
     "constructor, value, unit, expectation",
     [
@@ -393,3 +414,9 @@ def test_string_without_numbers(value):
     )
     with pytest.raises(ValueError, match=msg):
         Timedelta(value)
+
+
+def test_timedelta_new_npnat():
+    # GH#48898
+    nat = np.timedelta64("NaT", "h")
+    assert Timedelta(nat) is NaT

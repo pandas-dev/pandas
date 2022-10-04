@@ -23,6 +23,7 @@ from pandas import (
     DatetimeIndex,
     Index,
     NaT,
+    PeriodIndex,
     Series,
     Timedelta,
     Timestamp,
@@ -1240,3 +1241,9 @@ class TestPandasJSONTests:
         expected = f'"{td.isoformat()}"'
 
         assert result == expected
+
+    def test_encode_periodindex(self):
+        # GH 46683
+        p = PeriodIndex(["2022-04-06", "2022-04-07"], freq="D")
+        df = DataFrame(index=p)
+        assert df.to_json() == "{}"

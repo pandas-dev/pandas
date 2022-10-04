@@ -10,6 +10,7 @@ from warnings import (
 import numpy as np
 import pytest
 
+from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -21,15 +22,16 @@ from pandas import (
     Interval,
     NaT,
     Series,
+    Timestamp,
     array,
     concat,
     date_range,
     interval_range,
     isna,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
-from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import Base
 
 # We pass through the error message from numpy
@@ -121,7 +123,7 @@ class TestiLocBaseIndependent:
         if frame_or_series is Series:
             values = obj.values
         else:
-            values = obj[0].values
+            values = obj._mgr.arrays[0]
 
         if frame_or_series is Series:
             obj.iloc[:2] = box(arr[2:])
@@ -841,7 +843,9 @@ class TestiLocBaseIndependent:
             df.iloc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_array_manager, request):
+    def test_identity_slice_returns_new_object(
+        self, using_array_manager, using_copy_on_write, request
+    ):
         # GH13873
         if using_array_manager:
             mark = pytest.mark.xfail(
@@ -857,8 +861,12 @@ class TestiLocBaseIndependent:
         assert np.shares_memory(original_df["a"], sliced_df["a"])
 
         # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
+        # depending on CoW
         original_df.loc[:, "a"] = [4, 4, 4]
-        assert (sliced_df["a"] == 4).all()
+        if using_copy_on_write:
+            assert (sliced_df["a"] == [1, 2, 3]).all()
+        else:
+            assert (sliced_df["a"] == 4).all()
 
         original_series = Series([1, 2, 3, 4, 5, 6])
         sliced_series = original_series.iloc[:]
@@ -866,7 +874,11 @@ class TestiLocBaseIndependent:
 
         # should also be a shallow copy
         original_series[:3] = [7, 8, 9]
-        assert all(sliced_series[:3] == [7, 8, 9])
+        if using_copy_on_write:
+            # shallow copy not updated (CoW)
+            assert all(sliced_series[:3] == [1, 2, 3])
+        else:
+            assert all(sliced_series[:3] == [7, 8, 9])
 
     def test_indexing_zerodim_np_array(self):
         # GH24919
@@ -882,9 +894,10 @@ class TestiLocBaseIndependent:
         assert result == 1
 
     @td.skip_array_manager_not_yet_implemented
-    def test_iloc_setitem_categorical_updates_inplace(self):
+    def test_iloc_setitem_categorical_updates_inplace(self, using_copy_on_write):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
         cat = Categorical(["A", "B", "C"])
+        cat_original = cat.copy()
         df = DataFrame({1: cat, 2: [1, 2, 3]}, copy=False)
 
         assert tm.shares_memory(df[1], cat)
@@ -893,9 +906,13 @@ class TestiLocBaseIndependent:
         msg = "will attempt to set the values inplace instead"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             df.iloc[:, 0] = cat[::-1]
-        assert tm.shares_memory(df[1], cat)
 
-        expected = Categorical(["C", "B", "A"], categories=["A", "B", "C"])
+        if not using_copy_on_write:
+            assert tm.shares_memory(df[1], cat)
+            expected = Categorical(["C", "B", "A"], categories=["A", "B", "C"])
+        else:
+            expected = cat_original
+
         tm.assert_categorical_equal(cat, expected)
 
     def test_iloc_with_boolean_operation(self):
@@ -1196,6 +1213,23 @@ class TestiLocBaseIndependent:
         arr[2] = arr[-1]
         assert ser[0] == arr[-1]
 
+    def test_iloc_setitem_multicolumn_to_datetime(self, using_array_manager):
+
+        # GH#20511
+        df = DataFrame({"A": ["2022-01-01", "2022-01-02"], "B": ["2021", "2022"]})
+
+        df.iloc[:, [0]] = DataFrame({"A": to_datetime(["2021", "2022"])})
+        expected = DataFrame(
+            {
+                "A": [
+                    Timestamp("2021-01-01 00:00:00"),
+                    Timestamp("2022-01-01 00:00:00"),
+                ],
+                "B": ["2021", "2022"],
+            }
+        )
+        tm.assert_frame_equal(df, expected, check_dtype=using_array_manager)
+
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as
@@ -1376,8 +1410,9 @@ class TestILocCallable:
 
 
 class TestILocSeries:
-    def test_iloc(self):
+    def test_iloc(self, using_copy_on_write):
         ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+        ser_original = ser.copy()
 
         for i in range(len(ser)):
             result = ser.iloc[i]
@@ -1393,7 +1428,10 @@ class TestILocSeries:
         with tm.assert_produces_warning(None):
             # GH#45324 make sure we aren't giving a spurious FutureWarning
             result[:] = 0
-        assert (ser.iloc[1:3] == 0).all()
+        if using_copy_on_write:
+            tm.assert_series_equal(ser, ser_original)
+        else:
+            assert (ser.iloc[1:3] == 0).all()
 
         # list of integers
         result = ser.iloc[[0, 2, 3, 4, 5]]

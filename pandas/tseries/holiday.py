@@ -6,7 +6,7 @@ from datetime import (
 )
 import warnings
 
-from dateutil.relativedelta import (  # noqa:F401
+from dateutil.relativedelta import (
     FR,
     MO,
     SA,
@@ -242,7 +242,7 @@ class Holiday:
         repr = f"Holiday: {self.name} ({info})"
         return repr
 
-    def dates(self, start_date, end_date, return_name=False):
+    def dates(self, start_date, end_date, return_name: bool = False):
         """
         Calculate holidays observed between start date and end date
 
@@ -356,7 +356,7 @@ class Holiday:
 holiday_calendars = {}
 
 
-def register(cls):
+def register(cls) -> None:
     try:
         name = cls.name
     except AttributeError:
@@ -420,7 +420,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
 
         return None
 
-    def holidays(self, start=None, end=None, return_name=False):
+    def holidays(self, start=None, end=None, return_name: bool = False):
         """
         Returns a curve with holidays between start_date and end_date
 
@@ -506,7 +506,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         other_holidays.update(base_holidays)
         return list(other_holidays.values())
 
-    def merge(self, other, inplace=False):
+    def merge(self, other, inplace: bool = False):
         """
         Merge holiday calendars together.  The caller's class
         rules take precedence.  The merge will be done
@@ -582,3 +582,27 @@ def HolidayCalendarFactory(name, base, other, base_class=AbstractHolidayCalendar
     rules = AbstractHolidayCalendar.merge_class(base, other)
     calendar_class = type(name, (base_class,), {"rules": rules, "name": name})
     return calendar_class
+
+
+__all__ = [
+    "after_nearest_workday",
+    "before_nearest_workday",
+    "FR",
+    "get_calendar",
+    "HolidayCalendarFactory",
+    "MO",
+    "nearest_workday",
+    "next_monday",
+    "next_monday_or_tuesday",
+    "next_workday",
+    "previous_friday",
+    "previous_workday",
+    "register",
+    "SA",
+    "SU",
+    "sunday_to_monday",
+    "TH",
+    "TU",
+    "WE",
+    "weekend_to_monday",
+]

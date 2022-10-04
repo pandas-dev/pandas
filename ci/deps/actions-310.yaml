@@ -5,7 +5,7 @@ dependencies:
   - python=3.10
 
   # test dependencies
-  - cython=0.29.30
+  - cython>=0.29.32
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
@@ -31,8 +31,7 @@ dependencies:
   - jinja2
   - lxml
   - matplotlib
-  # TODO: uncomment after numba supports py310
-  #- numba
+  - numba
   - numexpr
   - openpyxl
   - odfpy
@@ -44,10 +43,11 @@ dependencies:
   - pyreadstat
   - python-snappy
   - pyxlsb
-  - s3fs
+  - s3fs>=2021.08.0
   - scipy
   - sqlalchemy
   - tabulate
+  - tzdata>=2022a
   - xarray
   - xlrd
   - xlsxwriter

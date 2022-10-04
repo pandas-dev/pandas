@@ -8,14 +8,18 @@ h1 {
     color: #130654;
 }
 h2 {
-    font-size: 1.45rem;
+    font-size: 1.8rem;
     font-weight: 700;
-    color: black;
+    color: #130654;
 }
 h3 {
     font-size: 1.3rem;
     font-weight: 600;
     color: black;
+}
+h3 a {
+    color: black;
+    text-decoration: underline dotted !important;
 }
 a {
     color: #130654;
@@ -31,6 +35,13 @@ ol ol, ol ul, ul ol, ul ul {
 }
 .pink {
     color: #e70488;
+}
+.follow-us-button {
+    font-size: 2.4rem !important;
+    color: #0d6efd !important;
+}
+.follow-us-button:hover {
+    color: #0b5ed7 !important;
 }
 .fab {
     font-size: 1.2rem;

@@ -3,6 +3,7 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.errors import UndefinedVariableError
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -495,8 +496,6 @@ class TestDataFrameQueryNumExprPandas:
             df.query("i - +", engine=engine, parser=parser)
 
     def test_query_scope(self):
-        from pandas.core.computation.ops import UndefinedVariableError
-
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
 
@@ -522,8 +521,6 @@ class TestDataFrameQueryNumExprPandas:
             df.query("@a > b > c", engine=engine, parser=parser)
 
     def test_query_doesnt_pickup_local(self):
-        from pandas.core.computation.ops import UndefinedVariableError
-
         engine, parser = self.engine, self.parser
         n = m = 10
         df = DataFrame(np.random.randint(m, size=(n, 3)), columns=list("abc"))
@@ -533,7 +530,7 @@ class TestDataFrameQueryNumExprPandas:
             df.query("sin > 5", engine=engine, parser=parser)
 
     def test_query_builtin(self):
-        from pandas.core.computation.engines import NumExprClobberingError
+        from pandas.errors import NumExprClobberingError
 
         engine, parser = self.engine, self.parser
 
@@ -618,8 +615,6 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
     def test_nested_raises_on_local_self_reference(self):
-        from pandas.core.computation.ops import UndefinedVariableError
-
         df = DataFrame(np.random.randn(5, 3))
 
         # can't reference ourself b/c we're a local so @ is necessary
@@ -678,8 +673,6 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
     def test_query_undefined_local(self):
-        from pandas.core.computation.ops import UndefinedVariableError
-
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
 
@@ -838,8 +831,6 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
             df.query("index < 20130101 < dates3", engine=engine, parser=parser)
 
     def test_nested_scope(self):
-        from pandas.core.computation.ops import UndefinedVariableError
-
         engine = self.engine
         parser = self.parser
         # smoke test

@@ -96,7 +96,7 @@ class TestDataFrameToRecords:
             + [np.asarray(df.iloc[:, i]) for i in range(3)],
             dtype={
                 "names": ["A", "level_1", "0", "1", "2"],
-                "formats": ["<U1", "<U1", "<f8", "<f8", "<f8"],
+                "formats": ["O", "O", "<f8", "<f8", "<f8"],
             },
         )
         tm.assert_numpy_array_equal(result, expected)
@@ -106,6 +106,33 @@ class TestDataFrameToRecords:
         # unicode_literals conflict with to_records
         result = DataFrame([{"a": "x", "b": "y"}]).set_index("a").to_records()
         expected = np.rec.array([("x", "y")], dtype=[("a", "O"), ("b", "O")])
+        tm.assert_almost_equal(result, expected)
+
+    def test_to_records_index_dtype(self):
+        # GH 47263: consistent data types for Index and MultiIndex
+        df = DataFrame(
+            {
+                1: date_range("2022-01-01", periods=2),
+                2: date_range("2022-01-01", periods=2),
+                3: date_range("2022-01-01", periods=2),
+            }
+        )
+
+        expected = np.rec.array(
+            [
+                ("2022-01-01", "2022-01-01", "2022-01-01"),
+                ("2022-01-02", "2022-01-02", "2022-01-02"),
+            ],
+            dtype=[("1", "<M8[ns]"), ("2", "<M8[ns]"), ("3", "<M8[ns]")],
+        )
+
+        result = df.to_records(index=False)
+        tm.assert_almost_equal(result, expected)
+
+        result = df.set_index(1).to_records(index=True)
+        tm.assert_almost_equal(result, expected)
+
+        result = df.set_index([1, 2]).to_records(index=True)
         tm.assert_almost_equal(result, expected)
 
     def test_to_records_with_unicode_column_names(self):
