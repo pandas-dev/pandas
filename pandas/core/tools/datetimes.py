@@ -815,8 +815,10 @@ def to_datetime(
         - If :const:`'julian'`, unit must be :const:`'D'`, and origin is set to
           beginning of Julian Calendar. Julian day number :const:`0` is assigned
           to the day starting at noon on January 1, 4713 BC.
-        - If Timestamp convertible, origin is set to Timestamp identified by
-          origin.
+        - If Timestamp convertible (Timestamp, dt.datetime, np.datetimt64 or date
+          string), origin is set to Timestamp identified by origin.
+        - If a float or integer, origin is the mullisecond difference
+          relative to 1970-01-01.
     cache : bool, default True
         If :const:`True`, use a cache of unique, converted dates to apply the
         datetime conversion. May produce significant speed-up when parsing
