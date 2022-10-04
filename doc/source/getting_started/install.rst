@@ -286,7 +286,8 @@ plot, output_formatting, compression, test]``
 Timezones
 ^^^^^^^^^
 
-Can be managed as optional_extra with ``pandas[timezone]``,
+Can be managed as optional_extra with ``pandas[timezone]``.
+
 ========================= ========================= =============== =============================================================
 Dependency                Minimum Version           optional_extra  Notes
 ========================= ========================= =============== =============================================================
@@ -306,13 +307,13 @@ Visualization
 
 Can be managed as optional_extra with ``pandas[plot, output_formatting]``, depending on the required functionality.
 
-========================= ================== ================= =============================================================
-Dependency                Minimum Version    optional_extra    Notes
-========================= ================== ================= =============================================================
-matplotlib                3.3.2              plot              Plotting library
-Jinja2                    3.0.0              output_formatting Conditional formatting with DataFrame.style
-tabulate                  0.8.9              output_formatting Printing in Markdown-friendly format (see `tabulate`_)
-========================= ================== ================= =============================================================
+========================= ================== ================== =============================================================
+Dependency                Minimum Version    optional_extra     Notes
+========================= ================== ================== =============================================================
+matplotlib                3.3.2              plot               Plotting library
+Jinja2                    3.0.0              output_formatting  Conditional formatting with DataFrame.style
+tabulate                  0.8.9              output_formatting  Printing in Markdown-friendly format (see `tabulate`_)
+========================= ================== ================== =============================================================
 
 Computation
 ^^^^^^^^^^^
