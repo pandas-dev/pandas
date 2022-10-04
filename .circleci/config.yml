@@ -15,8 +15,71 @@ jobs:
       - checkout
       - run: .circleci/setup_env.sh
       - run: PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH ci/run_tests.sh
-
+  build-aarch64-38:
+    machine:
+      image: ubuntu-2004:202101-01
+    resource_class: arm.large
+    steps:
+      - checkout
+      - run:
+          name: Build Aarch64 wheels (3.8)
+          command: |
+            pip3 install cibuildwheel==2.9.0
+            cibuildwheel --output-dir wheelhouse
+          environment:
+            CIBW_BUILD: cp38-manylinux_aarch64
+      - store_artifacts:
+          path: wheelhouse/
+  build-aarch64-39:
+    machine:
+      image: ubuntu-2004:202101-01
+    resource_class: arm.large
+    steps:
+      - checkout
+      - run:
+          name: Build Aarch64 wheels (3.9)
+          command: |
+            pip3 install cibuildwheel==2.9.0
+            cibuildwheel --output-dir wheelhouse
+          environment:
+            CIBW_BUILD: cp39-manylinux_aarch64
+      - store_artifacts:
+          path: wheelhouse/
+  build-aarch64-310:
+    machine:
+      image: ubuntu-2004:202101-01
+    resource_class: arm.large
+    steps:
+      - checkout
+      - run:
+          name: Build Aarch64 wheels (3.10)
+          command: |
+            pip3 install cibuildwheel==2.9.0
+            cibuildwheel --output-dir wheelhouse
+          environment:
+            CIBW_BUILD: cp310-manylinux_aarch64
+      - store_artifacts:
+          path: wheelhouse/
+  build-aarch64-311:
+    machine:
+      image: ubuntu-2004:202101-01
+    resource_class: arm.large
+    steps:
+      - checkout
+      - run:
+          name: Build Aarch64 wheels (3.11)
+          command: |
+            pip3 install cibuildwheel==2.9.0
+            cibuildwheel --output-dir wheelhouse
+          environment:
+            CIBW_BUILD: cp311-manylinux_aarch64
+      - store_artifacts:
+          path: wheelhouse/
 workflows:
   test:
     jobs:
       - test-arm
+      - build-aarch64-38
+      - build-aarch64-39
+      - build-aarch64-310
+      - build-aarch64-311
