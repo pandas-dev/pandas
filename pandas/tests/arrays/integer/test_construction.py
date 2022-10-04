@@ -37,7 +37,7 @@ def test_from_dtype_from_float(data):
 
     # from int / list
     expected = pd.Series(data)
-    result = pd.Series(np.array(data).tolist(), dtype=str(dtype))
+    result = pd.Series(np.array(data, dtype=object).tolist(), dtype=str(dtype))
     tm.assert_series_equal(result, expected)
 
     # from int / array

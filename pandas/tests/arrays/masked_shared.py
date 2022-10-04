@@ -130,7 +130,7 @@ class NumericOps:
         # result |= mask worked because mask could be cast losslessly to
         #  boolean ndarray. mask2 can't, so this raises
         result = np.zeros(3, dtype=bool)
-        msg = "Specify an appropriate 'na_value' for this dtype"
+        msg = "specify an appropriate 'na_value' for this dtype"
         with pytest.raises(ValueError, match=msg):
             result |= mask2
 

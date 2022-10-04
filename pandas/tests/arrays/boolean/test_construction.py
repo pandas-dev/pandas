@@ -214,16 +214,17 @@ def test_coerce_to_array_from_boolean_array():
 
 
 def test_coerce_to_numpy_array():
-    # with missing values -> object dtype
+    # with missing values -> tries but fails to convert
     arr = pd.array([True, False, None], dtype="boolean")
-    result = np.array(arr)
-    expected = np.array([True, False, pd.NA], dtype="object")
-    tm.assert_numpy_array_equal(result, expected)
+    with pytest.raises(
+        ValueError, match=r"specify an appropriate 'na_value' for this dtype"
+    ):
+        result = np.array(arr)
 
-    # also with no missing values -> object dtype
+    # also with no missing values -> successfully converts to bool
     arr = pd.array([True, False, True], dtype="boolean")
     result = np.array(arr)
-    expected = np.array([True, False, True], dtype="object")
+    expected = np.array([True, False, True], dtype="bool")
     tm.assert_numpy_array_equal(result, expected)
 
     # force bool dtype
@@ -233,8 +234,12 @@ def test_coerce_to_numpy_array():
     # with missing values will raise error
     arr = pd.array([True, False, None], dtype="boolean")
     msg = (
-        "cannot convert to 'bool'-dtype NumPy array with missing values. "
-        "Specify an appropriate 'na_value' for this dtype."
+        "^cannot convert to 'bool'-dtype NumPy array with missing values.\n"
+        "Please either:\n"
+        "- convert to 'float'\n"
+        "- convert to 'object'\n"
+        "- specify an appropriate 'na_value' for this dtype\n"
+        "for this dtype.\n$"
     )
     with pytest.raises(ValueError, match=msg):
         np.array(arr, dtype="bool")
@@ -260,16 +265,17 @@ def test_to_boolean_array_from_strings_invalid_string():
 @pytest.mark.parametrize("box", [True, False], ids=["series", "array"])
 def test_to_numpy(box):
     con = pd.Series if box else pd.array
-    # default (with or without missing values) -> object dtype
+    # default (with or without missing values) -> bool dtype
     arr = con([True, False, True], dtype="boolean")
     result = arr.to_numpy()
-    expected = np.array([True, False, True], dtype="object")
+    expected = np.array([True, False, True], dtype="bool")
     tm.assert_numpy_array_equal(result, expected)
 
     arr = con([True, False, None], dtype="boolean")
-    result = arr.to_numpy()
-    expected = np.array([True, False, pd.NA], dtype="object")
-    tm.assert_numpy_array_equal(result, expected)
+    with pytest.raises(
+        ValueError, match="specify an appropriate 'na_value' for this dtype"
+    ):
+        arr.to_numpy()
 
     arr = con([True, False, None], dtype="boolean")
     result = arr.to_numpy(dtype="str")
@@ -304,11 +310,13 @@ def test_to_numpy(box):
     expected = np.array([1, 0, np.nan], dtype="float64")
     tm.assert_numpy_array_equal(result, expected)
 
-    # converting to int or float without specifying na_value raises
+    # converting to int without specifying na_value raises
     with pytest.raises(ValueError, match="cannot convert to 'int64'-dtype"):
         arr.to_numpy(dtype="int64")
-    with pytest.raises(ValueError, match="cannot convert to 'float64'-dtype"):
-        arr.to_numpy(dtype="float64")
+    # converting to float without specifying na_value converts NA to nan
+    result = arr.to_numpy(dtype="float64")
+    expected = np.array([1, 0, np.nan], dtype="float64")
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_to_numpy_copy():

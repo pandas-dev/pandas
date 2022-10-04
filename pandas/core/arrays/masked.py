@@ -401,10 +401,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> a.to_numpy(dtype="bool", na_value=False)
         array([ True, False, False])
         """
-        if na_value is lib.no_default:
-            na_value = libmissing.NA
         if dtype is None:
-            dtype = object
+            dtype = self.dtype.type
+
+        if na_value is lib.no_default and is_float_dtype(dtype):
+            na_value = np.nan
+        elif na_value is lib.no_default:
+            na_value = libmissing.NA
+
         if self._hasna:
             if (
                 not is_object_dtype(dtype)
@@ -413,8 +417,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             ):
                 raise ValueError(
                     f"cannot convert to '{dtype}'-dtype NumPy array "
-                    "with missing values. Specify an appropriate 'na_value' "
-                    "for this dtype."
+                    "with missing values.\n"
+                    "Please either:\n"
+                    "- convert to 'float'\n"
+                    "- convert to 'object'\n"
+                    "- specify an appropriate 'na_value' for this dtype\n"
+                    "for this dtype.\n"
                 )
             # don't pass copy to astype -> always need a copy since we are mutating
             data = self._data.astype(dtype)

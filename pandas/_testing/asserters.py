@@ -1051,7 +1051,7 @@ def assert_series_equal(
                 left_values,
                 right_values,
                 check_dtype=check_dtype,
-                index_values=np.asarray(left.index),
+                index_values=np.asarray(left.index, dtype=object),
             )
         else:
             assert_numpy_array_equal(
@@ -1059,7 +1059,7 @@ def assert_series_equal(
                 right_values,
                 check_dtype=check_dtype,
                 obj=str(obj),
-                index_values=np.asarray(left.index),
+                index_values=np.asarray(left.index, dtype=object),
             )
     elif check_datetimelike_compat and (
         needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype)
@@ -1088,7 +1088,7 @@ def assert_series_equal(
             atol=atol,
             check_dtype=bool(check_dtype),
             obj=str(obj),
-            index_values=np.asarray(left.index),
+            index_values=np.asarray(left.index, dtype=object),
         )
     elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
         assert_extension_array_equal(
@@ -1097,7 +1097,7 @@ def assert_series_equal(
             rtol=rtol,
             atol=atol,
             check_dtype=check_dtype,
-            index_values=np.asarray(left.index),
+            index_values=np.asarray(left.index, dtype=object),
         )
     elif is_extension_array_dtype_and_needs_i8_conversion(
         left.dtype, right.dtype
@@ -1106,7 +1106,7 @@ def assert_series_equal(
             left._values,
             right._values,
             check_dtype=check_dtype,
-            index_values=np.asarray(left.index),
+            index_values=np.asarray(left.index, dtype=object),
         )
     elif needs_i8_conversion(left.dtype) and needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
@@ -1114,7 +1114,7 @@ def assert_series_equal(
             left._values,
             right._values,
             check_dtype=check_dtype,
-            index_values=np.asarray(left.index),
+            index_values=np.asarray(left.index, dtype=object),
         )
     else:
         _testing.assert_almost_equal(
@@ -1124,7 +1124,7 @@ def assert_series_equal(
             atol=atol,
             check_dtype=bool(check_dtype),
             obj=str(obj),
-            index_values=np.asarray(left.index),
+            index_values=np.asarray(left.index, dtype=object),
         )
 
     # metadata comparison

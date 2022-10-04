@@ -111,6 +111,40 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
+Nullable types get converted to their respective NumPy types in ``to_numpy``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, for nullable data types, :meth:`Series.to_numpy` would always convert to ``object`` type:
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [1]: pd.Series([1, 2, 3], dtype="Float64").to_numpy()
+    Out[1]: array([1.0, 2.0, 3.0], dtype=object)
+
+Now, the above :class:`Series` gets converted to ``float64``:
+
+*New Behavior*
+
+.. ipython:: python
+
+    pd.Series([1, 2, 3], dtype="Float64").to_numpy()
+
+If a :class:`Series` contains missing values (``pd.NA``), then when converting to ``float64``,
+they will be converted to ``np.nan``:
+
+.. ipython:: python
+
+    pd.Series([1, 2, pd.NA], dtype="Float64").to_numpy()
+
+If converting to a type other than ``float64``, then you need to specify an ``na_value``
+compatible with that ``dtype``, for example:
+
+.. ipython:: python
+
+    pd.Series([1, 2, pd.NA], dtype="Float64").to_numpy("int64", na_value=-1)
+
 .. _whatsnew_160.api_breaking.other:
 
 Other API changes
