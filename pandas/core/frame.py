@@ -3092,9 +3092,9 @@ class DataFrame(NDFrame, OpsMixin):
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str],
-        columns: Sequence[Level] | None = ...,
+        columns: Axes | None = ...,
         col_space: ColspaceArgType | None = ...,
-        header: bool | Sequence[str] = ...,
+        header: bool = ...,
         index: bool = ...,
         na_rep: str = ...,
         formatters: FormattersType | None = ...,
@@ -3121,9 +3121,9 @@ class DataFrame(NDFrame, OpsMixin):
     def to_html(
         self,
         buf: None = ...,
-        columns: Sequence[Level] | None = ...,
+        columns: Axes | None = ...,
         col_space: ColspaceArgType | None = ...,
-        header: bool | Sequence[str] = ...,
+        header: bool = ...,
         index: bool = ...,
         na_rep: str = ...,
         formatters: FormattersType | None = ...,
@@ -3159,7 +3159,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
-        columns: Sequence[Level] | None = None,
+        columns: Axes | None = None,
         col_space: ColspaceArgType | None = None,
         header: bool = True,
         index: bool = True,

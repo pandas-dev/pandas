@@ -566,7 +566,7 @@ class DataFrameFormatter:
     def __init__(
         self,
         frame: DataFrame,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         col_space: ColspaceArgType | None = None,
         header: bool | list[str] = True,
         index: bool = True,
@@ -688,11 +688,9 @@ class DataFrameFormatter:
         else:
             return justify
 
-    def _initialize_columns(self, columns: Sequence[Hashable] | None) -> Index:
+    def _initialize_columns(self, columns: Axes | None) -> Index:
         if columns is not None:
-            # GH 47231 - columns doesn't have to be `Sequence[str]`
-            # Will fix in later PR
-            cols = ensure_index(cast(Axes, columns))
+            cols = ensure_index(columns)
             self.frame = self.frame[cols]
             return cols
         else:
