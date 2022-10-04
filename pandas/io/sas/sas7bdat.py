@@ -708,7 +708,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         )
         label_idx = min(label_idx, len(self.column_names_raw) - 1)
 
-        label_start = self._read_uint(col_label_offset, const.column_label_offset_length)
+        label_start = self._read_uint(
+            col_label_offset, const.column_label_offset_length
+        )
         label_len = self._read_uint(col_label_len, const.column_label_length_length)
 
         label_names = self.column_names_raw[label_idx]
