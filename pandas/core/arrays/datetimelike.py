@@ -1209,6 +1209,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return self - NaT
 
         other = Timestamp(other)
+
+        if other._reso != self._reso:
+            if other._reso < self._reso:
+                other = other._as_unit(self._unit)
+            else:
+                unit = npy_unit_to_abbrev(other._reso)
+                self = self._as_unit(unit)
+
         return self._sub_datetimelike(other)
 
     @final
@@ -1221,6 +1229,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         self = cast("DatetimeArray", self)
         other = ensure_wrapped_if_datetimelike(other)
+
+        if other._reso != self._reso:
+            if other._reso < self._reso:
+                other = other._as_unit(self._unit)
+            else:
+                self = self._as_unit(other._unit)
+
         return self._sub_datetimelike(other)
 
     @final
