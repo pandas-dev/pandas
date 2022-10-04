@@ -336,6 +336,14 @@ def array(
     if isinstance(dtype, str):
         dtype = registry.find(dtype) or dtype
 
+    if isinstance(data, ExtensionArray) and (
+        dtype is None or is_dtype_equal(dtype, data.dtype)
+    ):
+        # e.g. TimedeltaArray[s], avoid casting to PandasArray
+        if copy:
+            return data.copy()
+        return data
+
     if is_extension_array_dtype(dtype):
         cls = cast(ExtensionDtype, dtype).construct_array_type()
         return cls._from_sequence(data, dtype=dtype, copy=copy)
