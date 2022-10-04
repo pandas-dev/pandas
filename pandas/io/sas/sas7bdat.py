@@ -138,7 +138,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         Return SAS7BDATReader object for iterations, returns chunks
         with given number of lines.
     encoding : str, 'infer', defaults to None
-        String encoding acc. to python standard encodings,
+        String encoding acc. to Python standard encodings,
         encoding='infer' tries to detect the encoding from the file header,
         encoding=None will leave the data in binary format.
     convert_text : bool, defaults to True
@@ -242,10 +242,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             raise ValueError("magic number mismatch (not a SAS file?)")
 
         # Get alignment information
-        align1, align2 = 0, 0
         buf = self._read_bytes(const.align_1_offset, const.align_1_length)
         if buf == const.u64_byte_checker_value:
-            align2 = const.align_2_value
             self.U64 = True
             self._int_length = 8
             self._page_bit_offset = const.page_bit_offset_x64
@@ -258,7 +256,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         buf = self._read_bytes(const.align_2_offset, const.align_2_length)
         if buf == const.align_1_checker_value:
             align1 = const.align_2_value
-        total_align = align1 + align2
+        else:
+            align1 = 0
 
         # Get endianness information
         buf = self._read_bytes(const.endianness_offset, const.endianness_length)
@@ -275,23 +274,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 self.encoding = self.inferred_encoding
         else:
             self.inferred_encoding = f"unknown (code={buf})"
-
-        # Get platform information
-        buf = self._read_bytes(const.platform_offset, const.platform_length)
-        if buf == b"1":
-            self.platform = "unix"
-        elif buf == b"2":
-            self.platform = "windows"
-        else:
-            self.platform = "unknown"
-
-        self.name = self._read_and_convert_header_text(
-            const.dataset_offset, const.dataset_length
-        )
-
-        self.file_type = self._read_and_convert_header_text(
-            const.file_type_offset, const.file_type_length
-        )
 
         # Timestamp is epoch 01/01/1960
         epoch = datetime(1960, 1, 1)
@@ -319,29 +301,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._page_length = self._read_int(
             const.page_size_offset + align1, const.page_size_length
         )
-        self._page_count = self._read_int(
-            const.page_count_offset + align1, const.page_count_length
-        )
-
-        self.sas_release_offset = self._read_and_convert_header_text(
-            const.sas_release_offset + total_align, const.sas_release_length
-        )
-
-        self.server_type = self._read_and_convert_header_text(
-            const.sas_server_type_offset + total_align, const.sas_server_type_length
-        )
-
-        self.os_version = self._read_and_convert_header_text(
-            const.os_version_number_offset + total_align, const.os_version_number_length
-        )
-
-        self.os_name = self._read_and_convert_header_text(
-            const.os_name_offset + total_align, const.os_name_length
-        )
-        if not self.os_name:
-            self.os_name = self._read_and_convert_header_text(
-                const.os_maker_offset + total_align, const.os_maker_length
-            )
 
     def __next__(self) -> DataFrame:
         da = self.read(nrows=self.chunksize or 1)
