@@ -519,7 +519,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"pyarrow doesn't support factorizing {pa_dtype}",
                 )
             )
-        super().test_groupby_extension_transform(data_for_grouping)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_groupby_extension_transform(data_for_grouping)
 
     def test_groupby_extension_apply(
         self, data_for_grouping, groupby_apply_op, request
@@ -1035,6 +1038,12 @@ class TestBaseUnaryOps(base.BaseUnaryOpsTests):
 
 
 class TestBaseMethods(base.BaseMethodsTests):
+    def test_argsort_missing_array(self, data_missing_for_sorting):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_argsort_missing_array(data_missing_for_sorting)
+
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1049,6 +1058,7 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_diff(data, periods)
 
+    @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
         pa_dtype = all_data.dtype.pyarrow_dtype
@@ -1070,7 +1080,10 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"value_count has no pyarrow kernel for {pa_dtype}",
                 )
             )
-        super().test_value_counts_with_normalize(data)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_value_counts_with_normalize(data)
 
     @pytest.mark.xfail(
         pa_version_under6p0,
@@ -1131,6 +1144,19 @@ class TestBaseMethods(base.BaseMethodsTests):
             data_missing_for_sorting, op_name, skipna, expected
         )
 
+    @pytest.mark.parametrize(
+        "na_position, expected",
+        [
+            ("last", np.array([2, 0, 1], dtype=np.dtype("intp"))),
+            ("first", np.array([1, 2, 0], dtype=np.dtype("intp"))),
+        ],
+    )
+    def test_nargsort(self, data_missing_for_sorting, na_position, expected):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_nargsort(data_missing_for_sorting, na_position, expected)
+
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
         pa_dtype = data_for_sorting.dtype.pyarrow_dtype
@@ -1144,7 +1170,21 @@ class TestBaseMethods(base.BaseMethodsTests):
                     ),
                 )
             )
-        super().test_sort_values(data_for_sorting, ascending, sort_by_key)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_sort_values(data_for_sorting, ascending, sort_by_key)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values_missing(
+        self, data_missing_for_sorting, ascending, sort_by_key
+    ):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_sort_values_missing(
+                data_missing_for_sorting, ascending, sort_by_key
+            )
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_frame(self, data_for_sorting, ascending, request):
@@ -1159,7 +1199,10 @@ class TestBaseMethods(base.BaseMethodsTests):
                     ),
                 )
             )
-        super().test_sort_values_frame(data_for_sorting, ascending)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_sort_values_frame(data_for_sorting, ascending)
 
     @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
     @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
@@ -1172,7 +1215,10 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"unique has no pyarrow kernel for {pa_dtype}.",
                 )
             )
-        super().test_unique(data, box, method)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under2p0, check_stacklevel=False
+        ):
+            super().test_unique(data, box, method)
 
     @pytest.mark.parametrize("na_sentinel", [-1, -2])
     def test_factorize(self, data_for_grouping, na_sentinel, request):
@@ -1202,7 +1248,10 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
                 )
             )
-        super().test_factorize_equivalence(data_for_grouping, na_sentinel)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under2p0, check_stacklevel=False
+        ):
+            super().test_factorize_equivalence(data_for_grouping, na_sentinel)
 
     def test_factorize_empty(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype

@@ -67,6 +67,13 @@ class TestNonNano:
         expected = tda_nano.total_seconds()
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_timedelta_array_total_seconds(self):
+        # GH34290
+        expected = Timedelta("2 min").total_seconds()
+
+        result = pd.array([Timedelta("2 min")]).total_seconds()[0]
+        assert result == expected
+
     @pytest.mark.parametrize(
         "nat", [np.datetime64("NaT", "ns"), np.datetime64("NaT", "us")]
     )
@@ -97,15 +104,13 @@ class TestNonNano:
     def test_add_datetimelike_scalar(self, tda, tz_naive_fixture):
         ts = pd.Timestamp("2016-01-01", tz=tz_naive_fixture)
 
-        msg = "with mis-matched resolutions"
-        with pytest.raises(NotImplementedError, match=msg):
-            # mismatched reso -> check that we don't give an incorrect result
-            tda + ts
-        with pytest.raises(NotImplementedError, match=msg):
-            # mismatched reso -> check that we don't give an incorrect result
-            ts + tda
+        expected = tda._as_unit("ns") + ts
+        res = tda + ts
+        tm.assert_extension_array_equal(res, expected)
+        res = ts + tda
+        tm.assert_extension_array_equal(res, expected)
 
-        ts = ts._as_unit(tda._unit)
+        ts += Timedelta(1)  # case where we can't cast losslessly
 
         exp_values = tda._ndarray + ts.asm8
         expected = (
@@ -166,6 +171,23 @@ class TestNonNano:
         result = tda / other
         expected = tda._ndarray / other
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_add_timedeltaarraylike(self, tda):
+        # TODO(2.0): just do `tda_nano = tda.astype("m8[ns]")`
+        tda_nano = TimedeltaArray(tda._ndarray.astype("m8[ns]"))
+
+        expected = tda_nano * 2
+        res = tda_nano + tda
+        tm.assert_extension_array_equal(res, expected)
+        res = tda + tda_nano
+        tm.assert_extension_array_equal(res, expected)
+
+        expected = tda_nano * 0
+        res = tda - tda_nano
+        tm.assert_extension_array_equal(res, expected)
+
+        res = tda_nano - tda
+        tm.assert_extension_array_equal(res, expected)
 
 
 class TestTimedeltaArray:

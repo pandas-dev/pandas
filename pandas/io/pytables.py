@@ -15,6 +15,7 @@ import itertools
 import os
 import re
 from textwrap import dedent
+from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -44,6 +45,7 @@ from pandas._libs.tslibs import timezones
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    AxisInt,
     DtypeArg,
     FilePath,
     Shape,
@@ -135,7 +137,7 @@ def _ensure_decoded(s):
     return s
 
 
-def _ensure_encoding(encoding):
+def _ensure_encoding(encoding: str | None) -> str:
     # set the encoding if we need
     if encoding is None:
         encoding = _default_encoding
@@ -541,8 +543,6 @@ class HDFStore:
 
     _handle: File | None
     _mode: str
-    _complevel: int
-    _fletcher32: bool
 
     def __init__(
         self,
@@ -633,7 +633,12 @@ class HDFStore:
     def __enter__(self) -> HDFStore:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
     def keys(self, include: str = "pandas") -> list[str]:
@@ -804,7 +809,7 @@ class HDFStore:
         start=None,
         stop=None,
         columns=None,
-        iterator=False,
+        iterator: bool = False,
         chunksize=None,
         auto_close: bool = False,
     ):
@@ -952,7 +957,7 @@ class HDFStore:
         columns=None,
         start=None,
         stop=None,
-        iterator=False,
+        iterator: bool = False,
         chunksize=None,
         auto_close: bool = False,
     ):
@@ -1036,7 +1041,7 @@ class HDFStore:
         _tbls = [x for x in tbls if isinstance(x, Table)]
 
         # axis is the concentration axes
-        axis = list({t.non_index_axes[0][0] for t in _tbls})[0]
+        axis = {t.non_index_axes[0][0] for t in _tbls}.pop()
 
         def func(_start, _stop, _where):
 
@@ -1071,8 +1076,8 @@ class HDFStore:
         key: str,
         value: DataFrame | Series,
         format=None,
-        index=True,
-        append=False,
+        index: bool = True,
+        append: bool = False,
         complib=None,
         complevel: int | None = None,
         min_itemsize: int | dict[str, int] | None = None,
@@ -1201,8 +1206,8 @@ class HDFStore:
         value: DataFrame | Series,
         format=None,
         axes=None,
-        index=True,
-        append=True,
+        index: bool | list[str] = True,
+        append: bool = True,
         complib=None,
         complevel: int | None = None,
         columns=None,
@@ -1290,7 +1295,7 @@ class HDFStore:
         selector,
         data_columns=None,
         axes=None,
-        dropna=False,
+        dropna: bool = False,
         **kwargs,
     ) -> None:
         """
@@ -1525,13 +1530,13 @@ class HDFStore:
     def copy(
         self,
         file,
-        mode="w",
+        mode: str = "w",
         propindexes: bool = True,
         keys=None,
         complib=None,
         complevel: int | None = None,
         fletcher32: bool = False,
-        overwrite=True,
+        overwrite: bool = True,
     ) -> HDFStore:
         """
         Copy the existing store to a new file, updating in place.
@@ -1737,15 +1742,15 @@ class HDFStore:
         value: DataFrame | Series,
         format,
         axes=None,
-        index=True,
-        append=False,
+        index: bool | list[str] = True,
+        append: bool = False,
         complib=None,
         complevel: int | None = None,
         fletcher32=None,
         min_itemsize: int | dict[str, int] | None = None,
         chunksize=None,
         expectedrows=None,
-        dropna=False,
+        dropna: bool = False,
         nan_rep=None,
         data_columns=None,
         encoding=None,
@@ -1904,7 +1909,7 @@ class TableIterator:
 
         self.auto_close = auto_close
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         # iterate
         current = self.start
         if self.coordinates is None:
@@ -1967,9 +1972,6 @@ class IndexCol:
     is_an_indexable: bool = True
     is_data_indexable: bool = True
     _info_fields = ["freq", "tz", "index_name"]
-
-    name: str
-    cname: str
 
     def __init__(
         self,
@@ -2126,7 +2128,7 @@ class IndexCol:
         """return my cython values"""
         return self.values
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return iter(self.values)
 
     def maybe_set_size(self, min_itemsize=None) -> None:
@@ -2303,7 +2305,7 @@ class DataCol(IndexCol):
         values=None,
         kind=None,
         typ=None,
-        cname=None,
+        cname: str | None = None,
         pos=None,
         tz=None,
         ordered=None,
@@ -2615,17 +2617,14 @@ class Fixed:
     format_type: str = "fixed"  # GH#30962 needed by dask
     obj_type: type[DataFrame | Series]
     ndim: int
-    encoding: str
     parent: HDFStore
-    group: Node
-    errors: str
     is_table: bool = False
 
     def __init__(
         self,
         parent: HDFStore,
         group: Node,
-        encoding: str = "UTF-8",
+        encoding: str | None = "UTF-8",
         errors: str = "strict",
     ) -> None:
         assert isinstance(parent, HDFStore), type(parent)
@@ -3299,24 +3298,19 @@ class Table(Fixed):
     levels: int | list[Hashable] = 1
     is_table = True
 
-    index_axes: list[IndexCol]
-    non_index_axes: list[tuple[int, Any]]
-    values_axes: list[DataCol]
-    data_columns: list
     metadata: list
-    info: dict
 
     def __init__(
         self,
         parent: HDFStore,
         group: Node,
-        encoding=None,
+        encoding: str | None = None,
         errors: str = "strict",
-        index_axes=None,
-        non_index_axes=None,
-        values_axes=None,
-        data_columns=None,
-        info=None,
+        index_axes: list[IndexCol] | None = None,
+        non_index_axes: list[tuple[AxisInt, Any]] | None = None,
+        values_axes: list[DataCol] | None = None,
+        data_columns: list | None = None,
+        info: dict | None = None,
         nan_rep=None,
     ) -> None:
         super().__init__(parent, group, encoding=encoding, errors=errors)
@@ -3474,9 +3468,7 @@ class Table(Fixed):
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
 
-        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]" and
-        # "List[Tuple[str, None]]")
-        return dict(d1 + d2 + d3)  # type: ignore[operator]
+        return dict(d1 + d2 + d3)
 
     def index_cols(self):
         """return a list of my index cols"""
@@ -4319,7 +4311,7 @@ class AppendableTable(Table):
         dropna: bool = False,
         nan_rep=None,
         data_columns=None,
-        track_times=True,
+        track_times: bool = True,
     ) -> None:
         if not append and self.is_exists:
             self._handle.remove_node(self.group, "table")
@@ -4804,7 +4796,9 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         return df
 
 
-def _reindex_axis(obj: DataFrame, axis: int, labels: Index, other=None) -> DataFrame:
+def _reindex_axis(
+    obj: DataFrame, axis: AxisInt, labels: Index, other=None
+) -> DataFrame:
     ax = obj._get_axis(axis)
     labels = ensure_index(labels)
 

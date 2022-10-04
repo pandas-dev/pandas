@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 import struct
 import tracemalloc
+from typing import Generator
 
 import numpy as np
 import pytest
@@ -13,7 +14,7 @@ from pandas.core.algorithms import isin
 
 
 @contextmanager
-def activated_tracemalloc():
+def activated_tracemalloc() -> Generator[None, None, None]:
     tracemalloc.start()
     try:
         yield

@@ -91,6 +91,7 @@ cpdef assert_almost_equal(a, b,
         Py_ssize_t i, na, nb
         double fa, fb
         bint is_unequal = False, a_is_ndarray, b_is_ndarray
+        str first_diff = ''
 
     if lobj is None:
         lobj = a
@@ -159,12 +160,14 @@ cpdef assert_almost_equal(a, b,
             except AssertionError:
                 is_unequal = True
                 diff += 1
+                if not first_diff:
+                    first_diff = f"At positional index {i}, first diff: {a[i]} != {b[i]}"
 
         if is_unequal:
             from pandas._testing import raise_assert_detail
             msg = (f"{obj} values are different "
                    f"({np.round(diff * 100.0 / na, 5)} %)")
-            raise_assert_detail(obj, msg, lobj, robj, index_values=index_values)
+            raise_assert_detail(obj, msg, lobj, robj, first_diff=first_diff, index_values=index_values)
 
         return True
 

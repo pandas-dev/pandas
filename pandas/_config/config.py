@@ -59,9 +59,9 @@ import re
 from typing import (
     Any,
     Callable,
+    Generator,
     Generic,
     Iterable,
-    Iterator,
     NamedTuple,
     cast,
 )
@@ -704,7 +704,7 @@ def _build_option_description(k: str) -> str:
     return s
 
 
-def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
+def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
     """Builds a concise listing of available options, grouped by prefix"""
     from itertools import groupby
     from textwrap import wrap
@@ -743,7 +743,7 @@ def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
 
 
 @contextmanager
-def config_prefix(prefix) -> Iterator[None]:
+def config_prefix(prefix) -> Generator[None, None, None]:
     """
     contextmanager for multiple invocations of API with a common prefix
 

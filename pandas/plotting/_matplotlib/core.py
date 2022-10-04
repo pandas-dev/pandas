@@ -21,6 +21,7 @@ import numpy as np
 from pandas._typing import (
     IndexLabel,
     PlottingOrientation,
+    npt,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
@@ -417,7 +418,7 @@ class MPLPlot(ABC):
                         "other or pass 'style' without a color symbol"
                     )
 
-    def _iter_data(self, data=None, keep_index=False, fillna=None):
+    def _iter_data(self, data=None, keep_index: bool = False, fillna=None):
         if data is None:
             data = self.data
         if fillna is not None:
@@ -459,7 +460,7 @@ class MPLPlot(ABC):
             self._post_plot_logic_common(ax, self.data)
             self._post_plot_logic(ax, self.data)
 
-    def _args_adjust(self):
+    def _args_adjust(self) -> None:
         pass
 
     def _has_plotted_object(self, ax: Axes) -> bool:
@@ -640,7 +641,7 @@ class MPLPlot(ABC):
     def _make_plot(self):
         raise AbstractMethodError(self)
 
-    def _add_table(self):
+    def _add_table(self) -> None:
         if self.table is False:
             return
         elif self.table is True:
@@ -668,7 +669,7 @@ class MPLPlot(ABC):
         else:  # pragma no cover
             raise ValueError
 
-    def _post_plot_logic(self, ax, data):
+    def _post_plot_logic(self, ax, data) -> None:
         """Post process for each axes. Overridden in child classes"""
         pass
 
@@ -733,7 +734,7 @@ class MPLPlot(ABC):
                     raise ValueError(msg)
                 self.axes[0].set_title(self.title)
 
-    def _apply_axis_properties(self, axis: Axis, rot=None, fontsize=None):
+    def _apply_axis_properties(self, axis: Axis, rot=None, fontsize=None) -> None:
         """
         Tick creation within matplotlib is reasonably expensive and is
         internally deferred until accessed as Ticks are created/destroyed
@@ -911,7 +912,7 @@ class MPLPlot(ABC):
         return name
 
     @classmethod
-    def _get_ax_layer(cls, ax, primary=True):
+    def _get_ax_layer(cls, ax, primary: bool = True):
         """get left (primary) or right (secondary) axes"""
         if primary:
             return getattr(ax, "left_ax", ax)
@@ -987,7 +988,11 @@ class MPLPlot(ABC):
                 kwds["color"] = colors[col_num % len(colors)]
         return style, kwds
 
-    def _get_colors(self, num_colors=None, color_kwds="color"):
+    def _get_colors(
+        self,
+        num_colors: int | None = None,
+        color_kwds: str = "color",
+    ):
         if num_colors is None:
             num_colors = self.nseries
 
@@ -1087,7 +1092,9 @@ class MPLPlot(ABC):
 
         return err
 
-    def _get_errorbars(self, label=None, index=None, xerr=True, yerr=True):
+    def _get_errorbars(
+        self, label=None, index=None, xerr: bool = True, yerr: bool = True
+    ):
         errors = {}
 
         for kw, flag in zip(["xerr", "yerr"], [xerr, yerr]):
@@ -1155,7 +1162,7 @@ class PlanePlot(MPLPlot, ABC):
     def nseries(self) -> int:
         return 1
 
-    def _post_plot_logic(self, ax: Axes, data):
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         x, y = self.x, self.y
         xlabel = self.xlabel if self.xlabel is not None else pprint_thing(x)
         ylabel = self.ylabel if self.ylabel is not None else pprint_thing(y)
@@ -1179,7 +1186,11 @@ class PlanePlot(MPLPlot, ABC):
         # use the last one which contains the latest information
         # about the ax
         img = ax.collections[-1]
-        return self.fig.colorbar(img, ax=ax, **kwds)
+        with warnings.catch_warnings():
+            # https://github.com/matplotlib/matplotlib/issues/23614
+            # False positive deprecation warning until matplotlib=3.6
+            warnings.filterwarnings("ignore", "Auto-removal of grids")
+            return self.fig.colorbar(img, ax=ax, **kwds)
 
 
 class ScatterPlot(PlanePlot):
@@ -1297,7 +1308,7 @@ class HexBinPlot(PlanePlot):
             C = self.data.columns[C]
         self.C = C
 
-    def _make_plot(self):
+    def _make_plot(self) -> None:
         x, y, data, C = self.x, self.y, self.data, self.C
         ax = self.axes[0]
         # pandas uses colormap, matplotlib uses cmap.
@@ -1317,7 +1328,7 @@ class HexBinPlot(PlanePlot):
         if cb:
             self._plot_colorbar(ax)
 
-    def _make_legend(self):
+    def _make_legend(self) -> None:
         pass
 
 
@@ -1349,7 +1360,7 @@ class LinePlot(MPLPlot):
     def _use_dynamic_x(self):
         return use_dynamic_x(self._get_ax(0), self.data)
 
-    def _make_plot(self):
+    def _make_plot(self) -> None:
         if self._is_ts_plot():
             data = maybe_convert_index(self._get_ax(0), self.data)
 
@@ -1441,7 +1452,7 @@ class LinePlot(MPLPlot):
             return None
 
     @classmethod
-    def _initialize_stacker(cls, ax: Axes, stacking_id, n: int):
+    def _initialize_stacker(cls, ax: Axes, stacking_id, n: int) -> None:
         if stacking_id is None:
             return
         if not hasattr(ax, "_stacker_pos_prior"):
@@ -1471,7 +1482,7 @@ class LinePlot(MPLPlot):
         )
 
     @classmethod
-    def _update_stacker(cls, ax: Axes, stacking_id, values):
+    def _update_stacker(cls, ax: Axes, stacking_id, values) -> None:
         if stacking_id is None:
             return
         if (values >= 0).all():
@@ -1479,7 +1490,7 @@ class LinePlot(MPLPlot):
         elif (values <= 0).all():
             ax._stacker_neg_prior[stacking_id] += values
 
-    def _post_plot_logic(self, ax: Axes, data):
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         from matplotlib.ticker import FixedLocator
 
         def get_label(i):
@@ -1583,7 +1594,7 @@ class AreaPlot(LinePlot):
         res = [rect]
         return res
 
-    def _post_plot_logic(self, ax: Axes, data):
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         LinePlot._post_plot_logic(self, ax, data)
 
         is_shared_y = len(list(ax.get_shared_y_axes())) > 0
@@ -1638,7 +1649,7 @@ class BarPlot(MPLPlot):
 
         self.ax_pos = self.tick_pos - self.tickoffset
 
-    def _args_adjust(self):
+    def _args_adjust(self) -> None:
         if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
         if is_list_like(self.left):
@@ -1647,7 +1658,14 @@ class BarPlot(MPLPlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax: Axes, x, y, w, start=0, log=False, **kwds
+        cls,
+        ax: Axes,
+        x,
+        y,
+        w,
+        start: int | npt.NDArray[np.intp] = 0,
+        log: bool = False,
+        **kwds,
     ):
         return ax.bar(x, y, w, bottom=start, log=log, **kwds)
 
@@ -1655,7 +1673,7 @@ class BarPlot(MPLPlot):
     def _start_base(self):
         return self.bottom
 
-    def _make_plot(self):
+    def _make_plot(self) -> None:
         import matplotlib as mpl
 
         colors = self._get_colors()
@@ -1731,7 +1749,7 @@ class BarPlot(MPLPlot):
                 )
             self._append_legend_handles_labels(rect, label)
 
-    def _post_plot_logic(self, ax: Axes, data):
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         if self.use_index:
             str_index = [pprint_thing(key) for key in data.index]
         else:
@@ -1742,7 +1760,7 @@ class BarPlot(MPLPlot):
 
         self._decorate_ticks(ax, self._get_index_name(), str_index, s_edge, e_edge)
 
-    def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
+    def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge) -> None:
         ax.set_xlim((start_edge, end_edge))
 
         if self.xticks is not None:
@@ -1773,14 +1791,21 @@ class BarhPlot(BarPlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax: Axes, x, y, w, start=0, log=False, **kwds
+        cls,
+        ax: Axes,
+        x,
+        y,
+        w,
+        start: int | npt.NDArray[np.intp] = 0,
+        log: bool = False,
+        **kwds,
     ):
         return ax.barh(x, y, w, left=start, log=log, **kwds)
 
     def _get_custom_index_name(self):
         return self.ylabel
 
-    def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
+    def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge) -> None:
         # horizontal bars
         ax.set_ylim((start_edge, end_edge))
         ax.set_yticks(self.tick_pos)
@@ -1803,16 +1828,16 @@ class PiePlot(MPLPlot):
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 
-    def _args_adjust(self):
+    def _args_adjust(self) -> None:
         self.grid = False
         self.logy = False
         self.logx = False
         self.loglog = False
 
-    def _validate_color_args(self):
+    def _validate_color_args(self) -> None:
         pass
 
-    def _make_plot(self):
+    def _make_plot(self) -> None:
         colors = self._get_colors(num_colors=len(self.data), color_kwds="colors")
         self.kwds.setdefault("colors", colors)
 

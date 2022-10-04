@@ -3,6 +3,7 @@ from collections import (
     deque,
 )
 from decimal import Decimal
+from typing import Iterator
 from warnings import (
     catch_warnings,
     simplefilter,
@@ -463,7 +464,7 @@ class TestConcatenate:
         tm.assert_frame_equal(concat(CustomIterator1(), ignore_index=True), expected)
 
         class CustomIterator2(abc.Iterable):
-            def __iter__(self):
+            def __iter__(self) -> Iterator:
                 yield df1
                 yield df2
 

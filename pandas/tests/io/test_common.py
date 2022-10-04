@@ -12,6 +12,7 @@ from io import (
 import mmap
 import os
 from pathlib import Path
+import pickle
 import tempfile
 
 import pytest
@@ -604,3 +605,23 @@ def test_close_on_error():
         with BytesIO() as buffer:
             with icom.get_handle(buffer, "rb") as handles:
                 handles.created_handles.append(TestError())
+
+
+@pytest.mark.parametrize(
+    "reader",
+    [
+        pd.read_csv,
+        pd.read_fwf,
+        pd.read_excel,
+        pd.read_feather,
+        pd.read_hdf,
+        pd.read_stata,
+        pd.read_sas,
+        pd.read_json,
+        pd.read_pickle,
+    ],
+)
+def test_pickle_reader(reader):
+    # GH 22265
+    with BytesIO() as buffer:
+        pickle.dump(reader, buffer)

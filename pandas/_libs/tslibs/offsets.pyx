@@ -1,5 +1,4 @@
 import inspect
-import operator
 import re
 import time
 import warnings
@@ -681,6 +680,9 @@ cdef class BaseOffset:
 
         res = self._apply_array(dtindex)
         return type(dtindex)(res)
+
+    def _apply(self, other):
+        raise NotImplementedError("implemented by subclasses")
 
     @apply_array_wraps
     def _apply_array(self, dtarr):

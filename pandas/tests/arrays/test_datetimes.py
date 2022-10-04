@@ -207,6 +207,17 @@ class TestNonNano:
             np_res = op(left._ndarray, right._ndarray)
             tm.assert_numpy_array_equal(np_res[1:], ~expected[1:])
 
+    def test_add_mismatched_reso_doesnt_downcast(self):
+        # https://github.com/pandas-dev/pandas/pull/48748#issuecomment-1260181008
+        td = pd.Timedelta(microseconds=1)
+        dti = pd.date_range("2016-01-01", periods=3) - td
+        dta = dti._data._as_unit("us")
+
+        res = dta + td._as_unit("us")
+        # even though the result is an even number of days
+        #  (so we _could_ downcast to unit="s"), we do not.
+        assert res._unit == "us"
+
 
 class TestDatetimeArrayComparisons:
     # TODO: merge this into tests/arithmetic/test_datetime64 once it is

@@ -51,7 +51,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
-    get_conversion_factor,
     get_datetime64_unit,
     get_timedelta64_value,
     get_unit_from_dtype,
@@ -788,19 +787,12 @@ def _binary_op_method_timedeltalike(op, name):
             # e.g. if original other was timedelta64('NaT')
             return NaT
 
-        # We allow silent casting to the lower resolution if and only
-        #  if it is lossless.
-        try:
-            if self._reso < other._reso:
-                other = (<_Timedelta>other)._as_reso(self._reso, round_ok=False)
-            elif self._reso > other._reso:
-                self = (<_Timedelta>self)._as_reso(other._reso, round_ok=False)
-        except ValueError as err:
-            raise ValueError(
-                "Timedelta addition/subtraction with mismatched resolutions is not "
-                "allowed when casting to the lower resolution would require "
-                "lossy rounding."
-            ) from err
+        # Matching numpy, we cast to the higher resolution. Unlike numpy,
+        #  we raise instead of silently overflowing during this casting.
+        if self._reso < other._reso:
+            self = (<_Timedelta>self)._as_reso(other._reso, round_ok=True)
+        elif self._reso > other._reso:
+            other = (<_Timedelta>other)._as_reso(self._reso, round_ok=True)
 
         res = op(self.value, other.value)
         if res == NPY_NAT:
@@ -1548,7 +1540,7 @@ cdef class _Timedelta(timedelta):
     @cython.cdivision(False)
     cdef _Timedelta _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
         cdef:
-            int64_t value, mult, div, mod
+            int64_t value
 
         if reso == self._reso:
             return self
