@@ -570,13 +570,15 @@ class TestDataFramePlots(TestPlotBase):
         # create a df and a set of weights
         df = DataFrame(np.random.randn(10, 4), columns=list("abcd"))
         weights = np.random.randn(len(df))
-        # set a random element of each column to NaN
-        # store remaining data and corresponding weights
+        # set an element of each column to NaN
         no_nan_df = DataFrame()
         no_nan_weights = np.zeros((len(df) - 1, 4))
-        nan_rows = np.array([0, 1, 2, 2])
+        df.at[0, "a"] = np.nan
+        df.at[1, "b"] = np.nan
+        df.at[2, "c"] = np.nan
+        df.at[2, "d"] = np.nan
+        # store remaining data and corresponding weights
         for i, column in enumerate(df):
-            df.loc[nan_rows[i], column] = np.nan
             no_nan_df[column] = df[column].dropna().to_numpy()
             no_nan_weights[:, i] = weights[df[column].notna()]
 
