@@ -574,9 +574,9 @@ class TestDataFramePlots(TestPlotBase):
         # store remaining data and corresponding weights
         no_nan_df = DataFrame()
         no_nan_weights = np.zeros((len(df) - 1, 4))
+        nan_rows = np.array([0, 1, 2, 2])
         for i, column in enumerate(df):
-            nan_row = np.random.randint(0, len(df) - 1)
-            df.loc[nan_row, column] = np.nan
+            df.loc[nan_rows[i], column] = np.nan
             no_nan_df[column] = df[column].dropna().to_numpy()
             no_nan_weights[:, i] = weights[df[column].notna()]
 
