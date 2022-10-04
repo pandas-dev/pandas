@@ -255,7 +255,7 @@ pandas recommends the following optional dependencies for performance gains. The
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
   must be Version 1.3.2 or higher.
 
-* `numba <https://github.com/numba/numba>`__: Alternative execution engine for rolling operations.
+* `numba <https://github.com/numba/numba>`__: Alternative execution engine for operations including rolling apply & reduction.
   ``numba`` is a JIT compiler that translates Python functions to optimized machine code using the
   LLVM compiler library. If installed, must be Version 0.53.1 or higher.
 
@@ -281,6 +281,24 @@ in a requirements.txt, setup, or pyproject.toml file.
 Available optional dependencies are ``[all, performance, computation, aws,
 gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql, sql-other, html, xml,
 plot, output_formatting, compression, test]``
+
+Timezones
+^^^^^^^^^
+
+Can be managed as optional_extra with ``pandas[timezone]``,
+========================= ========================= =============================================================
+Dependency                Minimum Version           Notes
+========================= ========================= =============================================================
+tzdata                    2022.1(pypi)/             Allows the use of ``zoneinfo`` timezones with pandas.
+                          2022a(for system tzdata)  **Note**: You only need to install the pypi package if your
+                                                    system does not already provide the IANA tz database.
+                                                    However, the minimum tzdata version still applies, even if it
+                                                    is not enforced through an error.
+
+                                                    If you would like to keep your system tzdata version updated,
+                                                    it is recommended to use the ``tzdata`` package from
+                                                    conda-forge.
+========================= ========================= =============================================================
 
 Visualization
 ^^^^^^^^^^^^^
