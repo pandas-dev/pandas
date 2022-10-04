@@ -10,7 +10,6 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
-    Series,
     merge,
 )
 import pandas._testing as tm
@@ -32,9 +31,8 @@ class TestRename:
             "errors",
         }
 
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    def test_rename_mi(self, klass):
-        obj = klass(
+    def test_rename_mi(self, frame_or_series):
+        obj = frame_or_series(
             [11, 21, 31],
             index=MultiIndex.from_tuples([("A", x) for x in ["a", "B", "c"]]),
         )

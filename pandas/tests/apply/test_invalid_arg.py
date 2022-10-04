@@ -90,12 +90,11 @@ def test_map_datetimetz_na_action():
         s.map(lambda x: x, na_action="ignore")
 
 
-@pytest.mark.parametrize("box", [DataFrame, Series])
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])
 @pytest.mark.parametrize("func", [{"A": {"B": "sum"}}, {"A": {"B": ["sum"]}}])
-def test_nested_renamer(box, method, func):
+def test_nested_renamer(frame_or_series, method, func):
     # GH 35964
-    obj = box({"A": [1]})
+    obj = frame_or_series({"A": [1]})
     match = "nested renamer is not supported"
     with pytest.raises(SpecificationError, match=match):
         getattr(obj, method)(func)

@@ -11,14 +11,13 @@ import pandas.core.common as com
 
 
 class TestSample:
-    @pytest.fixture(params=[Series, DataFrame])
-    def obj(self, request):
-        klass = request.param
-        if klass is Series:
+    @pytest.fixture
+    def obj(self, frame_or_series):
+        if frame_or_series is Series:
             arr = np.random.randn(10)
         else:
             arr = np.random.randn(10, 10)
-        return klass(arr, dtype=None)
+        return frame_or_series(arr, dtype=None)
 
     @pytest.mark.parametrize("test", list(range(10)))
     def test_sample(self, test, obj):

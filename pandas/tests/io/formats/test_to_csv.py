@@ -385,10 +385,9 @@ $1$,$2$
             ),
         ],
     )
-    @pytest.mark.parametrize("klass", [DataFrame, pd.Series])
-    def test_to_csv_single_level_multi_index(self, ind, expected, klass):
+    def test_to_csv_single_level_multi_index(self, ind, expected, frame_or_series):
         # see gh-19589
-        obj = klass(pd.Series([1], ind, name="data"))
+        obj = frame_or_series(pd.Series([1], ind, name="data"))
 
         with tm.assert_produces_warning(FutureWarning, match="lineterminator"):
             # GH#9568 standardize on lineterminator matching stdlib

@@ -324,8 +324,7 @@ class TestXSWithMultiIndex:
         expected = df.loc[("bar", "two")]
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("klass", [DataFrame, Series])
-    def test_xs_IndexSlice_argument_not_implemented(self, klass):
+    def test_xs_IndexSlice_argument_not_implemented(self, frame_or_series):
         # GH#35301
 
         index = MultiIndex(
@@ -334,7 +333,7 @@ class TestXSWithMultiIndex:
         )
 
         obj = DataFrame(np.random.randn(6, 4), index=index)
-        if klass is Series:
+        if frame_or_series is Series:
             obj = obj[0]
 
         expected = obj.iloc[-2:].droplevel(0)
@@ -345,10 +344,9 @@ class TestXSWithMultiIndex:
         result = obj.loc[IndexSlice[("foo", "qux", 0), :]]
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize("klass", [DataFrame, Series])
-    def test_xs_levels_raises(self, klass):
+    def test_xs_levels_raises(self, frame_or_series):
         obj = DataFrame({"A": [1, 2, 3]})
-        if klass is Series:
+        if frame_or_series is Series:
             obj = obj["A"]
 
         msg = "Index must be a MultiIndex"
