@@ -4386,14 +4386,14 @@ class Index(IndexOpsMixin, PandasObject):
         return indexer
 
     @final
-    def _invalid_indexer(
+    def _raise_invalid_indexer(
         self,
         form: str_t,
         key,
         reraise: lib.no_default | None | Exception = lib.no_default,
     ) -> None:
         """
-        Consistent invalid indexer message.
+        Raise consistent invalid indexer message.
         """
         msg = (
             f"cannot do {form} indexing on {type(self).__name__} with these "
@@ -6691,7 +6691,7 @@ class Index(IndexOpsMixin, PandasObject):
         assert kind in ["getitem", "iloc"]
 
         if key is not None and not is_integer(key):
-            raise self._invalid_indexer(form, key)
+            self._raise_invalid_indexer(form, key)
 
     def _maybe_cast_slice_bound(self, label, side: str_t, kind=no_default):
         """
@@ -6723,7 +6723,7 @@ class Index(IndexOpsMixin, PandasObject):
         # datetimelike Indexes
         # reject them, if index does not contain label
         if (is_float(label) or is_integer(label)) and label not in self:
-            raise self._invalid_indexer("slice", label)
+            self._raise_invalid_indexer("slice", label)
 
         return label
 
