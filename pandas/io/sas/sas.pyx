@@ -4,10 +4,10 @@ from cython cimport Py_ssize_t
 from libc.stddef cimport size_t
 from libc.stdint cimport (
     int64_t,
+    uint8_t,
     uint16_t,
     uint32_t,
     uint64_t,
-    uint8_t,
 )
 from libc.stdlib cimport (
     calloc,
@@ -17,6 +17,7 @@ from libc.stdlib cimport (
 import numpy as np
 
 import pandas.io.sas.sas_constants as const
+
 
 cdef object np_nan = np.nan
 
