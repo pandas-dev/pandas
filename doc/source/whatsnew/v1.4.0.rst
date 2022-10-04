@@ -148,7 +148,7 @@ Groupby positional indexing
 It is now possible to specify positional ranges relative to the ends of each
 group.
 
-Negative arguments for :meth:`.GroupBy.head` and :meth:`.GroupBy.tail` now work
+Negative arguments for :meth:`.DataFrameGroupBy.head`, :meth:`.SeriesGroupBy.head`, :meth:`.DataFrameGroupBy.tail`, and :meth:`.SeriesGroupBy.tail` now work
 correctly and result in ranges relative to the end and start of each group,
 respectively. Previously, negative arguments returned empty frames.
 
@@ -159,14 +159,14 @@ respectively. Previously, negative arguments returned empty frames.
     df.groupby("A").head(-1)
 
 
-:meth:`.GroupBy.nth` now accepts a slice or list of integers and slices.
+:meth:`.DataFrameGroupBy.nth` and :meth:`.SeriesGroupBy.nth` now accept a slice or list of integers and slices.
 
 .. ipython:: python
 
     df.groupby("A").nth(slice(1, -1))
     df.groupby("A").nth([slice(None, 1), slice(-1, None)])
 
-:meth:`.GroupBy.nth` now accepts index notation.
+:meth:`.DataFrameGroupBy.nth` and :meth:`.SeriesGroupBy.nth` now accept index notation.
 
 .. ipython:: python
 
@@ -204,9 +204,9 @@ Other enhancements
 - :meth:`concat` will preserve the ``attrs`` when it is the same for all objects and discard the ``attrs`` when they are different (:issue:`41828`)
 - :class:`DataFrameGroupBy` operations with ``as_index=False`` now correctly retain ``ExtensionDtype`` dtypes for columns being grouped on (:issue:`41373`)
 - Add support for assigning values to ``by`` argument in :meth:`DataFrame.plot.hist` and :meth:`DataFrame.plot.box` (:issue:`15079`)
-- :meth:`Series.sample`, :meth:`DataFrame.sample`, and :meth:`.GroupBy.sample` now accept a ``np.random.Generator`` as input to ``random_state``. A generator will be more performant, especially with ``replace=False`` (:issue:`38100`)
+- :meth:`Series.sample`, :meth:`DataFrame.sample`, :meth:`.DataFrameGroupBy.sample`, and :meth:`.SeriesGroupBy.sample` now accept a ``np.random.Generator`` as input to ``random_state``. A generator will be more performant, especially with ``replace=False`` (:issue:`38100`)
 - :meth:`Series.ewm` and :meth:`DataFrame.ewm` now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See :ref:`Window Overview <window.overview>` for performance and functional benefits (:issue:`42273`)
-- :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` now support the argument ``skipna`` (:issue:`34047`)
+- :meth:`.DataFrameGroupBy.cummin`, :meth:`.SeriesGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.SeriesGroupBy.cummax` now support the argument ``skipna`` (:issue:`34047`)
 - :meth:`read_table` now supports the argument ``storage_options`` (:issue:`39167`)
 - :meth:`DataFrame.to_stata` and :meth:`StataWriter` now accept the keyword only argument ``value_labels`` to save labels for non-categorical columns (:issue:`38454`)
 - Methods that relied on hashmap based algos such as :meth:`DataFrameGroupBy.value_counts`, :meth:`DataFrameGroupBy.count` and :func:`factorize` ignored imaginary component for complex numbers (:issue:`17927`)
@@ -224,7 +224,7 @@ Other enhancements
 - :func:`read_csv` now accepts a ``callable`` function in ``on_bad_lines`` when ``engine="python"`` for custom handling of bad lines (:issue:`5686`)
 - :class:`ExcelWriter` argument ``if_sheet_exists="overlay"`` option added (:issue:`40231`)
 - :meth:`read_excel` now accepts a ``decimal`` argument that allow the user to specify the decimal point when parsing string columns to numeric (:issue:`14403`)
-- :meth:`.GroupBy.mean`, :meth:`.GroupBy.std`, :meth:`.GroupBy.var`, and :meth:`.GroupBy.sum` now support `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`43731`, :issue:`44862`, :issue:`44939`)
+- :meth:`.DataFrameGroupBy.mean`, :meth:`.SeriesGroupBy.mean`, :meth:`.DataFrameGroupBy.std`, :meth:`.SeriesGroupBy.std`, :meth:`.DataFrameGroupBy.var`, :meth:`.SeriesGroupBy.var`, :meth:`.DataFrameGroupBy.sum`, and :meth:`.SeriesGroupBy.sum` now support `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`43731`, :issue:`44862`, :issue:`44939`)
 - :meth:`Timestamp.isoformat` now handles the ``timespec`` argument from the base ``datetime`` class (:issue:`26131`)
 - :meth:`NaT.to_numpy` ``dtype`` argument is now respected, so ``np.timedelta64`` can be returned (:issue:`44460`)
 - New option ``display.max_dir_items`` customizes the number of columns added to :meth:`Dataframe.__dir__` and suggested for tab completion (:issue:`37996`)
@@ -419,7 +419,7 @@ raise a ``ValueError`` if the operation could produce a result with more than
 groupby.apply consistent transform detection
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:meth:`.GroupBy.apply` is designed to be flexible, allowing users to perform
+:meth:`.DataFrameGroupBy.apply` and :meth:`.SeriesGroupBy.apply` are designed to be flexible, allowing users to perform
 aggregations, transformations, filters, and use it with user-defined functions
 that might not fall into any of these categories. As part of this, apply will
 attempt to detect when an operation is a transform, and in such a case, the
@@ -753,13 +753,13 @@ Other Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- Performance improvement in :meth:`.GroupBy.sample`, especially when ``weights`` argument provided (:issue:`34483`)
+- Performance improvement in :meth:`.DataFrameGroupBy.sample` and :meth:`.SeriesGroupBy.sample`, especially when ``weights`` argument provided (:issue:`34483`)
 - Performance improvement when converting non-string arrays to string arrays (:issue:`34483`)
-- Performance improvement in :meth:`.GroupBy.transform` for user-defined functions (:issue:`41598`)
+- Performance improvement in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` for user-defined functions (:issue:`41598`)
 - Performance improvement in constructing :class:`DataFrame` objects (:issue:`42631`, :issue:`43142`, :issue:`43147`, :issue:`43307`, :issue:`43144`, :issue:`44826`)
-- Performance improvement in :meth:`GroupBy.shift` when ``fill_value`` argument is provided (:issue:`26615`)
+- Performance improvement in :meth:`.DataFrameGroupBy.shift` and :meth:`.SeriesGroupBy.shift` when ``fill_value`` argument is provided (:issue:`26615`)
 - Performance improvement in :meth:`DataFrame.corr` for ``method=pearson`` on data without missing values (:issue:`40956`)
-- Performance improvement in some :meth:`GroupBy.apply` operations (:issue:`42992`, :issue:`43578`)
+- Performance improvement in some :meth:`.DataFrameGroupBy.apply` and :meth:`.SeriesGroupBy.apply` operations (:issue:`42992`, :issue:`43578`)
 - Performance improvement in :func:`read_stata` (:issue:`43059`, :issue:`43227`)
 - Performance improvement in :func:`read_sas` (:issue:`43333`)
 - Performance improvement in :meth:`to_datetime` with ``uint`` dtypes (:issue:`42606`)
@@ -770,11 +770,11 @@ Performance improvements
 - Performance improvement in indexing with a non-unique :class:`Index` (:issue:`43792`)
 - Performance improvement in indexing with a listlike indexer on a :class:`MultiIndex` (:issue:`43370`)
 - Performance improvement in indexing with a :class:`MultiIndex` indexer on another :class:`MultiIndex` (:issue:`43370`)
-- Performance improvement in :meth:`GroupBy.quantile` (:issue:`43469`, :issue:`43725`)
-- Performance improvement in :meth:`GroupBy.count` (:issue:`43730`, :issue:`43694`)
-- Performance improvement in :meth:`GroupBy.any` and :meth:`GroupBy.all` (:issue:`43675`, :issue:`42841`)
-- Performance improvement in :meth:`GroupBy.std` (:issue:`43115`, :issue:`43576`)
-- Performance improvement in :meth:`GroupBy.cumsum` (:issue:`43309`)
+- Performance improvement in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` (:issue:`43469`, :issue:`43725`)
+- Performance improvement in :meth:`.DataFrameGroupBy.count` and :meth:`.SeriesGroupBy.count` (:issue:`43730`, :issue:`43694`)
+- Performance improvement in :meth:`.DataFrameGroupBy.any`, :meth:`.SeriesGroupBy.any`, :meth:`.DataFrameGroupBy.all`, and :meth:`.SeriesGroupBy.all` (:issue:`43675`, :issue:`42841`)
+- Performance improvement in :meth:`.DataFrameGroupBy.std` and :meth:`.SeriesGroupBy.std` (:issue:`43115`, :issue:`43576`)
+- Performance improvement in :meth:`.DataFrameGroupBy.cumsum` and :meth:`.SeriesGroupBy.cumsum` (:issue:`43309`)
 - :meth:`SparseArray.min` and :meth:`SparseArray.max` no longer require converting to a dense array (:issue:`43526`)
 - Indexing into a :class:`SparseArray` with a ``slice`` with ``step=1`` no longer requires converting to a dense array (:issue:`43777`)
 - Performance improvement in :meth:`SparseArray.take` with ``allow_fill=False`` (:issue:`43654`)
@@ -1003,9 +1003,9 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`SeriesGroupBy.apply` where passing an unrecognized string argument failed to raise ``TypeError`` when the underlying ``Series`` is empty (:issue:`42021`)
 - Bug in :meth:`Series.rolling.apply`, :meth:`DataFrame.rolling.apply`, :meth:`Series.expanding.apply` and :meth:`DataFrame.expanding.apply` with ``engine="numba"`` where ``*args`` were being cached with the user passed function (:issue:`42287`)
-- Bug in :meth:`GroupBy.max` and :meth:`GroupBy.min` with nullable integer dtypes losing precision (:issue:`41743`)
+- Bug in :meth:`.DataFrameGroupBy.max`, :meth:`.SeriesGroupBy.max`, :meth:`.DataFrameGroupBy.min`, and :meth:`.SeriesGroupBy.min` with nullable integer dtypes losing precision (:issue:`41743`)
 - Bug in :meth:`DataFrame.groupby.rolling.var` would calculate the rolling variance only on the first group (:issue:`42442`)
-- Bug in :meth:`GroupBy.shift` that would return the grouping columns if ``fill_value`` was not ``None`` (:issue:`41556`)
+- Bug in :meth:`.DataFrameGroupBy.shift` and :meth:`.SeriesGroupBy.shift` that would return the grouping columns if ``fill_value`` was not ``None`` (:issue:`41556`)
 - Bug in :meth:`SeriesGroupBy.nlargest` and :meth:`SeriesGroupBy.nsmallest` would have an inconsistent index when the input :class:`Series` was sorted and ``n`` was greater than or equal to all group sizes (:issue:`15272`, :issue:`16345`, :issue:`29129`)
 - Bug in :meth:`pandas.DataFrame.ewm`, where non-float64 dtypes were silently failing (:issue:`42452`)
 - Bug in :meth:`pandas.DataFrame.rolling` operation along rows (``axis=1``) incorrectly omits columns containing ``float16`` and ``float32`` (:issue:`41779`)
@@ -1013,16 +1013,16 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.rolling` when the :class:`Series` ``dtype`` was ``Int64`` (:issue:`43016`)
 - Bug in :meth:`DataFrame.rolling.corr` when the :class:`DataFrame` columns was a :class:`MultiIndex` (:issue:`21157`)
 - Bug in :meth:`DataFrame.groupby.rolling` when specifying ``on`` and calling ``__getitem__`` would subsequently return incorrect results (:issue:`43355`)
-- Bug in :meth:`GroupBy.apply` with time-based :class:`Grouper` objects incorrectly raising ``ValueError`` in corner cases where the grouping vector contains a ``NaT`` (:issue:`43500`, :issue:`43515`)
-- Bug in :meth:`GroupBy.mean` failing with ``complex`` dtype (:issue:`43701`)
+- Bug in :meth:`.DataFrameGroupBy.apply` and :meth:`.SeriesGroupBy.apply` with time-based :class:`Grouper` objects incorrectly raising ``ValueError`` in corner cases where the grouping vector contains a ``NaT`` (:issue:`43500`, :issue:`43515`)
+- Bug in :meth:`.DataFrameGroupBy.mean` and :meth:`.SeriesGroupBy.mean` failing with ``complex`` dtype (:issue:`43701`)
 - Bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not calculating window bounds correctly for the first row when ``center=True`` and index is decreasing (:issue:`43927`)
 - Bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` for centered datetimelike windows with uneven nanosecond (:issue:`43997`)
-- Bug in :meth:`GroupBy.mean` raising ``KeyError`` when column was selected at least twice (:issue:`44924`)
-- Bug in :meth:`GroupBy.nth` failing on ``axis=1`` (:issue:`43926`)
+- Bug in :meth:`.DataFrameGroupBy.mean` and :meth:`.SeriesGroupBy.mean` raising ``KeyError`` when column was selected at least twice (:issue:`44924`)
+- Bug in :meth:`.DataFrameGroupBy.nth` and :meth:`.SeriesGroupBy.nth` failing on ``axis=1`` (:issue:`43926`)
 - Bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not respecting right bound on centered datetime-like windows, if the index contain duplicates (:issue:`3944`)
 - Bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` when using a :class:`pandas.api.indexers.BaseIndexer` subclass that returned unequal start and end arrays would segfault instead of raising a ``ValueError`` (:issue:`44470`)
 - Bug in :meth:`Groupby.nunique` not respecting ``observed=True`` for ``categorical`` grouping columns (:issue:`45128`)
-- Bug in :meth:`GroupBy.head` and :meth:`GroupBy.tail` not dropping groups with ``NaN`` when ``dropna=True`` (:issue:`45089`)
+- Bug in :meth:`.DataFrameGroupBy.head`, :meth:`.SeriesGroupBy.head`, :meth:`.DataFrameGroupBy.tail`, and :meth:`.SeriesGroupBy.tail` not dropping groups with ``NaN`` when ``dropna=True`` (:issue:`45089`)
 - Bug in :meth:`GroupBy.__iter__` after selecting a subset of columns in a :class:`GroupBy` object, which returned all columns instead of the chosen subset (:issue:`44821`)
 - Bug in :meth:`Groupby.rolling` when non-monotonic data passed, fails to correctly raise ``ValueError`` (:issue:`43909`)
 - Bug where grouping by a :class:`Series` that has a ``categorical`` data type and length unequal to the axis of grouping raised ``ValueError`` (:issue:`44179`)

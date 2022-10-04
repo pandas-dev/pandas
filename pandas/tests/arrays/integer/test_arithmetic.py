@@ -75,6 +75,21 @@ def test_floordiv(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_floordiv_by_int_zero_no_mask(any_int_ea_dtype):
+    # GH 48223: Aligns with non-masked floordiv
+    # but differs from numpy
+    # https://github.com/pandas-dev/pandas/issues/30188#issuecomment-564452740
+    ser = pd.Series([0, 1], dtype=any_int_ea_dtype)
+    result = 1 // ser
+    expected = pd.Series([np.inf, 1.0], dtype="Float64")
+    tm.assert_series_equal(result, expected)
+
+    ser_non_nullable = ser.astype(ser.dtype.numpy_dtype)
+    result = 1 // ser_non_nullable
+    expected = expected.astype(np.float64)
+    tm.assert_series_equal(result, expected)
+
+
 def test_mod(dtype):
     a = pd.array([1, 2, 3, None, 5], dtype=dtype)
     b = pd.array([0, 1, None, 3, 4], dtype=dtype)

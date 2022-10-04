@@ -13,7 +13,6 @@ from numpy cimport (
     import_array,
     ndarray,
     uint8_t,
-    uint32_t,
     uint64_t,
 )
 
@@ -158,7 +157,6 @@ cdef uint64_t low_level_siphash(uint8_t* data, size_t datalen,
     cdef int i
     cdef uint8_t* end = data + datalen - (datalen % sizeof(uint64_t))
     cdef int left = datalen & 7
-    cdef int left_byte
     cdef int cROUNDS = 2
     cdef int dROUNDS = 4
 

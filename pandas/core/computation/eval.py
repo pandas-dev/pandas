@@ -176,9 +176,9 @@ def eval(
     local_dict=None,
     global_dict=None,
     resolvers=(),
-    level=0,
+    level: int = 0,
     target=None,
-    inplace=False,
+    inplace: bool = False,
 ):
     """
     Evaluate a Python expression as a string using various backends.

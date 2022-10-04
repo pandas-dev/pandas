@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 from pandas import (
     CategoricalDtype,
     CategoricalIndex,
@@ -205,6 +207,12 @@ class TestAtErrors:
 
         with pytest.raises(KeyError, match="^0$"):
             indexer_al(df)["a", 0]
+
+    def test_at_frame_multiple_columns(self):
+        # GH#48296 - at shouldn't modify multiple columns
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        with pytest.raises(InvalidIndexError, match=r"slice\(None, None, None\)"):
+            df.at[5] = [6, 7]
 
     def test_at_getitem_mixed_index_no_fallback(self):
         # GH#19860
