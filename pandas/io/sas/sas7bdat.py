@@ -459,7 +459,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             subheader_compression = self._read_uint(total_offset, 1)
             total_offset += 1
 
-            subheader_type = self._read_int(total_offset, 1)
+            subheader_type = self._read_uint(total_offset, 1)
 
             if (
                 subheader_length == 0
