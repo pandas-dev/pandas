@@ -83,7 +83,7 @@ Fixed regressions
 - Fixed :meth:`.DataFrameGroupBy.size` not returning a Series when ``axis=1`` (:issue:`48738`)
 - Fixed Regression in :meth:`DataFrameGroupBy.apply` when user defined function is called on an empty dataframe (:issue:`47985`)
 - Fixed regression in :meth:`DataFrame.apply` when passing non-zero ``axis`` via keyword argument (:issue:`48656`)
--
+- Fixed regression in :meth:`Series.groupby` and :meth:`DataFrame.groupby` when the grouper is a nullable data type (e.g. :class:`Int64`) or a PyArrow-backed string array, contains null values, and ``dropna=False`` (:issue:`48794`)
 
 .. ---------------------------------------------------------------------------
 
