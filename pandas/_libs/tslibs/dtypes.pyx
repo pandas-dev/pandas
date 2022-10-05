@@ -278,6 +278,19 @@ class NpyDatetimeUnit(Enum):
     NPY_FR_GENERIC = NPY_DATETIMEUNIT.NPY_FR_GENERIC
 
 
+cpdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso):
+    # If we have an unsupported reso, return the nearest supported reso.
+    if reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        # TODO: or raise ValueError? trying this gives unraisable errors, but
+        #  "except? -1" breaks at compile-time for unknown reasons
+        return NPY_DATETIMEUNIT.NPY_FR_ns
+    if reso < NPY_DATETIMEUNIT.NPY_FR_s:
+        return NPY_DATETIMEUNIT.NPY_FR_s
+    elif reso > NPY_DATETIMEUNIT.NPY_FR_ns:
+        return NPY_DATETIMEUNIT.NPY_FR_ns
+    return reso
+
+
 def is_supported_unit(NPY_DATETIMEUNIT reso):
     return (
         reso == NPY_DATETIMEUNIT.NPY_FR_ns
