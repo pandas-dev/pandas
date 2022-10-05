@@ -4390,7 +4390,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         form: str_t,
         key,
-        reraise: lib.no_default | None | Exception = lib.no_default,
+        reraise: lib.NoDefault | None | Exception = lib.no_default,
     ) -> None:
         """
         Raise consistent invalid indexer message.
