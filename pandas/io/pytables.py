@@ -65,6 +65,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
+    is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
@@ -136,7 +137,7 @@ def _ensure_decoded(s):
     return s
 
 
-def _ensure_encoding(encoding):
+def _ensure_encoding(encoding: str | None) -> str:
     # set the encoding if we need
     if encoding is None:
         encoding = _default_encoding
@@ -542,8 +543,6 @@ class HDFStore:
 
     _handle: File | None
     _mode: str
-    _complevel: int
-    _fletcher32: bool
 
     def __init__(
         self,
@@ -1042,7 +1041,7 @@ class HDFStore:
         _tbls = [x for x in tbls if isinstance(x, Table)]
 
         # axis is the concentration axes
-        axis = list({t.non_index_axes[0][0] for t in _tbls})[0]
+        axis = {t.non_index_axes[0][0] for t in _tbls}.pop()
 
         def func(_start, _stop, _where):
 
@@ -1531,7 +1530,7 @@ class HDFStore:
     def copy(
         self,
         file,
-        mode="w",
+        mode: str = "w",
         propindexes: bool = True,
         keys=None,
         complib=None,
@@ -1974,9 +1973,6 @@ class IndexCol:
     is_data_indexable: bool = True
     _info_fields = ["freq", "tz", "index_name"]
 
-    name: str
-    cname: str
-
     def __init__(
         self,
         name: str,
@@ -2309,7 +2305,7 @@ class DataCol(IndexCol):
         values=None,
         kind=None,
         typ=None,
-        cname=None,
+        cname: str | None = None,
         pos=None,
         tz=None,
         ordered=None,
@@ -2621,17 +2617,14 @@ class Fixed:
     format_type: str = "fixed"  # GH#30962 needed by dask
     obj_type: type[DataFrame | Series]
     ndim: int
-    encoding: str
     parent: HDFStore
-    group: Node
-    errors: str
     is_table: bool = False
 
     def __init__(
         self,
         parent: HDFStore,
         group: Node,
-        encoding: str = "UTF-8",
+        encoding: str | None = "UTF-8",
         errors: str = "strict",
     ) -> None:
         assert isinstance(parent, HDFStore), type(parent)
@@ -3305,24 +3298,19 @@ class Table(Fixed):
     levels: int | list[Hashable] = 1
     is_table = True
 
-    index_axes: list[IndexCol]
-    non_index_axes: list[tuple[int, Any]]
-    values_axes: list[DataCol]
-    data_columns: list
     metadata: list
-    info: dict
 
     def __init__(
         self,
         parent: HDFStore,
         group: Node,
-        encoding=None,
+        encoding: str | None = None,
         errors: str = "strict",
-        index_axes=None,
-        non_index_axes=None,
-        values_axes=None,
-        data_columns=None,
-        info=None,
+        index_axes: list[IndexCol] | None = None,
+        non_index_axes: list[tuple[AxisInt, Any]] | None = None,
+        values_axes: list[DataCol] | None = None,
+        data_columns: list | None = None,
+        info: dict | None = None,
         nan_rep=None,
     ) -> None:
         super().__init__(parent, group, encoding=encoding, errors=errors)
@@ -3480,9 +3468,7 @@ class Table(Fixed):
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
 
-        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]" and
-        # "List[Tuple[str, None]]")
-        return dict(d1 + d2 + d3)  # type: ignore[operator]
+        return dict(d1 + d2 + d3)
 
     def index_cols(self):
         """return a list of my index cols"""
@@ -4902,7 +4888,11 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     kind = _dtype_to_kind(dtype_name)
     atom = DataIndexableCol._get_atom(converted)
 
-    if isinstance(index, Int64Index) or needs_i8_conversion(index.dtype):
+    if (
+        isinstance(index, Int64Index)
+        or needs_i8_conversion(index.dtype)
+        or is_bool_dtype(index.dtype)
+    ):
         # Includes Int64Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
         #  in which case "kind" is "integer", "integer", "datetime64",
         #  "timedelta64", and "integer", respectively.
@@ -4965,7 +4955,7 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
             index = np.asarray([date.fromordinal(v) for v in data], dtype=object)
         except (ValueError):
             index = np.asarray([date.fromtimestamp(v) for v in data], dtype=object)
-    elif kind in ("integer", "float"):
+    elif kind in ("integer", "float", "bool"):
         index = np.asarray(data)
     elif kind in ("string"):
         index = _unconvert_string_array(

@@ -27,11 +27,16 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
+    AnyArrayLike,
+    Axis,
     AxisInt,
+    Frequency,
     IndexLabel,
     NDFrameT,
+    QuantileInterpolation,
     T,
     TimedeltaConvertibleTypes,
+    TimeGrouperOrigin,
     TimestampConvertibleTypes,
     npt,
 )
@@ -148,7 +153,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         obj: DataFrame | Series,
         groupby: TimeGrouper,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         kind=None,
         *,
         group_keys: bool | lib.NoDefault = lib.no_default,
@@ -158,7 +163,9 @@ class Resampler(BaseGroupBy, PandasObject):
         self.groupby = groupby
         self.keys = None
         self.sort = True
-        self.axis = axis
+        # error: Incompatible types in assignment (expression has type "Union
+        # [int, Literal['index', 'columns', 'rows']]", variable has type "int")
+        self.axis = axis  # type: ignore[assignment]
         self.kind = kind
         self.squeeze = False
         self.group_keys = group_keys
@@ -515,11 +522,21 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Potentially wrap any results.
         """
+        # GH 47705
+        obj = self.obj
+        if (
+            isinstance(result, ABCDataFrame)
+            and result.empty
+            and not isinstance(result.index, PeriodIndex)
+        ):
+            result = result.set_index(
+                _asfreq_compat(obj.index[:0], freq=self.freq), append=True
+            )
+
         if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
-            obj = self.obj
             # When index is all NaT, result is empty but index is not
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
@@ -547,6 +564,21 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._upsample("ffill", limit=limit)
 
     def pad(self, limit=None):
+        """
+        Forward fill the values.
+
+        .. deprecated:: 1.4
+            Use ffill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        An upsampled Series.
+        """
         warnings.warn(
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
@@ -554,8 +586,6 @@ class Resampler(BaseGroupBy, PandasObject):
             stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.ffill(limit=limit)
-
-    pad.__doc__ = ffill.__doc__
 
     def nearest(self, limit=None):
         """
@@ -720,6 +750,22 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._upsample("bfill", limit=limit)
 
     def backfill(self, limit=None):
+        """
+        Backward fill the values.
+
+        .. deprecated:: 1.4
+            Use bfill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        Series, DataFrame
+            An upsampled Series or DataFrame with backward filled NaN values.
+        """
         warnings.warn(
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
@@ -727,8 +773,6 @@ class Resampler(BaseGroupBy, PandasObject):
             stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.bfill(limit=limit)
-
-    backfill.__doc__ = bfill.__doc__
 
     def fillna(self, method, limit=None):
         """
@@ -894,11 +938,11 @@ class Resampler(BaseGroupBy, PandasObject):
     @doc(NDFrame.interpolate, **_shared_docs_kwargs)
     def interpolate(
         self,
-        method="linear",
-        axis=0,
+        method: QuantileInterpolation = "linear",
+        axis: Axis = 0,
         limit=None,
         inplace: bool = False,
-        limit_direction="forward",
+        limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area=None,
         downcast=None,
         **kwargs,
@@ -942,7 +986,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def std(
         self,
-        ddof=1,
+        ddof: int = 1,
         numeric_only: bool | lib.NoDefault = lib.no_default,
         *args,
         **kwargs,
@@ -969,7 +1013,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def var(
         self,
-        ddof=1,
+        ddof: int = 1,
         numeric_only: bool | lib.NoDefault = lib.no_default,
         *args,
         **kwargs,
@@ -1025,7 +1069,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
-    def quantile(self, q=0.5, **kwargs):
+    def quantile(self, q: float | AnyArrayLike = 0.5, **kwargs):
         """
         Return value at the given quantile.
 
@@ -1558,20 +1602,23 @@ class TimeGrouper(Grouper):
         "offset",
     )
 
+    origin: TimeGrouperOrigin
+
     def __init__(
         self,
-        freq="Min",
+        freq: Frequency = "Min",
         closed: Literal["left", "right"] | None = None,
         label: Literal["left", "right"] | None = None,
-        how="mean",
-        axis=0,
+        how: str = "mean",
+        axis: Axis = 0,
         fill_method=None,
         limit=None,
         loffset=None,
         kind: str | None = None,
         convention: Literal["start", "end", "e", "s"] | None = None,
         base: int | None = None,
-        origin: str | TimestampConvertibleTypes = "start_day",
+        origin: Literal["epoch", "start", "start_day", "end", "end_day"]
+        | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool | lib.NoDefault = True,
         **kwargs,
@@ -1622,7 +1669,12 @@ class TimeGrouper(Grouper):
         self.group_keys = group_keys
 
         if origin in ("epoch", "start", "start_day", "end", "end_day"):
-            self.origin = origin
+            # error: Incompatible types in assignment (expression has type "Union[Union[
+            # Timestamp, datetime, datetime64, signedinteger[_64Bit], float, str],
+            # Literal['epoch', 'start', 'start_day', 'end', 'end_day']]", variable has
+            # type "Union[Timestamp, Literal['epoch', 'start', 'start_day', 'end',
+            # 'end_day']]")
+            self.origin = origin  # type: ignore[assignment]
         else:
             try:
                 self.origin = Timestamp(origin)
@@ -1860,7 +1912,9 @@ class TimeGrouper(Grouper):
         # NaT handling as in pandas._lib.lib.generate_bins_dt64()
         nat_count = 0
         if memb.hasnans:
-            nat_count = np.sum(memb._isnan)
+            # error: Incompatible types in assignment (expression has type
+            # "bool_", variable has type "int")  [assignment]
+            nat_count = np.sum(memb._isnan)  # type: ignore[assignment]
             memb = memb[~memb._isnan]
 
         if not len(memb):
@@ -1948,7 +2002,7 @@ def _get_timestamp_range_edges(
     last: Timestamp,
     freq: BaseOffset,
     closed: Literal["right", "left"] = "left",
-    origin="start_day",
+    origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Timestamp, Timestamp]:
     """
@@ -2026,7 +2080,7 @@ def _get_period_range_edges(
     last: Period,
     freq: BaseOffset,
     closed: Literal["right", "left"] = "left",
-    origin="start_day",
+    origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Period, Period]:
     """
@@ -2100,7 +2154,7 @@ def _adjust_dates_anchored(
     last: Timestamp,
     freq: Tick,
     closed: Literal["right", "left"] = "right",
-    origin="start_day",
+    origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Timestamp, Timestamp]:
     # First and last offsets should be calculated from the start day to fix an
@@ -2116,11 +2170,11 @@ def _adjust_dates_anchored(
     elif isinstance(origin, Timestamp):
         origin_nanos = origin.value
     elif origin in ["end", "end_day"]:
-        origin = last if origin == "end" else last.ceil("D")
-        sub_freq_times = (origin.value - first.value) // freq.nanos
+        origin_last = last if origin == "end" else last.ceil("D")
+        sub_freq_times = (origin_last.value - first.value) // freq.nanos
         if closed == "left":
             sub_freq_times += 1
-        first = origin - sub_freq_times * freq
+        first = origin_last - sub_freq_times * freq
         origin_nanos = first.value
     origin_nanos += offset.value if offset else 0
 

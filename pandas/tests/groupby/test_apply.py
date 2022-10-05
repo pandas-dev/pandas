@@ -1331,3 +1331,28 @@ def test_result_name_when_one_group(name):
     expected = Series([1, 2], name=name)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, op",
+    [
+        ("apply", lambda gb: gb.values[-1]),
+        ("apply", lambda gb: gb["b"].iloc[0]),
+        ("agg", "mad"),
+        ("agg", "skew"),
+        ("agg", "prod"),
+        ("agg", "sum"),
+    ],
+)
+def test_empty_df(method, op):
+    # GH 47985
+    empty_df = DataFrame({"a": [], "b": []})
+    gb = empty_df.groupby("a", group_keys=True)
+    group = getattr(gb, "b")
+
+    result = getattr(group, method)(op)
+    expected = Series(
+        [], name="b", dtype="float64", index=Index([], dtype="float64", name="a")
+    )
+
+    tm.assert_series_equal(result, expected)

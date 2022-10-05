@@ -142,11 +142,12 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
         with pytest.raises(TypeError, match=msg):
             s + data
 
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
-    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
+    def test_direct_arith_with_ndframe_returns_not_implemented(
+        self, data, frame_or_series
+    ):
         # Override to use __sub__ instead of __add__
         other = pd.Series(data)
-        if box is pd.DataFrame:
+        if frame_or_series is pd.DataFrame:
             other = other.to_frame()
 
         result = data.__sub__(other)

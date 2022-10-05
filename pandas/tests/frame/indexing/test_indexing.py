@@ -1405,6 +1405,24 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("col", [{}, {"name": "a"}])
+    def test_loc_setitem_reordering_with_all_true_indexer(self, col):
+        # GH#48701
+        n = 17
+        df = DataFrame({**col, "x": range(n), "y": range(n)})
+        expected = df.copy()
+        df.loc[n * [True], ["x", "y"]] = df[["x", "y"]]
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_rhs_empty_warning(self):
+        # GH48480
+        df = DataFrame(columns=["a", "b"])
+        expected = df.copy()
+        rhs = DataFrame(columns=["a"])
+        with tm.assert_produces_warning(None):
+            df.loc[:, "a"] = rhs
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):

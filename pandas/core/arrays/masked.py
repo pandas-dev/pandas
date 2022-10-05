@@ -913,7 +913,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 # mypy error: Slice index must be an integer or None
                 # https://github.com/python/mypy/issues/2410
-                na_code = codes[:na_index].argmax() + 1  # type: ignore[misc]
+                na_code = codes[:na_index].max() + 1  # type: ignore[misc]
             codes[codes >= na_code] += 1
             codes[codes == -1] = na_code
             # dummy value for uniques; not used since uniques_mask will be True
@@ -1062,7 +1062,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return result
 
     def sum(
-        self, *, skipna: bool = True, min_count=0, axis: AxisInt | None = 0, **kwargs
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
         nv.validate_sum((), kwargs)
 
@@ -1085,7 +1090,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
 
     def prod(
-        self, *, skipna: bool = True, min_count=0, axis: AxisInt | None = 0, **kwargs
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
         nv.validate_prod((), kwargs)
         result = masked_reductions.prod(

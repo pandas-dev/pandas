@@ -787,19 +787,12 @@ def _binary_op_method_timedeltalike(op, name):
             # e.g. if original other was timedelta64('NaT')
             return NaT
 
-        # We allow silent casting to the lower resolution if and only
-        #  if it is lossless.
-        try:
-            if self._reso < other._reso:
-                other = (<_Timedelta>other)._as_reso(self._reso, round_ok=False)
-            elif self._reso > other._reso:
-                self = (<_Timedelta>self)._as_reso(other._reso, round_ok=False)
-        except ValueError as err:
-            raise ValueError(
-                "Timedelta addition/subtraction with mismatched resolutions is not "
-                "allowed when casting to the lower resolution would require "
-                "lossy rounding."
-            ) from err
+        # Matching numpy, we cast to the higher resolution. Unlike numpy,
+        #  we raise instead of silently overflowing during this casting.
+        if self._reso < other._reso:
+            self = (<_Timedelta>self)._as_reso(other._reso, round_ok=True)
+        elif self._reso > other._reso:
+            other = (<_Timedelta>other)._as_reso(self._reso, round_ok=True)
 
         res = op(self.value, other.value)
         if res == NPY_NAT:
@@ -1669,10 +1662,16 @@ class Timedelta(_Timedelta):
 
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed
-        if isinstance(value, _Timedelta) and unit is None and len(kwargs) == 0:
+        if isinstance(value, _Timedelta):
+            # 'unit' is benign in this case, but e.g. days or seconds
+            #  doesn't make sense here.
+            if len(kwargs):
+                # GH#48898
+                raise ValueError(
+                    "Cannot pass both a Timedelta input and timedelta keyword arguments, got "
+                    f"{list(kwargs.keys())}"
+                )
             return value
-        elif isinstance(value, _Timedelta):
-            value = value.value
         elif isinstance(value, str):
             if unit is not None:
                 raise ValueError("unit must not be specified if the value is a str")
@@ -1686,6 +1685,9 @@ class Timedelta(_Timedelta):
         elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
         elif is_timedelta64_object(value):
+            if get_timedelta64_value(value) == NPY_NAT:
+                # i.e. np.timedelta64("NaT")
+                return NaT
             value = ensure_td64ns(value)
         elif is_tick_object(value):
             value = np.timedelta64(value.nanos, 'ns')
