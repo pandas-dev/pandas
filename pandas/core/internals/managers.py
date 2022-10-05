@@ -1742,7 +1742,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
                 # attribute "to_numpy"
                 arr = blk.values.to_numpy(  # type: ignore[union-attr]
-                    dtype=dtype,
+                    dtype=dtype or 'object',
                     na_value=na_value,
                 ).reshape(blk.shape)
             else:

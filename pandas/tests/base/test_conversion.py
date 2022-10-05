@@ -288,7 +288,6 @@ def test_array_multiindex_raises():
             pd.core.arrays.period_array(["2000", "2001"], freq="D"),
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
         ),
-        (pd.array([0, np.nan], dtype="Int64"), np.array([0, pd.NA], dtype=object)),
         (
             IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
@@ -340,15 +339,29 @@ def test_to_numpy(arr, expected, index_or_series_or_array, request):
     with tm.assert_produces_warning(warn):
         thing = box(arr)
 
-    if arr.dtype.name == "int64" and box is pd.array:
-        mark = pytest.mark.xfail(reason="thing is Int64 and to_numpy() returns object")
-        request.node.add_marker(mark)
-
     result = thing.to_numpy()
     tm.assert_numpy_array_equal(result, expected)
 
     result = np.asarray(thing)
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_with_error(index_or_series_or_array):
+    # https://github.com/pandas-dev/pandas/issues/48891
+    arr, expected = (pd.array([0, np.nan], dtype="Int64"), np.array([0, pd.NA], dtype=object))
+    box = index_or_series_or_array
+
+    warn = None
+    if index_or_series_or_array is pd.Index and isinstance(arr, SparseArray):
+        warn = FutureWarning
+    with tm.assert_produces_warning(warn):
+        thing = box(arr)
+
+    with pytest.raises(ValueError, match="specify an appropriate 'na_value' for this dtype"):
+        thing.to_numpy()
+
+    with pytest.raises(ValueError, match="specify an appropriate 'na_value' for this dtype"):
+        np.asarray(thing)
 
 
 @pytest.mark.parametrize("as_series", [True, False])

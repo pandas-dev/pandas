@@ -61,10 +61,7 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert result == s.nbytes
 
     def test_array_interface(self, data):
-        with pytest.raises(ValueError, match="specify an appropriate 'na_value' for this dtype"):
-            np.array(data)
-
-        result = np.array(data, dtype=object)
+        result = np.array(data)
         expected = np.array(list(data), dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 

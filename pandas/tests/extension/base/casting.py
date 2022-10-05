@@ -63,12 +63,12 @@ class BaseCastingTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
     def test_to_numpy(self, data):
-        expected = np.asarray(data)
+        expected = np.asarray(data, dtype=object)
 
-        result = data.to_numpy()
+        result = data.to_numpy(dtype=object)
         self.assert_equal(result, expected)
 
-        result = pd.Series(data).to_numpy()
+        result = pd.Series(data).to_numpy(dtype=object)
         self.assert_equal(result, expected)
 
     def test_astype_empty_dataframe(self, dtype):
