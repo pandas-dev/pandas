@@ -9734,10 +9734,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     other = other._values
                     if axis == 0:
                         other = np.reshape(other, (-1, 1))
+                        ind = np.arange(other.shape[1]).repeat(self.shape[1])
+                        other = other.take(ind, axis=1)
                     elif axis == 1:
                         other = np.reshape(other, (1, -1))
-
-                    other = np.broadcast_to(other, self.shape)
+                        ind = np.arange(other.shape[0]).repeat(self.shape[0])
+                        other = other.take(ind, axis=0)
 
             # slice me out of the other
             else:

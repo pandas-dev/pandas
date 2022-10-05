@@ -2043,7 +2043,7 @@ class _AsOfMerge(_OrderedMerge):
                 #  np.array([0, 255, 255], dtype=np.uint8)
                 #  and the non-injectivity should make a difference somehow
                 #  shouldn't it?
-                return np.asarray(obj)
+                return np.asarray(obj, dtype=object)
 
             xs = [injection(x) for x in xs]
             labels = list(string.ascii_lowercase[: len(xs)])
