@@ -245,7 +245,7 @@ def test_compare_ea_and_np_dtype():
     result = df1.compare(df2, keep_shape=True)
     expected = pd.DataFrame(
         {
-            ("a", "self"): [4.0, np.nan],
+            ("a", "self"): [4.0, 4],
             ("a", "other"): pd.Series([1, pd.NA], dtype="Int64"),
             ("b", "self"): np.nan,
             ("b", "other"): np.nan,
