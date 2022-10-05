@@ -298,22 +298,21 @@ def test_ambiguous_archive_zip():
             pd.read_csv(path)
 
 
-def test_ambiguous_archive_tar():
-    with tm.ensure_clean_dir() as dir:
-        csvAPath = os.path.join(dir, "a.csv")
-        with open(csvAPath, "w") as a:
-            a.write("foo,bar\n")
-        csvBPath = os.path.join(dir, "b.csv")
-        with open(csvBPath, "w") as b:
-            b.write("foo,bar\n")
+def test_ambiguous_archive_tar(tmp_path):
+    csvAPath = tmp_path / "a.csv"
+    with open(csvAPath, "w") as a:
+        a.write("foo,bar\n")
+    csvBPath = tmp_path / "b.csv"
+    with open(csvBPath, "w") as b:
+        b.write("foo,bar\n")
 
-        tarpath = os.path.join(dir, "archive.tar")
-        with tarfile.TarFile(tarpath, "w") as tar:
-            tar.add(csvAPath, "a.csv")
-            tar.add(csvBPath, "b.csv")
+    tarpath = tmp_path / "archive.tar"
+    with tarfile.TarFile(tarpath, "w") as tar:
+        tar.add(csvAPath, "a.csv")
+        tar.add(csvBPath, "b.csv")
 
-        with pytest.raises(ValueError, match="Multiple files found in TAR archive"):
-            pd.read_csv(tarpath)
+    with pytest.raises(ValueError, match="Multiple files found in TAR archive"):
+        pd.read_csv(tarpath)
 
 
 def test_tar_gz_to_different_filename():
