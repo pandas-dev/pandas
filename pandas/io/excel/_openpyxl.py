@@ -88,6 +88,14 @@ class OpenpyxlWriter(ExcelWriter):
         """
         return self._book
 
+    @book.setter
+    def book(self, other: Workbook) -> None:
+        """
+        Set book instance. Class type will depend on the engine used.
+        """
+        self._deprecate_set_book()
+        self._book = other
+
     @property
     def sheets(self) -> dict[str, Any]:
         """Mapping of sheet names to sheet objects."""

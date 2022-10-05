@@ -21,7 +21,10 @@ from pandas.io.excel._util import (
 )
 
 if TYPE_CHECKING:
-    from xlwt import XFStyle
+    from xlwt import (
+        Workbook,
+        XFStyle,
+    )
 
 
 class XlwtWriter(ExcelWriter):
@@ -64,13 +67,21 @@ class XlwtWriter(ExcelWriter):
         self._fm_date = xlwt.easyxf(num_format_str=self._date_format)
 
     @property
-    def book(self):
+    def book(self) -> Workbook:
         """
         Book instance of class xlwt.Workbook.
 
         This attribute can be used to access engine-specific features.
         """
         return self._book
+
+    @book.setter
+    def book(self, other: Workbook) -> None:
+        """
+        Set book instance. Class type will depend on the engine used.
+        """
+        self._deprecate_set_book()
+        self._book = other
 
     @property
     def sheets(self) -> dict[str, Any]:
