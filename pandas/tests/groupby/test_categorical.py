@@ -828,6 +828,7 @@ def test_preserve_categories():
     df = DataFrame({"A": Categorical(list("ba"), categories=categories, ordered=False)})
     sort_index = CategoricalIndex(categories, categories, ordered=False, name="A")
     # GH#48749 - don't change order of categories
+    # GH#42482 - don't sort result when sort=False, even when ordered=True
     nosort_index = CategoricalIndex(list("bac"), list("abc"), ordered=False, name="A")
     tm.assert_index_equal(
         df.groupby("A", sort=True, observed=False).first().index, sort_index
@@ -1213,7 +1214,7 @@ def test_seriesgroupby_observed_true(df_cat, operation):
     lev_a = Index(["bar", "bar", "foo", "foo"], dtype=df_cat["A"].dtype, name="A")
     lev_b = Index(["one", "three", "one", "two"], dtype=df_cat["B"].dtype, name="B")
     index = MultiIndex.from_arrays([lev_a, lev_b])
-    expected = Series(data=[2, 4, 1, 3], index=index, name="C")
+    expected = Series(data=[2, 4, 1, 3], index=index, name="C").sort_index()
 
     grouped = df_cat.groupby(["A", "B"], observed=True)["C"]
     result = getattr(grouped, operation)(sum)
@@ -1856,10 +1857,7 @@ def test_category_order_reducer(
         df = df.set_index(keys)
     args = get_groupby_method_args(reduction_func, df)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    msg = "is deprecated and will be removed in a future version"
-    warn = FutureWarning if reduction_func == "mad" else None
-    with tm.assert_produces_warning(warn, match=msg):
-        op_result = getattr(gb, reduction_func)(*args)
+    op_result = getattr(gb, reduction_func)(*args)
     if as_index:
         result = op_result.index.get_level_values("a").categories
     else:
