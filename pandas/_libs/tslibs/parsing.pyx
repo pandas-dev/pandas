@@ -943,7 +943,7 @@ def format_is_iso(f: str) -> bint:
     return False
 
 
-def guess_datetime_format(dt_str, bint dayfirst=False):
+def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     """
     Guess the datetime format of a given datetime string.
 
@@ -1026,7 +1026,12 @@ def guess_datetime_format(dt_str, bint dayfirst=False):
             # This separation will prevent subsequent processing
             # from correctly parsing the time zone format.
             # So in addition to the format nomalization, we rejoin them here.
-            tokens[offset_index] = parsed_datetime.strftime("%z")
+            try:
+                tokens[offset_index] = parsed_datetime.strftime("%z")
+            except ValueError:
+                # Invalid offset might not have raised in du_parse
+                # https://github.com/dateutil/dateutil/issues/188
+                return None
             tokens = tokens[:offset_index + 1 or None]
 
     format_guess = [None] * len(tokens)
