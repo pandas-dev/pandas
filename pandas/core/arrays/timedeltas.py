@@ -20,7 +20,9 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
     astype_overflowsafe,
+    get_unit_from_dtype,
     iNaT,
+    is_supported_unit,
     periods_per_second,
     to_offset,
 )
@@ -304,6 +306,18 @@ class TimedeltaArray(dtl.TimelikeOps):
         dtype = pandas_dtype(dtype)
 
         if dtype.kind == "m":
+            if dtype == self.dtype:
+                if copy:
+                    return self.copy()
+                return self
+
+            if is_supported_unit(get_unit_from_dtype(dtype)):
+                # unit conversion e.g. timedelta64[s]
+                res_values = astype_overflowsafe(self._ndarray, dtype, copy=False)
+                return type(self)._simple_new(
+                    res_values, dtype=res_values.dtype, freq=self.freq
+                )
+
             return astype_td64_unit_conversion(self._ndarray, dtype, copy=copy)
 
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
