@@ -157,25 +157,25 @@ class TestDataFrame2:
 
         msg = 'For argument "inplace" expected type bool, received type'
         with pytest.raises(ValueError, match=msg):
-            super().rename_axis(mapper={"a": "x", "b": "y"}, axis=1, inplace=value)
+            df.copy().rename_axis(mapper={"a": "x", "b": "y"}, axis=1, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super().drop("a", axis=1, inplace=value)
+            df.copy().drop("a", axis=1, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super().fillna(value=0, inplace=value)
+            df.copy().fillna(value=0, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super().replace(to_replace=1, value=7, inplace=value)
+            df.copy().replace(to_replace=1, value=7, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super().interpolate(inplace=value)
+            df.copy().interpolate(inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super()._where(cond=df.a > 2, inplace=value)
+            df.copy()._where(cond=df.a > 2, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super().mask(cond=df.a > 2, inplace=value)
+            df.copy().mask(cond=df.a > 2, inplace=value)
 
     def test_unexpected_keyword(self):
         # GH8597
