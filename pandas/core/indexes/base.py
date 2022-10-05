@@ -554,7 +554,7 @@ class Index(IndexOpsMixin, PandasObject):
             return klass._simple_new(arr, name)
 
         elif is_scalar(data):
-            raise cls._scalar_data_error(data)
+            cls._raise_scalar_data_error(data)
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         else:
@@ -5288,10 +5288,10 @@ class Index(IndexOpsMixin, PandasObject):
     # construction helpers
     @final
     @classmethod
-    def _scalar_data_error(cls, data):
+    def _raise_scalar_data_error(cls, data):
         # We return the TypeError so that we can raise it from the constructor
         #  in order to keep mypy happy
-        return TypeError(
+        raise TypeError(
             f"{cls.__name__}(...) must be called with a collection of some "
             f"kind, {repr(data)} was passed"
         )
@@ -6683,7 +6683,7 @@ class Index(IndexOpsMixin, PandasObject):
         return ensure_index(target)
 
     @final
-    def _validate_indexer(self, form: str_t, key, kind: str_t):
+    def _validate_indexer(self, form: str_t, key, kind: str_t) -> None:
         """
         If we are positional indexer, validate that we have appropriate
         typed bounds must be an integer.
