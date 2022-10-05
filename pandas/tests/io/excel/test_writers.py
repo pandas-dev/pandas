@@ -882,8 +882,8 @@ class TestExcelWriter:
     def test_to_excel_unicode_filename(self, ext):
         with tm.ensure_clean("\u0192u." + ext) as filename:
             try:
-                f = open(filename, "wb")
-                f.close()
+                with open(filename, "wb"):
+                    pass
             except UnicodeEncodeError:
                 pytest.skip("No unicode file names on this system")
 
