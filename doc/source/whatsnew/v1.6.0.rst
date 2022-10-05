@@ -24,11 +24,9 @@ Optional pandas dependencies can be managed as extras in a requirements/setup fi
 
   pandas[performance, aws]>=1.6.0
 
-Available optional dependencies are ``[all, performance, computation, timezone, aws, gcp, excel, parquet, feather, hdf5,
-spss, postgresql, mysql, sql-other, html, xml, plot, output_formatting, compression, test]`` (:issue:`39164`)
-
-enhancement1
-^^^^^^^^^^^^
+Available optional dependencies (listed in order of appearance at `install guide <https://pandas.pydata.org/docs/getting_started/install>`_) are
+``[all, performance, computation, timezone, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql, sql-other,
+html, xml, plot, output_formatting, clipboard, compression, test]`` (:issue:`39164`).
 
 .. _whatsnew_160.enhancements.enhancement2:
 
@@ -46,7 +44,7 @@ Other enhancements
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
 - Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
 - :class:`.CategoricalConversionWarning`, :class:`.InvalidComparison`, :class:`.InvalidVersion`, :class:`.LossySetitemError`, and :class:`.NoBufferPresent` are now exposed in ``pandas.errors`` (:issue:`27656`)
-- Fix ``test`` optional_extra by adding missing package ``pytest-asyncio`` that was required to actually run tests  (:issue:`48361`)
+- Fix ``test`` optional_extra by adding missing test package ``pytest-asyncio`` (:issue:`48361`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_160.notable_bug_fixes:

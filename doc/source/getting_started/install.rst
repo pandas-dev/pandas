@@ -457,7 +457,8 @@ s3fs                      2021.08.0          aws             Amazon S3 access
 Clipboard
 ^^^^^^^^^
 
-Must be manually managed, depending on operating system.
+Can be managed as optional_extra with ``pandas[clipboard]``. However, depending on operating system, system-level
+packages may need to installed.
 
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    optional_extra  Notes
