@@ -5288,7 +5288,7 @@ class Index(IndexOpsMixin, PandasObject):
     # construction helpers
     @final
     @classmethod
-    def _raise_scalar_data_error(cls, data) -> None:
+    def _raise_scalar_data_error(cls, data):
         # We return the TypeError so that we can raise it from the constructor
         #  in order to keep mypy happy
         raise TypeError(
