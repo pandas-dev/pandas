@@ -654,7 +654,11 @@ class Grouping:
             # _group_index is set in __init__ for MultiIndex cases
             return self._group_index
 
-        uniques = self._codes_and_uniques[1]
+        codes, uniques = self._codes_and_uniques
+        if not self._dropna and (codes == len(uniques)).any():
+            uniques = Categorical.from_codes(
+                np.append(uniques.codes, [-1]), uniques.categories
+            )
         return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
@@ -677,7 +681,12 @@ class Grouping:
             uniques = Categorical.from_codes(
                 codes=ucodes, categories=categories, ordered=cat.ordered
             )
-            return cat.codes, uniques
+            if not self._dropna:
+                # Replace negative codes with a value larger then the largest unique
+                codes = np.where(cat.codes < 0, len(uniques), cat.codes)
+            else:
+                codes = cat.codes
+            return codes, uniques
 
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
