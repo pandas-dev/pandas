@@ -1192,7 +1192,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """Mapping of sheet names to sheet objects."""
         pass
 
-    @property
+    # mypy doesn't handle abstract setters prior to 0.981
+    # https://github.com/python/mypy/issues/4165
+    @property  # type: ignore[misc]
     @abc.abstractmethod
     def book(self):
         """
@@ -1202,7 +1204,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         pass
 
-    @book.setter
+    # mypy doesn't handle abstract setters prior to 0.981
+    # https://github.com/python/mypy/issues/4165
+    @book.setter  # type: ignore[misc]
     @abc.abstractmethod
     def book(self, other) -> None:
         """
