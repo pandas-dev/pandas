@@ -243,7 +243,7 @@ Package                                                          Minimum support
 .. _install.recommended_dependencies:
 
 Performance dependencies (recommended)
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 pandas recommends the following optional dependencies for performance gains. These dependencies can be specifically
 installed with ``pandas[performance]`` (i.e. add as optional_extra to the pandas requirement)

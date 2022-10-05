@@ -46,7 +46,7 @@ Other enhancements
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
 - Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
 - :class:`.CategoricalConversionWarning`, :class:`.InvalidComparison`, :class:`.InvalidVersion`, :class:`.LossySetitemError`, and :class:`.NoBufferPresent` are now exposed in ``pandas.errors`` (:issue:`27656`)
-- Fix `test` optional_extra by adding missing package ``pytest-asyncio`` that was required to actually run tests  (:issue:`48361`)
+- Fix ``test`` optional_extra by adding missing package ``pytest-asyncio`` that was required to actually run tests  (:issue:`48361`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_160.notable_bug_fixes:
