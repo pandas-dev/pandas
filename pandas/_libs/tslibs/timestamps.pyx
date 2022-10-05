@@ -257,6 +257,13 @@ cdef class _Timestamp(ABCTimestamp):
         )
         return self._freq
 
+    @property
+    def _unit(self) -> str:
+        """
+        The abbreviation associated with self._reso.
+        """
+        return npy_unit_to_abbrev(self._reso)
+
     # -----------------------------------------------------------------
     # Constructors
 
