@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-import os
+import pathlib
 import tempfile
 from typing import Generator
 
@@ -28,24 +28,16 @@ def ensure_clean_store(
     path, mode="a", complevel=None, complib=None, fletcher32=False
 ) -> Generator[HDFStore, None, None]:
 
-    try:
-
-        # put in the temporary path if we don't have one already
-        if not len(os.path.dirname(path)):
-            path = os.path.join(tempfile.gettempdir(), path)
-
-        store = HDFStore(
-            path, mode=mode, complevel=complevel, complib=complib, fletcher32=False
-        )
-        yield store
-    finally:
-        safe_close(store)
-        if mode == "w" or mode == "a":
-            if path is not None:
-                try:
-                    os.remove(path)  # noqa: PDF008
-                except OSError:
-                    pass
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        tmp_path = pathlib.Path(tmpdirname, path)
+        with HDFStore(
+            tmp_path,
+            mode=mode,
+            complevel=complevel,
+            complib=complib,
+            fletcher32=fletcher32,
+        ) as store:
+            yield store
 
 
 def _maybe_remove(store, key):
