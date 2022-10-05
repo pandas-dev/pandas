@@ -1778,14 +1778,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             dtype = interleaved_dtype(  # type: ignore[assignment]
                 [blk.dtype for blk in self.blocks]
             )
-
         # TODO: https://github.com/pandas-dev/pandas/issues/22791
         # Give EAs some input on what happens here. Sparse needs this.
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
             dtype = cast(np.dtype, dtype)
         elif isinstance(dtype, ExtensionDtype):
-            dtype = np.dtype("object")
+            dtype = dtype.type
         elif is_dtype_equal(dtype, str):
             dtype = np.dtype("object")
 
