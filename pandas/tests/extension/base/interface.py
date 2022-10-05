@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -60,8 +61,8 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert result == s.nbytes
 
     def test_array_interface(self, data):
-        result = np.array(data)
-        assert result[0] == data[0]
+        with pytest.raises(ValueError, match="specify an appropriate 'na_value' for this dtype"):
+            np.array(data)
 
         result = np.array(data, dtype=object)
         expected = np.array(list(data), dtype=object)
