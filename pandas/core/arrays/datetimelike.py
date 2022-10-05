@@ -44,7 +44,6 @@ from pandas._libs.tslibs import (
     iNaT,
     ints_to_pydatetime,
     ints_to_pytimedelta,
-    npy_unit_to_abbrev,
     to_offset,
 )
 from pandas._libs.tslibs.fields import (
@@ -1169,13 +1168,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # Preserve our resolution
             return DatetimeArray._simple_new(result, dtype=result.dtype)
 
-        if self._reso != other._reso:
-            # Just as with Timestamp/Timedelta, we cast to the higher resolution
-            if self._reso < other._reso:
-                unit = npy_unit_to_abbrev(other._reso)
-                self = self._as_unit(unit)
-            else:
-                other = other._as_unit(self._unit)
+        self, other = self._ensure_matching_resos(other)
+        self = cast("TimedeltaArray", self)
 
         i8 = self.asi8
         result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
@@ -1208,16 +1202,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # i.e. np.datetime64("NaT")
             return self - NaT
 
-        other = Timestamp(other)
+        ts = Timestamp(other)
 
-        if other._reso != self._reso:
-            if other._reso < self._reso:
-                other = other._as_unit(self._unit)
-            else:
-                unit = npy_unit_to_abbrev(other._reso)
-                self = self._as_unit(unit)
-
-        return self._sub_datetimelike(other)
+        self, ts = self._ensure_matching_resos(ts)
+        return self._sub_datetimelike(ts)
 
     @final
     def _sub_datetime_arraylike(self, other):
@@ -1230,12 +1218,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self = cast("DatetimeArray", self)
         other = ensure_wrapped_if_datetimelike(other)
 
-        if other._reso != self._reso:
-            if other._reso < self._reso:
-                other = other._as_unit(self._unit)
-            else:
-                self = self._as_unit(other._unit)
-
+        self, other = self._ensure_matching_resos(other)
         return self._sub_datetimelike(other)
 
     @final
@@ -1319,17 +1302,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise ValueError("cannot add indices of unequal length")
 
         other = ensure_wrapped_if_datetimelike(other)
-        other = cast("TimedeltaArray", other)
+        tda = cast("TimedeltaArray", other)
         self = cast("DatetimeArray | TimedeltaArray", self)
 
-        if self._reso != other._reso:
-            # Just as with Timestamp/Timedelta, we cast to the higher resolution
-            if self._reso < other._reso:
-                self = self._as_unit(other._unit)
-            else:
-                other = other._as_unit(self._unit)
-
-        return self._add_timedeltalike(other)
+        self, tda = self._ensure_matching_resos(tda)
+        return self._add_timedeltalike(tda)
 
     @final
     def _add_timedeltalike(self, other: Timedelta | TimedeltaArray):
@@ -2097,6 +2074,17 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return type(self)._simple_new(
             new_values, dtype=new_dtype, freq=self.freq  # type: ignore[call-arg]
         )
+
+    # TODO: annotate other as DatetimeArray | TimedeltaArray | Timestamp | Timedelta
+    #  with the return type matching input type.  TypeVar?
+    def _ensure_matching_resos(self, other):
+        if self._reso != other._reso:
+            # Just as with Timestamp/Timedelta, we cast to the higher resolution
+            if self._reso < other._reso:
+                self = self._as_unit(other._unit)
+            else:
+                other = other._as_unit(self._unit)
+        return self, other
 
     # --------------------------------------------------------------
 
