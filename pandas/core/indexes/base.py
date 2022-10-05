@@ -554,7 +554,7 @@ class Index(IndexOpsMixin, PandasObject):
             return klass._simple_new(arr, name)
 
         elif is_scalar(data):
-            cls._raise_scalar_data_error(data)
+            raise cls._raise_scalar_data_error(data)
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         else:
@@ -5288,7 +5288,7 @@ class Index(IndexOpsMixin, PandasObject):
     # construction helpers
     @final
     @classmethod
-    def _raise_scalar_data_error(cls, data):
+    def _raise_scalar_data_error(cls, data) -> None:
         # We return the TypeError so that we can raise it from the constructor
         #  in order to keep mypy happy
         raise TypeError(
