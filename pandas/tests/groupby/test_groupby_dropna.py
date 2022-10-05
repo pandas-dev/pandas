@@ -433,11 +433,6 @@ def test_no_sort_keep_na(request, sequence_index, dtype, test_series):
         [{0: "x", 1: "y", 2: "z"}[sequence_index // (3**k) % 3] for k in range(4)]
     )
 
-    if dtype == "category" and "z" in sequence:
-        # Only xfail when nulls are present
-        msg = "dropna=False not correct for categorical, GH#48645"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-
     # Unique values to use for grouper, depends on dtype
     if dtype in ("string", "string[pyarrow]"):
         uniques = {"x": "x", "y": "y", "z": pd.NA}
