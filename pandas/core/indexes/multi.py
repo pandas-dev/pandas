@@ -1148,7 +1148,12 @@ class MultiIndex(Index):
     # Return type "Callable[..., MultiIndex]" of "_constructor" incompatible with return
     # type "Type[MultiIndex]" in supertype "Index"
     @property
-    def _constructor(self) -> Callable[..., MultiIndex]:  # type: ignore[override]
+    def _constructor(
+        self: MultiIndex,
+        name: Hashable | None = None,
+        copy: bool | None = None,
+        dtype=None,
+    ) -> Callable[..., MultiIndex]:  # type: ignore[override]
         return type(self).from_tuples
 
     @doc(Index._shallow_copy)

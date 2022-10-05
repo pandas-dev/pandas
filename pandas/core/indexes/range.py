@@ -188,7 +188,12 @@ class RangeIndex(NumericIndex):
     # error: Return type "Type[Int64Index]" of "_constructor" incompatible with return
     # type "Type[RangeIndex]" in supertype "Index"
     @cache_readonly
-    def _constructor(self) -> type[Int64Index]:  # type: ignore[override]
+    def _constructor(
+        self: RangeIndex,
+        name: Hashable | None = None,
+        copy: bool | None = None,
+        dtype=None
+    ) -> type[Int64Index]:  # type: ignore[override]
         """return the class to use for construction"""
         return Int64Index
 
