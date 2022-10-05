@@ -212,14 +212,23 @@ def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
         "1/1/1/1",
         "this_is_not_a_datetime",
         "51a",
-        9,
-        datetime(2011, 1, 1),
     ],
 )
 def test_guess_datetime_format_invalid_inputs(invalid_dt):
     # A datetime string must include a year, month and a day for it to be
     # guessable, in addition to being a string that looks like a datetime.
     assert parsing.guess_datetime_format(invalid_dt) is None
+
+
+@pytest.mark.parametrize("invalid_type_dt", [9, datetime(2011, 1, 1)])
+def test_guess_datetime_format_wrong_type_inputs(invalid_type_dt):
+    # A datetime string must include a year, month and a day for it to be
+    # guessable, in addition to being a string that looks like a datetime.
+    with pytest.raises(
+        TypeError,
+        match=r"^Argument 'dt_str' has incorrect type \(expected str, got .*\)$",
+    ):
+        parsing.guess_datetime_format(invalid_type_dt)
 
 
 @pytest.mark.parametrize(
