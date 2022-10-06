@@ -252,3 +252,35 @@ def test_compare_ea_and_np_dtype():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_compare_with_equal_null_int64_dtypes():
+    # GH #48939
+    # two int64 nulls are considered same.
+    df1 = pd.DataFrame({"a": pd.Series([4.0, pd.NA], dtype="Int64"), "b": [1.0, 2]})
+    df2 = pd.DataFrame({"a": pd.Series([3, pd.NA], dtype="Int64"), "b": [1.0, 2]})
+    result = df1.compare(df2)
+    expected = pd.DataFrame(
+        {
+            ("a", "self"): pd.Series([4], dtype="Int64"),
+            ("a", "other"): pd.Series([3], dtype="Int64"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_compare_with_unequal_null_int64_dtypes():
+    # GH #48939
+    # comparison with int64 null dtype shouldn't obscure result.
+    df1 = pd.DataFrame({"a": pd.Series([4.0, 4], dtype="Int64"), "b": [1.0, 2]})
+    df2 = pd.DataFrame({"a": pd.Series([1, pd.NA], dtype="Int64"), "b": [1.0, 2]})
+    result = df1.compare(df2, keep_shape=True)
+    expected = pd.DataFrame(
+        {
+            ("a", "self"): pd.Series([4.0, 4], dtype="Int64"),
+            ("a", "other"): pd.Series([1, pd.NA], dtype="Int64"),
+            ("b", "self"): np.nan,
+            ("b", "other"): np.nan,
+        }
+    )
+    tm.assert_frame_equal(result, expected)
