@@ -563,12 +563,11 @@ class StylerRenderer:
                 and (0, c) in self.ctx_index_names
                 and self.ctx_index_names[0, c]
             ):
-                index_name_element["id"] = (
-                    f"{self.css['index_name']}_{self.css['level']}{c}"
-                )
+                element_id = f"{self.css['index_name']}_{self.css['level']}{c}"
+                index_name_element["id"] = element_id
                 self.cellstyle_map_index_names[
                     tuple(self.ctx_index_names[0, c])
-                ].append(f"{self.css['index_name']}_{self.css['level']}{c}")
+                ].append(element_id)
             index_names.append(index_name_element)
 
         column_blanks: list = []
