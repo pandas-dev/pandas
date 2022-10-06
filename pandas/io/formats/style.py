@@ -1632,6 +1632,7 @@ class Styler(StylerRenderer):
         axis : int
             Identifies whether the ctx object being updated is the index or columns
         """
+        i: int
         for i, c in attrs.items():
             if not c:
                 continue
