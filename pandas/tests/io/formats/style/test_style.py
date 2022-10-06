@@ -64,6 +64,8 @@ def mi_styler_comp(mi_styler):
     mi_styler.highlight_max(axis=None)
     mi_styler.applymap_index(lambda x: "color: white;", axis=0)
     mi_styler.applymap_index(lambda x: "color: black;", axis=1)
+    mi_styler.applymap_index(lambda x: "color: red;", axis=0, axis_names=0)
+    mi_styler.applymap_index(lambda x: "color: green;", axis=1, axis_names=1)
     mi_styler.set_td_classes(
         DataFrame(
             [["a", "b"], ["a", "c"]], index=mi_styler.index, columns=mi_styler.columns
@@ -277,6 +279,8 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
         "cellstyle_map",  # render time vars..
         "cellstyle_map_columns",
         "cellstyle_map_index",
+        "cellstyle_map_columns_names",
+        "cellstyle_map_index_names",
         "template_latex",  # render templates are class level
         "template_html",
         "template_html_style",
@@ -333,6 +337,8 @@ def test_clear(mi_styler_comp):
         "cellstyle_map",  # execution time only
         "cellstyle_map_columns",  # execution time only
         "cellstyle_map_index",  # execution time only
+        "cellstyle_map_columns_names",
+        "cellstyle_map_index_names",
         "precision",  # deprecated
         "na_rep",  # deprecated
         "template_latex",  # render templates are class level
@@ -1078,7 +1084,7 @@ class TestStyler:
                     "is_visible": True,
                 },
                 {
-                    "class": f"index_name level{level}",
+                    "class": f"columns_name level{level}",
                     "display_value": f"colnam_{level}",
                     "is_visible": True,
                 },

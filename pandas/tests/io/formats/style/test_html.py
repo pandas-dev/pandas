@@ -474,6 +474,7 @@ def test_replaced_css_class_names():
         "row_heading": "ROWHEAD",
         # "col_heading": "COLHEAD",
         "index_name": "IDXNAME",
+        "columns_name": "COLNAME",
         # "col": "COL",
         "row": "ROW",
         # "col_trim": "COLTRIM",
@@ -492,6 +493,8 @@ def test_replaced_css_class_names():
     styler_mi.hide(styler_mi.columns[1:], axis=1)
     styler_mi.applymap_index(lambda v: "color: red;", axis=0)
     styler_mi.applymap_index(lambda v: "color: green;", axis=1)
+    styler_mi.applymap_index(lambda v: "color: yellow;", axis=0, names=True)
+    styler_mi.applymap_index(lambda v: "color: green;", axis=1, names=True)
     styler_mi.applymap(lambda v: "color: blue;")
     expected = dedent(
         """\
@@ -505,22 +508,25 @@ def test_replaced_css_class_names():
     #T__LEVEL0_col0, #T__LEVEL1_col0 {
       color: green;
     }
+    #T__IDXNAME_LEVEL0, #T__IDXNAME_LEVEL1 {
+      color: yellow;
+    }
     </style>
     <table id="T_">
       <thead>
         <tr>
           <th class="BLANK" >&nbsp;</th>
-          <th class="IDXNAME LEVEL0" >n1</th>
+          <th id="T__COLNAME_LEVEL0" class="COLNAME LEVEL0" >n1</th>
           <th id="T__LEVEL0_col0" class="col_heading LEVEL0 col0" >a</th>
         </tr>
         <tr>
           <th class="BLANK" >&nbsp;</th>
-          <th class="IDXNAME LEVEL1" >n2</th>
+          <th id="T__COLNAME_LEVEL1" class="COLNAME LEVEL1" >n2</th>
           <th id="T__LEVEL1_col0" class="col_heading LEVEL1 col0" >c</th>
         </tr>
         <tr>
-          <th class="IDXNAME LEVEL0" >n1</th>
-          <th class="IDXNAME LEVEL1" >n2</th>
+          <th id="#T__IDXNAME_LEVEL0" class="IDXNAME LEVEL0" >n1</th>
+          <th id="#T__IDXNAME_LEVEL1" class="IDXNAME LEVEL1" >n2</th>
           <th class="BLANK col0" >&nbsp;</th>
         </tr>
       </thead>
@@ -601,6 +607,54 @@ def test_include_css_style_rules_only_for_visible_column_labels(styler_mi):
     assert expected_styles in result
 
 
+def test_include_css_style_rules_only_for_visible_index_names(styler_mi):
+  result = (
+      styler_mi.set_uuid("")
+      .applymap_index(lambda v: "color: blue;", axis="index")
+      .applymap_index(lambda v: "color: green;", axis="index", names=True)
+      .hide(styler_mi.data.columns, axis="columns")
+      .hide(level=1, axis="index", names=True)
+      .to_html()
+  )
+  expected_styles = dedent(
+      """\
+      <style type="text/css">
+      #T__level0_row0, #T__level0_row1 {
+        color: blue;
+      }
+      #T__index_name_level0 {
+        color: green;
+      }
+      </style>
+      """
+  )
+  assert expected_styles in result
+
+
+def test_include_css_style_rules_only_for_visible_column_names(styler_mi):
+  result = (
+      styler_mi.set_uuid("")
+      .applymap_index(lambda v: "color: blue;", axis="columns")
+      .applymap_index(lambda v: "color: green;", axis="columns", names=True)
+      .hide(level=1, axis="columns", names=True)
+      .hide(styler_mi.data.index, axis="index")
+      .to_html()
+  )
+  expected_styles = dedent(
+      """\
+      <style type="text/css">
+      #T__level0_col0, #T__level0_col1 {
+        color: blue;
+      }
+      #T__columns_name_level0 {
+        color: blue;
+      }
+      </style>
+      """
+  )
+  assert expected_styles in result
+
+
 def test_hiding_index_columns_multiindex_alignment():
     # gh 43644
     midx = MultiIndex.from_product(
@@ -623,13 +677,13 @@ def test_hiding_index_columns_multiindex_alignment():
       <thead>
         <tr>
           <th class="blank" >&nbsp;</th>
-          <th class="index_name level1" >c-1</th>
+          <th class="columns_name level1" >c-1</th>
           <th id="T__level1_col0" class="col_heading level1 col0" colspan="2">c1</th>
           <th id="T__level1_col2" class="col_heading level1 col2" >d1</th>
         </tr>
         <tr>
           <th class="blank" >&nbsp;</th>
-          <th class="index_name level2" >c-2</th>
+          <th class="columns_name level2" >c-2</th>
           <th id="T__level2_col0" class="col_heading level2 col0" >c2</th>
           <th id="T__level2_col1" class="col_heading level2 col1" >d2</th>
           <th id="T__level2_col2" class="col_heading level2 col2" >c2</th>
@@ -689,14 +743,14 @@ def test_hiding_index_columns_multiindex_trimming():
       <thead>
         <tr>
           <th class="blank" >&nbsp;</th>
-          <th class="index_name level0" >c</th>
+          <th class="columns_name level0" >c</th>
           <th class="col_heading level0 col3" >1</th>
           <th class="col_heading level0 col4" colspan="2">2</th>
           <th class="col_heading level0 col6" >3</th>
         </tr>
         <tr>
           <th class="blank" >&nbsp;</th>
-          <th class="index_name level1" >d</th>
+          <th class="columns_name level1" >d</th>
           <th class="col_heading level1 col3" >1</th>
           <th class="col_heading level1 col4" >0</th>
           <th class="col_heading level1 col5" >1</th>
