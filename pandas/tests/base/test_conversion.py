@@ -398,6 +398,7 @@ def test_to_numpy_dtype(as_series):
     "values, dtype, na_value, expected",
     [
         ([1, 2, None], "float64", 0, [1.0, 2.0, 0.0]),
+        ([1, 2, pd.NA, 4], "int32", 0, [1, 2, 0, 4]),
         (
             [Timestamp("2000"), Timestamp("2000"), pd.NaT],
             None,
@@ -411,7 +412,7 @@ def test_to_numpy_na_value_numpy_dtype(
 ):
     obj = index_or_series(values)
     result = obj.to_numpy(dtype=dtype, na_value=na_value)
-    expected = np.array(expected)
+    expected = np.array(expected, dtype=dtype)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -477,6 +478,7 @@ def test_to_numpy_kwargs_raises():
         {"a": [1, 2, 3], "b": [1, 2, None]},
         {"a": np.array([1, 2, 3]), "b": np.array([1, 2, np.nan])},
         {"a": pd.array([1, 2, 3]), "b": pd.array([1, 2, None])},
+        {"a": np.array([1, 2, 3]), "b": np.array([1, 2, pd.NA])},
     ],
 )
 @pytest.mark.parametrize("dtype, na_value", [(float, np.nan), (object, None)])
@@ -494,6 +496,10 @@ def test_to_numpy_dataframe_na_value(data, dtype, na_value):
         (
             {"a": pd.array([1, 2, None])},
             np.array([[1.0], [2.0], [np.nan]], dtype=float),
+        ),
+        (
+            {"a": np.array([1, 2, pd.NA])},
+            np.array([[1.0], [2.0], [np.nan]]),
         ),
         (
             {"a": [1, 2, 3], "b": [1, 2, 3]},

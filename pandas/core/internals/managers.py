@@ -1745,10 +1745,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     dtype=dtype,
                     na_value=na_value,
                 ).reshape(blk.shape)
+            elif na_value is lib.no_default:
+                arr = np.asarray(blk.get_values(dtype))
             else:
-                arr = np.asarray(blk.get_values())
-                if dtype:
-                    arr = arr.astype(dtype, copy=False)
+                arr = np.empty(self.shape, dtype=dtype)
+                values = np.asarray(blk.get_values())
+                arr[:] = np.where(~isna(values), values, na_value)
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
             # The underlying data was copied within _interleave
@@ -1815,7 +1817,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 )
             else:
                 arr = blk.get_values(dtype)
-            result[rl.indexer] = arr
+            result[rl.indexer] = np.where(~isna(arr), arr, na_value)
             itemmask[rl.indexer] = 1
 
         if not itemmask.all():
