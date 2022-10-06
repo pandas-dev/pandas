@@ -1021,6 +1021,13 @@ cdef class _Timedelta(timedelta):
     resolution = MinMaxReso("resolution")
 
     @property
+    def _unit(self) -> str:
+        """
+        The abbreviation associated with self._reso.
+        """
+        return npy_unit_to_abbrev(self._reso)
+
+    @property
     def days(self) -> int:  # TODO(cython3): make cdef property
         # NB: using the python C-API PyDateTime_DELTA_GET_DAYS will fail
         #  (or be incorrect)
