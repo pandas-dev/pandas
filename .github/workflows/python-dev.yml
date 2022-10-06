@@ -54,7 +54,7 @@ jobs:
         os: [ubuntu-latest, macOS-latest, windows-latest]
 
     name: actions-311-dev
-    timeout-minutes: 80
+    timeout-minutes: 120
 
     concurrency:
       #https://github.community/t/concurrecy-not-work-for-push/183068/7
