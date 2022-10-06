@@ -1670,6 +1670,8 @@ class Styler(StylerRenderer):
             "ctx",
             "ctx_index",
             "ctx_columns",
+            "ctx_index_names",
+            "ctx_columns_names",
             "cell_context",
             "_todo",
             "table_styles",
