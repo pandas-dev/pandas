@@ -468,8 +468,10 @@ class TestToDatetime:
         expected = to_datetime([d1, d2]).tz_convert(pytz.FixedOffset(-60))
         tm.assert_index_equal(res, expected)
 
-    def test_to_datetime_np_str(self):
+    @pytest.mark.parametrize("infer_datetime_format", [True, False])
+    def test_to_datetime_np_str(self, infer_datetime_format):
         # GH#32264
+        # GH#48969
         value = np.str_("2019-02-04 10:18:46.297000+0000")
 
         ser = Series([value])
@@ -479,11 +481,11 @@ class TestToDatetime:
         assert to_datetime(value) == exp
         assert to_datetime(ser.iloc[0]) == exp
 
-        res = to_datetime([value])
+        res = to_datetime([value], infer_datetime_format=infer_datetime_format)
         expected = Index([exp])
         tm.assert_index_equal(res, expected)
 
-        res = to_datetime(ser)
+        res = to_datetime(ser, infer_datetime_format=infer_datetime_format)
         expected = Series(expected)
         tm.assert_series_equal(res, expected)
 
