@@ -1597,7 +1597,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        attrs : Series
+        attrs : DataFrame
             Should contain strings of '<property>: <value>;<prop2>: <val2>', and an
             integer index.
             Whitespace shouldn't matter and the final trailing ';' shouldn't
@@ -1615,6 +1615,31 @@ class Styler(StylerRenderer):
                     self.ctx_index[(i, j)].extend(css_list)
                 else:
                     self.ctx_columns[(j, i)].extend(css_list)
+    
+    def _update_ctx_header_names(self, attrs: Series, axis: AxisInt) -> None:
+        """
+        Update the state of the ``Styler`` for header level name cells.
+
+        Collects a mapping of {index_label: [('<property>', '<value>'), ..]}.
+
+        Parameters
+        ----------
+        attrs : Series
+            Should contain strings of '<property>: <value>;<prop2>: <val2>', and an
+            integer index.
+            Whitespace shouldn't matter and the final trailing ';' shouldn't
+            matter.
+        axis : int
+            Identifies whether the ctx object being updated is the index or columns
+        """
+        for i, c in attrs.items():
+            if not c:
+                continue
+            css_list = maybe_convert_css_to_tuples(c)
+            if axis == 0:
+                self.ctx_index_names[(0, i)].extend(css_list)
+            else:
+                self.ctx_columns_names[(i, 0)].extend(css_list)
 
     def _copy(self, deepcopy: bool = False) -> Styler:
         """
@@ -1873,14 +1898,26 @@ class Styler(StylerRenderer):
         obj = self.index if axis == 0 else self.columns
 
         levels_ = refactor_levels(level, obj)
-        data = DataFrame(obj.to_list()).loc[:, levels_]
+        if names:
+            level_names = obj.names
+            data = Series(level_names).loc[levels_]
 
-        if method == "apply":
-            result = data.apply(func, axis=0, **kwargs)
-        elif method == "applymap":
-            result = data.applymap(func, **kwargs)
+            if method == "apply":
+                result = data.pipe(func, **kwargs)
+            elif method == "applymap":
+                result = data.apply(func, **kwargs)
 
-        self._update_ctx_header(result, axis)
+            self._update_ctx_header_names(result, axis)
+        else:
+            data = DataFrame(obj.to_list()).loc[:, levels_]
+
+            if method == "apply":
+                result = data.apply(func, axis=0, **kwargs)
+            elif method == "applymap":
+                result = data.applymap(func, **kwargs)
+
+            self._update_ctx_header(result, axis)
+
         return self
 
     @doc(

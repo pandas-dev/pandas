@@ -316,6 +316,7 @@ class StylerRenderer:
 
         self.cellstyle_map_columns: CellMapStyles = defaultdict(list)
         self.cellstyle_map_columns_names: CellMapStyles = defaultdict(list)
+        self.cellstyle_map_index_names: CellMapStyles = defaultdict(list)
         head = self._translate_header(sparse_cols, max_cols)
         d.update({"head": head})
 
@@ -327,7 +328,6 @@ class StylerRenderer:
 
         self.cellstyle_map: CellMapStyles = defaultdict(list)
         self.cellstyle_map_index: CellMapStyles = defaultdict(list)
-        self.cellstyle_map_index_names: CellMapStyles = defaultdict(list)
         body: list = self._translate_body(idx_lengths, max_rows, max_cols)
         d.update({"body": body})
 
@@ -474,9 +474,9 @@ class StylerRenderer:
             and (r, 0) in self.ctx_columns_names
             and self.ctx_columns_names[r, 0]
         ):
-            column_name[0]["id"] = f"{self.css['columns_name']})_{self.css['level']}{r}"
+            column_name[0]["id"] = f"{self.css['columns_name']}_{self.css['level']}{r}"
             self.cellstyle_map_columns_names[tuple(self.ctx_columns_names[r, 0])].append(
-                f"{self.css['columns_name']})_{self.css['level']}{r}"
+                f"{self.css['columns_name']}_{self.css['level']}{r}"
             )
 
         column_headers: list = []
@@ -563,9 +563,9 @@ class StylerRenderer:
                 and (0, c) in self.ctx_index_names
                 and self.ctx_index_names[0, c]
             ):
-                index_name_element["id"] = f"{self.css['index_name']})_{self.css['level']}{r}"
-                self.cellstyle_map_index_names[tuple(self.ctx_index_names[r, 0])].append(
-                    f"{self.css['index_name']})_{self.css['level']}{r}"
+                index_name_element["id"] = f"{self.css['index_name']}_{self.css['level']}{c}"
+                self.cellstyle_map_index_names[tuple(self.ctx_index_names[0, c])].append(
+                    f"{self.css['index_name']}_{self.css['level']}{c}"
                 )
             index_names.append(index_name_element)
 
