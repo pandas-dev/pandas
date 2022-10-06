@@ -62,6 +62,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     string_to_dts,
 )
 from pandas._libs.tslibs.offsets cimport is_offset_object
+from pandas._libs.tslibs.strptime import array_strptime
 from pandas._libs.tslibs.util cimport (
     get_c_string_buf_and_size,
     is_array,
@@ -943,7 +944,7 @@ def format_is_iso(f: str) -> bint:
     return False
 
 
-def guess_datetime_format(dt_str, bint dayfirst=False):
+def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     """
     Guess the datetime format of a given datetime string.
 
@@ -958,12 +959,10 @@ def guess_datetime_format(dt_str, bint dayfirst=False):
 
     Returns
     -------
-    ret : datetime format string (for `strftime` or `strptime`)
+    str or None : ret
+        datetime format string (for `strftime` or `strptime`),
+        or None if it can't be guessed.
     """
-
-    if not isinstance(dt_str, str):
-        return None
-
     day_attribute_and_format = (('day',), '%d', 2)
 
     # attr name, format, padding (if any)
@@ -1026,7 +1025,12 @@ def guess_datetime_format(dt_str, bint dayfirst=False):
             # This separation will prevent subsequent processing
             # from correctly parsing the time zone format.
             # So in addition to the format nomalization, we rejoin them here.
-            tokens[offset_index] = parsed_datetime.strftime("%z")
+            try:
+                tokens[offset_index] = parsed_datetime.strftime("%z")
+            except ValueError:
+                # Invalid offset might not have raised in du_parse
+                # https://github.com/dateutil/dateutil/issues/188
+                return None
             tokens = tokens[:offset_index + 1 or None]
 
     format_guess = [None] * len(tokens)
@@ -1074,6 +1078,11 @@ def guess_datetime_format(dt_str, bint dayfirst=False):
 
     guessed_format = ''.join(output_format)
 
+    try:
+        array_strptime(np.asarray([dt_str], dtype=object), guessed_format)
+    except ValueError:
+        # Doesn't parse, so this can't be the correct format.
+        return None
     # rebuild string, capturing any inferred padding
     dt_str = ''.join(tokens)
     if parsed_datetime.strftime(guessed_format) == dt_str:
