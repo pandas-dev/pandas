@@ -810,8 +810,8 @@ class IntervalIndex(ExtensionIndex):
         Examples
         --------
         >>> b = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (5, 10), (6, 8)])
-        >>> b
-        IntervalIndex([(0, 1], (2, 3], (5, 10], (6, 8]], dtype='interval[int64, right]')
+        >>> b.left
+        Int64Index([0, 2, 5, 6], dtype='int64')
         """
         return Index(self._data.left, copy=False)
 

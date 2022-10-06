@@ -1041,7 +1041,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def view(self, cls=None):
         """
-        Create a new view from current Index.
+        Creates a new view from current Index.
         """
 
         # we need to see if we are subclassing an
@@ -1858,6 +1858,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> m1 = pd.MultiIndex.from_arrays(arrays, names=('number', 'color', 'fruits'))
         >>> m1.names
         FrozenList(['number', 'color', 'fruits'])
+
         >>> m2 = pd.MultiIndex.from_arrays(arrays)
         >>> m2.names
         FrozenList([None, None, None])
