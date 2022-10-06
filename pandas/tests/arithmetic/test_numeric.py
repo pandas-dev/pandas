@@ -911,7 +911,7 @@ class TestAdditionSubtraction:
         result = ser - ser.index
         tm.assert_series_equal(result, expected)
 
-        msg = "cannot subtract period"
+        msg = "cannot subtract PeriodArray from DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             # GH#18850
             result = ser - ser.index.to_period()
