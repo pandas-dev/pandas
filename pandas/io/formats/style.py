@@ -214,7 +214,9 @@ class Styler(StylerRenderer):
 
     CSS classes are attached to the generated HTML
 
-    * Index and Column names include ``index_name`` and ``level<k>``
+    * Index names include ``index_name`` and ``level<k>``
+      where `k` is its level in a MultiIndex
+    * Column names include ``columns_name`` and ``level<k>``
       where `k` is its level in a MultiIndex
     * Index label cells include
 
@@ -1861,6 +1863,7 @@ class Styler(StylerRenderer):
         func: Callable,
         axis: Axis = 0,
         level: Level | list[Level] | None = None,
+        names: bool = False,
         method: str = "apply",
         **kwargs,
     ) -> Styler:
@@ -1895,6 +1898,7 @@ class Styler(StylerRenderer):
         func: Callable,
         axis: AxisInt | str = 0,
         level: Level | list[Level] | None = None,
+        names: bool = False,
         **kwargs,
     ) -> Styler:
         """
@@ -1912,6 +1916,9 @@ class Styler(StylerRenderer):
             The headers over which to apply the function.
         level : int, str, list, optional
             If index is MultiIndex the level(s) over which to apply the function.
+        names : bool, optional
+            Whether to apply the styles to the index/column level names (if True) or
+            to the index/column values (if False, default).
         **kwargs : dict
             Pass along to ``func``.
 
@@ -1956,7 +1963,7 @@ class Styler(StylerRenderer):
         self._todo.append(
             (
                 lambda instance: getattr(instance, "_apply_index"),
-                (func, axis, level, "apply"),
+                (func, axis, level, names, "apply"),
                 kwargs,
             )
         )
@@ -1980,12 +1987,13 @@ class Styler(StylerRenderer):
         func: Callable,
         axis: AxisInt | str = 0,
         level: Level | list[Level] | None = None,
+        names: bool = False,
         **kwargs,
     ) -> Styler:
         self._todo.append(
             (
                 lambda instance: getattr(instance, "_apply_index"),
-                (func, axis, level, "applymap"),
+                (func, axis, level, names, "applymap"),
                 kwargs,
             )
         )
@@ -2572,6 +2580,7 @@ class Styler(StylerRenderer):
             css_class_names = {"row_heading": "row_heading",
                                "col_heading": "col_heading",
                                "index_name": "index_name",
+                               "columns_name": "columns_name",
                                "col": "col",
                                "row": "row",
                                "col_trim": "col_trim",
