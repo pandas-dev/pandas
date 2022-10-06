@@ -13,7 +13,10 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 
 
 class TestNonNano:
@@ -217,6 +220,32 @@ class TestNonNano:
         # even though the result is an even number of days
         #  (so we _could_ downcast to unit="s"), we do not.
         assert res._unit == "us"
+
+    def test_sub_datetimelike_scalar_mismatch(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+        dta = dti._data._as_unit("us")
+
+        ts = dta[0]._as_unit("s")
+
+        result = dta - ts
+        expected = (dti - dti[0])._data._as_unit("us")
+        assert result.dtype == "m8[us]"
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_sub_datetime64_reso_mismatch(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+        left = dti._data._as_unit("s")
+        right = left._as_unit("ms")
+
+        result = left - right
+        exp_values = np.array([0, 0, 0], dtype="m8[ms]")
+        expected = TimedeltaArray._simple_new(
+            exp_values,
+            dtype=exp_values.dtype,
+        )
+        tm.assert_extension_array_equal(result, expected)
+        result2 = right - left
+        tm.assert_extension_array_equal(result2, expected)
 
 
 class TestDatetimeArrayComparisons:
