@@ -157,27 +157,25 @@ class TestDataFrame2:
 
         msg = 'For argument "inplace" expected type bool, received type'
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df).rename_axis(
-                mapper={"a": "x", "b": "y"}, axis=1, inplace=value
-            )
+            df.copy().rename_axis(mapper={"a": "x", "b": "y"}, axis=1, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df).drop("a", axis=1, inplace=value)
+            df.copy().drop("a", axis=1, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df).fillna(value=0, inplace=value)
+            df.copy().fillna(value=0, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df).replace(to_replace=1, value=7, inplace=value)
+            df.copy().replace(to_replace=1, value=7, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df).interpolate(inplace=value)
+            df.copy().interpolate(inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df)._where(cond=df.a > 2, inplace=value)
+            df.copy()._where(cond=df.a > 2, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df).mask(cond=df.a > 2, inplace=value)
+            df.copy().mask(cond=df.a > 2, inplace=value)
 
     def test_unexpected_keyword(self):
         # GH8597
