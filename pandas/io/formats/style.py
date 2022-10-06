@@ -1632,8 +1632,8 @@ class Styler(StylerRenderer):
         axis : int
             Identifies whether the ctx object being updated is the index or columns
         """
-        i: int
-        for i, c in attrs.items():
+        for _i, c in attrs.items():
+            i: int = int(_i)
             if not c:
                 continue
             css_list = maybe_convert_css_to_tuples(c)
