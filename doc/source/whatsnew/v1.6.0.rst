@@ -117,8 +117,8 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 - Passing ``nanoseconds`` greater than 999 or less than 0 in :class:`Timestamp` now raises a ``ValueError`` (:issue:`48538`, :issue:`48255`)
 - :func:`read_csv`: specifying an incorrect number of columns with ``index_col`` of now raises ``ParserError`` instead of ``IndexError`` when using the c parser.
+- :meth:`DataFrame.astype`, :meth:`Series.astype`, and :meth:`DatetimeIndex.astype` casting datetime64 data to any of "datetime64[s]", "datetime64[ms]", "datetime64[us]" will return an object with the given resolution instead of coercing back to "datetime64[ns]" (:issue:`48928`)
 -
-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_160.deprecations:
@@ -150,7 +150,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.join` when joining on a subset of a :class:`MultiIndex` (:issue:`48611`)
 - Performance improvement for :meth:`MultiIndex.intersection` (:issue:`48604`)
 - Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
-- Performance improvement to :func:`read_sas` with ``blank_missing=True`` (:issue:`48502`)
+- Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47405`, :issue:`47656`, :issue:`48502`)
 - Memory improvement in :meth:`RangeIndex.sort_values` (:issue:`48801`)
 
 .. ---------------------------------------------------------------------------
@@ -167,12 +167,16 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`pandas.infer_freq`, raising ``TypeError`` when inferred on :class:`RangeIndex` (:issue:`47084`)
+- Bug in :func:`to_datetime` was raising on invalid offsets with ``errors='coerce'`` and ``infer_datetime_format=True`` (:issue:`48633`)
 - Bug in :class:`DatetimeIndex` constructor failing to raise when ``tz=None`` is explicitly specified in conjunction with timezone-aware ``dtype`` or data (:issue:`48659`)
 - Bug in subtracting a ``datetime`` scalar from :class:`DatetimeIndex` failing to retain the original ``freq`` attribute (:issue:`48818`)
+-
 
 Timedelta
 ^^^^^^^^^
 - Bug in :func:`to_timedelta` raising error when input has nullable dtype ``Float64`` (:issue:`48796`)
+- Bug in :class:`Timedelta` constructor incorrectly raising instead of returning ``NaT`` when given a ``np.timedelta64("nat")`` (:issue:`48898`)
+- Bug in :class:`Timedelta` constructor failing to raise when passed both a :class:`Timedelta` object and keywords (e.g. days, seconds) (:issue:`48898`)
 -
 
 Timezones
@@ -245,6 +249,7 @@ Groupby/resample/rolling
 - Bug in :class:`.ExponentialMovingWindow` with ``online`` not raising a ``NotImplementedError`` for unsupported operations (:issue:`48834`)
 - Bug in :meth:`DataFrameGroupBy.sample` raises ``ValueError`` when the object is empty (:issue:`48459`)
 - Bug in :meth:`Series.groupby` raises ``ValueError`` when an entry of the index is equal to the name of the index (:issue:`48567`)
+- Bug in :meth:`DataFrameGroupBy.resample` produces inconsistent results when passing empty DataFrame (:issue:`47705`)
 -
 
 Reshaping

@@ -22,13 +22,14 @@ class TestDataFramePctChange:
             (-1, "bfill", 1, [np.nan, 0, -0.5, -0.5, -0.6, np.nan, np.nan, np.nan]),
         ],
     )
-    @pytest.mark.parametrize("klass", [DataFrame, Series])
-    def test_pct_change_with_nas(self, periods, fill_method, limit, exp, klass):
+    def test_pct_change_with_nas(
+        self, periods, fill_method, limit, exp, frame_or_series
+    ):
         vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
-        obj = klass(vals)
+        obj = frame_or_series(vals)
 
         res = obj.pct_change(periods=periods, fill_method=fill_method, limit=limit)
-        tm.assert_equal(res, klass(exp))
+        tm.assert_equal(res, frame_or_series(exp))
 
     def test_pct_change_numeric(self):
         # GH#11150
