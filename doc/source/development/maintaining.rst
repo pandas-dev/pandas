@@ -126,9 +126,10 @@ Here's a typical workflow for triaging a newly opened issue.
 Investigating regressions
 -------------------------
 
-Regressions are bugs that unintentionally break previously working pandas code.
-The common way to investigate regressions is by using `git bisect <https://git-scm.com/docs/git-bisect>`_,
-which finds the first commit after the bug appears.
+Regressions are bugs that unintentionally break previously working code. The common way
+to  investigate regressions is by using
+`git bisect <https://git-scm.com/docs/git-bisect>`_,
+which finds the first commit that introduced the bug.
 
 For example: a user reports that ``pd.Series([1, 1]).sum()`` returns ``3``
 in pandas version ``1.5.0`` while in version ``1.4.0`` it returned ``2``. To begin,
@@ -146,19 +147,21 @@ and then run::
     git bisect bad v1.5.0
     git bisect run bash -c "python setup.py build_ext -j 4; python t.py"
 
-This finds the first commit that changed the behavior. To finish, exit bisect and
-rebuilt the latest C extensions with::
+This finds the first commit that changed the behavior. The C extensions have to be
+rebuilt at every step, so the search can take a while.
+
+Exit bisect and rebuild the current version::
 
     git bisect reset
     python setup.py build_ext -j 4
 
-Lastly, report your findings under the corresponding issue and ping the commit author to
-get their input.
+Report your findings under the corresponding issue and ping the commit author to get
+their input.
 
 .. note::
-    The ``run`` command above will treat commits where ``t.py`` exits with ``0`` as good and other
-    exits as bad. When raising an error is the desired behavior, wrap the code in an appropriate
-    ``try/except`` statement. See `GH35650 <https://github.com/pandas-dev/pandas/issues/35685>`_ for
+    In the ``bisect run`` command above, commits are considered good if ``t.py`` exits
+    with ``0`` and bad otherwise. When raising an exception is the desired behavior,
+    wrap the code in an appropriate ``try/except`` statement. See :issue:`35685` for
     more examples.
 
 .. _maintaining.closing:
