@@ -1040,6 +1040,9 @@ class Index(IndexOpsMixin, PandasObject):
         return values.ravel(order=order)
 
     def view(self, cls=None):
+        """
+        Create a new view from current Index.
+        """
 
         # we need to see if we are subclassing an
         # index type here
@@ -1842,6 +1845,23 @@ class Index(IndexOpsMixin, PandasObject):
         return names
 
     def _get_names(self) -> FrozenList:
+        """
+        Returns an array of index names.
+
+        Returns
+        -------
+        FrozenList
+
+        Examples
+        --------
+        >>> arrays = [[1, 1, 2], ['red', 'blue', 'green'], ['apple', 'orange', 'apple']]
+        >>> m1 = pd.MultiIndex.from_arrays(arrays, names=('number', 'color', 'fruits'))
+        >>> m1.names
+        FrozenList(['number', 'color', 'fruits'])
+        >>> m2 = pd.MultiIndex.from_arrays(arrays)
+        >>> m2.names
+        FrozenList([None, None, None])
+        """
         return FrozenList((self.name,))
 
     def _set_names(self, values, *, level=None) -> None:

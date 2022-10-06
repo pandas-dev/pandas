@@ -800,18 +800,70 @@ class IntervalIndex(ExtensionIndex):
 
     @cache_readonly
     def left(self) -> Index:
+        """
+        Returns an array of left bounds.
+
+        Returns
+        -------
+        :class:~`pandas.Index`
+
+        Examples
+        --------
+        >>> b = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (5, 10), (6, 8)])
+        >>> b
+        IntervalIndex([(0, 1], (2, 3], (5, 10], (6, 8]], dtype='interval[int64, right]')
+        """
         return Index(self._data.left, copy=False)
 
     @cache_readonly
     def right(self) -> Index:
+        """
+        Returns an array of right bounds.
+
+        Returns
+        -------
+        :class:~`pandas.Index`
+
+        Examples
+        --------
+        >>> b = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (5, 10), (6, 8)])
+        >>> b.right
+        Int64Index([1, 3, 10, 8], dtype='int64')
+        """
         return Index(self._data.right, copy=False)
 
     @cache_readonly
     def mid(self) -> Index:
+        """
+        Returns an array of midpoints of the intervals.
+
+        Returns
+        -------
+        :class:~`pandas.Index`
+
+        Examples
+        --------
+        >>> b = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (5, 10), (6, 8)])
+        >>> b.mid
+        Float64Index([0.5, 2.5, 7.5, 7.0], dtype='float64')
+        """
         return Index(self._data.mid, copy=False)
 
     @property
     def length(self) -> Index:
+        """
+        Returns an array of lengths of intervals.
+
+        Returns
+        -------
+        :class:~`pandas.Index`
+
+        Examples
+        --------
+        >>> b = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (5, 10), (6, 8)])
+        >>> b.length
+        Int64Index([1, 1, 5, 2], dtype='int64')
+        """
         return Index(self._data.length, copy=False)
 
     # --------------------------------------------------------------------

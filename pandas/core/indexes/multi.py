@@ -800,6 +800,20 @@ class MultiIndex(Index):
 
     @cache_readonly
     def levels(self) -> FrozenList:
+        """
+        Returns array of arrays of unique values/categories from each index.
+
+        Returns
+        -------
+        FrozenList
+
+        Examples
+        --------
+        >>> arrays = [[1, 1, 2], ['red', 'blue', 'green'], ['apple', 'orange', 'apple']]
+        >>> m = pd.MultiIndex.from_arrays(arrays, names=('number', 'color', 'fruits'))
+        >>> m.levels
+        FrozenList([[1, 2], ['blue', 'green', 'red'], ['apple', 'orange']])
+        """
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
         # https://github.com/pandas-dev/pandas/issues/31648
@@ -1001,6 +1015,24 @@ class MultiIndex(Index):
 
     @property
     def codes(self):
+        """
+        Returns an array of integers which are the positions of the actual values.
+
+        Returns
+        -------
+        FrozenList
+
+        See Also
+        --------
+        Categorical.codes
+
+        Examples
+        --------
+        >>> arrays = [[1, 1, 2], ['red', 'blue', 'green'], ['apple', 'orange', 'apple']]
+        >>> m = pd.MultiIndex.from_arrays(arrays, names=('number', 'color', 'fruits'))
+        >>> m.codes
+        FrozenList([[0, 0, 1], [2, 0, 1], [0, 1, 0]])
+        """
         return self._codes
 
     def _set_codes(
