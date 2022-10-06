@@ -132,6 +132,7 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
         if type(first_non_nan_element := arr[non_nan_elements[0]]) is str:
             # GH#32264 np.str_ object
             return guess_datetime_format(first_non_nan_element, dayfirst=dayfirst)
+    return None
 
 
 def should_cache(
