@@ -1203,6 +1203,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         pass
 
+    @book.setter
+    @abc.abstractmethod
+    def book(self, other) -> None:
+        """
+        Set book instance. Class type will depend on the engine used.
+        """
+        pass
+
     def write_cells(
         self,
         cells,
@@ -1332,8 +1340,20 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         Deprecate attribute or method for ExcelWriter.
         """
         warnings.warn(
-            f"{attr} is not part of the public API, usage can give in unexpected "
+            f"{attr} is not part of the public API, usage can give unexpected "
             "results and will be removed in a future version",
+            FutureWarning,
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
+
+    def _deprecate_set_book(self) -> None:
+        """
+        Deprecate setting the book attribute - GH#48780.
+        """
+        warnings.warn(
+            "Setting the `book` attribute is not part of the public API, "
+            "usage can give unexpected or corrupted results and will be "
+            "removed in a future version",
             FutureWarning,
             stacklevel=find_stack_level(inspect.currentframe()),
         )
