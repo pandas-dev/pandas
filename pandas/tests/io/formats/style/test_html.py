@@ -494,7 +494,7 @@ def test_replaced_css_class_names():
     styler_mi.applymap_index(lambda v: "color: red;", axis=0)
     styler_mi.applymap_index(lambda v: "color: green;", axis=1)
     styler_mi.applymap_index(lambda v: "color: yellow;", axis=0, names=True)
-    styler_mi.applymap_index(lambda v: "color: green;", axis=1, names=True)
+    styler_mi.applymap_index(lambda v: "color: orange;", axis=1, names=True)
     styler_mi.applymap(lambda v: "color: blue;")
     expected = dedent(
         """\
@@ -511,6 +511,9 @@ def test_replaced_css_class_names():
     #T__IDXNAME_LEVEL0, #T__IDXNAME_LEVEL1 {
       color: yellow;
     }
+    #T__COLNAME_LEVEL0, #T__COLNAME_LEVEL1 {
+      color: orange;
+    }
     </style>
     <table id="T_">
       <thead>
@@ -525,8 +528,8 @@ def test_replaced_css_class_names():
           <th id="T__LEVEL1_col0" class="col_heading LEVEL1 col0" >c</th>
         </tr>
         <tr>
-          <th id="#T__IDXNAME_LEVEL0" class="IDXNAME LEVEL0" >n1</th>
-          <th id="#T__IDXNAME_LEVEL1" class="IDXNAME LEVEL1" >n2</th>
+          <th id="T__IDXNAME_LEVEL0" class="IDXNAME LEVEL0" >n1</th>
+          <th id="T__IDXNAME_LEVEL1" class="IDXNAME LEVEL1" >n2</th>
           <th class="BLANK col0" >&nbsp;</th>
         </tr>
       </thead>
@@ -608,18 +611,20 @@ def test_include_css_style_rules_only_for_visible_column_labels(styler_mi):
 
 
 def test_include_css_style_rules_only_for_visible_index_names(styler_mi):
+  styler_mi.data = styler_mi.data.rename_axis(index=["i-0", "i-1"])
+  styler_mi.data = styler_mi.data.rename_axis(columns=["c-0", "c-1"])
   result = (
       styler_mi.set_uuid("")
       .applymap_index(lambda v: "color: blue;", axis="index")
       .applymap_index(lambda v: "color: green;", axis="index", names=True)
-      .hide(styler_mi.data.columns, axis="columns")
-      .hide(level=1, axis="index", names=True)
+      #.hide(styler_mi.data.columns, axis="columns", names=True)
+      .hide(level=1, axis="index")
       .to_html()
   )
   expected_styles = dedent(
       """\
       <style type="text/css">
-      #T__level0_row0, #T__level0_row1 {
+      #T__level0_row0, #T__level0_row2 {
         color: blue;
       }
       #T__index_name_level0 {
@@ -632,22 +637,24 @@ def test_include_css_style_rules_only_for_visible_index_names(styler_mi):
 
 
 def test_include_css_style_rules_only_for_visible_column_names(styler_mi):
+  styler_mi.data = styler_mi.data.rename_axis(index=["i-0", "i-1"])
+  styler_mi.data = styler_mi.data.rename_axis(columns=["c-0", "c-1"])
   result = (
       styler_mi.set_uuid("")
       .applymap_index(lambda v: "color: blue;", axis="columns")
       .applymap_index(lambda v: "color: green;", axis="columns", names=True)
-      .hide(level=1, axis="columns", names=True)
+      .hide(level=1, axis="columns")
       .hide(styler_mi.data.index, axis="index")
       .to_html()
   )
   expected_styles = dedent(
       """\
       <style type="text/css">
-      #T__level0_col0, #T__level0_col1 {
+      #T__level0_col0, #T__level0_col2 {
         color: blue;
       }
       #T__columns_name_level0 {
-        color: blue;
+        color: green;
       }
       </style>
       """
