@@ -1016,6 +1016,13 @@ cdef class _Timedelta(timedelta):
     resolution = MinMaxReso("resolution")
 
     @property
+    def _unit(self) -> str:
+        """
+        The abbreviation associated with self._reso.
+        """
+        return npy_unit_to_abbrev(self._reso)
+
+    @property
     def days(self) -> int:  # TODO(cython3): make cdef property
         # NB: using the python C-API PyDateTime_DELTA_GET_DAYS will fail
         #  (or be incorrect)
@@ -1662,10 +1669,16 @@ class Timedelta(_Timedelta):
 
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed
-        if isinstance(value, _Timedelta) and unit is None and len(kwargs) == 0:
+        if isinstance(value, _Timedelta):
+            # 'unit' is benign in this case, but e.g. days or seconds
+            #  doesn't make sense here.
+            if len(kwargs):
+                # GH#48898
+                raise ValueError(
+                    "Cannot pass both a Timedelta input and timedelta keyword arguments, got "
+                    f"{list(kwargs.keys())}"
+                )
             return value
-        elif isinstance(value, _Timedelta):
-            value = value.value
         elif isinstance(value, str):
             if unit is not None:
                 raise ValueError("unit must not be specified if the value is a str")
@@ -1679,6 +1692,9 @@ class Timedelta(_Timedelta):
         elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
         elif is_timedelta64_object(value):
+            if get_timedelta64_value(value) == NPY_NAT:
+                # i.e. np.timedelta64("NaT")
+                return NaT
             value = ensure_td64ns(value)
         elif is_tick_object(value):
             value = np.timedelta64(value.nanos, 'ns')
