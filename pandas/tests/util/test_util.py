@@ -44,13 +44,6 @@ def test_convert_rows_list_to_csv_str():
     assert ret == expected
 
 
-def test_create_temp_directory():
-    with tm.ensure_clean_dir() as path:
-        assert os.path.exists(path)
-        assert os.path.isdir(path)
-    assert not os.path.exists(path)
-
-
 @pytest.mark.parametrize("strict_data_files", [True, False])
 def test_datapath_missing(datapath):
     with pytest.raises(ValueError, match="Could not find file"):
