@@ -89,6 +89,7 @@ class TestMultiIndexSorted:
         tm.assert_frame_equal(result, expected)
 
     def test_argsort_with_na(self):
+        # GH48495
         arrays = [
             array([2, NA, 1], dtype="Int64"),
             array([1, 2, 3], dtype="Int64"),
@@ -99,6 +100,7 @@ class TestMultiIndexSorted:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_sort_values_with_na(self):
+        # GH48495
         arrays = [
             array([2, NA, 1], dtype="Int64"),
             array([1, 2, 3], dtype="Int64"),
