@@ -659,6 +659,7 @@ class Grouping:
             uniques = Categorical.from_codes(
                 np.append(uniques.codes, [-1]), uniques.categories
             )
+        # uniques = self._codes_and_uniques[1]
         return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
@@ -686,6 +687,7 @@ class Grouping:
             else:
                 codes = cat.codes
             return codes, uniques
+            # return cat.codes, uniques
 
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers

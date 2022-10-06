@@ -1276,6 +1276,8 @@ class DataSplitter(Generic[NDFrameT]):
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 
         for start, end in zip(starts, ends):
+            # if start == end:
+            #     continue
             yield self._chop(sdata, slice(start, end))
 
     @cache_readonly

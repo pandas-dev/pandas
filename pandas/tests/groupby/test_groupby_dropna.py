@@ -7,6 +7,7 @@ from pandas.core.dtypes.missing import na_value_for_dtype
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.tests.groupby import get_groupby_method_args
 
 
 @pytest.mark.parametrize(
@@ -493,3 +494,75 @@ def test_null_is_null_for_dtype(
         tm.assert_series_equal(result, expected["a"])
     else:
         tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_reducers(request, reduction_func, observed):
+    if reduction_func in ("idxmin", "idxmax") and not observed:
+        msg = "GH#10694 - Not operational for categorical with observed=False"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+
+    df = pd.DataFrame(
+        {"x": pd.Categorical([1, None, 2], categories=[1, 2, 3]), "y": [3, 4, 5]}
+    )
+    args = get_groupby_method_args(reduction_func, df)
+
+    # Compute result for null group
+    index = pd.Index([None], name="x", dtype=object)
+    null_group_values = df[df["x"].isnull()]["y"]
+    if reduction_func == "first":
+        null_group_data = null_group_values.iloc[0]
+    elif reduction_func == "last":
+        null_group_data = null_group_values.iloc[-1]
+    elif reduction_func == "nth":
+        null_group_data = null_group_values.iloc[args[0]]
+    elif reduction_func == "size":
+        null_group_data = len(null_group_values)
+    elif reduction_func == "corrwith":
+        null_group_data = np.nan
+    else:
+        null_group_data = getattr(null_group_values, reduction_func)()
+    if reduction_func == "size":
+        null_group_result = pd.Series(null_group_data, index=index, name="y")
+    else:
+        null_group_result = pd.DataFrame({"y": [null_group_data]}, index=index)
+
+    gb_keepna = df.groupby("x", dropna=False, observed=observed)
+    gb_dropna = df.groupby("x", dropna=True, observed=observed)
+    result = getattr(gb_keepna, reduction_func)(*args)
+    expected = pd.concat([getattr(gb_dropna, reduction_func)(*args), null_group_result])
+
+    # size will return a Series, others are DataFrame
+    tm.assert_equal(result, expected)
+
+
+def test_categorical_transformers(transformation_func, observed):
+    df = pd.DataFrame(
+        {"x": pd.Categorical([1, None, 2], categories=[1, 2, 3]), "y": [3.0, 4, 5]}
+    )
+    args = get_groupby_method_args(transformation_func, df)
+
+    # Compute result for null group
+    null_group_values = df[df["x"].isnull()]["y"]
+    if transformation_func == "cumcount":
+        null_group_data = list(range(len(null_group_values)))
+    elif transformation_func == "ngroup":
+        null_group_data = len(null_group_values) * [2 if observed else 3]
+    else:
+        null_group_data = getattr(null_group_values, transformation_func)(*args)
+    null_group_result = pd.DataFrame({"y": null_group_data})
+
+    gb_keepna = df.groupby("x", dropna=False, observed=observed)
+    gb_dropna = df.groupby("x", dropna=True, observed=observed)
+    result = getattr(gb_keepna, transformation_func)(*args)
+    expected = getattr(gb_dropna, transformation_func)(*args)
+    for iloc, value in zip(
+        df[df["x"].isnull()].index.tolist(), null_group_result.values
+    ):
+        if expected.ndim == 1:
+            expected.iloc[iloc] = value
+        else:
+            expected.iloc[iloc, 0] = value
+    if transformation_func in ("cumcount", "ngroup"):
+        expected = expected.astype(int)
+
+    tm.assert_equal(result, expected)
