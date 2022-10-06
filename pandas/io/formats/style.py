@@ -1615,7 +1615,7 @@ class Styler(StylerRenderer):
                     self.ctx_index[(i, j)].extend(css_list)
                 else:
                     self.ctx_columns[(j, i)].extend(css_list)
-    
+
     def _update_ctx_header_names(self, attrs: Series, axis: AxisInt) -> None:
         """
         Update the state of the ``Styler`` for header level name cells.

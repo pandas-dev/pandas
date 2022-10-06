@@ -475,9 +475,9 @@ class StylerRenderer:
             and self.ctx_columns_names[r, 0]
         ):
             column_name[0]["id"] = f"{self.css['columns_name']}_{self.css['level']}{r}"
-            self.cellstyle_map_columns_names[tuple(self.ctx_columns_names[r, 0])].append(
-                f"{self.css['columns_name']}_{self.css['level']}{r}"
-            )
+            self.cellstyle_map_columns_names[
+                tuple(self.ctx_columns_names[r, 0])
+            ].append(f"{self.css['columns_name']}_{self.css['level']}{r}")
 
         column_headers: list = []
         visible_col_count: int = 0
@@ -557,18 +557,19 @@ class StylerRenderer:
                 self.css["blank_value"] if name is None else name,
                 not self.hide_index_[c],
             )
-            
+
             if (
                 not self.hide_index_[c]
                 and (0, c) in self.ctx_index_names
                 and self.ctx_index_names[0, c]
             ):
-                index_name_element["id"] = f"{self.css['index_name']}_{self.css['level']}{c}"
-                self.cellstyle_map_index_names[tuple(self.ctx_index_names[0, c])].append(
+                index_name_element["id"] = (
                     f"{self.css['index_name']}_{self.css['level']}{c}"
                 )
+                self.cellstyle_map_index_names[
+                    tuple(self.ctx_index_names[0, c])
+                ].append(f"{self.css['index_name']}_{self.css['level']}{c}")
             index_names.append(index_name_element)
-
 
         column_blanks: list = []
         visible_col_count: int = 0
