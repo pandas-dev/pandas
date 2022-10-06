@@ -32,11 +32,12 @@ from pandas._libs.hashtable import duplicated
 from pandas._typing import (
     AnyAll,
     AnyArrayLike,
-    AxisInt,
+    Axis,
     DropKeep,
     DtypeObj,
     F,
     IgnoreRaise,
+    IndexLabel,
     Scalar,
     Shape,
     npt,
@@ -1729,7 +1730,7 @@ class MultiIndex(Index):
         Index(['d', 'e', 'f'], dtype='object', name='level_2')
 
         If a level contains missing values, the return type of the level
-        maybe casted to ``float``.
+        may be cast to ``float``.
 
         >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).dtypes
         level_0    int64
@@ -2177,7 +2178,7 @@ class MultiIndex(Index):
     def take(
         self: MultiIndex,
         indices,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
@@ -2473,7 +2474,10 @@ class MultiIndex(Index):
         ]
 
     def sortlevel(
-        self, level=0, ascending: bool | list[bool] = True, sort_remaining: bool = True
+        self,
+        level: IndexLabel = 0,
+        ascending: bool | list[bool] = True,
+        sort_remaining: bool = True,
     ) -> tuple[MultiIndex, npt.NDArray[np.intp]]:
         """
         Sort MultiIndex at the requested level.
@@ -2526,9 +2530,13 @@ class MultiIndex(Index):
                     (0, 1)],
                    ), array([0, 1]))
         """
-        if isinstance(level, (str, int)):
+        if not is_list_like(level):
             level = [level]
-        level = [self._get_level_number(lev) for lev in level]
+        # error: Item "Hashable" of "Union[Hashable, Sequence[Hashable]]" has
+        # no attribute "__iter__" (not iterable)
+        level = [
+            self._get_level_number(lev) for lev in level  # type: ignore[union-attr]
+        ]
         sortorder = None
 
         # we have a directed ordering via ascending
@@ -3008,7 +3016,7 @@ class MultiIndex(Index):
 
         return _maybe_to_slice(loc) if len(loc) != stop - start else slice(start, stop)
 
-    def get_loc_level(self, key, level=0, drop_level: bool = True):
+    def get_loc_level(self, key, level: IndexLabel = 0, drop_level: bool = True):
         """
         Get location and sliced index for requested label(s)/level(s).
 

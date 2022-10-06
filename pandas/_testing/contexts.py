@@ -3,7 +3,6 @@ from __future__ import annotations
 from contextlib import contextmanager
 import os
 from pathlib import Path
-from shutil import rmtree
 import tempfile
 from types import TracebackType
 from typing import (
@@ -127,25 +126,6 @@ def ensure_clean(
             handle_or_str.close()
         if path.is_file():
             path.unlink()
-
-
-@contextmanager
-def ensure_clean_dir() -> Generator[str, None, None]:
-    """
-    Get a temporary directory path and agrees to remove on close.
-
-    Yields
-    ------
-    Temporary directory path
-    """
-    directory_name = tempfile.mkdtemp(suffix="")
-    try:
-        yield directory_name
-    finally:
-        try:
-            rmtree(directory_name)
-        except OSError:
-            pass
 
 
 @contextmanager

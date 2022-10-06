@@ -24,6 +24,7 @@ import numpy as np
 
 from pandas._libs.tslibs import Timestamp
 from pandas._typing import (
+    DtypeObj,
     NDFrameT,
     npt,
 )
@@ -34,10 +35,12 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
+    is_extension_array_dtype,
     is_numeric_dtype,
     is_timedelta64_dtype,
 )
 
+import pandas as pd
 from pandas.core.reshape.concat import concat
 
 from pandas.io.formats.format import format_percentiles
@@ -242,7 +245,13 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
         + [series.max()]
     )
     # GH#48340 - always return float on non-complex numeric data
-    dtype = float if is_numeric_dtype(series) and not is_complex_dtype(series) else None
+    dtype: DtypeObj | None
+    if is_extension_array_dtype(series):
+        dtype = pd.Float64Dtype()
+    elif is_numeric_dtype(series) and not is_complex_dtype(series):
+        dtype = np.dtype("float")
+    else:
+        dtype = None
     return Series(d, index=stat_index, name=series.name, dtype=dtype)
 
 

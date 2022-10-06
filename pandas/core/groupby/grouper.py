@@ -18,7 +18,7 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
-    AxisInt,
+    Axis,
     NDFrameT,
     npt,
 )
@@ -260,7 +260,6 @@ class Grouper:
     Freq: 17T, dtype: int64
     """
 
-    axis: AxisInt
     sort: bool
     dropna: bool
     _gpr_index: Index | None
@@ -281,7 +280,7 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         sort: bool = False,
         dropna: bool = True,
     ) -> None:
@@ -705,7 +704,7 @@ class Grouping:
 def get_grouper(
     obj: NDFrameT,
     key=None,
-    axis: AxisInt = 0,
+    axis: Axis = 0,
     level=None,
     sort: bool = True,
     observed: bool = False,
@@ -876,7 +875,7 @@ def get_grouper(
             exclusions.add(gpr.name)
 
         elif is_in_axis(gpr):  # df.groupby('name')
-            if gpr in obj:
+            if obj.ndim != 1 and gpr in obj:
                 if validate:
                     obj._check_label_or_level_ambiguity(gpr, axis=axis)
                 in_axis, name, gpr = True, gpr, obj[gpr]

@@ -28,6 +28,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import (
     AnyArrayLike,
+    Axis,
     AxisInt,
     Frequency,
     IndexLabel,
@@ -152,7 +153,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         obj: DataFrame | Series,
         groupby: TimeGrouper,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         kind=None,
         *,
         group_keys: bool | lib.NoDefault = lib.no_default,
@@ -162,7 +163,9 @@ class Resampler(BaseGroupBy, PandasObject):
         self.groupby = groupby
         self.keys = None
         self.sort = True
-        self.axis = axis
+        # error: Incompatible types in assignment (expression has type "Union
+        # [int, Literal['index', 'columns', 'rows']]", variable has type "int")
+        self.axis = axis  # type: ignore[assignment]
         self.kind = kind
         self.squeeze = False
         self.group_keys = group_keys
@@ -519,11 +522,21 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Potentially wrap any results.
         """
+        # GH 47705
+        obj = self.obj
+        if (
+            isinstance(result, ABCDataFrame)
+            and result.empty
+            and not isinstance(result.index, PeriodIndex)
+        ):
+            result = result.set_index(
+                _asfreq_compat(obj.index[:0], freq=self.freq), append=True
+            )
+
         if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
-            obj = self.obj
             # When index is all NaT, result is empty but index is not
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
@@ -926,7 +939,7 @@ class Resampler(BaseGroupBy, PandasObject):
     def interpolate(
         self,
         method: QuantileInterpolation = "linear",
-        axis=0,
+        axis: Axis = 0,
         limit=None,
         inplace: bool = False,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
@@ -973,7 +986,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def std(
         self,
-        ddof=1,
+        ddof: int = 1,
         numeric_only: bool | lib.NoDefault = lib.no_default,
         *args,
         **kwargs,
@@ -1000,7 +1013,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def var(
         self,
-        ddof=1,
+        ddof: int = 1,
         numeric_only: bool | lib.NoDefault = lib.no_default,
         *args,
         **kwargs,
@@ -1597,7 +1610,7 @@ class TimeGrouper(Grouper):
         closed: Literal["left", "right"] | None = None,
         label: Literal["left", "right"] | None = None,
         how: str = "mean",
-        axis=0,
+        axis: Axis = 0,
         fill_method=None,
         limit=None,
         loffset=None,
@@ -1899,7 +1912,9 @@ class TimeGrouper(Grouper):
         # NaT handling as in pandas._lib.lib.generate_bins_dt64()
         nat_count = 0
         if memb.hasnans:
-            nat_count = np.sum(memb._isnan)
+            # error: Incompatible types in assignment (expression has type
+            # "bool_", variable has type "int")  [assignment]
+            nat_count = np.sum(memb._isnan)  # type: ignore[assignment]
             memb = memb[~memb._isnan]
 
         if not len(memb):

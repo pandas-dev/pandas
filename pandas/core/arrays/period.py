@@ -1067,7 +1067,7 @@ def dt64arr_to_periodarr(
     return c_dt64arr_to_periodarr(data.view("i8"), base, tz, reso=reso), freq
 
 
-def _get_ordinal_range(start, end, periods, freq, mult=1):
+def _get_ordinal_range(start, end, periods, freq, mult: int = 1):
     if com.count_not_none(start, end, periods) != 2:
         raise ValueError(
             "Of the three parameters: start, end, and periods, "
