@@ -1142,12 +1142,36 @@ class TestToDatetime:
         )
         tm.assert_index_equal(result, expected)
 
-    def test_to_datetime_coerce_malformed(self):
+    @pytest.mark.parametrize("infer_datetime_format", [True, False])
+    @pytest.mark.parametrize(
+        "errors, expected",
+        [
+            ("coerce", Index([NaT, NaT])),
+            ("ignore", Index(["200622-12-31", "111111-24-11"])),
+        ],
+    )
+    def test_to_datetime_malformed_no_raise(
+        self, errors, expected, infer_datetime_format
+    ):
         # GH 28299
+        # GH 48633
         ts_strings = ["200622-12-31", "111111-24-11"]
-        result = to_datetime(ts_strings, errors="coerce")
-        expected = Index([NaT, NaT])
+        result = to_datetime(
+            ts_strings, errors=errors, infer_datetime_format=infer_datetime_format
+        )
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("infer_datetime_format", [True, False])
+    def test_to_datetime_malformed_raise(self, infer_datetime_format):
+        # GH 48633
+        ts_strings = ["200622-12-31", "111111-24-11"]
+        with pytest.raises(
+            ValueError,
+            match=r"^hour must be in 0\.\.23: 111111-24-11 present at position 1$",
+        ):
+            to_datetime(
+                ts_strings, errors="raise", infer_datetime_format=infer_datetime_format
+            )
 
     def test_iso_8601_strings_with_same_offset(self):
         # GH 17697, 11736
