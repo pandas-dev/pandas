@@ -65,6 +65,15 @@ class SetDisjoint:
         self.datetime_left.difference(self.datetime_right)
 
 
+class UnionWithDuplicates:
+    def setup(self):
+        self.left = Index(np.repeat(np.arange(1000), 100))
+        self.right = Index(np.tile(np.arange(500, 1500), 50))
+
+    def time_union_with_duplicates(self):
+        self.left.union(self.right)
+
+
 class Range:
     def setup(self):
         self.idx_inc = RangeIndex(start=0, stop=10**6, step=3)

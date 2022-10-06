@@ -1970,7 +1970,9 @@ def _sort_tuples(
     return original_values[indexer]
 
 
-def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
+def union_with_duplicates(
+    lvals: ArrayLike | Index, rvals: ArrayLike | Index
+) -> ArrayLike | Index:
     """
     Extracts the union from lvals and rvals with respect to duplicates and nans in
     both arrays.
@@ -1991,13 +1993,21 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     -----
     Caller is responsible for ensuring lvals.dtype == rvals.dtype.
     """
-    indexer = []
+    from pandas import Series
+
     l_count = value_counts(lvals, dropna=False)
     r_count = value_counts(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
-    unique_array = unique(concat_compat([lvals, rvals]))
-    unique_array = ensure_wrapped_if_datetimelike(unique_array)
-
-    for i, value in enumerate(unique_array):
-        indexer += [i] * int(max(l_count.at[value], r_count.at[value]))
-    return unique_array.take(indexer)
+    final_count = np.maximum(l_count.values, r_count.values)
+    final_count = Series(final_count, index=l_count.index, dtype="int", copy=False)
+    if isinstance(lvals, ABCMultiIndex) and isinstance(rvals, ABCMultiIndex):
+        unique_vals = lvals.append(rvals).unique()
+    else:
+        if isinstance(lvals, ABCIndex):
+            lvals = lvals._values
+        if isinstance(rvals, ABCIndex):
+            rvals = rvals._values
+        unique_vals = unique(concat_compat([lvals, rvals]))
+        unique_vals = ensure_wrapped_if_datetimelike(unique_vals)
+    repeats = final_count.reindex(unique_vals).values
+    return np.repeat(unique_vals, repeats)
