@@ -8604,7 +8604,7 @@ Parrot 2  Parrot       24.0
             hierarchical columns whose top level are the function names
             (inferred from the function objects themselves)
             If dict is passed, the key is column to aggregate and value
-            is function or list of functions. If margin = ``True``,
+            is function or list of functions. If ``margin=True``,
             aggfunc will be used to calculate the partial aggregates.
         fill_value : scalar, default None
             Value to replace missing values with (in the resulting pivot table,
