@@ -963,10 +963,6 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         datetime format string (for `strftime` or `strptime`),
         or None if it can't be guessed.
     """
-
-    if not isinstance(dt_str, str):
-        return None
-
     day_attribute_and_format = (('day',), '%d', 2)
 
     # attr name, format, padding (if any)
