@@ -64,8 +64,8 @@ def mi_styler_comp(mi_styler):
     mi_styler.highlight_max(axis=None)
     mi_styler.applymap_index(lambda x: "color: white;", axis=0)
     mi_styler.applymap_index(lambda x: "color: black;", axis=1)
-    mi_styler.applymap_index(lambda x: "color: red;", axis=0, names=0)
-    mi_styler.applymap_index(lambda x: "color: green;", axis=1, names=1)
+    mi_styler.applymap_index(lambda x: "color: red;", axis=0, names=True)
+    mi_styler.applymap_index(lambda x: "color: green;", axis=1, names=True)
     mi_styler.set_td_classes(
         DataFrame(
             [["a", "b"], ["a", "c"]], index=mi_styler.index, columns=mi_styler.columns
