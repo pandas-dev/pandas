@@ -1658,13 +1658,6 @@ class HDFStore:
         if value is not None and not isinstance(value, (Series, DataFrame)):
             raise TypeError("value must be None, Series, or DataFrame")
 
-        def error(t):
-            # return instead of raising so mypy can tell where we are raising
-            return TypeError(
-                f"cannot properly create the storer for: [{t}] [group->"
-                f"{group},value->{type(value)},format->{format}"
-            )
-
         pt = _ensure_decoded(getattr(group._v_attrs, "pandas_type", None))
         tt = _ensure_decoded(getattr(group._v_attrs, "table_type", None))
 
@@ -1699,7 +1692,10 @@ class HDFStore:
             try:
                 cls = _STORER_MAP[pt]
             except KeyError as err:
-                raise error("_STORER_MAP") from err
+                raise TypeError(
+                    f"cannot properly create the storer for: [_STORER_MAP] [group->"
+                    f"{group},value->{type(value)},format->{format}"
+                ) from err
             return cls(self, group, encoding=encoding, errors=errors)
 
         # existing node (and must be a table)
@@ -1732,7 +1728,10 @@ class HDFStore:
         try:
             cls = _TABLE_MAP[tt]
         except KeyError as err:
-            raise error("_TABLE_MAP") from err
+            raise TypeError(
+                f"cannot properly create the storer for: [_TABLE_MAP] [group->"
+                f"{group},value->{type(value)},format->{format}"
+            ) from err
 
         return cls(self, group, encoding=encoding, errors=errors)
 

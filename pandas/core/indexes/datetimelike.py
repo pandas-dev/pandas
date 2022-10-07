@@ -314,12 +314,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                 # DTI -> parsing.DateParseError
                 # TDI -> 'unit abbreviation w/o a number'
                 # PI -> string cannot be parsed as datetime-like
-                raise self._invalid_indexer("slice", label) from err
+                self._raise_invalid_indexer("slice", label, err)
 
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             return lower if side == "left" else upper
         elif not isinstance(label, self._data._recognized_scalars):
-            raise self._invalid_indexer("slice", label)
+            self._raise_invalid_indexer("slice", label)
 
         return label
 
