@@ -127,10 +127,6 @@ def merge(
     return op.get_result(copy=copy)
 
 
-if __debug__:
-    merge.__doc__ = _merge_doc % "\nleft : DataFrame"
-
-
 def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
     """
     groupby & merge; we are always performing a left-by type operation
@@ -207,8 +203,8 @@ def merge_ordered(
 
     Parameters
     ----------
-    left : DataFrame
-    right : DataFrame
+    left : DataFrame or named Series
+    right : DataFrame or named Series
     on : label or list
         Field names to join on. Must be found in both DataFrames.
     left_on : label or list, or array-like
@@ -220,10 +216,10 @@ def merge_ordered(
         left_on docs.
     left_by : column name or list of column names
         Group left DataFrame by group columns and merge piece by piece with
-        right DataFrame.
+        right DataFrame. Must be None if either left or right are a Series.
     right_by : column name or list of column names
         Group right DataFrame by group columns and merge piece by piece with
-        left DataFrame.
+        left DataFrame. Must be None if either left or right are a Series.
     fill_method : {'ffill', None}, default None
         Interpolation method for data.
     suffixes : list-like, default is ("_x", "_y")
