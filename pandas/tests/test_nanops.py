@@ -305,9 +305,9 @@ class TestnanopsDataFrame:
         # In the previous implementation mean can overflow for int dtypes, it
         # is now consistent with numpy
 
-        s = Series(val, index=range(500), dtype=np.int64)
-        result = s.mean()
-        np_result = s.values.mean()
+        ser = Series(val, index=range(500), dtype=np.int64)
+        result = ser.mean()
+        np_result = ser.values.mean()
         assert result == val
         assert result == np_result
         assert result.dtype == np.float64
@@ -328,11 +328,11 @@ class TestnanopsDataFrame:
             # no float128 available
             return
 
-        s = Series(range(10), dtype=dtype)
+        ser = Series(range(10), dtype=dtype)
         group_a = ["mean", "std", "var", "skew", "kurt"]
         group_b = ["min", "max"]
         for method in group_a + group_b:
-            result = getattr(s, method)()
+            result = getattr(ser, method)()
             if is_integer_dtype(dtype) and method in group_a:
                 assert result.dtype == np.float64
             else:
@@ -1103,10 +1103,10 @@ def test_numpy_ops(numpy_op, expected):
 )
 def test_nanops_independent_of_mask_param(operation):
     # GH22764
-    s = Series([1, 2, np.nan, 3, np.nan, 4])
-    mask = s.isna()
-    median_expected = operation(s)
-    median_result = operation(s, mask=mask)
+    ser = Series([1, 2, np.nan, 3, np.nan, 4])
+    mask = ser.isna()
+    median_expected = operation(ser)
+    median_result = operation(ser, mask=mask)
     assert median_expected == median_result
 
 
