@@ -79,7 +79,6 @@ def recode_for_groupby(
     # xref GH:46909: Re-ordering codes faster than using (set|add|reorder)_categories
     all_codes = np.arange(c.categories.nunique(), dtype=np.int8)
     # GH 38140: exclude nan from indexer for categories
-    # TODO: Probably why dropa=False doesn't work GH 36327
     unique_notnan_codes = unique1d(c.codes[c.codes != -1])
     if c.ordered:
         unique_notnan_codes = np.sort(unique_notnan_codes)
