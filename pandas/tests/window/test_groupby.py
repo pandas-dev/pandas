@@ -1006,7 +1006,7 @@ class TestRolling:
 
 
 class TestExpanding:
-    @pytest.fixture()
+    @pytest.fixture
     def frame(self):
         return DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
