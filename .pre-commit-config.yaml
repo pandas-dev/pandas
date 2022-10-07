@@ -226,6 +226,13 @@ repos:
         entry: python scripts/no_bool_in_generic.py
         language: python
         files: ^pandas/core/generic\.py$
+    -   id: no-return-exception
+        name: Use raise instead of return for exceptions
+        language: pygrep
+        entry: 'return [A-Za-z]+(Error|Exit|Interrupt|Exception|Iteration)'
+        files: ^pandas/
+        types: [python]
+        exclude: ^pandas/tests/
     -   id: pandas-errors-documented
         name: Ensure pandas errors are documented in doc/source/reference/testing.rst
         entry: python scripts/pandas_errors_documented.py
