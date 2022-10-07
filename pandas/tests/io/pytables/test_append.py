@@ -20,7 +20,6 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_path,
     ensure_clean_store,
 )
 
@@ -634,7 +633,7 @@ def test_append_with_data_columns(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_append_hierarchical(setup_path, multiindex_dataframe_random_data):
+def test_append_hierarchical(tmp_path, setup_path, multiindex_dataframe_random_data):
     df = multiindex_dataframe_random_data
     df.columns.name = None
 
@@ -648,11 +647,11 @@ def test_append_hierarchical(setup_path, multiindex_dataframe_random_data):
         expected = df.reindex(columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
-    with ensure_clean_path("test.hdf") as path:
-        df.to_hdf(path, "df", format="table")
-        result = read_hdf(path, "df", columns=["A", "B"])
-        expected = df.reindex(columns=["A", "B"])
-        tm.assert_frame_equal(result, expected)
+    path = tmp_path / "test.hdf"
+    df.to_hdf(path, "df", format="table")
+    result = read_hdf(path, "df", columns=["A", "B"])
+    expected = df.reindex(columns=["A", "B"])
+    tm.assert_frame_equal(result, expected)
 
 
 def test_append_misc(setup_path):
