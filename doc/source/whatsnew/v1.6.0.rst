@@ -153,6 +153,7 @@ Performance improvements
 - Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
 - Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47405`, :issue:`47656`, :issue:`48502`)
 - Memory improvement in :meth:`RangeIndex.sort_values` (:issue:`48801`)
+- Performance improvement in :class:`DataFrameGroupBy` and :class:`SeriesGroupBy` when ``by`` is a categorical type and ``sort=False`` (:issue:`48976`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_160.bug_fixes:
