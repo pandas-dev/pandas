@@ -18,10 +18,7 @@ from pytz import (
     utc,
 )
 
-from pandas._libs.tslibs.dtypes import (
-    NpyDatetimeUnit,
-    npy_unit_to_abbrev,
-)
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
     dateutil_gettz as gettz,
     get_timezone,
@@ -964,7 +961,7 @@ class TestNonNano:
         if ts._reso < other._reso:
             # Case where rounding is lossy
             other2 = other + Timedelta._from_value_and_reso(1, other._reso)
-            exp = ts._as_unit(npy_unit_to_abbrev(other._reso)) - other2
+            exp = ts._as_unit(other._unit) - other2
 
             res = ts - other2
             assert res == exp
@@ -975,7 +972,7 @@ class TestNonNano:
             assert res._reso == max(ts._reso, other._reso)
         else:
             ts2 = ts + Timedelta._from_value_and_reso(1, ts._reso)
-            exp = ts2 - other._as_unit(npy_unit_to_abbrev(ts2._reso))
+            exp = ts2 - other._as_unit(ts2._unit)
 
             res = ts2 - other
             assert res == exp
@@ -1012,7 +1009,7 @@ class TestNonNano:
         if ts._reso < other._reso:
             # Case where rounding is lossy
             other2 = other + Timedelta._from_value_and_reso(1, other._reso)
-            exp = ts._as_unit(npy_unit_to_abbrev(other._reso)) + other2
+            exp = ts._as_unit(other._unit) + other2
             res = ts + other2
             assert res == exp
             assert res._reso == max(ts._reso, other._reso)
@@ -1021,7 +1018,7 @@ class TestNonNano:
             assert res._reso == max(ts._reso, other._reso)
         else:
             ts2 = ts + Timedelta._from_value_and_reso(1, ts._reso)
-            exp = ts2 + other._as_unit(npy_unit_to_abbrev(ts2._reso))
+            exp = ts2 + other._as_unit(ts2._unit)
 
             res = ts2 + other
             assert res == exp
