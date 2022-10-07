@@ -1952,7 +1952,7 @@ class MultiIndex(Index):
             return self.sortorder
         return _lexsort_depth(self.codes, self.nlevels)
 
-    def _sort_levels_monotonic(self) -> MultiIndex:
+    def _sort_levels_monotonic(self, raise_if_incomparable: bool = False) -> MultiIndex:
         """
         This is an *internal* function.
 
@@ -1999,7 +1999,8 @@ class MultiIndex(Index):
                     # indexer to reorder the levels
                     indexer = lev.argsort()
                 except TypeError:
-                    pass
+                    if raise_if_incomparable:
+                        raise
                 else:
                     lev = lev.take(indexer)
 
@@ -2245,9 +2246,9 @@ class MultiIndex(Index):
 
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         if len(args) == 0 and len(kwargs) == 0:
-            # np.lexsort is significantly faster than self._values.argsort()
-            values = [self._get_level_values(i) for i in reversed(range(self.nlevels))]
-            return np.lexsort(values)
+            # lexsort is significantly faster than self._values.argsort()
+            target = self._sort_levels_monotonic(raise_if_incomparable=True)
+            return lexsort_indexer(target._get_codes_for_sorting())
         return self._values.argsort(*args, **kwargs)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
