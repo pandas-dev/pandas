@@ -474,10 +474,6 @@ def test_no_sort_keep_na(request, sequence_index, dtype, test_series):
     if not test_series:
         expected = expected.to_frame()
 
-    print(df)
-    print(result)
-    print(expected)
-
     tm.assert_equal(result, expected)
 
 
