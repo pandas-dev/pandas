@@ -1180,7 +1180,7 @@ class TestParquetFastParquet(Base):
             # The next line raises an error on Windows if the file is still open
             pathlib.Path(path).unlink(missing_ok=False)
 
-    def test_bytes_file_name(self):
+    def test_bytes_file_name(self, fp):
         # GH#48944
         df = pd.DataFrame(data={"A": [0, 1], "B": [1, 0]})
         with tm.ensure_clean("test.parquet") as path:
