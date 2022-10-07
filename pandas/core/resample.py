@@ -998,8 +998,6 @@ class Resampler(BaseGroupBy, PandasObject):
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         DataFrame or Series
