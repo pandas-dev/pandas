@@ -11,6 +11,30 @@ requires = [
 # https://github.com/python-versioneer/python-versioneer/issues/193
 # build-backend = "setuptools.build_meta"
 
+[tool.cibuildwheel]
+skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
+build-verbosity = "3"
+test-requires = "hypothesis==6.52.1 pytest>=6.2.5 pytest-xdist pytest-asyncio>=0.17"
+test-command = "python {project}/ci/test_wheels.py"
+
+[tool.cibuildwheel.macos]
+archs = "x86_64 universal2"
+test-skip = "*_arm64 *_universal2:arm64"
+
+[tool.cibuildwheel.windows]
+repair-wheel-command = "python ci/fix_wheels.py {wheel} {dest_dir}"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-win*"
+# We test separately for Windows, since we use
+# the base windows docker image to check if any dlls are
+# missing from the wheel
+test-command = ""
+
+[[tool.cibuildwheel.overrides]]
+select = "*-win32"
+environment = { IS_32_BIT="true" }
+
 [tool.black]
 target-version = ['py38', 'py39']
 exclude = '''
