@@ -392,7 +392,7 @@ def test_dtypes_defaultdict_invalid(all_parsers):
         parser.read_csv(StringIO(data), dtype=dtype)
 
 
-def test_use_nullabla_dtypes(all_parsers):
+def test_use_nullable_dtypes(all_parsers):
     # GH#36712
 
     parser = all_parsers
