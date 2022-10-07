@@ -17,6 +17,7 @@ connect with others within the pandas community.
 
 Community meeting
 -----------------
+
 The pandas Community Meeting is a regular sync meeting for the project's
 maintainers which is open to the community. Everyone is welcome to attend and
 contribute to conversations.
@@ -28,6 +29,7 @@ The minutes of past meetings are available in `this Google Document <https://doc
 
 New contributor meeting
 -----------------------
+
 On the third Wednesday of the month, we hold meetings to welcome and support
 new contributors in our community.
 
@@ -64,6 +66,7 @@ These will be published on the same calendar.
 
 `GitHub issue tracker <https://github.com/pandas-dev/pandas/issues>`_
 ----------------------------------------------------------------------
+
 The pandas contributor community conducts conversations mainly via this channel.
 Any community member can open issues to:
 
@@ -85,6 +88,7 @@ ongoing development of the project. For example:
 
 The developer mailing list
 --------------------------
+
 The pandas mailing list `pandas-dev@python.org <mailto://pandas-dev@python
 .org>`_ is used for long form
 conversations and to engages people in the wider community who might not
@@ -92,6 +96,7 @@ be active on the issue tracker but we would like to include in discussions.
 
 Community slack
 ---------------
+
 We have a chat platform for contributors, maintainers and potential
 contributors. This is not a space for user questions, rather for questions about
 contributing to pandas. The slack is a private space, specifically meant for
