@@ -573,6 +573,7 @@ class Block(PandasObject):
         # Note: the checks we do in NDFrame.replace ensure we never get
         #  here with listlike to_replace or value, as those cases
         #  go through replace_list
+        value = self._standardize_fill_value(value)
 
         values = self.values
 
@@ -610,15 +611,6 @@ class Block(PandasObject):
             else:
                 blocks = [blk]
             return blocks
-
-        elif value is None and not self.is_object:
-            blk = self.astype(np.dtype(object))
-            return blk.replace(
-                to_replace=to_replace,
-                value=value,
-                inplace=True,
-                mask=mask,
-            )
 
         elif self.ndim == 1 or self.shape[0] == 1:
             blk = self.coerce_to_target_dtype(value)
