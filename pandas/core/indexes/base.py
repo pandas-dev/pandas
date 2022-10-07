@@ -3444,7 +3444,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif not other.is_unique:
             # other has duplicates
-            result_dups = algos.union_with_duplicates(lvals, rvals)
+            result_dups = algos.union_with_duplicates(self, other)
             return _maybe_try_sort(result_dups, sort)
 
         # Self may have duplicates; other already checked as unique
@@ -5171,9 +5171,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data
 
-    # error: Decorated property not supported
-    # https://github.com/python/mypy/issues/1362
-    @cache_readonly  # type: ignore[misc]
+    @cache_readonly
     @doc(IndexOpsMixin.array)
     def array(self) -> ExtensionArray:
         array = self._data

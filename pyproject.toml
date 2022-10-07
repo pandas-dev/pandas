@@ -39,18 +39,14 @@ disable = [
   "W",
   "abstract-class-instantiated",
   "access-member-before-definition",
-  "bad-super-call",
   "c-extension-no-member",
-  "function-redefined",
   "import-error",
-  "inherit-non-class",
   "invalid-repr-returned",
   "invalid-unary-operand-type",
   "misplaced-bare-raise",
   "no-member",
   "no-method-argument",
   "no-name-in-module",
-  "no-self-argument",
   "no-value-for-parameter",
   "non-iterator-returned",
   "not-an-iterable",
@@ -70,6 +66,7 @@ disable = [
 # sync minversion with pyproject.toml & install.rst
 minversion =  "6.0"
 addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
+empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
 testpaths = "pandas"
 doctest_optionflags = [

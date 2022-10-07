@@ -257,6 +257,13 @@ cdef class _Timestamp(ABCTimestamp):
         )
         return self._freq
 
+    @property
+    def _unit(self) -> str:
+        """
+        The abbreviation associated with self._reso.
+        """
+        return npy_unit_to_abbrev(self._reso)
+
     # -----------------------------------------------------------------
     # Constructors
 
@@ -1682,7 +1689,13 @@ class Timestamp(_Timestamp):
             )
             # Once this deprecation is enforced, we can do
             #  return Timestamp(ts_input).tz_localize(tzobj)
-        ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond or 0)
+
+        if nanosecond is None:
+            nanosecond = 0
+        elif not (999 >= nanosecond >= 0):
+            raise ValueError("nanosecond must be in 0..999")
+
+        ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond)
 
         if ts.value == NPY_NAT:
             return NaT
