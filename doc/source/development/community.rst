@@ -72,12 +72,19 @@ Any community member can open issues to:
 
 - Report bugs, e.g. "I noticed the behavior of a certain function is
   incorrect. Please fix it."
-- Ask questions, e.g. "I noticed the behavior of a certain function changed
   between versions. Is this expected?"
 - Request features, e.g. "I would like this error message to be more readable"
 - Request documentation improvements, e.g. "I found this section unclear"
+- Ask questions, e.g. "I noticed the behavior of a certain function
+  changed".
 
-Maintainers and regular contributors might also open issues to discuss the
+    Ideally your questions should be related to how pandas work rather
+    than how you use pandas. `StackOverflow <https://stackoverflow.com/>`_ is
+    better suited for answering usage questions, and we ask that all usage
+    questions are first asked on StackOverflow. Thank you for respecting are
+    time and wishes. 🙇
+
+Maintainers and frequent contributors might also open issues to discuss the
 ongoing development of the project. For example:
 
 - Report issues with the CI, GitHub Actions, or the performance of pandas
