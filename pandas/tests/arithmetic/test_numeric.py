@@ -204,6 +204,11 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         box = box_with_array
         index = numeric_idx
         expected = TimedeltaIndex([Timedelta(days=n) for n in range(len(index))])
+        if isinstance(scalar_td, np.timedelta64) and box not in [Index, Series]:
+            # TODO(2.0): once TDA.astype converts to m8, just do expected.astype
+            tda = expected._data
+            dtype = scalar_td.dtype
+            expected = type(tda)._simple_new(tda._ndarray.astype(dtype), dtype=dtype)
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -249,6 +254,14 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         index = numeric_idx[1:3]
 
         expected = TimedeltaIndex(["3 Days", "36 Hours"])
+        if isinstance(three_days, np.timedelta64) and box not in [Index, Series]:
+            # TODO(2.0): just use expected.astype
+            tda = expected._data
+            dtype = three_days.dtype
+            if dtype < np.dtype("m8[s]"):
+                # i.e. resolution is lower -> use lowest supported resolution
+                dtype = np.dtype("m8[s]")
+            expected = type(tda)._simple_new(tda._ndarray.astype(dtype), dtype=dtype)
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -911,7 +924,7 @@ class TestAdditionSubtraction:
         result = ser - ser.index
         tm.assert_series_equal(result, expected)
 
-        msg = "cannot subtract period"
+        msg = "cannot subtract PeriodArray from DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             # GH#18850
             result = ser - ser.index.to_period()

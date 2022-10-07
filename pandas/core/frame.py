@@ -8604,12 +8604,15 @@ Parrot 2  Parrot       24.0
             hierarchical columns whose top level are the function names
             (inferred from the function objects themselves)
             If dict is passed, the key is column to aggregate and value
-            is function or list of functions.
+            is function or list of functions. If ``margin=True``,
+            aggfunc will be used to calculate the partial aggregates.
         fill_value : scalar, default None
             Value to replace missing values with (in the resulting pivot table,
             after aggregation).
         margins : bool, default False
-            Add all row / columns (e.g. for subtotal / grand totals).
+            If ``margins=True``, special ``All`` columns and rows
+            will be added with partial group aggregates across the categories
+            on the rows and columns.
         dropna : bool, default True
             Do not include columns whose entries are all NaN. If True,
             rows with a NaN value in any column will be omitted before
