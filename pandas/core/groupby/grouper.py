@@ -655,10 +655,17 @@ class Grouping:
             return self._group_index
 
         codes, uniques = self._codes_and_uniques
-        if not self._dropna and (codes == len(uniques)).any():
-            uniques = Categorical.from_codes(
-                np.append(uniques.codes, [-1]), uniques.categories
-            )
+        if not self._dropna:
+            if self._sort and (codes == len(uniques)).any():
+                uniques = Categorical.from_codes(
+                    np.append(uniques.codes, [-1]), uniques.categories
+                )
+            else:
+                na_code = (codes == len(uniques)).argmax()
+                if codes[na_code] == len(uniques):
+                    uniques = Categorical.from_codes(
+                        np.insert(uniques.codes, na_code, -1), uniques.categories
+                    )
         return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
@@ -683,6 +690,9 @@ class Grouping:
             )
             if not self._dropna:
                 # Replace negative codes with a value larger then the largest unique
+                # Doesn't work with sort=False since groupby requires the code for nan
+                # be in order of appearance, but categorical requires (non-nan)
+                # categories be coded as 0, ..., n-1.
                 codes = np.where(cat.codes < 0, len(uniques), cat.codes)
             else:
                 codes = cat.codes
