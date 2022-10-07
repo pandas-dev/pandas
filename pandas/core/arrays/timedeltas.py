@@ -284,6 +284,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timedelta.")
         self._check_compatible_with(value, setitem=setitem)
+        if value is NaT:
+            return np.timedelta64(value.value, "ns")
+        else:
+            return value._as_unit(self._unit).asm8
         return np.timedelta64(value.value, "ns")
 
     def _scalar_from_string(self, value) -> Timedelta | NaTType:

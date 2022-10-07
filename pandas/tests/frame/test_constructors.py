@@ -856,16 +856,31 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result_datetime, expected)
         tm.assert_frame_equal(result_Timestamp, expected)
 
-    def test_constructor_dict_timedelta64_index(self):
+    @pytest.mark.parametrize(
+        "klass",
+        [
+            pytest.param(
+                np.timedelta64,
+                marks=pytest.mark.xfail(
+                    reason="hash mismatch (GH#44504) causes lib.fast_multiget "
+                    "to mess up on dict lookups with equal Timedeltas with "
+                    "mismatched resos"
+                ),
+            ),
+            timedelta,
+            Timedelta,
+        ],
+    )
+    def test_constructor_dict_timedelta64_index(self, klass):
         # GH 10160
         td_as_int = [1, 2, 3, 4]
 
-        def create_data(constructor):
-            return {i: {constructor(s): 2 * i} for i, s in enumerate(td_as_int)}
+        if klass is timedelta:
+            constructor = lambda x: timedelta(days=x)
+        else:
+            constructor = lambda x: klass(x, "D")
 
-        data_timedelta64 = create_data(lambda x: np.timedelta64(x, "D"))
-        data_timedelta = create_data(lambda x: timedelta(days=x))
-        data_Timedelta = create_data(lambda x: Timedelta(x, "D"))
+        data = {i: {constructor(s): 2 * i} for i, s in enumerate(td_as_int)}
 
         expected = DataFrame(
             [
@@ -877,12 +892,8 @@ class TestDataFrameConstructors:
             index=[Timedelta(td, "D") for td in td_as_int],
         )
 
-        result_timedelta64 = DataFrame(data_timedelta64)
-        result_timedelta = DataFrame(data_timedelta)
-        result_Timedelta = DataFrame(data_Timedelta)
-        tm.assert_frame_equal(result_timedelta64, expected)
-        tm.assert_frame_equal(result_timedelta, expected)
-        tm.assert_frame_equal(result_Timedelta, expected)
+        result = DataFrame(data)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_period_dict(self):
         # PeriodIndex
@@ -3111,14 +3122,34 @@ class TestFromScalar:
 
         assert type(get1(result)) is cls
 
+    @pytest.mark.xfail(
+        reason="TimedeltaArray constructor has been updated to cast td64 to non-nano, "
+        "but TimedeltaArray._from_sequence has not"
+    )
     @pytest.mark.parametrize("cls", [timedelta, np.timedelta64])
-    def test_from_out_of_bounds_timedelta(self, constructor, cls):
+    def test_from_out_of_bounds_ns_timedelta(self, constructor, cls):
+        # scalar that won't fit in nanosecond td64, but will fit in microsecond
         scalar = datetime(9999, 1, 1) - datetime(1970, 1, 1)
+        exp_dtype = "m8[us]"  # smallest reso that fits
         if cls is np.timedelta64:
             scalar = np.timedelta64(scalar, "D")
+            exp_dtype = "m8[s]"  # closest reso to input
         result = constructor(scalar)
 
-        assert type(get1(result)) is cls
+        item = get1(result)
+        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+
+        assert type(item) is Timedelta
+        assert item.asm8.dtype == exp_dtype
+        assert dtype == exp_dtype
+
+    def test_out_of_s_bounds_timedelta64(self, constructor):
+        scalar = np.timedelta64(np.iinfo(np.int64).max, "D")
+        result = constructor(scalar)
+        item = get1(result)
+        assert type(item) is np.timedelta64
+        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+        assert dtype == object
 
     def test_tzaware_data_tznaive_dtype(self, constructor):
         tz = "US/Eastern"
