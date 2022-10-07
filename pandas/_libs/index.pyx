@@ -4,17 +4,10 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
-    float32_t,
-    float64_t,
-    int8_t,
-    int16_t,
-    int32_t,
     int64_t,
     intp_t,
     ndarray,
     uint8_t,
-    uint16_t,
-    uint32_t,
     uint64_t,
 )
 
@@ -24,6 +17,10 @@ cnp.import_array()
 from pandas._libs cimport util
 from pandas._libs.hashtable cimport HashTable
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
+    get_unit_from_dtype,
+)
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -35,7 +32,6 @@ from pandas._libs import (
 
 from pandas._libs.lib cimport eq_NA_compat
 from pandas._libs.missing cimport (
-    C_NA as NA,
     checknull,
     is_matching_na,
 )
@@ -493,17 +489,35 @@ cdef class ObjectEngine(IndexEngine):
 
 cdef class DatetimeEngine(Int64Engine):
 
+    cdef:
+        NPY_DATETIMEUNIT reso
+
+    def __init__(self, ndarray values):
+        super().__init__(values.view("i8"))
+        self.reso = get_unit_from_dtype(values.dtype)
+
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         # NB: caller is responsible for ensuring tzawareness compat
         #  before we get here
-        if not (isinstance(scalar, _Timestamp) or scalar is NaT):
-            raise TypeError(scalar)
-        return scalar.value
+        if scalar is NaT:
+            return NaT.value
+        elif isinstance(scalar, _Timestamp):
+            if scalar._reso == self.reso:
+                return scalar.value
+            else:
+                # Note: caller is responsible for catching potential ValueError
+                #  from _as_reso
+                return (<_Timestamp>scalar)._as_reso(self.reso, round_ok=False).value
+        raise TypeError(scalar)
 
     def __contains__(self, val: object) -> bool:
         # We assume before we get here:
         #  - val is hashable
-        self._unbox_scalar(val)
+        try:
+            self._unbox_scalar(val)
+        except ValueError:
+            return False
+
         try:
             self.get_loc(val)
             return True
@@ -525,8 +539,8 @@ cdef class DatetimeEngine(Int64Engine):
 
         try:
             conv = self._unbox_scalar(val)
-        except TypeError:
-            raise KeyError(val)
+        except (TypeError, ValueError) as err:
+            raise KeyError(val) from err
 
         # Welcome to the spaghetti factory
         if self.over_size_threshold and self.is_monotonic_increasing:
@@ -553,9 +567,16 @@ cdef class DatetimeEngine(Int64Engine):
 cdef class TimedeltaEngine(DatetimeEngine):
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
-        if not (isinstance(scalar, _Timedelta) or scalar is NaT):
-            raise TypeError(scalar)
-        return scalar.value
+        if scalar is NaT:
+            return NaT.value
+        elif isinstance(scalar, _Timedelta):
+            if scalar._reso == self.reso:
+                return scalar.value
+            else:
+                # Note: caller is responsible for catching potential ValueError
+                #  from _as_reso
+                return (<_Timedelta>scalar)._as_reso(self.reso, round_ok=False).value
+        raise TypeError(scalar)
 
 
 cdef class PeriodEngine(Int64Engine):
@@ -1061,7 +1082,7 @@ cdef class ExtensionEngine(SharedEngine):
 
     cdef ndarray _get_bool_indexer(self, val):
         if checknull(val):
-            return self.values.isna().view("uint8")
+            return self.values.isna()
 
         try:
             return self.values == val

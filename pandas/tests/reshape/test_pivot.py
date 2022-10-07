@@ -480,9 +480,11 @@ class TestPivotTable:
             }
         )
         if method:
-            result = df.pivot("a", "b", "c")
+            with tm.assert_produces_warning(FutureWarning):
+                result = df.pivot("a", columns="b", values="c")
         else:
-            result = pd.pivot(df, "a", "b", "c")
+            with tm.assert_produces_warning(FutureWarning):
+                result = pd.pivot(df, "a", columns="b", values="c")
         expected = DataFrame(
             [
                 [nan, nan, 17, nan],
@@ -494,7 +496,7 @@ class TestPivotTable:
             columns=Index(["C1", "C2", "C3", "C4"], name="b"),
         )
         tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(df.pivot("b", "a", "c"), expected.T)
+        tm.assert_frame_equal(df.pivot(index="b", columns="a", values="c"), expected.T)
 
     @pytest.mark.parametrize("method", [True, False])
     def test_pivot_index_with_nan_dates(self, method):
@@ -510,18 +512,18 @@ class TestPivotTable:
         df.loc[1, "b"] = df.loc[4, "b"] = np.nan
 
         if method:
-            pv = df.pivot("a", "b", "c")
+            pv = df.pivot(index="a", columns="b", values="c")
         else:
-            pv = pd.pivot(df, "a", "b", "c")
+            pv = pd.pivot(df, index="a", columns="b", values="c")
         assert pv.notna().values.sum() == len(df)
 
         for _, row in df.iterrows():
             assert pv.loc[row["a"], row["b"]] == row["c"]
 
         if method:
-            result = df.pivot("b", "a", "c")
+            result = df.pivot(index="b", columns="a", values="c")
         else:
-            result = pd.pivot(df, "b", "a", "c")
+            result = pd.pivot(df, index="b", columns="a", values="c")
         tm.assert_frame_equal(result, pv.T)
 
     @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
@@ -2181,6 +2183,23 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_nullable_margins(self):
+        # GH#48681
+        df = DataFrame(
+            {"a": "A", "b": [1, 2], "sales": Series([10, 11], dtype="Int64")}
+        )
+
+        result = df.pivot_table(index="b", columns="a", margins=True, aggfunc="sum")
+        expected = DataFrame(
+            [[10, 10], [11, 11], [21, 21]],
+            index=Index([1, 2, "All"], name="b"),
+            columns=MultiIndex.from_tuples(
+                [("sales", "A"), ("sales", "All")], names=[None, "a"]
+            ),
+            dtype="Int64",
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_table_sort_false_with_multiple_values(self):
         df = DataFrame(
             {
@@ -2235,6 +2254,38 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_datetime_warning(self):
+        # GH#48683
+        df = DataFrame(
+            {
+                "a": "A",
+                "b": [1, 2],
+                "date": pd.Timestamp("2019-12-31"),
+                "sales": [10.0, 11],
+            }
+        )
+        with tm.assert_produces_warning(None):
+            result = df.pivot_table(
+                index=["b", "date"], columns="a", margins=True, aggfunc="sum"
+            )
+        expected = DataFrame(
+            [[10.0, 10.0], [11.0, 11.0], [21.0, 21.0]],
+            index=MultiIndex.from_arrays(
+                [
+                    Index([1, 2, "All"], name="b"),
+                    Index(
+                        [pd.Timestamp("2019-12-31"), pd.Timestamp("2019-12-31"), ""],
+                        dtype=object,
+                        name="date",
+                    ),
+                ]
+            ),
+            columns=MultiIndex.from_tuples(
+                [("sales", "A"), ("sales", "All")], names=[None, "a"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestPivot:
     def test_pivot(self):
@@ -2275,11 +2326,11 @@ class TestPivot:
             }
         )
         with pytest.raises(ValueError, match="duplicate entries"):
-            data.pivot("a", "b", "c")
+            data.pivot(index="a", columns="b", values="c")
 
     def test_pivot_empty(self):
         df = DataFrame(columns=["a", "b", "c"])
-        result = df.pivot("a", "b", "c")
+        result = df.pivot(index="a", columns="b", values="c")
         expected = DataFrame()
         tm.assert_frame_equal(result, expected, check_names=False)
 
@@ -2339,7 +2390,7 @@ class TestPivot:
         )
         index = ["lev1", "lev2"]
         columns = ["lev3"]
-        result = df.pivot(index=index, columns=columns, values=None)
+        result = df.pivot(index=index, columns=columns)
 
         expected = DataFrame(
             np.array(
@@ -2363,3 +2414,51 @@ class TestPivot:
 
         assert index == ["lev1", "lev2"]
         assert columns == ["lev3"]
+
+    def test_pivot_columns_not_given(self):
+        # GH#48293
+        df = DataFrame({"a": [1], "b": 1})
+        with pytest.raises(TypeError, match="missing 1 required argument"):
+            df.pivot()
+
+    def test_pivot_columns_is_none(self):
+        # GH#48293
+        df = DataFrame({None: [1], "b": 2, "c": 3})
+        result = df.pivot(columns=None)
+        expected = DataFrame({("b", 1): [2], ("c", 1): 3})
+        tm.assert_frame_equal(result, expected)
+
+        result = df.pivot(columns=None, index="b")
+        expected = DataFrame({("c", 1): 3}, index=Index([2], name="b"))
+        tm.assert_frame_equal(result, expected)
+
+        result = df.pivot(columns=None, index="b", values="c")
+        expected = DataFrame({1: 3}, index=Index([2], name="b"))
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_index_is_none(self):
+        # GH#48293
+        df = DataFrame({None: [1], "b": 2, "c": 3})
+
+        result = df.pivot(columns="b", index=None)
+        expected = DataFrame({("c", 2): 3}, index=[1])
+        expected.columns.names = [None, "b"]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.pivot(columns="b", index=None, values="c")
+        expected = DataFrame(3, index=[1], columns=Index([2], name="b"))
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_values_is_none(self):
+        # GH#48293
+        df = DataFrame({None: [1], "b": 2, "c": 3})
+
+        result = df.pivot(columns="b", index="c", values=None)
+        expected = DataFrame(
+            1, index=Index([3], name="c"), columns=Index([2], name="b")
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result = df.pivot(columns="b", values=None)
+        expected = DataFrame(1, index=[0], columns=Index([2], name="b"))
+        tm.assert_frame_equal(result, expected)

@@ -10,6 +10,7 @@ from datetime import (
 import functools
 import itertools
 import re
+from typing import Iterator
 import warnings
 
 import numpy as np
@@ -1394,7 +1395,7 @@ class TestDataFrameConstructors:
             def __getitem__(self, n):
                 return self._lst.__getitem__(n)
 
-            def __len__(self):
+            def __len__(self) -> int:
                 return self._lst.__len__()
 
         lst_containers = [DummyContainer([1, "a"]), DummyContainer([2, "b"])]
@@ -1430,7 +1431,7 @@ class TestDataFrameConstructors:
     def test_constructor_iterable(self):
         # GH 21987
         class Iter:
-            def __iter__(self):
+            def __iter__(self) -> Iterator:
                 for i in range(10):
                     yield [1, 2, 3]
 

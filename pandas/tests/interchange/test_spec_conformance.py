@@ -27,7 +27,7 @@ def test_only_one_dtype(test_data, df_from_dict):
         null_count = dfX.get_column_by_name(column).null_count
         assert null_count == 0
         assert isinstance(null_count, int)
-        assert dfX.get_column_by_name(column).size == column_size
+        assert dfX.get_column_by_name(column).size() == column_size
         assert dfX.get_column_by_name(column).offset == 0
 
 
@@ -52,7 +52,7 @@ def test_mixed_dtypes(df_from_dict):
         colX = dfX.get_column_by_name(column)
         assert colX.null_count == 0
         assert isinstance(colX.null_count, int)
-        assert colX.size == 3
+        assert colX.size() == 3
         assert colX.offset == 0
 
         assert colX.dtype[0] == kind
@@ -118,14 +118,14 @@ def test_column_get_chunks(size, n_chunks, df_from_dict):
     dfX = df.__dataframe__()
     chunks = list(dfX.get_column(0).get_chunks(n_chunks))
     assert len(chunks) == n_chunks
-    assert sum(chunk.size for chunk in chunks) == size
+    assert sum(chunk.size() for chunk in chunks) == size
 
 
 def test_get_columns(df_from_dict):
     df = df_from_dict({"a": [0, 1], "b": [2.5, 3.5]})
     dfX = df.__dataframe__()
     for colX in dfX.get_columns():
-        assert colX.size == 2
+        assert colX.size() == 2
         assert colX.num_chunks() == 1
     # for meanings of dtype[0] see the spec; we cannot import the spec here as this
     # file is expected to be vendored *anywhere*

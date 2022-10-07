@@ -8,8 +8,14 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-from pandas.errors import InvalidIndexError
+from pandas.compat import (
+    IS64,
+    pa_version_under7p0,
+)
+from pandas.errors import (
+    InvalidIndexError,
+    PerformanceWarning,
+)
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -61,6 +67,22 @@ class TestIndex(Base):
             new_index = index[None, :]
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
+
+    def test_argsort(self, index):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_argsort(index)
+
+    def test_numpy_argsort(self, index):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_numpy_argsort(index)
 
     def test_constructor_regular(self, index):
         tm.assert_contains_all(index, index)

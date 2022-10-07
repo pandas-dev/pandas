@@ -600,8 +600,7 @@ class TestLocBaseIndependent:
         expected = DataFrame(columns=["x", "y"])
         expected["x"] = expected["x"].astype(np.int64)
         df = DataFrame(columns=["x", "y"])
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(None):
             df.loc[:, "x"] = 1
         tm.assert_frame_equal(df, expected)
 
@@ -1339,6 +1338,14 @@ class TestLocBaseIndependent:
 
         result = s.loc[range(3)].loc[range(2)]
         expected = Series([1.0, 0.0], dtype=SparseDtype("float64", 0.0))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_getitem_single_row_sparse_df(self, indexer):
+        # GH#46406
+        df = DataFrame([[1.0, 0.0, 1.5], [0.0, 2.0, 0.0]], dtype=SparseDtype(float))
+        result = getattr(df, indexer)[0]
+        expected = Series([1.0, 0.0, 1.5], dtype=SparseDtype(float), name=0)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("key_type", [iter, np.array, Series, Index])

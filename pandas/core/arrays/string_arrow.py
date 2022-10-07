@@ -309,7 +309,9 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
-    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex: bool = True):
+    def _str_contains(
+        self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
+    ):
         if flags:
             fallback_performancewarning()
             return super()._str_contains(pat, case, flags, na, regex)

@@ -137,7 +137,7 @@ def test_append_series(setup_path):
         mi["B"] = np.arange(len(mi))
         mi["C"] = "foo"
         mi.loc[3:5, "C"] = "bar"
-        mi = mi.set_index(["C", "B"], copy=False)
+        mi.set_index(["C", "B"], inplace=True)
         s = mi.stack()
         s.index = s.index.droplevel(2)
         store.append("mi", s)
@@ -326,7 +326,7 @@ def test_append_with_different_block_ordering(setup_path):
                 a = df.pop("A")
                 df["A"] = a
 
-            df = df.set_index("index", copy=False)
+            df.set_index("index", inplace=True)
 
             store.append("df", df)
 
@@ -436,9 +436,6 @@ def test_append_with_strings(setup_path):
             tm.assert_frame_equal(result, df)
 
     with ensure_clean_store(setup_path) as store:
-
-        def check_col(key, name, size):
-            assert getattr(store.get_storer(key).table.description, name).itemsize, size
 
         df = DataFrame({"A": "foo", "B": "bar"}, index=range(10))
 
