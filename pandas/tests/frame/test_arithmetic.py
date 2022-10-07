@@ -2032,7 +2032,7 @@ def test_frame_op_subclass_nonclass_constructor():
     class SubclassedDataFrame(DataFrame):
         _metadata = ["my_extra_data"]
 
-        def __init__(self, my_extra_data, *args, **kwargs):
+        def __init__(self, my_extra_data, *args, **kwargs) -> None:
             self.my_extra_data = my_extra_data
             super().__init__(*args, **kwargs)
 

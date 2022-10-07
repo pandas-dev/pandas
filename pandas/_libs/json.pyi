@@ -12,7 +12,7 @@ def dumps(
     date_unit: str = ...,
     iso_dates: bool = ...,
     default_handler: None
-    | Callable[[Any], str | int | float | bool | list | dict | None] = ...,
+    | Callable[[Any], str | float | bool | list | dict | None] = ...,
 ) -> str: ...
 def loads(
     s: str,

@@ -107,9 +107,10 @@ index_col : int, str, sequence of int / str, or False, optional, default ``None`
   string name or column index. If a sequence of int / str is given, a
   MultiIndex is used.
 
-  Note: ``index_col=False`` can be used to force pandas to *not* use the first
-  column as the index, e.g. when you have a malformed file with delimiters at
-  the end of each line.
+  .. note::
+     ``index_col=False`` can be used to force pandas to *not* use the first
+     column as the index, e.g. when you have a malformed file with delimiters at
+     the end of each line.
 
   The default value of ``None`` instructs pandas to guess. If the number of
   fields in the column header row is equal to the number of fields in the body
@@ -178,19 +179,24 @@ mangle_dupe_cols : boolean, default ``True``
   Passing in ``False`` will cause data to be overwritten if there are duplicate
   names in the columns.
 
+  .. deprecated:: 1.5.0
+     The argument was never implemented, and a new argument where the
+     renaming pattern can be specified will be added instead.
+
 General parsing configuration
 +++++++++++++++++++++++++++++
 
 dtype : Type name or dict of column -> type, default ``None``
-  Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32}``
-  (unsupported with ``engine='python'``). Use ``str`` or ``object`` together
-  with suitable ``na_values`` settings to preserve and
-  not interpret dtype.
+  Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
+  Use ``str`` or ``object`` together with suitable ``na_values`` settings to preserve
+  and not interpret dtype. If converters are specified, they will be applied INSTEAD
+  of dtype conversion.
+
   .. versionadded:: 1.5.0
 
-    Support for defaultdict was added. Specify a defaultdict as input where
-    the default determines the dtype of the columns which are not explicitly
-    listed.
+     Support for defaultdict was added. Specify a defaultdict as input where
+     the default determines the dtype of the columns which are not explicitly
+     listed.
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
   is currently more feature-complete. Multithreading is currently only supported by
@@ -283,7 +289,9 @@ parse_dates : boolean or list of ints or names or list of lists or dict, default
   * If ``[[1, 3]]`` -> combine columns 1 and 3 and parse as a single date
     column.
   * If ``{'foo': [1, 3]}`` -> parse columns 1, 3 as date and call result 'foo'.
-    A fast-path exists for iso8601-formatted dates.
+
+  .. note::
+     A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : boolean, default ``False``
   If ``True`` and parse_dates is enabled for a column, attempt to infer the
   datetime format to speed up the processing.
@@ -554,7 +562,8 @@ This matches the behavior of :meth:`Categorical.set_categories`.
       df = pd.read_csv(StringIO(data), dtype="category")
       df.dtypes
       df["col3"]
-      df["col3"].cat.categories = pd.to_numeric(df["col3"].cat.categories)
+      new_categories = pd.to_numeric(df["col3"].cat.categories)
+      df["col3"] = df["col3"].cat.rename_categories(new_categories)
       df["col3"]
 
 
@@ -606,6 +615,10 @@ If the header is in a row other than the first, pass the row number to
 Duplicate names parsing
 '''''''''''''''''''''''
 
+  .. deprecated:: 1.5.0
+     ``mangle_dupe_cols`` was never implemented, and a new argument where the
+     renaming pattern can be specified will be added instead.
+
 If the file or header contains duplicate names, pandas will by default
 distinguish between them so as to prevent overwriting data:
 
@@ -616,27 +629,7 @@ distinguish between them so as to prevent overwriting data:
 
 There is no more duplicate data because ``mangle_dupe_cols=True`` by default,
 which modifies a series of duplicate columns 'X', ..., 'X' to become
-'X', 'X.1', ..., 'X.N'.  If ``mangle_dupe_cols=False``, duplicate data can
-arise:
-
-.. code-block:: ipython
-
-   In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
-   In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)
-   Out[3]:
-      a  b  a
-   0  2  1  2
-   1  5  4  5
-
-To prevent users from encountering this problem with duplicate data, a ``ValueError``
-exception is raised if ``mangle_dupe_cols != True``:
-
-.. code-block:: ipython
-
-   In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
-   In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)
-   ...
-   ValueError: Setting mangle_dupe_cols=False is not supported yet
+'X', 'X.1', ..., 'X.N'.
 
 .. _io.usecols:
 
@@ -1593,8 +1586,10 @@ of multi-columns indices.
 
    pd.read_csv("mi2.csv", header=[0, 1], index_col=0)
 
-Note: If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
-with ``df.to_csv(..., index=False)``, then any ``names`` on the columns index will be *lost*.
+.. note::
+   If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
+   with ``df.to_csv(..., index=False)``, then any ``names`` on the columns index will
+   be *lost*.
 
 .. ipython:: python
    :suppress:
@@ -2736,6 +2731,30 @@ succeeds, the function will return*.
 
    dfs = pd.read_html(url, "Metcalf Bank", index_col=0, flavor=["lxml", "bs4"])
 
+Links can be extracted from cells along with the text using ``extract_links="all"``.
+
+.. ipython:: python
+
+    html_table = """
+    <table>
+      <tr>
+        <th>GitHub</th>
+      </tr>
+      <tr>
+        <td><a href="https://github.com/pandas-dev/pandas">pandas</a></td>
+      </tr>
+    </table>
+    """
+
+    df = pd.read_html(
+        html_table,
+        extract_links="all"
+    )[0]
+    df
+    df[("GitHub", None)]
+    df[("GitHub", None)].str[1]
+
+.. versionadded:: 1.5.0
 
 .. _io.html:
 
@@ -3048,15 +3067,15 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
    df = pd.read_xml(bio)
    df
 
-Even read XML from AWS S3 buckets such as Python Software Foundation's IRS 990 Form:
+Even read XML from AWS S3 buckets such as NIH NCBI PMC Article Datasets providing
+Biomedical and Life Science Jorurnals:
 
 .. ipython:: python
    :okwarning:
 
    df = pd.read_xml(
-       "s3://irs-form-990/201923199349319487_public.xml",
-       xpath=".//irs:Form990PartVIISectionAGrp",
-       namespaces={"irs": "http://www.irs.gov/efile"}
+       "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
+       xpath=".//journal-meta",
    )
    df
 
@@ -3154,6 +3173,42 @@ But assigning *any* temporary name to correct URI allows parsing by nodes.
 
 However, if XPath does not reference node names such as default, ``/*``, then
 ``namespaces`` is not required.
+
+.. note::
+
+   Since ``xpath`` identifies the parent of content to be parsed, only immediate
+   desendants which include child nodes or current attributes are parsed.
+   Therefore, ``read_xml`` will not parse the text of grandchildren or other
+   descendants and will not parse attributes of any descendant. To retrieve
+   lower level content, adjust xpath to lower level. For example,
+
+   .. ipython:: python
+        :okwarning:
+
+      xml = """
+      <data>
+        <row>
+          <shape sides="4">square</shape>
+          <degrees>360</degrees>
+        </row>
+        <row>
+          <shape sides="0">circle</shape>
+          <degrees>360</degrees>
+        </row>
+        <row>
+          <shape sides="3">triangle</shape>
+          <degrees>180</degrees>
+        </row>
+      </data>"""
+
+      df = pd.read_xml(xml, xpath="./row")
+      df
+
+   shows the attribute ``sides`` on ``shape`` element was not parsed as
+   expected since this attribute resides on the child of ``row`` element
+   and not ``row`` element itself. In other words, ``sides`` attribute is a
+   grandchild level descendant of ``row`` element. However, the ``xpath``
+   targets ``row`` element which covers only its children and attributes.
 
 With `lxml`_ as parser, you can flatten nested XML documents with an XSLT
 script which also can be string/file/URL types. As background, `XSLT`_ is

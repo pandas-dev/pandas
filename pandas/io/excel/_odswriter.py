@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 import datetime
 from typing import (
+    TYPE_CHECKING,
     Any,
     DefaultDict,
     Tuple,
@@ -21,7 +22,11 @@ from pandas.io.excel._util import (
     combine_kwargs,
     validate_freeze_panes,
 )
-from pandas.io.formats.excel import ExcelCell
+
+if TYPE_CHECKING:
+    from odf.opendocument import OpenDocumentSpreadsheet
+
+    from pandas.io.formats.excel import ExcelCell
 
 
 class ODSWriter(ExcelWriter):
@@ -66,6 +71,14 @@ class ODSWriter(ExcelWriter):
         This attribute can be used to access engine-specific features.
         """
         return self._book
+
+    @book.setter
+    def book(self, other: OpenDocumentSpreadsheet) -> None:
+        """
+        Set book instance. Class type will depend on the engine used.
+        """
+        self._deprecate_set_book()
+        self._book = other
 
     @property
     def sheets(self) -> dict[str, Any]:

@@ -7,6 +7,7 @@ from abc import (
     ABCMeta,
     abstractmethod,
 )
+from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -48,7 +49,12 @@ class ReaderBase(metaclass=ABCMeta):
     def __enter__(self) -> ReaderBase:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
 

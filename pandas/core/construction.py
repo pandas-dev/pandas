@@ -6,6 +6,7 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -48,6 +49,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
@@ -327,6 +329,14 @@ def array(
     if isinstance(dtype, str):
         dtype = registry.find(dtype) or dtype
 
+    if isinstance(data, ExtensionArray) and (
+        dtype is None or is_dtype_equal(dtype, data.dtype)
+    ):
+        # e.g. TimedeltaArray[s], avoid casting to PandasArray
+        if copy:
+            return data.copy()
+        return data
+
     if is_extension_array_dtype(dtype):
         cls = cast(ExtensionDtype, dtype).construct_array_type()
         return cls._from_sequence(data, dtype=dtype, copy=copy)
@@ -568,7 +578,7 @@ def sanitize_array(
                     "passed dtype. To retain the old behavior, call Series(arr) or "
                     "DataFrame(arr) without passing a dtype.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
                 subarr = np.array(data, copy=copy)
             except ValueError:
@@ -580,7 +590,7 @@ def sanitize_array(
                         "if they cannot be cast losslessly (matching Series behavior). "
                         "To retain the old behavior, use DataFrame(data).astype(dtype)",
                         FutureWarning,
-                        stacklevel=find_stack_level(),
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
                     # GH#40110 until the deprecation is enforced, we _dont_
                     #  ignore the dtype for DataFrame, and _do_ cast even though
@@ -852,7 +862,7 @@ def _try_cast(
                 "passed to 'DataFrame', either all columns will be cast to that "
                 "dtype, or a TypeError will be raised.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             subarr = np.array(arr, dtype=object, copy=copy)
     return subarr

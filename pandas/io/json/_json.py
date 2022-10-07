@@ -8,7 +8,9 @@ from collections import abc
 import functools
 from io import StringIO
 from itertools import islice
+from types import TracebackType
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Generic,
@@ -53,7 +55,6 @@ from pandas import (
     to_datetime,
 )
 from pandas.core.construction import create_series_with_explicit_dtype
-from pandas.core.generic import NDFrame
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 
@@ -72,6 +73,9 @@ from pandas.io.json._table_schema import (
     parse_table_schema,
 )
 from pandas.io.parsers.readers import validate_integer
+
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
 
@@ -186,7 +190,7 @@ class Writer(ABC):
 
     def __init__(
         self,
-        obj,
+        obj: NDFrame,
         orient: str | None,
         date_format: str,
         double_precision: int,
@@ -365,16 +369,16 @@ class JSONTableWriter(FrameWriter):
 def read_json(
     path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
     *,
-    orient=...,
+    orient: str | None = ...,
     typ: Literal["frame"] = ...,
     dtype: DtypeArg | None = ...,
     convert_axes=...,
-    convert_dates=...,
+    convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     numpy: bool = ...,
     precise_float: bool = ...,
-    date_unit=...,
-    encoding=...,
+    date_unit: str | None = ...,
+    encoding: str | None = ...,
     encoding_errors: str | None = ...,
     lines: bool = ...,
     chunksize: int,
@@ -389,16 +393,16 @@ def read_json(
 def read_json(
     path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
     *,
-    orient=...,
+    orient: str | None = ...,
     typ: Literal["series"],
     dtype: DtypeArg | None = ...,
     convert_axes=...,
-    convert_dates=...,
+    convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     numpy: bool = ...,
     precise_float: bool = ...,
-    date_unit=...,
-    encoding=...,
+    date_unit: str | None = ...,
+    encoding: str | None = ...,
     encoding_errors: str | None = ...,
     lines: bool = ...,
     chunksize: int,
@@ -413,16 +417,16 @@ def read_json(
 def read_json(
     path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
     *,
-    orient=...,
+    orient: str | None = ...,
     typ: Literal["series"],
     dtype: DtypeArg | None = ...,
     convert_axes=...,
-    convert_dates=...,
+    convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     numpy: bool = ...,
     precise_float: bool = ...,
-    date_unit=...,
-    encoding=...,
+    date_unit: str | None = ...,
+    encoding: str | None = ...,
     encoding_errors: str | None = ...,
     lines: bool = ...,
     chunksize: None = ...,
@@ -436,16 +440,16 @@ def read_json(
 @overload
 def read_json(
     path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
-    orient=...,
+    orient: str | None = ...,
     typ: Literal["frame"] = ...,
     dtype: DtypeArg | None = ...,
     convert_axes=...,
-    convert_dates=...,
+    convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     numpy: bool = ...,
     precise_float: bool = ...,
-    date_unit=...,
-    encoding=...,
+    date_unit: str | None = ...,
+    encoding: str | None = ...,
     encoding_errors: str | None = ...,
     lines: bool = ...,
     chunksize: None = ...,
@@ -464,16 +468,16 @@ def read_json(
 @deprecate_nonkeyword_arguments(version="2.0", allowed_args=["path_or_buf"])
 def read_json(
     path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
-    orient=None,
+    orient: str | None = None,
     typ: Literal["frame", "series"] = "frame",
     dtype: DtypeArg | None = None,
     convert_axes=None,
-    convert_dates=True,
+    convert_dates: bool | list[str] = True,
     keep_default_dates: bool = True,
     numpy: bool = False,
     precise_float: bool = False,
-    date_unit=None,
-    encoding=None,
+    date_unit: str | None = None,
+    encoding: str | None = None,
     encoding_errors: str | None = "strict",
     lines: bool = False,
     chunksize: int | None = None,
@@ -498,7 +502,7 @@ def read_json(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
-    orient : str
+    orient : str, optional
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
         corresponding orient value.
@@ -988,7 +992,12 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
     def __enter__(self) -> JsonReader[FrameSeriesStrT]:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
 
@@ -1009,11 +1018,11 @@ class Parser:
         json,
         orient,
         dtype: DtypeArg | None = None,
-        convert_axes=True,
-        convert_dates=True,
-        keep_default_dates=False,
-        numpy=False,
-        precise_float=False,
+        convert_axes: bool = True,
+        convert_dates: bool | list[str] = True,
+        keep_default_dates: bool = False,
+        numpy: bool = False,
+        precise_float: bool = False,
         date_unit=None,
     ) -> None:
         self.json = json
@@ -1073,7 +1082,7 @@ class Parser:
     def _parse_no_numpy(self):
         raise AbstractMethodError(self)
 
-    def _convert_axes(self):
+    def _convert_axes(self) -> None:
         """
         Try to convert axes.
         """
@@ -1093,7 +1102,11 @@ class Parser:
         raise AbstractMethodError(self)
 
     def _try_convert_data(
-        self, name, data, use_dtypes: bool = True, convert_dates: bool = True
+        self,
+        name,
+        data,
+        use_dtypes: bool = True,
+        convert_dates: bool | list[str] = True,
     ):
         """
         Try to parse a ndarray like into a column by inferring dtype.
@@ -1218,7 +1231,7 @@ class SeriesParser(Parser):
     _default_orient = "index"
     _split_keys = ("name", "index", "data")
 
-    def _parse_no_numpy(self):
+    def _parse_no_numpy(self) -> None:
         data = loads(self.json, precise_float=self.precise_float)
 
         if self.orient == "split":
@@ -1228,7 +1241,7 @@ class SeriesParser(Parser):
         else:
             self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
-    def _parse_numpy(self):
+    def _parse_numpy(self) -> None:
         load_kwargs = {
             "dtype": None,
             "numpy": True,
@@ -1252,7 +1265,7 @@ class SeriesParser(Parser):
         else:
             self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
-    def _try_convert_types(self):
+    def _try_convert_types(self) -> None:
         if self.obj is None:
             return
         obj, result = self._try_convert_data(
@@ -1266,7 +1279,7 @@ class FrameParser(Parser):
     _default_orient = "columns"
     _split_keys = ("columns", "index", "data")
 
-    def _parse_numpy(self):
+    def _parse_numpy(self) -> None:
 
         json = self.json
         orient = self.orient
@@ -1304,7 +1317,7 @@ class FrameParser(Parser):
                 )
             )
 
-    def _parse_no_numpy(self):
+    def _parse_no_numpy(self) -> None:
 
         json = self.json
         orient = self.orient
@@ -1333,7 +1346,7 @@ class FrameParser(Parser):
                 loads(json, precise_float=self.precise_float), dtype=None
             )
 
-    def _process_converter(self, f, filt=None):
+    def _process_converter(self, f, filt=None) -> None:
         """
         Take a conversion function and possibly recreate the frame.
         """
@@ -1360,7 +1373,7 @@ class FrameParser(Parser):
             new_frame.columns = obj.columns
             self.obj = new_frame
 
-    def _try_convert_types(self):
+    def _try_convert_types(self) -> None:
         if self.obj is None:
             return
         if self.convert_dates:
@@ -1370,15 +1383,15 @@ class FrameParser(Parser):
             lambda col, c: self._try_convert_data(col, c, convert_dates=False)
         )
 
-    def _try_convert_dates(self):
+    def _try_convert_dates(self) -> None:
         if self.obj is None:
             return
 
         # our columns to parse
-        convert_dates = self.convert_dates
-        if convert_dates is True:
-            convert_dates = []
-        convert_dates = set(convert_dates)
+        convert_dates_list_bool = self.convert_dates
+        if isinstance(convert_dates_list_bool, bool):
+            convert_dates_list_bool = []
+        convert_dates = set(convert_dates_list_bool)
 
         def is_ok(col) -> bool:
             """

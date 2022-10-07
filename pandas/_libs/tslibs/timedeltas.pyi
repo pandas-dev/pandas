@@ -78,19 +78,18 @@ def delta_to_nanoseconds(
 ) -> int: ...
 
 class Timedelta(timedelta):
+    _reso: int
     min: ClassVar[Timedelta]
     max: ClassVar[Timedelta]
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
-    def __new__(
+    # error: "__new__" must return a class instance (got "Union[Timestamp, NaTType]")
+    def __new__(  # type: ignore[misc]
         cls: type[_S],
         value=...,
-        unit: str = ...,
-        **kwargs: int | float | np.integer | np.floating,
-    ) -> _S: ...
-    # GH 46171
-    # While Timedelta can return pd.NaT, having the constructor return
-    # a Union with NaTType makes things awkward for users of pandas
+        unit: str | None = ...,
+        **kwargs: float | np.integer | np.floating,
+    ) -> _S | NaTType: ...
     @classmethod
     def _from_value_and_reso(cls, value: np.int64, reso: int) -> Timedelta: ...
     @property
@@ -123,7 +122,7 @@ class Timedelta(timedelta):
     @overload  # type: ignore[override]
     def __floordiv__(self, other: timedelta) -> int: ...
     @overload
-    def __floordiv__(self, other: int | float) -> Timedelta: ...
+    def __floordiv__(self, other: float) -> Timedelta: ...
     @overload
     def __floordiv__(
         self, other: npt.NDArray[np.timedelta64]
@@ -155,4 +154,6 @@ class Timedelta(timedelta):
     def freq(self) -> None: ...
     @property
     def is_populated(self) -> bool: ...
+    @property
+    def _unit(self) -> str: ...
     def _as_unit(self, unit: str, round_ok: bool = ...) -> Timedelta: ...

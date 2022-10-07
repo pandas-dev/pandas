@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import inspect
 import re
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+)
 import warnings
 
 import numpy as np
@@ -41,7 +45,7 @@ def melt(
     id_vars=None,
     value_vars=None,
     var_name=None,
-    value_name="value",
+    value_name: Hashable = "value",
     col_level=None,
     ignore_index: bool = True,
 ) -> DataFrame:
@@ -59,7 +63,7 @@ def melt(
             "In the future this will raise an error, please set the 'value_name' "
             "parameter of DataFrame.melt to a unique name.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     if id_vars is not None:

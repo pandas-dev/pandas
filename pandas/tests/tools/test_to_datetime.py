@@ -67,7 +67,6 @@ class TestTimeConversionFormats:
         expected = to_datetime([])
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("box", [Series, Index])
     @pytest.mark.parametrize(
         "format, expected",
         [
@@ -81,10 +80,10 @@ class TestTimeConversionFormats:
             ],
         ],
     )
-    def test_to_datetime_format(self, cache, box, format, expected):
-        values = box(["1/1/2000", "1/2/2000", "1/3/2000"])
+    def test_to_datetime_format(self, cache, index_or_series, format, expected):
+        values = index_or_series(["1/1/2000", "1/2/2000", "1/3/2000"])
         result = to_datetime(values, format=format, cache=cache)
-        expected = box(expected)
+        expected = index_or_series(expected)
         if isinstance(expected, Series):
             tm.assert_series_equal(result, expected)
         else:
@@ -469,8 +468,10 @@ class TestToDatetime:
         expected = to_datetime([d1, d2]).tz_convert(pytz.FixedOffset(-60))
         tm.assert_index_equal(res, expected)
 
-    def test_to_datetime_np_str(self):
+    @pytest.mark.parametrize("infer_datetime_format", [True, False])
+    def test_to_datetime_np_str(self, infer_datetime_format):
         # GH#32264
+        # GH#48969
         value = np.str_("2019-02-04 10:18:46.297000+0000")
 
         ser = Series([value])
@@ -480,11 +481,11 @@ class TestToDatetime:
         assert to_datetime(value) == exp
         assert to_datetime(ser.iloc[0]) == exp
 
-        res = to_datetime([value])
+        res = to_datetime([value], infer_datetime_format=infer_datetime_format)
         expected = Index([exp])
         tm.assert_index_equal(res, expected)
 
-        res = to_datetime(ser)
+        res = to_datetime(ser, infer_datetime_format=infer_datetime_format)
         expected = Series(expected)
         tm.assert_series_equal(res, expected)
 
@@ -688,9 +689,10 @@ class TestToDatetime:
         "dt", [np.datetime64("1000-01-01"), np.datetime64("5000-01-02")]
     )
     def test_to_datetime_dt64s_out_of_bounds(self, cache, dt):
-        msg = f"Out of bounds nanosecond timestamp: {dt}"
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(dt, errors="raise")
+        msg = f"Out of bounds nanosecond timestamp: {dt}"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp(dt)
         assert to_datetime(dt, errors="coerce", cache=cache) is NaT
@@ -950,7 +952,7 @@ class TestToDatetime:
         msg = (
             "is a bad directive in format|"
             "second must be in 0..59|"
-            "Given date string not likely a datetime"
+            f"Given date string {value} not likely a datetime"
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(
@@ -973,13 +975,13 @@ class TestToDatetime:
         assert res is NaT
 
         if format is not None:
-            msg = "is a bad directive in format|Out of bounds nanosecond timestamp"
+            msg = "is a bad directive in format|Out of bounds .* present at position 0"
             with pytest.raises(ValueError, match=msg):
                 to_datetime(
                     value, errors="raise", format=format, infer_datetime_format=infer
                 )
         else:
-            msg = "Out of bounds nanosecond timestamp"
+            msg = "Out of bounds .* present at position 0"
             with pytest.raises(OutOfBoundsDatetime, match=msg):
                 to_datetime(
                     value, errors="raise", format=format, infer_datetime_format=infer
@@ -1002,7 +1004,7 @@ class TestToDatetime:
 
         msg = (
             "is a bad directive in format|"
-            "Given date string not likely a datetime|"
+            f"Given date string {values[0]} not likely a datetime|"
             "second must be in 0..59"
         )
         with pytest.raises(ValueError, match=msg):
@@ -1085,11 +1087,11 @@ class TestToDatetime:
         ("input", "expected"),
         (
             (
-                Series([NaT] * 20 + [None] * 20, dtype="object"),  # type: ignore[list-item] # noqa: E501
+                Series([NaT] * 20 + [None] * 20, dtype="object"),
                 Series([NaT] * 40, dtype="datetime64[ns]"),
             ),
             (
-                Series([NaT] * 60 + [None] * 60, dtype="object"),  # type: ignore[list-item] # noqa: E501
+                Series([NaT] * 60 + [None] * 60, dtype="object"),
                 Series([NaT] * 120, dtype="datetime64[ns]"),
             ),
             (Series([None] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
@@ -1142,12 +1144,36 @@ class TestToDatetime:
         )
         tm.assert_index_equal(result, expected)
 
-    def test_to_datetime_coerce_malformed(self):
+    @pytest.mark.parametrize("infer_datetime_format", [True, False])
+    @pytest.mark.parametrize(
+        "errors, expected",
+        [
+            ("coerce", Index([NaT, NaT])),
+            ("ignore", Index(["200622-12-31", "111111-24-11"])),
+        ],
+    )
+    def test_to_datetime_malformed_no_raise(
+        self, errors, expected, infer_datetime_format
+    ):
         # GH 28299
+        # GH 48633
         ts_strings = ["200622-12-31", "111111-24-11"]
-        result = to_datetime(ts_strings, errors="coerce")
-        expected = Index([NaT, NaT])
+        result = to_datetime(
+            ts_strings, errors=errors, infer_datetime_format=infer_datetime_format
+        )
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("infer_datetime_format", [True, False])
+    def test_to_datetime_malformed_raise(self, infer_datetime_format):
+        # GH 48633
+        ts_strings = ["200622-12-31", "111111-24-11"]
+        with pytest.raises(
+            ValueError,
+            match=r"^hour must be in 0\.\.23: 111111-24-11 present at position 1$",
+        ):
+            to_datetime(
+                ts_strings, errors="raise", infer_datetime_format=infer_datetime_format
+            )
 
     def test_iso_8601_strings_with_same_offset(self):
         # GH 17697, 11736
@@ -1700,7 +1726,7 @@ class TestToDatetimeMisc:
         # in an in-bounds datetime
         arr = np.array(["2262-04-11 23:47:16.854775808"], dtype=object)
 
-        msg = "Out of bounds nanosecond timestamp"
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(arr)
 
@@ -2219,7 +2245,7 @@ class TestDaysInMonth:
 
     @pytest.mark.parametrize("arg", ["2015-02-29", "2015-02-32", "2015-04-31"])
     def test_day_not_in_month_raise_value(self, cache, arg):
-        msg = f"time data {arg} doesn't match format specified"
+        msg = f'time data "{arg}" at position 0 doesn\'t match format specified'
         with pytest.raises(ValueError, match=msg):
             to_datetime(arg, errors="raise", format="%Y-%m-%d", cache=cache)
 
@@ -2590,10 +2616,20 @@ class TestOrigin:
         with pytest.raises(ValueError, match="must be tz-naive"):
             to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=pytz.utc))
 
+    def test_incorrect_value_exception(self):
+        # GH47495
+        with pytest.raises(
+            ValueError, match="Unknown string format: yesterday present at position 1"
+        ):
+            to_datetime(["today", "yesterday"])
+
     @pytest.mark.parametrize("format", [None, "%Y-%m-%d %H:%M:%S"])
     def test_to_datetime_out_of_bounds_with_format_arg(self, format):
         # see gh-23830
-        msg = "Out of bounds nanosecond timestamp"
+        msg = (
+            "Out of bounds nanosecond timestamp: 2417-10-27 00:00:00 "
+            "present at position 0"
+        )
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime("2417-10-27 00:00:00", format=format)
 
@@ -2773,3 +2809,76 @@ def test_to_datetime_monotonic_increasing_index(cache):
     result = to_datetime(times.iloc[:, 0], cache=cache)
     expected = times.iloc[:, 0]
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "series_length",
+    [40, start_caching_at, (start_caching_at + 1), (start_caching_at + 5)],
+)
+def test_to_datetime_cache_coerce_50_lines_outofbounds(series_length):
+    # GH#45319
+    s = Series(
+        [datetime.fromisoformat("1446-04-12 00:00:00+00:00")]
+        + ([datetime.fromisoformat("1991-10-20 00:00:00+00:00")] * series_length)
+    )
+    result1 = to_datetime(s, errors="coerce", utc=True)
+
+    expected1 = Series(
+        [NaT] + ([Timestamp("1991-10-20 00:00:00+00:00")] * series_length)
+    )
+
+    tm.assert_series_equal(result1, expected1)
+
+    result2 = to_datetime(s, errors="ignore", utc=True)
+
+    expected2 = Series(
+        [datetime.fromisoformat("1446-04-12 00:00:00+00:00")]
+        + ([datetime.fromisoformat("1991-10-20 00:00:00+00:00")] * series_length)
+    )
+
+    tm.assert_series_equal(result2, expected2)
+
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond timestamp"):
+        to_datetime(s, errors="raise", utc=True)
+
+
+@pytest.mark.parametrize(
+    "arg",
+    [
+        ["1724-12-20 20:20:20+00:00", "2022-01-01 00:00:00"],
+        [
+            Timestamp("1724-12-20 20:20:20+00:00"),
+            Timestamp("2022-01-01 00:00:00"),
+        ],
+        [datetime(1724, 12, 20, 20, 20, 20, tzinfo=timezone.utc), datetime(2022, 1, 1)],
+    ],
+    ids=["string", "pd.Timestamp", "datetime.datetime"],
+)
+@pytest.mark.parametrize("tz_aware_first", [True, False])
+def test_to_datetime_mixed_tzaware_timestamp_utc_true(arg, tz_aware_first):
+    # GH 48678
+    exp_arg = ["1724-12-20 20:20:20", "2022-01-01 00:00:00"]
+    if not tz_aware_first:
+        arg.reverse()
+        exp_arg.reverse()
+    result = to_datetime(arg, utc=True)
+    expected = DatetimeIndex(exp_arg).tz_localize("UTC")
+    tm.assert_index_equal(result, expected)
+
+
+def test_to_datetime_format_f_parse_nanos():
+    # GH 48767
+    timestamp = "15/02/2020 02:03:04.123456789"
+    timestamp_format = "%d/%m/%Y %H:%M:%S.%f"
+    result = to_datetime(timestamp, format=timestamp_format)
+    expected = Timestamp(
+        year=2020,
+        month=2,
+        day=15,
+        hour=2,
+        minute=3,
+        second=4,
+        microsecond=123456,
+        nanosecond=789,
+    )
+    assert result == expected

@@ -10,6 +10,7 @@ import codecs
 import dataclasses
 import functools
 import gzip
+import inspect
 from io import (
     BufferedIOBase,
     BytesIO,
@@ -322,7 +323,7 @@ def _get_filepath_or_buffer(
         warnings.warn(
             "compression has no effect when passing a non-binary object as input.",
             RuntimeWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         compression_method = None
 
@@ -338,6 +339,7 @@ def _get_filepath_or_buffer(
         warnings.warn(
             f"{compression} will not write the byte order mark for {encoding}",
             UnicodeWarning,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     # Use binary mode when converting path-like objects to file-like objects (fsspec)
@@ -572,9 +574,7 @@ def infer_compression(
     if compression in _supported_compressions:
         return compression
 
-    # https://github.com/python/mypy/issues/5492
-    # Unsupported operand types for + ("List[Optional[str]]" and "List[str]")
-    valid = ["infer", None] + sorted(_supported_compressions)  # type: ignore[operator]
+    valid = ["infer", None] + sorted(_supported_compressions)
     msg = (
         f"Unrecognized compression type: {compression}\n"
         f"Valid compression types are {valid}"

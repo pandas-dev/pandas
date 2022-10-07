@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from typing import (
     Any,
     Hashable,
@@ -224,7 +225,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                 "deprecated and will raise in a future version. "
                 "Use CategoricalIndex([], ...) instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             data = []
 
@@ -419,7 +420,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                     "reindexing with a non-unique Index is deprecated and will "
                     "raise in a future version.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
 
         new_target: Index
@@ -495,7 +496,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take "
             "instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.take(*args, **kwargs)
 
@@ -572,7 +573,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
         # if calling index is category, don't check dtype of others
         try:
-            codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
+            cat = Categorical._concat_same_type(
+                [self._is_dtype_compat(c) for c in to_concat]
+            )
         except TypeError:
             # not all to_concat elements are among our categories (or NA)
             from pandas.core.dtypes.concat import concat_compat
@@ -580,5 +583,4 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             res = concat_compat([x._values for x in to_concat])
             return Index(res, name=name)
         else:
-            cat = self._data._from_backing_data(codes)
             return type(self)._simple_new(cat, name=name)

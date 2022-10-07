@@ -6,6 +6,7 @@ from __future__ import annotations
 from textwrap import dedent
 from typing import (
     Any,
+    Final,
     Hashable,
     Iterable,
     Mapping,
@@ -39,7 +40,7 @@ class HTMLFormatter:
     and this class responsible for only producing html markup.
     """
 
-    indent_delta = 2
+    indent_delta: Final = 2
 
     def __init__(
         self,

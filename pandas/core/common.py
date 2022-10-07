@@ -18,9 +18,9 @@ from typing import (
     Any,
     Callable,
     Collection,
+    Generator,
     Hashable,
     Iterable,
-    Iterator,
     Sequence,
     cast,
     overload,
@@ -169,7 +169,7 @@ def cast_scalar_indexer(val, warn_float: bool = False):
                 "Indexing with a float is deprecated, and will raise an IndexError "
                 "in pandas 2.0. You can manually convert to an integer key instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         return int(val)
     return val
@@ -534,7 +534,7 @@ def convert_to_list_like(
 
 
 @contextlib.contextmanager
-def temp_setattr(obj, attr: str, value) -> Iterator[None]:
+def temp_setattr(obj, attr: str, value) -> Generator[None, None, None]:
     """Temporarily set attribute on an object.
 
     Args:
@@ -697,4 +697,6 @@ def deprecate_numeric_only_default(
         "this warning."
     )
 
-    warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+    warnings.warn(
+        msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+    )

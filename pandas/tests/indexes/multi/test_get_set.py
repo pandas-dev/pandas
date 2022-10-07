@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import PY311
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -139,9 +141,15 @@ def test_set_levels_codes_directly(idx):
     minor_codes = [(x + 1) % 1 for x in minor_codes]
     new_codes = [major_codes, minor_codes]
 
-    msg = "[Cc]an't set attribute"
+    msg = "Can't set attribute"
     with pytest.raises(AttributeError, match=msg):
         idx.levels = new_levels
+
+    msg = (
+        "property 'codes' of 'MultiIndex' object has no setter"
+        if PY311
+        else "can't set attribute"
+    )
     with pytest.raises(AttributeError, match=msg):
         idx.codes = new_codes
 
@@ -465,6 +473,14 @@ def test_set_levels_pos_args_deprecation():
         ],
         names=["foo", "bar"],
     )
+    tm.assert_index_equal(result, expected)
+
+
+def test_set_empty_level():
+    # GH#48636
+    midx = MultiIndex.from_arrays([[]], names=["A"])
+    result = midx.set_levels(pd.DatetimeIndex([]), level=0)
+    expected = MultiIndex.from_arrays([pd.DatetimeIndex([])], names=["A"])
     tm.assert_index_equal(result, expected)
 
 

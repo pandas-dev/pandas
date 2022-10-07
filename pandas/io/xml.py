@@ -12,6 +12,7 @@ from typing import (
 )
 
 from pandas._typing import (
+    TYPE_CHECKING,
     CompressionOptions,
     ConvertersArg,
     DtypeArg,
@@ -33,7 +34,6 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.common import is_list_like
 
-from pandas.core.frame import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
@@ -45,6 +45,16 @@ from pandas.io.common import (
     stringify_path,
 )
 from pandas.io.parsers import TextParser
+
+if TYPE_CHECKING:
+    from xml.etree.ElementTree import Element
+
+    from lxml.etree import (
+        _Element,
+        _XSLTResultTree,
+    )
+
+    from pandas import DataFrame
 
 
 @doc(
@@ -377,7 +387,7 @@ class _XMLFrameParser:
 
         return dicts
 
-    def _validate_path(self) -> None:
+    def _validate_path(self) -> list[Any]:
         """
         Validate xpath.
 
@@ -410,7 +420,7 @@ class _XMLFrameParser:
 
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
-    ) -> bytes:
+    ) -> Element | _Element:
         """
         Build tree from path_or_buffer.
 
@@ -427,10 +437,7 @@ class _EtreeFrameParser(_XMLFrameParser):
     """
 
     def parse_data(self) -> list[dict[str, str | None]]:
-        from xml.etree.ElementTree import (
-            XML,
-            iterparse,
-        )
+        from xml.etree.ElementTree import iterparse
 
         if self.stylesheet is not None:
             raise ValueError(
@@ -438,9 +445,8 @@ class _EtreeFrameParser(_XMLFrameParser):
             )
 
         if self.iterparse is None:
-            self.xml_doc = XML(self._parse_doc(self.path_or_buffer))
-            self._validate_path()
-            elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
+            self.xml_doc = self._parse_doc(self.path_or_buffer)
+            elems = self._validate_path()
 
         self._validate_names()
 
@@ -452,7 +458,7 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         return xml_dicts
 
-    def _validate_path(self) -> None:
+    def _validate_path(self) -> list[Any]:
         """
         Notes
         -----
@@ -461,18 +467,28 @@ class _EtreeFrameParser(_XMLFrameParser):
         """
 
         msg = (
-            "xpath does not return any nodes. "
+            "xpath does not return any nodes or attributes. "
+            "Be sure to specify in `xpath` the parent nodes of "
+            "children and attributes to parse. "
             "If document uses namespaces denoted with "
             "xmlns, be sure to define namespaces and "
             "use them in xpath."
         )
         try:
-            elems = self.xml_doc.find(self.xpath, namespaces=self.namespaces)
+            elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
+            children = [ch for el in elems for ch in el.findall("*")]
+            attrs = {k: v for el in elems for k, v in el.attrib.items()}
+
             if elems is None:
                 raise ValueError(msg)
 
-            if elems is not None and elems.find("*") is None and elems.attrib is None:
-                raise ValueError(msg)
+            if elems is not None:
+                if self.elems_only and children == []:
+                    raise ValueError(msg)
+                elif self.attrs_only and attrs == {}:
+                    raise ValueError(msg)
+                elif children == [] and attrs == {}:
+                    raise ValueError(msg)
 
         except (KeyError, SyntaxError):
             raise SyntaxError(
@@ -480,6 +496,8 @@ class _EtreeFrameParser(_XMLFrameParser):
                 "expression for etree library or you used an "
                 "undeclared namespace prefix."
             )
+
+        return elems
 
     def _validate_names(self) -> None:
         children: list[Any]
@@ -503,11 +521,10 @@ class _EtreeFrameParser(_XMLFrameParser):
 
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
-    ) -> bytes:
+    ) -> Element:
         from xml.etree.ElementTree import (
             XMLParser,
             parse,
-            tostring,
         )
 
         handle_data = get_data_from_filepath(
@@ -519,9 +536,9 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         with preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
-            r = parse(xml_data, parser=curr_parser)
+            doc = parse(xml_data, parser=curr_parser)
 
-        return tostring(r.getroot())
+        return doc.getroot()
 
 
 class _LxmlFrameParser(_XMLFrameParser):
@@ -539,20 +556,16 @@ class _LxmlFrameParser(_XMLFrameParser):
         validate xpath, names, optionally parse and run XSLT,
         and parse original or transformed XML and return specific nodes.
         """
-        from lxml.etree import (
-            XML,
-            iterparse,
-        )
+        from lxml.etree import iterparse
 
         if self.iterparse is None:
-            self.xml_doc = XML(self._parse_doc(self.path_or_buffer))
+            self.xml_doc = self._parse_doc(self.path_or_buffer)
 
             if self.stylesheet:
-                self.xsl_doc = XML(self._parse_doc(self.stylesheet))
-                self.xml_doc = XML(self._transform_doc())
+                self.xsl_doc = self._parse_doc(self.stylesheet)
+                self.xml_doc = self._transform_doc()
 
-            self._validate_path()
-            elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
+            elems = self._validate_path()
 
         self._validate_names()
 
@@ -564,25 +577,33 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         return xml_dicts
 
-    def _validate_path(self) -> None:
+    def _validate_path(self) -> list[Any]:
 
         msg = (
-            "xpath does not return any nodes. "
-            "Be sure row level nodes are in xpath. "
+            "xpath does not return any nodes or attributes. "
+            "Be sure to specify in `xpath` the parent nodes of "
+            "children and attributes to parse. "
             "If document uses namespaces denoted with "
             "xmlns, be sure to define namespaces and "
             "use them in xpath."
         )
 
         elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
-        children = self.xml_doc.xpath(self.xpath + "/*", namespaces=self.namespaces)
-        attrs = self.xml_doc.xpath(self.xpath + "/@*", namespaces=self.namespaces)
+        children = [ch for el in elems for ch in el.xpath("*")]
+        attrs = {k: v for el in elems for k, v in el.attrib.items()}
 
         if elems == []:
             raise ValueError(msg)
 
-        if elems != [] and attrs == [] and children == []:
-            raise ValueError(msg)
+        if elems != []:
+            if self.elems_only and children == []:
+                raise ValueError(msg)
+            elif self.attrs_only and attrs == {}:
+                raise ValueError(msg)
+            elif children == [] and attrs == {}:
+                raise ValueError(msg)
+
+        return elems
 
     def _validate_names(self) -> None:
         children: list[Any]
@@ -607,12 +628,11 @@ class _LxmlFrameParser(_XMLFrameParser):
 
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
-    ) -> bytes:
+    ) -> _Element:
         from lxml.etree import (
             XMLParser,
             fromstring,
             parse,
-            tostring,
         )
 
         handle_data = get_data_from_filepath(
@@ -637,9 +657,9 @@ class _LxmlFrameParser(_XMLFrameParser):
             else:
                 doc = parse(xml_data, parser=curr_parser)
 
-        return tostring(doc)
+        return doc
 
-    def _transform_doc(self) -> bytes:
+    def _transform_doc(self) -> _XSLTResultTree:
         """
         Transform original tree using stylesheet.
 
@@ -652,7 +672,7 @@ class _LxmlFrameParser(_XMLFrameParser):
         transformer = XSLT(self.xsl_doc)
         new_doc = transformer(self.xml_doc)
 
-        return bytes(new_doc)
+        return new_doc
 
 
 def get_data_from_filepath(

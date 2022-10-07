@@ -4,6 +4,7 @@ Concat routines.
 from __future__ import annotations
 
 from collections import abc
+import inspect
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -20,6 +21,7 @@ import numpy as np
 
 from pandas._typing import (
     Axis,
+    AxisInt,
     HashableT,
 )
 from pandas.util._decorators import (
@@ -157,8 +159,9 @@ def concat(
     copy: bool = True,
 ) -> DataFrame | Series:
     """
-    Concatenate pandas objects along a particular axis with optional set logic
-    along the other axes.
+    Concatenate pandas objects along a particular axis.
+
+    Allows optional set logic along the other axes.
 
     Can also add a layer of hierarchical indexing on the concatenation axis,
     which may be useful if the labels are the same (or overlapping) on
@@ -388,7 +391,7 @@ class _Concatenator:
     def __init__(
         self,
         objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
-        axis=0,
+        axis: Axis = 0,
         join: str = "outer",
         keys=None,
         levels=None,
@@ -396,7 +399,7 @@ class _Concatenator:
         ignore_index: bool = False,
         verify_integrity: bool = False,
         copy: bool = True,
-        sort=False,
+        sort: bool = False,
     ) -> None:
         if isinstance(objs, (ABCSeries, ABCDataFrame, str)):
             raise TypeError(
@@ -551,7 +554,7 @@ class _Concatenator:
                 "Passing non boolean values for sort is deprecated and "
                 "will error in a future version!",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         self.sort = sort
 
@@ -634,7 +637,7 @@ class _Concatenator:
             for i in range(ndim)
         ]
 
-    def _get_comb_axis(self, i: int) -> Index:
+    def _get_comb_axis(self, i: AxisInt) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
         return get_objs_combined_axis(
             self.objs,

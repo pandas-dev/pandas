@@ -7,14 +7,15 @@ from typing import Any
 import numpy as np
 
 import pandas as pd
-from pandas.core.exchange.dataframe_protocol import (
+from pandas.core.interchange.column import PandasColumn
+from pandas.core.interchange.dataframe_protocol import (
     Buffer,
     Column,
     ColumnNullType,
     DataFrame as DataFrameXchg,
     DtypeKind,
 )
-from pandas.core.exchange.utils import (
+from pandas.core.interchange.utils import (
     ArrowCTypes,
     Endianness,
 )
@@ -27,14 +28,14 @@ _NP_DTYPES: dict[DtypeKind, dict[int, Any]] = {
 }
 
 
-def from_dataframe(df, allow_copy=True) -> pd.DataFrame:
+def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from any DataFrame supporting the interchange protocol.
 
     Parameters
     ----------
     df : DataFrameXchg
-        Object supporting the exchange protocol, i.e. `__dataframe__` method.
+        Object supporting the interchange protocol, i.e. `__dataframe__` method.
     allow_copy : bool, default: True
         Whether to allow copying the memory to perform the conversion
         (if false then zero-copy approach is requested).
@@ -52,14 +53,14 @@ def from_dataframe(df, allow_copy=True) -> pd.DataFrame:
     return _from_dataframe(df.__dataframe__(allow_copy=allow_copy))
 
 
-def _from_dataframe(df: DataFrameXchg, allow_copy=True):
+def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True):
     """
-    Build a ``pd.DataFrame`` from the DataFrame exchange object.
+    Build a ``pd.DataFrame`` from the DataFrame interchange object.
 
     Parameters
     ----------
     df : DataFrameXchg
-        Object supporting the exchange protocol, i.e. `__dataframe__` method.
+        Object supporting the interchange protocol, i.e. `__dataframe__` method.
     allow_copy : bool, default: True
         Whether to allow copying the memory to perform the conversion
         (if false then zero-copy approach is requested).
@@ -91,7 +92,7 @@ def _from_dataframe(df: DataFrameXchg, allow_copy=True):
 
 def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
     """
-    Convert exchange protocol chunk to ``pd.DataFrame``.
+    Convert interchange protocol chunk to ``pd.DataFrame``.
 
     Parameters
     ----------
@@ -131,7 +132,7 @@ def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
         buffers.append(buf)
 
     pandas_df = pd.DataFrame(columns)
-    pandas_df.attrs["_EXCHANGE_PROTOCOL_BUFFERS"] = buffers
+    pandas_df.attrs["_INTERCHANGE_PROTOCOL_BUFFERS"] = buffers
     return pandas_df
 
 
@@ -179,9 +180,10 @@ def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
     if not categorical["is_dictionary"]:
         raise NotImplementedError("Non-dictionary categoricals not supported yet")
 
-    mapping = categorical["mapping"]
-    assert isinstance(mapping, dict), "Categorical mapping must be a dict"
-    categories = np.array(tuple(mapping[k] for k in sorted(mapping)))
+    cat_column = categorical["categories"]
+    # for mypy/pyright
+    assert isinstance(cat_column, PandasColumn), "categories must be a PandasColumn"
+    categories = np.array(cat_column._col)
     buffers = col.get_buffers()
 
     codes_buff, codes_dtype = buffers["data"]
@@ -495,7 +497,7 @@ def set_nulls(
     null_pos = None
 
     if null_kind == ColumnNullType.USE_SENTINEL:
-        null_pos = data == sentinel_val
+        null_pos = pd.Series(data) == sentinel_val
     elif null_kind in (ColumnNullType.USE_BITMASK, ColumnNullType.USE_BYTEMASK):
         assert validity, "Expected to have a validity buffer for the mask"
         valid_buff, valid_dtype = validity

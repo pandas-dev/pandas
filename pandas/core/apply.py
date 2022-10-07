@@ -31,6 +31,7 @@ from pandas._typing import (
     AggFuncTypeDict,
     AggObjType,
     Axis,
+    AxisInt,
     NDFrameT,
     npt,
 )
@@ -104,7 +105,7 @@ def frame_apply(
 
 
 class Apply(metaclass=abc.ABCMeta):
-    axis: int
+    axis: AxisInt
 
     def __init__(
         self,
@@ -291,7 +292,7 @@ class Apply(metaclass=abc.ABCMeta):
                 f"raised, this will raise in a future version of pandas. "
                 f"Drop these columns/ops to avoid this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         return concat(results, axis=1)
 
@@ -423,7 +424,7 @@ class Apply(metaclass=abc.ABCMeta):
             warnings.warn(
                 depr_nuisance_columns_msg.format(failed_names),
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         try:
@@ -505,9 +506,13 @@ class Apply(metaclass=abc.ABCMeta):
                 ktu._set_names(selected_obj.columns.names)
                 keys_to_use = ktu
 
-            axis = 0 if isinstance(obj, ABCSeries) else 1
+            axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
+            # error: Key expression in dictionary comprehension has incompatible type
+            # "Hashable"; expected type "NDFrame"  [misc]
             result = concat(
-                {k: results[k] for k in keys_to_use}, axis=axis, keys=keys_to_use
+                {k: results[k] for k in keys_to_use},  # type: ignore[misc]
+                axis=axis,
+                keys=keys_to_use,
             )
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars
@@ -550,10 +555,13 @@ class Apply(metaclass=abc.ABCMeta):
         func = getattr(obj, f, None)
         if callable(func):
             sig = inspect.getfullargspec(func)
-            if "axis" in sig.args:
-                self.kwargs["axis"] = self.axis
-            elif self.axis != 0:
+            arg_names = (*sig.args, *sig.kwonlyargs)
+            if self.axis != 0 and (
+                "axis" not in arg_names or f in ("corrwith", "mad", "skew")
+            ):
                 raise ValueError(f"Operation {f} does not support axis=1")
+            elif "axis" in arg_names:
+                self.kwargs["axis"] = self.axis
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
     def apply_multiple(self) -> DataFrame | Series:
@@ -924,7 +932,7 @@ class FrameApply(NDFrameApply):
 
 
 class FrameRowApply(FrameApply):
-    axis = 0
+    axis: AxisInt = 0
 
     def apply_broadcast(self, target: DataFrame) -> DataFrame:
         return super().apply_broadcast(target)
@@ -984,7 +992,7 @@ class FrameRowApply(FrameApply):
 
 
 class FrameColumnApply(FrameApply):
-    axis = 1
+    axis: AxisInt = 1
 
     def apply_broadcast(self, target: DataFrame) -> DataFrame:
         result = super().apply_broadcast(target.T)
@@ -1061,7 +1069,7 @@ class FrameColumnApply(FrameApply):
 
 class SeriesApply(NDFrameApply):
     obj: Series
-    axis = 0
+    axis: AxisInt = 0
 
     def __init__(
         self,
@@ -1191,7 +1199,7 @@ class GroupByApply(Apply):
 
 
 class ResamplerWindowApply(Apply):
-    axis = 0
+    axis: AxisInt = 0
     obj: Resampler | BaseWindow
 
     def __init__(

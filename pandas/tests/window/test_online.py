@@ -103,3 +103,13 @@ class TestEWM:
             tm.assert_equal(result, expected.tail(3))
 
             online_ewm.reset()
+
+    @pytest.mark.parametrize("method", ["aggregate", "std", "corr", "cov", "var"])
+    def test_ewm_notimplementederror_raises(self, method):
+        ser = Series(range(10))
+        kwargs = {}
+        if method == "aggregate":
+            kwargs["func"] = lambda x: x
+
+        with pytest.raises(NotImplementedError, match=".* is not implemented."):
+            getattr(ser.ewm(1).online(), method)(**kwargs)

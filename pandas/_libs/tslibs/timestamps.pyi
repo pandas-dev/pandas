@@ -16,6 +16,7 @@ import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
+    NaTType,
     Period,
     Tick,
     Timedelta,
@@ -26,20 +27,16 @@ _DatetimeT = TypeVar("_DatetimeT", bound=datetime)
 def integer_op_not_supported(obj: object) -> TypeError: ...
 
 class Timestamp(datetime):
+    _reso: int
     min: ClassVar[Timestamp]
     max: ClassVar[Timestamp]
 
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
-    def __new__(
+    # error: "__new__" must return a class instance (got "Union[Timestamp, NaTType]")
+    def __new__(  # type: ignore[misc]
         cls: type[_DatetimeT],
-        ts_input: int
-        | np.integer
-        | float
-        | str
-        | _date
-        | datetime
-        | np.datetime64 = ...,
+        ts_input: np.integer | float | str | _date | datetime | np.datetime64 = ...,
         freq: int | None | str | BaseOffset = ...,
         tz: str | _tzinfo | None | int = ...,
         unit: str | int | None = ...,
@@ -54,10 +51,7 @@ class Timestamp(datetime):
         tzinfo: _tzinfo | None = ...,
         *,
         fold: int | None = ...,
-    ) -> _DatetimeT: ...
-    # GH 46171
-    # While Timestamp can return pd.NaT, having the constructor return
-    # a Union with NaTType makes things awkward for users of pandas
+    ) -> _DatetimeT | NaTType: ...
     def _set_freq(self, freq: BaseOffset | None) -> None: ...
     @classmethod
     def _from_value_and_reso(
@@ -228,4 +222,6 @@ class Timestamp(datetime):
     def days_in_month(self) -> int: ...
     @property
     def daysinmonth(self) -> int: ...
+    @property
+    def _unit(self) -> str: ...
     def _as_unit(self, unit: str, round_ok: bool = ...) -> Timestamp: ...

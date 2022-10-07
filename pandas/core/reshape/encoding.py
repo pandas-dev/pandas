@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from collections import defaultdict
 import itertools
-from typing import Hashable
+from typing import (
+    Hashable,
+    Iterable,
+)
 
 import numpy as np
 
@@ -25,7 +28,7 @@ from pandas.core.series import Series
 def get_dummies(
     data,
     prefix=None,
-    prefix_sep="_",
+    prefix_sep: str | Iterable[str] | dict[str, str] = "_",
     dummy_na: bool = False,
     columns=None,
     sparse: bool = False,
@@ -34,6 +37,10 @@ def get_dummies(
 ) -> DataFrame:
     """
     Convert categorical variable into dummy/indicator variables.
+
+    Each variable is converted in as many 0/1 variables as there are different
+    values. Columns in the output are each named after a value; if the input is
+    a DataFrame, the name of the original variable is prepended to the value.
 
     Parameters
     ----------
@@ -65,11 +72,12 @@ def get_dummies(
     Returns
     -------
     DataFrame
-        Dummy-coded data.
+        Dummy-coded data. If `data` contains other columns than the
+        dummy-coded one(s), these will be prepended, unaltered, to the result.
 
     See Also
     --------
-    Series.str.get_dummies : Convert Series to dummy codes.
+    Series.str.get_dummies : Convert Series of strings to dummy codes.
     :func:`~pandas.from_dummies` : Convert dummy codes to categorical ``DataFrame``.
 
     Notes
@@ -216,7 +224,7 @@ def get_dummies(
 def _get_dummies_1d(
     data,
     prefix,
-    prefix_sep="_",
+    prefix_sep: str | Iterable[str] | dict[str, str] = "_",
     dummy_na: bool = False,
     sparse: bool = False,
     drop_first: bool = False,
@@ -272,7 +280,7 @@ def _get_dummies_1d(
 
     if sparse:
 
-        fill_value: bool | float | int
+        fill_value: bool | float
         if is_integer_dtype(dtype):
             fill_value = 0
         elif dtype == np.dtype(bool):
