@@ -84,7 +84,7 @@ jobs:
     - name: Build Pandas
       run: |
         python setup.py build_ext -q -j1
-        python -m pip install -e . --no-build-isolation --no-use-pep517
+        python -m pip install -e . --no-build-isolation --no-use-pep517 --no-index
 
     - name: Build Version
       run: |
