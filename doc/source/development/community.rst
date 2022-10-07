@@ -3,6 +3,7 @@
 =====================
 Contributor community
 =====================
+
 pandas is a community-driven open source project developed by a large group
 of `contributors <https://github.com/pandas-dev/pandas/graphs/contributors>`_
 and a smaller group of `maintainers <https://pandas.pydata.org/about/team.html>`_.
@@ -34,7 +35,7 @@ new contributors in our community.
 | 💬 everyone can present (add yourself to the hackMD agenda)
 | 👀 anyone can sit in and listen
 
-Attending are new and experienced contributors, as well as a few maintainers.
+Attendees are new and experienced contributors, as well as a few maintainers.
 We aim to answer questions about getting started, or help with work in
 progress when possible, as well as get to know each other and share our
 learnings and experiences.
@@ -78,7 +79,7 @@ ongoing development of the project. For example:
 
 - Report issues with the CI, GitHub Actions, or the performance of pandas
 - Open issues relating to the internals
-- start roadmap discussion aligning on proposals what to do in future
+- Start roadmap discussion aligning on proposals what to do in future
   releases or changes to the API.
 - Open issues relating to the project's website, logo, or governance
 
@@ -87,7 +88,7 @@ The developer mailing list
 The pandas mailing list `pandas-dev@python.org <mailto://pandas-dev@python
 .org>`_ is used for long form
 conversations and to engages people in the wider community who might not
-be active in on the issue tracker but we would like to include in discussions.
+be active on the issue tracker but we would like to include in discussions.
 
 Community slack
 ---------------
@@ -98,7 +99,8 @@ people who are hesitant to bring up their questions or ideas on a large public
 mailing list or GitHub.
 
 If this sounds like the right place for you, you are welcome to join! email us
-at slack@pandas.paydata.org and let us know that you read and agree to our
+at `slack@pandas.pydata.org <mailto://slack@pandas.pydata.org>`_ and let 
+us know that you read and agree to our
 `Code of Conduct <https://pandas.pydata.org/community/coc.html>`_ 😉 to get an
 invite. And please remember the slack is not meant to replace the mailing
 list or issue tracker - all important announcements and conversations should
