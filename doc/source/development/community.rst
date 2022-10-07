@@ -1,4 +1,4 @@
-.. _meeting:
+.. _community:
 
 =====================
 Contributor community
