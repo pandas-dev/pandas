@@ -148,10 +148,9 @@ class HistPlot(LinePlot):
             # and each sub-array (10,) will be called in each iteration. If users only
             # provide 1D array, we assume the same weights is used for all iterations
             weights = kwds.get("weights", None)
-            if weights is not None and np.ndim(weights) != 1:
-                weights = weights[:, i]
-
             if weights is not None:
+                if np.ndim(weights) != 1:
+                    weights = weights[:, i]
                 weights = weights[~isna(y)]
                 kwds["weights"] = weights
 
