@@ -359,11 +359,11 @@ class MergeAsof:
         df1 = df1.sort_values("time")
         df2 = df2.sort_values("time")
 
-        df1["time32"] = np.int32(df1.time)
-        df2["time32"] = np.int32(df2.time)
+        df1.loc[:, "time32"] = np.int32(df1.time)
+        df2.loc[:, "time32"] = np.int32(df2.time)
 
-        df1["timeu64"] = np.uint64(df1.time)
-        df2["timeu64"] = np.uint64(df2.time)
+        df1.loc[:, "timeu64"] = np.uint64(df1.time)
+        df2.loc[:, "timeu64"] = np.uint64(df2.time)
 
         self.df1a = df1[["time", "value1"]]
         self.df2a = df2[["time", "value2"]]

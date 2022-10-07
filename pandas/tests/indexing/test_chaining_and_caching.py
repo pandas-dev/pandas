@@ -379,7 +379,7 @@ class TestChaining:
         # an identical take, so no copy
         df = DataFrame({"a": [1]}).dropna()
         assert df._is_copy is None
-        df["a"] += 1
+        df.loc[:, "a"] += 1
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_sorting(self):

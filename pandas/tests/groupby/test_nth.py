@@ -212,7 +212,7 @@ def test_nth():
     tm.assert_frame_equal(g.nth(0, dropna="any"), exp.iloc[[1, 2]])
     tm.assert_frame_equal(g.nth(-1, dropna="any"), exp.iloc[[1, 2]])
 
-    exp["B"] = np.nan
+    exp.loc[:, "B"] = np.nan
     tm.assert_frame_equal(g.nth(7, dropna="any"), exp.iloc[[1, 2]])
     tm.assert_frame_equal(g.nth(2, dropna="any"), exp.iloc[[1, 2]])
 

@@ -97,7 +97,7 @@ class TestDataFrameDescribe:
         cat_labels = Categorical(labels, labels)
 
         df = df.sort_values(by=["value"], ascending=True)
-        df["value_group"] = pd.cut(
+        df.loc[:,"value_group"] = pd.cut(
             df.value, range(0, 10500, 500), right=False, labels=cat_labels
         )
         cat = df

@@ -41,7 +41,7 @@ def test_basic_indexing():
         s[5]
     msg = r"index 5 is out of bounds for axis (0|1) with size 5|^5$"
     with pytest.raises(IndexError, match=msg):
-        s[5] = 0
+        s.loc[5] = 0
 
 
 def test_basic_getitem_with_labels(datetime_series):

@@ -584,7 +584,7 @@ class TestDataFrameReshape:
 
         # mixed
         df2 = df.set_index(["A", "B"])
-        df2["C"] = 3.0
+        df2.loc[:, "C"] = 3.0
         df3 = df2.unstack("B")
         result = df3.dtypes
         expected = Series(
@@ -594,7 +594,7 @@ class TestDataFrameReshape:
             ),
         )
         tm.assert_series_equal(result, expected)
-        df2["D"] = "foo"
+        df2.loc[:, "D"] = "foo"
         df3 = df2.unstack("B")
         result = df3.dtypes
         expected = Series(
@@ -626,7 +626,7 @@ class TestDataFrameReshape:
         right = df.iloc[:3].copy(deep=True)
 
         df = df.set_index(["A", "B"])
-        df["D"] = df["D"].astype("int64")
+        df.loc[:, "D"] = df["D"].astype("int64")
 
         left = df.iloc[:3].unstack(0)
         right = right.set_index(["A", "B"]).unstack(0)
@@ -2007,7 +2007,7 @@ Thu,Lunch,Yes,51.51,17"""
         ).set_index(["a", "b"])
 
         # add another int column to get 2 blocks
-        df["is_"] = 1
+        df.loc[:, "is_"] = 1
         if not using_array_manager:
             assert len(df._mgr.blocks) == 2
 

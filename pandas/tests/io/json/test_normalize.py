@@ -391,7 +391,7 @@ class TestJSONNormalize:
             expected.extend(rec["counties"])
         expected = DataFrame(expected)
         expected = expected.rename(columns=lambda x: "county_" + x)
-        expected["state"] = np.array(["Florida", "Ohio"]).repeat([3, 2])
+        expected.loc[:, "state"] = np.array(["Florida", "Ohio"]).repeat([3, 2])
 
         tm.assert_frame_equal(result, expected)
 

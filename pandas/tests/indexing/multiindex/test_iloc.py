@@ -159,7 +159,7 @@ def test_iloc_setitem_int_multiindex_series(data, indexes, values, expected_k):
     for i, v in zip(indexes, values):
         series.iloc[i] += v
 
-    df["k"] = expected_k
+    df.loc[:, "k"] = expected_k
     expected = df.k
     tm.assert_series_equal(series, expected)
 

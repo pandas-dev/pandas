@@ -840,7 +840,7 @@ def test_append_with_timedelta(setup_path):
 def test_append_to_multiple(setup_path):
     df1 = tm.makeTimeDataFrame()
     df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
-    df2["foo"] = "bar"
+    df2.loc[:, "foo"] = "bar"
     df = concat([df1, df2], axis=1)
 
     with ensure_clean_store(setup_path) as store:

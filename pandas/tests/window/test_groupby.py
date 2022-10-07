@@ -585,7 +585,7 @@ class TestRolling:
         ).set_index("index")
 
         groups = df.groupby("group")
-        df["count_to_date"] = groups.cumcount()
+        df.loc[:, "count_to_date"] = groups.cumcount()
         rolling_groups = groups.rolling("10d", on="eventTime")
         result = rolling_groups.apply(lambda df: df.shape[0])
         expected = DataFrame(

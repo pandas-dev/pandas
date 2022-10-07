@@ -112,7 +112,7 @@ class TestCategoricalIndexingWithFactor:
             np.random.randint(0, 5, size=150000).astype(np.int8)
         ).add_categories([-1000])
         indexer = np.array([100000]).astype(np.int64)
-        cat[indexer] = -1000
+        cat.loc[indexer] = -1000
 
         # we are asserting the code result here
         # which maps to the -1000 category

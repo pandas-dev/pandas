@@ -845,7 +845,7 @@ class TestSeriesReductions:
         string_series = tm.makeStringSeries().rename("series")
 
         # add some NaNs
-        string_series[5:15] = np.NaN
+        string_series.iloc[5:15] = np.NaN
 
         # skipna or no
         assert string_series[string_series.idxmin()] == string_series.min()
@@ -875,7 +875,7 @@ class TestSeriesReductions:
         string_series = tm.makeStringSeries().rename("series")
 
         # add some NaNs
-        string_series[5:15] = np.NaN
+        string_series.iloc[5:15] = np.NaN
 
         # skipna or no
         assert string_series[string_series.idxmax()] == string_series.max()

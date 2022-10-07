@@ -312,7 +312,7 @@ class TestSeriesFillNA:
         obj = frame_or_series(td)
         result = obj.ffill()
         expected = td.fillna(Timedelta(seconds=0))
-        expected[0] = np.nan
+        expected.loc[:, 0] = np.nan
         expected = frame_or_series(expected)
 
         tm.assert_equal(result, expected)
@@ -322,7 +322,7 @@ class TestSeriesFillNA:
         obj = frame_or_series(td)
         result = obj.bfill()
         expected = td.fillna(Timedelta(seconds=0))
-        expected[2] = timedelta(days=1, seconds=9 * 3600 + 60 + 1)
+        expected.loc[:, 2] = timedelta(days=1, seconds=9 * 3600 + 60 + 1)
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 

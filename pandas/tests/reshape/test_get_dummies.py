@@ -548,7 +548,7 @@ class TestGetDummies:
         expected = expected.sort_index(axis=1)
         if sparse:
             for col in cols:
-                expected[col] = SparseArray(expected[col])
+                expected.loc[:, col] = SparseArray(expected[col])
 
         tm.assert_frame_equal(result, expected)
 

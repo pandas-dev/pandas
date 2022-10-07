@@ -375,7 +375,7 @@ def test_select_iterator(setup_path):
         df1 = tm.makeTimeDataFrame(500)
         store.append("df1", df1, data_columns=True)
         df2 = tm.makeTimeDataFrame(500).rename(columns="{}_2".format)
-        df2["foo"] = "bar"
+        df2.loc[:, "foo"] = "bar"
         store.append("df2", df2)
 
         df = concat([df1, df2], axis=1)
@@ -790,7 +790,7 @@ def test_select_as_multiple(setup_path):
 
     df1 = tm.makeTimeDataFrame()
     df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
-    df2["foo"] = "bar"
+    df2.loc[:, "foo"] = "bar"
 
     with ensure_clean_store(setup_path) as store:
 

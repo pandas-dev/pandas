@@ -843,7 +843,7 @@ class TestDataFrameSetItemWithExpansion:
         cat = ser.values
 
         # setting with a Categorical
-        df["D"] = cat
+        df.loc[:, "D"] = cat
         str(df)
 
         result = df.dtypes
@@ -854,7 +854,7 @@ class TestDataFrameSetItemWithExpansion:
         tm.assert_series_equal(result, expected)
 
         # setting with a Series
-        df["E"] = ser
+        df.loc[: "E"] = ser
         str(df)
 
         result = df.dtypes

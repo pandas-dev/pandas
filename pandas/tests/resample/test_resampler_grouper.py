@@ -511,7 +511,7 @@ def test_resample_empty_Dataframe(keys):
     df = df.set_index("date")
     result = df.groupby(keys).resample(rule=pd.to_timedelta("00:00:01")).mean()
     expected = DataFrame(columns=["a", "b", "date"]).set_index(keys, drop=False)
-    expected["date"] = pd.to_datetime(expected["date"])
+    expected.loc[:, "date"] = pd.to_datetime(expected["date"])
     expected = expected.set_index("date", append=True, drop=True)
     if len(keys) == 1:
         expected.index.name = keys[0]
