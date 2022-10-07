@@ -197,6 +197,14 @@ dtype : Type name or dict of column -> type, default ``None``
      Support for defaultdict was added. Specify a defaultdict as input where
      the default determines the dtype of the columns which are not explicitly
      listed.
+
+use_nullable_dtypes : bool = False
+    Whether or not to use nullable dtypes as default when reading data. If
+    set to True, nullable dtypes are used for all dtypes that have a nullable
+    implementation, even if no nulls are present.
+
+    .. versionadded:: 2.0
+
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
   is currently more feature-complete. Multithreading is currently only supported by

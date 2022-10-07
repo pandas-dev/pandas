@@ -15,6 +15,7 @@ from typing import (
     Hashable,
     Iterable,
     List,
+    Literal,
     Mapping,
     Sequence,
     Tuple,
@@ -50,6 +51,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_float_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -61,8 +63,14 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
+from pandas import StringDtype
 from pandas.core import algorithms
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import (
+    BooleanArray,
+    Categorical,
+    FloatingArray,
+    IntegerArray,
+)
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -110,6 +118,7 @@ class ParserBase:
 
         self.dtype = copy(kwds.get("dtype", None))
         self.converters = kwds.get("converters")
+        self.use_nullable_dtypes = kwds.get("use_nullable_dtypes", False)
 
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
@@ -508,7 +517,7 @@ class ParserBase:
             )
 
             arr, _ = self._infer_types(
-                arr, col_na_values | col_na_fvalues, try_num_bool
+                arr, col_na_values | col_na_fvalues, cast_type is None, try_num_bool
             )
             arrays.append(arr)
 
@@ -574,7 +583,10 @@ class ParserBase:
                     values = lib.map_infer_mask(values, conv_f, mask)
 
                 cvals, na_count = self._infer_types(
-                    values, set(col_na_values) | col_na_fvalues, try_num_bool=False
+                    values,
+                    set(col_na_values) | col_na_fvalues,
+                    cast_type is None,
+                    try_num_bool=False,
                 )
             else:
                 is_ea = is_extension_array_dtype(cast_type)
@@ -585,14 +597,14 @@ class ParserBase:
 
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
-                    values, set(col_na_values) | col_na_fvalues, try_num_bool
+                    values,
+                    set(col_na_values) | col_na_fvalues,
+                    cast_type is None,
+                    try_num_bool,
                 )
 
                 # type specified in dtype param or cast_type is an EA
-                if cast_type and (
-                    not is_dtype_equal(cvals, cast_type)
-                    or is_extension_array_dtype(cast_type)
-                ):
+                if cast_type and (not is_dtype_equal(cvals, cast_type) or is_ea):
                     if not is_ea and na_count > 0:
                         try:
                             if is_bool_dtype(cast_type):
@@ -679,7 +691,9 @@ class ParserBase:
 
         return noconvert_columns
 
-    def _infer_types(self, values, na_values, try_num_bool: bool = True):
+    def _infer_types(
+        self, values, na_values, no_dtype_specified, try_num_bool: bool = True
+    ):
         """
         Infer types of values, possibly casting
 
@@ -687,6 +701,7 @@ class ParserBase:
         ----------
         values : ndarray
         na_values : set
+        no_dtype_specified: Specifies if we want to cast explicitly
         try_num_bool : bool, default try
            try to cast values to numeric (first preference) or boolean
 
@@ -707,28 +722,62 @@ class ParserBase:
                 np.putmask(values, mask, np.nan)
             return values, na_count
 
+        use_nullable_dtypes: Literal[True] | Literal[False] = (
+            self.use_nullable_dtypes and no_dtype_specified
+        )
+        result: ArrayLike
+
         if try_num_bool and is_object_dtype(values.dtype):
             # exclude e.g DatetimeIndex here
             try:
-                result, _ = lib.maybe_convert_numeric(values, na_values, False)
+                result, result_mask = lib.maybe_convert_numeric(
+                    values,
+                    na_values,
+                    False,
+                    convert_to_masked_nullable=use_nullable_dtypes,
+                )
             except (ValueError, TypeError):
                 # e.g. encountering datetime string gets ValueError
                 #  TypeError can be raised in floatify
+                na_count = parsers.sanitize_objects(values, na_values)
                 result = values
-                na_count = parsers.sanitize_objects(result, na_values)
             else:
-                na_count = isna(result).sum()
+                if use_nullable_dtypes:
+                    if result_mask is None:
+                        result_mask = np.zeros(result.shape, dtype=np.bool_)
+
+                    if result_mask.all():
+                        result = IntegerArray(
+                            np.ones(result_mask.shape, dtype=np.int64), result_mask
+                        )
+                    elif is_integer_dtype(result):
+                        result = IntegerArray(result, result_mask)
+                    elif is_bool_dtype(result):
+                        result = BooleanArray(result, result_mask)
+                    elif is_float_dtype(result):
+                        result = FloatingArray(result, result_mask)
+
+                    na_count = result_mask.sum()
+                else:
+                    na_count = isna(result).sum()
         else:
             result = values
             if values.dtype == np.object_:
                 na_count = parsers.sanitize_objects(values, na_values)
 
         if result.dtype == np.object_ and try_num_bool:
-            result, _ = libops.maybe_convert_bool(
+            result, bool_mask = libops.maybe_convert_bool(
                 np.asarray(values),
                 true_values=self.true_values,
                 false_values=self.false_values,
+                convert_to_masked_nullable=use_nullable_dtypes,
             )
+            if result.dtype == np.bool_ and use_nullable_dtypes:
+                if bool_mask is None:
+                    bool_mask = np.zeros(result.shape, dtype=np.bool_)
+                result = BooleanArray(result, bool_mask)
+            elif result.dtype == np.object_ and use_nullable_dtypes:
+                result = StringDtype().construct_array_type()._from_sequence(values)
 
         return result, na_count
 
@@ -1146,6 +1195,7 @@ parser_defaults = {
     "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
     "error_bad_lines": None,
     "warn_bad_lines": None,
+    "use_nullable_dtypes": False,
 }
 
 
