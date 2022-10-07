@@ -92,7 +92,6 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- Bug in :func:`get_dummies` with default ``dtype`` being ``uint8`` - the default ``dtype`` is now changed to ``bool`` (:issue:`45848`)
 - Bug in :meth:`Series.__getitem__` not falling back to positional for integer keys and boolean :class:`Index` (:issue:`48653`)
 - Bug in :meth:`DataFrame.to_hdf` raising ``AssertionError`` with boolean index (:issue:`48667`)
 - Bug in :func:`assert_index_equal` for extension arrays with non matching ``NA`` raising ``ValueError`` (:issue:`48608`)
