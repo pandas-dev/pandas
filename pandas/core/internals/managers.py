@@ -1748,9 +1748,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             elif na_value is lib.no_default:
                 arr = np.asarray(blk.get_values(dtype))
             else:
-                arr = np.empty(self.shape, dtype=dtype)
-                values = np.asarray(blk.get_values())
-                arr[:] = np.where(~isna(values), values, na_value)
+                arr = np.asarray(blk.get_values().copy())
+                arr = np.where(~isna(arr), arr, na_value).astype(dtype)
+                # We've already copied the underlying data
+                copy = False
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
             # The underlying data was copied within _interleave

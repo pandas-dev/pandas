@@ -491,26 +491,34 @@ def test_to_numpy_dataframe_na_value(data, dtype, na_value):
 
 
 @pytest.mark.parametrize(
-    "data, expected",
+    "data, dtype, expected",
     [
         (
             {"a": pd.array([1, 2, None])},
+            float,
             np.array([[1.0], [2.0], [np.nan]], dtype=float),
         ),
         (
             {"a": np.array([1, 2, pd.NA])},
+            float,
             np.array([[1.0], [2.0], [np.nan]]),
         ),
         (
+            {"a": np.array(["a", "b", pd.NA])},
+            object,
+            np.array([["a"], ["b"], [np.nan]], dtype=object),
+        ),
+        (
             {"a": [1, 2, 3], "b": [1, 2, 3]},
+            float,
             np.array([[1, 1], [2, 2], [3, 3]], dtype=float),
         ),
     ],
 )
-def test_to_numpy_dataframe_single_block(data, expected):
+def test_to_numpy_dataframe_single_block(data, dtype, expected):
     # https://github.com/pandas-dev/pandas/issues/33820
     df = pd.DataFrame(data)
-    result = df.to_numpy(dtype=float, na_value=np.nan)
+    result = df.to_numpy(dtype=dtype, na_value=np.nan)
     tm.assert_numpy_array_equal(result, expected)
 
 
