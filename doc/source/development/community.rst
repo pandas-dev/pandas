@@ -104,9 +104,8 @@ people who are hesitant to bring up their questions or ideas on a large public
 mailing list or GitHub.
 
 If this sounds like the right place for you, you are welcome to join! email us
-at `slack@pandas.pydata.org <mailto://slack@pandas.pydata.org>`_ and let 
-us know that you read and agree to our
-`Code of Conduct <https://pandas.pydata.org/community/coc.html>`_ 😉 to get an
-invite. And please remember the slack is not meant to replace the mailing
-list or issue tracker - all important announcements and conversations should
-still happen there.
+at `slack@pandas.pydata.org <mailto://slack@pandas.pydata.org>`_ and let us
+know that you read and agree to our `Code of Conduct <https://pandas.pydata.org/community/coc.html>`_
+😉 to get an invite. And please remember the slack is not meant to replace the
+mailing list or issue tracker - all important announcements and conversations
+should still happen there.
