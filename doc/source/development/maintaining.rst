@@ -121,6 +121,49 @@ Here's a typical workflow for triaging a newly opened issue.
    unless it's know that this issue should be addressed in a specific release (say
    because it's a large regression).
 
+.. _maintaining.regressions:
+
+Investigating regressions
+-------------------------
+
+Regressions are bugs that unintentionally break previously working code. The common way
+to  investigate regressions is by using
+`git bisect <https://git-scm.com/docs/git-bisect>`_,
+which finds the first commit that introduced the bug.
+
+For example: a user reports that ``pd.Series([1, 1]).sum()`` returns ``3``
+in pandas version ``1.5.0`` while in version ``1.4.0`` it returned ``2``. To begin,
+create a file ``t.py`` in your pandas directory, which contains
+
+.. code-block:: python
+
+    import pandas as pd
+    assert pd.Series([1, 1]).sum() == 2
+
+and then run::
+
+    git bisect start
+    git bisect good v1.4.0
+    git bisect bad v1.5.0
+    git bisect run bash -c "python setup.py build_ext -j 4; python t.py"
+
+This finds the first commit that changed the behavior. The C extensions have to be
+rebuilt at every step, so the search can take a while.
+
+Exit bisect and rebuild the current version::
+
+    git bisect reset
+    python setup.py build_ext -j 4
+
+Report your findings under the corresponding issue and ping the commit author to get
+their input.
+
+.. note::
+    In the ``bisect run`` command above, commits are considered good if ``t.py`` exits
+    with ``0`` and bad otherwise. When raising an exception is the desired behavior,
+    wrap the code in an appropriate ``try/except`` statement. See :issue:`35685` for
+    more examples.
+
 .. _maintaining.closing:
 
 Closing issues
