@@ -790,14 +790,11 @@ Or with one of the following constructs::
     pytest pandas/tests/[test-module].py::[TestClass]
     pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
 
-Using `pytest-xdist <https://pypi.org/project/pytest-xdist>`_, one can
-speed up local testing on multicore machines. To use this feature, you will
-need to install ``pytest-xdist`` via::
-
-    pip install pytest-xdist
-
-The ``-n`` flag then can be specified when running ``pytest`` to parallelize a test run
-across the number of specified cores or ``auto`` to utilize all the available cores on your machine.
+Using `pytest-xdist <https://pypi.org/project/pytest-xdist>`_, which is
+included in our 'pandas-dev' environment, one can speed up local testing on
+multicore machines. The -n flag then can be specified when running pytest to
+parallelize a test run across the number of specified cores or auto to
+utilize all the available cores on your machine.
 
 .. code-block:: bash
 
@@ -807,8 +804,45 @@ across the number of specified cores or ``auto`` to utilize all the available co
    # Utilizes all available cores
    pytest -n auto pandas
 
-This can significantly reduce the time it takes to locally run tests before
-submitting a pull request.
+If you'd like to speed things along further a more advanced use of this
+command would look like this
+
+.. code-block:: bash
+
+    pytest pandas --skip-slow --skip-network --skip-db -m "not single_cpu" -n 4 -r sxX
+
+In addition to the multithreaded performance increase this improves test
+speed by skipping some tests:
+
+- skip-slow: any test that takes long (think seconds rather than milliseconds)
+- skip-network: tests that require network connectivity
+- skip-db: tests that require a database
+
+The -r flag will display a short summary info (see `pytest documentation <https://docs.pytest.org/en/4.6.x/usage.html#detailed-summary-report>`_)
+. Here we are displaying the number of:
+
+- s: skipped tests
+- x: xfailed tests
+- X: xpassed tests
+
+This is optional and can be removed if you don't like the summary. Using this
+command can significantly reduce the time it takes to locally run tests
+before submitting a pull request. If you require assistance with the results,
+which has happened in the past, please set a seed before running the command
+and opening a bug report, that way we can reproduce it. Here's an example
+for setting a seed on windows
+
+.. code-block:: bash
+
+    set PYTHONHASHSEED=314159265
+    pytest pandas --skip-slow --skip-network --skip-db -m "not single_cpu" -n 4 -r sxX
+
+On Unix use
+
+.. code-block:: bash
+
+    export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
+    pytest pandas --skip-slow --skip-network --skip-db -m "not single_cpu" -n 4 -r sxX
 
 For more, see the `pytest <https://docs.pytest.org/en/latest/>`_ documentation.
 
