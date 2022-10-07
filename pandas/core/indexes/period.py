@@ -240,7 +240,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             # range-based.
             if not fields:
                 # test_pickle_compat_construction
-                raise cls._scalar_data_error(None)
+                cls._raise_scalar_data_error(None)
 
             data, freq2 = PeriodArray._generate_range(None, None, None, freq, fields)
             # PeriodArray._generate range does validation that fields is
