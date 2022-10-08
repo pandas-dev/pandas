@@ -183,13 +183,16 @@ class TestNonNano:
         assert (2.5 * td) / td == 2.5
 
         other = Timedelta(td.value)
-        msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow"
+        msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow."
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             td / other
 
-        with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            # __rtruediv__
-            other.to_pytimedelta() / td
+        # Timedelta(other.to_pytimedelta()) has microsecond resolution,
+        #  so the division doesn't require casting all the way to nanos,
+        #  so succeeds
+        res = other.to_pytimedelta() / td
+        expected = other.to_pytimedelta() / td.to_pytimedelta()
+        assert res == expected
 
         # if there's no overflow, we cast to the higher reso
         left = Timedelta._from_value_and_reso(50, NpyDatetimeUnit.NPY_FR_us.value)
@@ -220,9 +223,11 @@ class TestNonNano:
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             td // other
 
-        with pytest.raises(ValueError, match=msg):
-            # __rfloordiv__
-            other.to_pytimedelta() // td
+        # Timedelta(other.to_pytimedelta()) has microsecond resolution,
+        #  so the floordiv doesn't require casting all the way to nanos,
+        #  so succeeds
+        res = other.to_pytimedelta() // td
+        assert res == 0
 
         # if there's no overflow, we cast to the higher reso
         left = Timedelta._from_value_and_reso(50050, NpyDatetimeUnit.NPY_FR_us.value)
