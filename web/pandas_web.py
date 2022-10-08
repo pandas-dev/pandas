@@ -395,7 +395,7 @@ if __name__ == "__main__":
         action="store_true",
         help="do not fail if errors happen when fetching "
         "data from http sources, and those fail "
-        "(mostly useful to allow github quota errors "
+        "(mostly useful to allow GitHub quota errors "
         "when running the script locally)",
     )
     args = parser.parse_args()
