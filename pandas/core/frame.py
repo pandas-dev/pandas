@@ -4245,7 +4245,7 @@ class DataFrame(NDFrame, OpsMixin):
             # row when only scalar options are permitted
             raise InvalidIndexError(
                 f"You can only assign a scalar value not a {type(value)} "
-                "with value {value}"
+                f"with value {value}"
             )
 
     def _ensure_valid_index(self, value) -> None:
