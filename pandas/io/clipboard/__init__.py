@@ -538,7 +538,7 @@ def determine_clipboard():
         if which("wslconfig.exe"):
             return init_wsl_clipboard()
 
-    # Setup for the MAC OS X platform:
+    # Setup for the macOS platform:
     if os.name == "mac" or platform.system() == "Darwin":
         try:
             import AppKit
@@ -587,7 +587,7 @@ def set_clipboard(clipboard):
     the copy() and paste() functions interact with the operating system to
     implement the copy/paste feature. The clipboard parameter must be one of:
         - pbcopy
-        - pyobjc (default on Mac OS X)
+        - pyobjc (default on macOS)
         - qt
         - xclip
         - xsel
