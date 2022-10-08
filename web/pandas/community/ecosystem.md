@@ -411,8 +411,8 @@ It prescibes an opinionated paradigm, that ensures all code is:
 * unit testable
 * integration testing friendly
 * documentation friendly
-* transformation logic is reuseable, as it is decoupled from the context of where it is used.
-* integrateable with runtime data quality checks.
+* transformation logic is reusable, as it is decoupled from the context of where it is used.
+* integratable with runtime data quality checks.
 
 This helps one to scale your pandas code base, at the same time, keeping maintenance costs low.
 
