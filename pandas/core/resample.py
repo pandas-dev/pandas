@@ -984,6 +984,28 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
+    def mean(
+        self,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        *args,
+        **kwargs,
+    ):
+        """
+        Compute mean of groups, excluding missing values.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+        Returns
+        -------
+        DataFrame or Series
+            Mean of values within each group.
+        """
+        nv.validate_resampler_func("mean", args, kwargs)
+        return self._downsample("mean", numeric_only=numeric_only)
+
     def std(
         self,
         ddof: int = 1,
@@ -1173,7 +1195,7 @@ def _add_downsample_kernel(
 
 for method in ["sum", "prod", "min", "max", "first", "last"]:
     _add_downsample_kernel(method, ("numeric_only", "min_count"))
-for method in ["mean", "median"]:
+for method in ["median"]:
     _add_downsample_kernel(method, ("numeric_only",))
 for method in ["sem"]:
     _add_downsample_kernel(method, ("ddof", "numeric_only"))
