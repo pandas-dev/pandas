@@ -831,7 +831,9 @@ class IndexOpsMixin(OpsMixin):
                 # If a dictionary subclass defines a default value method,
                 # convert mapper to a lookup function (GH #15999).
                 dict_with_default = mapper
-                mapper = lambda x: dict_with_default[x]
+                mapper = lambda x: dict_with_default[
+                    np.nan if type(x) == float and np.isnan(x) else x
+                ]
             else:
                 # Dictionary does not have a default. Thus it's safe to
                 # convert to an Series for efficiency.
