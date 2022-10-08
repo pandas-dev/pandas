@@ -26,7 +26,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import sanitize_to_nanoseconds
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_list_like,
@@ -560,7 +559,9 @@ class Grouping:
         if isinstance(self.grouping_vector, np.ndarray):
             # if we have a date/time-like grouper, make sure that we have
             # Timestamps like
-            self.grouping_vector = sanitize_to_nanoseconds(self.grouping_vector)
+            # TODO 2022-10-08 we only have one test that gets here and
+            #  values are already in nanoseconds in that case.
+            self.grouping_vector = Series(self.grouping_vector).to_numpy()
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
