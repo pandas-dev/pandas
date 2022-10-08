@@ -369,14 +369,10 @@ class Isin:
         }
 
         self.midx = data[dtype]
-        self.values_small = self.midx[:100]
-        self.values_large = self.midx[:-1]
+        self.values = self.midx[:100]
 
-    def time_isin_small(self, dtype):
-        self.midx.isin(self.values_small)
-
-    def time_isin_large(self, dtype):
-        self.midx.isin(self.values_large)
+    def time_isin(self, dtype):
+        self.midx.isin(self.values)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
