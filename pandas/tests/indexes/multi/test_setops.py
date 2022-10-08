@@ -555,7 +555,8 @@ def test_union_nan_got_duplicated():
     mi1 = MultiIndex.from_arrays([[1.0, np.nan], [2, 3]])
     mi2 = MultiIndex.from_arrays([[1.0, np.nan, 3.0], [2, 3, 4]])
     result = mi1.union(mi2)
-    tm.assert_index_equal(result, mi2)
+    expected = MultiIndex.from_arrays([[1.0, 3.0, np.nan], [2, 4, 3]])
+    tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("val", [4, 1])
