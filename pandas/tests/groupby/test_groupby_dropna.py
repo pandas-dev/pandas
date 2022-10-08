@@ -566,3 +566,48 @@ def test_categorical_transformers(transformation_func, observed):
         expected = expected.astype(int)
 
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["head", "tail"])
+def test_categorical_head_tail(method):
+    values = np.random.choice([1, 2, None], 30)
+    df = pd.DataFrame(
+        {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
+    )
+    gb = df.groupby("x", dropna=False)
+    result = getattr(gb, method)()
+
+    if method == "tail":
+        values = values[::-1]
+    mask = (
+        ((values == 1) & ((values == 1).cumsum() <= 5))
+        | ((values == 2) & ((values == 2).cumsum() <= 5))
+        | ((values == None) & ((values == None).cumsum() <= 5))  # noqa: E711
+    )
+    if method == "tail":
+        mask = mask[::-1]
+    expected = df[mask]
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_agg():
+    values = np.random.choice([1, 2, None], 30)
+    df = pd.DataFrame(
+        {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
+    )
+    gb = df.groupby("x", dropna=False)
+    result = gb.agg(lambda x: x.sum())
+    expected = gb.sum()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_transform():
+    values = np.random.choice([1, 2, None], 30)
+    df = pd.DataFrame(
+        {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
+    )
+    gb = df.groupby("x", dropna=False)
+    result = gb.transform(lambda x: x.sum())
+    expected = gb.transform("sum")
+    tm.assert_frame_equal(result, expected)
