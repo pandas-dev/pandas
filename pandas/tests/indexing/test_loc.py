@@ -649,14 +649,14 @@ class TestLocBaseIndependent:
             )
 
         with tm.assert_produces_warning(None, match=msg):
-            # timedelta64[s] -> float64, so this cannot be done inplace, so
+            # timedelta64[m] -> float64, so this cannot be done inplace, so
             #  no warning
             df.loc[:, ("Respondent", "Duration")] = df.loc[
                 :, ("Respondent", "Duration")
-            ].astype("timedelta64[s]")
+            ].astype("timedelta64[m]")
 
         expected = Series(
-            [1380, 720, 840, 2160.0], index=df.index, name=("Respondent", "Duration")
+            [23.0, 12.0, 14.0, 36.0], index=df.index, name=("Respondent", "Duration")
         )
         tm.assert_series_equal(df[("Respondent", "Duration")], expected)
 

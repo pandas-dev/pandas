@@ -480,12 +480,19 @@ class TestAstype:
     @pytest.mark.parametrize("unit", ["us", "ms", "s", "h", "m", "D"])
     def test_astype_to_timedelta_unit(self, unit):
         # coerce to float
-        # GH#19223
+        # GH#19223 until 2.0 used to coerce to float
         dtype = f"m8[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
         result = df.astype(dtype)
-        expected = DataFrame(df.values.astype(dtype).astype(float))
+
+        if unit in ["m", "h", "D"]:
+            # We don't support these, so we use the old logic to convert to float
+            expected = DataFrame(df.values.astype(dtype).astype(float))
+        else:
+            tda = pd.core.arrays.TimedeltaArray._simple_new(arr, dtype=arr.dtype)
+            expected = DataFrame(tda)
+            assert (expected.dtypes == dtype).all()
 
         tm.assert_frame_equal(result, expected)
 
