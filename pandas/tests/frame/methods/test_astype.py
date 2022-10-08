@@ -414,10 +414,56 @@ class TestAstype:
         dtype = f"M8[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
-        result = df.astype(dtype)
-        expected = DataFrame(arr.astype(dtype))
+        ser = df.iloc[:, 0]
+        idx = pd.Index(ser)
+        dta = ser._values
 
-        tm.assert_frame_equal(result, expected)
+        result = df.astype(dtype)
+
+        if unit in ["ns", "us", "ms", "s"]:
+            # GH#48928
+            exp_dtype = dtype
+        else:
+            # TODO(2.0): use the nearest supported dtype (i.e. M8[s]) instead
+            #  of nanos
+            exp_dtype = "M8[ns]"
+        # TODO(2.0): once DataFrame constructor doesn't cast ndarray inputs.
+        #  can simplify this
+        exp_values = arr.astype(exp_dtype)
+        exp_dta = pd.core.arrays.DatetimeArray._simple_new(
+            exp_values, dtype=exp_values.dtype
+        )
+        exp_df = DataFrame(exp_dta)
+        assert (exp_df.dtypes == exp_dtype).all()
+
+        tm.assert_frame_equal(result, exp_df)
+
+        # TODO(2.0): make Series/DataFrame raise like Index and DTA?
+        res_ser = ser.astype(dtype)
+        exp_ser = exp_df.iloc[:, 0]
+        assert exp_ser.dtype == exp_dtype
+        tm.assert_series_equal(res_ser, exp_ser)
+
+        if unit in ["ns", "us", "ms", "s"]:
+            exp_dta = exp_ser._values
+
+            res_index = idx.astype(dtype)
+            # TODO(2.0): should be able to just call pd.Index(exp_ser)
+            exp_index = pd.DatetimeIndex._simple_new(exp_dta, name=idx.name)
+            assert exp_index.dtype == exp_dtype
+            tm.assert_index_equal(res_index, exp_index)
+
+            res_dta = dta.astype(dtype)
+            assert exp_dta.dtype == exp_dtype
+            tm.assert_extension_array_equal(res_dta, exp_dta)
+        else:
+            msg = rf"Cannot cast DatetimeIndex to dtype datetime64\[{unit}\]"
+            with pytest.raises(TypeError, match=msg):
+                idx.astype(dtype)
+
+            msg = rf"Cannot cast DatetimeArray to dtype datetime64\[{unit}\]"
+            with pytest.raises(TypeError, match=msg):
+                dta.astype(dtype)
 
     @pytest.mark.parametrize("unit", ["ns"])
     def test_astype_to_timedelta_unit_ns(self, unit):
@@ -434,12 +480,19 @@ class TestAstype:
     @pytest.mark.parametrize("unit", ["us", "ms", "s", "h", "m", "D"])
     def test_astype_to_timedelta_unit(self, unit):
         # coerce to float
-        # GH#19223
+        # GH#19223 until 2.0 used to coerce to float
         dtype = f"m8[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
         result = df.astype(dtype)
-        expected = DataFrame(df.values.astype(dtype).astype(float))
+
+        if unit in ["m", "h", "D"]:
+            # We don't support these, so we use the old logic to convert to float
+            expected = DataFrame(df.values.astype(dtype).astype(float))
+        else:
+            tda = pd.core.arrays.TimedeltaArray._simple_new(arr, dtype=arr.dtype)
+            expected = DataFrame(tda)
+            assert (expected.dtypes == dtype).all()
 
         tm.assert_frame_equal(result, expected)
 
