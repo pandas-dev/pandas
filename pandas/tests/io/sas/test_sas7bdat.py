@@ -96,7 +96,7 @@ class TestSAS7BDAT:
     @pytest.mark.parametrize("chunksize", (3, 5, 10, 11))
     @pytest.mark.parametrize("k", range(1, 17))
     def test_iterator_loop(self, dirpath, k, chunksize):
-        # GitHub issue #13654
+        # github #13654
         fname = os.path.join(dirpath, f"test{k}.sas7bdat")
         with pd.read_sas(fname, chunksize=chunksize, encoding="utf-8") as rdr:
             y = 0
@@ -105,7 +105,7 @@ class TestSAS7BDAT:
         assert y == rdr.row_count
 
     def test_iterator_read_too_much(self, dirpath):
-        # GitHub issue #14734
+        # github #14734
         fname = os.path.join(dirpath, "test1.sas7bdat")
         with pd.read_sas(
             fname, format="sas7bdat", iterator=True, encoding="utf-8"
