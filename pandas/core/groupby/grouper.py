@@ -557,11 +557,12 @@ class Grouping:
                 raise AssertionError(errmsg)
 
         if isinstance(self.grouping_vector, np.ndarray):
-            # if we have a date/time-like grouper, make sure that we have
-            # Timestamps like
-            # TODO 2022-10-08 we only have one test that gets here and
-            #  values are already in nanoseconds in that case.
-            self.grouping_vector = Series(self.grouping_vector).to_numpy()
+            if self.grouping_vector.dtype.kind in ["m", "M"]:
+                # if we have a date/time-like grouper, make sure that we have
+                # Timestamps like
+                # TODO 2022-10-08 we only have one test that gets here and
+                #  values are already in nanoseconds in that case.
+                self.grouping_vector = Series(self.grouping_vector).to_numpy()
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
