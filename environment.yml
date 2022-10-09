@@ -40,6 +40,7 @@ dependencies:
   - pandas-gbq
   - psycopg2
   - pyarrow
+  - pylint
   - pymysql
   - pyreadstat
   - pytables

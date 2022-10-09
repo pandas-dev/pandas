@@ -31,6 +31,7 @@ odfpy
 pandas-gbq
 psycopg2
 pyarrow
+pylint
 pymysql
 pyreadstat
 tables
