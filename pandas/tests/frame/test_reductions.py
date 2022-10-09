@@ -1667,6 +1667,7 @@ def test_sum_timedelta64_skipna_false():
     arr[-1, -1] = "Nat"
 
     df = DataFrame(arr)
+    assert (df.dtypes == arr.dtype).all()
 
     result = df.sum(skipna=False)
     expected = Series([pd.Timedelta(seconds=12), pd.NaT], dtype="m8[s]")
