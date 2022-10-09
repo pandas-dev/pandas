@@ -655,16 +655,24 @@ class Grouping:
             return self._group_index
 
         codes, uniques = self._codes_and_uniques
-        if not self._dropna:
+        if not self._dropna and self._passed_categorical:
             if self._sort and (codes == len(uniques)).any():
                 uniques = Categorical.from_codes(
                     np.append(uniques.codes, [-1]), uniques.categories
                 )
             else:
-                na_code = (codes == len(uniques)).argmax()
-                if codes[na_code] == len(uniques):
+                cat = self.grouping_vector
+                na_idx = (cat.codes < 0).argmax()
+                if cat.codes[na_idx] < 0:
+                    # count number of unique codes that comes before the nan value
+                    b = np.sort(cat.codes[:na_idx])
+                    if len(b) == 0:
+                        na_unique_idx = 0
+                    else:
+                        # TODO: This seems off...
+                        na_unique_idx = (b[1:] != b[:-1]).sum() + 1
                     uniques = Categorical.from_codes(
-                        np.insert(uniques.codes, na_code, -1), uniques.categories
+                        np.insert(uniques.codes, na_unique_idx, -1), uniques.categories
                     )
         return Index._with_infer(uniques, name=self.name)
 
@@ -693,7 +701,23 @@ class Grouping:
                 # Doesn't work with sort=False since groupby requires the code for nan
                 # be in order of appearance, but categorical requires (non-nan)
                 # categories be coded as 0, ..., n-1.
-                codes = np.where(cat.codes < 0, len(uniques), cat.codes)
+                if self._sort:
+                    # nans go at the end
+                    codes = np.where(cat.codes < 0, len(uniques), cat.codes)
+                else:
+                    na_idx = (cat.codes < 0).argmax()
+                    if cat.codes[na_idx] < 0:
+                        # count number of unique codes that comes before the nan value
+                        b = np.sort(cat.codes[:na_idx])
+                        if len(b) == 0:
+                            na_code = 0
+                        else:
+                            # TODO: This seems off...
+                            na_code = (b[1:] != b[:-1]).sum() + 1
+                        codes = np.where(cat.codes >= na_code, cat.codes + 1, cat.codes)
+                        codes = np.where(codes < 0, na_code, codes)
+                    else:
+                        codes = cat.codes
             else:
                 codes = cat.codes
             return codes, uniques
