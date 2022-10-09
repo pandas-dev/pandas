@@ -1151,16 +1151,30 @@ class TestSeriesConstructors:
         assert all(ser[i] is vals[i] for i in range(len(vals)))
 
     @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
-    @pytest.mark.parametrize("dtype", ["M8", "m8"])
+    @pytest.mark.parametrize("kind", ["M", "m"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
-    def test_construction_to_datetimelike_unit(self, arr_dtype, dtype, unit):
+    def test_construction_to_datetimelike_unit(self, arr_dtype, kind, unit):
         # tests all units
         # gh-19223
-        dtype = f"{dtype}[{unit}]"
+        dtype = f"{kind}8[{unit}]"
         arr = np.array([1, 2, 3], dtype=arr_dtype)
-        s = Series(arr)
-        result = s.astype(dtype)
+        ser = Series(arr)
+        result = ser.astype(dtype)
         expected = Series(arr.astype(dtype))
+
+        if unit in ["ns", "us", "ms", "s"] and kind == "m":
+            # TODO(2.0): this should hold for M8 too
+            assert result.dtype == dtype
+            assert expected.dtype == dtype
+        elif kind == "m":
+            # We cast to nearest-supported unit, i.e. seconds
+            assert result.dtype == f"{kind}8[s]"
+            assert expected.dtype == f"{kind}8[s]"
+        else:
+            # TODO(2.0): cast to nearest-supported unit, not ns
+            # otherwise we get the nearest-supported unit, i.e. seconds
+            assert result.dtype == f"{kind}8[ns]"
+            assert expected.dtype == f"{kind}8[ns]"
 
         tm.assert_series_equal(result, expected)
 
@@ -1559,9 +1573,14 @@ class TestSeriesConstructors:
     def test_convert_non_ns(self):
         # convert from a numpy array of non-ns timedelta64
         arr = np.array([1, 2, 3], dtype="timedelta64[s]")
-        s = Series(arr)
-        expected = Series(timedelta_range("00:00:01", periods=3, freq="s"))
-        tm.assert_series_equal(s, expected)
+        ser = Series(arr)
+        assert ser.dtype == arr.dtype
+
+        tdi = timedelta_range("00:00:01", periods=3, freq="s")
+        tda = tdi._data._as_unit("s")
+        expected = Series(tda)
+        assert expected.dtype == arr.dtype
+        tm.assert_series_equal(ser, expected)
 
         # convert from a numpy array of non-ns datetime64
         arr = np.array(
@@ -1900,12 +1919,22 @@ class TestSeriesConstructors:
         expected = Series(pd.to_timedelta([1000000, 200000, 3000000], unit="ns"))
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(
+        reason="Not clear what the correct expected behavior should be with "
+        "integers now that we support non-nano. ATM (2022-10-08) we treat ints "
+        "as nanoseconds, then cast to the requested dtype. xref #48312"
+    )
     def test_constructor_dtype_timedelta_ns_s(self):
         # GH#35465
         result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
         expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(
+        reason="Not clear what the correct expected behavior should be with "
+        "integers now that we support non-nano. ATM (2022-10-08) we treat ints "
+        "as nanoseconds, then cast to the requested dtype. xref #48312"
+    )
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
         # GH#35465
         result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
