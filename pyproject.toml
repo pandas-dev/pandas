@@ -31,6 +31,13 @@ exclude = '''
 )
 '''
 
+[tool.pylint.main]
+ignore-patterns = ["^\\.#"]
+ignore = [
+  "versioneer.py",
+  "validate_min_versions_in_sync.py"
+]
+
 [tool.pylint.messages_control]
 max-line-length = 88
 disable = [
@@ -42,9 +49,10 @@ disable = [
   "bad-super-call",
   "c-extension-no-member",
   "function-redefined",
-  "import-error",
+#  "import-error",
   "inherit-non-class",
   "invalid-repr-returned",
+  "invalid-sequence-index",
   "invalid-unary-operand-type",
   "misplaced-bare-raise",
   "no-member",

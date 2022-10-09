@@ -50,6 +50,7 @@ dependencies:
   - sqlalchemy
   - tabulate
   - tzdata>=2022a
+  - vulture
   - xarray
   - xlrd
   - xlsxwriter
