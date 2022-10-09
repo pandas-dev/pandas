@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import is_platform_windows
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -21,7 +22,6 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_path,
     ensure_clean_store,
 )
-from pandas.util import _test_decorators as td
 
 from pandas.io.pytables import TableIterator
 
@@ -293,7 +293,7 @@ def test_read_from_pathlib_path(setup_path):
 def test_read_from_py_localpath(setup_path):
 
     # GH11773
-    from py.path import local as LocalPath
+    from py.path import local as LocalPath  # pylint: disable=import-error
 
     expected = DataFrame(
         np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE")

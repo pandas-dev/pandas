@@ -84,7 +84,7 @@ class TestSAS7BDAT:
     @td.skip_if_no("py.path")
     @pytest.mark.slow
     def test_path_localpath(self, dirpath, data_test_ix):
-        from py.path import local as LocalPath
+        from py.path import local as LocalPath  # pylint: disable=import-error
 
         df0, test_ix = data_test_ix
         for k in test_ix:

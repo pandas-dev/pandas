@@ -841,7 +841,7 @@ class TestReaders:
     def test_read_from_py_localpath(self, read_ext):
 
         # GH12655
-        from py.path import local as LocalPath
+        from py.path import local as LocalPath  # pylint: disable=import-error
 
         str_path = os.path.join("test1" + read_ext)
         expected = pd.read_excel(str_path, sheet_name="Sheet1", index_col=0)
