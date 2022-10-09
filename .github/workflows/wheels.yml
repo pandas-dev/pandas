@@ -54,7 +54,6 @@ jobs:
         # TODO: support PyPy?
         python: [["cp38", "3.8"], ["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11-dev"]]# "pp38", "pp39"]
     env:
-      IS_32_BIT: ${{ matrix.buildplat[1] == 'win32' }}
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
@@ -72,15 +71,6 @@ jobs:
         uses: pypa/cibuildwheel@v2.9.0
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          CIBW_ENVIRONMENT: IS_32_BIT='${{ env.IS_32_BIT }}'
-          # We can't test directly with cibuildwheel, since we need to have to wheel location
-          # to mount into the docker image
-          CIBW_TEST_COMMAND_LINUX: "python {project}/ci/test_wheels.py"
-          CIBW_TEST_COMMAND_MACOS: "python {project}/ci/test_wheels.py"
-          CIBW_TEST_REQUIRES: hypothesis==6.52.1 pytest>=6.2.5 pytest-xdist pytest-asyncio>=0.17
-          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "python ci/fix_wheels.py {wheel} {dest_dir}"
-          CIBW_ARCHS_MACOS: x86_64 universal2
-          CIBW_BUILD_VERBOSITY: 3
 
       # Used to test the built wheels
       - uses: actions/setup-python@v3
@@ -118,7 +108,7 @@ jobs:
 
       - name: Upload wheels
         if: success()
-        shell: bash
+        shell: bash -el {0}
         env:
           PANDAS_STAGING_UPLOAD_TOKEN: ${{ secrets.PANDAS_STAGING_UPLOAD_TOKEN }}
           PANDAS_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN }}
@@ -195,7 +185,7 @@ jobs:
 
       - name: Upload sdist
         if: success()
-        shell: bash
+        shell: bash -el {0}
         env:
           PANDAS_STAGING_UPLOAD_TOKEN: ${{ secrets.PANDAS_STAGING_UPLOAD_TOKEN }}
           PANDAS_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN }}
