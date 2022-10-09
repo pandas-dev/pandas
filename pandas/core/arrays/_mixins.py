@@ -17,6 +17,7 @@ from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     Dtype,
     F,
     PositionalIndexer2D,
@@ -157,7 +158,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
-        axis: int = 0,
+        axis: AxisInt = 0,
     ) -> NDArrayBackedExtensionArrayT:
         if allow_fill:
             fill_value = self._validate_scalar(fill_value)
@@ -192,7 +193,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._ndarray, self._internal_fill_value
 
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
-    def argmin(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
+    def argmin(self, axis: AxisInt = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
@@ -200,7 +201,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return nargminmax(self, "argmin", axis=axis)
 
     # Signature of "argmax" incompatible with supertype "ExtensionArray"
-    def argmax(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
+    def argmax(self, axis: AxisInt = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
@@ -216,7 +217,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def _concat_same_type(
         cls: type[NDArrayBackedExtensionArrayT],
         to_concat: Sequence[NDArrayBackedExtensionArrayT],
-        axis: int = 0,
+        axis: AxisInt = 0,
     ) -> NDArrayBackedExtensionArrayT:
         dtypes = {str(x.dtype) for x in to_concat}
         if len(dtypes) != 1:
@@ -249,7 +250,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             return value
 
     @doc(ExtensionArray.shift)
-    def shift(self, periods=1, fill_value=None, axis=0):
+    def shift(self, periods: int = 1, fill_value=None, axis: AxisInt = 0):
 
         fill_value = self._validate_shift_value(fill_value)
         new_values = shift(self._ndarray, periods, axis, fill_value)
@@ -351,7 +352,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
     # Reductions
 
-    def _wrap_reduction_result(self, axis: int | None, result):
+    def _wrap_reduction_result(self, axis: AxisInt | None, result):
         if axis is None or self.ndim == 1:
             return self._box_func(result)
         return self._from_backing_data(result)

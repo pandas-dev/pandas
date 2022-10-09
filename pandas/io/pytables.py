@@ -45,6 +45,7 @@ from pandas._libs.tslibs import timezones
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    AxisInt,
     DtypeArg,
     FilePath,
     Shape,
@@ -64,6 +65,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
+    is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
@@ -135,7 +137,7 @@ def _ensure_decoded(s):
     return s
 
 
-def _ensure_encoding(encoding):
+def _ensure_encoding(encoding: str | None) -> str:
     # set the encoding if we need
     if encoding is None:
         encoding = _default_encoding
@@ -541,8 +543,6 @@ class HDFStore:
 
     _handle: File | None
     _mode: str
-    _complevel: int
-    _fletcher32: bool
 
     def __init__(
         self,
@@ -809,7 +809,7 @@ class HDFStore:
         start=None,
         stop=None,
         columns=None,
-        iterator=False,
+        iterator: bool = False,
         chunksize=None,
         auto_close: bool = False,
     ):
@@ -957,7 +957,7 @@ class HDFStore:
         columns=None,
         start=None,
         stop=None,
-        iterator=False,
+        iterator: bool = False,
         chunksize=None,
         auto_close: bool = False,
     ):
@@ -1041,7 +1041,7 @@ class HDFStore:
         _tbls = [x for x in tbls if isinstance(x, Table)]
 
         # axis is the concentration axes
-        axis = list({t.non_index_axes[0][0] for t in _tbls})[0]
+        axis = {t.non_index_axes[0][0] for t in _tbls}.pop()
 
         def func(_start, _stop, _where):
 
@@ -1076,8 +1076,8 @@ class HDFStore:
         key: str,
         value: DataFrame | Series,
         format=None,
-        index=True,
-        append=False,
+        index: bool = True,
+        append: bool = False,
         complib=None,
         complevel: int | None = None,
         min_itemsize: int | dict[str, int] | None = None,
@@ -1206,8 +1206,8 @@ class HDFStore:
         value: DataFrame | Series,
         format=None,
         axes=None,
-        index=True,
-        append=True,
+        index: bool | list[str] = True,
+        append: bool = True,
         complib=None,
         complevel: int | None = None,
         columns=None,
@@ -1295,7 +1295,7 @@ class HDFStore:
         selector,
         data_columns=None,
         axes=None,
-        dropna=False,
+        dropna: bool = False,
         **kwargs,
     ) -> None:
         """
@@ -1530,13 +1530,13 @@ class HDFStore:
     def copy(
         self,
         file,
-        mode="w",
+        mode: str = "w",
         propindexes: bool = True,
         keys=None,
         complib=None,
         complevel: int | None = None,
         fletcher32: bool = False,
-        overwrite=True,
+        overwrite: bool = True,
     ) -> HDFStore:
         """
         Copy the existing store to a new file, updating in place.
@@ -1658,13 +1658,6 @@ class HDFStore:
         if value is not None and not isinstance(value, (Series, DataFrame)):
             raise TypeError("value must be None, Series, or DataFrame")
 
-        def error(t):
-            # return instead of raising so mypy can tell where we are raising
-            return TypeError(
-                f"cannot properly create the storer for: [{t}] [group->"
-                f"{group},value->{type(value)},format->{format}"
-            )
-
         pt = _ensure_decoded(getattr(group._v_attrs, "pandas_type", None))
         tt = _ensure_decoded(getattr(group._v_attrs, "table_type", None))
 
@@ -1699,7 +1692,10 @@ class HDFStore:
             try:
                 cls = _STORER_MAP[pt]
             except KeyError as err:
-                raise error("_STORER_MAP") from err
+                raise TypeError(
+                    f"cannot properly create the storer for: [_STORER_MAP] [group->"
+                    f"{group},value->{type(value)},format->{format}"
+                ) from err
             return cls(self, group, encoding=encoding, errors=errors)
 
         # existing node (and must be a table)
@@ -1732,7 +1728,10 @@ class HDFStore:
         try:
             cls = _TABLE_MAP[tt]
         except KeyError as err:
-            raise error("_TABLE_MAP") from err
+            raise TypeError(
+                f"cannot properly create the storer for: [_TABLE_MAP] [group->"
+                f"{group},value->{type(value)},format->{format}"
+            ) from err
 
         return cls(self, group, encoding=encoding, errors=errors)
 
@@ -1742,15 +1741,15 @@ class HDFStore:
         value: DataFrame | Series,
         format,
         axes=None,
-        index=True,
-        append=False,
+        index: bool | list[str] = True,
+        append: bool = False,
         complib=None,
         complevel: int | None = None,
         fletcher32=None,
         min_itemsize: int | dict[str, int] | None = None,
         chunksize=None,
         expectedrows=None,
-        dropna=False,
+        dropna: bool = False,
         nan_rep=None,
         data_columns=None,
         encoding=None,
@@ -1972,9 +1971,6 @@ class IndexCol:
     is_an_indexable: bool = True
     is_data_indexable: bool = True
     _info_fields = ["freq", "tz", "index_name"]
-
-    name: str
-    cname: str
 
     def __init__(
         self,
@@ -2308,7 +2304,7 @@ class DataCol(IndexCol):
         values=None,
         kind=None,
         typ=None,
-        cname=None,
+        cname: str | None = None,
         pos=None,
         tz=None,
         ordered=None,
@@ -2620,17 +2616,14 @@ class Fixed:
     format_type: str = "fixed"  # GH#30962 needed by dask
     obj_type: type[DataFrame | Series]
     ndim: int
-    encoding: str
     parent: HDFStore
-    group: Node
-    errors: str
     is_table: bool = False
 
     def __init__(
         self,
         parent: HDFStore,
         group: Node,
-        encoding: str = "UTF-8",
+        encoding: str | None = "UTF-8",
         errors: str = "strict",
     ) -> None:
         assert isinstance(parent, HDFStore), type(parent)
@@ -3304,24 +3297,19 @@ class Table(Fixed):
     levels: int | list[Hashable] = 1
     is_table = True
 
-    index_axes: list[IndexCol]
-    non_index_axes: list[tuple[int, Any]]
-    values_axes: list[DataCol]
-    data_columns: list
     metadata: list
-    info: dict
 
     def __init__(
         self,
         parent: HDFStore,
         group: Node,
-        encoding=None,
+        encoding: str | None = None,
         errors: str = "strict",
-        index_axes=None,
-        non_index_axes=None,
-        values_axes=None,
-        data_columns=None,
-        info=None,
+        index_axes: list[IndexCol] | None = None,
+        non_index_axes: list[tuple[AxisInt, Any]] | None = None,
+        values_axes: list[DataCol] | None = None,
+        data_columns: list | None = None,
+        info: dict | None = None,
         nan_rep=None,
     ) -> None:
         super().__init__(parent, group, encoding=encoding, errors=errors)
@@ -3479,9 +3467,7 @@ class Table(Fixed):
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
 
-        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]" and
-        # "List[Tuple[str, None]]")
-        return dict(d1 + d2 + d3)  # type: ignore[operator]
+        return dict(d1 + d2 + d3)
 
     def index_cols(self):
         """return a list of my index cols"""
@@ -4324,7 +4310,7 @@ class AppendableTable(Table):
         dropna: bool = False,
         nan_rep=None,
         data_columns=None,
-        track_times=True,
+        track_times: bool = True,
     ) -> None:
         if not append and self.is_exists:
             self._handle.remove_node(self.group, "table")
@@ -4673,7 +4659,7 @@ class AppendableSeriesTable(AppendableFrameTable):
                     columns.insert(0, n)
         s = super().read(where=where, columns=columns, start=start, stop=stop)
         if is_multi_index:
-            s = s.set_index(self.levels, copy=False)
+            s.set_index(self.levels, inplace=True)
 
         s = s.iloc[:, 0]
 
@@ -4809,7 +4795,9 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         return df
 
 
-def _reindex_axis(obj: DataFrame, axis: int, labels: Index, other=None) -> DataFrame:
+def _reindex_axis(
+    obj: DataFrame, axis: AxisInt, labels: Index, other=None
+) -> DataFrame:
     ax = obj._get_axis(axis)
     labels = ensure_index(labels)
 
@@ -4899,7 +4887,11 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     kind = _dtype_to_kind(dtype_name)
     atom = DataIndexableCol._get_atom(converted)
 
-    if isinstance(index, Int64Index) or needs_i8_conversion(index.dtype):
+    if (
+        isinstance(index, Int64Index)
+        or needs_i8_conversion(index.dtype)
+        or is_bool_dtype(index.dtype)
+    ):
         # Includes Int64Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
         #  in which case "kind" is "integer", "integer", "datetime64",
         #  "timedelta64", and "integer", respectively.
@@ -4962,7 +4954,7 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
             index = np.asarray([date.fromordinal(v) for v in data], dtype=object)
         except (ValueError):
             index = np.asarray([date.fromtimestamp(v) for v in data], dtype=object)
-    elif kind in ("integer", "float"):
+    elif kind in ("integer", "float", "bool"):
         index = np.asarray(data)
     elif kind in ("string"):
         index = _unconvert_string_array(

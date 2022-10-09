@@ -60,6 +60,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import (
     IOHandles,
     get_handle,
+    stringify_path,
     validate_header_arg,
 )
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
@@ -195,9 +196,9 @@ converters : dict, optional
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels.
 true_values : list, optional
-    Values to consider as True.
+    Values to consider as True in addition to case-insensitive variants of "True".
 false_values : list, optional
-    Values to consider as False.
+    Values to consider as False in addition to case-insensitive variants of "False".
 skipinitialspace : bool, default False
     Skip spaces after delimiter.
 skiprows : list-like, int or callable, optional
@@ -426,6 +427,13 @@ float_precision : str, optional
 
     .. versionadded:: 1.2
 
+use_nullable_dtypes : bool = False
+    Whether or not to use nullable dtypes as default when reading data. If
+    set to True, nullable dtypes are used for all dtypes that have a nullable
+    implementation, even if no nulls are present.
+
+    .. versionadded:: 2.0
+
 Returns
 -------
 DataFrame or TextFileReader
@@ -501,21 +509,21 @@ _deprecated_defaults: dict[str, _DeprecationConfig] = {
 
 
 @overload
-def validate_integer(name, val: None, min_val=...) -> None:
+def validate_integer(name, val: None, min_val: int = ...) -> None:
     ...
 
 
 @overload
-def validate_integer(name, val: float, min_val=...) -> int:
+def validate_integer(name, val: float, min_val: int = ...) -> int:
     ...
 
 
 @overload
-def validate_integer(name, val: int | None, min_val=...) -> int | None:
+def validate_integer(name, val: int | None, min_val: int = ...) -> int | None:
     ...
 
 
-def validate_integer(name, val: int | float | None, min_val=0) -> int | None:
+def validate_integer(name, val: int | float | None, min_val: int = 0) -> int | None:
     """
     Checks whether the 'name' parameter for parsing is either
     an integer OR float that can SAFELY be cast to an integer
@@ -640,7 +648,7 @@ def read_csv(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -668,6 +676,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> TextFileReader:
     ...
 
@@ -700,7 +709,7 @@ def read_csv(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -728,6 +737,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> TextFileReader:
     ...
 
@@ -760,7 +770,7 @@ def read_csv(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -788,6 +798,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -820,7 +831,7 @@ def read_csv(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -848,6 +859,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame | TextFileReader:
     ...
 
@@ -893,7 +905,7 @@ def read_csv(
     verbose: bool = False,
     skip_blank_lines: bool = True,
     # Datetime Handling
-    parse_dates=None,
+    parse_dates: bool | Sequence[Hashable] | None = None,
     infer_datetime_format: bool = False,
     keep_date_col: bool = False,
     date_parser=None,
@@ -927,6 +939,7 @@ def read_csv(
     memory_map: bool = False,
     float_precision: Literal["high", "legacy"] | None = None,
     storage_options: StorageOptions = None,
+    use_nullable_dtypes: bool = False,
 ) -> DataFrame | TextFileReader:
     # locals() should never be modified
     kwds = locals().copy()
@@ -979,7 +992,7 @@ def read_table(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -1002,11 +1015,12 @@ def read_table(
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
-    delim_whitespace=...,
+    delim_whitespace: bool = ...,
     low_memory=...,
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> TextFileReader:
     ...
 
@@ -1039,7 +1053,7 @@ def read_table(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -1062,11 +1076,12 @@ def read_table(
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
-    delim_whitespace=...,
+    delim_whitespace: bool = ...,
     low_memory=...,
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> TextFileReader:
     ...
 
@@ -1099,7 +1114,7 @@ def read_table(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -1122,11 +1137,12 @@ def read_table(
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
-    delim_whitespace=...,
+    delim_whitespace: bool = ...,
     low_memory=...,
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -1159,7 +1175,7 @@ def read_table(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -1182,11 +1198,12 @@ def read_table(
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
-    delim_whitespace=...,
+    delim_whitespace: bool = ...,
     low_memory=...,
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame | TextFileReader:
     ...
 
@@ -1232,7 +1249,7 @@ def read_table(
     verbose: bool = False,
     skip_blank_lines: bool = True,
     # Datetime Handling
-    parse_dates=False,
+    parse_dates: bool | Sequence[Hashable] = False,
     infer_datetime_format: bool = False,
     keep_date_col: bool = False,
     date_parser=None,
@@ -1261,11 +1278,12 @@ def read_table(
     # See _refine_defaults_read comment for why we do this.
     on_bad_lines=None,
     # Internal
-    delim_whitespace=False,
+    delim_whitespace: bool = False,
     low_memory=_c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: str | None = None,
     storage_options: StorageOptions = None,
+    use_nullable_dtypes: bool = False,
 ) -> DataFrame | TextFileReader:
     # locals() should never be modified
     kwds = locals().copy()
@@ -1727,6 +1745,16 @@ class TextFileReader(abc.Iterator):
             if engine == "pyarrow":
                 is_text = False
                 mode = "rb"
+            elif (
+                engine == "c"
+                and self.options.get("encoding", "utf-8") == "utf-8"
+                and isinstance(stringify_path(f), str)
+            ):
+                # c engine can decode utf-8 bytes, adding TextIOWrapper makes
+                # the c-engine especially for memory_map=True far slower
+                is_text = False
+                if "b" not in mode:
+                    mode += "b"
             self.handles = get_handle(
                 f,
                 mode,
@@ -1876,7 +1904,7 @@ def TextParser(*args, **kwds) -> TextFileReader:
     return TextFileReader(*args, **kwds)
 
 
-def _clean_na_values(na_values, keep_default_na=True):
+def _clean_na_values(na_values, keep_default_na: bool = True):
     na_fvalues: set | dict
     if na_values is None:
         if keep_default_na:

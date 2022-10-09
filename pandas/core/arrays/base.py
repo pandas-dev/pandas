@@ -30,12 +30,14 @@ from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
+    AxisInt,
     Dtype,
     FillnaOptions,
     PositionalIndexer,
     ScalarIndexer,
     SequenceIndexer,
     Shape,
+    SortKind,
     TakeIndexer,
     npt,
 )
@@ -91,18 +93,10 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
 
-    class ExtensionArraySupportsAnyAll("ExtensionArray"):
-        def any(self, *, skipna: bool = True) -> bool:
-            pass
-
-        def all(self, *, skipna: bool = True) -> bool:
-            pass
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
     )
-
 
 _extension_array_shared_docs: dict[str, str] = {}
 
@@ -247,7 +241,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -270,7 +264,7 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy=False
+        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -540,7 +534,9 @@ class ExtensionArray:
         """
         The number of elements in the array.
         """
-        return np.prod(self.shape)
+        # error: Incompatible return value type (got "signedinteger[_64Bit]",
+        # expected "int")  [return-value]
+        return np.prod(self.shape)  # type: ignore[return-value]
 
     @property
     def ndim(self) -> int:
@@ -670,7 +666,7 @@ class ExtensionArray:
     def argsort(
         self,
         ascending: bool = True,
-        kind: str = "quicksort",
+        kind: SortKind = "quicksort",
         na_position: str = "last",
         *args,
         **kwargs,
@@ -1137,7 +1133,7 @@ class ExtensionArray:
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
     def repeat(
-        self: ExtensionArrayT, repeats: int | Sequence[int], axis: int | None = None
+        self: ExtensionArrayT, repeats: int | Sequence[int], axis: AxisInt | None = None
     ) -> ExtensionArrayT:
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
@@ -1567,7 +1563,7 @@ class ExtensionArray:
     def _rank(
         self,
         *,
-        axis: int = 0,
+        axis: AxisInt = 0,
         method: str = "average",
         na_option: str = "keep",
         ascending: bool = True,
@@ -1682,6 +1678,14 @@ class ExtensionArray:
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
 
+class ExtensionArraySupportsAnyAll(ExtensionArray):
+    def any(self, *, skipna: bool = True) -> bool:
+        pass
+
+    def all(self, *, skipna: bool = True) -> bool:
+        pass
+
+
 class ExtensionOpsMixin:
     """
     A base class for linking the operators to their dunder names.
@@ -1772,7 +1776,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
 
     @classmethod
-    def _create_method(cls, op, coerce_to_dtype=True, result_dtype=None):
+    def _create_method(cls, op, coerce_to_dtype: bool = True, result_dtype=None):
         """
         A class method that returns a method that will correspond to an
         operator for an ExtensionArray subclass, by dispatching to the

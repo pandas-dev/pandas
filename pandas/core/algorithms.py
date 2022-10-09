@@ -29,6 +29,7 @@ from pandas._libs import (
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    AxisInt,
     DtypeObj,
     IndexLabel,
     TakeIndexer,
@@ -801,6 +802,18 @@ def factorize(
             na_sentinel_arg = None
         else:
             na_sentinel_arg = na_sentinel
+
+        if not dropna and not sort and is_object_dtype(values):
+            # factorize can now handle differentiating various types of null values.
+            # These can only occur when the array has object dtype.
+            # However, for backwards compatibility we only use the null for the
+            # provided dtype. This may be revisited in the future, see GH#48476.
+            null_mask = isna(values)
+            if null_mask.any():
+                na_value = na_value_for_dtype(values.dtype, compat=False)
+                # Don't modify (potentially user-provided) array
+                values = np.where(null_mask, na_value, values)
+
         codes, uniques = factorize_array(
             values,
             na_sentinel=na_sentinel_arg,
@@ -1043,6 +1056,10 @@ def duplicated(
     -------
     duplicated : ndarray[bool]
     """
+    if hasattr(values, "dtype") and isinstance(values.dtype, BaseMaskedDtype):
+        values = cast("BaseMaskedArray", values)
+        return htable.duplicated(values._data, keep=keep, mask=values._mask)
+
     values = _ensure_data(values)
     return htable.duplicated(values, keep=keep)
 
@@ -1090,7 +1107,7 @@ def mode(
 
 def rank(
     values: ArrayLike,
-    axis: int = 0,
+    axis: AxisInt = 0,
     method: str = "average",
     na_option: str = "keep",
     ascending: bool = True,
@@ -1468,7 +1485,7 @@ class SelectNFrame(SelectN):
 def take(
     arr,
     indices: TakeIndexer,
-    axis: int = 0,
+    axis: AxisInt = 0,
     allow_fill: bool = False,
     fill_value=None,
 ):
@@ -1660,7 +1677,7 @@ def searchsorted(
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0):
+def diff(arr, n: int, axis: AxisInt = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1953,7 +1970,9 @@ def _sort_tuples(
     return original_values[indexer]
 
 
-def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
+def union_with_duplicates(
+    lvals: ArrayLike | Index, rvals: ArrayLike | Index
+) -> ArrayLike | Index:
     """
     Extracts the union from lvals and rvals with respect to duplicates and nans in
     both arrays.
@@ -1974,13 +1993,21 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     -----
     Caller is responsible for ensuring lvals.dtype == rvals.dtype.
     """
-    indexer = []
+    from pandas import Series
+
     l_count = value_counts(lvals, dropna=False)
     r_count = value_counts(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
-    unique_array = unique(concat_compat([lvals, rvals]))
-    unique_array = ensure_wrapped_if_datetimelike(unique_array)
-
-    for i, value in enumerate(unique_array):
-        indexer += [i] * int(max(l_count.at[value], r_count.at[value]))
-    return unique_array.take(indexer)
+    final_count = np.maximum(l_count.values, r_count.values)
+    final_count = Series(final_count, index=l_count.index, dtype="int", copy=False)
+    if isinstance(lvals, ABCMultiIndex) and isinstance(rvals, ABCMultiIndex):
+        unique_vals = lvals.append(rvals).unique()
+    else:
+        if isinstance(lvals, ABCIndex):
+            lvals = lvals._values
+        if isinstance(rvals, ABCIndex):
+            rvals = rvals._values
+        unique_vals = unique(concat_compat([lvals, rvals]))
+        unique_vals = ensure_wrapped_if_datetimelike(unique_vals)
+    repeats = final_count.reindex(unique_vals).values
+    return np.repeat(unique_vals, repeats)
