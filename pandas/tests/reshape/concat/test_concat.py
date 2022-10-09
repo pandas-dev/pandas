@@ -505,16 +505,15 @@ class TestConcatenate:
             concat([df1, df2], axis=1)
 
 
-@pytest.mark.parametrize("pdt", [Series, DataFrame])
 @pytest.mark.parametrize("dt", np.sctypes["float"])
-def test_concat_no_unnecessary_upcast(dt, pdt):
+def test_concat_no_unnecessary_upcast(dt, frame_or_series):
     # GH 13247
-    dims = pdt(dtype=object).ndim
+    dims = frame_or_series(dtype=object).ndim
 
     dfs = [
-        pdt(np.array([1], dtype=dt, ndmin=dims)),
-        pdt(np.array([np.nan], dtype=dt, ndmin=dims)),
-        pdt(np.array([5], dtype=dt, ndmin=dims)),
+        frame_or_series(np.array([1], dtype=dt, ndmin=dims)),
+        frame_or_series(np.array([np.nan], dtype=dt, ndmin=dims)),
+        frame_or_series(np.array([5], dtype=dt, ndmin=dims)),
     ]
     x = concat(dfs)
     assert x.values.dtype == dt
