@@ -442,9 +442,9 @@ cdef class _Timestamp(ABCTimestamp):
                 other = (<_Timedelta>other)._as_reso(self._reso, round_ok=True)
 
             nanos = other.value
-            new_value = self.value + nanos
 
             try:
+                new_value = self.value + nanos
                 result = type(self)._from_value_and_reso(
                     new_value, reso=self._reso, tz=self.tzinfo
                 )
