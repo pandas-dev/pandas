@@ -1276,7 +1276,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # PeriodArray overrides, so we only get here with DTA/TDA
         self = cast("DatetimeArray | TimedeltaArray", self)
         other = Timedelta(other)
-
         self, other = self._ensure_matching_resos(other)
         return self._add_timedeltalike(other)
 

@@ -183,8 +183,7 @@ class TestNonNano:
         assert (2.5 * td) / td == 2.5
 
         other = Timedelta(td.value)
-
-        msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow"
+        msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow."
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             td / other
 

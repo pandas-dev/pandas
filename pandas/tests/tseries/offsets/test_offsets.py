@@ -19,6 +19,7 @@ import pytest
 
 from pandas._libs.tslibs import (
     NaT,
+    Timedelta,
     Timestamp,
     conversion,
     timezones,
@@ -566,6 +567,12 @@ class TestCommon(Base):
             expected = dti._data + off
             result = dta + off
 
+        exp_unit = unit
+        if isinstance(off, Tick) and off._reso > dta._reso:
+            # cast to higher reso like we would with Timedelta scalar
+            exp_unit = Timedelta(off)._unit
+        expected = expected._as_unit(exp_unit)
+
         if len(w):
             # PerformanceWarning was issued bc _apply_array raised, so we
             #  fell back to object dtype, for which the code path does
@@ -576,14 +583,7 @@ class TestCommon(Base):
             )
             request.node.add_marker(mark)
 
-            # result.dtype should match M8[{unit}], while expected.dtype should
-            #  always be in nanos
-            #  (this is for cases when offset_types is not itself Nano)
-            assert result.dtype != expected.dtype
-
-        tm.assert_numpy_array_equal(
-            result._ndarray, expected._ndarray.astype(result.dtype)
-        )
+        tm.assert_numpy_array_equal(result._ndarray, expected._ndarray)
 
 
 class TestDateOffset(Base):

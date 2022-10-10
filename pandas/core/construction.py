@@ -45,7 +45,6 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
     maybe_upcast,
-    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
@@ -324,13 +323,6 @@ def array(
         dtype = data.dtype
 
     data = extract_array(data, extract_numpy=True)
-
-    if isinstance(data, ExtensionArray) and (
-        dtype is None or is_dtype_equal(dtype, data.dtype)
-    ):
-        if copy:
-            return data.copy()
-        return data
 
     # this returns None for not-found dtypes.
     if isinstance(dtype, str):
@@ -789,7 +781,9 @@ def _try_cast(
         if is_ndarray:
             arr = cast(np.ndarray, arr)
             if arr.dtype != object:
-                return sanitize_to_nanoseconds(arr, copy=copy)
+                if copy:
+                    return arr.copy()
+                return arr
 
             out = maybe_infer_to_datetimelike(arr)
             if out is arr and copy:
