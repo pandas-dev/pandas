@@ -38,6 +38,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     check_dts_bounds,
+    convert_reso,
     get_datetime64_unit,
     get_datetime64_value,
     get_implementation_bounds,
@@ -211,6 +212,10 @@ cdef class _TSObject:
         # GH 25057. As per PEP 495, set fold to 0 by default
         self.fold = 0
         self.reso = NPY_FR_ns  # default value
+
+    cdef void ensure_reso(self, NPY_DATETIMEUNIT reso):
+        if self.reso != reso:
+            self.value = convert_reso(self.value, self.reso, reso, False)
 
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,

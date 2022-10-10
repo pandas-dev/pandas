@@ -514,7 +514,8 @@ cpdef array_to_datetime(
                         found_tz = True
                         if utc_convert:
                             _ts = convert_datetime_to_tsobject(val, None)
-                            iresult[i] = Timestamp(val)._as_unit("ns").value
+                            _ts.ensure_reso(NPY_FR_ns)
+                            iresult[i] = _ts.value
                         elif found_naive:
                             raise ValueError('Tz-aware datetime.datetime '
                                              'cannot be converted to '
@@ -527,7 +528,8 @@ cpdef array_to_datetime(
                             found_tz = True
                             tz_out = val.tzinfo
                             _ts = convert_datetime_to_tsobject(val, None)
-                            iresult[i] = Timestamp(val)._as_unit("ns").value
+                            _ts.ensure_reso(NPY_FR_ns)
+                            iresult[i] = _ts.value
 
                     else:
                         found_naive = True
