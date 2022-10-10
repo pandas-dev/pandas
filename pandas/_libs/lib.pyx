@@ -2585,6 +2585,7 @@ def maybe_convert_objects(ndarray[object] objects,
                 else:
                     seen.datetime_ = True
                     try:
+                        # FIXME: will have different reso depending on type
                         idatetimes[i] = convert_to_tsobject(
                             val, None, None, 0, 0).value
                     except OutOfBoundsDatetime:

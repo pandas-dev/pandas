@@ -36,6 +36,7 @@ from pandas._libs.tslibs.dtypes cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    NPY_FR_us,
     check_dts_bounds,
     get_datetime64_unit,
     get_datetime64_value,
@@ -204,10 +205,12 @@ cdef class _TSObject:
     #    int64_t value               # numpy dt64
     #    tzinfo tzinfo
     #    bint fold
+    #    NPY_DATETIMEUNIT reso
 
     def __cinit__(self):
         # GH 25057. As per PEP 495, set fold to 0 by default
         self.fold = 0
+        self.reso = NPY_FR_ns  # default
 
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
@@ -228,6 +231,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     """
     cdef:
         _TSObject obj
+        NPY_DATETIMEUNIT reso
 
     obj = _TSObject()
 
@@ -282,11 +286,19 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             obj.value = ts
             pandas_datetime_to_datetimestruct(ts, NPY_FR_ns, &obj.dts)
     elif PyDateTime_Check(ts):
-        return convert_datetime_to_tsobject(ts, tz, nanos)
+        if nanos == 0:
+            if isinstance(ts, ABCTimestamp):
+                reso = abbrev_to_npy_unit(ts._unit)  # TODO: faster way to do this?
+            else:
+                # TODO: what if user explicitly passes nanos=0?
+                reso = NPY_FR_us
+        else:
+            reso = NPY_FR_ns
+        return convert_datetime_to_tsobject(ts, tz, nanos, reso=reso)
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
         ts = datetime.combine(ts, time())
-        return convert_datetime_to_tsobject(ts, tz)
+        return convert_datetime_to_tsobject(ts, tz, nanos=0, reso=NPY_FR_us)  # TODO: or lower?
     else:
         from .period import Period
         if isinstance(ts, Period):
@@ -340,6 +352,7 @@ cdef _TSObject convert_datetime_to_tsobject(
         _TSObject obj = _TSObject()
         int64_t pps
 
+    obj.reso = reso
     obj.fold = ts.fold
     if tz is not None:
         tz = maybe_get_tz(tz)

@@ -375,6 +375,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if start is NaT or end is NaT:
             raise ValueError("Neither `start` nor `end` can be NaT")
 
+        if start is not None:
+            start = start._as_unit("ns")
+        if end is not None:
+            end = end._as_unit("ns")
+
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
         start, end, _normalized = _maybe_normalize_endpoints(start, end, normalize)
         tz = _infer_tz_from_endpoints(start, end, tz)
@@ -461,7 +466,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timestamp.")
         self._check_compatible_with(value, setitem=setitem)
-        return value.asm8
+
+        if value is NaT:
+            return np.datetime64(value.value, self._unit)
+        else:
+            return value._as_unit(self._unit).asm8
 
     def _scalar_from_string(self, value) -> Timestamp | NaTType:
         return Timestamp(value, tz=self.tz)
@@ -2574,13 +2583,13 @@ def _generate_range(
     start = Timestamp(start)  # type: ignore[arg-type]
     # Non-overlapping identity check (left operand type: "Timestamp", right
     # operand type: "NaTType")
-    start = start if start is not NaT else None  # type: ignore[comparison-overlap]
+    start = start._as_unit("ns") if start is not NaT else None  # type: ignore[comparison-overlap]
     # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
     # expected "Union[integer[Any], float, str, date, datetime64]"
     end = Timestamp(end)  # type: ignore[arg-type]
     # Non-overlapping identity check (left operand type: "Timestamp", right
     # operand type: "NaTType")
-    end = end if end is not NaT else None  # type: ignore[comparison-overlap]
+    end = end._as_unit("ns") if end is not NaT else None  # type: ignore[comparison-overlap]
 
     if start and not offset.is_on_offset(start):
         # Incompatible types in assignment (expression has type "datetime",
@@ -2621,7 +2630,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)
+            next_date = offset._apply(cur)._as_unit("ns")
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
             cur = next_date
@@ -2635,7 +2644,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)
+            next_date = offset._apply(cur)._as_unit("ns")
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")
             cur = next_date

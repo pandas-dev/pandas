@@ -3113,17 +3113,28 @@ class TestFromScalar:
         with pytest.raises(TypeError, match=msg):
             constructor(scalar, dtype=dtype)
 
+    @pytest.mark.xfail(
+        reason="Timestamp constructor has been updated to cast dt64 to non-nano, "
+        "but DatetimeArray._from_sequence has not"
+    )
     @pytest.mark.parametrize("cls", [datetime, np.datetime64])
-    def test_from_out_of_bounds_datetime(self, constructor, cls):
+    def test_from_out_of_bounds_ns_datetime(self, constructor, cls):
         scalar = datetime(9999, 1, 1)
+        exp_dtype = "M8[us]"  # pydatetime objects default to this reso
         if cls is np.datetime64:
             scalar = np.datetime64(scalar, "D")
+            exp_dtype = "M8[s]"  # closest reso to input
         result = constructor(scalar)
 
-        assert type(get1(result)) is cls
+        item = get1(result)
+        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+
+        assert type(item) is Timestamp
+        assert item.asm8.dtype == exp_dtype
+        assert dtype == exp_dtype
 
     @pytest.mark.xfail(
-        reason="TimedeltaArray constructor has been updated to cast td64 to non-nano, "
+        reason="Timedelta constructor has been updated to cast td64 to non-nano, "
         "but TimedeltaArray._from_sequence has not"
     )
     @pytest.mark.parametrize("cls", [timedelta, np.timedelta64])
@@ -3143,11 +3154,12 @@ class TestFromScalar:
         assert item.asm8.dtype == exp_dtype
         assert dtype == exp_dtype
 
-    def test_out_of_s_bounds_timedelta64(self, constructor):
-        scalar = np.timedelta64(np.iinfo(np.int64).max, "D")
+    @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
+    def test_out_of_s_bounds_timedelta64(self, constructor, cls):
+        scalar = cls(np.iinfo(np.int64).max, "D")
         result = constructor(scalar)
         item = get1(result)
-        assert type(item) is np.timedelta64
+        assert type(item) is cls
         dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
         assert dtype == object
 

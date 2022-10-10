@@ -839,7 +839,7 @@ class TestDataFrameReplace:
         ],
     )
     def test_replace_dtypes(self, frame, to_replace, value, expected):
-        result = getattr(frame, "replace")(to_replace, value)
+        result = frame.replace(to_replace, value)
         tm.assert_frame_equal(result, expected)
 
     def test_replace_input_formats_listlike(self):

@@ -535,7 +535,7 @@ cpdef array_to_datetime(
                             raise ValueError('Cannot mix tz-aware with '
                                              'tz-naive values')
                         if isinstance(val, _Timestamp):
-                            iresult[i] = val.value
+                            iresult[i] = (<_Timestamp>val)._as_reso(NPY_FR_ns).value
                         else:
                             iresult[i] = pydatetime_to_dt64(val, &dts)
                             check_dts_bounds(&dts)
@@ -837,7 +837,7 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
     # We delay this check for as long as possible
     # because it catches relatively rare cases
     if val == "now":
-        iresult[0] = Timestamp.utcnow().value
+        iresult[0] = Timestamp.utcnow().value * 1000  # *1000 to convert to nanos
         if not utc:
             # GH#18705 make sure to_datetime("now") matches Timestamp("now")
             warnings.warn(
@@ -850,6 +850,6 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
 
         return True
     elif val == "today":
-        iresult[0] = Timestamp.today().value
+        iresult[0] = Timestamp.today().value * 1000  # *1000 to convert to nanos
         return True
     return False

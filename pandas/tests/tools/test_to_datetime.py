@@ -658,7 +658,7 @@ class TestToDatetime:
             pdtoday2 = to_datetime(["today"])[0]
 
             tstoday = Timestamp("today")
-            tstoday2 = Timestamp.today()
+            tstoday2 = Timestamp.today()._as_unit("ns")
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
@@ -1878,7 +1878,7 @@ class TestToDatetimeMisc:
     def test_to_datetime_overflow(self):
         # gh-17637
         # we are overflowing Timedelta range here
-        msg = "Cannot cast 139999 days, 0:00:00 to unit=ns without overflow"
+        msg = "Cannot cast 139999 days 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
 
@@ -2607,7 +2607,13 @@ class TestOrigin:
     )
     def test_invalid_origins(self, origin, exc, units, units_from_epochs):
 
-        msg = f"origin {origin} (is Out of Bounds|cannot be converted to a Timestamp)"
+        msg = "|".join(
+            [
+                f"origin {origin} is Out of Bounds",
+                f"origin {origin} cannot be converted to a Timestamp",
+                "Cannot cast .* to unit='ns' without overflow",
+            ]
+        )
         with pytest.raises(exc, match=msg):
             to_datetime(units_from_epochs, unit=units, origin=origin)
 

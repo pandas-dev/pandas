@@ -1305,6 +1305,8 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         } else if (PyDate_Check(item) || PyDelta_Check(item)) {
             is_datetimelike = 1;
             if (PyObject_HasAttrString(item, "value")) {
+                // FIXME: need to ensure nanos with ._as_unit("ns") or ._as_reso(NPY_FR_ns)
+                //  see test_date_index_and_values
                 nanosecVal = get_long_attr(item, "value");
             } else {
                 if (PyDelta_Check(item)) {

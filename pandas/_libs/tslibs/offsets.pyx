@@ -166,7 +166,8 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result = Timestamp(result)
+        result = Timestamp(result)._as_unit(other._unit)  # TODO: _as_reso?
+
         if self._adjust_dst:
             result = result.tz_localize(tz)
 
@@ -179,9 +180,10 @@ def apply_wraps(func):
             if result.nanosecond != nano:
                 if result.tz is not None:
                     # convert to UTC
-                    value = result.tz_localize(None).value
+                    res = result.tz_localize(None)
                 else:
-                    value = result.value
+                    res = result
+                value = res._as_unit("ns").value
                 result = Timestamp(value + nano)
 
         if tz is not None and result.tzinfo is None:

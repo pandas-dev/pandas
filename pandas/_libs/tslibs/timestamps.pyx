@@ -65,7 +65,6 @@ from pandas._libs.tslibs.util cimport (
     is_array,
     is_datetime64_object,
     is_integer_object,
-    is_timedelta64_object,
 )
 
 from pandas._libs.tslibs.fields import (
@@ -107,7 +106,6 @@ from pandas._libs.tslibs.offsets cimport (
 from pandas._libs.tslibs.timedeltas cimport (
     _Timedelta,
     delta_to_nanoseconds,
-    ensure_td64ns,
     is_any_td_scalar,
 )
 
@@ -432,32 +430,7 @@ cdef class _Timestamp(ABCTimestamp):
             int64_t nanos = 0
 
         if is_any_td_scalar(other):
-            if is_timedelta64_object(other):
-                other_reso = get_datetime64_unit(other)
-                if (
-                    other_reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
-                ):
-                    # TODO: deprecate allowing this?  We only get here
-                    #  with test_timedelta_add_timestamp_interval
-                    other = np.timedelta64(other.view("i8"), "ns")
-                    other_reso = NPY_DATETIMEUNIT.NPY_FR_ns
-                elif (
-                    other_reso == NPY_DATETIMEUNIT.NPY_FR_Y or other_reso == NPY_DATETIMEUNIT.NPY_FR_M
-                ):
-                    # TODO: deprecate allowing these?  or handle more like the
-                    #  corresponding DateOffsets?
-                    # TODO: no tests get here
-                    other = ensure_td64ns(other)
-                    other_reso = NPY_DATETIMEUNIT.NPY_FR_ns
-
-                if other_reso > NPY_DATETIMEUNIT.NPY_FR_ns:
-                    # TODO: no tests
-                    other = ensure_td64ns(other)
-                if other_reso > self._reso:
-                    # Following numpy, we cast to the higher resolution
-                    # test_sub_timedelta64_mismatched_reso
-                    self = (<_Timestamp>self)._as_reso(other_reso)
-
+            other = Timedelta(other)
 
             if isinstance(other, _Timedelta):
                 # TODO: share this with __sub__, Timedelta.__add__
@@ -563,9 +536,9 @@ cdef class _Timestamp(ABCTimestamp):
             # Matching numpy, we cast to the higher resolution. Unlike numpy,
             #  we raise instead of silently overflowing during this casting.
             if self._reso < other._reso:
-                self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
+                self = (<_Timestamp>self)._as_reso(other._reso, round_ok=True)
             elif self._reso > other._reso:
-                other = (<_Timestamp>other)._as_reso(self._reso, round_ok=False)
+                other = (<_Timestamp>other)._as_reso(self._reso, round_ok=True)
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
@@ -1107,7 +1080,13 @@ cdef class _Timestamp(ABCTimestamp):
         if reso == self._reso:
             return self
 
-        value = convert_reso(self.value, self._reso, reso, round_ok=round_ok)
+        try:
+            value = convert_reso(self.value, self._reso, reso, round_ok=round_ok)
+        except OverflowError as err:
+            unit = npy_unit_to_abbrev(reso)
+            raise OutOfBoundsDatetime(
+                f"Cannot cast {self} to unit='{unit}' without overflow."
+            ) from err
         return type(self)._from_value_and_reso(value, reso=reso, tz=self.tzinfo)
 
     def _as_unit(self, str unit, bint round_ok=True):
@@ -1713,7 +1692,9 @@ class Timestamp(_Timestamp):
             if not is_offset_object(freq):
                 freq = to_offset(freq)
 
-        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold)
+        return create_timestamp_from_ts(
+            ts.value, ts.dts, ts.tzinfo, freq, ts.fold, reso=ts.reso
+        )
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         cdef:
