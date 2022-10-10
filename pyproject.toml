@@ -72,7 +72,6 @@ disable = [
   "no-method-argument",
   "no-name-in-module",
   "no-value-for-parameter",
-  "non-iterator-returned",
   "not-an-iterable",
   "not-callable",
   "redundant-keyword-arg",
