@@ -108,7 +108,7 @@ def _valid_locales(locales: list[str] | str, normalize: bool) -> list[str]:
 
 
 def _default_locale_getter() -> bytes:
-    return subprocess.check_output(["locale -a"], shell=True)
+    return subprocess.check_output(["locale", "-a"])
 
 
 def get_locales(
