@@ -784,7 +784,8 @@ class IntervalIndex(ExtensionIndex):
         #  positional in this case
         # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
         # ExtensionDtype]" has no attribute "subtype"
-        return self.dtype.subtype.kind in ["m", "M", "i", "f"]  # type: ignore[union-attr]
+        fallback_dtypes = ["m", "M", "i", "f"]
+        return self.dtype.subtype.kind in fallback_dtypes  # type: ignore[union-attr]
 
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
