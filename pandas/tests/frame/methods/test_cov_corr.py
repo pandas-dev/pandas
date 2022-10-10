@@ -400,6 +400,15 @@ class TestDataFrameCorrWith:
         tm.assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
+    def test_corrwith_spearman_with_tied_data(self):
+        # GH#48826
+        df = DataFrame({"A": [2, np.nan, 8, 9], "B": [0, 1, 1, 0]})
+        s = Series([0, 1, 1, 0])
+        result = df.corrwith(s, method="spearman")
+        expected = Series([0.0, 1.0], index=["A", "B"])
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no_scipy
     def test_corrwith_kendall(self):
         # GH#21925
         df = DataFrame(np.random.random(size=(100, 3)))
