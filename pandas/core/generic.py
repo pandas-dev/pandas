@@ -5878,7 +5878,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         If you have a function that takes the data as (say) the second
         argument, pass a tuple indicating which keyword expects the
-        data. For example, suppose ``f`` takes its data as ``arg2``:
+        data. For example, suppose ``func`` takes its data as ``arg2``:
 
         >>> (df.pipe(h)
         ...    .pipe(g, arg1=a)
