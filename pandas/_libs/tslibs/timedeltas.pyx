@@ -38,7 +38,10 @@ from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
     precision_from_unit,
 )
-from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
+from pandas._libs.tslibs.dtypes cimport (
+    get_supported_reso,
+    npy_unit_to_abbrev,
+)
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -338,8 +341,9 @@ cdef convert_to_timedelta64(object ts, str unit):
     elif isinstance(ts, _Timedelta):
         # already in the proper format
         if ts._reso != NPY_FR_ns:
-            raise NotImplementedError
-        ts = np.timedelta64(ts.value, "ns")
+            ts = ts._as_unit("ns").asm8
+        else:
+            ts = np.timedelta64(ts.value, "ns")
     elif is_timedelta64_object(ts):
         ts = ensure_td64ns(ts)
     elif is_integer_object(ts):
@@ -939,6 +943,7 @@ cdef _timedelta_from_value_and_reso(int64_t value, NPY_DATETIMEUNIT reso):
     cdef:
         _Timedelta td_base
 
+    assert value != NPY_NAT
     # For millisecond and second resos, we cannot actually pass int(value) because
     #  many cases would fall outside of the pytimedelta implementation bounds.
     #  We pass 0 instead, and override seconds, microseconds, days.
@@ -1702,14 +1707,40 @@ class Timedelta(_Timedelta):
                 value = parse_timedelta_string(value)
             value = np.timedelta64(value)
         elif PyDelta_Check(value):
-            value = convert_to_timedelta64(value, 'ns')
+            # pytimedelta object -> microsecond resolution
+            new_value = delta_to_nanoseconds(
+                value, reso=NPY_DATETIMEUNIT.NPY_FR_us
+            )
+            return cls._from_value_and_reso(
+                new_value, reso=NPY_DATETIMEUNIT.NPY_FR_us
+            )
         elif is_timedelta64_object(value):
-            if get_timedelta64_value(value) == NPY_NAT:
+            # Retain the resolution if possible, otherwise cast to the nearest
+            #  supported resolution.
+            new_value = get_timedelta64_value(value)
+            if new_value == NPY_NAT:
                 # i.e. np.timedelta64("NaT")
                 return NaT
-            value = ensure_td64ns(value)
+
+            reso = get_datetime64_unit(value)
+            new_reso = get_supported_reso(reso)
+            if reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+                try:
+                    new_value = convert_reso(
+                        new_value,
+                        reso,
+                        new_reso,
+                        round_ok=True,
+                    )
+                except (OverflowError, OutOfBoundsDatetime) as err:
+                    raise OutOfBoundsTimedelta(value) from err
+            return cls._from_value_and_reso(new_value, reso=new_reso)
+
         elif is_tick_object(value):
-            value = np.timedelta64(value.nanos, 'ns')
+            new_reso = get_supported_reso(value._reso)
+            new_value = delta_to_nanoseconds(value, reso=new_reso)
+            return cls._from_value_and_reso(new_value, reso=new_reso)
+
         elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
@@ -1917,9 +1948,15 @@ class Timedelta(_Timedelta):
 
             if other.dtype.kind == 'm':
                 # also timedelta-like
-                if self._reso != NPY_FR_ns:
-                    raise NotImplementedError
-                return _broadcast_floordiv_td64(self.value, other, _floordiv)
+                # TODO: could suppress
+                #  RuntimeWarning: invalid value encountered in floor_divide
+                result = self.asm8 // other
+                mask = other.view("i8") == NPY_NAT
+                if mask.any():
+                    # We differ from numpy here
+                    result = result.astype("f8")
+                    result[mask] = np.nan
+                return result
 
             elif other.dtype.kind in ['i', 'u', 'f']:
                 if other.ndim == 0:
@@ -1951,9 +1988,15 @@ class Timedelta(_Timedelta):
 
             if other.dtype.kind == 'm':
                 # also timedelta-like
-                if self._reso != NPY_FR_ns:
-                    raise NotImplementedError
-                return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
+                # TODO: could suppress
+                #  RuntimeWarning: invalid value encountered in floor_divide
+                result = other // self.asm8
+                mask = other.view("i8") == NPY_NAT
+                if mask.any():
+                    # We differ from numpy here
+                    result = result.astype("f8")
+                    result[mask] = np.nan
+                return result
 
             # Includes integer array // Timedelta, disallowed in GH#19761
             raise TypeError(f'Invalid dtype {other.dtype} for __floordiv__')
@@ -2003,45 +2046,3 @@ cdef bint _should_cast_to_timedelta(object obj):
     return (
         is_any_td_scalar(obj) or obj is None or obj is NaT or isinstance(obj, str)
     )
-
-
-cdef _floordiv(int64_t value, right):
-    return value // right
-
-
-cdef _rfloordiv(int64_t value, right):
-    # analogous to referencing operator.div, but there is no operator.rfloordiv
-    return right // value
-
-
-cdef _broadcast_floordiv_td64(
-    int64_t value,
-    ndarray other,
-    object (*operation)(int64_t value, object right)
-):
-    """
-    Boilerplate code shared by Timedelta.__floordiv__ and
-    Timedelta.__rfloordiv__ because np.timedelta64 does not implement these.
-
-    Parameters
-    ----------
-    value : int64_t; `self.value` from a Timedelta object
-    other : ndarray[timedelta64[ns]]
-    operation : function, either _floordiv or _rfloordiv
-
-    Returns
-    -------
-    result : varies based on `other`
-    """
-    # assumes other.dtype.kind == 'm', i.e. other is timedelta-like
-    # assumes other.ndim != 0
-
-    # We need to watch out for np.timedelta64('NaT').
-    mask = other.view('i8') == NPY_NAT
-
-    res = operation(value, other.astype('m8[ns]', copy=False).astype('i8'))
-
-    if mask.any():
-        res = res.astype('f8')
-        res[mask] = np.nan
-    return res

@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import OutOfBoundsTimedelta
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
 from pandas import (
     NaT,
@@ -26,16 +27,70 @@ def test_construct_with_weeks_unit_overflow():
 def test_construct_from_td64_with_unit():
     # ignore the unit, as it may cause silently overflows leading to incorrect
     #  results, and in non-overflow cases is irrelevant GH#46827
-    obj = np.timedelta64(123456789, "h")
+    obj = np.timedelta64(123456789000000000, "h")
 
-    with pytest.raises(OutOfBoundsTimedelta, match="123456789 hours"):
+    with pytest.raises(OutOfBoundsTimedelta, match="123456789000000000 hours"):
         Timedelta(obj, unit="ps")
 
-    with pytest.raises(OutOfBoundsTimedelta, match="123456789 hours"):
+    with pytest.raises(OutOfBoundsTimedelta, match="123456789000000000 hours"):
         Timedelta(obj, unit="ns")
 
-    with pytest.raises(OutOfBoundsTimedelta, match="123456789 hours"):
+    with pytest.raises(OutOfBoundsTimedelta, match="123456789000000000 hours"):
         Timedelta(obj)
+
+
+def test_from_td64_retain_resolution():
+    # case where we retain millisecond resolution
+    obj = np.timedelta64(12345, "ms")
+
+    td = Timedelta(obj)
+    assert td.value == obj.view("i8")
+    assert td._reso == NpyDatetimeUnit.NPY_FR_ms.value
+
+    # Case where we cast to nearest-supported reso
+    obj2 = np.timedelta64(1234, "D")
+    td2 = Timedelta(obj2)
+    assert td2._reso == NpyDatetimeUnit.NPY_FR_s.value
+    assert td2 == obj2
+    assert td2.days == 1234
+
+    # Case that _would_ overflow if we didn't support non-nano
+    obj3 = np.timedelta64(1000000000000000000, "us")
+    td3 = Timedelta(obj3)
+    assert td3.total_seconds() == 1000000000000
+    assert td3._reso == NpyDatetimeUnit.NPY_FR_us.value
+
+
+def test_from_pytimedelta_us_reso():
+    # pytimedelta has microsecond resolution, so Timedelta(pytd) inherits that
+    td = timedelta(days=4, minutes=3)
+    result = Timedelta(td)
+    assert result.to_pytimedelta() == td
+    assert result._reso == NpyDatetimeUnit.NPY_FR_us.value
+
+
+def test_from_tick_reso():
+    tick = offsets.Nano()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_ns.value
+
+    tick = offsets.Micro()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_us.value
+
+    tick = offsets.Milli()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_ms.value
+
+    tick = offsets.Second()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_s.value
+
+    # everything above Second gets cast to the closest supported reso: second
+    tick = offsets.Minute()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_s.value
+
+    tick = offsets.Hour()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_s.value
+
+    tick = offsets.Day()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_s.value
 
 
 def test_construction():
@@ -225,23 +280,24 @@ def test_overflow_on_construction():
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(7 * 19999, unit="D")
 
-    msg = "Cannot cast 259987 days, 0:00:00 to unit=ns without overflow"
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        Timedelta(timedelta(days=13 * 19999))
+    # used to overflow before non-ns support
+    td = Timedelta(timedelta(days=13 * 19999))
+    assert td._reso == NpyDatetimeUnit.NPY_FR_us.value
+    assert td.days == 13 * 19999
 
 
 @pytest.mark.parametrize(
-    "val, unit, name",
+    "val, unit",
     [
-        (3508, "M", " months"),
-        (15251, "W", " weeks"),  # 1
-        (106752, "D", " days"),  # change from previous:
-        (2562048, "h", " hours"),  # 0 hours
-        (153722868, "m", " minutes"),  # 13 minutes
-        (9223372037, "s", " seconds"),  # 44 seconds
+        (3508, "M"),
+        (15251, "W"),  # 1
+        (106752, "D"),  # change from previous:
+        (2562048, "h"),  # 0 hours
+        (153722868, "m"),  # 13 minutes
+        (9223372037, "s"),  # 44 seconds
     ],
 )
-def test_construction_out_of_bounds_td64(val, unit, name):
+def test_construction_out_of_bounds_td64ns(val, unit):
     # TODO: parametrize over units just above/below the implementation bounds
     #  once GH#38964 is resolved
 
@@ -249,9 +305,15 @@ def test_construction_out_of_bounds_td64(val, unit, name):
     td64 = np.timedelta64(val, unit)
     assert td64.astype("m8[ns]").view("i8") < 0  # i.e. naive astype will be wrong
 
-    msg = str(val) + name
+    td = Timedelta(td64)
+    if unit != "M":
+        # with unit="M" the conversion to "s" is poorly defined
+        #  (and numpy issues DeprecationWarning)
+        assert td.asm8 == td64
+    assert td.asm8.dtype == "m8[s]"
+    msg = r"Cannot cast 1067\d\d days .* to unit='ns' without overflow"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        Timedelta(td64)
+        td._as_unit("ns")
 
     # But just back in bounds and we are OK
     assert Timedelta(td64 - 1) == td64 - 1
@@ -259,11 +321,32 @@ def test_construction_out_of_bounds_td64(val, unit, name):
     td64 *= -1
     assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
 
-    with pytest.raises(OutOfBoundsTimedelta, match="-" + msg):
-        Timedelta(td64)
+    td2 = Timedelta(td64)
+    msg = r"Cannot cast -1067\d\d days .* to unit='ns' without overflow"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td2._as_unit("ns")
 
     # But just back in bounds and we are OK
     assert Timedelta(td64 + 1) == td64 + 1
+
+
+@pytest.mark.parametrize(
+    "val, unit",
+    [
+        (3508 * 10**9, "M"),
+        (15251 * 10**9, "W"),
+        (106752 * 10**9, "D"),
+        (2562048 * 10**9, "h"),
+        (153722868 * 10**9, "m"),
+    ],
+)
+def test_construction_out_of_bounds_td64s(val, unit):
+    td64 = np.timedelta64(val, unit)
+    with pytest.raises(OutOfBoundsTimedelta, match=str(td64)):
+        Timedelta(td64)
+
+    # But just back in bounds and we are OK
+    assert Timedelta(td64 - 10**9) == td64 - 10**9
 
 
 @pytest.mark.parametrize(
