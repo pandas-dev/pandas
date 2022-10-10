@@ -2050,7 +2050,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         new_index = self.index._getitem_slice(slobj)
         # TODO this method is only used in groupby SeriesSplitter at the moment,
         # so passing refs / parent is not yet covered by the tests
-        return type(self)(block, new_index[weakref.ref(blk)], parent=self)
+        return type(self)(block, new_index, [weakref.ref(blk)], parent=self)
 
     @property
     def index(self) -> Index:
