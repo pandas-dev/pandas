@@ -10598,20 +10598,23 @@ Parrot 2  Parrot       24.0
                     cols = self.columns
                     ndf = self.values.transpose()
                 k = other.values
+                k_mask = ~np.isnan(k)
+                if k.dtype == "bool":
+                    k = k.astype("float")
                 if method == "pearson":
                     for i, r in enumerate(ndf):
-                        nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
+                        nonnull_mask = ~np.isnan(r) & k_mask
                         corrs[cols[i]] = np.corrcoef(r[nonnull_mask], k[nonnull_mask])[
                             0, 1
                         ]
                 else:
-                    from scipy.stats import rankdata
-
                     for i, r in enumerate(ndf):
-                        nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
+                        nonnull_mask = ~np.isnan(r) & k_mask
+                        if r.dtype == "bool":
+                            r = r.astype("float")
                         corrs[cols[i]] = np.corrcoef(
-                            rankdata(r[nonnull_mask]),
-                            rankdata(k[nonnull_mask]),
+                            libalgos.rank_1d(r[nonnull_mask]),
+                            libalgos.rank_1d(k[nonnull_mask]),
                         )[0, 1]
                 return Series(corrs)
             else:
