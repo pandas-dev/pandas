@@ -44,7 +44,6 @@ disable = [
   "import-error",
   "invalid-repr-returned",
   "invalid-unary-operand-type",
-  "misplaced-bare-raise",
   "no-member",
   "no-method-argument",
   "no-name-in-module",
