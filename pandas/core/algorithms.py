@@ -1865,10 +1865,10 @@ def safe_sort(
         try:
             sorter = values.argsort()
             if is_mi:
-                 # Operate on original object instead of casted array (MultiIndex)
-                 ordered = original_values.take(sorter)
-             else:
-                 ordered = values.take(sorter)
+                # Operate on original object instead of casted array (MultiIndex)
+                ordered = original_values.take(sorter)
+            else:
+                ordered = values.take(sorter)
         except TypeError:
             # Previous sorters failed or were not applicable, try `_sort_mixed`
             # which would work, but which fails for special case of 1d arrays
