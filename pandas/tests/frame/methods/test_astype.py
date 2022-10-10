@@ -548,8 +548,8 @@ class TestAstype:
         df = DataFrame({"a": [1, 2, "text"], "b": [1, 2, 3]})
 
         msg = (
-            "Error during type conversion for column a: "
-            "invalid literal for int() with base 10: 'text'"
+            "invalid literal for int() with base 10: 'text': "
+            "Error while type casting for column 'a'"
         )
 
         with pytest.raises(ValueError, match=re.escape(msg)):
