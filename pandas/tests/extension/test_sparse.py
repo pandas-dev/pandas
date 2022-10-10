@@ -268,7 +268,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
     @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self):
         # this one looks doable.
-        super(self).test_fillna_series()
+        super().test_fillna_series()
 
     def test_fillna_frame(self, data_missing):
         # Have to override to specify that fill_value will change.
