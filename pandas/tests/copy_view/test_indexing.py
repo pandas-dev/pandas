@@ -470,7 +470,7 @@ def test_subset_set_with_column_indexer(
         lambda df: df[["a", "b"]].iloc[0:2],
         lambda df: df[["a", "b"]].loc[0:1],
         lambda df: df[0:2].iloc[:, 0:2],
-        lambda df: df[0:2].loc[:, "a":"b"],
+        lambda df: df[0:2].loc[:, "a":"b"],  # type: ignore[misc]
     ],
     ids=[
         "row-getitem-slice",
@@ -557,9 +557,9 @@ def test_subset_chained_getitem_column(dtype, using_copy_on_write):
 @pytest.mark.parametrize(
     "method",
     [
-        lambda s: s["a":"c"]["a":"b"],
+        lambda s: s["a":"c"]["a":"b"],  # type: ignore[misc]
         lambda s: s.iloc[0:3].iloc[0:2],
-        lambda s: s.loc["a":"c"].loc["a":"b"],
+        lambda s: s.loc["a":"c"].loc["a":"b"],  # type: ignore[misc]
     ],
     ids=["getitem", "iloc", "loc"],
 )

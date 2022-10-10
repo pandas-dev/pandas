@@ -150,6 +150,7 @@ class BaseBlockManager(DataManager):
     blocks: tuple[Block, ...]
     axes: list[Index]
     refs: list[weakref.ref | None] | None
+    parent: object
 
     @property
     def ndim(self) -> int:
@@ -167,6 +168,7 @@ class BaseBlockManager(DataManager):
         blocks: list[Block],
         axes: list[Index],
         refs: list[weakref.ref | None] | None = None,
+        parent: object = None,
     ) -> T:
         raise NotImplementedError
 
