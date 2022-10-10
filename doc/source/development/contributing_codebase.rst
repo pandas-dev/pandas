@@ -792,8 +792,8 @@ Or with one of the following constructs::
 
 Using `pytest-xdist <https://pypi.org/project/pytest-xdist>`_, which is
 included in our 'pandas-dev' environment, one can speed up local testing on
-multicore machines. The -n flag then can be specified when running pytest to
-parallelize a test run across the number of specified cores or auto to
+multicore machines. The ``-n`` number flag then can be specified when running
+pytest to parallelize a test run across the number of specified cores or auto to
 utilize all the available cores on your machine.
 
 .. code-block:: bash
@@ -809,25 +809,37 @@ command would look like this
 
 .. code-block:: bash
 
-    pytest pandas --skip-slow --skip-network --skip-db -m "not single_cpu" -n 4 -r sxX
+    pytest pandas -n 4 -m "not skip-slow and skip-network and skip-db and not single_cpu" -r sxX
 
 In addition to the multithreaded performance increase this improves test
-speed by skipping some tests:
+speed by skipping some tests using the ``-m`` mark flag:
 
-- skip-slow: any test that takes long (think seconds rather than milliseconds)
-- skip-network: tests that require network connectivity
-- skip-db: tests that require a database
+- skip-slow: any test taking long (think seconds rather than milliseconds)
+- skip-network: tests requiring network connectivity
+- skip-db: tests requiring a database (mysql or postgres)
+- single_cpu: tests that should run on a single cpu only
 
-The -r flag will display a short summary info (see `pytest documentation <https://docs.pytest.org/en/4.6.x/usage.html#detailed-summary-report>`_)
+You might want to enable the following option if it's relevant for you:
+
+- arm_slow: any test taking long on arm64 architecture
+
+These markers are defined `in this toml file <https://github.com/pandas-dev/pandas/blob/55dc32437ea43a238975439ddb6c9dda81b33020/pyproject.toml>`_
+, under ``[tool.pytest.ini_options]`` in a list called ``markers``, in case
+you want to check if new ones have been created which are of interest to you.
+
+The ``-r`` report flag will display a short summary info (see `pytest
+documentation <https://docs.pytest.org/en/4.6.x/usage.html#detailed-summary-report>`_)
 . Here we are displaying the number of:
 
 - s: skipped tests
 - x: xfailed tests
 - X: xpassed tests
 
-This is optional and can be removed if you don't like the summary. Using this
-command can significantly reduce the time it takes to locally run tests
-before submitting a pull request. If you require assistance with the results,
+The summary is optional and can be removed if you don't need the added
+information. Using the parallelization option can significantly reduce the
+time it takes to locally run tests before submitting a pull request.
+
+If you require assistance with the results,
 which has happened in the past, please set a seed before running the command
 and opening a bug report, that way we can reproduce it. Here's an example
 for setting a seed on windows
@@ -835,14 +847,14 @@ for setting a seed on windows
 .. code-block:: bash
 
     set PYTHONHASHSEED=314159265
-    pytest pandas --skip-slow --skip-network --skip-db -m "not single_cpu" -n 4 -r sxX
+    pytest pandas -n 4 -m "not skip-slow and skip-network and skip-db and not single_cpu" -r sxX
 
 On Unix use
 
 .. code-block:: bash
 
-    export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
-    pytest pandas --skip-slow --skip-network --skip-db -m "not single_cpu" -n 4 -r sxX
+    export PYTHONHASHSEED=314159265
+    pytest pandas -n 4 -m "not skip-slow and skip-network and skip-db and not single_cpu" -r sxX
 
 For more, see the `pytest <https://docs.pytest.org/en/latest/>`_ documentation.
 
