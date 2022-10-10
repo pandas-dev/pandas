@@ -128,7 +128,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
-            raise cls._scalar_data_error(data)
+            cls._raise_scalar_data_error(data)
 
         if unit in {"Y", "y", "M"}:
             raise ValueError(
