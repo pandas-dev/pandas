@@ -1466,8 +1466,11 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     """
     Convert dtypes with granularity less than nanosecond to nanosecond
 
-    >>> _ensure_nanosecond_dtype(np.dtype("M8[s]"))
-    dtype('<M8[ns]')
+    >>> _ensure_nanosecond_dtype(np.dtype("M8[D]"))
+    dtype('<M8[s]')
+
+    >>> _ensure_nanosecond_dtype(np.dtype("M8[us]"))
+    dtype('<M8[us]')
 
     >>> _ensure_nanosecond_dtype(np.dtype("m8[ps]"))
     Traceback (most recent call last):
