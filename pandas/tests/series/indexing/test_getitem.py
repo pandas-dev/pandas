@@ -207,6 +207,18 @@ class TestSeriesGetitemScalars:
         result = ser[0]
         assert result == 1
 
+    def test_getitem_integer_with_intervalindex(self):
+        # GH#27437
+        cat_index = pd.CategoricalIndex(
+            pd.interval_range(start=0, end=4, periods=2), ordered=True
+        )
+        ser = Series([[1, 2], [3, 4]], index=cat_index)
+
+        assert ser[0] == [1, 2]
+        assert ser[1] == [3, 4]
+        assert ser.loc[0] == [1, 2]
+        assert ser.loc[1] == [3, 4]
+
 
 class TestSeriesGetitemSlices:
     def test_getitem_partial_str_slice_with_datetimeindex(self):
