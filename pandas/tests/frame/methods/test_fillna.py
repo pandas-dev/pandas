@@ -13,6 +13,7 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
     date_range,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float
@@ -681,6 +682,18 @@ class TestFillNA:
 
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected2)
+
+    def test_fillna_datetime_inplace(self):
+        # GH#48863
+        df = DataFrame(
+            {
+                "date1": to_datetime(["2018-05-30", None]),
+                "date2": to_datetime(["2018-09-30", None]),
+            }
+        )
+        expected = df.copy()
+        df.fillna(np.nan, inplace=True)
+        tm.assert_frame_equal(df, expected)
 
     def test_fillna_inplace_with_columns_limit_and_value(self):
         # GH40989
