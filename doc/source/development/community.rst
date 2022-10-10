@@ -71,12 +71,11 @@ The pandas contributor community conducts conversations mainly via this channel.
 Any community member can open issues to:
 
 - Report bugs, e.g. "I noticed the behavior of a certain function is
-  incorrect. Please fix it."
-  between versions. Is this expected?"
+  incorrect"
 - Request features, e.g. "I would like this error message to be more readable"
 - Request documentation improvements, e.g. "I found this section unclear"
 - Ask questions, e.g. "I noticed the behavior of a certain function
-  changed".
+  changed between versions. Is this expected?".
 
     Ideally your questions should be related to how pandas work rather
     than how you use pandas. `StackOverflow <https://stackoverflow.com/>`_ is
@@ -110,7 +109,7 @@ contributing to pandas. The slack is a private space, specifically meant for
 people who are hesitant to bring up their questions or ideas on a large public
 mailing list or GitHub.
 
-If this sounds like the right place for you, you are welcome to join! email us
+If this sounds like the right place for you, you are welcome to join! Email us
 at `slack@pandas.pydata.org <mailto://slack@pandas.pydata.org>`_ and let us
 know that you read and agree to our `Code of Conduct <https://pandas.pydata.org/community/coc.html>`_
 😉 to get an invite. And please remember the slack is not meant to replace the
