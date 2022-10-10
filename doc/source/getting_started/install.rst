@@ -256,9 +256,9 @@ installed with ``pandas[performance]`` (i.e. add as optional_extra to the pandas
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
   must be Version 1.3.2 or higher.
 
-* `numba <https://github.com/numba/numba>`__: alternative execution engine for operations including rolling apply &
-  reduction.  ``numba`` is a JIT compiler that translates Python functions to optimized machine code using the
-  LLVM compiler library. If installed, must be Version 0.53.1 or higher.
+* `numba <https://github.com/numba/numba>`__: alternative execution engine for operations that accept `engine="numba"
+  argument (eg. apply).  ``numba`` is a JIT compiler that translates Python functions to optimized machine code using
+  the LLVM compiler library. If installed, must be Version 0.53.1 or higher.
 
 .. note::
 
@@ -442,12 +442,12 @@ odfpy                     1.4.1              excel            Open document form
 Access data in the cloud
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Can be managed as optional_extra with ``pandas[aws, gcp]``, depending on required compatibility.
+Can be managed as optional_extra with ``pandas[fss, aws, gcp]``, depending on required compatibility.
 
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    optional_extra  Notes
 ========================= ================== =============== =============================================================
-fsspec                    2021.7.0           n/a             Handling files aside from simple local and HTTP (required
+fsspec                    2021.7.0           fss, gcp, aws   Handling files aside from simple local and HTTP (required
                                                              dependency of s3fs, gcsfs).
 gcsfs                     2021.7.0           gcp             Google Cloud Storage access
 pandas-gbq                0.15.0             gcp             Google Big Query access
