@@ -1006,14 +1006,15 @@ class TestRolling:
 
 
 class TestExpanding:
-    def setup_method(self):
-        self.frame = DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
+    @pytest.fixture
+    def frame(self):
+        return DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
     @pytest.mark.parametrize(
         "f", ["sum", "mean", "min", "max", "count", "kurt", "skew"]
     )
-    def test_expanding(self, f):
-        g = self.frame.groupby("A", group_keys=False)
+    def test_expanding(self, f, frame):
+        g = frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = getattr(r, f)()
@@ -1021,13 +1022,13 @@ class TestExpanding:
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected_index = MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["std", "var"])
-    def test_expanding_ddof(self, f):
-        g = self.frame.groupby("A", group_keys=False)
+    def test_expanding_ddof(self, f, frame):
+        g = frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = getattr(r, f)(ddof=0)
@@ -1035,15 +1036,15 @@ class TestExpanding:
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected_index = MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
     )
-    def test_expanding_quantile(self, interpolation):
-        g = self.frame.groupby("A", group_keys=False)
+    def test_expanding_quantile(self, interpolation, frame):
+        g = frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = r.quantile(0.4, interpolation=interpolation)
@@ -1053,19 +1054,19 @@ class TestExpanding:
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected_index = MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["corr", "cov"])
-    def test_expanding_corr_cov(self, f):
-        g = self.frame.groupby("A")
+    def test_expanding_corr_cov(self, f, frame):
+        g = frame.groupby("A")
         r = g.expanding()
 
-        result = getattr(r, f)(self.frame)
+        result = getattr(r, f)(frame)
 
         def func_0(x):
-            return getattr(x.expanding(), f)(self.frame)
+            return getattr(x.expanding(), f)(frame)
 
         expected = g.apply(func_0)
         # GH 39591: groupby.apply returns 1 instead of nan for windows
@@ -1085,8 +1086,8 @@ class TestExpanding:
         expected = g.apply(func_1)
         tm.assert_series_equal(result, expected)
 
-    def test_expanding_apply(self, raw):
-        g = self.frame.groupby("A", group_keys=False)
+    def test_expanding_apply(self, raw, frame):
+        g = frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         # reduction
@@ -1095,7 +1096,7 @@ class TestExpanding:
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected_index = MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 

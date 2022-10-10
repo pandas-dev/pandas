@@ -39,8 +39,9 @@ def interval_values(request, closed):
 
 
 class TestPivotTable:
-    def setup_method(self):
-        self.data = DataFrame(
+    @pytest.fixture
+    def data(self):
+        return DataFrame(
             {
                 "A": [
                     "foo",
@@ -87,20 +88,20 @@ class TestPivotTable:
             }
         )
 
-    def test_pivot_table(self, observed):
+    def test_pivot_table(self, observed, data):
         index = ["A", "B"]
         columns = "C"
         table = pivot_table(
-            self.data, values="D", index=index, columns=columns, observed=observed
+            data, values="D", index=index, columns=columns, observed=observed
         )
 
-        table2 = self.data.pivot_table(
+        table2 = data.pivot_table(
             values="D", index=index, columns=columns, observed=observed
         )
         tm.assert_frame_equal(table, table2)
 
         # this works
-        pivot_table(self.data, values="D", index=index, observed=observed)
+        pivot_table(data, values="D", index=index, observed=observed)
 
         if len(index) > 1:
             assert table.index.names == tuple(index)
@@ -112,7 +113,7 @@ class TestPivotTable:
         else:
             assert table.columns.name == columns[0]
 
-        expected = self.data.groupby(index + [columns])["D"].agg(np.mean).unstack()
+        expected = data.groupby(index + [columns])["D"].agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_table_categorical_observed_equal(self, observed):
@@ -325,21 +326,21 @@ class TestPivotTable:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_pass_array(self):
-        result = self.data.pivot_table("D", index=self.data.A, columns=self.data.C)
-        expected = self.data.pivot_table("D", index="A", columns="C")
+    def test_pass_array(self, data):
+        result = data.pivot_table("D", index=data.A, columns=data.C)
+        expected = data.pivot_table("D", index="A", columns="C")
         tm.assert_frame_equal(result, expected)
 
-    def test_pass_function(self):
-        result = self.data.pivot_table("D", index=lambda x: x // 5, columns=self.data.C)
-        expected = self.data.pivot_table("D", index=self.data.index // 5, columns="C")
+    def test_pass_function(self, data):
+        result = data.pivot_table("D", index=lambda x: x // 5, columns=data.C)
+        expected = data.pivot_table("D", index=data.index // 5, columns="C")
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_table_multiple(self):
+    def test_pivot_table_multiple(self, data):
         index = ["A", "B"]
         columns = "C"
-        table = pivot_table(self.data, index=index, columns=columns)
-        expected = self.data.groupby(index + [columns]).agg(np.mean).unstack()
+        table = pivot_table(data, index=index, columns=columns)
+        expected = data.groupby(index + [columns]).agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_dtypes(self):
@@ -434,18 +435,18 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(res, exp)
 
-    def test_pivot_multi_values(self):
+    def test_pivot_multi_values(self, data):
         result = pivot_table(
-            self.data, values=["D", "E"], index="A", columns=["B", "C"], fill_value=0
+            data, values=["D", "E"], index="A", columns=["B", "C"], fill_value=0
         )
         expected = pivot_table(
-            self.data.drop(["F"], axis=1), index="A", columns=["B", "C"], fill_value=0
+            data.drop(["F"], axis=1), index="A", columns=["B", "C"], fill_value=0
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_multi_functions(self):
+    def test_pivot_multi_functions(self, data):
         f = lambda func: pivot_table(
-            self.data, values=["D", "E"], index=["A", "B"], columns="C", aggfunc=func
+            data, values=["D", "E"], index=["A", "B"], columns="C", aggfunc=func
         )
         result = f([np.mean, np.std])
         means = f(np.mean)
@@ -455,7 +456,7 @@ class TestPivotTable:
 
         # margins not supported??
         f = lambda func: pivot_table(
-            self.data,
+            data,
             values=["D", "E"],
             index=["A", "B"],
             columns="C",
@@ -859,33 +860,39 @@ class TestPivotTable:
                 pd.pivot(df, index="zoo", columns="foo", values=("bar", "baz"))
 
     def _check_output(
-        self, result, values_col, index=["A", "B"], columns=["C"], margins_col="All"
+        self,
+        result,
+        values_col,
+        data,
+        index=["A", "B"],
+        columns=["C"],
+        margins_col="All",
     ):
         col_margins = result.loc[result.index[:-1], margins_col]
-        expected_col_margins = self.data.groupby(index)[values_col].mean()
+        expected_col_margins = data.groupby(index)[values_col].mean()
         tm.assert_series_equal(col_margins, expected_col_margins, check_names=False)
         assert col_margins.name == margins_col
 
         result = result.sort_index()
         index_margins = result.loc[(margins_col, "")].iloc[:-1]
 
-        expected_ix_margins = self.data.groupby(columns)[values_col].mean()
+        expected_ix_margins = data.groupby(columns)[values_col].mean()
         tm.assert_series_equal(index_margins, expected_ix_margins, check_names=False)
         assert index_margins.name == (margins_col, "")
 
         grand_total_margins = result.loc[(margins_col, ""), margins_col]
-        expected_total_margins = self.data[values_col].mean()
+        expected_total_margins = data[values_col].mean()
         assert grand_total_margins == expected_total_margins
 
-    def test_margins(self):
+    def test_margins(self, data):
         # column specified
-        result = self.data.pivot_table(
+        result = data.pivot_table(
             values="D", index=["A", "B"], columns="C", margins=True, aggfunc=np.mean
         )
-        self._check_output(result, "D")
+        self._check_output(result, "D", data)
 
         # Set a different margins_name (not 'All')
-        result = self.data.pivot_table(
+        result = data.pivot_table(
             values="D",
             index=["A", "B"],
             columns="C",
@@ -893,36 +900,32 @@ class TestPivotTable:
             aggfunc=np.mean,
             margins_name="Totals",
         )
-        self._check_output(result, "D", margins_col="Totals")
+        self._check_output(result, "D", data, margins_col="Totals")
 
         # no column specified
-        table = self.data.pivot_table(
+        table = data.pivot_table(
             index=["A", "B"], columns="C", margins=True, aggfunc=np.mean
         )
         for value_col in table.columns.levels[0]:
-            self._check_output(table[value_col], value_col)
+            self._check_output(table[value_col], value_col, data)
 
-    def test_no_col(self):
+    def test_no_col(self, data):
         # no col
 
         # to help with a buglet
-        self.data.columns = [k * 2 for k in self.data.columns]
+        data.columns = [k * 2 for k in data.columns]
         msg = "The default value of numeric_only"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            table = self.data.pivot_table(
-                index=["AA", "BB"], margins=True, aggfunc=np.mean
-            )
+            table = data.pivot_table(index=["AA", "BB"], margins=True, aggfunc=np.mean)
         for value_col in table.columns:
             totals = table.loc[("All", ""), value_col]
-            assert totals == self.data[value_col].mean()
+            assert totals == data[value_col].mean()
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            table = self.data.pivot_table(
-                index=["AA", "BB"], margins=True, aggfunc="mean"
-            )
+            table = data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
         for item in ["DD", "EE", "FF"]:
             totals = table.loc[("All", ""), item]
-            assert totals == self.data[item].mean()
+            assert totals == data[item].mean()
 
     @pytest.mark.parametrize(
         "columns, aggfunc, values, expected_columns",
@@ -982,10 +985,10 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_margins_dtype(self):
+    def test_margins_dtype(self, data):
         # GH 17013
 
-        df = self.data.copy()
+        df = data.copy()
         df[["D", "E", "F"]] = np.arange(len(df) * 3).reshape(len(df), 3).astype("i8")
 
         mi_val = list(product(["bar", "foo"], ["one", "two"])) + [("All", "")]
@@ -1006,7 +1009,7 @@ class TestPivotTable:
 
         tm.assert_frame_equal(expected, result)
 
-    def test_margins_dtype_len(self):
+    def test_margins_dtype_len(self, data):
         mi_val = list(product(["bar", "foo"], ["one", "two"])) + [("All", "")]
         mi = MultiIndex.from_tuples(mi_val, names=("A", "B"))
         expected = DataFrame(
@@ -1014,7 +1017,7 @@ class TestPivotTable:
         ).rename_axis("C", axis=1)
         expected["All"] = expected["dull"] + expected["shiny"]
 
-        result = self.data.pivot_table(
+        result = data.pivot_table(
             values="D",
             index=["A", "B"],
             columns="C",
@@ -1138,48 +1141,48 @@ class TestPivotTable:
 
         assert pivoted.columns.is_monotonic_increasing
 
-    def test_pivot_complex_aggfunc(self):
+    def test_pivot_complex_aggfunc(self, data):
         f = {"D": ["std"], "E": ["sum"]}
-        expected = self.data.groupby(["A", "B"]).agg(f).unstack("B")
-        result = self.data.pivot_table(index="A", columns="B", aggfunc=f)
+        expected = data.groupby(["A", "B"]).agg(f).unstack("B")
+        result = data.pivot_table(index="A", columns="B", aggfunc=f)
 
         tm.assert_frame_equal(result, expected)
 
-    def test_margins_no_values_no_cols(self):
+    def test_margins_no_values_no_cols(self, data):
         # Regression test on pivot table: no values or cols passed.
-        result = self.data[["A", "B"]].pivot_table(
+        result = data[["A", "B"]].pivot_table(
             index=["A", "B"], aggfunc=len, margins=True
         )
         result_list = result.tolist()
         assert sum(result_list[:-1]) == result_list[-1]
 
-    def test_margins_no_values_two_rows(self):
+    def test_margins_no_values_two_rows(self, data):
         # Regression test on pivot table: no values passed but rows are a
         # multi-index
-        result = self.data[["A", "B", "C"]].pivot_table(
+        result = data[["A", "B", "C"]].pivot_table(
             index=["A", "B"], columns="C", aggfunc=len, margins=True
         )
         assert result.All.tolist() == [3.0, 1.0, 4.0, 3.0, 11.0]
 
-    def test_margins_no_values_one_row_one_col(self):
+    def test_margins_no_values_one_row_one_col(self, data):
         # Regression test on pivot table: no values passed but row and col
         # defined
-        result = self.data[["A", "B"]].pivot_table(
+        result = data[["A", "B"]].pivot_table(
             index="A", columns="B", aggfunc=len, margins=True
         )
         assert result.All.tolist() == [4.0, 7.0, 11.0]
 
-    def test_margins_no_values_two_row_two_cols(self):
+    def test_margins_no_values_two_row_two_cols(self, data):
         # Regression test on pivot table: no values passed but rows and cols
         # are multi-indexed
-        self.data["D"] = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k"]
-        result = self.data[["A", "B", "C", "D"]].pivot_table(
+        data["D"] = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k"]
+        result = data[["A", "B", "C", "D"]].pivot_table(
             index=["A", "B"], columns=["C", "D"], aggfunc=len, margins=True
         )
         assert result.All.tolist() == [3.0, 1.0, 4.0, 3.0, 11.0]
 
     @pytest.mark.parametrize("margin_name", ["foo", "one", 666, None, ["a", "b"]])
-    def test_pivot_table_with_margins_set_margin_name(self, margin_name):
+    def test_pivot_table_with_margins_set_margin_name(self, margin_name, data):
         # see gh-3335
         msg = (
             f'Conflicting name "{margin_name}" in margins|'
@@ -1188,7 +1191,7 @@ class TestPivotTable:
         with pytest.raises(ValueError, match=msg):
             # multi-index index
             pivot_table(
-                self.data,
+                data,
                 values="D",
                 index=["A", "B"],
                 columns=["C"],
@@ -1198,7 +1201,7 @@ class TestPivotTable:
         with pytest.raises(ValueError, match=msg):
             # multi-index column
             pivot_table(
-                self.data,
+                data,
                 values="D",
                 index=["C"],
                 columns=["A", "B"],
@@ -1208,7 +1211,7 @@ class TestPivotTable:
         with pytest.raises(ValueError, match=msg):
             # non-multi-index index/column
             pivot_table(
-                self.data,
+                data,
                 values="D",
                 index=["A"],
                 columns=["B"],
@@ -1683,22 +1686,22 @@ class TestPivotTable:
         tm.assert_series_equal(result, subset, check_names=False)
         assert result.name == i
 
-    def test_pivot_table_with_iterator_values(self):
+    def test_pivot_table_with_iterator_values(self, data):
         # GH 12017
         aggs = {"D": "sum", "E": "mean"}
 
         pivot_values_list = pivot_table(
-            self.data, index=["A"], values=list(aggs.keys()), aggfunc=aggs
+            data, index=["A"], values=list(aggs.keys()), aggfunc=aggs
         )
 
         pivot_values_keys = pivot_table(
-            self.data, index=["A"], values=aggs.keys(), aggfunc=aggs
+            data, index=["A"], values=aggs.keys(), aggfunc=aggs
         )
         tm.assert_frame_equal(pivot_values_keys, pivot_values_list)
 
         agg_values_gen = (value for value in aggs.keys())
         pivot_values_gen = pivot_table(
-            self.data, index=["A"], values=agg_values_gen, aggfunc=aggs
+            data, index=["A"], values=agg_values_gen, aggfunc=aggs
         )
         tm.assert_frame_equal(pivot_values_gen, pivot_values_list)
 
@@ -2000,14 +2003,14 @@ class TestPivotTable:
             (["std", "mean"], [np.std, np.mean]),
         ],
     )
-    def test_pivot_string_func_vs_func(self, f, f_numpy):
+    def test_pivot_string_func_vs_func(self, f, f_numpy, data):
         # GH #18713
         # for consistency purposes
 
         msg = "The default value of numeric_only"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = pivot_table(self.data, index="A", columns="B", aggfunc=f)
-            expected = pivot_table(self.data, index="A", columns="B", aggfunc=f_numpy)
+            result = pivot_table(data, index="A", columns="B", aggfunc=f)
+            expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
