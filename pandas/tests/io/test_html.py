@@ -1282,7 +1282,8 @@ class TestReadHtml:
 
             def __iter__(self) -> Iterator:
                 # to fool `is_file_like`, should never end up here
-                assert False
+                # Suppressing pylint warning here for GH 48855
+                assert False  # pylint: disable=non-iterator-returned
 
         good = MockFile("<table><tr><td>spam<br />eggs</td></tr></table>")
         bad = MockFile("<table><tr><td>spam<foobr />eggs</td></tr></table>")
