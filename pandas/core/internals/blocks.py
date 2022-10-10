@@ -1983,7 +1983,7 @@ def _catch_deprecated_value_error(err: Exception) -> None:
             # IntervalDtype mismatched 'closed'
             pass
         elif "Timezones don't match" not in str(err):
-            raise err
+            raise  # pylint: disable=misplaced-bare-raise GH49018
 
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
