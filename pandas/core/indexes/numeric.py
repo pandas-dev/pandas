@@ -140,7 +140,7 @@ class NumericIndex(Index):
         if not isinstance(data, (np.ndarray, Index)):
             # Coerce to ndarray if not already ndarray or Index
             if is_scalar(data):
-                raise cls._scalar_data_error(data)
+                cls._raise_scalar_data_error(data)
 
             # other iterable of some kind
             if not isinstance(data, (ABCSeries, list, tuple)):
