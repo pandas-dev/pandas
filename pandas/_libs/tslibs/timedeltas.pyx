@@ -1926,7 +1926,6 @@ class Timedelta(_Timedelta):
     def __floordiv__(self, other):
         # numpy does not implement floordiv for timedelta64 dtype, so we cannot
         # just defer
-        orig = other
         if _should_cast_to_timedelta(other):
             # We interpret NaT as timedelta64("NaT")
             other = Timedelta(other)
