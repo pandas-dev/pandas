@@ -10606,6 +10606,7 @@ Parrot 2  Parrot       24.0
                         ]
                 else:
                     from scipy.stats import rankdata
+
                     for i, r in enumerate(ndf):
                         nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
                         corrs[cols[i]] = np.corrcoef(
