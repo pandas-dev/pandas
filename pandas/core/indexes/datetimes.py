@@ -334,7 +334,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     ) -> DatetimeIndex:
 
         if is_scalar(data):
-            raise cls._scalar_data_error(data)
+            cls._raise_scalar_data_error(data)
 
         # - Cases checked above all return/raise before reaching here - #
 

@@ -1160,33 +1160,36 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         from pandas.core.arrays.datetimes import tz_to_dtype
 
         assert other is not NaT
-        other = Timestamp(other)
-        if other is NaT:
+        if isna(other):
+            # i.e. np.datetime64("NaT")
             # In this case we specifically interpret NaT as a datetime, not
             # the timedelta interpretation we would get by returning self + NaT
             result = self._ndarray + NaT.to_datetime64().astype(f"M8[{self._unit}]")
             # Preserve our resolution
             return DatetimeArray._simple_new(result, dtype=result.dtype)
 
+        other = Timestamp(other)
         self, other = self._ensure_matching_resos(other)
         self = cast("TimedeltaArray", self)
 
-        i8 = self.asi8
-        result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
+        other_i8, o_mask = self._get_i8_values_and_mask(other)
+        result = checked_add_with_arr(
+            self.asi8, other_i8, arr_mask=self._isnan, b_mask=o_mask
+        )
+        res_values = result.view(f"M8[{self._unit}]")
 
         dtype = tz_to_dtype(tz=other.tz, unit=self._unit)
         res_values = result.view(f"M8[{self._unit}]")
-        return DatetimeArray._simple_new(res_values, dtype=dtype, freq=self.freq)
+        new_freq = self._get_arithmetic_result_freq(other)
+        return DatetimeArray._simple_new(res_values, dtype=dtype, freq=new_freq)
 
     @final
-    def _add_datetime_arraylike(self, other) -> DatetimeArray:
+    def _add_datetime_arraylike(self, other: DatetimeArray) -> DatetimeArray:
         if not is_timedelta64_dtype(self.dtype):
             raise TypeError(
                 f"cannot add {type(self).__name__} and {type(other).__name__}"
             )
 
-        # At this point we have already checked that other.dtype is datetime64
-        other = ensure_wrapped_if_datetimelike(other)
         # defer to DatetimeArray.__add__
         return other + self
 
@@ -1208,7 +1211,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._sub_datetimelike(ts)
 
     @final
-    def _sub_datetime_arraylike(self, other):
+    def _sub_datetime_arraylike(self, other: DatetimeArray):
         if self.dtype.kind != "M":
             raise TypeError(f"cannot subtract a datelike from a {type(self).__name__}")
 
@@ -1216,7 +1219,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise ValueError("cannot add indices of unequal length")
 
         self = cast("DatetimeArray", self)
-        other = ensure_wrapped_if_datetimelike(other)
 
         self, other = self._ensure_matching_resos(other)
         return self._sub_datetimelike(other)
@@ -1241,16 +1243,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         new_freq = self._get_arithmetic_result_freq(other)
         return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=new_freq)
-
-    @final
-    def _sub_period(self, other: Period) -> npt.NDArray[np.object_]:
-        if not is_period_dtype(self.dtype):
-            raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
-
-        # If the operation is well-defined, we return an object-dtype ndarray
-        # of DateOffsets.  Null entries are filled with pd.NaT
-        self._check_compatible_with(other)
-        return self._sub_periodlike(other)
 
     @final
     def _add_period(self, other: Period) -> PeriodArray:
@@ -1286,9 +1278,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         other = Timedelta(other)._as_unit(self._unit)
         return self._add_timedeltalike(other)
 
-    def _add_timedelta_arraylike(
-        self, other: TimedeltaArray | npt.NDArray[np.timedelta64]
-    ):
+    def _add_timedelta_arraylike(self, other: TimedeltaArray):
         """
         Add a delta of a TimedeltaIndex
 
@@ -1301,12 +1291,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
 
-        other = ensure_wrapped_if_datetimelike(other)
-        tda = cast("TimedeltaArray", other)
         self = cast("DatetimeArray | TimedeltaArray", self)
 
-        self, tda = self._ensure_matching_resos(tda)
-        return self._add_timedeltalike(tda)
+        self, other = self._ensure_matching_resos(other)
+        return self._add_timedeltalike(other)
 
     @final
     def _add_timedeltalike(self, other: Timedelta | TimedeltaArray):
@@ -1356,21 +1344,17 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return result.view("timedelta64[ns]")
 
     @final
-    def _sub_period_array(self, other: PeriodArray) -> npt.NDArray[np.object_]:
+    def _sub_periodlike(self, other: Period | PeriodArray) -> npt.NDArray[np.object_]:
+        # If the operation is well-defined, we return an object-dtype ndarray
+        # of DateOffsets.  Null entries are filled with pd.NaT
         if not is_period_dtype(self.dtype):
             raise TypeError(
-                f"cannot subtract {other.dtype}-dtype from {type(self).__name__}"
+                f"cannot subtract {type(other).__name__} from {type(self).__name__}"
             )
 
         self = cast("PeriodArray", self)
-        self._require_matching_freq(other)
+        self._check_compatible_with(other)
 
-        return self._sub_periodlike(other)
-
-    @final
-    def _sub_periodlike(self, other: Period | PeriodArray) -> npt.NDArray[np.object_]:
-        # caller is responsible for calling
-        #  require_matching_freq/check_compatible_with
         other_i8, o_mask = self._get_i8_values_and_mask(other)
         new_i8_data = checked_add_with_arr(
             self.asi8, -other_i8, arr_mask=self._isnan, b_mask=o_mask
@@ -1465,6 +1449,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):
         other_dtype = getattr(other, "dtype", None)
+        other = ensure_wrapped_if_datetimelike(other)
 
         # scalar others
         if other is NaT:
@@ -1525,6 +1510,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def __sub__(self, other):
 
         other_dtype = getattr(other, "dtype", None)
+        other = ensure_wrapped_if_datetimelike(other)
 
         # scalar others
         if other is NaT:
@@ -1546,7 +1532,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             )
 
         elif isinstance(other, Period):
-            result = self._sub_period(other)
+            result = self._sub_periodlike(other)
 
         # array-like others
         elif is_timedelta64_dtype(other_dtype):
@@ -1560,7 +1546,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             result = self._sub_datetime_arraylike(other)
         elif is_period_dtype(other_dtype):
             # PeriodIndex
-            result = self._sub_period_array(other)
+            result = self._sub_periodlike(other)
         elif is_integer_dtype(other_dtype):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
