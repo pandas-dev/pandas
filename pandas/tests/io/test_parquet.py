@@ -879,37 +879,36 @@ class TestParquetPyArrow(Base):
         with pytest.raises(OSError, match=r".*TestingUser.*"):
             df_compat.to_parquet("~/file.parquet")
 
-    def test_partition_cols_supported(self, pa, df_full):
+    def test_partition_cols_supported(self, tmp_path, pa, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
         df = df_full
-        with tm.ensure_clean_dir() as path:
-            df.to_parquet(path, partition_cols=partition_cols, compression=None)
-            check_partition_names(path, partition_cols)
-            assert read_parquet(path).shape == df.shape
+        df.to_parquet(tmp_path, partition_cols=partition_cols, compression=None)
+        check_partition_names(tmp_path, partition_cols)
+        assert read_parquet(tmp_path).shape == df.shape
 
-    def test_partition_cols_string(self, pa, df_full):
+    def test_partition_cols_string(self, tmp_path, pa, df_full):
         # GH #27117
         partition_cols = "bool"
         partition_cols_list = [partition_cols]
         df = df_full
-        with tm.ensure_clean_dir() as path:
-            df.to_parquet(path, partition_cols=partition_cols, compression=None)
-            check_partition_names(path, partition_cols_list)
-            assert read_parquet(path).shape == df.shape
+        df.to_parquet(tmp_path, partition_cols=partition_cols, compression=None)
+        check_partition_names(tmp_path, partition_cols_list)
+        assert read_parquet(tmp_path).shape == df.shape
 
-    @pytest.mark.parametrize("path_type", [str, pathlib.Path])
-    def test_partition_cols_pathlib(self, pa, df_compat, path_type):
+    @pytest.mark.parametrize(
+        "path_type", [str, lambda x: x], ids=["string", "pathlib.Path"]
+    )
+    def test_partition_cols_pathlib(self, tmp_path, pa, df_compat, path_type):
         # GH 35902
 
         partition_cols = "B"
         partition_cols_list = [partition_cols]
         df = df_compat
 
-        with tm.ensure_clean_dir() as path_str:
-            path = path_type(path_str)
-            df.to_parquet(path, partition_cols=partition_cols_list)
-            assert read_parquet(path).shape == df.shape
+        path = path_type(tmp_path)
+        df.to_parquet(path, partition_cols=partition_cols_list)
+        assert read_parquet(path).shape == df.shape
 
     def test_empty_dataframe(self, pa):
         # GH #27339
@@ -1082,58 +1081,57 @@ class TestParquetFastParquet(Base):
             write_kwargs={"compression": None, "storage_options": s3so},
         )
 
-    def test_partition_cols_supported(self, fp, df_full):
+    def test_partition_cols_supported(self, tmp_path, fp, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
         df = df_full
-        with tm.ensure_clean_dir() as path:
-            df.to_parquet(
-                path,
-                engine="fastparquet",
-                partition_cols=partition_cols,
-                compression=None,
-            )
-            assert os.path.exists(path)
-            import fastparquet
+        df.to_parquet(
+            tmp_path,
+            engine="fastparquet",
+            partition_cols=partition_cols,
+            compression=None,
+        )
+        assert os.path.exists(tmp_path)
+        import fastparquet
 
-            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
-            assert len(actual_partition_cols) == 2
+        actual_partition_cols = fastparquet.ParquetFile(str(tmp_path), False).cats
+        assert len(actual_partition_cols) == 2
 
-    def test_partition_cols_string(self, fp, df_full):
+    def test_partition_cols_string(self, tmp_path, fp, df_full):
         # GH #27117
         partition_cols = "bool"
         df = df_full
-        with tm.ensure_clean_dir() as path:
-            df.to_parquet(
-                path,
-                engine="fastparquet",
-                partition_cols=partition_cols,
-                compression=None,
-            )
-            assert os.path.exists(path)
-            import fastparquet
+        df.to_parquet(
+            tmp_path,
+            engine="fastparquet",
+            partition_cols=partition_cols,
+            compression=None,
+        )
+        assert os.path.exists(tmp_path)
+        import fastparquet
 
-            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
-            assert len(actual_partition_cols) == 1
+        actual_partition_cols = fastparquet.ParquetFile(str(tmp_path), False).cats
+        assert len(actual_partition_cols) == 1
 
-    def test_partition_on_supported(self, fp, df_full):
+    def test_partition_on_supported(self, tmp_path, fp, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
         df = df_full
-        with tm.ensure_clean_dir() as path:
-            df.to_parquet(
-                path,
-                engine="fastparquet",
-                compression=None,
-                partition_on=partition_cols,
-            )
-            assert os.path.exists(path)
-            import fastparquet
+        df.to_parquet(
+            tmp_path,
+            engine="fastparquet",
+            compression=None,
+            partition_on=partition_cols,
+        )
+        assert os.path.exists(tmp_path)
+        import fastparquet
 
-            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
-            assert len(actual_partition_cols) == 2
+        actual_partition_cols = fastparquet.ParquetFile(str(tmp_path), False).cats
+        assert len(actual_partition_cols) == 2
 
-    def test_error_on_using_partition_cols_and_partition_on(self, fp, df_full):
+    def test_error_on_using_partition_cols_and_partition_on(
+        self, tmp_path, fp, df_full
+    ):
         # GH #23283
         partition_cols = ["bool", "int"]
         df = df_full
@@ -1142,14 +1140,13 @@ class TestParquetFastParquet(Base):
             "partitioning data"
         )
         with pytest.raises(ValueError, match=msg):
-            with tm.ensure_clean_dir() as path:
-                df.to_parquet(
-                    path,
-                    engine="fastparquet",
-                    compression=None,
-                    partition_on=partition_cols,
-                    partition_cols=partition_cols,
-                )
+            df.to_parquet(
+                tmp_path,
+                engine="fastparquet",
+                compression=None,
+                partition_on=partition_cols,
+                partition_cols=partition_cols,
+            )
 
     def test_empty_dataframe(self, fp):
         # GH #27339

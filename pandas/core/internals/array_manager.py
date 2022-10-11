@@ -23,6 +23,7 @@ from pandas._typing import (
     ArrayLike,
     AxisInt,
     DtypeObj,
+    QuantileInterpolation,
     npt,
 )
 from pandas.util._validators import validate_bool_kwarg
@@ -1057,7 +1058,7 @@ class ArrayManager(BaseArrayManager):
         qs: Float64Index,
         axis: AxisInt = 0,
         transposed: bool = False,
-        interpolation="linear",
+        interpolation: QuantileInterpolation = "linear",
     ) -> ArrayManager:
 
         arrs = [ensure_block_shape(x, 2) for x in self.arrays]

@@ -68,7 +68,7 @@ cpplint
 flake8==5.0.4
 flake8-bugbear==22.7.1
 isort>=5.2.1
-mypy==0.971
+mypy==0.981
 pre-commit>=2.15.0
 pycodestyle
 pyupgrade
@@ -77,7 +77,7 @@ gitdb
 natsort
 numpydoc
 pandas-dev-flaker==0.5.0
-pydata-sphinx-theme
+pydata-sphinx-theme<0.11
 pytest-cython
 sphinx
 sphinx-panels

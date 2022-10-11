@@ -3,6 +3,10 @@ from __future__ import annotations
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs import (
+    get_unit_from_dtype,
+    is_supported_unit,
+)
 from pandas._typing import (
     AxisInt,
     Dtype,
@@ -243,7 +247,12 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def sum(
-        self, *, axis: AxisInt | None = None, skipna: bool = True, min_count=0, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
     ) -> Scalar:
         nv.validate_sum((), kwargs)
         result = nanops.nansum(
@@ -252,7 +261,12 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def prod(
-        self, *, axis: AxisInt | None = None, skipna: bool = True, min_count=0, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
     ) -> Scalar:
         nv.validate_prod((), kwargs)
         result = nanops.nanprod(
@@ -294,7 +308,7 @@ class PandasArray(
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
-        ddof=1,
+        ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
     ):
@@ -310,7 +324,7 @@ class PandasArray(
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
-        ddof=1,
+        ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
     ):
@@ -326,7 +340,7 @@ class PandasArray(
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
-        ddof=1,
+        ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
     ):
@@ -429,10 +443,12 @@ class PandasArray(
     def _wrap_ndarray_result(self, result: np.ndarray):
         # If we have timedelta64[ns] result, return a TimedeltaArray instead
         #  of a PandasArray
-        if result.dtype == "timedelta64[ns]":
+        if result.dtype.kind == "m" and is_supported_unit(
+            get_unit_from_dtype(result.dtype)
+        ):
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray._simple_new(result)
+            return TimedeltaArray._simple_new(result, dtype=result.dtype)
         return type(self)(result)
 
     # ------------------------------------------------------------------------

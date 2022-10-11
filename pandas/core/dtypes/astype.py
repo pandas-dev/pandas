@@ -15,7 +15,11 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import is_unitless
+from pandas._libs.tslibs import (
+    get_unit_from_dtype,
+    is_supported_unit,
+    is_unitless,
+)
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
     ArrayLike,
@@ -132,6 +136,14 @@ def astype_nansafe(
             return arr.view(dtype)
 
         elif dtype.kind == "m":
+            # TODO(2.0): change to use the same logic as TDA.astype, i.e.
+            #  giving the requested dtype for supported units (s, ms, us, ns)
+            #  and doing the old convert-to-float behavior otherwise.
+            if is_supported_unit(get_unit_from_dtype(arr.dtype)):
+                from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+                arr = ensure_wrapped_if_datetimelike(arr)
+                return arr.astype(dtype, copy=copy)
             return astype_td64_unit_conversion(arr, dtype, copy=copy)
 
         raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
@@ -289,11 +301,11 @@ def astype_array_safe(
         and dtype.kind == "M"
         and not is_unitless(dtype)
         and not is_dtype_equal(dtype, values.dtype)
+        and not is_supported_unit(get_unit_from_dtype(dtype))
     ):
-        # unit conversion, we would re-cast to nanosecond, so this is
-        #  effectively just a copy (regardless of copy kwd)
-        # TODO(2.0): remove special-case
-        return values.copy()
+        # Supported units we handle in DatetimeArray.astype; but that raises
+        #  on non-supported units, so we handle that here.
+        return np.asarray(values).astype(dtype)
 
     try:
         new_values = astype_array(values, dtype, copy=copy)
