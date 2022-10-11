@@ -1,11 +1,13 @@
 from datetime import datetime
 
+from dateutil.tz.tz import tzlocal
 import pytest
 
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     Timestamp,
 )
+from pandas.compat import IS64
 
 from pandas.tseries.offsets import (
     FY5253,
@@ -110,7 +112,7 @@ def d(_offset):
     return Timestamp(2008, 1, 2)
 
 
-def test_apply_out_of_range(tz_naive_fixture, _offset):
+def test_apply_out_of_range(request, tz_naive_fixture, _offset):
     tz = tz_naive_fixture
 
     # try to create an out-of-bounds result timestamp; if we can't create
@@ -131,6 +133,13 @@ def test_apply_out_of_range(tz_naive_fixture, _offset):
         t = Timestamp("20080101", tz=tz)
         result = t + offset
         assert isinstance(result, datetime)
+
+        if isinstance(tz, tzlocal) and not IS64:
+            # If we hit OutOfBoundsDatetime on non-64 bit machines
+            # we'll drop out of the try clause before the next test
+            request.node.add_marker(
+                pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
+            )
         assert str(t.tzinfo) == str(result.tzinfo)
 
     except OutOfBoundsDatetime:
