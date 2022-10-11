@@ -86,11 +86,6 @@ class TestCustomBusinessHour(Base):
             holidays=["2014-06-28"]
         )
 
-    def test_sub(self):
-        # override the Base.test_sub implementation because self.offset2 is
-        # defined differently in this class than the test expects
-        pass
-
     def test_hash(self):
         assert hash(self.offset1) == hash(self.offset1)
         assert hash(self.offset2) == hash(self.offset2)
