@@ -29,6 +29,7 @@ from pandas._typing import (
     DtypeArg,
     FilePath,
     IndexLabel,
+    JSONEngine,
     JSONSerializable,
     ReadBuffer,
     StorageOptions,
@@ -72,6 +73,8 @@ from pandas.io.json._table_schema import (
     build_table_schema,
     parse_table_schema,
 )
+from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
+from pandas.io.parsers.base_parser import ParserBase
 from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
@@ -380,6 +383,7 @@ def read_json(
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
+    engine: JSONEngine | None = ...,
     lines: bool = ...,
     chunksize: int,
     compression: CompressionOptions = ...,
@@ -404,6 +408,7 @@ def read_json(
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
+    engine: JSONEngine | None = ...,
     lines: bool = ...,
     chunksize: int,
     compression: CompressionOptions = ...,
@@ -428,6 +433,7 @@ def read_json(
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
+    engine: JSONEngine | None = ...,
     lines: bool = ...,
     chunksize: None = ...,
     compression: CompressionOptions = ...,
@@ -451,6 +457,7 @@ def read_json(
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
+    engine: JSONEngine | None = None,
     lines: bool = ...,
     chunksize: None = ...,
     compression: CompressionOptions = ...,
@@ -479,6 +486,7 @@ def read_json(
     date_unit: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
+    engine: JSONEngine | None = None,
     lines: bool = False,
     chunksize: int | None = None,
     compression: CompressionOptions = "infer",
@@ -606,6 +614,9 @@ def read_json(
         <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
 
         .. versionadded:: 1.3.0
+
+    engine : {{'ujson', 'pyarrow'}}
+        Parser engine to use.
 
     lines : bool, default False
         Read the file as a json object per line.
@@ -743,6 +754,7 @@ def read_json(
         precise_float=precise_float,
         date_unit=date_unit,
         encoding=encoding,
+        engine=engine,
         lines=lines,
         chunksize=chunksize,
         compression=compression,
@@ -780,6 +792,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         precise_float: bool,
         date_unit,
         encoding,
+        engine,
         lines: bool,
         chunksize: int | None,
         compression: CompressionOptions,
@@ -798,6 +811,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         self.precise_float = precise_float
         self.date_unit = date_unit
         self.encoding = encoding
+        self.engine = engine
         self.compression = compression
         self.storage_options = storage_options
         self.lines = lines
@@ -816,8 +830,32 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
 
-        data = self._get_data_from_filepath(filepath_or_buffer)
-        self.data = self._preprocess_data(data)
+        if engine is not None:
+            self._engine = self._make_engine(filepath_or_buffer, self.engine)
+        else:
+            data = self._get_data_from_filepath(filepath_or_buffer)
+            self.data = self._preprocess_data(data)
+
+    def _make_engine(
+        self,
+        filepath_or_buffer: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+        engine: JSONEngine,
+    ) -> ParserBase:
+
+        mapping: dict[str, type[ParserBase]] = {
+            "pyarrow": ArrowParserWrapper,
+            "ujson": ...,
+        }
+
+        if engine not in mapping:
+            raise ValueError(
+                f"Unknown engine: {engine} (valid options are {mapping.keys()})"
+            )
+
+        if not isinstance(filepath_or_buffer, list):
+            ...
+
+        return mapping[engine](filepath_or_buffer)
 
     def _preprocess_data(self, data):
         """
