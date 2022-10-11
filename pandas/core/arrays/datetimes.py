@@ -310,6 +310,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         freq = freq if freq is not lib.no_default else None
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
+        # if the user either explicitly passes tz=None or a tz-naive dtype, we
+        #  disallows inferring a tz.
         explicit_tz_none = tz is None
         if tz is lib.no_default:
             tz = None
@@ -2023,9 +2025,8 @@ def _sequence_to_dt64ns(
     Parameters
     ----------
     data : list-like
-    dtype : dtype, str, or None, default None
     copy : bool, default False
-    tz : tzinfo, str, or None, default None
+    tz : tzinfo or None, default None
     dayfirst : bool, default False
     yearfirst : bool, default False
     ambiguous : str, bool, or arraylike, default 'raise'
@@ -2116,7 +2117,6 @@ def _sequence_to_dt64ns(
 
         if tz is not None:
             # Convert tz-naive to UTC
-            tz = timezones.maybe_get_tz(tz)
             # TODO: if tz is UTC, are there situations where we *don't* want a
             #  copy?  tz_localize_to_utc always makes one.
             data = tzconversion.tz_localize_to_utc(
@@ -2130,9 +2130,6 @@ def _sequence_to_dt64ns(
     else:
         # must be integer dtype otherwise
         # assume this data are epoch timestamps
-        if tz:
-            tz = timezones.maybe_get_tz(tz)
-
         if data.dtype != INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
         result = data.view(DT64NS_DTYPE)

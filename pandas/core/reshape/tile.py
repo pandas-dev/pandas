@@ -391,7 +391,7 @@ def qcut(
 
 def _bins_to_cuts(
     x,
-    bins: np.ndarray,
+    bins: np.ndarray | IntervalIndex,
     right: bool = True,
     labels=None,
     precision: int = 3,
