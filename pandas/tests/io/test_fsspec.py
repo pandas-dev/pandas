@@ -95,22 +95,18 @@ def test_to_csv_fsspec_object(cleared_fs, binary_mode, df1):
 
     path = "memory://test/test.csv"
     mode = "wb" if binary_mode else "w"
-    fsspec_object = fsspec.open(path, mode=mode).open()
-
-    df1.to_csv(fsspec_object, index=True)
-    assert not fsspec_object.closed
-    fsspec_object.close()
+    with fsspec.open(path, mode=mode).open() as fsspec_object:
+        df1.to_csv(fsspec_object, index=True)
+        assert not fsspec_object.closed
 
     mode = mode.replace("w", "r")
-    fsspec_object = fsspec.open(path, mode=mode).open()
-
-    df2 = read_csv(
-        fsspec_object,
-        parse_dates=["dt"],
-        index_col=0,
-    )
-    assert not fsspec_object.closed
-    fsspec_object.close()
+    with fsspec.open(path, mode=mode) as fsspec_object:
+        df2 = read_csv(
+            fsspec_object,
+            parse_dates=["dt"],
+            index_col=0,
+        )
+        assert not fsspec_object.closed
 
     tm.assert_frame_equal(df1, df2)
 
