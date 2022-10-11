@@ -295,3 +295,18 @@ def test_is_iso_format(fmt, expected):
     # see gh-41047
     result = parsing.format_is_iso(fmt)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "input",
+    [
+        "2018-01-01T00:00:00.123456789",
+        "2018-01-01T00:00:00.123456",
+        "2018-01-01T00:00:00.123",
+    ],
+)
+def test_guess_datetime_format_f(input):
+    # https://github.com/pandas-dev/pandas/issues/49043
+    result = parsing.guess_datetime_format(input)
+    expected = "%Y-%m-%dT%H:%M:%S.%f"
+    assert result == expected
