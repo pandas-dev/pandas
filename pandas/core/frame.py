@@ -10603,6 +10603,8 @@ Parrot 2  Parrot       24.0
                     for col in cols:
                         val = self[col].values
                         nonnull_mask = ~self[col].isna() & k_mask
+                        if isinstance(val, BaseMaskedArray):
+                            val = val._data
                         corrs[col] = np.corrcoef(
                             val[nonnull_mask], k[nonnull_mask]
                         )[0, 1]
