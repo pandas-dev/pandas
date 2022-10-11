@@ -252,15 +252,16 @@ def astype_array_safe(
     dtype : str, dtype convertible
     copy : bool, default False
         copy if indicated
-    errors : str, {'raise', 'ignore'}, default 'raise'
+    errors : str, {'raise', 'ignore', 'coerce'}, default 'raise'
         - ``raise`` : allow exceptions to be raised
         - ``ignore`` : suppress exceptions. On error return original object
+        - ``coerce`` : suppress exceptions, On error return as NaN
 
     Returns
     -------
     ndarray or ExtensionArray
     """
-    errors_legal_values = ("raise", "ignore")
+    errors_legal_values = ("raise", "ignore", "coerce")
 
     if errors not in errors_legal_values:
         invalid_arg = (
@@ -301,6 +302,8 @@ def astype_array_safe(
         # e.g. astype_nansafe can fail on object-dtype of strings
         #  trying to convert to float
         if errors == "ignore":
+            new_values = values
+        elif errors == "coerce":
             new_values = values
         else:
             raise

@@ -1,0 +1,58 @@
+.. _whatsnew_161:
+
+What's new in 1.6.1 (??)
+------------------------
+
+These are the changes in pandas 1.6.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_161.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+- :func:`astype` now supports using ``errors='coerce'`` to convert the invalid data into NaNs. (:issue:`48781`)
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame([
+    [np.NaN, 0.1, 1.1, 1.6],
+    ["error", 0.2, 1.2, 1.7],
+    [0.3, "", 1.3, 1.8],
+    [0.4, 1.4, "code255", 1.9],
+    ])
+
+    In [2]: df.astype(float, errors="coerce")
+    ValueError: Expected value of kwarg 'errors' to be one of ['raise', 'ignore'].
+    Supplied value is 'coerce'
+We return ValueError Message as response with the value
+
+*New Behavior*
+
+.. ipython:: python
+
+    df = pd.DataFrame([
+    [np.NaN, 0.1, 1.1, 1.6],
+    ["error", 0.2, 1.2, 1.7],
+    [0.3, "", 1.3, 1.8],
+    [0.4, 1.4, "code255", 1.9],
+    ])
+    df.astype(float, errors="coerce")
+
+     0    1    2    3
+0  NaN  0.1  1.1  1.6
+1  NaN  0.2  1.2  1.7
+2  0.3  NaN  1.3  1.8
+3  0.4  1.4  NaN  1.9
+
+
+.. ------------------------------------------------------------------------------
+.. _whatsnew_161.contributors:
+
+Contributors
+~~~~~~~~~~~~
