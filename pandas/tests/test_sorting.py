@@ -506,10 +506,10 @@ class TestSafeSort:
         tm.assert_numpy_array_equal(codes, expected_codes)
 
 
-def test_mixed_str_nan():
-    values = np.array(["b", np.nan, "a", "b"], dtype=object)
+def test_mixed_str_null(nulls_fixture):
+    values = np.array(["b", nulls_fixture, "a", "b"], dtype=object)
     result = safe_sort(values)
-    expected = np.array([np.nan, "a", "b", "b"], dtype=object)
+    expected = np.array(["a", "b", "b", nulls_fixture], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
 
