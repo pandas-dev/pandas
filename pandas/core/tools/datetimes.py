@@ -820,7 +820,7 @@ def to_datetime(
           to the day starting at noon on January 1, 4713 BC.
         - If Timestamp convertible (Timestamp, dt.datetime, np.datetimt64 or date
           string), origin is set to Timestamp identified by origin.
-        - If a float or integer, origin is the mullisecond difference
+        - If a float or integer, origin is the millisecond difference
           relative to 1970-01-01.
     cache : bool, default True
         If :const:`True`, use a cache of unique, converted dates to apply the

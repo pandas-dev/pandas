@@ -305,7 +305,8 @@ def test_is_iso_format(fmt, expected):
         "2018-01-01T00:00:00.123",
     ],
 )
-def test_guess_datetiem_format_f(input):
+def test_guess_datetime_format_f(input):
+    # https://github.com/pandas-dev/pandas/issues/49043
     result = parsing.guess_datetime_format(input)
     expected = "%Y-%m-%dT%H:%M:%S.%f"
     assert result == expected
