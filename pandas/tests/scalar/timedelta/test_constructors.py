@@ -61,6 +61,38 @@ def test_from_td64_retain_resolution():
     assert td3._reso == NpyDatetimeUnit.NPY_FR_us.value
 
 
+def test_from_pytimedelta_us_reso():
+    # pytimedelta has microsecond resolution, so Timedelta(pytd) inherits that
+    td = timedelta(days=4, minutes=3)
+    result = Timedelta(td)
+    assert result.to_pytimedelta() == td
+    assert result._reso == NpyDatetimeUnit.NPY_FR_us.value
+
+
+def test_from_tick_reso():
+    tick = offsets.Nano()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_ns.value
+
+    tick = offsets.Micro()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_us.value
+
+    tick = offsets.Milli()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_ms.value
+
+    tick = offsets.Second()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_s.value
+
+    # everything above Second gets cast to the closest supported reso: second
+    tick = offsets.Minute()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_s.value
+
+    tick = offsets.Hour()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_s.value
+
+    tick = offsets.Day()
+    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_s.value
+
+
 def test_construction():
     expected = np.timedelta64(10, "D").astype("m8[ns]").view("i8")
     assert Timedelta(10, unit="d").value == expected
@@ -248,9 +280,10 @@ def test_overflow_on_construction():
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(7 * 19999, unit="D")
 
-    msg = "Cannot cast 259987 days, 0:00:00 to unit=ns without overflow"
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        Timedelta(timedelta(days=13 * 19999))
+    # used to overflow before non-ns support
+    td = Timedelta(timedelta(days=13 * 19999))
+    assert td._reso == NpyDatetimeUnit.NPY_FR_us.value
+    assert td.days == 13 * 19999
 
 
 @pytest.mark.parametrize(

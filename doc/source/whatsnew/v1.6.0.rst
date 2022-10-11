@@ -119,6 +119,7 @@ Other API changes
 - Passing ``nanoseconds`` greater than 999 or less than 0 in :class:`Timestamp` now raises a ``ValueError`` (:issue:`48538`, :issue:`48255`)
 - :func:`read_csv`: specifying an incorrect number of columns with ``index_col`` of now raises ``ParserError`` instead of ``IndexError`` when using the c parser.
 - :meth:`DataFrame.astype`, :meth:`Series.astype`, and :meth:`DatetimeIndex.astype` casting datetime64 data to any of "datetime64[s]", "datetime64[ms]", "datetime64[us]" will return an object with the given resolution instead of coercing back to "datetime64[ns]" (:issue:`48928`)
+- :meth:`DataFrame.astype`, :meth:`Series.astype`, and :meth:`DatetimeIndex.astype` casting timedelta64 data to any of "timedelta64[s]", "timedelta64[ms]", "timedelta64[us]" will return an object with the given resolution instead of coercing to "float64" dtype (:issue:`48963`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -153,6 +154,7 @@ Performance improvements
 - Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
 - Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47405`, :issue:`47656`, :issue:`48502`)
 - Memory improvement in :meth:`RangeIndex.sort_values` (:issue:`48801`)
+- Performance improvement in :class:`DataFrameGroupBy` and :class:`SeriesGroupBy` when ``by`` is a categorical type and ``sort=False`` (:issue:`48976`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_160.bug_fixes:
