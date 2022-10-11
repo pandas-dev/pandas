@@ -139,11 +139,12 @@ class TestSequenceToDT64NS:
             )
 
     def test_tz_dtype_matches(self):
+        dtype = DatetimeTZDtype(tz="US/Central")
         arr = DatetimeArray._from_sequence(
-            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
+            ["2000"], dtype=dtype
         )
-        result, _, _ = _sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="US/Central"))
-        tm.assert_numpy_array_equal(arr._data, result)
+        result = DatetimeArray._from_sequence_not_strict(arr, dtype=dtype)
+        tm.assert_equal(arr, result)
 
     @pytest.mark.parametrize("order", ["F", "C"])
     def test_2d(self, order):
