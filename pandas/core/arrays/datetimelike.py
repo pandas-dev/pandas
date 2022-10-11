@@ -867,6 +867,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 return isin(self.astype(object), values)
 
         if self.dtype.kind in ["m", "M"]:
+            self = cast("DatetimeArray | TimedeltaArray", self)
             values = values._as_unit(self._unit)
 
         try:
