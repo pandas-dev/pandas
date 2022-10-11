@@ -318,11 +318,40 @@ static int is_simple_frame(PyObject *obj) {
 }
 
 static npy_int64 get_long_attr(PyObject *o, const char *attr) {
+    // NB we are implicitly assuming that o is a Timedelta or Timestamp, or NaT
+
     npy_int64 long_val;
     PyObject *value = PyObject_GetAttrString(o, attr);
     long_val =
         (PyLong_Check(value) ? PyLong_AsLongLong(value) : PyLong_AsLong(value));
+
     Py_DECREF(value);
+
+    if (long_val == NPY_MIN_INT64) {
+        // i.e. o is NaT
+        return long_val;
+    }
+
+    // ensure we are in nanoseconds, similar to Timestamp._as_reso or _as_unit
+    PyObject* reso = PyObject_GetAttrString(o, "_reso");
+    // if (!PyLong_Check(reso)) {
+    // TODO(anyone): we should have error handling here, but one step at a time
+    // }
+
+    long cReso = PyLong_AsLong(reso);
+    // if (cReso == -1 && PyErr_Occurred()) {
+    // TODO(anyone): we should have error handling here, but one step at a time
+    // }
+    Py_DECREF(reso);
+
+    if (cReso == NPY_FR_us) {
+        long_val = long_val * 1000L;
+    } else if (cReso == NPY_FR_ms) {
+        long_val = long_val * 1000000L;
+    } else if (cReso == NPY_FR_s) {
+        long_val = long_val * 1000000000L;
+    }
+
     return long_val;
 }
 
@@ -1305,8 +1334,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         } else if (PyDate_Check(item) || PyDelta_Check(item)) {
             is_datetimelike = 1;
             if (PyObject_HasAttrString(item, "value")) {
-                // FIXME: need to ensure nanos with ._as_unit("ns") or ._as_reso(NPY_FR_ns)
-                //  see test_date_index_and_values
+                // see test_date_index_and_values for case with non-nano
                 nanosecVal = get_long_attr(item, "value");
             } else {
                 if (PyDelta_Check(item)) {
