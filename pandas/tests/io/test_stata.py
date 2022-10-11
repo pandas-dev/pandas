@@ -600,9 +600,8 @@ class TestStata:
         # Test that value_labels() returns an empty dict if the file format
         # predates supporting value labels.
         dpath = datapath("io", "data", "stata", "S4_EDUC1.dta")
-        reader = StataReader(dpath)
-        assert reader.value_labels() == {}
-        reader.close()
+        with StataReader(dpath) as reader:
+            assert reader.value_labels() == {}
 
     def test_date_export_formats(self):
         columns = ["tc", "td", "tw", "tm", "tq", "th", "ty"]
@@ -1108,29 +1107,26 @@ class TestStata:
                 convert_categoricals=convert_categoricals,
                 convert_dates=convert_dates,
             )
-        itr = read_stata(
+        with read_stata(
             fname,
             iterator=True,
             convert_categoricals=convert_categoricals,
             convert_dates=convert_dates,
-        )
-
-        pos = 0
-        for j in range(5):
-            with warnings.catch_warnings(record=True):
-                warnings.simplefilter("always")
-                try:
-                    chunk = itr.read(chunksize)
-                except StopIteration:
-                    break
-            from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
-            from_frame = self._convert_categorical(from_frame)
-            tm.assert_frame_equal(
-                from_frame, chunk, check_dtype=False, check_datetimelike_compat=True
-            )
-
-            pos += chunksize
-        itr.close()
+        ) as itr:
+            pos = 0
+            for j in range(5):
+                with warnings.catch_warnings(record=True):
+                    warnings.simplefilter("always")
+                    try:
+                        chunk = itr.read(chunksize)
+                    except StopIteration:
+                        break
+                from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
+                from_frame = self._convert_categorical(from_frame)
+                tm.assert_frame_equal(
+                    from_frame, chunk, check_dtype=False, check_datetimelike_compat=True
+                )
+                pos += chunksize
 
     @staticmethod
     def _convert_categorical(from_frame: DataFrame) -> DataFrame:
@@ -1206,28 +1202,26 @@ class TestStata:
             )
 
         # Compare to what we get when reading by chunk
-        itr = read_stata(
+        with read_stata(
             fname,
             iterator=True,
             convert_dates=convert_dates,
             convert_categoricals=convert_categoricals,
-        )
-        pos = 0
-        for j in range(5):
-            with warnings.catch_warnings(record=True):
-                warnings.simplefilter("always")
-                try:
-                    chunk = itr.read(chunksize)
-                except StopIteration:
-                    break
-            from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
-            from_frame = self._convert_categorical(from_frame)
-            tm.assert_frame_equal(
-                from_frame, chunk, check_dtype=False, check_datetimelike_compat=True
-            )
-
-            pos += chunksize
-        itr.close()
+        ) as itr:
+            pos = 0
+            for j in range(5):
+                with warnings.catch_warnings(record=True):
+                    warnings.simplefilter("always")
+                    try:
+                        chunk = itr.read(chunksize)
+                    except StopIteration:
+                        break
+                from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
+                from_frame = self._convert_categorical(from_frame)
+                tm.assert_frame_equal(
+                    from_frame, chunk, check_dtype=False, check_datetimelike_compat=True
+                )
+                pos += chunksize
 
     def test_read_chunks_columns(self, datapath):
         fname = datapath("io", "data", "stata", "stata3_117.dta")
@@ -1820,9 +1814,9 @@ the string values returned are correct."""
                 data["β"].replace(value_labels["β"]).astype("category").cat.as_ordered()
             )
             tm.assert_frame_equal(data, reread_encoded)
-            reader = StataReader(path)
-            assert reader.data_label == data_label
-            assert reader.variable_labels() == variable_labels
+            with StataReader(path) as reader:
+                assert reader.data_label == data_label
+                assert reader.variable_labels() == variable_labels
 
             data.to_stata(path, version=version, write_index=False)
             reread_to_stata = read_stata(path)
@@ -1922,11 +1916,11 @@ def test_chunked_categorical(version):
     df.index.name = "index"
     with tm.ensure_clean() as path:
         df.to_stata(path, version=version)
-        reader = StataReader(path, chunksize=2, order_categoricals=False)
-        for i, block in enumerate(reader):
-            block = block.set_index("index")
-            assert "cats" in block
-            tm.assert_series_equal(block.cats, df.cats.iloc[2 * i : 2 * (i + 1)])
+        with StataReader(path, chunksize=2, order_categoricals=False) as reader:
+            for i, block in enumerate(reader):
+                block = block.set_index("index")
+                assert "cats" in block
+                tm.assert_series_equal(block.cats, df.cats.iloc[2 * i : 2 * (i + 1)])
 
 
 def test_chunked_categorical_partial(datapath):
@@ -1952,7 +1946,8 @@ def test_chunked_categorical_partial(datapath):
 def test_iterator_errors(datapath, chunksize):
     dta_file = datapath("io", "data", "stata", "stata-dta-partially-labeled.dta")
     with pytest.raises(ValueError, match="chunksize must be a positive"):
-        StataReader(dta_file, chunksize=chunksize)
+        with StataReader(dta_file, chunksize=chunksize):
+            pass
 
 
 def test_iterator_value_labels():
@@ -2051,9 +2046,9 @@ def test_non_categorical_value_labels():
         writer = StataWriter(path, data, value_labels=value_labels)
         writer.write_file()
 
-        reader = StataReader(path)
-        reader_value_labels = reader.value_labels()
-        assert reader_value_labels == expected
+        with StataReader(path) as reader:
+            reader_value_labels = reader.value_labels()
+            assert reader_value_labels == expected
 
         msg = "Can't create value labels for notY, it wasn't found in the dataset."
         with pytest.raises(KeyError, match=msg):
@@ -2101,9 +2096,9 @@ def test_non_categorical_value_label_name_conversion():
         with tm.assert_produces_warning(InvalidColumnName):
             data.to_stata(path, value_labels=value_labels)
 
-        reader = StataReader(path)
-        reader_value_labels = reader.value_labels()
-        assert reader_value_labels == expected
+        with StataReader(path) as reader:
+            reader_value_labels = reader.value_labels()
+            assert reader_value_labels == expected
 
 
 def test_non_categorical_value_label_convert_categoricals_error():
@@ -2122,8 +2117,8 @@ def test_non_categorical_value_label_convert_categoricals_error():
     with tm.ensure_clean() as path:
         data.to_stata(path, value_labels=value_labels)
 
-        reader = StataReader(path, convert_categoricals=False)
-        reader_value_labels = reader.value_labels()
+        with StataReader(path, convert_categoricals=False) as reader:
+            reader_value_labels = reader.value_labels()
         assert reader_value_labels == value_labels
 
         col = "repeated_labels"

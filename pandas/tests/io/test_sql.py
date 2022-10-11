@@ -18,6 +18,7 @@ The SQL tests are broken down in different classes:
 """
 from __future__ import annotations
 
+from contextlib import closing
 import csv
 from datetime import (
     date,
@@ -455,9 +456,8 @@ def sqlite_iris_conn(sqlite_iris_engine):
 
 @pytest.fixture
 def sqlite_buildin():
-    conn = sqlite3.connect(":memory:")
-    yield conn
-    conn.close()
+    with sqlite3.connect(":memory:") as conn:
+        yield conn
 
 
 @pytest.fixture
@@ -1532,13 +1532,14 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
 
         with tm.ensure_clean() as name:
 
-            conn = self.connect(name)
-            assert sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False) == 4
-            conn.close()
+            with closing(self.connect(name)) as conn:
+                assert (
+                    sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False)
+                    == 4
+                )
 
-            conn = self.connect(name)
-            result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;", conn)
-            conn.close()
+            with closing(self.connect(name)) as conn:
+                result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;", conn)
 
         tm.assert_frame_equal(test_frame3, result)
 
@@ -2371,18 +2372,15 @@ class _TestSQLiteAlchemy:
 
         BaseModel.metadata.create_all(self.conn)
         Session = sessionmaker(bind=self.conn)
-        session = Session()
-
-        df = DataFrame({"id": [0, 1], "foo": ["hello", "world"]})
-        assert (
-            df.to_sql("test_frame", con=self.conn, index=False, if_exists="replace")
-            == 2
-        )
-
-        session.commit()
-        foo = session.query(Test.id, Test.foo)
-        df = DataFrame(foo)
-        session.close()
+        with Session() as session:
+            df = DataFrame({"id": [0, 1], "foo": ["hello", "world"]})
+            assert (
+                df.to_sql("test_frame", con=self.conn, index=False, if_exists="replace")
+                == 2
+            )
+            session.commit()
+            foo = session.query(Test.id, Test.foo)
+            df = DataFrame(foo)
 
         assert list(df.columns) == ["id", "foo"]
 

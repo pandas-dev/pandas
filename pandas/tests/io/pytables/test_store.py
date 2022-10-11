@@ -917,9 +917,8 @@ def test_copy():
         df = tm.makeDataFrame()
 
         with tm.ensure_clean() as path:
-            st = HDFStore(path)
-            st.append("df", df, data_columns=["A"])
-            st.close()
+            with HDFStore(path) as st:
+                st.append("df", df, data_columns=["A"])
             do_copy(f=path)
             do_copy(f=path, propindexes=False)
 
