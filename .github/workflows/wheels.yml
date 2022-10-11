@@ -44,7 +44,7 @@ jobs:
       # Ensure that a wheel builder finishes even if another fails
       fail-fast: false
       matrix:
-        # Github Actions doesn't support pairing matrix values together, let's improvise
+        # GitHub Actions doesn't support pairing matrix values together, let's improvise
         # https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
         buildplat:
         - [ubuntu-20.04, manylinux_x86_64]
