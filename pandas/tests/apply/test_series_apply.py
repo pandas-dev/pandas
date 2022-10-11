@@ -617,6 +617,15 @@ def test_map_defaultdict_missing_key(na_action):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_action", [None, "ignore"])
+def test_map_defaultdict_unmutated(na_action):
+    s = Series([1, 2, np.nan])
+    default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", np.nan: "c"})
+    s.map(default_map, na_action=na_action)
+    expected_unmutated_default_map = [(1, "a"), (2, "b"), (np.nan, "c")]
+    assert list(default_map.items()) == expected_unmutated_default_map
+
+
 @pytest.mark.parametrize("arg_func", [dict, Series])
 def test_map_dict_ignore_na(arg_func):
     # GH#47527
