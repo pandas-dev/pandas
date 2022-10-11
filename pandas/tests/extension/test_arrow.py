@@ -1757,6 +1757,7 @@ def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
 
 
 def test_is_bool_dtype():
+    # GH 22667
     data = ArrowExtensionArray(pa.array([True, False, True]))
     assert is_bool_dtype(data)
     assert pd.core.common.is_bool_indexer(data)
