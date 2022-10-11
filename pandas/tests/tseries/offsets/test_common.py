@@ -134,7 +134,7 @@ def test_apply_out_of_range(request, tz_naive_fixture, _offset):
         result = t + offset
         assert isinstance(result, datetime)
 
-        if isinstance(tz, tzlocal) and not IS64:
+        if isinstance(tz, tzlocal) and not IS64 and _offset is not DateOffset:
             # If we hit OutOfBoundsDatetime on non-64 bit machines
             # we'll drop out of the try clause before the next test
             request.node.add_marker(
