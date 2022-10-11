@@ -1039,11 +1039,11 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(frame, result)
 
     def test_mixed_timedelta_datetime(self):
-        frame = DataFrame({"a": [timedelta(23), Timestamp("20130101")]}, dtype=object)
+        td = timedelta(23)
+        ts = Timestamp("20130101")
+        frame = DataFrame({"a": [td, ts]}, dtype=object)
 
-        expected = DataFrame(
-            {"a": [pd.Timedelta(frame.a[0]).value, Timestamp(frame.a[1]).value]}
-        )
+        expected = DataFrame({"a": [pd.Timedelta(td)._as_unit("ns").value, ts.value]})
         result = read_json(frame.to_json(date_unit="ns"), dtype={"a": "int64"})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
