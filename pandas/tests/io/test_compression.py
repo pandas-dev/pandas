@@ -282,18 +282,17 @@ def test_bzip_compression_level(obj, method):
 )
 def test_empty_archive_zip(suffix, archive):
     with tm.ensure_clean(filename=suffix) as path:
-        file = archive(path, "w")
-        file.close()
+        with archive(path, "w"):
+            pass
         with pytest.raises(ValueError, match="Zero files found"):
             pd.read_csv(path)
 
 
 def test_ambiguous_archive_zip():
     with tm.ensure_clean(filename=".zip") as path:
-        file = zipfile.ZipFile(path, "w")
-        file.writestr("a.csv", "foo,bar")
-        file.writestr("b.csv", "foo,bar")
-        file.close()
+        with zipfile.ZipFile(path, "w") as file:
+            file.writestr("a.csv", "foo,bar")
+            file.writestr("b.csv", "foo,bar")
         with pytest.raises(ValueError, match="Multiple files found in ZIP file"):
             pd.read_csv(path)
 
