@@ -809,7 +809,7 @@ command would look like this
 
 .. code-block:: bash
 
-    pytest pandas -n 4 -m "not skip-slow and skip-network and skip-db and not single_cpu" -r sxX
+    pytest pandas -n 4 -m "not skip-slow and not skip-network and not skip-db and not single_cpu" -r sxX
 
 In addition to the multithreaded performance increase this improves test
 speed by skipping some tests using the ``-m`` mark flag:
@@ -847,14 +847,14 @@ for setting a seed on windows
 .. code-block:: bash
 
     set PYTHONHASHSEED=314159265
-    pytest pandas -n 4 -m "not skip-slow and skip-network and skip-db and not single_cpu" -r sxX
+    pytest pandas -n 4 -m "not skip-slow and not skip-network and not skip-db and not single_cpu" -r sxX
 
 On Unix use
 
 .. code-block:: bash
 
     export PYTHONHASHSEED=314159265
-    pytest pandas -n 4 -m "not skip-slow and skip-network and skip-db and not single_cpu" -r sxX
+    pytest pandas -n 4 -m "not skip-slow and not skip-network and not skip-db and not single_cpu" -r sxX
 
 For more, see the `pytest <https://docs.pytest.org/en/latest/>`_ documentation.
 
