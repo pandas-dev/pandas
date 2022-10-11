@@ -228,7 +228,7 @@ class TestSeriesValueCounts:
 
     @pytest.mark.parametrize("val", [pd.NA, 10])
     def test_series_values_counts_ea(self, any_numeric_ea_dtype, val):
-        # GH#
+        # GH#49049
         ser = Series([1, 3, 3, val, val], dtype=any_numeric_ea_dtype)
         result = ser.value_counts(dropna=False)
         expected = Series(
@@ -239,7 +239,7 @@ class TestSeriesValueCounts:
         tm.assert_series_equal(result, expected)
 
     def test_series_values_counts_ea_dropna(self, any_numeric_ea_dtype):
-        # GH#
+        # GH#49049
         ser = Series([1, 3, 3, pd.NA, pd.NA], dtype=any_numeric_ea_dtype)
         result = ser.value_counts(dropna=True)
         expected = Series(
