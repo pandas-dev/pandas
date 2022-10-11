@@ -1423,12 +1423,7 @@ def maybe_cast_to_datetime(
             return astype_nansafe(value, dtype)  # type: ignore[arg-type]
 
     elif isinstance(value, np.ndarray):
-        if value.dtype.kind in ["M", "m"]:
-            # catch a datetime/timedelta that is not of ns variety
-            # and no coercion specified
-            value = sanitize_to_nanoseconds(value)
-
-        elif value.dtype == _dtype_obj:
+        if value.dtype == _dtype_obj:
             value = maybe_infer_to_datetimelike(value)
 
     elif isinstance(value, list):
