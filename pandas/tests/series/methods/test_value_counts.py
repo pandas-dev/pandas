@@ -225,3 +225,24 @@ class TestSeriesValueCounts:
         # GH 17927
         result = Series(input_array).value_counts()
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("val", [pd.NA, 10])
+    def test_series_values_counts_ea(self, any_numeric_ea_dtype, val):
+        # GH#
+        ser = Series([1, 3, 3, val, val], dtype=any_numeric_ea_dtype)
+        result = ser.value_counts(dropna=False)
+        expected = Series(
+            [2, 2, 1],
+            index=pd.Index([3, val, 1], dtype=any_numeric_ea_dtype),
+            dtype="Int64",
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_series_values_counts_ea_dropna(self, any_numeric_ea_dtype):
+        # GH#
+        ser = Series([1, 3, 3, pd.NA, pd.NA], dtype=any_numeric_ea_dtype)
+        result = ser.value_counts(dropna=True)
+        expected = Series(
+            [2, 1], index=pd.Index([3, 1], dtype=any_numeric_ea_dtype), dtype="Int64"
+        )
+        tm.assert_series_equal(result, expected)
