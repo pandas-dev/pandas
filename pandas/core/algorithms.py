@@ -1087,14 +1087,6 @@ def mode(
         values = values._data
         npresult, result_mask = htable.mode(values, dropna=dropna, mask=mask)
         result = type(original)(npresult, result_mask.view("bool"))
-        try:
-            return np.sort(result)
-        except TypeError as err:
-            warnings.warn(
-                f"Unable to sort modes: {err}",
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-            return result
     else:
         values = _ensure_data(values)
         if mask is not None:
