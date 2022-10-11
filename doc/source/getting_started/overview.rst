@@ -133,7 +133,7 @@ untouched. In general we like to **favor immutability** where sensible.
 Getting support
 ---------------
 
-The first stop for pandas issues and ideas is the `Github Issue Tracker
+The first stop for pandas issues and ideas is the `GitHub Issue Tracker
 <https://github.com/pandas-dev/pandas/issues>`__. If you have a general question,
 pandas community experts can answer through `Stack Overflow
 <https://stackoverflow.com/questions/tagged/pandas>`__.

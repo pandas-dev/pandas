@@ -3,7 +3,7 @@
 #
 # In general, this file will remain frozen(present, but not running) until:
 #    - The next unreleased Python version has released beta 1
-#      - This version should be available on Github Actions.
+#      - This version should be available on GitHub Actions.
 #    - Our required build/runtime dependencies(numpy, pytz, Cython, python-dateutil)
 #      support that unreleased Python version.
 #    To unfreeze, comment out the ``if: false`` condition, and make sure you update

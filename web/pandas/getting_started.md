@@ -29,7 +29,7 @@ the [advanced installation page]({{ base_url}}/docs/getting_started/install.html
     Detailed instructions on how to install Anaconda can be found in the
     [Anaconda documentation](https://docs.anaconda.com/anaconda/install/).
 
-2. In the Anaconda prompt (or terminal in Linux or MacOS), start JupyterLab:
+2. In the Anaconda prompt (or terminal in Linux or macOS), start JupyterLab:
 
     <img class="img-fluid" alt="" src="{{ base_url }}/static/img/install/anaconda_prompt.png"/>
 
