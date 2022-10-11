@@ -189,7 +189,7 @@ def to_numeric(
         values = values.view(np.int64)
     else:
         values = ensure_object(values)
-        coerce_numeric = errors not in ("ignore", "raise", "coerce")
+        coerce_numeric = errors not in ("ignore", "raise")
         try:
             values, _ = lib.maybe_convert_numeric(
                 values, set(), coerce_numeric=coerce_numeric
