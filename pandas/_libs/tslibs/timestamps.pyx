@@ -451,7 +451,7 @@ cdef class _Timestamp(ABCTimestamp):
             except OverflowError as err:
                 # TODO: don't hard-code nanosecond here
                 raise OutOfBoundsDatetime(
-                    f"Out of bounds nanosecond timestamp: {new_value}"
+                    f"Out of bounds nanosecond timestamp: {self.value + nanos}"
                 ) from err
 
             if result is not NaT:
