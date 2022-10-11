@@ -10593,27 +10593,27 @@ Parrot 2  Parrot       24.0
                 corrs = {}
                 if numeric_only:
                     cols = self.select_dtypes(include=np.number).columns
-                    ndf = self[cols].values.transpose()
                 else:
                     cols = self.columns
-                    ndf = self.values.transpose()
                 k = other.values
-                k_mask = ~np.isnan(k)
-                if k.dtype == "bool":
-                    k = k.astype("float")
+                k_mask = ~other.isna()
+                if isinstance(k, BaseMaskedArray):
+                    k = k._data
                 if method == "pearson":
-                    for i, r in enumerate(ndf):
-                        nonnull_mask = ~np.isnan(r) & k_mask
-                        corrs[cols[i]] = np.corrcoef(r[nonnull_mask], k[nonnull_mask])[
-                            0, 1
-                        ]
+                    for col in cols:
+                        val = self[col].values
+                        nonnull_mask = ~self[col].isna() & k_mask
+                        corrs[col] = np.corrcoef(
+                            val[nonnull_mask], k[nonnull_mask]
+                        )[0, 1]
                 else:
-                    for i, r in enumerate(ndf):
-                        nonnull_mask = ~np.isnan(r) & k_mask
-                        if r.dtype == "bool":
-                            r = r.astype("float")
-                        corrs[cols[i]] = np.corrcoef(
-                            libalgos.rank_1d(r[nonnull_mask]),
+                    for col in cols:
+                        val = self[col].values
+                        nonnull_mask = ~self[col].isna() & k_mask
+                        if isinstance(val, BaseMaskedArray):
+                            val = val._data
+                        corrs[col] = np.corrcoef(
+                            libalgos.rank_1d(val[nonnull_mask]),
                             libalgos.rank_1d(k[nonnull_mask]),
                         )[0, 1]
                 return Series(corrs)
