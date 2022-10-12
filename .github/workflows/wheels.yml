@@ -44,7 +44,7 @@ jobs:
       # Ensure that a wheel builder finishes even if another fails
       fail-fast: false
       matrix:
-        # Github Actions doesn't support pairing matrix values together, let's improvise
+        # GitHub Actions doesn't support pairing matrix values together, let's improvise
         # https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
         buildplat:
         - [ubuntu-20.04, manylinux_x86_64]
@@ -54,7 +54,6 @@ jobs:
         # TODO: support PyPy?
         python: [["cp38", "3.8"], ["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11-dev"]]# "pp38", "pp39"]
     env:
-      IS_32_BIT: ${{ matrix.buildplat[1] == 'win32' }}
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
@@ -72,17 +71,8 @@ jobs:
         uses: pypa/cibuildwheel@v2.9.0
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          CIBW_ENVIRONMENT: IS_32_BIT='${{ env.IS_32_BIT }}'
-          # We can't test directly with cibuildwheel, since we need to have to wheel location
-          # to mount into the docker image
-          CIBW_TEST_COMMAND_LINUX: "python {project}/ci/test_wheels.py"
-          CIBW_TEST_COMMAND_MACOS: "python {project}/ci/test_wheels.py"
-          CIBW_TEST_REQUIRES: hypothesis==6.52.1 pytest>=6.2.5 pytest-xdist pytest-asyncio>=0.17
-          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "python ci/fix_wheels.py {wheel} {dest_dir}"
-          CIBW_ARCHS_MACOS: x86_64 universal2
-          CIBW_BUILD_VERBOSITY: 3
 
-      # Used to push the built wheels
+      # Used to test the built wheels
       - uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python[1] }}
@@ -98,9 +88,27 @@ jobs:
           name: ${{ matrix.python[0] }}-${{ startsWith(matrix.buildplat[1], 'macosx') && 'macosx' || matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
 
+      # Used to push the built wheels
+      # TODO: once Python 3.11 is available on conda, de-dup with
+      # setup python above
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          # Really doesn't matter what version we upload with
+          # just the version we test with
+          python-version: '3.8'
+          channels: conda-forge
+          channel-priority: true
+          mamba-version: "*"
+
+      - name: Install anaconda client
+        if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
+        run: conda install -q -y anaconda-client
+
+
       - name: Upload wheels
         if: success()
-        shell: bash
+        shell: bash -el {0}
         env:
           PANDAS_STAGING_UPLOAD_TOKEN: ${{ secrets.PANDAS_STAGING_UPLOAD_TOKEN }}
           PANDAS_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN }}
@@ -136,16 +144,24 @@ jobs:
           # A shallow clone can work when the following issue is resolved:
           # https://github.com/actions/checkout/issues/338
           fetch-depth: 0
-      # Used to push the built wheels
-      - uses: actions/setup-python@v3
+
+      # Used to push the built sdist
+      - uses: conda-incubator/setup-miniconda@v2
         with:
-          # Build sdist on lowest supported Python
+          auto-update-conda: true
+          # Really doesn't matter what version we upload with
+          # just the version we test with
           python-version: '3.8'
+          channels: conda-forge
+          channel-priority: true
+          mamba-version: "*"
+
       - name: Build sdist
         run: |
           pip install build
           python -m build --sdist
       - name: Test the sdist
+        shell: bash -el {0}
         run: |
           # TODO: Don't run test suite, and instead build wheels from sdist
           # by splitting the wheel builders into a two stage job
@@ -162,9 +178,14 @@ jobs:
           name: sdist
           path: ./dist/*
 
+      - name: Install anaconda client
+        if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
+        run: |
+          conda install -q -y anaconda-client
+
       - name: Upload sdist
         if: success()
-        shell: bash
+        shell: bash -el {0}
         env:
           PANDAS_STAGING_UPLOAD_TOKEN: ${{ secrets.PANDAS_STAGING_UPLOAD_TOKEN }}
           PANDAS_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN }}

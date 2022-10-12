@@ -25,6 +25,7 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._typing import (
     ArrayLike,
+    Axis,
     AxisInt,
     DtypeObj,
     IndexLabel,
@@ -83,6 +84,7 @@ if TYPE_CHECKING:
         DropKeep,
         NumpySorter,
         NumpyValueArrayLike,
+        ScalarLike_co,
     )
 
     from pandas import (
@@ -784,7 +786,7 @@ class IndexOpsMixin(OpsMixin):
         op,
         name: str,
         *,
-        axis=0,
+        axis: Axis = 0,
         skipna: bool = True,
         numeric_only=None,
         filter_type=None,
@@ -1274,7 +1276,7 @@ class IndexOpsMixin(OpsMixin):
     # return types  [misc]
     def searchsorted(  # type: ignore[misc]
         self,
-        value: npt._ScalarLike_co,
+        value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
         sorter: NumpySorter = ...,
     ) -> np.intp:

@@ -1111,7 +1111,7 @@ class _LocIndexer(_LocationIndexer):
     # Key Checks
 
     @doc(_LocationIndexer._validate_key)
-    def _validate_key(self, key, axis: AxisInt):
+    def _validate_key(self, key, axis: Axis):
         # valid for a collection of labels (we check their presence later)
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
@@ -2006,7 +2006,7 @@ class _iLocIndexer(_LocationIndexer):
 
         new_values = self.obj._get_column_array(loc)
 
-        if can_hold_element(orig_values, new_values):
+        if can_hold_element(orig_values, new_values) and not len(new_values) == 0:
             # Don't issue the warning yet, as we can still trim a few cases where
             #  behavior will not change.
 
@@ -2112,9 +2112,14 @@ class _iLocIndexer(_LocationIndexer):
             # this preserves dtype of the value and of the object
             if not is_scalar(value):
                 new_dtype = None
+
             elif is_valid_na_for_dtype(value, self.obj.dtype):
-                value = na_value_for_dtype(self.obj.dtype, compat=False)
+                if not is_object_dtype(self.obj.dtype):
+                    # Every NA value is suitable for object, no conversion needed
+                    value = na_value_for_dtype(self.obj.dtype, compat=False)
+
                 new_dtype = maybe_promote(self.obj.dtype, value)[0]
+
             elif isna(value):
                 new_dtype = None
             elif not self.obj.empty and not is_object_dtype(self.obj.dtype):

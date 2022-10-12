@@ -826,7 +826,7 @@ class TestNonNano:
 
         # subtracting 3600*24 gives a datetime64 that _can_ fit inside the
         #  nanosecond implementation bounds.
-        other = Timestamp(dt64 - 3600 * 24)
+        other = Timestamp(dt64 - 3600 * 24)._as_unit("ns")
         assert other < ts
         assert other.asm8 > ts.asm8  # <- numpy gets this wrong
         assert ts > other
@@ -884,22 +884,24 @@ class TestNonNano:
     )
     def test_addsub_timedeltalike_non_nano(self, dt64, ts, td):
 
+        exp_reso = max(ts._reso, Timedelta(td)._reso)
+
         result = ts - td
         expected = Timestamp(dt64) - td
         assert isinstance(result, Timestamp)
-        assert result._reso == ts._reso
+        assert result._reso == exp_reso
         assert result == expected
 
         result = ts + td
         expected = Timestamp(dt64) + td
         assert isinstance(result, Timestamp)
-        assert result._reso == ts._reso
+        assert result._reso == exp_reso
         assert result == expected
 
         result = td + ts
         expected = td + Timestamp(dt64)
         assert isinstance(result, Timestamp)
-        assert result._reso == ts._reso
+        assert result._reso == exp_reso
         assert result == expected
 
     def test_addsub_offset(self, ts_tz):
@@ -944,27 +946,35 @@ class TestNonNano:
         result = ts - other
         assert isinstance(result, Timedelta)
         assert result.value == 0
-        assert result._reso == min(ts._reso, other._reso)
+        assert result._reso == max(ts._reso, other._reso)
 
         result = other - ts
         assert isinstance(result, Timedelta)
         assert result.value == 0
-        assert result._reso == min(ts._reso, other._reso)
+        assert result._reso == max(ts._reso, other._reso)
 
-        msg = "Timestamp subtraction with mismatched resolutions"
         if ts._reso < other._reso:
             # Case where rounding is lossy
             other2 = other + Timedelta._from_value_and_reso(1, other._reso)
-            with pytest.raises(ValueError, match=msg):
-                ts - other2
-            with pytest.raises(ValueError, match=msg):
-                other2 - ts
+            exp = ts._as_unit(other._unit) - other2
+
+            res = ts - other2
+            assert res == exp
+            assert res._reso == max(ts._reso, other._reso)
+
+            res = other2 - ts
+            assert res == -exp
+            assert res._reso == max(ts._reso, other._reso)
         else:
             ts2 = ts + Timedelta._from_value_and_reso(1, ts._reso)
-            with pytest.raises(ValueError, match=msg):
-                ts2 - other
-            with pytest.raises(ValueError, match=msg):
-                other - ts2
+            exp = ts2 - other._as_unit(ts2._unit)
+
+            res = ts2 - other
+            assert res == exp
+            assert res._reso == max(ts._reso, other._reso)
+            res = other - ts2
+            assert res == -exp
+            assert res._reso == max(ts._reso, other._reso)
 
     def test_sub_timedeltalike_mismatched_reso(self, ts_tz):
         # case with non-lossy rounding
@@ -984,32 +994,48 @@ class TestNonNano:
         result = ts + other
         assert isinstance(result, Timestamp)
         assert result == ts
-        assert result._reso == min(ts._reso, other._reso)
+        assert result._reso == max(ts._reso, other._reso)
 
         result = other + ts
         assert isinstance(result, Timestamp)
         assert result == ts
-        assert result._reso == min(ts._reso, other._reso)
+        assert result._reso == max(ts._reso, other._reso)
 
-        msg = "Timestamp addition with mismatched resolutions"
         if ts._reso < other._reso:
             # Case where rounding is lossy
             other2 = other + Timedelta._from_value_and_reso(1, other._reso)
-            with pytest.raises(ValueError, match=msg):
-                ts + other2
-            with pytest.raises(ValueError, match=msg):
-                other2 + ts
+            exp = ts._as_unit(other._unit) + other2
+            res = ts + other2
+            assert res == exp
+            assert res._reso == max(ts._reso, other._reso)
+            res = other2 + ts
+            assert res == exp
+            assert res._reso == max(ts._reso, other._reso)
         else:
             ts2 = ts + Timedelta._from_value_and_reso(1, ts._reso)
-            with pytest.raises(ValueError, match=msg):
-                ts2 + other
-            with pytest.raises(ValueError, match=msg):
-                other + ts2
+            exp = ts2 + other._as_unit(ts2._unit)
 
-        msg = "Addition between Timestamp and Timedelta with mismatched resolutions"
-        with pytest.raises(ValueError, match=msg):
-            # With a mismatched td64 as opposed to Timedelta
-            ts + np.timedelta64(1, "ns")
+            res = ts2 + other
+            assert res == exp
+            assert res._reso == max(ts._reso, other._reso)
+            res = other + ts2
+            assert res == exp
+            assert res._reso == max(ts._reso, other._reso)
+
+    def test_addition_doesnt_downcast_reso(self):
+        # https://github.com/pandas-dev/pandas/pull/48748#pullrequestreview-1122635413
+        ts = Timestamp(year=2022, month=1, day=1, microsecond=999999)._as_unit("us")
+        td = Timedelta(microseconds=1)._as_unit("us")
+        res = ts + td
+        assert res._reso == ts._reso
+
+    def test_sub_timedelta64_mismatched_reso(self, ts_tz):
+        ts = ts_tz
+
+        res = ts + np.timedelta64(1, "ns")
+        exp = ts._as_unit("ns") + np.timedelta64(1, "ns")
+        assert exp == res
+        assert exp._reso == NpyDatetimeUnit.NPY_FR_ns.value
 
     def test_min(self, ts):
         assert ts.min <= ts

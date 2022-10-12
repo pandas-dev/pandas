@@ -334,7 +334,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     ) -> DatetimeIndex:
 
         if is_scalar(data):
-            raise cls._scalar_data_error(data)
+            cls._raise_scalar_data_error(data)
 
         # - Cases checked above all return/raise before reaching here - #
 
@@ -1170,8 +1170,9 @@ def bdate_range(
         Right bound for generating dates.
     periods : int, default None
         Number of periods to generate.
-    freq : str, datetime.timedelta, or DateOffset, default 'B' (business daily)
-        Frequency strings can have multiples, e.g. '5H'.
+    freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'B'
+        Frequency strings can have multiples, e.g. '5H'. The default is
+        business daily ('B').
     tz : str or None
         Time zone name for returning localized DatetimeIndex, for example
         Asia/Beijing.

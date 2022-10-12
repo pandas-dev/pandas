@@ -11,14 +11,14 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.5'
+    rev: 'v2.6'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/python/black
-    rev: 22.6.0
+    rev: 22.8.0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
@@ -27,7 +27,7 @@ repos:
     -   id: codespell
         types_or: [python, rst, markdown]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.1.4
+    rev: v0.1.8
     hooks:
     -   id: cython-lint
 -   repo: https://github.com/pre-commit/pre-commit-hooks
@@ -40,7 +40,7 @@ repos:
     -   id: trailing-whitespace
         stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
 -   repo: https://github.com/cpplint/cpplint
-    rev: 1.6.0
+    rev: 1.6.1
     hooks:
     -   id: cpplint
         # We don't lint all C files because we don't want to lint any that are built
@@ -59,12 +59,16 @@ repos:
         - flake8==5.0.4
         - flake8-bugbear==22.7.1
         - pandas-dev-flaker==0.5.0
+-   repo: https://github.com/pycqa/pylint
+    rev: v2.15.3
+    hooks:
+    -   id: pylint
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.37.3
+    rev: v2.38.2
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -83,7 +87,7 @@ repos:
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/asottile/yesqa
-    rev: v1.3.0
+    rev: v1.4.0
     hooks:
     -   id: yesqa
         additional_dependencies: *flake8_dependencies
@@ -222,6 +226,13 @@ repos:
         entry: python scripts/no_bool_in_generic.py
         language: python
         files: ^pandas/core/generic\.py$
+    -   id: no-return-exception
+        name: Use raise instead of return for exceptions
+        language: pygrep
+        entry: 'return [A-Za-z]+(Error|Exit|Interrupt|Exception|Iteration)'
+        files: ^pandas/
+        types: [python]
+        exclude: ^pandas/tests/
     -   id: pandas-errors-documented
         name: Ensure pandas errors are documented in doc/source/reference/testing.rst
         entry: python scripts/pandas_errors_documented.py
@@ -240,7 +251,7 @@ repos:
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
     -   id: validate-errors-locations
         name: Validate errors locations
-        description: Validate errors are in approriate locations.
+        description: Validate errors are in appropriate locations.
         entry: python scripts/validate_exception_location.py
         language: python
         files: ^pandas/
@@ -268,7 +279,7 @@ repos:
             |/_testing/
     -   id: autotyping
         name: autotyping
-        entry: python -m libcst.tool codemod autotyping.AutotypeCommand --none-return --scalar-return --annotate-magics --annotate-imprecise-magics --bool-param --bytes-param --str-param --float-param
+        entry: python -m scripts.run_autotyping
         types_or: [python, pyi]
         files: ^pandas
         exclude: ^(pandas/tests|pandas/_version.py|pandas/io/clipboard)
