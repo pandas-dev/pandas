@@ -723,35 +723,27 @@ class TestMerge:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_other_datetime_unit(self):
+    @pytest.mark.parametrize("unit", ["D", "h", "m", "s", "ms", "us", "ns"])
+    def test_other_datetime_unit(self, unit):
         # GH 13389
         df1 = DataFrame({"entity_id": [101, 102]})
-        s = Series([None, None], index=[101, 102], name="days")
+        ser = Series([None, None], index=[101, 102], name="days")
 
-        for dtype in [
-            "datetime64[D]",
-            "datetime64[h]",
-            "datetime64[m]",
-            "datetime64[s]",
-            "datetime64[ms]",
-            "datetime64[us]",
-            "datetime64[ns]",
-        ]:
+        dtype = f"datetime64[{unit}]"
+        df2 = ser.astype(dtype).to_frame("days")
+        # coerces to datetime64[ns], thus should not be affected
+        assert df2["days"].dtype == "datetime64[ns]"
 
-            df2 = s.astype(dtype).to_frame("days")
-            # coerces to datetime64[ns], thus should not be affected
-            assert df2["days"].dtype == "datetime64[ns]"
+        result = df1.merge(df2, left_on="entity_id", right_index=True)
 
-            result = df1.merge(df2, left_on="entity_id", right_index=True)
-
-            exp = DataFrame(
-                {
-                    "entity_id": [101, 102],
-                    "days": np.array(["nat", "nat"], dtype="datetime64[ns]"),
-                },
-                columns=["entity_id", "days"],
-            )
-            tm.assert_frame_equal(result, exp)
+        exp = DataFrame(
+            {
+                "entity_id": [101, 102],
+                "days": np.array(["nat", "nat"], dtype="datetime64[ns]"),
+            },
+            columns=["entity_id", "days"],
+        )
+        tm.assert_frame_equal(result, exp)
 
     @pytest.mark.parametrize("unit", ["D", "h", "m", "s", "ms", "us", "ns"])
     def test_other_timedelta_unit(self, unit):

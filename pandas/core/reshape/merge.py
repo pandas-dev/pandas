@@ -911,6 +911,8 @@ class _MergeOperation:
         left_has_missing = None
         right_has_missing = None
 
+        assert all(is_array_like(x) for x in self.left_join_keys)
+
         keys = zip(self.join_names, self.left_on, self.right_on)
         for i, (name, lname, rname) in enumerate(keys):
             if not _should_fill(lname, rname):
@@ -947,7 +949,7 @@ class _MergeOperation:
                             ):
                                 take_right = self.right[name]._values
 
-            elif left_indexer is not None and is_array_like(self.left_join_keys[i]):
+            elif left_indexer is not None:
                 take_left = self.left_join_keys[i]
                 take_right = self.right_join_keys[i]
 

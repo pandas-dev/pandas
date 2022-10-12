@@ -922,7 +922,7 @@ def sequence_to_td64ns(
 
     elif is_integer_dtype(data.dtype):
         # treat as multiples of the given unit
-        data, copy_made = ints_to_td64ns(data, unit=unit)
+        data, copy_made = _ints_to_td64ns(data, unit=unit)
         copy = copy and not copy_made
 
     elif is_float_dtype(data.dtype):
@@ -959,7 +959,7 @@ def sequence_to_td64ns(
     return data, inferred_freq
 
 
-def ints_to_td64ns(data, unit: str = "ns"):
+def _ints_to_td64ns(data, unit: str = "ns"):
     """
     Convert an ndarray with integer-dtype to timedelta64[ns] dtype, treating
     the integers as multiples of the given timedelta unit.
