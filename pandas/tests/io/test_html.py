@@ -1280,7 +1280,7 @@ class TestReadHtml:
             def seekable(self):
                 return True
 
-            # pylint checks for presence of __next__ for iterators
+            # GH 49036 pylint checks for presence of __next__ for iterators
             def __next__(self):
                 ...
 
