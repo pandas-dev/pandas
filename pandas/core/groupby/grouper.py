@@ -18,7 +18,7 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
-    AxisInt,
+    Axis,
     NDFrameT,
     npt,
 )
@@ -26,7 +26,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import sanitize_to_nanoseconds
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_list_like,
@@ -260,7 +259,6 @@ class Grouper:
     Freq: 17T, dtype: int64
     """
 
-    axis: AxisInt
     sort: bool
     dropna: bool
     _gpr_index: Index | None
@@ -281,7 +279,7 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         sort: bool = False,
         dropna: bool = True,
     ) -> None:
@@ -559,9 +557,12 @@ class Grouping:
                 raise AssertionError(errmsg)
 
         if isinstance(self.grouping_vector, np.ndarray):
-            # if we have a date/time-like grouper, make sure that we have
-            # Timestamps like
-            self.grouping_vector = sanitize_to_nanoseconds(self.grouping_vector)
+            if self.grouping_vector.dtype.kind in ["m", "M"]:
+                # if we have a date/time-like grouper, make sure that we have
+                # Timestamps like
+                # TODO 2022-10-08 we only have one test that gets here and
+                #  values are already in nanoseconds in that case.
+                self.grouping_vector = Series(self.grouping_vector).to_numpy()
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
@@ -660,7 +661,7 @@ class Grouping:
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
-        if self._dropna and self._passed_categorical:
+        if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes;
             # doesn't (yet - GH#46909) handle dropna=False
@@ -705,7 +706,7 @@ class Grouping:
 def get_grouper(
     obj: NDFrameT,
     key=None,
-    axis: AxisInt = 0,
+    axis: Axis = 0,
     level=None,
     sort: bool = True,
     observed: bool = False,
@@ -876,7 +877,7 @@ def get_grouper(
             exclusions.add(gpr.name)
 
         elif is_in_axis(gpr):  # df.groupby('name')
-            if gpr in obj:
+            if obj.ndim != 1 and gpr in obj:
                 if validate:
                     obj._check_label_or_level_ambiguity(gpr, axis=axis)
                 in_axis, name, gpr = True, gpr, obj[gpr]

@@ -12,6 +12,7 @@ from pandas._libs import lib
 from pandas._typing import (
     Dtype,
     PositionalIndexer,
+    SortKind,
     TakeIndexer,
     npt,
 )
@@ -390,7 +391,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 result[valid] = op(np.array(self)[valid], other)
                 return BooleanArray(result, mask)
         else:
-            return NotImplementedError(
+            raise NotImplementedError(
                 f"{op.__name__} not implemented for {type(other)}"
             )
 
@@ -472,7 +473,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     def argsort(
         self,
         ascending: bool = True,
-        kind: str = "quicksort",
+        kind: SortKind = "quicksort",
         na_position: str = "last",
         *args,
         **kwargs,
@@ -618,8 +619,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 na_mask = indices.values == -1
                 na_index = na_mask.argmax()
                 if na_mask[na_index]:
-                    uniques = uniques.insert(na_index, self.dtype.na_value)
-                    na_code = 0 if na_index == 0 else indices[:na_index].argmax() + 1
+                    na_code = 0 if na_index == 0 else indices[:na_index].max() + 1
+                    uniques = uniques.insert(na_code, self.dtype.na_value)
                     indices[indices >= na_code] += 1
                     indices[indices == -1] = na_code
         else:
