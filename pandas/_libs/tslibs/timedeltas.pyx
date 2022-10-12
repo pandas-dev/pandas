@@ -963,7 +963,6 @@ cdef _timedelta_from_value_and_reso(int64_t value, NPY_DATETIMEUNIT reso):
             "Only resolutions 's', 'ms', 'us', 'ns' are supported."
         )
 
-
     td_base.value = value
     td_base._is_populated = 0
     td_base._reso = reso
@@ -1082,7 +1081,15 @@ cdef class _Timedelta(timedelta):
             #  non-invariant behavior.
             #  see GH#44504
             return hash(self.value)
-        elif self._reso == NPY_FR_ns:
+        elif self._is_in_pytimedelta_bounds() and (
+            self._reso == NPY_FR_ns or self._reso == NPY_DATETIMEUNIT.NPY_FR_us
+        ):
+            # If we can defer to timedelta.__hash__, do so, as that
+            #  ensures the hash is invariant to our _reso.
+            # We can only defer for ns and us, as for these two resos we
+            #  call _Timedelta.__new__ with the correct input in
+            #  _timedelta_from_value_and_reso; so timedelta.__hash__
+            #  will be correct
             return timedelta.__hash__(self)
         else:
             # We want to ensure that two equivalent Timedelta objects
@@ -1151,6 +1158,13 @@ cdef class _Timedelta(timedelta):
             return False
         else:
             raise NotImplementedError(self._reso)
+
+    cdef bint _is_in_pytimedelta_bounds(self):
+        """
+        Check if we are within the bounds of datetime.timedelta.
+        """
+        self._ensure_components()
+        return -999999999 <= self._d and self._d <= 999999999
 
     cdef _ensure_components(_Timedelta self):
         """
