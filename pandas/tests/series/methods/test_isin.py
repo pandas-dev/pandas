@@ -53,15 +53,22 @@ class TestSeriesIsIn:
         result = ser.isin(day_values)
         tm.assert_series_equal(result, expected)
 
-        s_values = day_values.astype("M8[s]")
-        dta = type(ser._values)._simple_new(s_values, dtype=s_values.dtype)
+        dta = ser[:2]._values.astype("M8[s]")
         result = ser.isin(dta)
         tm.assert_series_equal(result, expected)
 
-        # FIXME(2.0): DTA._from_sequence incorrectly treats Timestamp[s].value
-        #  as nanoseconds.
-        # result = ser.isin(list(dta))
-        # tm.assert_series_equal(result, expected)
+    @pytest.mark.xfail(
+        reason="DTA._from_sequence incorrectly treats Timestamp[s].value as "
+        "nanoseconds."
+    )
+    def test_isin_datetimelike_mismatched_reso_list(self):
+        expected = Series([True, True, False, False, False])
+
+        ser = Series(date_range("jan-01-2013", "jan-05-2013"))
+
+        dta = ser[:2]._values.astype("M8[s]")
+        result = ser.isin(list(dta))
+        tm.assert_series_equal(result, expected)
 
     def test_isin_with_i8(self):
         # GH#5021
