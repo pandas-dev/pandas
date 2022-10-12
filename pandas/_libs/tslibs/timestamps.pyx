@@ -1098,7 +1098,7 @@ cdef class _Timestamp(ABCTimestamp):
         --------
         >>> ts = pd.Timestamp(2020, 3, 14, 15)
         >>> ts.asm8
-        numpy.datetime64('2020-03-14T15:00:00.000000000')
+        numpy.datetime64('2020-03-14T15:00:00.000000')
         """
         return self.to_datetime64()
 
