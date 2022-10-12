@@ -792,7 +792,9 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
     elif isinstance(val, (np.datetime64, datetime)):
         try:
             val = Timestamp(val)
-            if val is not NaT:
+            # error: Non-overlapping identity check (left operand type:
+            # "Timestamp", right operand type: "NaTType")
+            if val is not NaT:  # type: ignore[comparison-overlap]
                 val = val._as_unit("ns")
         except OutOfBoundsDatetime:
             return _dtype_obj, val
