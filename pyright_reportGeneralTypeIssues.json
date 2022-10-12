@@ -17,6 +17,7 @@
         # and all files that currently don't pass
         "pandas/_testing/__init__.py",
         "pandas/_testing/_hypothesis.py",
+        "pandas/_testing/_io.py",
         "pandas/compat/pickle_compat.py",
         "pandas/core/algorithms.py",
         "pandas/core/apply.py",
@@ -80,6 +81,7 @@
         "pandas/core/sorting.py",
         "pandas/core/strings/accessor.py",
         "pandas/core/tools/datetimes.py",
+        "pandas/core/tools/numeric.py",
         "pandas/core/tools/timedeltas.py",
         "pandas/core/util/hashing.py",
         "pandas/core/window/ewm.py",

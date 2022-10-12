@@ -50,6 +50,7 @@ from pandas._libs.lib import (
 )
 from pandas._typing import (
     AggFuncType,
+    AlignJoin,
     AnyAll,
     AnyArrayLike,
     ArrayLike,
@@ -58,6 +59,8 @@ from pandas._typing import (
     AxisInt,
     ColspaceArgType,
     CompressionOptions,
+    CorrelationMethod,
+    DropKeep,
     Dtype,
     DtypeObj,
     FilePath,
@@ -5084,7 +5087,7 @@ class DataFrame(NDFrame, OpsMixin):
     def align(
         self,
         other: DataFrame,
-        join: Literal["outer", "inner", "left", "right"] = "outer",
+        join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
         copy: bool = True,
@@ -6594,7 +6597,7 @@ class DataFrame(NDFrame, OpsMixin):
     def drop_duplicates(
         self,
         subset: Hashable | Sequence[Hashable] | None = None,
-        keep: Literal["first", "last", False] = "first",
+        keep: DropKeep = "first",
         inplace: bool = False,
         ignore_index: bool = False,
     ) -> DataFrame | None:
@@ -6693,7 +6696,7 @@ class DataFrame(NDFrame, OpsMixin):
     def duplicated(
         self,
         subset: Hashable | Sequence[Hashable] | None = None,
-        keep: Literal["first", "last", False] = "first",
+        keep: DropKeep = "first",
     ) -> Series:
         """
         Return boolean Series denoting duplicate rows.
@@ -7583,7 +7586,7 @@ class DataFrame(NDFrame, OpsMixin):
     # Arithmetic Methods
 
     def _cmp_method(self, other, op):
-        axis = 1  # only relevant for Series other case
+        axis: Literal[1] = 1  # only relevant for Series other case
 
         self, other = ops.align_method_FRAME(self, other, axis, flex=False, level=None)
 
@@ -7595,7 +7598,7 @@ class DataFrame(NDFrame, OpsMixin):
         if ops.should_reindex_frame_op(self, other, op, 1, 1, None, None):
             return ops.frame_arith_method_with_reindex(self, other, op)
 
-        axis = 1  # only relevant for Series other case
+        axis: Literal[1] = 1  # only relevant for Series other case
         other = ops.maybe_prepare_scalar_for_op(other, (self.shape[axis],))
 
         self, other = ops.align_method_FRAME(self, other, axis, flex=True, level=None)
@@ -8601,12 +8604,15 @@ Parrot 2  Parrot       24.0
             hierarchical columns whose top level are the function names
             (inferred from the function objects themselves)
             If dict is passed, the key is column to aggregate and value
-            is function or list of functions.
+            is function or list of functions. If ``margin=True``,
+            aggfunc will be used to calculate the partial aggregates.
         fill_value : scalar, default None
             Value to replace missing values with (in the resulting pivot table,
             after aggregation).
         margins : bool, default False
-            Add all row / columns (e.g. for subtotal / grand totals).
+            If ``margins=True``, special ``All`` columns and rows
+            will be added with partial group aggregates across the categories
+            on the rows and columns.
         dropna : bool, default True
             Do not include columns whose entries are all NaN. If True,
             rows with a NaN value in any column will be omitted before
@@ -8727,11 +8733,11 @@ Parrot 2  Parrot       24.0
         values=None,
         index=None,
         columns=None,
-        aggfunc="mean",
+        aggfunc: AggFuncType = "mean",
         fill_value=None,
         margins: bool = False,
         dropna: bool = True,
-        margins_name="All",
+        margins_name: Level = "All",
         observed: bool = False,
         sort: bool = True,
     ) -> DataFrame:
@@ -9128,7 +9134,7 @@ Parrot 2  Parrot       24.0
         id_vars=None,
         value_vars=None,
         var_name=None,
-        value_name="value",
+        value_name: Hashable = "value",
         col_level: Level = None,
         ignore_index: bool = True,
     ) -> DataFrame:
@@ -10100,7 +10106,7 @@ Parrot 2  Parrot       24.0
         sort: bool = False,
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
-        indicator: bool = False,
+        indicator: str | bool = False,
         validate: str | None = None,
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
@@ -10242,7 +10248,7 @@ Parrot 2  Parrot       24.0
 
     def corr(
         self,
-        method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
+        method: CorrelationMethod = "pearson",
         min_periods: int = 1,
         numeric_only: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
@@ -10500,8 +10506,7 @@ Parrot 2  Parrot       24.0
         other: DataFrame | Series,
         axis: Axis = 0,
         drop: bool = False,
-        method: Literal["pearson", "kendall", "spearman"]
-        | Callable[[np.ndarray, np.ndarray], float] = "pearson",
+        method: CorrelationMethod = "pearson",
         numeric_only: bool | lib.NoDefault = lib.no_default,
     ) -> Series:
         """
@@ -10655,7 +10660,7 @@ Parrot 2  Parrot       24.0
         if not drop:
             # Find non-matching labels along the given axis
             # and append missing correlations (GH 22375)
-            raxis = 1 if axis == 0 else 0
+            raxis: AxisInt = 1 if axis == 0 else 0
             result_index = this._get_axis(raxis).union(other._get_axis(raxis))
             idx_diff = result_index.difference(correl.index)
 
@@ -10865,7 +10870,7 @@ Parrot 2  Parrot       24.0
             # We only use this in the case that operates on self.values
             return op(values, axis=axis, skipna=skipna, **kwds)
 
-        def blk_func(values, axis=1):
+        def blk_func(values, axis: Axis = 1):
             if isinstance(values, ExtensionArray):
                 if not is_1d_only_ea_dtype(values.dtype) and not isinstance(
                     self._mgr, ArrayManager
@@ -11664,7 +11669,7 @@ Parrot 2  Parrot       24.0
         "columns": 1,
     }
     _AXIS_LEN = len(_AXIS_ORDERS)
-    _info_axis_number = 1
+    _info_axis_number: Literal[1] = 1
     _info_axis_name: Literal["columns"] = "columns"
 
     index = properties.AxisProperty(

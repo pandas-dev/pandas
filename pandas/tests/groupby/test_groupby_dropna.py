@@ -393,68 +393,91 @@ def test_groupby_drop_nan_with_multi_index():
     tm.assert_frame_equal(result, expected)
 
 
+# sequence_index enumerates all strings made up of x, y, z of length 4
+@pytest.mark.parametrize("sequence_index", range(3**4))
 @pytest.mark.parametrize(
-    "values, dtype",
+    "dtype",
     [
-        ([2, np.nan, 1, 2], None),
-        ([2, np.nan, 1, 2], "UInt8"),
-        ([2, np.nan, 1, 2], "Int8"),
-        ([2, np.nan, 1, 2], "UInt16"),
-        ([2, np.nan, 1, 2], "Int16"),
-        ([2, np.nan, 1, 2], "UInt32"),
-        ([2, np.nan, 1, 2], "Int32"),
-        ([2, np.nan, 1, 2], "UInt64"),
-        ([2, np.nan, 1, 2], "Int64"),
-        ([2, np.nan, 1, 2], "Float32"),
-        ([2, np.nan, 1, 2], "Int64"),
-        ([2, np.nan, 1, 2], "Float64"),
-        (["y", None, "x", "y"], "category"),
-        (["y", pd.NA, "x", "y"], "string"),
+        None,
+        "UInt8",
+        "Int8",
+        "UInt16",
+        "Int16",
+        "UInt32",
+        "Int32",
+        "UInt64",
+        "Int64",
+        "Float32",
+        "Int64",
+        "Float64",
+        "category",
+        "string",
         pytest.param(
-            ["y", pd.NA, "x", "y"],
             "string[pyarrow]",
             marks=pytest.mark.skipif(
                 pa_version_under1p01, reason="pyarrow is not installed"
             ),
         ),
-        (
-            ["2016-01-01", np.datetime64("NaT"), "2017-01-01", "2016-01-01"],
-            "datetime64[ns]",
-        ),
-        (
-            [
-                pd.Period("2012-02-01", freq="D"),
-                pd.NaT,
-                pd.Period("2012-01-01", freq="D"),
-                pd.Period("2012-02-01", freq="D"),
-            ],
-            None,
-        ),
-        (pd.arrays.SparseArray([2, np.nan, 1, 2]), None),
+        "datetime64[ns]",
+        "period[d]",
+        "Sparse[float]",
     ],
 )
 @pytest.mark.parametrize("test_series", [True, False])
-def test_no_sort_keep_na(values, dtype, test_series):
-    # GH#46584
-    key = pd.Series(values, dtype=dtype)
-    df = pd.DataFrame({"key": key, "a": [1, 2, 3, 4]})
+def test_no_sort_keep_na(request, sequence_index, dtype, test_series):
+    # GH#46584, GH#48794
+
+    # Convert sequence_index into a string sequence, e.g. 5 becomes "xxyz"
+    # This sequence is used for the grouper.
+    sequence = "".join(
+        [{0: "x", 1: "y", 2: "z"}[sequence_index // (3**k) % 3] for k in range(4)]
+    )
+
+    if dtype == "category" and "z" in sequence:
+        # Only xfail when nulls are present
+        msg = "dropna=False not correct for categorical, GH#48645"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+
+    # Unique values to use for grouper, depends on dtype
+    if dtype in ("string", "string[pyarrow]"):
+        uniques = {"x": "x", "y": "y", "z": pd.NA}
+    elif dtype in ("datetime64[ns]", "period[d]"):
+        uniques = {"x": "2016-01-01", "y": "2017-01-01", "z": pd.NA}
+    else:
+        uniques = {"x": 1, "y": 2, "z": np.nan}
+
+    df = pd.DataFrame(
+        {
+            "key": pd.Series([uniques[label] for label in sequence], dtype=dtype),
+            "a": [0, 1, 2, 3],
+        }
+    )
     gb = df.groupby("key", dropna=False, sort=False)
     if test_series:
         gb = gb["a"]
+    result = gb.sum()
 
-    warn = None
-    if isinstance(values, pd.arrays.SparseArray):
-        warn = FutureWarning
-    msg = "passing a SparseArray to pd.Index will store that array directly"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = gb.sum()
-        expected = pd.DataFrame({"a": [5, 2, 3]}, index=key[:-1].rename("key"))
+    # Manually compute the groupby sum, use the labels "x", "y", and "z" to avoid
+    # issues with hashing np.nan
+    summed = {}
+    for idx, label in enumerate(sequence):
+        summed[label] = summed.get(label, 0) + idx
+    if dtype == "category":
+        index = pd.CategoricalIndex(
+            [uniques[e] for e in summed],
+            list({uniques[k]: 0 for k in sequence if not pd.isnull(uniques[k])}),
+            name="key",
+        )
+    elif isinstance(dtype, str) and dtype.startswith("Sparse"):
+        index = pd.Index(
+            pd.array([uniques[label] for label in summed], dtype=dtype), name="key"
+        )
+    else:
+        index = pd.Index([uniques[label] for label in summed], dtype=dtype, name="key")
+    expected = pd.Series(summed.values(), index=index, name="a", dtype=None)
+    if not test_series:
+        expected = expected.to_frame()
 
-    if test_series:
-        expected = expected["a"]
-    if expected.index.is_categorical():
-        # TODO: Slicing reorders categories?
-        expected.index = expected.index.reorder_categories(["y", "x"])
     tm.assert_equal(result, expected)
 
 

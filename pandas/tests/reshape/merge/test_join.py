@@ -13,82 +13,96 @@ from pandas import (
     merge,
 )
 import pandas._testing as tm
-from pandas.tests.reshape.merge.test_merge import (
-    NGROUPS,
-    N,
-    get_test_data,
-)
+
+
+def get_test_data(ngroups=8, n=50):
+    unique_groups = list(range(ngroups))
+    arr = np.asarray(np.tile(unique_groups, n // ngroups))
+
+    if len(arr) < n:
+        arr = np.asarray(list(arr) + unique_groups[: n - len(arr)])
+
+    np.random.shuffle(arr)
+    return arr
 
 
 class TestJoin:
-    def setup_method(self):
-        # aggregate multiple columns
-        self.df = DataFrame(
+    # aggregate multiple columns
+    @pytest.fixture
+    def df(self):
+        df = DataFrame(
             {
                 "key1": get_test_data(),
                 "key2": get_test_data(),
-                "data1": np.random.randn(N),
-                "data2": np.random.randn(N),
+                "data1": np.random.randn(50),
+                "data2": np.random.randn(50),
             }
         )
 
         # exclude a couple keys for fun
-        self.df = self.df[self.df["key2"] > 1]
+        df = df[df["key2"] > 1]
+        return df
 
-        self.df2 = DataFrame(
+    @pytest.fixture
+    def df2(self):
+        return DataFrame(
             {
-                "key1": get_test_data(n=N // 5),
-                "key2": get_test_data(ngroups=NGROUPS // 2, n=N // 5),
-                "value": np.random.randn(N // 5),
+                "key1": get_test_data(n=10),
+                "key2": get_test_data(ngroups=4, n=10),
+                "value": np.random.randn(10),
             }
         )
 
+    @pytest.fixture
+    def target_source(self):
         index, data = tm.getMixedTypeDict()
-        self.target = DataFrame(data, index=index)
+        target = DataFrame(data, index=index)
 
         # Join on string value
-        self.source = DataFrame(
+
+        source = DataFrame(
             {"MergedA": data["A"], "MergedD": data["D"]}, index=data["C"]
         )
+        return target, source
 
-    def test_left_outer_join(self):
-        joined_key2 = merge(self.df, self.df2, on="key2")
-        _check_join(self.df, self.df2, joined_key2, ["key2"], how="left")
+    def test_left_outer_join(self, df, df2):
+        joined_key2 = merge(df, df2, on="key2")
+        _check_join(df, df2, joined_key2, ["key2"], how="left")
 
-        joined_both = merge(self.df, self.df2)
-        _check_join(self.df, self.df2, joined_both, ["key1", "key2"], how="left")
+        joined_both = merge(df, df2)
+        _check_join(df, df2, joined_both, ["key1", "key2"], how="left")
 
-    def test_right_outer_join(self):
-        joined_key2 = merge(self.df, self.df2, on="key2", how="right")
-        _check_join(self.df, self.df2, joined_key2, ["key2"], how="right")
+    def test_right_outer_join(self, df, df2):
+        joined_key2 = merge(df, df2, on="key2", how="right")
+        _check_join(df, df2, joined_key2, ["key2"], how="right")
 
-        joined_both = merge(self.df, self.df2, how="right")
-        _check_join(self.df, self.df2, joined_both, ["key1", "key2"], how="right")
+        joined_both = merge(df, df2, how="right")
+        _check_join(df, df2, joined_both, ["key1", "key2"], how="right")
 
-    def test_full_outer_join(self):
-        joined_key2 = merge(self.df, self.df2, on="key2", how="outer")
-        _check_join(self.df, self.df2, joined_key2, ["key2"], how="outer")
+    def test_full_outer_join(self, df, df2):
+        joined_key2 = merge(df, df2, on="key2", how="outer")
+        _check_join(df, df2, joined_key2, ["key2"], how="outer")
 
-        joined_both = merge(self.df, self.df2, how="outer")
-        _check_join(self.df, self.df2, joined_both, ["key1", "key2"], how="outer")
+        joined_both = merge(df, df2, how="outer")
+        _check_join(df, df2, joined_both, ["key1", "key2"], how="outer")
 
-    def test_inner_join(self):
-        joined_key2 = merge(self.df, self.df2, on="key2", how="inner")
-        _check_join(self.df, self.df2, joined_key2, ["key2"], how="inner")
+    def test_inner_join(self, df, df2):
+        joined_key2 = merge(df, df2, on="key2", how="inner")
+        _check_join(df, df2, joined_key2, ["key2"], how="inner")
 
-        joined_both = merge(self.df, self.df2, how="inner")
-        _check_join(self.df, self.df2, joined_both, ["key1", "key2"], how="inner")
+        joined_both = merge(df, df2, how="inner")
+        _check_join(df, df2, joined_both, ["key1", "key2"], how="inner")
 
-    def test_handle_overlap(self):
-        joined = merge(self.df, self.df2, on="key2", suffixes=(".foo", ".bar"))
+    def test_handle_overlap(self, df, df2):
+        joined = merge(df, df2, on="key2", suffixes=(".foo", ".bar"))
 
         assert "key1.foo" in joined
         assert "key1.bar" in joined
 
-    def test_handle_overlap_arbitrary_key(self):
+    def test_handle_overlap_arbitrary_key(self, df, df2):
         joined = merge(
-            self.df,
-            self.df2,
+            df,
+            df2,
             left_on="key2",
             right_on="key1",
             suffixes=(".foo", ".bar"),
@@ -96,9 +110,8 @@ class TestJoin:
         assert "key1.foo" in joined
         assert "key2.bar" in joined
 
-    def test_join_on(self):
-        target = self.target
-        source = self.source
+    def test_join_on(self, target_source):
+        target, source = target_source
 
         merged = target.join(source, on="C")
         tm.assert_series_equal(merged["MergedA"], target["A"], check_names=False)
@@ -189,22 +202,24 @@ class TestJoin:
         with pytest.raises(TypeError, match=msg):
             merge(df, wrong_type, left_on="a", right_on="a")
 
-    def test_join_on_pass_vector(self):
-        expected = self.target.join(self.source, on="C")
+    def test_join_on_pass_vector(self, target_source):
+        target, source = target_source
+        expected = target.join(source, on="C")
         del expected["C"]
 
-        join_col = self.target.pop("C")
-        result = self.target.join(self.source, on=join_col)
+        join_col = target.pop("C")
+        result = target.join(source, on=join_col)
         tm.assert_frame_equal(result, expected)
 
-    def test_join_with_len0(self):
+    def test_join_with_len0(self, target_source):
         # nothing to merge
-        merged = self.target.join(self.source.reindex([]), on="C")
-        for col in self.source:
+        target, source = target_source
+        merged = target.join(source.reindex([]), on="C")
+        for col in source:
             assert col in merged
             assert merged[col].isna().all()
 
-        merged2 = self.target.join(self.source.reindex([]), on="C", how="inner")
+        merged2 = target.join(source.reindex([]), on="C", how="inner")
         tm.assert_index_equal(merged2.columns, merged.columns)
         assert len(merged2) == 0
 
@@ -230,9 +245,10 @@ class TestJoin:
 
         tm.assert_frame_equal(joined, expected)
 
-    def test_join_on_series(self):
-        result = self.target.join(self.source["MergedA"], on="C")
-        expected = self.target.join(self.source[["MergedA"]], on="C")
+    def test_join_on_series(self, target_source):
+        target, source = target_source
+        result = target.join(source["MergedA"], on="C")
+        expected = target.join(source[["MergedA"]], on="C")
         tm.assert_frame_equal(result, expected)
 
     def test_join_on_series_buglet(self):

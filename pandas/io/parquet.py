@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import io
 import os
-from typing import Any
+from typing import (
+    Any,
+    Literal,
+)
 from warnings import catch_warnings
 
 from pandas._typing import (
@@ -270,7 +273,7 @@ class FastParquetImpl(BaseImpl):
         self,
         df: DataFrame,
         path,
-        compression="snappy",
+        compression: Literal["snappy", "gzip", "brotli"] | None = "snappy",
         index=None,
         partition_cols=None,
         storage_options: StorageOptions = None,
