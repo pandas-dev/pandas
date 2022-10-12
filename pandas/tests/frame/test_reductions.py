@@ -1661,8 +1661,14 @@ class TestNuisanceColumns:
         tm.assert_series_equal(result, expected)
 
 
-def test_sum_timedelta64_skipna_false():
+def test_sum_timedelta64_skipna_false(using_array_manager, request):
     # GH#17235
+    if using_array_manager:
+        mark = pytest.mark.xfail(
+            reason="Incorrect type inference on NaT in reduction result"
+        )
+        request.node.add_marker(mark)
+
     arr = np.arange(8).astype(np.int64).view("m8[s]").reshape(4, 2)
     arr[-1, -1] = "Nat"
 
