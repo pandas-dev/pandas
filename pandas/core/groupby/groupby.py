@@ -44,9 +44,12 @@ from pandas._libs import (
 )
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
+    AnyArrayLike,
     ArrayLike,
+    Axis,
     AxisInt,
     Dtype,
+    FillnaOptions,
     IndexLabel,
     NDFrameT,
     PositionalIndexer,
@@ -202,7 +205,7 @@ _apply_docs = {
     >>> g1 = df.groupby('A', group_keys=False)
     >>> g2 = df.groupby('A', group_keys=True)
 
-    Notice that ``g1`` have ``g2`` have two groups, ``a`` and ``b``, and only
+    Notice that ``g1`` and ``g2`` have two groups, ``a`` and ``b``, and only
     differ in their ``group_keys`` argument. Calling `apply` in various ways,
     we can get different grouping results:
 
@@ -918,7 +921,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         obj: NDFrameT,
         keys: _KeysArgType | None = None,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         level: IndexLabel | None = None,
         grouper: ops.BaseGrouper | None = None,
         exclusions: frozenset[Hashable] | None = None,
@@ -1862,11 +1865,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             out = algorithms.take_nd(result._values, ids)
             output = obj._constructor(out, index=obj.index, name=obj.name)
         else:
+            # `.size()` gives Series output on DataFrame input, need axis 0
+            axis = 0 if result.ndim == 1 else self.axis
             # GH#46209
             # Don't convert indices: negative indices need to give rise
             # to null values in the result
-            output = result._take(ids, axis=self.axis, convert_indices=False)
-            output = output.set_axis(obj._get_axis(self.axis), axis=self.axis)
+            output = result._take(ids, axis=axis, convert_indices=False)
+            output = output.set_axis(obj._get_axis(self.axis), axis=axis)
         return output
 
     # -----------------------------------------------------------------
@@ -2389,13 +2394,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             or a DataFrame if as_index is False.
         """
         result = self.grouper.size()
-
-        if self.axis == 1:
-            return DataFrame(
-                data=np.tile(result.values, (self.obj.shape[0], 1)),
-                columns=result.index,
-                index=self.obj.index,
-            )
 
         # GH28330 preserve subclassed Series/DataFrames through calls
         if isinstance(self.obj, Series):
@@ -2941,6 +2939,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._fill("ffill", limit=limit)
 
     def pad(self, limit=None):
+        """
+        Forward fill the values.
+
+        .. deprecated:: 1.4
+            Use ffill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        Series or DataFrame
+            Object with missing values filled.
+        """
         warnings.warn(
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
@@ -2948,8 +2962,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.ffill(limit=limit)
-
-    pad.__doc__ = ffill.__doc__
 
     @final
     @Substitution(name="groupby")
@@ -2977,6 +2989,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._fill("bfill", limit=limit)
 
     def backfill(self, limit=None):
+        """
+        Backward fill the values.
+
+        .. deprecated:: 1.4
+            Use bfill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        Series or DataFrame
+            Object with missing values filled.
+        """
         warnings.warn(
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
@@ -2984,8 +3012,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.bfill(limit=limit)
-
-    backfill.__doc__ = bfill.__doc__
 
     @final
     @Substitution(name="groupby")
@@ -3187,7 +3213,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def quantile(
         self,
-        q=0.5,
+        q: float | AnyArrayLike = 0.5,
         interpolation: str = "linear",
         numeric_only: bool | lib.NoDefault = lib.no_default,
     ):
@@ -3308,7 +3334,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         orig_scalar = is_scalar(q)
         if orig_scalar:
-            q = [q]
+            # error: Incompatible types in assignment (expression has type "List[
+            # Union[float, ExtensionArray, ndarray[Any, Any], Index, Series]]",
+            # variable has type "Union[float, Union[Union[ExtensionArray, ndarray[
+            # Any, Any]], Index, Series]]")
+            q = [q]  # type: ignore[assignment]
 
         qs = np.array(q, dtype=np.float64)
         ids, _, ngroups = self.grouper.group_info
@@ -3643,7 +3673,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumprod(self, axis=0, *args, **kwargs) -> NDFrameT:
+    def cumprod(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative product for each group.
 
@@ -3661,7 +3691,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumsum(self, axis=0, *args, **kwargs) -> NDFrameT:
+    def cumsum(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative sum for each group.
 
@@ -3679,7 +3709,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummin(self, axis=0, numeric_only: bool = False, **kwargs) -> NDFrameT:
+    def cummin(
+        self, axis: AxisInt = 0, numeric_only: bool = False, **kwargs
+    ) -> NDFrameT:
         """
         Cumulative min for each group.
 
@@ -3703,7 +3735,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummax(self, axis=0, numeric_only: bool = False, **kwargs) -> NDFrameT:
+    def cummax(
+        self, axis: AxisInt = 0, numeric_only: bool = False, **kwargs
+    ) -> NDFrameT:
         """
         Cumulative max for each group.
 
@@ -3873,7 +3907,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
+    def shift(self, periods: int = 1, freq=None, axis: Axis = 0, fill_value=None):
         """
         Shift each group by periods observations.
 
@@ -3963,7 +3997,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def pct_change(self, periods=1, fill_method="ffill", limit=None, freq=None, axis=0):
+    def pct_change(
+        self,
+        periods: int = 1,
+        fill_method: FillnaOptions = "ffill",
+        limit=None,
+        freq=None,
+        axis: Axis = 0,
+    ):
         """
         Calculate pct_change of each value to previous entry in group.
 

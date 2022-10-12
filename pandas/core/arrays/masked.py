@@ -17,6 +17,10 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
+from pandas._libs.tslibs import (
+    get_unit_from_dtype,
+    is_supported_unit,
+)
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -750,12 +754,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return BooleanArray(result, mask, copy=False)
 
-        elif result.dtype == "timedelta64[ns]":
+        elif (
+            isinstance(result.dtype, np.dtype)
+            and result.dtype.kind == "m"
+            and is_supported_unit(get_unit_from_dtype(result.dtype))
+        ):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
             if not isinstance(result, TimedeltaArray):
-                result = TimedeltaArray._simple_new(result)
+                result = TimedeltaArray._simple_new(result, dtype=result.dtype)
 
             result[mask] = result.dtype.type("NaT")
             return result
@@ -913,7 +921,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 # mypy error: Slice index must be an integer or None
                 # https://github.com/python/mypy/issues/2410
-                na_code = codes[:na_index].argmax() + 1  # type: ignore[misc]
+                na_code = codes[:na_index].max() + 1  # type: ignore[misc]
             codes[codes >= na_code] += 1
             codes[codes == -1] = na_code
             # dummy value for uniques; not used since uniques_mask will be True
@@ -1062,7 +1070,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return result
 
     def sum(
-        self, *, skipna: bool = True, min_count=0, axis: AxisInt | None = 0, **kwargs
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
         nv.validate_sum((), kwargs)
 
@@ -1085,7 +1098,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
 
     def prod(
-        self, *, skipna: bool = True, min_count=0, axis: AxisInt | None = 0, **kwargs
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
         nv.validate_prod((), kwargs)
         result = masked_reductions.prod(

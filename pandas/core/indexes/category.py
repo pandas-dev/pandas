@@ -230,7 +230,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             data = []
 
         if is_scalar(data):
-            raise cls._scalar_data_error(data)
+            cls._raise_scalar_data_error(data)
 
         data = Categorical(
             data, categories=categories, ordered=ordered, dtype=dtype, copy=copy

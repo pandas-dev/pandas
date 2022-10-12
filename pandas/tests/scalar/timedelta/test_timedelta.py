@@ -182,13 +182,25 @@ class TestNonNano:
         assert (2.5 * td) / td == 2.5
 
         other = Timedelta(td.value)
-        msg = "with mismatched resolutions are not supported"
-        with pytest.raises(ValueError, match=msg):
+        msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow."
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             td / other
 
-        with pytest.raises(ValueError, match=msg):
-            # __rtruediv__
-            other.to_pytimedelta() / td
+        # Timedelta(other.to_pytimedelta()) has microsecond resolution,
+        #  so the division doesn't require casting all the way to nanos,
+        #  so succeeds
+        res = other.to_pytimedelta() / td
+        expected = other.to_pytimedelta() / td.to_pytimedelta()
+        assert res == expected
+
+        # if there's no overflow, we cast to the higher reso
+        left = Timedelta._from_value_and_reso(50, NpyDatetimeUnit.NPY_FR_us.value)
+        right = Timedelta._from_value_and_reso(50, NpyDatetimeUnit.NPY_FR_ms.value)
+        result = left / right
+        assert result == 0.001
+
+        result = right / left
+        assert result == 1000
 
     def test_truediv_numeric(self, td):
         assert td / np.nan is NaT
@@ -206,13 +218,23 @@ class TestNonNano:
         assert (2.5 * td) // td == 2
 
         other = Timedelta(td.value)
-        msg = "with mismatched resolutions are not supported"
-        with pytest.raises(ValueError, match=msg):
+        msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             td // other
 
-        with pytest.raises(ValueError, match=msg):
-            # __rfloordiv__
-            other.to_pytimedelta() // td
+        # Timedelta(other.to_pytimedelta()) has microsecond resolution,
+        #  so the floordiv doesn't require casting all the way to nanos,
+        #  so succeeds
+        res = other.to_pytimedelta() // td
+        assert res == 0
+
+        # if there's no overflow, we cast to the higher reso
+        left = Timedelta._from_value_and_reso(50050, NpyDatetimeUnit.NPY_FR_us.value)
+        right = Timedelta._from_value_and_reso(50, NpyDatetimeUnit.NPY_FR_ms.value)
+        result = left // right
+        assert result == 1
+        result = right // left
+        assert result == 0
 
     def test_floordiv_numeric(self, td):
         assert td // np.nan is NaT
@@ -236,38 +258,36 @@ class TestNonNano:
         assert res._reso == td._reso
 
     def test_addsub_mismatched_reso(self, td):
-        other = Timedelta(days=1)  # can losslessly convert to other resos
+        # need to cast to since td is out of bounds for ns, so
+        #  so we would raise OverflowError without casting
+        other = Timedelta(days=1)._as_unit("us")
 
+        # td is out of bounds for ns
         result = td + other
-        assert result._reso == td._reso
+        assert result._reso == other._reso
         assert result.days == td.days + 1
 
         result = other + td
-        assert result._reso == td._reso
+        assert result._reso == other._reso
         assert result.days == td.days + 1
 
         result = td - other
-        assert result._reso == td._reso
+        assert result._reso == other._reso
         assert result.days == td.days - 1
 
         result = other - td
-        assert result._reso == td._reso
+        assert result._reso == other._reso
         assert result.days == 1 - td.days
 
-        other2 = Timedelta(500)  # can't cast losslessly
-
-        msg = (
-            "Timedelta addition/subtraction with mismatched resolutions is "
-            "not allowed when casting to the lower resolution would require "
-            "lossy rounding"
-        )
-        with pytest.raises(ValueError, match=msg):
+        other2 = Timedelta(500)
+        msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             td + other2
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             other2 + td
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             td - other2
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             other2 - td
 
     def test_min(self, td):
