@@ -1623,9 +1623,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowInvalid,
-                    reason=(
-                        f"raises on overflow for {pa_dtype}"
-                    ),
+                    reason=f"raises on overflow for {pa_dtype}",
                 )
             )
         super().test_add_series_with_extension_array(data)
