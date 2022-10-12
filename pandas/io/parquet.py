@@ -186,6 +186,8 @@ class PyArrowImpl(BaseImpl):
             and isinstance(path_or_handle.name, (str, bytes))
         ):
             path_or_handle = path_or_handle.name
+            if isinstance(path_or_handle, bytes):
+                path_or_handle = path_or_handle.decode()
 
         try:
             if partition_cols is not None:
