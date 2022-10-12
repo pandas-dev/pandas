@@ -141,6 +141,7 @@ Performance improvements
 - Performance improvement in :meth:`MultiIndex.size` (:issue:`48723`)
 - Performance improvement in :meth:`MultiIndex.union` without missing values and without duplicates (:issue:`48505`)
 - Performance improvement in :meth:`MultiIndex.difference` (:issue:`48606`)
+- Performance improvement in :class:`MultiIndex` set operations with sort=None (:issue:`49010`)
 - Performance improvement in :meth:`.DataFrameGroupBy.mean`, :meth:`.SeriesGroupBy.mean`, :meth:`.DataFrameGroupBy.var`, and :meth:`.SeriesGroupBy.var` for extension array dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.isin` when ``level=None`` (:issue:`48622`)
 - Performance improvement in :meth:`Index.union` and :meth:`MultiIndex.union` when index contains duplicates (:issue:`48900`)
@@ -230,6 +231,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.unique` losing extension array dtype (:issue:`48335`)
 - Bug in :meth:`MultiIndex.intersection` losing extension array (:issue:`48604`)
 - Bug in :meth:`MultiIndex.union` losing extension array (:issue:`48498`, :issue:`48505`, :issue:`48900`)
+- Bug in :meth:`MultiIndex.union` not sorting when sort=None and index contains missing values (:issue:`49010`)
 - Bug in :meth:`MultiIndex.append` not checking names for equality (:issue:`48288`)
 - Bug in :meth:`MultiIndex.symmetric_difference` losing extension array (:issue:`48607`)
 -
