@@ -921,21 +921,18 @@ class TestSeriesConstructors:
 
     def test_constructor_dtype_datetime64_10(self):
         # GH3416
-        dates = [
-            np.datetime64(datetime(2013, 1, 1)),
-            np.datetime64(datetime(2013, 1, 2)),
-            np.datetime64(datetime(2013, 1, 3)),
-        ]
+        pydates = [datetime(2013, 1, 1), datetime(2013, 1, 2), datetime(2013, 1, 3)]
+        dates = [np.datetime64(x) for x in pydates]
 
-        s = Series(dates)
-        assert s.dtype == "M8[ns]"
+        ser = Series(dates)
+        assert ser.dtype == "M8[ns]"
 
-        s.iloc[0] = np.nan
-        assert s.dtype == "M8[ns]"
+        ser.iloc[0] = np.nan
+        assert ser.dtype == "M8[ns]"
 
         # GH3414 related
         expected = Series(
-            [datetime(2013, 1, 1), datetime(2013, 1, 2), datetime(2013, 1, 3)],
+            pydates,
             dtype="datetime64[ns]",
         )
 
@@ -950,6 +947,10 @@ class TestSeriesConstructors:
         )
         result = Series([np.nan] + dates[1:], dtype="datetime64[ns]")
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_dtype_datetime64_11(self):
+        pydates = [datetime(2013, 1, 1), datetime(2013, 1, 2), datetime(2013, 1, 3)]
+        dates = [np.datetime64(x) for x in pydates]
 
         dts = Series(dates, dtype="datetime64[ns]")
 
@@ -1156,6 +1157,7 @@ class TestSeriesConstructors:
     def test_construction_to_datetimelike_unit(self, arr_dtype, kind, unit):
         # tests all units
         # gh-19223
+        # TODO: GH#19223 was about .astype, doesn't belong here
         dtype = f"{kind}8[{unit}]"
         arr = np.array([1, 2, 3], dtype=arr_dtype)
         ser = Series(arr)

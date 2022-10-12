@@ -826,7 +826,7 @@ class TestNonNano:
 
         # subtracting 3600*24 gives a datetime64 that _can_ fit inside the
         #  nanosecond implementation bounds.
-        other = Timestamp(dt64 - 3600 * 24)
+        other = Timestamp(dt64 - 3600 * 24)._as_unit("ns")
         assert other < ts
         assert other.asm8 > ts.asm8  # <- numpy gets this wrong
         assert ts > other
@@ -884,12 +884,7 @@ class TestNonNano:
     )
     def test_addsub_timedeltalike_non_nano(self, dt64, ts, td):
 
-        if isinstance(td, Timedelta):
-            # td._reso is ns
-            exp_reso = td._reso
-        else:
-            # effective td._reso is s
-            exp_reso = ts._reso
+        exp_reso = max(ts._reso, Timedelta(td)._reso)
 
         result = ts - td
         expected = Timestamp(dt64) - td
