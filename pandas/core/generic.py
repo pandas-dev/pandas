@@ -3717,6 +3717,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.to_csv('folder/subfolder/out.csv')  # doctest: +SKIP
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
+        if hasattr(df, "sparse"):
+            df = df.sparse.to_dense()  # fixes 41023
 
         formatter = DataFrameFormatter(
             frame=df,

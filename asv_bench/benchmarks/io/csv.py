@@ -172,6 +172,26 @@ class ToCSVIndexes(BaseIO):
         self.df_custom_index_then_head.to_csv(self.fname)
 
 
+class ToCSVSparse(BaseIO):
+
+    fname = "__test__.csv"
+
+    def setup(self):
+        from scipy import sparse as sc
+
+        vals = np.random.randint(0, 10, size=(10000, 1000))
+        keep = vals > 3
+        vals[keep] = 0
+        sparse_mtx = sc.coo_matrix(vals)
+        self.data = DataFrame.sparse.from_spmatrix(sparse_mtx)
+
+    def time_sparse_to_csv(self):
+        self.data.to_csv("sparse_pd.csv")
+
+    def time_sparse_to_dense_to_csv(self):
+        self.data.sparse.to_dense().to_csv("sparse_pd.csv")
+
+
 class StringIORewind:
     def data(self, stringio_object):
         stringio_object.seek(0)
