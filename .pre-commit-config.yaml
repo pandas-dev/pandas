@@ -251,7 +251,7 @@ repos:
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
     -   id: validate-errors-locations
         name: Validate errors locations
-        description: Validate errors are in approriate locations.
+        description: Validate errors are in appropriate locations.
         entry: python scripts/validate_exception_location.py
         language: python
         files: ^pandas/
