@@ -976,7 +976,6 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         (('hour',), '%H', 2),
         (('minute',), '%M', 2),
         (('second',), '%S', 2),
-        (('microsecond',), '%f', 6),
         (('second', 'microsecond'), '%S.%f', 0),
         (('tzinfo',), '%z', 0),
         (('tzinfo',), '%Z', 0),
@@ -1048,7 +1047,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
         parsed_formatted = parsed_datetime.strftime(attr_format)
         for i, token_format in enumerate(format_guess):
-            token_filled = tokens[i].zfill(padding)
+            token_filled = _fill_token(tokens[i], padding)
             if token_format is None and token_filled == parsed_formatted:
                 format_guess[i] = attr_format
                 tokens[i] = token_filled
@@ -1090,6 +1089,19 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     else:
         return None
 
+cdef str _fill_token(token: str, padding: int):
+    cdef str token_filled
+    if '.' not in token:
+        token_filled = token.zfill(padding)
+    else:
+        seconds, nanoseconds = token.split('.')
+        seconds = f'{int(seconds):02d}'
+        # right-pad so we get nanoseconds, then only take
+        # first 6 digits (microseconds) as stdlib datetime
+        # doesn't support nanoseconds
+        nanoseconds = nanoseconds.ljust(9, '0')[:6]
+        token_filled = f'{seconds}.{nanoseconds}'
+    return token_filled
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

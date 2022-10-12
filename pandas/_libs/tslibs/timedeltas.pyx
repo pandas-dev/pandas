@@ -341,8 +341,9 @@ cdef convert_to_timedelta64(object ts, str unit):
     elif isinstance(ts, _Timedelta):
         # already in the proper format
         if ts._reso != NPY_FR_ns:
-            raise NotImplementedError
-        ts = np.timedelta64(ts.value, "ns")
+            ts = ts._as_unit("ns").asm8
+        else:
+            ts = np.timedelta64(ts.value, "ns")
     elif is_timedelta64_object(ts):
         ts = ensure_td64ns(ts)
     elif is_integer_object(ts):
@@ -1706,7 +1707,13 @@ class Timedelta(_Timedelta):
                 value = parse_timedelta_string(value)
             value = np.timedelta64(value)
         elif PyDelta_Check(value):
-            value = convert_to_timedelta64(value, 'ns')
+            # pytimedelta object -> microsecond resolution
+            new_value = delta_to_nanoseconds(
+                value, reso=NPY_DATETIMEUNIT.NPY_FR_us
+            )
+            return cls._from_value_and_reso(
+                new_value, reso=NPY_DATETIMEUNIT.NPY_FR_us
+            )
         elif is_timedelta64_object(value):
             # Retain the resolution if possible, otherwise cast to the nearest
             #  supported resolution.
@@ -1720,7 +1727,7 @@ class Timedelta(_Timedelta):
             if reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
                 try:
                     new_value = convert_reso(
-                        get_timedelta64_value(value),
+                        new_value,
                         reso,
                         new_reso,
                         round_ok=True,
@@ -1730,7 +1737,10 @@ class Timedelta(_Timedelta):
             return cls._from_value_and_reso(new_value, reso=new_reso)
 
         elif is_tick_object(value):
-            value = np.timedelta64(value.nanos, 'ns')
+            new_reso = get_supported_reso(value._reso)
+            new_value = delta_to_nanoseconds(value, reso=new_reso)
+            return cls._from_value_and_reso(new_value, reso=new_reso)
+
         elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
