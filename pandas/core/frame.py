@@ -162,6 +162,7 @@ from pandas.core.apply import (
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
+    BaseMaskedArray,
     DatetimeArray,
     ExtensionArray,
     PeriodArray,
@@ -10605,9 +10606,9 @@ Parrot 2  Parrot       24.0
                         nonnull_mask = ~self[col].isna() & k_mask
                         if isinstance(val, BaseMaskedArray):
                             val = val._data
-                        corrs[col] = np.corrcoef(
-                            val[nonnull_mask], k[nonnull_mask]
-                        )[0, 1]
+                        corrs[col] = np.corrcoef(val[nonnull_mask], k[nonnull_mask])[
+                            0, 1
+                        ]
                 else:
                     for col in cols:
                         val = self[col].values
