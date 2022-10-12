@@ -3119,6 +3119,7 @@ class TestFromScalar:
     )
     @pytest.mark.parametrize("cls", [datetime, np.datetime64])
     def test_from_out_of_bounds_ns_datetime(self, constructor, cls):
+        # scalar that won't fit in nanosecond dt64, but will fit in microsecond
         scalar = datetime(9999, 1, 1)
         exp_dtype = "M8[us]"  # pydatetime objects default to this reso
         if cls is np.datetime64:
@@ -3133,8 +3134,16 @@ class TestFromScalar:
         assert item.asm8.dtype == exp_dtype
         assert dtype == exp_dtype
 
+    def test_out_of_s_bounds_datetime64(self, constructor):
+        scalar = np.datetime64(np.iinfo(np.int64).max, "D")
+        result = constructor(scalar)
+        item = get1(result)
+        assert type(item) is np.datetime64
+        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+        assert dtype == object
+
     @pytest.mark.xfail(
-        reason="Timedelta constructor has been updated to cast td64 to non-nano, "
+        reason="TimedeltaArray constructor has been updated to cast td64 to non-nano, "
         "but TimedeltaArray._from_sequence has not"
     )
     @pytest.mark.parametrize("cls", [timedelta, np.timedelta64])

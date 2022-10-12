@@ -280,6 +280,7 @@ cdef class _Timestamp(ABCTimestamp):
             )
 
         obj.value = value
+        obj.reso = reso
         pandas_datetime_to_datetimestruct(value, reso, &obj.dts)
         maybe_localize_tso(obj, tz, reso)
 
@@ -432,35 +433,24 @@ cdef class _Timestamp(ABCTimestamp):
         if is_any_td_scalar(other):
             other = Timedelta(other)
 
-            if isinstance(other, _Timedelta):
-                # TODO: share this with __sub__, Timedelta.__add__
-                # Matching numpy, we cast to the higher resolution. Unlike numpy,
-                #  we raise instead of silently overflowing during this casting.
-                if self._reso < other._reso:
-                    self = (<_Timestamp>self)._as_reso(other._reso, round_ok=True)
-                elif self._reso > other._reso:
-                    other = (<_Timedelta>other)._as_reso(self._reso, round_ok=True)
+            # TODO: share this with __sub__, Timedelta.__add__
+            # Matching numpy, we cast to the higher resolution. Unlike numpy,
+            #  we raise instead of silently overflowing during this casting.
+            if self._reso < other._reso:
+                self = (<_Timestamp>self)._as_reso(other._reso, round_ok=True)
+            elif self._reso > other._reso:
+                other = (<_Timedelta>other)._as_reso(self._reso, round_ok=True)
 
-            try:
-                nanos = delta_to_nanoseconds(
-                    other, reso=self._reso, round_ok=False
-                )
-            except OutOfBoundsTimedelta:
-                raise
+            nanos = other.value
 
             try:
                 new_value = self.value + nanos
-            except OverflowError:
-                # Use Python ints
-                # Hit in test_tdi_add_overflow
-                new_value = int(self.value) + int(nanos)
-
-            try:
                 result = type(self)._from_value_and_reso(
                     new_value, reso=self._reso, tz=self.tzinfo
                 )
             except OverflowError as err:
                 # TODO: don't hard-code nanosecond here
+                new_value = int(self.value) + int(nanos)
                 raise OutOfBoundsDatetime(
                     f"Out of bounds nanosecond timestamp: {new_value}"
                 ) from err
