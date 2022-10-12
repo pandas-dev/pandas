@@ -1970,7 +1970,15 @@ class TestToDatetimeMisc:
 
         values = base.values.astype(dtype)
 
-        tm.assert_index_equal(DatetimeIndex(values), base)
+        unit = dtype.split("[")[-1][:-1]
+        if unit in ["h", "m"]:
+            # we cast to closest supported unit
+            unit = "s"
+        exp_dtype = np.dtype(f"M8[{unit}]")
+        expected = DatetimeIndex(base.astype(exp_dtype))
+        assert expected.dtype == exp_dtype
+
+        tm.assert_index_equal(DatetimeIndex(values), expected)
         tm.assert_index_equal(to_datetime(values, cache=cache), base)
 
     def test_dayfirst(self, cache):

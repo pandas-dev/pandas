@@ -1370,6 +1370,9 @@ def maybe_cast_to_datetime(
                             # Note: NOT equivalent to dta.astype(dtype)
                             dta = dta.tz_localize(None)
 
+                        # TODO(2.0): Do this astype in sequence_to_datetimes to
+                        #  avoid potential extra copy?
+                        dta = dta.astype(dtype, copy=False)
                         value = dta
                     elif is_datetime64tz:
                         dtype = cast(DatetimeTZDtype, dtype)

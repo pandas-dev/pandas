@@ -919,6 +919,10 @@ class TestSeriesConstructors:
         assert isna(s[1])
         assert s.dtype == "M8[ns]"
 
+    @pytest.mark.xfail(
+        reason="Series(dates, dtype='M8[ms]') does not yet respect non-nano "
+        "dtype keyword"
+    )
     def test_constructor_dtype_datetime64_10(self):
         # GH3416
         pydates = [datetime(2013, 1, 1), datetime(2013, 1, 2), datetime(2013, 1, 3)]
@@ -931,15 +935,12 @@ class TestSeriesConstructors:
         assert ser.dtype == "M8[ns]"
 
         # GH3414 related
-        expected = Series(
-            pydates,
-            dtype="datetime64[ns]",
-        )
+        expected = Series(pydates, dtype="datetime64[ms]")
 
         result = Series(Series(dates).view(np.int64) / 1000000, dtype="M8[ms]")
         tm.assert_series_equal(result, expected)
 
-        result = Series(dates, dtype="datetime64[ns]")
+        result = Series(dates, dtype="datetime64[ms]")
         tm.assert_series_equal(result, expected)
 
         expected = Series(
@@ -990,10 +991,15 @@ class TestSeriesConstructors:
         values2 = dates.view(np.ndarray).astype("datetime64[ns]")
         expected = Series(values2, index=dates)
 
-        for dtype in ["s", "D", "ms", "us", "ns"]:
-            values1 = dates.view(np.ndarray).astype(f"M8[{dtype}]")
+        for unit in ["s", "D", "ms", "us", "ns"]:
+            dtype = np.dtype(f"M8[{unit}]")
+            values1 = dates.view(np.ndarray).astype(dtype)
             result = Series(values1, dates)
-            tm.assert_series_equal(result, expected)
+            if unit == "D":
+                # for unit="D" we cast to nearest-supported reso, i.e. "s"
+                dtype = np.dtype("M8[s]")
+            assert result.dtype == dtype
+            tm.assert_series_equal(result, expected.astype(dtype))
 
         # GH 13876
         # coerce to non-ns to object properly
@@ -1160,9 +1166,25 @@ class TestSeriesConstructors:
         # TODO: GH#19223 was about .astype, doesn't belong here
         dtype = f"{kind}8[{unit}]"
         arr = np.array([1, 2, 3], dtype=arr_dtype)
-        s = Series(arr)
-        result = s.astype(dtype)
-        expected = Series(arr.astype(dtype))
+        ser = Series(arr)
+        result = ser.astype(dtype)
+
+        if kind == "M":
+            if unit in ["ns", "us", "ms", "s"]:
+                exp_dtype = np.dtype(f"M8[{unit}]")
+            else:
+                exp_dtype = np.dtype("M8[s]")
+            exp_values = arr.astype(dtype).astype(exp_dtype)
+            # For now Series will cast to ns if we pass an ndarray, so we need
+            #  to pass specifically a DTA
+            dta = type(result._values)._simple_new(exp_values, dtype=exp_values.dtype)
+            expected = Series(dta)
+
+            # check that the constructor is doing what we expect
+            tm.assert_numpy_array_equal(np.asarray(expected), exp_values)
+        else:
+            # haven't (yet) updated the TimedeltaArray construction
+            expected = Series(arr.astype(dtype).astype("m8[ns]"))
 
         tm.assert_series_equal(result, expected)
 
@@ -1179,7 +1201,8 @@ class TestSeriesConstructors:
         arr = np.array([np.datetime64(1, "ms")], dtype=">M8[ms]")
 
         result = Series(arr)
-        expected = Series([Timestamp(ms)])
+        expected = Series([Timestamp(ms)]).astype("M8[ms]")
+        assert expected.dtype == "M8[ms]"
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("interval_constructor", [IntervalIndex, IntervalArray])
@@ -1570,7 +1593,8 @@ class TestSeriesConstructors:
             ["2013-01-01", "2013-01-02", "2013-01-03"], dtype="datetime64[D]"
         )
         ser = Series(arr)
-        expected = Series(date_range("20130101", periods=3, freq="D"))
+        expected = Series(date_range("20130101", periods=3, freq="D"), dtype="M8[s]")
+        assert expected.dtype == "M8[s]"
         tm.assert_series_equal(ser, expected)
 
         arr = np.array(
@@ -1578,7 +1602,10 @@ class TestSeriesConstructors:
             dtype="datetime64[s]",
         )
         ser = Series(arr)
-        expected = Series(date_range("20130101 00:00:01", periods=3, freq="s"))
+        expected = Series(
+            date_range("20130101 00:00:01", periods=3, freq="s"), dtype="M8[s]"
+        )
+        assert expected.dtype == "M8[s]"
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize(
