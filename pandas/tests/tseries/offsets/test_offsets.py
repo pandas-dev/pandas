@@ -234,7 +234,14 @@ class TestCommon(Base):
             # test tz when input is datetime or Timestamp
             return
 
-        for tz in self.timezones:
+        for tz in [
+            None,
+            "UTC",
+            "Asia/Tokyo",
+            "US/Eastern",
+            "dateutil/Asia/Tokyo",
+            "dateutil/US/Pacific",
+        ]:
             expected_localize = expected.tz_localize(tz)
             tz_obj = timezones.maybe_get_tz(tz)
             dt_tz = conversion.localize_pydatetime(dt, tz_obj)
