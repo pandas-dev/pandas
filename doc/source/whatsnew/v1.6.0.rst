@@ -246,7 +246,7 @@ Period
 
 Plotting
 ^^^^^^^^
-- Bug in :meth:`plot.hist`, not dropping elements of ``weights`` corresponding to ``NaN`` values in ``data`` (:issue:`48884`)
+- Bug in :meth:`DataFrame.plot.hist`, not dropping elements of ``weights`` corresponding to ``NaN`` values in ``data`` (:issue:`48884`)
 -
 
 Groupby/resample/rolling
