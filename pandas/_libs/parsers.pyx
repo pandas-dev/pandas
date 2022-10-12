@@ -342,6 +342,7 @@ cdef class TextReader:
         object index_col
         object skiprows
         object dtype
+        bint use_nullable_dtypes
         object usecols
         set unnamed_cols  # set[str]
 
@@ -380,7 +381,8 @@ cdef class TextReader:
                   bint mangle_dupe_cols=True,
                   float_precision=None,
                   bint skip_blank_lines=True,
-                  encoding_errors=b"strict"):
+                  encoding_errors=b"strict",
+                  use_nullable_dtypes=False):
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -505,6 +507,7 @@ cdef class TextReader:
         # - DtypeObj
         # - dict[Any, DtypeObj]
         self.dtype = dtype
+        self.use_nullable_dtypes = use_nullable_dtypes
 
         # XXX
         self.noconvert = set()
@@ -933,6 +936,7 @@ cdef class TextReader:
             bint na_filter = 0
             int64_t num_cols
             dict result
+            bint use_nullable_dtypes
 
         start = self.parser_start
 
@@ -1053,8 +1057,14 @@ cdef class TextReader:
                     self._free_na_set(na_hashset)
 
             # don't try to upcast EAs
-            if na_count > 0 and not is_extension_array_dtype(col_dtype):
-                col_res = _maybe_upcast(col_res)
+            if (
+                na_count > 0 and not is_extension_array_dtype(col_dtype)
+                or self.use_nullable_dtypes
+            ):
+                use_nullable_dtypes = self.use_nullable_dtypes and col_dtype is None
+                col_res = _maybe_upcast(
+                    col_res, use_nullable_dtypes=use_nullable_dtypes
+                )
 
             if col_res is None:
                 raise ParserError(f'Unable to parse column {i}')

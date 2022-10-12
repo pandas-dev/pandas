@@ -1,6 +1,5 @@
 import io
 import os
-from pathlib import Path
 import sys
 from zipfile import ZipFile
 
@@ -614,16 +613,15 @@ z
             ("archive.zip", "archive"),
         ],
     )
-    def test_to_csv_zip_infer_name(self, filename, expected_arcname):
+    def test_to_csv_zip_infer_name(self, tmp_path, filename, expected_arcname):
         # GH 39465
         df = DataFrame({"ABC": [1]})
-        with tm.ensure_clean_dir() as dir:
-            path = Path(dir, filename)
-            df.to_csv(path, compression="zip")
-            with ZipFile(path) as zp:
-                assert len(zp.filelist) == 1
-                archived_file = zp.filelist[0].filename
-                assert archived_file == expected_arcname
+        path = tmp_path / filename
+        df.to_csv(path, compression="zip")
+        with ZipFile(path) as zp:
+            assert len(zp.filelist) == 1
+            archived_file = zp.filelist[0].filename
+            assert archived_file == expected_arcname
 
     @pytest.mark.parametrize("df_new_type", ["Int64"])
     def test_to_csv_na_rep_long_string(self, df_new_type):

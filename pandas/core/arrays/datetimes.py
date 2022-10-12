@@ -308,18 +308,33 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     ):
         explicit_none = freq is None
         freq = freq if freq is not lib.no_default else None
-
         freq, freq_infer = dtl.maybe_infer_freq(freq)
+
+        explicit_tz_none = tz is None
+        if tz is lib.no_default:
+            tz = None
+        else:
+            tz = timezones.maybe_get_tz(tz)
+
+        dtype = _validate_dt64_dtype(dtype)
+        # if dtype has an embedded tz, capture it
+        tz = validate_tz_from_dtype(dtype, tz, explicit_tz_none)
 
         subarr, tz, inferred_freq = _sequence_to_dt64ns(
             data,
-            dtype=dtype,
             copy=copy,
             tz=tz,
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             ambiguous=ambiguous,
         )
+        # We have to call this again after possibly inferring a tz above
+        validate_tz_from_dtype(dtype, tz, explicit_tz_none)
+        if tz is not None and explicit_tz_none:
+            raise ValueError(
+                "Passed data is timezone-aware, incompatible with 'tz=None'. "
+                "Use obj.tz_localize(None) instead."
+            )
 
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
         if explicit_none:
@@ -1995,13 +2010,12 @@ def sequence_to_datetimes(data, require_iso8601: bool = False) -> DatetimeArray:
 
 def _sequence_to_dt64ns(
     data,
-    dtype=None,
+    *,
     copy: bool = False,
-    tz=lib.no_default,
+    tz: tzinfo | None = None,
     dayfirst: bool = False,
     yearfirst: bool = False,
     ambiguous: TimeAmbiguous = "raise",
-    *,
     allow_mixed: bool = False,
     require_iso8601: bool = False,
 ):
@@ -2034,17 +2048,7 @@ def _sequence_to_dt64ns(
     ------
     TypeError : PeriodDType data is passed
     """
-    explicit_tz_none = tz is None
-    if tz is lib.no_default:
-        tz = None
-
     inferred_freq = None
-
-    dtype = _validate_dt64_dtype(dtype)
-    tz = timezones.maybe_get_tz(tz)
-
-    # if dtype has an embedded tz, capture it
-    tz = validate_tz_from_dtype(dtype, tz, explicit_tz_none)
 
     data, copy = dtl.ensure_arraylike_for_datetimelike(
         data, copy, cls_name="DatetimeArray"
@@ -2138,15 +2142,6 @@ def _sequence_to_dt64ns(
 
     assert isinstance(result, np.ndarray), type(result)
     assert result.dtype == "M8[ns]", result.dtype
-
-    # We have to call this again after possibly inferring a tz above
-    validate_tz_from_dtype(dtype, tz, explicit_tz_none)
-    if tz is not None and explicit_tz_none:
-        raise ValueError(
-            "Passed data is timezone-aware, incompatible with 'tz=None'. "
-            "Use obj.tz_localize(None) instead."
-        )
-
     return result, tz, inferred_freq
 
 
