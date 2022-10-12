@@ -344,7 +344,7 @@ class Apply(metaclass=abc.ABCMeta):
             selected_obj = obj._obj_with_exclusions
 
         results = []
-        keys = []
+        _keys = []
         failed_names = []
 
         depr_nuisance_columns_msg = (
@@ -367,7 +367,10 @@ class Apply(metaclass=abc.ABCMeta):
 
                     # make sure we find a good name
                     name = com.get_callable_name(a) or a
-                    keys.append(name)
+                    _keys.append(name)
+            from pandas import Index
+
+            keys = Index(_keys)
 
         # multiples
         else:

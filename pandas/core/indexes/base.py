@@ -1186,13 +1186,13 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
-        self,
+        self: _IndexT,
         indices,
         axis: Axis = 0,
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
-    ) -> Index:
+    ) -> _IndexT:
         if kwargs:
             nv.validate_take((), kwargs)
         if is_scalar(indices):
@@ -3622,6 +3622,7 @@ class Index(IndexOpsMixin, PandasObject):
             # unnecessary in the case with sort=None bc we will sort later
             taker = np.sort(taker)
 
+        result: ArrayLike | MultiIndex
         if isinstance(left_unique, ABCMultiIndex):
             result = left_unique.take(taker)
         else:
@@ -4581,7 +4582,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         indexer, missing = self.get_indexer_non_unique(target)
         check = indexer != -1
-        new_labels = self.take(indexer[check])
+        new_labels = self.take(indexer[check]).to_numpy()
         new_indexer = None
 
         if len(missing):

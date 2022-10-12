@@ -637,20 +637,21 @@ class SeriesGroupBy(GroupBy[Series]):
         mask = ids != -1
         ids, val = ids[mask], val[mask]
 
+        lab: np.ndarray | Index
         if bins is None:
             lab, lev = algorithms.factorize(val, sort=True)
             llab = lambda lab, inc: lab[inc]
         else:
 
-            # lab is a Categorical with categories an IntervalIndex
-            lab = cut(Series(val), bins, include_lowest=True)
+            # lab_cat is a Categorical with categories an IntervalIndex
+            lab_cat = cast(Categorical, cut(Series(val), bins, include_lowest=True))
             # error: "ndarray" has no attribute "cat"
-            lev = lab.cat.categories  # type: ignore[attr-defined]
+            lev = lab_cat.cat.categories  # type: ignore[attr-defined]
             # error: No overload variant of "take" of "_ArrayOrScalarCommon" matches
             # argument types "Any", "bool", "Union[Any, float]"
             lab = lev.take(  # type: ignore[call-overload]
                 # error: "ndarray" has no attribute "cat"
-                lab.cat.codes,  # type: ignore[attr-defined]
+                lab_cat.cat.codes,  # type: ignore[attr-defined]
                 allow_fill=True,
                 # error: Item "ndarray" of "Union[ndarray, Index]" has no attribute
                 # "_na_value"
