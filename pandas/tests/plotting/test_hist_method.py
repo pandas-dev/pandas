@@ -567,19 +567,14 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_hist_with_nans_and_weights(self):
         # GH 48884
-        # create a df containing NaNs and a set of weights
         df = DataFrame(
             [[np.nan, 0.2, 0.3], [0.4, np.nan, np.nan], [0.7, 0.8, 0.9]],
             columns=list("abc"),
         )
         weights = np.array([0.25, 0.3, 0.45])
-        # create a similar df with same columns without NaNs
         no_nan_df = DataFrame([[0.4, 0.2, 0.3], [0.7, 0.8, 0.9]], columns=list("abc"))
-        # create three sets of weights, to match up with no_nan_df
         no_nan_weights = np.array([[0.3, 0.25, 0.25], [0.45, 0.45, 0.45]])
 
-        # check heights of hists are the same using df and weights
-        # as no_nan_df and no_nan_weights
         from matplotlib.patches import Rectangle
 
         _, ax0 = self.plt.subplots()
