@@ -565,7 +565,7 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_yaxis().get_visible()
         tm.close()
 
-    def test_hist_weights(self):
+    def test_hist_with_nans_and_weights(self):
         # GH 48884
         # create a df containing NaNs and a set of weights
         df = DataFrame(
