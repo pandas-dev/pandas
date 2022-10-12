@@ -11,6 +11,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs.tslibs import (
+    NaT,
     Timedelta,
     Timestamp,
 )
@@ -215,7 +216,9 @@ class BinOp(ops.BinOp):
             if isinstance(v, (int, float)):
                 v = stringify(v)
             v = ensure_decoded(v)
-            v = Timestamp(v)._as_unit("ns")
+            v = Timestamp(v)
+            if v is not NaT:
+                v = v._as_unit("ns")
             if v.tz is not None:
                 v = v.tz_convert("UTC")
             return TermValue(v, v.value, kind)
