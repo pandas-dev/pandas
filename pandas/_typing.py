@@ -88,6 +88,7 @@ HashableT = TypeVar("HashableT", bound=Hashable)
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
+AnyArrayLikeT = TypeVar("AnyArrayLikeT", bound=AnyArrayLike)
 
 # scalars
 

@@ -1077,7 +1077,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return val
 
     def take(
-        self: SparseArrayT, indices, *, allow_fill: bool = False, fill_value=None
+        self: SparseArrayT,
+        indices,
+        *,
+        allow_fill: bool = False,
+        fill_value=None,
+        axis: AxisInt = 0,
     ) -> SparseArrayT:
         if is_scalar(indices):
             raise ValueError(f"'indices' must be an array, not a scalar '{indices}'.")

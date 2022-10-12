@@ -10,6 +10,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._typing import (
+    AxisInt,
     Dtype,
     PositionalIndexer,
     SortKind,
@@ -639,6 +640,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         indices: TakeIndexer,
         allow_fill: bool = False,
         fill_value: Any = None,
+        axis: AxisInt = 0,
     ) -> ArrowExtensionArray:
         """
         Take elements from an array.

@@ -170,6 +170,7 @@ from pandas.core.internals.construction import mgr_to_mgr
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
+from pandas.core.reshape.util import tile_compat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import (
@@ -9730,14 +9731,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise InvalidIndexError
 
                 elif other.ndim < self.ndim:
-                    # TODO(EA2D): avoid object-dtype cast in EA case GH#38729
                     other = other._values
                     if axis == 0:
                         other = np.reshape(other, (-1, 1))
+                        other = tile_compat(other, self.shape[1], axis=1)
                     elif axis == 1:
                         other = np.reshape(other, (1, -1))
-
-                    other = np.broadcast_to(other, self.shape)
+                        other = tile_compat(other, self.shape[0], axis=0)
 
             # slice me out of the other
             else:

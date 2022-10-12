@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from typing import cast
+
 import numpy as np
 
-from pandas._typing import NumpyIndexT
+from pandas._typing import (
+    AnyArrayLikeT,
+    AxisInt,
+)
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -66,7 +71,7 @@ def cartesian_product(X) -> list[np.ndarray]:
     ]
 
 
-def tile_compat(arr: NumpyIndexT, num: int) -> NumpyIndexT:
+def tile_compat(arr: AnyArrayLikeT, num: int, axis: AxisInt = 0) -> AnyArrayLikeT:
     """
     Index compat for np.tile.
 
@@ -74,9 +79,5 @@ def tile_compat(arr: NumpyIndexT, num: int) -> NumpyIndexT:
     -----
     Does not support multi-dimensional `num`.
     """
-    if isinstance(arr, np.ndarray):
-        return np.tile(arr, num)
-
-    # Otherwise we have an Index
-    taker = np.tile(np.arange(len(arr)), num)
-    return arr.take(taker)
+    taker = np.tile(np.arange(arr.shape[axis]), num)
+    return cast(AnyArrayLikeT, arr.take(taker, axis=axis))

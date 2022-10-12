@@ -1149,6 +1149,7 @@ class ExtensionArray:
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
+        axis: AxisInt = 0,
     ) -> ExtensionArrayT:
         """
         Take elements from an array.

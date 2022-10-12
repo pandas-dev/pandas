@@ -1192,7 +1192,7 @@ class Index(IndexOpsMixin, PandasObject):
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
-    ):
+    ) -> Index:
         if kwargs:
             nv.validate_take((), kwargs)
         if is_scalar(indices):
