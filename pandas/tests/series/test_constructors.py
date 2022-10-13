@@ -13,6 +13,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas.compat import is_numpy_dev
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -734,13 +735,18 @@ class TestSeriesConstructors:
     def test_constructor_signed_int_overflow_deprecation(self):
         # GH#41734 disallow silent overflow
         msg = "Values are too large to be losslessly cast"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        numpy_warning = DeprecationWarning if is_numpy_dev else None
+        with tm.assert_produces_warning(
+            (FutureWarning, numpy_warning), match=msg, check_stacklevel=False
+        ):
             ser = Series([1, 200, 923442], dtype="int8")
 
         expected = Series([1, -56, 50], dtype="int8")
         tm.assert_series_equal(ser, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            (FutureWarning, numpy_warning), match=msg, check_stacklevel=False
+        ):
             ser = Series([1, 200, 923442], dtype="uint8")
 
         expected = Series([1, 200, 50], dtype="uint8")
