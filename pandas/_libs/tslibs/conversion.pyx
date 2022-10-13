@@ -31,12 +31,14 @@ import_datetime()
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
+    get_supported_reso,
     periods_per_second,
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     check_dts_bounds,
+    convert_reso,
     get_datetime64_unit,
     get_datetime64_value,
     get_implementation_bounds,
@@ -204,10 +206,16 @@ cdef class _TSObject:
     #    int64_t value               # numpy dt64
     #    tzinfo tzinfo
     #    bint fold
+    #    NPY_DATETIMEUNIT reso
 
     def __cinit__(self):
         # GH 25057. As per PEP 495, set fold to 0 by default
         self.fold = 0
+        self.reso = NPY_FR_ns  # default value
+
+    cdef void ensure_reso(self, NPY_DATETIMEUNIT reso):
+        if self.reso != reso:
+            self.value = convert_reso(self.value, self.reso, reso, False)
 
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
@@ -228,6 +236,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     """
     cdef:
         _TSObject obj
+        NPY_DATETIMEUNIT reso
 
     obj = _TSObject()
 
@@ -237,9 +246,11 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     if ts is None or ts is NaT:
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
-        obj.value = get_datetime64_nanos(ts, NPY_FR_ns)
+        reso = get_supported_reso(get_datetime64_unit(ts))
+        obj.reso = reso
+        obj.value = get_datetime64_nanos(ts, reso)
         if obj.value != NPY_NAT:
-            pandas_datetime_to_datetimestruct(obj.value, NPY_FR_ns, &obj.dts)
+            pandas_datetime_to_datetimestruct(obj.value, reso, &obj.dts)
     elif is_integer_object(ts):
         try:
             ts = <int64_t>ts
@@ -295,7 +306,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         raise TypeError(f'Cannot convert input [{ts}] of type {type(ts)} to '
                         f'Timestamp')
 
-    maybe_localize_tso(obj, tz, NPY_FR_ns)
+    maybe_localize_tso(obj, tz, obj.reso)
     return obj
 
 
