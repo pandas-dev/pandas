@@ -10,9 +10,16 @@ Other items:
 from __future__ import annotations
 
 import os
+from pickle import PickleBuffer
 import platform
 import sys
-from typing import TYPE_CHECKING
+
+try:
+    import lzma
+
+    has_lzma = True
+except ImportError:
+    has_lzma = False
 
 from pandas._typing import F
 from pandas.compat.numpy import (
@@ -31,14 +38,29 @@ from pandas.compat.pyarrow import (
     pa_version_under9p0,
 )
 
-if TYPE_CHECKING:
-    import lzma
-
 PY39 = sys.version_info >= (3, 9)
 PY310 = sys.version_info >= (3, 10)
 PY311 = sys.version_info >= (3, 11)
 PYPY = platform.python_implementation() == "PyPy"
 IS64 = sys.maxsize > 2**32
+
+
+if has_lzma:
+
+    class _LZMAFile(lzma.LZMAFile):
+        def write(self, b) -> int:
+            if isinstance(b, PickleBuffer):
+                # Workaround issue where `lzma.LZMAFile` expects `len`
+                # to return the number of bytes in `b` by converting
+                # `b` into something that meets that constraint with
+                # minimal copying.
+                try:
+                    # coerce to 1-D `uint8` C-contiguous `memoryview` zero-copy
+                    b = b.raw()
+                except BufferError:
+                    # perform in-memory copy if buffer is not contiguous
+                    b = bytes(b)
+            return super().write(b)
 
 
 def set_function_name(f: F, name: str, cls) -> F:
@@ -126,7 +148,7 @@ def is_ci_environment() -> bool:
     return os.environ.get("PANDAS_CI", "0") == "1"
 
 
-def get_lzma_file() -> type[lzma.LZMAFile]:
+def get_lzma_file() -> type[_LZMAFile]:
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -140,15 +162,13 @@ def get_lzma_file() -> type[lzma.LZMAFile]:
     RuntimeError
         If the `lzma` module was not imported correctly, or didn't exist.
     """
-    try:
-        import lzma
-    except ImportError:
+    if not has_lzma:
         raise RuntimeError(
             "lzma module not available. "
             "A Python re-install with the proper dependencies, "
             "might be required to solve this issue."
         )
-    return lzma.LZMAFile
+    return _LZMAFile
 
 
 __all__ = [
