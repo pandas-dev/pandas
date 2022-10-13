@@ -38,7 +38,10 @@ from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
     precision_from_unit,
 )
-from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
+from pandas._libs.tslibs.dtypes cimport (
+    get_supported_reso,
+    npy_unit_to_abbrev,
+)
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -338,8 +341,9 @@ cdef convert_to_timedelta64(object ts, str unit):
     elif isinstance(ts, _Timedelta):
         # already in the proper format
         if ts._reso != NPY_FR_ns:
-            raise NotImplementedError
-        ts = np.timedelta64(ts.value, "ns")
+            ts = ts._as_unit("ns").asm8
+        else:
+            ts = np.timedelta64(ts.value, "ns")
     elif is_timedelta64_object(ts):
         ts = ensure_td64ns(ts)
     elif is_integer_object(ts):
@@ -939,6 +943,7 @@ cdef _timedelta_from_value_and_reso(int64_t value, NPY_DATETIMEUNIT reso):
     cdef:
         _Timedelta td_base
 
+    assert value != NPY_NAT
     # For millisecond and second resos, we cannot actually pass int(value) because
     #  many cases would fall outside of the pytimedelta implementation bounds.
     #  We pass 0 instead, and override seconds, microseconds, days.
@@ -1014,6 +1019,13 @@ cdef class _Timedelta(timedelta):
     min = MinMaxReso("min")
     max = MinMaxReso("max")
     resolution = MinMaxReso("resolution")
+
+    @property
+    def _unit(self) -> str:
+        """
+        The abbreviation associated with self._reso.
+        """
+        return npy_unit_to_abbrev(self._reso)
 
     @property
     def days(self) -> int:  # TODO(cython3): make cdef property
@@ -1530,12 +1542,7 @@ cdef class _Timedelta(timedelta):
     def _as_unit(self, str unit, bint round_ok=True):
         dtype = np.dtype(f"m8[{unit}]")
         reso = get_unit_from_dtype(dtype)
-        try:
-            return self._as_reso(reso, round_ok=round_ok)
-        except OverflowError as err:
-            raise OutOfBoundsTimedelta(
-                f"Cannot cast {self} to unit='{unit}' without overflow."
-            ) from err
+        return self._as_reso(reso, round_ok=round_ok)
 
     @cython.cdivision(False)
     cdef _Timedelta _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
@@ -1545,8 +1552,25 @@ cdef class _Timedelta(timedelta):
         if reso == self._reso:
             return self
 
-        value = convert_reso(self.value, self._reso, reso, round_ok=round_ok)
+        try:
+            value = convert_reso(self.value, self._reso, reso, round_ok=round_ok)
+        except OverflowError as err:
+            unit = npy_unit_to_abbrev(reso)
+            raise OutOfBoundsTimedelta(
+                f"Cannot cast {self} to unit='{unit}' without overflow."
+            ) from err
+
         return type(self)._from_value_and_reso(value, reso=reso)
+
+    cpdef _maybe_cast_to_matching_resos(self, _Timedelta other):
+        """
+        If _resos do not match, cast to the higher resolution, raising on overflow.
+        """
+        if self._reso > other._reso:
+            other = other._as_reso(self._reso)
+        elif self._reso < other._reso:
+            self = self._as_reso(other._reso)
+        return self, other
 
 
 # Python front end to C extension type _Timedelta
@@ -1662,10 +1686,16 @@ class Timedelta(_Timedelta):
 
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed
-        if isinstance(value, _Timedelta) and unit is None and len(kwargs) == 0:
+        if isinstance(value, _Timedelta):
+            # 'unit' is benign in this case, but e.g. days or seconds
+            #  doesn't make sense here.
+            if len(kwargs):
+                # GH#48898
+                raise ValueError(
+                    "Cannot pass both a Timedelta input and timedelta keyword arguments, got "
+                    f"{list(kwargs.keys())}"
+                )
             return value
-        elif isinstance(value, _Timedelta):
-            value = value.value
         elif isinstance(value, str):
             if unit is not None:
                 raise ValueError("unit must not be specified if the value is a str")
@@ -1677,11 +1707,40 @@ class Timedelta(_Timedelta):
                 value = parse_timedelta_string(value)
             value = np.timedelta64(value)
         elif PyDelta_Check(value):
-            value = convert_to_timedelta64(value, 'ns')
+            # pytimedelta object -> microsecond resolution
+            new_value = delta_to_nanoseconds(
+                value, reso=NPY_DATETIMEUNIT.NPY_FR_us
+            )
+            return cls._from_value_and_reso(
+                new_value, reso=NPY_DATETIMEUNIT.NPY_FR_us
+            )
         elif is_timedelta64_object(value):
-            value = ensure_td64ns(value)
+            # Retain the resolution if possible, otherwise cast to the nearest
+            #  supported resolution.
+            new_value = get_timedelta64_value(value)
+            if new_value == NPY_NAT:
+                # i.e. np.timedelta64("NaT")
+                return NaT
+
+            reso = get_datetime64_unit(value)
+            new_reso = get_supported_reso(reso)
+            if reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+                try:
+                    new_value = convert_reso(
+                        new_value,
+                        reso,
+                        new_reso,
+                        round_ok=True,
+                    )
+                except (OverflowError, OutOfBoundsDatetime) as err:
+                    raise OutOfBoundsTimedelta(value) from err
+            return cls._from_value_and_reso(new_value, reso=new_reso)
+
         elif is_tick_object(value):
-            value = np.timedelta64(value.nanos, 'ns')
+            new_reso = get_supported_reso(value._reso)
+            new_value = delta_to_nanoseconds(value, reso=new_reso)
+            return cls._from_value_and_reso(new_value, reso=new_reso)
+
         elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
@@ -1818,11 +1877,7 @@ class Timedelta(_Timedelta):
             if other is NaT:
                 return np.nan
             if other._reso != self._reso:
-                raise ValueError(
-                    "division between Timedeltas with mismatched resolutions "
-                    "are not supported. Explicitly cast to matching resolutions "
-                    "before dividing."
-                )
+                self, other = self._maybe_cast_to_matching_resos(other)
             return self.value / float(other.value)
 
         elif is_integer_object(other) or is_float_object(other):
@@ -1849,11 +1904,7 @@ class Timedelta(_Timedelta):
             if other is NaT:
                 return np.nan
             if self._reso != other._reso:
-                raise ValueError(
-                    "division between Timedeltas with mismatched resolutions "
-                    "are not supported. Explicitly cast to matching resolutions "
-                    "before dividing."
-                )
+                self, other = self._maybe_cast_to_matching_resos(other)
             return float(other.value) / self.value
 
         elif is_array(other):
@@ -1881,11 +1932,7 @@ class Timedelta(_Timedelta):
             if other is NaT:
                 return np.nan
             if self._reso != other._reso:
-                raise ValueError(
-                    "floordivision between Timedeltas with mismatched resolutions "
-                    "are not supported. Explicitly cast to matching resolutions "
-                    "before dividing."
-                )
+                self, other = self._maybe_cast_to_matching_resos(other)
             return self.value // other.value
 
         elif is_integer_object(other) or is_float_object(other):
@@ -1901,9 +1948,16 @@ class Timedelta(_Timedelta):
 
             if other.dtype.kind == 'm':
                 # also timedelta-like
-                if self._reso != NPY_FR_ns:
-                    raise NotImplementedError
-                return _broadcast_floordiv_td64(self.value, other, _floordiv)
+                # TODO: could suppress
+                #  RuntimeWarning: invalid value encountered in floor_divide
+                result = self.asm8 // other
+                mask = other.view("i8") == NPY_NAT
+                if mask.any():
+                    # We differ from numpy here
+                    result = result.astype("f8")
+                    result[mask] = np.nan
+                return result
+
             elif other.dtype.kind in ['i', 'u', 'f']:
                 if other.ndim == 0:
                     return self // other.item()
@@ -1923,11 +1977,7 @@ class Timedelta(_Timedelta):
             if other is NaT:
                 return np.nan
             if self._reso != other._reso:
-                raise ValueError(
-                    "floordivision between Timedeltas with mismatched resolutions "
-                    "are not supported. Explicitly cast to matching resolutions "
-                    "before dividing."
-                )
+                self, other = self._maybe_cast_to_matching_resos(other)
             return other.value // self.value
 
         elif is_array(other):
@@ -1938,9 +1988,15 @@ class Timedelta(_Timedelta):
 
             if other.dtype.kind == 'm':
                 # also timedelta-like
-                if self._reso != NPY_FR_ns:
-                    raise NotImplementedError
-                return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
+                # TODO: could suppress
+                #  RuntimeWarning: invalid value encountered in floor_divide
+                result = other // self.asm8
+                mask = other.view("i8") == NPY_NAT
+                if mask.any():
+                    # We differ from numpy here
+                    result = result.astype("f8")
+                    result[mask] = np.nan
+                return result
 
             # Includes integer array // Timedelta, disallowed in GH#19761
             raise TypeError(f'Invalid dtype {other.dtype} for __floordiv__')
@@ -1990,45 +2046,3 @@ cdef bint _should_cast_to_timedelta(object obj):
     return (
         is_any_td_scalar(obj) or obj is None or obj is NaT or isinstance(obj, str)
     )
-
-
-cdef _floordiv(int64_t value, right):
-    return value // right
-
-
-cdef _rfloordiv(int64_t value, right):
-    # analogous to referencing operator.div, but there is no operator.rfloordiv
-    return right // value
-
-
-cdef _broadcast_floordiv_td64(
-    int64_t value,
-    ndarray other,
-    object (*operation)(int64_t value, object right)
-):
-    """
-    Boilerplate code shared by Timedelta.__floordiv__ and
-    Timedelta.__rfloordiv__ because np.timedelta64 does not implement these.
-
-    Parameters
-    ----------
-    value : int64_t; `self.value` from a Timedelta object
-    other : object
-    operation : function, either _floordiv or _rfloordiv
-
-    Returns
-    -------
-    result : varies based on `other`
-    """
-    # assumes other.dtype.kind == 'm', i.e. other is timedelta-like
-    # assumes other.ndim != 0
-
-    # We need to watch out for np.timedelta64('NaT').
-    mask = other.view('i8') == NPY_NAT
-
-    res = operation(value, other.astype('m8[ns]', copy=False).astype('i8'))
-
-    if mask.any():
-        res = res.astype('f8')
-        res[mask] = np.nan
-    return res

@@ -18,10 +18,7 @@ from pytz import (
     utc,
 )
 
-from pandas._libs.tslibs.dtypes import (
-    NpyDatetimeUnit,
-    npy_unit_to_abbrev,
-)
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
     dateutil_gettz as gettz,
     get_timezone,
@@ -829,7 +826,7 @@ class TestNonNano:
 
         # subtracting 3600*24 gives a datetime64 that _can_ fit inside the
         #  nanosecond implementation bounds.
-        other = Timestamp(dt64 - 3600 * 24)
+        other = Timestamp(dt64 - 3600 * 24)._as_unit("ns")
         assert other < ts
         assert other.asm8 > ts.asm8  # <- numpy gets this wrong
         assert ts > other
@@ -887,12 +884,7 @@ class TestNonNano:
     )
     def test_addsub_timedeltalike_non_nano(self, dt64, ts, td):
 
-        if isinstance(td, Timedelta):
-            # td._reso is ns
-            exp_reso = td._reso
-        else:
-            # effective td._reso is s
-            exp_reso = ts._reso
+        exp_reso = max(ts._reso, Timedelta(td)._reso)
 
         result = ts - td
         expected = Timestamp(dt64) - td
@@ -964,7 +956,7 @@ class TestNonNano:
         if ts._reso < other._reso:
             # Case where rounding is lossy
             other2 = other + Timedelta._from_value_and_reso(1, other._reso)
-            exp = ts._as_unit(npy_unit_to_abbrev(other._reso)) - other2
+            exp = ts._as_unit(other._unit) - other2
 
             res = ts - other2
             assert res == exp
@@ -975,7 +967,7 @@ class TestNonNano:
             assert res._reso == max(ts._reso, other._reso)
         else:
             ts2 = ts + Timedelta._from_value_and_reso(1, ts._reso)
-            exp = ts2 - other._as_unit(npy_unit_to_abbrev(ts2._reso))
+            exp = ts2 - other._as_unit(ts2._unit)
 
             res = ts2 - other
             assert res == exp
@@ -1012,7 +1004,7 @@ class TestNonNano:
         if ts._reso < other._reso:
             # Case where rounding is lossy
             other2 = other + Timedelta._from_value_and_reso(1, other._reso)
-            exp = ts._as_unit(npy_unit_to_abbrev(other._reso)) + other2
+            exp = ts._as_unit(other._unit) + other2
             res = ts + other2
             assert res == exp
             assert res._reso == max(ts._reso, other._reso)
@@ -1021,7 +1013,7 @@ class TestNonNano:
             assert res._reso == max(ts._reso, other._reso)
         else:
             ts2 = ts + Timedelta._from_value_and_reso(1, ts._reso)
-            exp = ts2 + other._as_unit(npy_unit_to_abbrev(ts2._reso))
+            exp = ts2 + other._as_unit(ts2._unit)
 
             res = ts2 + other
             assert res == exp

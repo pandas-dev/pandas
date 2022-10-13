@@ -102,7 +102,6 @@ from pandas._testing.contexts import (
     RNGContext,
     decompress_file,
     ensure_clean,
-    ensure_clean_dir,
     ensure_safe_environment_variables,
     set_timezone,
     use_numexpr,
@@ -296,7 +295,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
             # pd.array would return an IntegerArray
             expected = PandasArray(np.asarray(expected._values))
         else:
-            expected = pd.array(expected)
+            expected = pd.array(expected, copy=False)
     elif box_cls is Index:
         expected = Index._with_infer(expected)
     elif box_cls is Series:
@@ -1087,7 +1086,6 @@ __all__ = [
     "EMPTY_STRING_PATTERN",
     "ENDIAN",
     "ensure_clean",
-    "ensure_clean_dir",
     "ensure_safe_environment_variables",
     "equalContents",
     "external_error_raised",

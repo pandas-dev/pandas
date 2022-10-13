@@ -84,6 +84,7 @@ if TYPE_CHECKING:
         DropKeep,
         NumpySorter,
         NumpyValueArrayLike,
+        ScalarLike_co,
     )
 
     from pandas import (
@@ -1275,7 +1276,7 @@ class IndexOpsMixin(OpsMixin):
     # return types  [misc]
     def searchsorted(  # type: ignore[misc]
         self,
-        value: npt._ScalarLike_co,
+        value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
         sorter: NumpySorter = ...,
     ) -> np.intp:
