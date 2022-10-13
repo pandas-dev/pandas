@@ -651,7 +651,7 @@ Example
 ^^^^^^^
 
 Here is an example of a self-contained set of tests in a file ``pandas/tests/test_cool_feature.py``
-that illustrate multiple features that we like to use. Please remember to add the Github Issue Number
+that illustrate multiple features that we like to use. Please remember to add the GitHub Issue Number
 as a comment to a new test.
 
 .. code-block:: python
@@ -796,16 +796,16 @@ need to install ``pytest-xdist`` via::
 
     pip install pytest-xdist
 
-Two scripts are provided to assist with this.  These scripts distribute
-testing across 4 threads.
+The ``-n`` flag then can be specified when running ``pytest`` to parallelize a test run
+across the number of specified cores or ``auto`` to utilize all the available cores on your machine.
 
-On Unix variants, one can type::
+.. code-block:: bash
 
-    test_fast.sh
+   # Utilize 4 cores
+   pytest -n 4 pandas
 
-On Windows, one can type::
-
-    test_fast.bat
+   # Utilizes all available cores
+   pytest -n auto pandas
 
 This can significantly reduce the time it takes to locally run tests before
 submitting a pull request.

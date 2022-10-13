@@ -260,9 +260,7 @@ class TestDataFrameSetItem:
             # property would require instantiation
             if not isinstance(dtype.name, property)
         ]
-        # mypy doesn't allow adding lists of different types
-        # https://github.com/python/mypy/issues/5492
-        + ["datetime64[ns, UTC]", "period[D]"],  # type: ignore[list-item]
+        + ["datetime64[ns, UTC]", "period[D]"],
     )
     def test_setitem_with_ea_name(self, ea_name):
         # GH 38386

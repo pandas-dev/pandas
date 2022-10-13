@@ -26,7 +26,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import sanitize_to_nanoseconds
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_list_like,
@@ -558,9 +557,12 @@ class Grouping:
                 raise AssertionError(errmsg)
 
         if isinstance(self.grouping_vector, np.ndarray):
-            # if we have a date/time-like grouper, make sure that we have
-            # Timestamps like
-            self.grouping_vector = sanitize_to_nanoseconds(self.grouping_vector)
+            if self.grouping_vector.dtype.kind in ["m", "M"]:
+                # if we have a date/time-like grouper, make sure that we have
+                # Timestamps like
+                # TODO 2022-10-08 we only have one test that gets here and
+                #  values are already in nanoseconds in that case.
+                self.grouping_vector = Series(self.grouping_vector).to_numpy()
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
@@ -875,7 +877,7 @@ def get_grouper(
             exclusions.add(gpr.name)
 
         elif is_in_axis(gpr):  # df.groupby('name')
-            if gpr in obj:
+            if obj.ndim != 1 and gpr in obj:
                 if validate:
                     obj._check_label_or_level_ambiguity(gpr, axis=axis)
                 in_axis, name, gpr = True, gpr, obj[gpr]
