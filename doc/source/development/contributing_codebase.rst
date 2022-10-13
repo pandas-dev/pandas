@@ -823,7 +823,7 @@ You might want to enable the following option if it's relevant for you:
 
 - arm_slow: any test taking long on arm64 architecture
 
-These markers are defined `in this toml file <https://github.com/pandas-dev/pandas/blob/55dc32437ea43a238975439ddb6c9dda81b33020/pyproject.toml>`_
+These markers are defined `in this toml file <https://github.com/pandas-dev/pandas/blob/main/pyproject.toml>`_
 , under ``[tool.pytest.ini_options]`` in a list called ``markers``, in case
 you want to check if new ones have been created which are of interest to you.
 
