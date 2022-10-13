@@ -1622,8 +1622,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         elif pa.types.is_signed_integer(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    raises=pa.ArrowInvalid,
-                    reason=f"raises on overflow for {pa_dtype}",
+                    raises=pa.ArrowInvalid
                 )
             )
         super().test_add_series_with_extension_array(data)
