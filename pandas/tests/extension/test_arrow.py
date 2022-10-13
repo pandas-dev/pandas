@@ -16,6 +16,7 @@ from datetime import (
     time,
     timedelta,
 )
+import pickle
 
 import numpy as np
 import pytest
@@ -1765,3 +1766,19 @@ def test_is_bool_dtype():
     result = s[data]
     expected = s[np.asarray(data)]
     tm.assert_series_equal(result, expected)
+
+
+def test_pickle_roundtrip(data_missing):
+    # GH 42600
+    expected = pd.Series(data_missing)
+    expected_sliced = expected.head(2)
+    full_pickled = pickle.dumps(expected)
+    sliced_pickled = pickle.dumps(expected_sliced)
+
+    assert len(full_pickled) > len(sliced_pickled)
+
+    result = pickle.loads(full_pickled)
+    tm.assert_series_equal(result, expected)
+
+    result_sliced = pickle.loads(sliced_pickled)
+    tm.assert_series_equal(result_sliced, expected_sliced)

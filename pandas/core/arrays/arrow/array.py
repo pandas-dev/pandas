@@ -373,6 +373,17 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     def __abs__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
         return type(self)(pc.abs_checked(self._data))
 
+    # GH 42600: __getstate__/__setstate__ not necessary once
+    # https://issues.apache.org/jira/browse/ARROW-10739 is addressed
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_data"] = self._data.combine_chunks()
+        return state
+
+    def __setstate__(self, state) -> None:
+        state["_data"] = pa.chunked_array(state["_data"])
+        self.__dict__.update(state)
+
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
 
