@@ -57,10 +57,6 @@ class TestSeriesIsIn:
         result = ser.isin(dta)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(
-        reason="DTA._from_sequence incorrectly treats Timestamp[s].value as "
-        "nanoseconds."
-    )
     def test_isin_datetimelike_mismatched_reso_list(self):
         expected = Series([True, True, False, False, False])
 
