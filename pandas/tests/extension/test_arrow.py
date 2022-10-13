@@ -1768,9 +1768,9 @@ def test_is_bool_dtype():
     tm.assert_series_equal(result, expected)
 
 
-def test_pickle_roundtrip(data_missing):
+def test_pickle_roundtrip(data):
     # GH 42600
-    expected = pd.Series(data_missing)
+    expected = pd.Series(data)
     expected_sliced = expected.head(2)
     full_pickled = pickle.dumps(expected)
     sliced_pickled = pickle.dumps(expected_sliced)
