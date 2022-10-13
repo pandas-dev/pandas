@@ -347,7 +347,7 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
 """
 TimeRE, _calc_julian_from_U_or_W are vendored
 from the standard library, see
-https://github.com/python/cpython/blob/master/Lib/_strptime.py
+https://github.com/python/cpython/blob/main/Lib/_strptime.py
 The original module-level docstring follows.
 
 Strptime-related classes and functions.
@@ -383,6 +383,9 @@ class TimeRE(_TimeRE):
         """
         self._Z = None
         super().__init__(locale_time=locale_time)
+        # GH 48767: Overrides for cpython's TimeRE
+        #  1) Parse up to nanos instead of micros
+        self.update({"f": r"(?P<f>[0-9]{1,9})"}),
 
     def __getitem__(self, key):
         if key == "Z":

@@ -1516,6 +1516,8 @@ class EABackedBlock(Block):
         mask = extract_bool_array(mask)
 
         values = self.values
+        if values.ndim == 2:
+            values = values.T
 
         orig_new = new
         orig_mask = mask
@@ -1981,7 +1983,7 @@ def _catch_deprecated_value_error(err: Exception) -> None:
             # IntervalDtype mismatched 'closed'
             pass
         elif "Timezones don't match" not in str(err):
-            raise
+            raise err
 
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):

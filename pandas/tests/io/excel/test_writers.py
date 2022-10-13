@@ -1301,6 +1301,17 @@ class TestExcelWriter:
                 with tm.assert_produces_warning(FutureWarning, match=msg):
                     getattr(writer, attr)(*args)
 
+    def test_deprecated_book_setter(self, engine, ext):
+        # GH#48780
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path) as writer:
+                msg = "Setting the `book` attribute is not part of the public API"
+                # Some engines raise if nothing is written
+                DataFrame().to_excel(writer)
+                book = writer.book
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    writer.book = book
+
 
 class TestExcelWriterEngineTests:
     @pytest.mark.parametrize(
