@@ -577,7 +577,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     @classmethod
-    def _get_block_manager_axis(cls, axis: Axis) -> int:
+    def _get_block_manager_axis(cls, axis: Axis) -> AxisInt:
         """Map the axis to the block_manager axis."""
         axis = cls._get_axis_number(axis)
         ndim = cls._AXIS_LEN
@@ -1705,7 +1705,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def _is_label_reference(self, key: Level, axis: int = 0) -> bool_t:
+    def _is_label_reference(self, key: Level, axis: Axis = 0) -> bool_t:
         """
         Test whether a key is a label reference for a given axis.
 
@@ -1725,8 +1725,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         is_label: bool
         """
-        axis = self._get_axis_number(axis)
-        other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
+        axis_int = self._get_axis_number(axis)
+        other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis_int)
 
         return (
             key is not None
@@ -4316,10 +4316,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2014-02-14          22.0    medium
         2014-02-15          35.0    medium
 
+        >>> ser = df['windspeed']
+        >>> ser.get('2014-02-13')
+        'high'
+
         If the key isn't found, the default value will be used.
 
         >>> df.get(["temp_celsius", "temp_kelvin"], default="default_value")
         'default_value'
+
+        >>> ser.get('2014-02-10', '[unknown]')
+        '[unknown]'
         """
         try:
             return self[key]
@@ -4520,6 +4527,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if inplace:
             self._update_inplace(obj)
+            return None
         else:
             return obj
 
@@ -4642,7 +4650,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Axis to add prefix on
 
-             .. versionadded:: 1.6.0
+             .. versionadded:: 2.0.0
 
         Returns
         -------
@@ -4716,7 +4724,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Axis to add suffix on
 
-             .. versionadded:: 1.6.0
+             .. versionadded:: 2.0.0
 
         Returns
         -------
@@ -5870,7 +5878,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         If you have a function that takes the data as (say) the second
         argument, pass a tuple indicating which keyword expects the
-        data. For example, suppose ``f`` takes its data as ``arg2``:
+        data. For example, suppose ``func`` takes its data as ``arg2``:
 
         >>> (df.pipe(h)
         ...    .pipe(g, arg1=a)
@@ -6953,10 +6961,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                     result = self.T.fillna(value=value, limit=limit).T
 
-                    # error: Incompatible types in assignment (expression has type
-                    # "NDFrameT", variable has type "Union[ArrayManager,
-                    # SingleArrayManager, BlockManager, SingleBlockManager]")
-                    new_data = result  # type: ignore[assignment]
+                    new_data = result
                 else:
 
                     new_data = self._mgr.fillna(
