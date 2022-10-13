@@ -1015,7 +1015,7 @@ class _BZ2File(bz2.BZ2File):
                 b = b.raw()
             except BufferError:
                 # perform in-memory copy if buffer is not contiguous
-                b = bytes(b)
+                b = memoryview(b).tobytes()
         return super().write(b)
 
 

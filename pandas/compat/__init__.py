@@ -59,7 +59,7 @@ if has_lzma:
                     b = b.raw()
                 except BufferError:
                     # perform in-memory copy if buffer is not contiguous
-                    b = bytes(b)
+                    b = memoryview(b).tobytes()
             return super().write(b)
 
 
