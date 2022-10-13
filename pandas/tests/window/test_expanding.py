@@ -229,6 +229,13 @@ def test_iter_expanding_series(ser, expected, min_periods):
         tm.assert_series_equal(actual, expected)
 
 
+def test_center_invalid():
+    # GH 20647
+    df = DataFrame()
+    with pytest.raises(TypeError, match=".* got an unexpected keyword"):
+        df.expanding(center=True)
+
+
 def test_expanding_sem(frame_or_series):
     # GH: 26476
     obj = frame_or_series([0, 1, 2])
