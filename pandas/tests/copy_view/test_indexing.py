@@ -560,8 +560,9 @@ def test_subset_chained_getitem_column(dtype, using_copy_on_write):
         lambda s: s["a":"c"]["a":"b"],  # type: ignore[misc]
         lambda s: s.iloc[0:3].iloc[0:2],
         lambda s: s.loc["a":"c"].loc["a":"b"],  # type: ignore[misc]
+        lambda s: s.loc["a":"c"].iloc[0:3].iloc[0:2].loc["a":"b"].iloc[0:1],
     ],
-    ids=["getitem", "iloc", "loc"],
+    ids=["getitem", "iloc", "loc", "long-chain"],
 )
 def test_subset_chained_getitem_series(method, using_copy_on_write):
     # Case: creating a subset using multiple, chained getitem calls using views
