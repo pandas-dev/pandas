@@ -9716,7 +9716,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # align with me
             if other.ndim <= self.ndim:
-
                 _, other = self.align(
                     other,
                     join="left",

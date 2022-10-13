@@ -293,10 +293,10 @@ class Grouper:
         self.grouper = None
         self._gpr_index = None
         self.obj = None
-        self.indexer = None
+        self.indexer: np.ndarray | None = None
         self.binner = None
         self._grouper = None
-        self._indexer = None
+        self._indexer: np.ndarray | None = None
 
     @final
     @property

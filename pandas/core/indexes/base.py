@@ -216,6 +216,8 @@ str_t = str
 
 _dtype_obj = np.dtype("object")
 
+_T = TypeVar("_T", bound="Index")
+
 
 def _maybe_return_indexers(meth: F) -> F:
     """
@@ -4556,7 +4558,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _reindex_non_unique(
-        self, target: Index
+        self: _T, target: Index
     ) -> tuple[Index, npt.NDArray[np.intp], npt.NDArray[np.intp] | None]:
         """
         Create a new index with target's values (move/add/delete values as
@@ -4582,7 +4584,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         indexer, missing = self.get_indexer_non_unique(target)
         check = indexer != -1
-        new_labels = self.take(indexer[check]).to_numpy()
+        new_labels: _T | np.ndarray = self.take(indexer[check])
         new_indexer = None
 
         if len(missing):
