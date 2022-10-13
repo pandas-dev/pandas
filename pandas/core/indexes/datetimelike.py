@@ -314,12 +314,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                 # DTI -> parsing.DateParseError
                 # TDI -> 'unit abbreviation w/o a number'
                 # PI -> string cannot be parsed as datetime-like
-                raise self._invalid_indexer("slice", label) from err
+                self._raise_invalid_indexer("slice", label, err)
 
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             return lower if side == "left" else upper
         elif not isinstance(label, self._data._recognized_scalars):
-            raise self._invalid_indexer("slice", label)
+            self._raise_invalid_indexer("slice", label)
 
         return label
 
@@ -433,7 +433,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             new_freq = to_offset(Timedelta(res_i8.step))
             res_i8 = res_i8
 
-        # TODO: we cannot just do
+        # TODO(GH#41493): we cannot just do
         #  type(self._data)(res_i8.values, dtype=self.dtype, freq=new_freq)
         # because test_setops_preserve_freq fails with _validate_frequency raising.
         # This raising is incorrect, as 'on_freq' is incorrect. This will

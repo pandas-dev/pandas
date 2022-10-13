@@ -191,23 +191,17 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         arr = self._data.to_timestamp(freq, how)
         return DatetimeIndex._simple_new(arr, name=self.name)
 
-    # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported
-    @property  # type: ignore[misc]
+    @property
     @doc(PeriodArray.hour.fget)
     def hour(self) -> Int64Index:
         return Int64Index(self._data.hour, name=self.name)
 
-    # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported
-    @property  # type: ignore[misc]
+    @property
     @doc(PeriodArray.minute.fget)
     def minute(self) -> Int64Index:
         return Int64Index(self._data.minute, name=self.name)
 
-    # https://github.com/python/mypy/issues/1362
-    # error: Decorated property not supported
-    @property  # type: ignore[misc]
+    @property
     @doc(PeriodArray.second.fget)
     def second(self) -> Int64Index:
         return Int64Index(self._data.second, name=self.name)
@@ -246,7 +240,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             # range-based.
             if not fields:
                 # test_pickle_compat_construction
-                raise cls._scalar_data_error(None)
+                cls._raise_scalar_data_error(None)
 
             data, freq2 = PeriodArray._generate_range(None, None, None, freq, fields)
             # PeriodArray._generate range does validation that fields is

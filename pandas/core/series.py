@@ -5704,6 +5704,7 @@ Keep all original rows and also all original values
                 convert_integer,
                 convert_boolean,
                 convert_floating,
+                infer_objects,
             )
             result = input_series.astype(inferred_dtype)
         else:
@@ -6227,7 +6228,7 @@ Keep all original rows and also all original values
     # Add index
     _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index"]
     _AXIS_LEN = len(_AXIS_ORDERS)
-    _info_axis_number = 0
+    _info_axis_number: Literal[0] = 0
     _info_axis_name: Literal["index"] = "index"
 
     index = properties.AxisProperty(
