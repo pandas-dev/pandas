@@ -226,6 +226,7 @@ class CheckSDist(sdist_class):
         "pandas/_libs/window/indexers.pyx",
         "pandas/_libs/writers.pyx",
         "pandas/io/sas/sas.pyx",
+        "pandas/io/sas/byteswap.pyx",
     ]
 
     _cpp_pyxfiles = [
@@ -571,6 +572,7 @@ ext_data = {
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
     "io.sas._sas": {"pyxfile": "io/sas/sas"},
+    "io.sas._byteswap": {"pyxfile": "io/sas/byteswap"},
 }
 
 extensions = []

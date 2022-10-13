@@ -20,7 +20,9 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
     astype_overflowsafe,
+    get_unit_from_dtype,
     iNaT,
+    is_supported_unit,
     periods_per_second,
     to_offset,
 )
@@ -257,10 +259,10 @@ class TimedeltaArray(dtl.TimelikeOps):
             )
 
         if start is not None:
-            start = Timedelta(start)
+            start = Timedelta(start)._as_unit("ns")
 
         if end is not None:
-            end = Timedelta(end)
+            end = Timedelta(end)._as_unit("ns")
 
         left_closed, right_closed = validate_endpoints(closed)
 
@@ -284,6 +286,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timedelta.")
         self._check_compatible_with(value, setitem=setitem)
+        if value is NaT:
+            return np.timedelta64(value.value, "ns")
+        else:
+            return value._as_unit(self._unit).asm8
         return np.timedelta64(value.value, "ns")
 
     def _scalar_from_string(self, value) -> Timedelta | NaTType:
@@ -304,6 +310,18 @@ class TimedeltaArray(dtl.TimelikeOps):
         dtype = pandas_dtype(dtype)
 
         if dtype.kind == "m":
+            if dtype == self.dtype:
+                if copy:
+                    return self.copy()
+                return self
+
+            if is_supported_unit(get_unit_from_dtype(dtype)):
+                # unit conversion e.g. timedelta64[s]
+                res_values = astype_overflowsafe(self._ndarray, dtype, copy=False)
+                return type(self)._simple_new(
+                    res_values, dtype=res_values.dtype, freq=self.freq
+                )
+
             return astype_td64_unit_conversion(self._ndarray, dtype, copy=copy)
 
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
@@ -904,7 +922,7 @@ def sequence_to_td64ns(
 
     elif is_integer_dtype(data.dtype):
         # treat as multiples of the given unit
-        data, copy_made = ints_to_td64ns(data, unit=unit)
+        data, copy_made = _ints_to_td64ns(data, unit=unit)
         copy = copy and not copy_made
 
     elif is_float_dtype(data.dtype):
@@ -941,7 +959,7 @@ def sequence_to_td64ns(
     return data, inferred_freq
 
 
-def ints_to_td64ns(data, unit: str = "ns"):
+def _ints_to_td64ns(data, unit: str = "ns"):
     """
     Convert an ndarray with integer-dtype to timedelta64[ns] dtype, treating
     the integers as multiples of the given timedelta unit.
