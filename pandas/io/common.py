@@ -22,6 +22,7 @@ from io import (
 import mmap
 import os
 from pathlib import Path
+from pickle import PickleBuffer
 import re
 import tarfile
 from typing import (
@@ -762,9 +763,9 @@ def get_handle(
 
         # BZ Compression
         elif compression == "bz2":
-            # No overload variant of "BZ2File" matches argument types
+            # Overload of "BZ2File" to handle pickle protocol 5
             # "Union[str, BaseBuffer]", "str", "Dict[str, Any]"
-            handle = bz2.BZ2File(  # type: ignore[call-overload]
+            handle = _BZ2File(  # type: ignore[call-overload]
                 handle,
                 mode=ioargs.mode,
                 **compression_args,
@@ -1000,6 +1001,22 @@ class _BytesTarFile(_BufferedWriter):
         tarinfo = tarfile.TarInfo(name=archive_name)
         tarinfo.size = len(self.getvalue())
         self.buffer.addfile(tarinfo, self)
+
+
+class _BZ2File(bz2.BZ2File):
+    def write(self, b) -> int:
+        if isinstance(b, PickleBuffer):
+            # Workaround issue where `bz2.BZ2File` expects `len`
+            # to return the number of bytes in `b` by converting
+            # `b` into something that meets that constraint with
+            # minimal copying.
+            try:
+                # coerce to 1-D `uint8` C-contiguous `memoryview` zero-copy
+                b = b.raw()
+            except BufferError:
+                # perform in-memory copy if buffer is not contiguous
+                b = bytes(b)
+        return super().write(b)
 
 
 class _BytesZipFile(_BufferedWriter):
