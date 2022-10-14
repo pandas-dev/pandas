@@ -494,6 +494,7 @@ class Resampler(BaseGroupBy, PandasObject):
         result : Series or DataFrame
             the result of resample
         """
+        # pylint: disable=access-member-before-definition
         # error: Cannot determine type of 'loffset'
         needs_offset = (
             isinstance(

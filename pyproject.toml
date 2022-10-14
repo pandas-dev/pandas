@@ -62,7 +62,6 @@ disable = [
   "R",
   "W",
   "abstract-class-instantiated",
-  "access-member-before-definition",
   "import-error",
   "invalid-repr-returned",
   "invalid-unary-operand-type",
