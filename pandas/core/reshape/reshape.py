@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -132,7 +131,7 @@ class _Unstacker:
                 f"The following operation may generate {num_cells} cells "
                 f"in the resulting pandas object.",
                 PerformanceWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         self._make_selectors()

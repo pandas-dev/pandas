@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import itertools
 from typing import (
     Any,
@@ -1010,7 +1009,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         "will assume that a DatetimeTZBlock with block.ndim==2 "
                         "has block.values.ndim == 2.",
                         DeprecationWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
 
                     # error: Incompatible types in assignment (expression has type
@@ -1418,7 +1417,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 "Consider joining all columns at once using pd.concat(axis=1) "
                 "instead. To get a de-fragmented frame, use `newframe = frame.copy()`",
                 PerformanceWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
     def _insert_update_mgr_locs(self, loc) -> None:
@@ -1882,7 +1881,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
                 "The `fastpath` keyword is deprecated and will be removed "
                 "in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         self.axes = [axis]

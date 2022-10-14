@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import inspect
 import itertools
 import types
 from typing import (
@@ -889,7 +888,7 @@ class PlotAccessor(PandasObject):
                 "`sort_columns` is deprecated and will be removed in a future "
                 "version.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if args and isinstance(data, ABCSeries):

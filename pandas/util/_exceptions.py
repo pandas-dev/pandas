@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-import functools
 import inspect
 import os
 from typing import Iterator
@@ -26,16 +25,10 @@ def rewrite_exception(old_name: str, new_name: str) -> Iterator[None]:
         raise
 
 
-@functools.lru_cache
-def find_stack_level(frame) -> int:
+def find_stack_level() -> int:
     """
     Find the first place in the stack that is not inside pandas
     (tests notwithstanding).
-
-    ``frame`` should be passed as ``inspect.currentframe()`` by the
-    calling function.
-
-    https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
     """
 
     import pandas as pd
@@ -43,7 +36,9 @@ def find_stack_level(frame) -> int:
     pkg_dir = os.path.dirname(pd.__file__)
     test_dir = os.path.join(pkg_dir, "tests")
 
-    n = 1
+    # https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
+    frame = inspect.currentframe()
+    n = 0
     while frame:
         fname = inspect.getfile(frame)
         if fname.startswith(pkg_dir) and not fname.startswith(test_dir):

@@ -1,5 +1,3 @@
-import inspect
-
 cimport cython
 
 import warnings
@@ -291,7 +289,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                         "Conversion of non-round float with unit={unit} is ambiguous "
                         "and will raise in a future version.",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
 
             ts = cast_from_unit(ts, unit)

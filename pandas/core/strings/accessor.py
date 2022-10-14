@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import codecs
 from functools import wraps
-import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -244,7 +243,7 @@ class StringMethods(NoNewAttributesMixin):
         warnings.warn(
             "Columnar iteration over characters will be deprecated in future releases.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         i = 0
         g = self.get(i)
@@ -1255,7 +1254,7 @@ class StringMethods(NoNewAttributesMixin):
                 "This pattern is interpreted as a regular expression, and has "
                 "match groups. To actually get the groups, use str.extract.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         result = self._data.array._str_contains(pat, case, flags, na, regex)
@@ -1467,11 +1466,7 @@ class StringMethods(NoNewAttributesMixin):
                         " In addition, single character regular expressions will "
                         "*not* be treated as literal strings when regex=True."
                     )
-                warnings.warn(
-                    msg,
-                    FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
-                )
+                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         # Check whether repl is valid (GH 13438, GH 15055)
         if not (isinstance(repl, str) or callable(repl)):

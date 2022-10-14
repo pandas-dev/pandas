@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import datetime
 from functools import partial
-import inspect
 from io import BytesIO
 import os
 from textwrap import fill
@@ -727,7 +726,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             warnings.warn(
                 "convert_float is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         validate_header_arg(header)
@@ -1130,7 +1129,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             warnings.warn(
                 "Use of **kwargs is deprecated, use engine_kwargs instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         # only switch class if generic(ExcelWriter)
@@ -1164,7 +1163,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         "deprecated and will also raise a warning, it can "
                         "be globally set and the warning suppressed.",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
 
             # for mypy
@@ -1346,7 +1345,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             f"{attr} is not part of the public API, usage can give unexpected "
             "results and will be removed in a future version",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     def _deprecate_set_book(self) -> None:
@@ -1358,7 +1357,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             "usage can give unexpected or corrupted results and will be "
             "removed in a future version",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     @property

@@ -3,7 +3,6 @@ Top level ``eval`` module.
 """
 from __future__ import annotations
 
-import inspect
 import tokenize
 from typing import TYPE_CHECKING
 import warnings
@@ -313,7 +312,7 @@ def eval(
                 "will be removed in a future version."
             ),
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     exprs: list[str | BinOp]
