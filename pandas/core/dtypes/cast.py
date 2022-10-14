@@ -10,7 +10,6 @@ from datetime import (
     timedelta,
 )
 import functools
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -634,7 +633,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
                     "dtype is deprecated. In a future version, this will be cast "
                     "to object dtype. Pass `fill_value=Timestamp(date_obj)` instead.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 return dtype, fv
         elif isinstance(fill_value, str):
@@ -1305,7 +1304,7 @@ def maybe_infer_to_datetimelike(
             "and will be removed in a future version. To retain the old behavior "
             f"explicitly pass Series(data, dtype={value.dtype})",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
     return value
 
@@ -1395,7 +1394,7 @@ def maybe_cast_to_datetime(
                                     ".tz_localize('UTC').tz_convert(dtype.tz) "
                                     "or pd.Series(data.view('int64'), dtype=dtype)",
                                     FutureWarning,
-                                    stacklevel=find_stack_level(inspect.currentframe()),
+                                    stacklevel=find_stack_level(),
                                 )
 
                             value = dta.tz_localize("UTC").tz_convert(dtype.tz)
@@ -1856,7 +1855,7 @@ def maybe_cast_to_integer_array(
             "In a future version this will raise OverflowError. To retain the "
             f"old behavior, use pd.Series(values).astype({dtype})",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return casted
 
@@ -1867,7 +1866,7 @@ def maybe_cast_to_integer_array(
             f"dtype={dtype} is deprecated and will raise in a future version. "
             "Use values.view(dtype) instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return casted
 
