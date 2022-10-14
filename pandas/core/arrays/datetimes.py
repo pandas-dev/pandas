@@ -40,6 +40,7 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
     tzconversion,
 )
+from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._typing import (
     DateTimeErrorChoices,
     IntervalClosedType,
@@ -369,6 +370,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
         inclusive: IntervalClosedType = "both",
+        *,
+        reso: str | None = None,
     ) -> DatetimeArray:
 
         periods = dtl.validate_periods(periods)
@@ -390,6 +393,17 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         if start is NaT or end is NaT:
             raise ValueError("Neither `start` nor `end` can be NaT")
+
+        if reso is not None:
+            if reso not in ["s", "ms", "us", "ns"]:
+                raise ValueError("'reso' must be one of 's', 'ms', 'us', 'ns'")
+        else:
+            reso = "ns"
+
+        if start is not None and reso is not None:
+            start = start._as_unit(reso)
+        if end is not None and reso is not None:
+            end = end._as_unit(reso)
 
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
         start, end = _maybe_normalize_endpoints(start, end, normalize)
@@ -416,7 +430,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     end = end.tz_localize(None)
 
             if isinstance(freq, Tick):
-                i8values = generate_regular_range(start, end, periods, freq)
+                i8values = generate_regular_range(start, end, periods, freq, reso=reso)
             else:
                 xdr = _generate_range(
                     start=start, end=end, periods=periods, offset=freq
@@ -430,8 +444,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 if not timezones.is_utc(tz):
                     # short-circuit tz_localize_to_utc which would make
                     #  an unnecessary copy with UTC but be a no-op.
+                    creso = abbrev_to_npy_unit(reso)
                     i8values = tzconversion.tz_localize_to_utc(
-                        i8values, tz, ambiguous=ambiguous, nonexistent=nonexistent
+                        i8values,
+                        tz,
+                        ambiguous=ambiguous,
+                        nonexistent=nonexistent,
+                        reso=creso,
                     )
 
                 # i8values is localized datetime64 array -> have to convert
@@ -466,8 +485,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 if not right_inclusive and len(i8values) and i8values[-1] == end_i8:
                     i8values = i8values[:-1]
 
-        dt64_values = i8values.view("datetime64[ns]")
-        dtype = tz_to_dtype(tz)
+        dt64_values = i8values.view(f"datetime64[{reso}]")
+        dtype = tz_to_dtype(tz, unit=reso)
         return cls._simple_new(dt64_values, freq=freq, dtype=dtype)
 
     # -----------------------------------------------------------------
