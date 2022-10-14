@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import itertools
 from typing import (
     Any,
@@ -1028,7 +1027,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         "will assume that a DatetimeTZBlock with block.ndim==2 "
                         "has block.values.ndim == 2.",
                         DeprecationWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
 
                     # error: Incompatible types in assignment (expression has type
@@ -1050,7 +1049,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         tot_items = sum(len(x.mgr_locs) for x in self.blocks)
         for block in self.blocks:
             if block.shape[1:] != mgr_shape[1:]:
-                raise construction_error(tot_items, block.shape[1:], self.axes)
+                raise_construction_error(tot_items, block.shape[1:], self.axes)
         if len(self.items) != tot_items:
             raise AssertionError(
                 "Number of manager items must equal union of "
@@ -1442,7 +1441,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 "Consider joining all columns at once using pd.concat(axis=1) "
                 "instead. To get a de-fragmented frame, use `newframe = frame.copy()`",
                 PerformanceWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
     def _insert_update_mgr_locs(self, loc) -> None:
@@ -1909,7 +1908,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
                 "The `fastpath` keyword is deprecated and will be removed "
                 "in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         self.axes = [axis]
@@ -2175,7 +2174,7 @@ def create_block_manager_from_blocks(
     except ValueError as err:
         arrays = [blk.values for blk in blocks]
         tot_items = sum(arr.shape[0] for arr in arrays)
-        raise construction_error(tot_items, arrays[0].shape[1:], axes, err)
+        raise_construction_error(tot_items, arrays[0].shape[1:], axes, err)
 
     if consolidate:
         mgr._consolidate_inplace()
@@ -2202,13 +2201,13 @@ def create_block_manager_from_column_arrays(
         blocks = _form_blocks(arrays, consolidate)
         mgr = BlockManager(blocks, axes, verify_integrity=False)
     except ValueError as e:
-        raise construction_error(len(arrays), arrays[0].shape, axes, e)
+        raise_construction_error(len(arrays), arrays[0].shape, axes, e)
     if consolidate:
         mgr._consolidate_inplace()
     return mgr
 
 
-def construction_error(
+def raise_construction_error(
     tot_items: int,
     block_shape: Shape,
     axes: list[Index],
@@ -2228,10 +2227,10 @@ def construction_error(
     # We return the exception object instead of raising it so that we
     #  can raise it in the caller; mypy plays better with that
     if passed == implied and e is not None:
-        return e
+        raise e
     if block_shape[0] == 0:
-        return ValueError("Empty data passed with indices specified.")
-    return ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
+        raise ValueError("Empty data passed with indices specified.")
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
 
 
 # -----------------------------------------------------------------------

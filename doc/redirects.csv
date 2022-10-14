@@ -45,6 +45,7 @@ contributing_docstring,development/contributing_docstring
 developer,development/developer
 extending,development/extending
 internals,development/internals
+development/meeting,community
 
 # api moved function
 reference/api/pandas.io.json.json_normalize,pandas.json_normalize
