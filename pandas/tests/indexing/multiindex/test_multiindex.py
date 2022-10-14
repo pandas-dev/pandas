@@ -162,10 +162,10 @@ class TestMultiIndexBasic:
                     [1, 2],
                 ],
                 [
-                    [(81.0, np.nan), (np.nan, np.nan), (82.0, np.nan)],
-                    [(81.0, np.nan), (np.nan, np.nan), (82.0, np.nan)],
-                    [1, 2, np.nan],
-                    [np.nan, 1, 2],
+                    [(81.0, np.nan), (82.0, np.nan), (np.nan, np.nan)],
+                    [(81.0, np.nan), (82.0, np.nan), (np.nan, np.nan)],
+                    [1, np.nan, 2],
+                    [np.nan, 2, 1],
                 ],
             ),
             (
