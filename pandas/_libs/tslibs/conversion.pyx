@@ -213,9 +213,12 @@ cdef class _TSObject:
         self.fold = 0
         self.reso = NPY_FR_ns  # default value
 
-    cdef void ensure_reso(self, NPY_DATETIMEUNIT reso):
+    cdef ensure_reso(self, NPY_DATETIMEUNIT reso):
         if self.reso != reso:
-            self.value = convert_reso(self.value, self.reso, reso, False)
+            try:
+                self.value = convert_reso(self.value, self.reso, reso, False)
+            except OverflowError as err:
+                raise OutOfBoundsDatetime from err
 
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,

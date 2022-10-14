@@ -165,7 +165,7 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result = Timestamp(result)._as_unit(other._unit)  # TODO: _as_reso?
+        result = (<_Timestamp>Timestamp(result))._as_reso(other._reso)
 
         if self._adjust_dst:
             result = result.tz_localize(tz)

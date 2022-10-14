@@ -22,7 +22,7 @@ cdef class _TSObject:
         bint fold
         NPY_DATETIMEUNIT reso
 
-    cdef void ensure_reso(self, NPY_DATETIMEUNIT reso)
+    cdef ensure_reso(self, NPY_DATETIMEUNIT reso)
 
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,

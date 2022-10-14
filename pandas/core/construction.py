@@ -323,13 +323,6 @@ def array(
 
     data = extract_array(data, extract_numpy=True)
 
-    if isinstance(data, ExtensionArray) and (
-        dtype is None or is_dtype_equal(dtype, data.dtype)
-    ):
-        if copy:
-            return data.copy()
-        return data
-
     # this returns None for not-found dtypes.
     if isinstance(dtype, str):
         dtype = registry.find(dtype) or dtype
