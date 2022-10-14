@@ -3688,7 +3688,7 @@ class MultiIndex(Index):
             or other.has_duplicates
         ):
             # This is only necessary if both sides have nans or other has dups,
-            # fast_unique_multiple is faster
+            # otherwise difference is faster
             result = super()._union(other, sort)
 
             if isinstance(result, MultiIndex):
@@ -3698,10 +3698,9 @@ class MultiIndex(Index):
             )
 
         else:
-            rvals = other._values.astype(object, copy=False)
-            right_missing = lib.fast_unique_multiple(self._values, rvals)
-            if right_missing:
-                result = self.append(other.take(right_missing))
+            right_missing = other.difference(self, sort=False)
+            if len(right_missing):
+                result = self.append(right_missing)
             else:
                 result = self._get_reconciled_name_object(other)
 
