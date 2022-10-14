@@ -1329,12 +1329,6 @@ class TestReaders:
             expected = Series([1, 2, 3], name="a")
             tm.assert_series_equal(actual, expected)
 
-    def test_deprecated_kwargs(self, read_ext):
-        with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=False):
-            pd.read_excel("test1" + read_ext, "Sheet1", 0)
-
-        pd.read_excel("test1" + read_ext)
-
     def test_no_header_with_list_index_col(self, read_ext):
         # GH 31783
         file_name = "testmultiindex" + read_ext
