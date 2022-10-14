@@ -1,30 +1,30 @@
-.. _whatsnew_160:
+.. _whatsnew_200:
 
-What's new in 1.6.0 (??)
+What's new in 2.0.0 (??)
 ------------------------
 
-These are the changes in pandas 1.6.0. See :ref:`release` for a full changelog
+These are the changes in pandas 2.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
 {{ header }}
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.enhancements:
+.. _whatsnew_200.enhancements:
 
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_160.enhancements.enhancement1:
+.. _whatsnew_200.enhancements.enhancement1:
 
 enhancement1
 ^^^^^^^^^^^^
 
-.. _whatsnew_160.enhancements.enhancement2:
+.. _whatsnew_200.enhancements.enhancement2:
 
 enhancement2
 ^^^^^^^^^^^^
 
-.. _whatsnew_160.enhancements.other:
+.. _whatsnew_200.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
@@ -39,14 +39,14 @@ Other enhancements
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.notable_bug_fixes:
+.. _whatsnew_200.notable_bug_fixes:
 
 Notable bug fixes
 ~~~~~~~~~~~~~~~~~
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_160.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_200.notable_bug_fixes.notable_bug_fix1:
 
 :meth:`.GroupBy.cumsum` and :meth:`.GroupBy.cumprod` overflow instead of lossy casting to float
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -76,18 +76,18 @@ We return incorrect results with the 6th value.
 
 We overflow with the 7th value, but the 6th value is still correct.
 
-.. _whatsnew_160.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_200.notable_bug_fixes.notable_bug_fix2:
 
 notable_bug_fix2
 ^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.api_breaking:
+.. _whatsnew_200.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_160.api_breaking.deps:
+.. _whatsnew_200.api_breaking.deps:
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -112,7 +112,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
-.. _whatsnew_160.api_breaking.other:
+.. _whatsnew_200.api_breaking.other:
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
@@ -127,7 +127,7 @@ Other API changes
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.deprecations:
+.. _whatsnew_200.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
@@ -135,14 +135,14 @@ Deprecations
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.performance:
+.. _whatsnew_200.performance:
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.DataFrameGroupBy.median` and :meth:`.SeriesGroupBy.median` and :meth:`.GroupBy.cumprod` for nullable dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
 - Performance improvement in :meth:`MultiIndex.size` (:issue:`48723`)
-- Performance improvement in :meth:`MultiIndex.union` without missing values and without duplicates (:issue:`48505`)
+- Performance improvement in :meth:`MultiIndex.union` without missing values and without duplicates (:issue:`48505`, :issue:`48752`)
 - Performance improvement in :meth:`MultiIndex.difference` (:issue:`48606`)
 - Performance improvement in :class:`MultiIndex` set operations with sort=None (:issue:`49010`)
 - Performance improvement in :meth:`.DataFrameGroupBy.mean`, :meth:`.SeriesGroupBy.mean`, :meth:`.DataFrameGroupBy.var`, and :meth:`.SeriesGroupBy.var` for extension array dtypes (:issue:`37493`)
@@ -162,7 +162,7 @@ Performance improvements
 - Performance improvement in :class:`DataFrameGroupBy` and :class:`SeriesGroupBy` when ``by`` is a categorical type and ``sort=False`` (:issue:`48976`)
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.bug_fixes:
+.. _whatsnew_200.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
@@ -299,7 +299,7 @@ Other
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.contributors:
+.. _whatsnew_200.contributors:
 
 Contributors
 ~~~~~~~~~~~~
