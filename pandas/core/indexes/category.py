@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 from typing import (
     Any,
     Hashable,
@@ -225,12 +224,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                 "deprecated and will raise in a future version. "
                 "Use CategoricalIndex([], ...) instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             data = []
 
         if is_scalar(data):
-            raise cls._scalar_data_error(data)
+            cls._raise_scalar_data_error(data)
 
         data = Categorical(
             data, categories=categories, ordered=ordered, dtype=dtype, copy=copy
@@ -420,7 +419,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                     "reindexing with a non-unique Index is deprecated and will "
                     "raise in a future version.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
         new_target: Index
@@ -496,7 +495,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take "
             "instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.take(*args, **kwargs)
 

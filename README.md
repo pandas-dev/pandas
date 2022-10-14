@@ -11,6 +11,7 @@
 [![Package Status](https://img.shields.io/pypi/status/pandas.svg)](https://pypi.org/project/pandas/)
 [![License](https://img.shields.io/pypi/l/pandas.svg)](https://github.com/pandas-dev/pandas/blob/main/LICENSE)
 [![Coverage](https://codecov.io/github/pandas-dev/pandas/coverage.svg?branch=main)](https://codecov.io/gh/pandas-dev/pandas)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/pandas-dev/pandas/badge)](https://api.securityscorecards.dev/projects/github.com/pandas-dev/pandas)
 [![Downloads](https://static.pepy.tech/personalized-badge/pandas?period=month&units=international_system&left_color=black&right_color=orange&left_text=PyPI%20downloads%20per%20month)](https://pepy.tech/project/pandas)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pydata/pandas)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org)
@@ -126,8 +127,6 @@ or for installing in [development mode](https://pip.pypa.io/en/latest/cli/pip_in
 ```sh
 python -m pip install -e . --no-build-isolation --no-use-pep517
 ```
-
-If you have `make`, you can also use `make develop` to run the same command.
 
 or alternatively
 

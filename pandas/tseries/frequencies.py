@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import warnings
 
 import numpy as np
@@ -117,7 +116,7 @@ def get_offset(name: str) -> BaseOffset:
         "get_offset is deprecated and will be removed in a future version, "
         "use to_offset instead.",
         FutureWarning,
-        stacklevel=find_stack_level(inspect.currentframe()),
+        stacklevel=find_stack_level(),
     )
     return _get_offset(name)
 
@@ -160,6 +159,7 @@ def infer_freq(index, warn: bool = True) -> str | None:
         Float64Index,
         Index,
         Int64Index,
+        RangeIndex,
     )
 
     if isinstance(index, ABCSeries):
@@ -190,7 +190,7 @@ def infer_freq(index, warn: bool = True) -> str | None:
         return inferer.get_freq()
 
     if isinstance(index, Index) and not isinstance(index, DatetimeIndex):
-        if isinstance(index, (Int64Index, Float64Index)):
+        if isinstance(index, (Int64Index, Float64Index, RangeIndex)):
             raise TypeError(
                 f"cannot infer freq from a non-convertible index type {type(index)}"
             )
@@ -235,7 +235,7 @@ class _FrequencyInferer:
                 "warn is deprecated (and never implemented) and "
                 "will be removed in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         self.warn = warn
 

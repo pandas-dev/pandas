@@ -210,7 +210,7 @@ Unpickler.dispatch = copy.copy(Unpickler.dispatch)
 Unpickler.dispatch[pkl.REDUCE[0]] = load_reduce
 
 
-def load_newobj(self):
+def load_newobj(self) -> None:
     args = self.stack.pop()
     cls = self.stack[-1]
 
@@ -234,7 +234,7 @@ def load_newobj(self):
 Unpickler.dispatch[pkl.NEWOBJ[0]] = load_newobj
 
 
-def load_newobj_ex(self):
+def load_newobj_ex(self) -> None:
     kwargs = self.stack.pop()
     args = self.stack.pop()
     cls = self.stack.pop()

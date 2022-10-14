@@ -122,13 +122,13 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         freq=lib.no_default,
         closed=None,
         dtype=TD64NS_DTYPE,
-        copy=False,
+        copy: bool = False,
         name=None,
     ):
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
-            raise cls._scalar_data_error(data)
+            cls._raise_scalar_data_error(data)
 
         if unit in {"Y", "y", "M"}:
             raise ValueError(

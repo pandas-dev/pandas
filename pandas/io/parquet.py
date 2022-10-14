@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import io
 import os
-from typing import Any
+from typing import (
+    Any,
+    Literal,
+)
 from warnings import catch_warnings
 
 from pandas._typing import (
@@ -186,6 +189,8 @@ class PyArrowImpl(BaseImpl):
             and isinstance(path_or_handle.name, (str, bytes))
         ):
             path_or_handle = path_or_handle.name
+            if isinstance(path_or_handle, bytes):
+                path_or_handle = path_or_handle.decode()
 
         try:
             if partition_cols is not None:
@@ -210,7 +215,7 @@ class PyArrowImpl(BaseImpl):
         self,
         path,
         columns=None,
-        use_nullable_dtypes=False,
+        use_nullable_dtypes: bool = False,
         storage_options: StorageOptions = None,
         **kwargs,
     ) -> DataFrame:
@@ -270,7 +275,7 @@ class FastParquetImpl(BaseImpl):
         self,
         df: DataFrame,
         path,
-        compression="snappy",
+        compression: Literal["snappy", "gzip", "brotli"] | None = "snappy",
         index=None,
         partition_cols=None,
         storage_options: StorageOptions = None,

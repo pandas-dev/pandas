@@ -3,7 +3,6 @@ Common type operations.
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     Any,
     Callable,
@@ -312,7 +311,7 @@ def is_categorical(arr) -> bool:
         "is_categorical is deprecated and will be removed in a future version. "
         "Use is_categorical_dtype instead.",
         FutureWarning,
-        stacklevel=find_stack_level(inspect.currentframe()),
+        stacklevel=find_stack_level(),
     )
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
 
@@ -382,9 +381,10 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64tz_dtype(s)
     True
     """
-    if isinstance(arr_or_dtype, ExtensionDtype):
+    if isinstance(arr_or_dtype, DatetimeTZDtype):
         # GH#33400 fastpath for dtype object
-        return arr_or_dtype.kind == "M"
+        # GH 34986
+        return True
 
     if arr_or_dtype is None:
         return False
@@ -1188,10 +1188,10 @@ def needs_i8_conversion(arr_or_dtype) -> bool:
     """
     if arr_or_dtype is None:
         return False
-    if isinstance(arr_or_dtype, (np.dtype, ExtensionDtype)):
-        # fastpath
-        dtype = arr_or_dtype
-        return dtype.kind in ["m", "M"] or dtype.type is Period
+    if isinstance(arr_or_dtype, np.dtype):
+        return arr_or_dtype.kind in ["m", "M"]
+    elif isinstance(arr_or_dtype, ExtensionDtype):
+        return isinstance(arr_or_dtype, (PeriodDtype, DatetimeTZDtype))
 
     try:
         dtype = get_dtype(arr_or_dtype)
@@ -1389,7 +1389,7 @@ def is_extension_type(arr) -> bool:
         "'is_extension_type' is deprecated and will be removed in a future "
         "version.  Use 'is_extension_array_dtype' instead.",
         FutureWarning,
-        stacklevel=find_stack_level(inspect.currentframe()),
+        stacklevel=find_stack_level(),
     )
 
     if is_categorical_dtype(arr):

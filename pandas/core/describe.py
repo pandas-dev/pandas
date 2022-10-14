@@ -9,7 +9,6 @@ from abc import (
     ABC,
     abstractmethod,
 )
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -24,6 +23,7 @@ import numpy as np
 
 from pandas._libs.tslibs import Timestamp
 from pandas._typing import (
+    DtypeObj,
     NDFrameT,
     npt,
 )
@@ -32,11 +32,14 @@ from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_complex_dtype,
     is_datetime64_any_dtype,
+    is_extension_array_dtype,
     is_numeric_dtype,
     is_timedelta64_dtype,
 )
 
+import pandas as pd
 from pandas.core.reshape.concat import concat
 
 from pandas.io.formats.format import format_percentiles
@@ -240,7 +243,15 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
         + series.quantile(percentiles).tolist()
         + [series.max()]
     )
-    return Series(d, index=stat_index, name=series.name)
+    # GH#48340 - always return float on non-complex numeric data
+    dtype: DtypeObj | None
+    if is_extension_array_dtype(series):
+        dtype = pd.Float64Dtype()
+    elif is_numeric_dtype(series) and not is_complex_dtype(series):
+        dtype = np.dtype("float")
+    else:
+        dtype = None
+    return Series(d, index=stat_index, name=series.name, dtype=dtype)
 
 
 def describe_categorical_1d(
@@ -374,7 +385,7 @@ def select_describe_func(
                 "version of pandas. Specify `datetime_is_numeric=True` to "
                 "silence this warning and adopt the future behavior now.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             return describe_timestamp_as_categorical_1d
     elif is_timedelta64_dtype(data.dtype):

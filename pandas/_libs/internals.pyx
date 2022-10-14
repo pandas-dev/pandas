@@ -226,7 +226,7 @@ cdef class BlockPlacement:
         """
         cdef:
             slice nv, s = self._ensure_has_slice()
-            Py_ssize_t other_int, start, stop, step
+            Py_ssize_t start, stop, step
             ndarray[intp_t, ndim=1] newarr
 
         if s is not None:

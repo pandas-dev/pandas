@@ -42,7 +42,7 @@ class ArrowParserWrapper(ParserBase):
             )
         self.na_values = list(self.kwds["na_values"])
 
-    def _get_pyarrow_options(self):
+    def _get_pyarrow_options(self) -> None:
         """
         Rename some arguments to pass to pyarrow
         """
@@ -117,7 +117,7 @@ class ArrowParserWrapper(ParserBase):
                     # String case
                     if item not in frame.columns:
                         raise ValueError(f"Index {item} invalid")
-            frame = frame.set_index(self.index_col, drop=True, copy=False)
+            frame.set_index(self.index_col, drop=True, inplace=True)
             # Clear names if headerless and no name given
             if self.header is None and not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)

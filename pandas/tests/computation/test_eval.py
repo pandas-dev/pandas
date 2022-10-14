@@ -77,11 +77,6 @@ def parser(request):
     return request.param
 
 
-@pytest.fixture(params=list(_unary_math_ops) if NUMEXPR_INSTALLED else [])
-def unary_fns_for_ne(request):
-    return request.param
-
-
 def _eval_single_bin(lhs, cmp1, rhs, engine):
     c = _binary_ops_dict[cmp1]
     if ENGINES[engine].has_neg_frac:
@@ -599,6 +594,20 @@ class TestEval:
         df = DataFrame({"x": np.array([0], dtype=dtype)})
         res = df.eval(expr)
         assert res.values == np.array([False])
+
+    def test_unary_in_function(self):
+        # GH 46471
+        df = DataFrame({"x": [0, 1, np.nan]})
+
+        result = df.eval("x.fillna(-1)")
+        expected = df.x.fillna(-1)
+        # column name becomes None if using numexpr
+        # only check names when the engine is not numexpr
+        tm.assert_series_equal(result, expected, check_names=not USE_NUMEXPR)
+
+        result = df.eval("x.shift(1, fill_value=-1)")
+        expected = df.x.shift(1, fill_value=-1)
+        tm.assert_series_equal(result, expected, check_names=not USE_NUMEXPR)
 
     @pytest.mark.parametrize(
         "ex",
@@ -1565,11 +1574,13 @@ class TestMath:
         kwargs["level"] = kwargs.pop("level", 0) + 1
         return pd.eval(*args, **kwargs)
 
-    def test_unary_functions(self, unary_fns_for_ne):
+    @pytest.mark.skipif(
+        not NUMEXPR_INSTALLED, reason="Unary ops only implemented for numexpr"
+    )
+    @pytest.mark.parametrize("fn", _unary_math_ops)
+    def test_unary_functions(self, fn):
         df = DataFrame({"a": np.random.randn(10)})
         a = df.a
-
-        fn = unary_fns_for_ne
 
         expr = f"{fn}(a)"
         got = self.eval(expr)
