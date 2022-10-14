@@ -612,7 +612,7 @@ class Block(PandasObject):
 
         elif self.ndim == 1 or self.shape[0] == 1:
             if value is None:
-                blk = self.astype(object)
+                blk = self.astype(np.dtype(object))
             else:
                 blk = self.coerce_to_target_dtype(value)
             return blk.replace(
