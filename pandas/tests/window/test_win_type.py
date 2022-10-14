@@ -684,7 +684,7 @@ def test_cmov_window_special_linear_range(win_types_special, step):
 
 @td.skip_if_no_scipy
 def test_weighted_var_big_window_no_segfault(win_types, center):
-    # Github Issue #46772
+    # GitHub Issue #46772
     x = Series(0)
     result = x.rolling(window=16, center=center, win_type=win_types).var()
     expected = Series(np.NaN)

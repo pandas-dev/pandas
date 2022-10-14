@@ -6,7 +6,6 @@ from datetime import (
     timedelta,
     tzinfo,
 )
-import inspect
 from typing import (
     TYPE_CHECKING,
     Iterator,
@@ -308,18 +307,35 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     ):
         explicit_none = freq is None
         freq = freq if freq is not lib.no_default else None
-
         freq, freq_infer = dtl.maybe_infer_freq(freq)
+
+        # if the user either explicitly passes tz=None or a tz-naive dtype, we
+        #  disallows inferring a tz.
+        explicit_tz_none = tz is None
+        if tz is lib.no_default:
+            tz = None
+        else:
+            tz = timezones.maybe_get_tz(tz)
+
+        dtype = _validate_dt64_dtype(dtype)
+        # if dtype has an embedded tz, capture it
+        tz = validate_tz_from_dtype(dtype, tz, explicit_tz_none)
 
         subarr, tz, inferred_freq = _sequence_to_dt64ns(
             data,
-            dtype=dtype,
             copy=copy,
             tz=tz,
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             ambiguous=ambiguous,
         )
+        # We have to call this again after possibly inferring a tz above
+        validate_tz_from_dtype(dtype, tz, explicit_tz_none)
+        if tz is not None and explicit_tz_none:
+            raise ValueError(
+                "Passed data is timezone-aware, incompatible with 'tz=None'. "
+                "Use obj.tz_localize(None) instead."
+            )
 
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
         if explicit_none:
@@ -484,7 +500,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     "timezone. To retain the old behavior, explicitly cast to "
                     "object dtype before the operation.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 raise ValueError(f"Timezones don't match. '{self.tz}' != '{other.tz}'")
 
@@ -651,7 +667,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 "Passing unit-less datetime64 dtype to .astype is deprecated "
                 "and will raise in a future version. Pass 'datetime64[ns]' instead",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             # unit conversion e.g. datetime64[s]
             return self._ndarray.astype(dtype)
@@ -728,7 +744,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             warnings.warn(
                 "Non-vectorized DateOffset being applied to Series or DatetimeIndex.",
                 PerformanceWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             result = self.astype("O") + offset
             result = type(self)._from_sequence(result)
@@ -1131,7 +1147,7 @@ default 'raise'
                 "Converting to PeriodArray/Index representation "
                 "will drop timezone information.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if freq is None:
@@ -1173,7 +1189,7 @@ default 'raise'
             "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead.",
             FutureWarning,
             # stacklevel chosen to be correct for when called from DatetimeIndex
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         from pandas.core.arrays.timedeltas import TimedeltaArray
 
@@ -1375,7 +1391,7 @@ default 'raise'
             "weekofyear and return an Index, you may call "
             "pd.Int64Index(idx.isocalendar().week)",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         week_series = self.isocalendar().week
         if week_series.hasnans:
@@ -1995,13 +2011,12 @@ def sequence_to_datetimes(data, require_iso8601: bool = False) -> DatetimeArray:
 
 def _sequence_to_dt64ns(
     data,
-    dtype=None,
+    *,
     copy: bool = False,
-    tz=lib.no_default,
+    tz: tzinfo | None = None,
     dayfirst: bool = False,
     yearfirst: bool = False,
     ambiguous: TimeAmbiguous = "raise",
-    *,
     allow_mixed: bool = False,
     require_iso8601: bool = False,
 ):
@@ -2009,9 +2024,8 @@ def _sequence_to_dt64ns(
     Parameters
     ----------
     data : list-like
-    dtype : dtype, str, or None, default None
     copy : bool, default False
-    tz : tzinfo, str, or None, default None
+    tz : tzinfo or None, default None
     dayfirst : bool, default False
     yearfirst : bool, default False
     ambiguous : str, bool, or arraylike, default 'raise'
@@ -2034,17 +2048,7 @@ def _sequence_to_dt64ns(
     ------
     TypeError : PeriodDType data is passed
     """
-    explicit_tz_none = tz is None
-    if tz is lib.no_default:
-        tz = None
-
     inferred_freq = None
-
-    dtype = _validate_dt64_dtype(dtype)
-    tz = timezones.maybe_get_tz(tz)
-
-    # if dtype has an embedded tz, capture it
-    tz = validate_tz_from_dtype(dtype, tz, explicit_tz_none)
 
     data, copy = dtl.ensure_arraylike_for_datetimelike(
         data, copy, cls_name="DatetimeArray"
@@ -2112,7 +2116,6 @@ def _sequence_to_dt64ns(
 
         if tz is not None:
             # Convert tz-naive to UTC
-            tz = timezones.maybe_get_tz(tz)
             # TODO: if tz is UTC, are there situations where we *don't* want a
             #  copy?  tz_localize_to_utc always makes one.
             data = tzconversion.tz_localize_to_utc(
@@ -2126,9 +2129,6 @@ def _sequence_to_dt64ns(
     else:
         # must be integer dtype otherwise
         # assume this data are epoch timestamps
-        if tz:
-            tz = timezones.maybe_get_tz(tz)
-
         if data.dtype != INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
         result = data.view(DT64NS_DTYPE)
@@ -2138,15 +2138,6 @@ def _sequence_to_dt64ns(
 
     assert isinstance(result, np.ndarray), type(result)
     assert result.dtype == "M8[ns]", result.dtype
-
-    # We have to call this again after possibly inferring a tz above
-    validate_tz_from_dtype(dtype, tz, explicit_tz_none)
-    if tz is not None and explicit_tz_none:
-        raise ValueError(
-            "Passed data is timezone-aware, incompatible with 'tz=None'. "
-            "Use obj.tz_localize(None) instead."
-        )
-
     return result, tz, inferred_freq
 
 
@@ -2280,7 +2271,7 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
                 "before passing the data to pandas. To get the future behavior, "
                 "first cast to 'int64'.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
     elif is_timedelta64_dtype(data.dtype) or is_bool_dtype(data.dtype):
