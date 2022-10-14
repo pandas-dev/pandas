@@ -267,16 +267,16 @@ comment : str, default None
     comment string and the end of the current line is ignored.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
+{storage_options}
+
+    .. versionadded:: 1.2.0
+
 use_nullable_dtypes : bool = False
     Whether or not to use nullable dtypes as default when reading data. If
     set to True, nullable dtypes are used for all dtypes that have a nullable
     implementation, even if no nulls are present.
 
     .. versionadded:: 2.0
-
-{storage_options}
-
-    .. versionadded:: 1.2.0
 
 Returns
 -------
