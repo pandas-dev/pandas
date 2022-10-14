@@ -597,7 +597,16 @@ class TestBaseParsing(base.BaseParsingTests):
 
 
 class TestBaseUnaryOps(base.BaseUnaryOpsTests):
-    pass
+    def test_invert(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if not pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow.compute.invert does support {pa_dtype}",
+                )
+            )
+        super().test_invert(data)
 
 
 class TestBaseMethods(base.BaseMethodsTests):
@@ -722,6 +731,17 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
+        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype) and not ascending:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=(
+                        f"unique has no pyarrow kernel "
+                        f"for {pa_dtype} when ascending={ascending}"
+                    ),
+                )
+            )
         with tm.maybe_produces_warning(
             PerformanceWarning, pa_version_under7p0, check_stacklevel=False
         ):
@@ -755,6 +775,19 @@ class TestBaseMethods(base.BaseMethodsTests):
             PerformanceWarning, pa_version_under7p0, check_stacklevel=False
         ):
             super().test_sort_values_frame(data_for_sorting, ascending)
+
+    @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
+    @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
+    def test_unique(self, data, box, method, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"unique has no pyarrow kernel for {pa_dtype}.",
+                )
+            )
+        super().test_unique(data, box, method)
 
     @pytest.mark.parametrize("na_sentinel", [-1, -2])
     def test_factorize(self, data_for_grouping, na_sentinel, request):
