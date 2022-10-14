@@ -1619,7 +1619,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     reason=f"add_checked not implemented for {pa_dtype}",
                 )
             )
-        elif pa.types.is_signed_integer(pa_dtype):
+        elif pa_dtype.equals("int8"):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowInvalid
