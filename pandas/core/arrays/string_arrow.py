@@ -17,7 +17,6 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat import (
-    pa_version_under3p0,
     pa_version_under4p0,
     pa_version_under5p0,
 )
@@ -207,18 +206,11 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             if pa_scalar.type in (pa.string(), pa.null())
         ]
 
-        # for an empty value_set pyarrow 3.0.0 segfaults and pyarrow 2.0.0 returns True
-        # for null values, so we short-circuit to return all False array.
+        # short-circuit to return all False array.
         if not len(value_set):
             return np.zeros(len(self), dtype=bool)
 
-        kwargs = {}
-        if pa_version_under3p0:
-            # in pyarrow 2.0.0 skip_null is ignored but is a required keyword and raises
-            # with unexpected keyword argument in pyarrow 3.0.0+
-            kwargs["skip_null"] = True
-
-        result = pc.is_in(self._data, value_set=pa.array(value_set), **kwargs)
+        result = pc.is_in(self._data, value_set=pa.array(value_set))
         # pyarrow 2.0.0 returned nulls, so we explicily specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)

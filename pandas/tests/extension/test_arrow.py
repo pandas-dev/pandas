@@ -23,7 +23,6 @@ import pytest
 from pandas.compat import (
     is_ci_environment,
     is_platform_windows,
-    pa_version_under3p0,
     pa_version_under4p0,
     pa_version_under5p0,
     pa_version_under6p0,
@@ -224,12 +223,6 @@ class TestConstructors(base.BaseConstructorsTests):
     def test_from_sequence_pa_array(self, data, request):
         # https://github.com/pandas-dev/pandas/pull/47034#discussion_r955500784
         # data._data = pa.ChunkedArray
-        if pa_version_under3p0:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="ChunkedArray has no attribute combine_chunks",
-                )
-            )
         result = type(data)._from_sequence(data._data)
         tm.assert_extension_array_equal(result, data)
         assert isinstance(result._data, pa.ChunkedArray)
@@ -253,13 +246,7 @@ class TestConstructors(base.BaseConstructorsTests):
 
     def test_from_sequence_of_strings_pa_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa_version_under3p0:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="ChunkedArray has no attribute combine_chunks",
-                )
-            )
-        elif pa.types.is_time64(pa_dtype) and pa_dtype.equals("time64[ns]"):
+        if pa.types.is_time64(pa_dtype) and pa_dtype.equals("time64[ns]"):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Nanosecond time parsing not supported.",
@@ -322,56 +309,6 @@ class TestGetitemTests(base.BaseGetitemTests):
     )
     def test_getitem_scalar(self, data):
         super().test_getitem_scalar(data)
-
-    def test_take_series(self, request, data):
-        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
-        unit = getattr(data.dtype.pyarrow_dtype, "unit", None)
-        bad_units = ["ns"]
-        if pa_version_under3p0 and tz not in (None, "UTC") and unit in bad_units:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=(
-                        f"Not supported by pyarrow < 3.0 "
-                        f"with timestamp type {tz} and {unit}"
-                    )
-                )
-            )
-        super().test_take_series(data)
-
-    def test_reindex(self, request, data, na_value):
-        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
-        unit = getattr(data.dtype.pyarrow_dtype, "unit", None)
-        bad_units = ["ns"]
-        if pa_version_under3p0 and tz not in (None, "UTC") and unit in bad_units:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=(
-                        f"Not supported by pyarrow < 3.0 "
-                        f"with timestamp type {tz} and {unit}"
-                    )
-                )
-            )
-        super().test_reindex(data, na_value)
-
-    def test_loc_iloc_frame_single_dtype(self, request, using_array_manager, data):
-        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
-        unit = getattr(data.dtype.pyarrow_dtype, "unit", None)
-        bad_units = ["ns"]
-        if (
-            pa_version_under3p0
-            and not using_array_manager
-            and tz not in (None, "UTC")
-            and unit in bad_units
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=(
-                        f"Not supported by pyarrow < 3.0 "
-                        f"with timestamp type {tz} and {unit}"
-                    )
-                )
-            )
-        super().test_loc_iloc_frame_single_dtype(data)
 
 
 class TestBaseNumericReduce(base.BaseNumericReduceTests):
@@ -452,8 +389,6 @@ class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
             ),
         )
         if not pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(xfail_mark)
-        elif pa_version_under3p0:
             request.node.add_marker(xfail_mark)
         op_name = all_boolean_reductions
         s = pd.Series(data)
