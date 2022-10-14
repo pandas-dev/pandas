@@ -245,14 +245,14 @@ def test_invalid_input_result_names(result_names):
 def test_compare_ea_and_np_dtype(val1, val2):
     # GH 48966
     arr = [4.0, val1]
-    np_dtype_arr = pd.Series([1, val2], dtype="Int64")
+    ser = pd.Series([1, val2], dtype="Int64")
 
     df1 = pd.DataFrame({"a": arr, "b": [1.0, 2]})
-    df2 = pd.DataFrame({"a": np_dtype_arr, "b": [1.0, 2]})
+    df2 = pd.DataFrame({"a": ser, "b": [1.0, 2]})
     expected = pd.DataFrame(
         {
             ("a", "self"): arr,
-            ("a", "other"): np_dtype_arr,
+            ("a", "other"): ser,
             ("b", "self"): np.nan,
             ("b", "other"): np.nan,
         }
