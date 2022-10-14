@@ -9261,6 +9261,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         mask = ~((self == other) | (self.isna() & other.isna()))
+        mask.fillna(True, inplace=True)
 
         if not keep_equal:
             self = self.where(mask)
