@@ -416,12 +416,12 @@ class TestDataFrameCorrWith:
             {
                 "A": [2, 5, 8, 9],
                 "B": [2, np.nan, 8, 9],
-                "C": pd.Series([2, np.nan, 8, 9], dtype="Int64"),
+                "C": Series([2, np.nan, 8, 9], dtype="Int64"),
                 "D": [0, 1, 1, 0],
                 "E": [0, np.nan, 1, 0],
-                "F": pd.Series([0, np.nan, 1, 0], dtype="Float64"),
+                "F": Series([0, np.nan, 1, 0], dtype="Float64"),
                 "G": [False, True, True, False],
-                "H": pd.Series([False, pd.NA, True, False], dtype="boolean"),
+                "H": Series([False, pd.NA, True, False], dtype="boolean"),
             },
         )
         ser_list = [
