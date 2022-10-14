@@ -3,7 +3,6 @@ Low-dependency indexing utilities.
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -349,7 +348,7 @@ def deprecate_ndim_indexing(result, stacklevel: int = 3) -> None:
             "is deprecated and will be removed in a future "
             "version.  Convert to a numpy array before indexing instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
 
@@ -373,7 +372,7 @@ def unpack_1tuple(tup):
                 "slice is deprecated and will raise in a future "
                 "version.  Pass a tuple instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         return tup[0]

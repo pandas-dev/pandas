@@ -1,4 +1,3 @@
-import inspect
 import re
 import time
 import warnings
@@ -503,7 +502,7 @@ cdef class BaseOffset:
             "DateOffset.__call__ is deprecated and will be removed in a future "
             "version.  Use `offset + other` instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self._apply(other)
 
@@ -513,7 +512,7 @@ cdef class BaseOffset:
             f"{type(self).__name__}.apply is deprecated and will be removed "
             "in a future version. Use `offset + other` instead",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self._apply(other)
 
@@ -827,7 +826,7 @@ cdef class BaseOffset:
         warnings.warn(
             "onOffset is a deprecated, use is_on_offset instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.is_on_offset(dt)
 
@@ -835,7 +834,7 @@ cdef class BaseOffset:
         warnings.warn(
             "isAnchored is a deprecated, use is_anchored instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.is_anchored()
 
