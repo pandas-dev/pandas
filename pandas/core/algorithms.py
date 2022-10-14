@@ -891,9 +891,7 @@ def resolve_na_sentinel(
                 "Specify `use_na_sentinel=True` to use the sentinel value -1, and "
                 "`use_na_sentinel=False` to encode NaN values."
             )
-        warnings.warn(
-            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
         result = na_sentinel
     return result
 
@@ -1093,7 +1091,7 @@ def mode(
     except TypeError as err:
         warnings.warn(
             f"Unable to sort modes: {err}",
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     result = _reconstruct_data(npresult, original.dtype, original)
@@ -1718,7 +1716,7 @@ def diff(arr, n: int, axis: int = 0):
                 "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             arr = np.asarray(arr)
             dtype = arr.dtype

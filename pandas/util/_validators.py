@@ -4,7 +4,6 @@ for validating data or function arguments
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     Any,
     Iterable,
@@ -355,9 +354,7 @@ def validate_axis_style_args(
             "positional arguments for 'index' or 'columns' will raise "
             "a 'TypeError'."
         )
-        warnings.warn(
-            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
         out[data._get_axis_name(0)] = args[0]
         out[data._get_axis_name(1)] = args[1]
     else:

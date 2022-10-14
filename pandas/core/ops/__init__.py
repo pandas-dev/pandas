@@ -5,7 +5,6 @@ This is not a public API.
 """
 from __future__ import annotations
 
-import inspect
 import operator
 from typing import TYPE_CHECKING
 import warnings
@@ -302,7 +301,7 @@ def align_method_FRAME(
                     "Do `left, right = left.align(right, axis=1, copy=False)` "
                     "before e.g. `left == right`",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
         left, right = left.align(

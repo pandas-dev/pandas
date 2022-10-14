@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from collections import abc
 import csv
-import inspect
 import sys
 from textwrap import fill
 from typing import (
@@ -1618,7 +1617,7 @@ class TextFileReader(abc.Iterator):
                     "engine='python'."
                 ),
                 ParserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         index_col = options["index_col"]
@@ -1637,11 +1636,7 @@ class TextFileReader(abc.Iterator):
                     f"The {arg} argument has been deprecated and will be "
                     f"removed in a future version. {depr_default.msg}\n\n"
                 )
-                warnings.warn(
-                    msg,
-                    FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
-                )
+                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
             else:
                 result[arg] = parser_default
 
@@ -2226,9 +2221,7 @@ def _merge_with_dialect_properties(
 
         if conflict_msgs:
             warnings.warn(
-                "\n\n".join(conflict_msgs),
-                ParserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                "\n\n".join(conflict_msgs), ParserWarning, stacklevel=find_stack_level()
             )
         kwds[param] = dialect_val
     return kwds

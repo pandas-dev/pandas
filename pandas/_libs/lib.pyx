@@ -1,7 +1,6 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
-import inspect
 from typing import Literal
 import warnings
 
@@ -355,7 +354,7 @@ def fast_unique_multiple(list arrays, sort: bool = True):
                 "The values in the array are unorderable. "
                 "Pass `sort=False` to suppress this warning.",
                 RuntimeWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             pass
 

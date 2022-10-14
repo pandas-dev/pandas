@@ -10,7 +10,6 @@ from datetime import (
     date,
     tzinfo,
 )
-import inspect
 import itertools
 import os
 import re
@@ -688,7 +687,7 @@ class HDFStore:
             "iteritems is deprecated and will be removed in a future version. "
             "Use .items instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         yield from self.items()
 
@@ -2197,9 +2196,7 @@ class IndexCol:
                 if key in ["freq", "index_name"]:
                     ws = attribute_conflict_doc % (key, existing_value, value)
                     warnings.warn(
-                        ws,
-                        AttributeConflictWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        ws, AttributeConflictWarning, stacklevel=find_stack_level()
                     )
 
                     # reset
@@ -3097,11 +3094,7 @@ class GenericFixed(Fixed):
                 pass
             else:
                 ws = performance_doc % (inferred_type, key, items)
-                warnings.warn(
-                    ws,
-                    PerformanceWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
-                )
+                warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
@@ -3549,7 +3542,7 @@ class Table(Fixed):
                 warnings.warn(
                     ws,
                     IncompatibilityWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
     def validate_min_itemsize(self, min_itemsize) -> None:
