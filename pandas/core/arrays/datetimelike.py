@@ -4,7 +4,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-import inspect
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -470,7 +469,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                         "exactly the specified dtype instead of uint64, and will "
                         "raise if that conversion overflows.",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
                 elif (self.asi8 < 0).any():
                     # GH#45034
@@ -480,7 +479,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                         "raise if the conversion overflows, as it did in this "
                         "case with negative int64 values.",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
             elif dtype != np.int64:
                 # GH#45034
@@ -490,7 +489,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                     "exactly the specified dtype instead of int64, and will "
                     "raise if that conversion overflows.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
             if copy:
@@ -629,7 +628,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 FutureWarning,
                 # There is no way to hard-code the level since this might be
                 #  reached directly or called from the Index or Block method
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             fill_value = new_fill
 
@@ -865,6 +864,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 values = type(self)._from_sequence(values)
             except ValueError:
                 return isin(self.astype(object), values)
+
+        if self.dtype.kind in ["m", "M"]:
+            self = cast("DatetimeArray | TimedeltaArray", self)
+            values = values._as_unit(self._unit)
 
         try:
             self._check_compatible_with(values)
@@ -1275,7 +1278,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         # PeriodArray overrides, so we only get here with DTA/TDA
         self = cast("DatetimeArray | TimedeltaArray", self)
-        other = Timedelta(other)._as_unit(self._unit)
+        other = Timedelta(other)
+        self, other = self._ensure_matching_resos(other)
         return self._add_timedeltalike(other)
 
     def _add_timedelta_arraylike(self, other: TimedeltaArray):
@@ -1393,7 +1397,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             "Adding/subtracting object-dtype array to "
             f"{type(self).__name__} not vectorized.",
             PerformanceWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
         # Caller is responsible for broadcasting if necessary

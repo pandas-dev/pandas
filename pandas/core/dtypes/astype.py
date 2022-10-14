@@ -136,6 +136,14 @@ def astype_nansafe(
             return arr.view(dtype)
 
         elif dtype.kind == "m":
+            # TODO(2.0): change to use the same logic as TDA.astype, i.e.
+            #  giving the requested dtype for supported units (s, ms, us, ns)
+            #  and doing the old convert-to-float behavior otherwise.
+            if is_supported_unit(get_unit_from_dtype(arr.dtype)):
+                from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+                arr = ensure_wrapped_if_datetimelike(arr)
+                return arr.astype(dtype, copy=copy)
             return astype_td64_unit_conversion(arr, dtype, copy=copy)
 
         raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
@@ -375,7 +383,7 @@ def astype_dt64_to_dt64tz(
             "timezone-aware dtype is deprecated and will raise in a "
             "future version.  Use ser.dt.tz_localize instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
         # GH#33401 this doesn't match DatetimeArray.astype, which
@@ -391,7 +399,7 @@ def astype_dt64_to_dt64tz(
                 "timezone-aware dtype is deprecated and will raise in a "
                 "future version.  Use obj.tz_localize instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
             return values.tz_localize(dtype.tz)
@@ -411,7 +419,7 @@ def astype_dt64_to_dt64tz(
                 "future version.  Use obj.tz_localize(None) or "
                 "obj.tz_convert('UTC').tz_localize(None) instead",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
             result = values.tz_convert("UTC").tz_localize(None)
