@@ -239,24 +239,25 @@ def test_invalid_input_result_names(result_names):
 
 
 @pytest.mark.parametrize(
-    "ea_val,np_dtype_val",
+    "val1,val2",
     [(4, pd.NA), (pd.NA, pd.NA), (pd.NA, 4)],
 )
-def test_compare_ea_and_np_dtype(ea_val, np_dtype_val):
-    ea = [4.0, ea_val]
-    np_dtype = pd.Series([1, np_dtype_val], dtype="Int64")
+def test_compare_ea_and_np_dtype(val1, val2):
+    # GH 48966
+    arr = [4.0, val1]
+    np_dtype_arr = pd.Series([1, val2], dtype="Int64")
 
-    ea_df = pd.DataFrame({"a": ea, "b": [1.0, 2]})
-    np_dtype_df = pd.DataFrame({"a": np_dtype, "b": [1.0, 2]})
+    df1 = pd.DataFrame({"a": arr, "b": [1.0, 2]})
+    df2 = pd.DataFrame({"a": np_dtype_arr, "b": [1.0, 2]})
     expected = pd.DataFrame(
         {
-            ("a", "self"): ea,
-            ("a", "other"): np_dtype,
+            ("a", "self"): arr,
+            ("a", "other"): np_dtype_arr,
             ("b", "self"): np.nan,
             ("b", "other"): np.nan,
         }
     )
-    result = ea_df.compare(np_dtype_df, keep_shape=True)
+    result = df1.compare(df2, keep_shape=True)
     tm.assert_frame_equal(result, expected)
 
 
@@ -270,7 +271,7 @@ def test_compare_ea_and_np_dtype(ea_val, np_dtype_val):
     ],
 )
 def test_compare_nullable_int64_dtype(df1_val, df2_val, diff_self, diff_other):
-
+    # GH 48966
     df1 = pd.DataFrame({"a": pd.Series([df1_val, pd.NA], dtype="Int64"), "b": [1.0, 2]})
     df2 = df1.copy()
     df2.loc[0, "a"] = df2_val
