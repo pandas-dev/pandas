@@ -392,7 +392,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             raise ValueError("Neither `start` nor `end` can be NaT")
 
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
-        start, end, _normalized = _maybe_normalize_endpoints(start, end, normalize)
+        start, end = _maybe_normalize_endpoints(start, end, normalize)
         tz = _infer_tz_from_endpoints(start, end, tz)
 
         if tz is not None:
@@ -2477,23 +2477,15 @@ def _infer_tz_from_endpoints(
 def _maybe_normalize_endpoints(
     start: Timestamp | None, end: Timestamp | None, normalize: bool
 ):
-    _normalized = True
 
-    if start is not None:
-        if normalize:
+    if normalize:
+        if start is not None:
             start = start.normalize()
-            _normalized = True
-        else:
-            _normalized = _normalized and start.time() == _midnight
 
-    if end is not None:
-        if normalize:
+        if end is not None:
             end = end.normalize()
-            _normalized = True
-        else:
-            _normalized = _normalized and end.time() == _midnight
 
-    return start, end, _normalized
+    return start, end
 
 
 def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous, nonexistent):
