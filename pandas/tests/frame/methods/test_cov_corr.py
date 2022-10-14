@@ -410,85 +410,32 @@ class TestDataFrameCorrWith:
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "numeric_only, ser, expected",
-        [
-            (
-                True,
-                Series([0, 1, 1, 0]),
-                Series([0.0] * 3 + [1.0] * 4, index=list("ABCDEFH")),
-            ),
-            (
-                True,
-                Series([0.0, 1.0, 1.0, 0.0]),
-                Series([0.0] * 3 + [1.0] * 4, index=list("ABCDEFH")),
-            ),
-            (
-                True,
-                Series([False, True, True, False]),
-                Series([0.0] * 3 + [1.0] * 4, index=list("ABCDEFH")),
-            ),
-            (
-                False,
-                Series([0, 1, 1, 0]),
-                Series([0.0] * 3 + [1.0] * 5, index=list("ABCDEFGH")),
-            ),
-            (
-                False,
-                Series([0.0, 1.0, 1.0, 0.0]),
-                Series([0.0] * 3 + [1.0] * 5, index=list("ABCDEFGH")),
-            ),
-            (
-                False,
-                Series([False, True, True, False]),
-                Series([0.0] * 3 + [1.0] * 5, index=list("ABCDEFGH")),
-            ),
-            (
-                True,
-                Series([0, pd.NA, 1, 0], dtype="Int64"),
-                Series([0.0] * 3 + [1.0] * 4, index=list("ABCDEFH")),
-            ),
-            (
-                True,
-                Series([0.0, pd.NA, 1.0, 0.0], dtype="Float64"),
-                Series([0.0] * 3 + [1.0] * 4, index=list("ABCDEFH")),
-            ),
-            (
-                True,
-                Series([False, pd.NA, True, False], dtype="boolean"),
-                Series([0.0] * 3 + [1.0] * 4, index=list("ABCDEFH")),
-            ),
-            (
-                False,
-                Series([0, pd.NA, 1, 0], dtype="Int64"),
-                Series([0.0] * 3 + [1.0] * 5, index=list("ABCDEFGH")),
-            ),
-            (
-                False,
-                Series([0, pd.NA, 1, 0], dtype="Int64"),
-                Series([0.0] * 3 + [1.0] * 5, index=list("ABCDEFGH")),
-            ),
-            (
-                False,
-                Series([False, pd.NA, True, False], dtype="boolean"),
-                Series([0.0] * 3 + [1.0] * 5, index=list("ABCDEFGH")),
-            ),
-        ],
-    )
-    def test_corrwith_spearman_with_tied_data(self, ser, numeric_only, expected):
+    def test_corrwith_spearman_with_tied_data(self):
         # GH#21925
         df = DataFrame(
             {
                 "A": [2, 5, 8, 9],
                 "B": [2, np.nan, 8, 9],
-                "C": [2, np.nan, 8, 9],
+                "C": pd.Series([2, np.nan, 8, 9], dtype="Int64"),
                 "D": [0, 1, 1, 0],
                 "E": [0, np.nan, 1, 0],
-                "F": [0, np.nan, 1, 0],
+                "F": pd.Series([0, np.nan, 1, 0], dtype="Float64"),
                 "G": [False, True, True, False],
-                "H": [False, pd.NA, True, False],
+                "H": pd.Series([False, pd.NA, True, False], dtype="boolean"),
             },
-        ).astype({"C": "Int64", "F": "Float64", "H": "boolean"})
-        s = Series([0, 1, 1, 0])
-        result = df.corrwith(s, method="spearman", numeric_only=numeric_only)
-        tm.assert_series_equal(result, expected)
+        )
+        ser_list = [
+            Series([0, 1, 1, 0]),
+            Series([0.0, 1.0, 1.0, 0.0]),
+            Series([False, True, True, False]),
+            Series([0, pd.NA, 1, 0], dtype="Int64"),
+            Series([0, pd.NA, 1, 0], dtype="Float64"),
+            Series([False, pd.NA, True, False], dtype="boolean"),
+        ]
+        expected = Series(
+            [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            index=["A", "B", "C", "D", "E", "F", "G", "H"],
+        )
+        for ser in ser_list:
+            result = df.corrwith(ser, method="spearman", numeric_only=False)
+            tm.assert_series_equal(result, expected)
