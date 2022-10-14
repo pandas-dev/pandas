@@ -1622,7 +1622,8 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         elif pa_dtype.equals("int8"):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    raises=pa.ArrowInvalid
+                    raises=pa.ArrowInvalid,
+                    reason=f"raises on overflow for {pa_dtype}",
                 )
             )
         super().test_add_series_with_extension_array(data)
