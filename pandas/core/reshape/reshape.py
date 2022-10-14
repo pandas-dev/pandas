@@ -471,6 +471,7 @@ def unstack(obj: Series | DataFrame, level, fill_value=None):
             level = level[0]
 
     if not is_integer(level) and not level == "__placeholder__":
+        # check if level is valid in case of regular index
         obj.index._get_level_number(level)
 
     if isinstance(obj, DataFrame):
