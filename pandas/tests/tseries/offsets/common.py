@@ -3,9 +3,6 @@ Assertion helpers and base class for offsets tests
 """
 from __future__ import annotations
 
-from datetime import datetime
-
-from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.offsets import (
     FY5253,
     BaseOffset,
@@ -52,7 +49,6 @@ class WeekDay:
 
 class Base:
     _offset: type[BaseOffset] | None = None
-    d = Timestamp(datetime(2008, 1, 2))
 
     def _get_offset(self, klass, value=1, normalize=False):
         # create instance from offset class

@@ -32,13 +32,15 @@ from pandas.tests.tseries.offsets.common import (
 from pandas.tseries import offsets as offsets
 
 
+@pytest.fixture
+def d():
+    return datetime(2008, 1, 1)
+
+
 class TestBusinessDay(Base):
     _offset: type[BDay] = BDay
 
     def setup_method(self):
-        self.d = datetime(2008, 1, 1)
-        self.nd = np.datetime64("2008-01-01 00:00:00")
-
         self.offset = self._offset()
         self.offset1 = self.offset
         self.offset2 = self._offset(2)
@@ -56,10 +58,10 @@ class TestBusinessDay(Base):
         expected = "<BusinessDay: offset=datetime.timedelta(days=1)>"
         assert repr(self.offset + timedelta(1)) == expected
 
-    def test_with_offset(self):
+    def test_with_offset(self, d):
         offset = self.offset + timedelta(hours=2)
 
-        assert (self.d + offset) == datetime(2008, 1, 2, 2)
+        assert (d + offset) == datetime(2008, 1, 2, 2)
 
     @pytest.mark.parametrize(
         "td",
@@ -70,9 +72,9 @@ class TestBusinessDay(Base):
         ],
         ids=lambda x: type(x),
     )
-    def test_with_offset_index(self, td):
+    def test_with_offset_index(self, td, d):
 
-        dti = DatetimeIndex([self.d])
+        dti = DatetimeIndex([d])
         expected = DatetimeIndex([datetime(2008, 1, 2, 2)])
 
         result = dti + (td + self.offset)
@@ -84,26 +86,25 @@ class TestBusinessDay(Base):
     def test_eq(self):
         assert self.offset2 == self.offset2
 
-    def test_mul(self):
-        pass
-
     def test_hash(self):
         assert hash(self.offset2) == hash(self.offset2)
 
-    def test_call(self):
+    def test_call(self, d):
         with tm.assert_produces_warning(FutureWarning):
             # GH#34171 DateOffset.__call__ is deprecated
-            assert self.offset2(self.d) == datetime(2008, 1, 3)
-            assert self.offset2(self.nd) == datetime(2008, 1, 3)
+            assert self.offset2(d) == datetime(2008, 1, 3)
+            assert self.offset2(np.datetime64("2008-01-01 00:00:00")) == datetime(
+                2008, 1, 3
+            )
 
-    def testRollback1(self):
-        assert self._offset(10).rollback(self.d) == self.d
+    def testRollback1(self, d):
+        assert self._offset(10).rollback(d) == d
 
     def testRollback2(self):
         assert self._offset(10).rollback(datetime(2008, 1, 5)) == datetime(2008, 1, 4)
 
-    def testRollforward1(self):
-        assert self._offset(10).rollforward(self.d) == self.d
+    def testRollforward1(self, d):
+        assert self._offset(10).rollforward(d) == d
 
     def testRollforward2(self):
         assert self._offset(10).rollforward(datetime(2008, 1, 5)) == datetime(

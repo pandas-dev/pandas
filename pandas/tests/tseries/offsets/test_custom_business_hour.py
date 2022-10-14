@@ -24,6 +24,11 @@ from pandas.tests.tseries.offsets.common import (
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
+@pytest.fixture
+def d():
+    return datetime(2014, 7, 1, 10, 00)
+
+
 class TestCustomBusinessHour(Base):
     _offset: type[CustomBusinessHour] = CustomBusinessHour
     holidays = ["2014-06-27", datetime(2014, 6, 30), np.datetime64("2014-07-02")]
@@ -34,7 +39,6 @@ class TestCustomBusinessHour(Base):
         #  6/22  23  24  25  26  27  28
         #    29  30 7/1   2   3   4   5
         #     6   7   8   9  10  11  12
-        self.d = datetime(2014, 7, 1, 10, 00)
         self.offset1 = CustomBusinessHour(weekmask="Tue Wed Thu Fri")
 
         self.offset2 = CustomBusinessHour(holidays=self.holidays)
@@ -62,11 +66,11 @@ class TestCustomBusinessHour(Base):
         assert repr(self.offset1) == "<CustomBusinessHour: CBH=09:00-17:00>"
         assert repr(self.offset2) == "<CustomBusinessHour: CBH=09:00-17:00>"
 
-    def test_with_offset(self):
+    def test_with_offset(self, d):
         expected = Timestamp("2014-07-01 13:00")
 
-        assert self.d + CustomBusinessHour() * 3 == expected
-        assert self.d + CustomBusinessHour(n=3) == expected
+        assert d + CustomBusinessHour() * 3 == expected
+        assert d + CustomBusinessHour(n=3) == expected
 
     def test_eq(self):
         for offset in [self.offset1, self.offset2]:
@@ -90,15 +94,15 @@ class TestCustomBusinessHour(Base):
         assert hash(self.offset1) == hash(self.offset1)
         assert hash(self.offset2) == hash(self.offset2)
 
-    def test_call(self):
+    def test_call(self, d):
         with tm.assert_produces_warning(FutureWarning):
             # GH#34171 DateOffset.__call__ is deprecated
-            assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
-            assert self.offset2(self.d) == datetime(2014, 7, 1, 11)
+            assert self.offset1(d) == datetime(2014, 7, 1, 11)
+            assert self.offset2(d) == datetime(2014, 7, 1, 11)
 
-    def testRollback1(self):
-        assert self.offset1.rollback(self.d) == self.d
-        assert self.offset2.rollback(self.d) == self.d
+    def testRollback1(self, d):
+        assert self.offset1.rollback(d) == d
+        assert self.offset2.rollback(d) == d
 
         d = datetime(2014, 7, 1, 0)
 
@@ -113,9 +117,9 @@ class TestCustomBusinessHour(Base):
             2014, 7, 4, 17, 0
         )
 
-    def testRollforward1(self):
-        assert self.offset1.rollforward(self.d) == self.d
-        assert self.offset2.rollforward(self.d) == self.d
+    def testRollforward1(self, d):
+        assert self.offset1.rollforward(d) == d
+        assert self.offset2.rollforward(d) == d
 
         d = datetime(2014, 7, 1, 0)
         assert self.offset1.rollforward(d) == datetime(2014, 7, 1, 9)

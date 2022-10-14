@@ -37,18 +37,19 @@ from pandas.tseries import offsets as offsets
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
+@pytest.fixture
+def d():
+    return datetime(2008, 1, 1)
+
+
 class CustomBusinessMonthBase:
     def setup_method(self):
-        self.d = datetime(2008, 1, 1)
         self.offset = self._offset()
         self.offset1 = self.offset
         self.offset2 = self._offset(2)
 
     def test_eq(self):
         assert self.offset2 == self.offset2
-
-    def test_mul(self):
-        pass
 
     def test_hash(self):
         assert hash(self.offset2) == hash(self.offset2)
@@ -81,19 +82,19 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         assert repr(self.offset) == "<CustomBusinessMonthBegin>"
         assert repr(self.offset2) == "<2 * CustomBusinessMonthBegins>"
 
-    def test_call(self):
+    def test_call(self, d):
         with tm.assert_produces_warning(FutureWarning):
             # GH#34171 DateOffset.__call__ is deprecated
-            assert self.offset2(self.d) == datetime(2008, 3, 3)
+            assert self.offset2(d) == datetime(2008, 3, 3)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
 
-    def testRollback2(self):
-        assert CBMonthBegin(10).rollback(self.d) == datetime(2008, 1, 1)
+    def testRollback2(self, d):
+        assert CBMonthBegin(10).rollback(d) == datetime(2008, 1, 1)
 
-    def testRollforward1(self):
-        assert CBMonthBegin(10).rollforward(self.d) == datetime(2008, 1, 1)
+    def testRollforward1(self, d):
+        assert CBMonthBegin(10).rollforward(d) == datetime(2008, 1, 1)
 
     def test_roll_date_object(self):
         offset = CBMonthBegin()
@@ -271,19 +272,19 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         assert repr(self.offset) == "<CustomBusinessMonthEnd>"
         assert repr(self.offset2) == "<2 * CustomBusinessMonthEnds>"
 
-    def test_call(self):
+    def test_call(self, d):
         with tm.assert_produces_warning(FutureWarning):
             # GH#34171 DateOffset.__call__ is deprecated
-            assert self.offset2(self.d) == datetime(2008, 2, 29)
+            assert self.offset2(d) == datetime(2008, 2, 29)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
 
-    def testRollback2(self):
-        assert CBMonthEnd(10).rollback(self.d) == datetime(2007, 12, 31)
+    def testRollback2(self, d):
+        assert CBMonthEnd(10).rollback(d) == datetime(2007, 12, 31)
 
-    def testRollforward1(self):
-        assert CBMonthEnd(10).rollforward(self.d) == datetime(2008, 1, 31)
+    def testRollforward1(self, d):
+        assert CBMonthEnd(10).rollforward(d) == datetime(2008, 1, 31)
 
     def test_roll_date_object(self):
         offset = CBMonthEnd()
