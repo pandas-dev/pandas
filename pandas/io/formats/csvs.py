@@ -69,7 +69,10 @@ class CSVFormatter:
     ) -> None:
         self.fmt = formatter
 
-        self.obj = self.fmt.frame
+        if hasattr(self.fmt.frame, "sparse"):
+            self.obj = self.fmt.frame.sparse.to_dense()
+        else:
+            self.obj = self.fmt.frame
 
         self.filepath_or_buffer = path_or_buf
         self.encoding = encoding
