@@ -610,6 +610,7 @@ def test_map_defaultdict_na_key(na_action):
 
 @pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_map_defaultdict_missing_key(na_action):
+    # GH 48813
     s = Series([1, 2, np.nan])
     default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", 3: "c"})
     result = s.map(default_map, na_action=na_action)
@@ -619,6 +620,7 @@ def test_map_defaultdict_missing_key(na_action):
 
 @pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_map_defaultdict_unmutated(na_action):
+    # GH 48813
     s = Series([1, 2, np.nan])
     default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", np.nan: "c"})
     expected_default_map = default_map.copy()
