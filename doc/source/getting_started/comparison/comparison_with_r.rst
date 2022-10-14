@@ -21,10 +21,6 @@ libraries, we care about the following things:
 This page is also here to offer a bit of a translation guide for users of these
 R packages.
 
-For transfer of ``DataFrame`` objects from pandas to R, one option is to
-use HDF5 files, see :ref:`io.external_compatibility` for an
-example.
-
 
 Quick reference
 ---------------

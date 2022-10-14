@@ -5,7 +5,6 @@ from collections import (
     defaultdict,
 )
 import csv
-import inspect
 from io import StringIO
 import re
 import sys
@@ -600,7 +599,7 @@ class PythonParser(ParserBase):
                         "Defining usecols with out of bounds indices is deprecated "
                         "and will raise a ParserError in a future version.",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
                 col_indices = self.usecols
 
