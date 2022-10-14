@@ -645,7 +645,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         "obj",
         "observed",
         "sort",
-        "squeeze",
     }
 
     axis: AxisInt
@@ -929,7 +928,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = True,
-        squeeze: bool = False,
         observed: bool = False,
         mutated: bool = False,
         dropna: bool = True,
@@ -951,7 +949,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.keys = keys
         self.sort = sort
         self.group_keys = group_keys
-        self.squeeze = squeeze
         self.observed = observed
         self.mutated = mutated
         self.dropna = dropna
@@ -4378,7 +4375,6 @@ def get_groupby(
     as_index: bool = True,
     sort: bool = True,
     group_keys: bool | lib.NoDefault = True,
-    squeeze: bool = False,
     observed: bool = False,
     mutated: bool = False,
     dropna: bool = True,
@@ -4407,7 +4403,6 @@ def get_groupby(
         as_index=as_index,
         sort=sort,
         group_keys=group_keys,
-        squeeze=squeeze,
         observed=observed,
         mutated=mutated,
         dropna=dropna,

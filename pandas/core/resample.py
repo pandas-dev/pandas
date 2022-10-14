@@ -166,7 +166,6 @@ class Resampler(BaseGroupBy, PandasObject):
         # [int, Literal['index', 'columns', 'rows']]", variable has type "int")
         self.axis = axis  # type: ignore[assignment]
         self.kind = kind
-        self.squeeze = False
         self.group_keys = group_keys
         self.as_index = True
 

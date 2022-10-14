@@ -2059,23 +2059,10 @@ Name: Max Speed, dtype: float64
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = no_default,
-        squeeze: bool | lib.NoDefault = no_default,
         observed: bool = False,
         dropna: bool = True,
     ) -> SeriesGroupBy:
         from pandas.core.groupby.generic import SeriesGroupBy
-
-        if squeeze is not no_default:
-            warnings.warn(
-                (
-                    "The `squeeze` parameter is deprecated and "
-                    "will be removed in a future version."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            squeeze = False
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -2089,7 +2076,6 @@ Name: Max Speed, dtype: float64
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )
