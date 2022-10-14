@@ -222,7 +222,7 @@ Indexing
 Missing
 ^^^^^^^
 - Bug in :meth:`Index.equals` raising ``TypeError`` when :class:`Index` consists of tuples that contain ``NA`` (:issue:`48446`)
--
+- Bug in :meth:`Series.map` caused incorrect result when data has NaNs and defaultdict mapping was used (:issue:`48813`)
 
 MultiIndex
 ^^^^^^^^^^
