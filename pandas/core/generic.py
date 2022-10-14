@@ -6264,7 +6264,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if isna(cdt):
                     res_col = col.copy() if copy else col
                 else:
-                    res_col = col.astype(dtype=cdt, copy=copy, errors=errors)
+                    try:
+                        res_col = col.astype(dtype=cdt, copy=copy, errors=errors)
+                    except ValueError as ex:
+                        ex.args = (
+                            f"{ex}: Error while type casting for column '{col_name}'",
+                        )
+                        raise
                 results.append(res_col)
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
