@@ -405,7 +405,6 @@ class TestReaders:
                 "FloatCol": [1.25, 2.25, 1.83, 1.92, 0.0000000005],
                 "BoolCol": [True, False, True, True, False],
                 "StrCol": [1, 2, 3, 4, 5],
-                # GH5394 - this is why convert_float isn't vectorized
                 "Str2Col": ["a", 3, "c", "d", "e"],
                 "DateCol": [
                     datetime(2013, 10, 30),
@@ -424,19 +423,11 @@ class TestReaders:
 
         # if not coercing number, then int comes in as float
         float_expected = expected.copy()
-        float_expected["IntCol"] = float_expected["IntCol"].astype(float)
         float_expected.loc[float_expected.index[1], "Str2Col"] = 3.0
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match="convert_float is deprecated",
-            raise_on_extra_warnings=False,
-        ):
-            # raise_on_extra_warnings because xlrd raises a PendingDeprecationWarning
-            # on database job Linux_py37_IO (ci/deps/actions-37-db.yaml)
-            # See GH#41176
-            actual = pd.read_excel(
-                basename + read_ext, sheet_name="Sheet1", convert_float=False
-            )
+        # raise_on_extra_warnings because xlrd raises a PendingDeprecationWarning
+        # on database job Linux_py37_IO (ci/deps/actions-37-db.yaml)
+        # See GH#41176
+        actual = pd.read_excel(basename + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, float_expected)
 
         # check setting Index (assuming xls and xlsx are the same here)
@@ -447,30 +438,11 @@ class TestReaders:
             exp = expected.set_index(name)
             tm.assert_frame_equal(actual, exp)
 
-        # convert_float and converters should be different but both accepted
         expected["StrCol"] = expected["StrCol"].apply(str)
         actual = pd.read_excel(
             basename + read_ext, sheet_name="Sheet1", converters={"StrCol": str}
         )
         tm.assert_frame_equal(actual, expected)
-
-        no_convert_float = float_expected.copy()
-        no_convert_float["StrCol"] = no_convert_float["StrCol"].apply(str)
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match="convert_float is deprecated",
-            raise_on_extra_warnings=False,
-        ):
-            # raise_on_extra_warnings because xlrd raises a PendingDeprecationWarning
-            # on database job Linux_py37_IO (ci/deps/actions-37-db.yaml)
-            # See GH#41176
-            actual = pd.read_excel(
-                basename + read_ext,
-                sheet_name="Sheet1",
-                convert_float=False,
-                converters={"StrCol": str},
-            )
-        tm.assert_frame_equal(actual, no_convert_float)
 
     # GH8212 - support for converters and missing values
     def test_reader_converters(self, read_ext):
