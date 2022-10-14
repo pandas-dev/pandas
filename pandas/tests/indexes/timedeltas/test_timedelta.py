@@ -13,6 +13,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.arrays import TimedeltaArray
 from pandas.core.indexes.api import Int64Index
 from pandas.tests.indexes.datetimelike import DatetimeLike
 
@@ -101,19 +102,26 @@ class TestTimedeltaIndex(DatetimeLike):
         assert rng.days.name == "name"
 
     def test_freq_conversion_always_floating(self):
-        # even if we have no NaTs, we get back float64; this matches TDA and Series
+        # pre-2.0 td64 astype converted to float64. now for supported units
+        #  (s, ms, us, ns) this converts to the requested dtype.
+        # This matches TDA and Series
         tdi = timedelta_range("1 Day", periods=30)
 
         res = tdi.astype("m8[s]")
-        expected = Index((tdi.view("i8") / 10**9).astype(np.float64))
+        exp_values = np.asarray(tdi).astype("m8[s]")
+        exp_tda = TimedeltaArray._simple_new(
+            exp_values, dtype=exp_values.dtype, freq=tdi.freq
+        )
+        expected = Index(exp_tda)
+        assert expected.dtype == "m8[s]"
         tm.assert_index_equal(res, expected)
 
         # check this matches Series and TimedeltaArray
         res = tdi._data.astype("m8[s]")
-        tm.assert_numpy_array_equal(res, expected._values)
+        tm.assert_equal(res, expected._values)
 
         res = tdi.to_series().astype("m8[s]")
-        tm.assert_numpy_array_equal(res._values, expected._values)
+        tm.assert_equal(res._values, expected._values._with_freq(None))
 
     def test_freq_conversion(self, index_or_series):
 
@@ -131,6 +139,8 @@ class TestTimedeltaIndex(DatetimeLike):
         )
         tm.assert_equal(result, expected)
 
+        # We don't support "D" reso, so we use the pre-2.0 behavior
+        #  casting to float64
         result = td.astype("timedelta64[D]")
         expected = index_or_series([31, 31, 31, np.nan])
         tm.assert_equal(result, expected)
@@ -141,5 +151,9 @@ class TestTimedeltaIndex(DatetimeLike):
         )
         tm.assert_equal(result, expected)
 
+        exp_values = np.asarray(td).astype("m8[s]")
+        exp_tda = TimedeltaArray._simple_new(exp_values, dtype=exp_values.dtype)
+        expected = index_or_series(exp_tda)
+        assert expected.dtype == "m8[s]"
         result = td.astype("timedelta64[s]")
         tm.assert_equal(result, expected)
