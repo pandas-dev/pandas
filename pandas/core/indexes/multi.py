@@ -850,10 +850,7 @@ class MultiIndex(Index):
 
         self._reset_cache()
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "levels"])
-    def set_levels(
-        self, levels, level=None, inplace=None, verify_integrity: bool = True
-    ):
+    def set_levels(self, levels, *, level=None, verify_integrity: bool = True):
         """
         Set new levels on MultiIndex. Defaults to returning new index.
 
@@ -863,10 +860,6 @@ class MultiIndex(Index):
             New level(s) to apply.
         level : int, level name, or sequence of int/level names (default None)
             Level(s) to set (None for all levels).
-        inplace : bool
-            If True, mutates in place.
-
-            .. deprecated:: 1.2.0
         verify_integrity : bool, default True
             If True, checks that levels and codes are compatible.
 
@@ -938,30 +931,17 @@ class MultiIndex(Index):
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1]).levels
         FrozenList([['a', 'b', 'c'], [1, 2, 3, 4]])
         """
-        if inplace is not None:
-            warnings.warn(
-                "inplace is deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            inplace = False
 
         if is_list_like(levels) and not isinstance(levels, Index):
             levels = list(levels)
 
         level, levels = _require_listlike(level, levels, "Levels")
-
-        if inplace:
-            idx = self
-        else:
-            idx = self._view()
+        idx = self._view()
         idx._reset_identity()
         idx._set_levels(
             levels, level=level, validate=True, verify_integrity=verify_integrity
         )
-        if not inplace:
-            return idx
+        return idx
 
     @property
     def nlevels(self) -> int:
@@ -1039,8 +1019,7 @@ class MultiIndex(Index):
 
         self._reset_cache()
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "codes"])
-    def set_codes(self, codes, level=None, inplace=None, verify_integrity: bool = True):
+    def set_codes(self, codes, *, level=None, verify_integrity: bool = True):
         """
         Set new codes on MultiIndex. Defaults to returning new index.
 
@@ -1050,10 +1029,6 @@ class MultiIndex(Index):
             New codes to apply.
         level : int, level name, or sequence of int/level names (default None)
             Level(s) to set (None for all levels).
-        inplace : bool
-            If True, mutates in place.
-
-            .. deprecated:: 1.2.0
         verify_integrity : bool, default True
             If True, checks that levels and codes are compatible.
 
@@ -1099,25 +1074,12 @@ class MultiIndex(Index):
                     (1, 'two')],
                    names=['foo', 'bar'])
         """
-        if inplace is not None:
-            warnings.warn(
-                "inplace is deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            inplace = False
 
         level, codes = _require_listlike(level, codes, "Codes")
-
-        if inplace:
-            idx = self
-        else:
-            idx = self._view()
+        idx = self._view()
         idx._reset_identity()
         idx._set_codes(codes, level=level, verify_integrity=verify_integrity)
-        if not inplace:
-            return idx
+        return idx
 
     # --------------------------------------------------------------------
     # Index Internals

@@ -65,9 +65,7 @@ def test_inplace_mutation_resets_values():
     # ...and values is still same too
     tm.assert_almost_equal(mi1.values, vals)
 
-    # Inplace should drop _values from _cache
-    with tm.assert_produces_warning(FutureWarning):
-        mi1.set_levels(levels2, inplace=True)
+    mi1 = mi1.set_levels(levels2)
     assert "_values" not in mi1._cache
     tm.assert_almost_equal(mi1.values, vals2)
 
@@ -91,8 +89,7 @@ def test_inplace_mutation_resets_values():
     tm.assert_almost_equal(exp_values, new_values)
 
     # ...and again setting inplace should drop _values from _cache, etc
-    with tm.assert_produces_warning(FutureWarning):
-        mi2.set_codes(codes2, inplace=True)
+    mi2 = mi2.set_codes(codes2)
     assert "_values" not in mi2._cache
     tm.assert_almost_equal(mi2.values, new_values)
     assert "_values" in mi2._cache
