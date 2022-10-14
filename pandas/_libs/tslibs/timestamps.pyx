@@ -436,9 +436,9 @@ cdef class _Timestamp(ABCTimestamp):
             # Matching numpy, we cast to the higher resolution. Unlike numpy,
             #  we raise instead of silently overflowing during this casting.
             if self._reso < other._reso:
-                self = (<_Timestamp>self)._as_reso(other._reso, round_ok=True)
+                self = (<_Timestamp>self)._as_creso(other._reso, round_ok=True)
             elif self._reso > other._reso:
-                other = (<_Timedelta>other)._as_reso(self._reso, round_ok=True)
+                other = (<_Timedelta>other)._as_creso(self._reso, round_ok=True)
 
             nanos = other.value
 
@@ -525,9 +525,9 @@ cdef class _Timestamp(ABCTimestamp):
             # Matching numpy, we cast to the higher resolution. Unlike numpy,
             #  we raise instead of silently overflowing during this casting.
             if self._reso < other._reso:
-                self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
+                self = (<_Timestamp>self)._as_creso(other._reso, round_ok=False)
             elif self._reso > other._reso:
-                other = (<_Timestamp>other)._as_reso(self._reso, round_ok=False)
+                other = (<_Timestamp>other)._as_creso(self._reso, round_ok=False)
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
@@ -1062,7 +1062,7 @@ cdef class _Timestamp(ABCTimestamp):
     # Conversion Methods
 
     @cython.cdivision(False)
-    cdef _Timestamp _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
+    cdef _Timestamp _as_creso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
         cdef:
             int64_t value
 
@@ -1076,7 +1076,7 @@ cdef class _Timestamp(ABCTimestamp):
         dtype = np.dtype(f"M8[{unit}]")
         reso = get_unit_from_dtype(dtype)
         try:
-            return self._as_reso(reso, round_ok=round_ok)
+            return self._as_creso(reso, round_ok=round_ok)
         except OverflowError as err:
             raise OutOfBoundsDatetime(
                 f"Cannot cast {self} to unit='{unit}' without overflow."
