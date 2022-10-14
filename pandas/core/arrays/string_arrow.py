@@ -17,7 +17,6 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat import (
-    pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
     pa_version_under5p0,
@@ -202,10 +201,6 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         return value
 
     def isin(self, values) -> npt.NDArray[np.bool_]:
-        if pa_version_under2p0:
-            fallback_performancewarning(version="2")
-            return super().isin(values)
-
         value_set = [
             pa_scalar.as_py()
             for pa_scalar in [pa.scalar(value, from_pandas=True) for value in values]
@@ -418,10 +413,6 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         return BooleanDtype().__from_arrow__(result)
 
     def _str_isspace(self):
-        if pa_version_under2p0:
-            fallback_performancewarning(version="2")
-            return super()._str_isspace()
-
         result = pc.utf8_is_space(self._data)
         return BooleanDtype().__from_arrow__(result)
 

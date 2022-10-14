@@ -17,7 +17,6 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat import (
-    pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
     pa_version_under5p0,
@@ -64,16 +63,12 @@ if not pa_version_under5p0:
     }
 
     ARROW_LOGICAL_FUNCS = {
-        "and": NotImplemented if pa_version_under2p0 else pc.and_kleene,
-        "rand": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.and_kleene(y, x),
-        "or": NotImplemented if pa_version_under2p0 else pc.or_kleene,
-        "ror": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.or_kleene(y, x),
-        "xor": NotImplemented if pa_version_under2p0 else pc.xor,
-        "rxor": NotImplemented if pa_version_under2p0 else lambda x, y: pc.xor(y, x),
+        "and": pc.and_kleene,
+        "rand": lambda x, y: pc.and_kleene(y, x),
+        "or": pc.or_kleene,
+        "ror": lambda x, y: pc.or_kleene(y, x),
+        "xor": pc.xor,
+        "rxor": lambda x, y: pc.xor(y, x),
     }
 
     def cast_for_truediv(
@@ -99,30 +94,16 @@ if not pa_version_under5p0:
         return result
 
     ARROW_ARITHMETIC_FUNCS = {
-        "add": NotImplemented if pa_version_under2p0 else pc.add_checked,
-        "radd": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.add_checked(y, x),
-        "sub": NotImplemented if pa_version_under2p0 else pc.subtract_checked,
-        "rsub": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.subtract_checked(y, x),
-        "mul": NotImplemented if pa_version_under2p0 else pc.multiply_checked,
-        "rmul": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.multiply_checked(y, x),
-        "truediv": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.divide_checked(cast_for_truediv(x, y), y),
-        "rtruediv": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.divide_checked(y, cast_for_truediv(x, y)),
-        "floordiv": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: floordiv_compat(x, y),
-        "rfloordiv": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: floordiv_compat(y, x),
+        "add": pc.add_checked,
+        "radd": lambda x, y: pc.add_checked(y, x),
+        "sub": pc.subtract_checked,
+        "rsub": lambda x, y: pc.subtract_checked(y, x),
+        "mul": pc.multiply_checked,
+        "rmul": lambda x, y: pc.multiply_checked(y, x),
+        "truediv": lambda x, y: pc.divide_checked(cast_for_truediv(x, y), y),
+        "rtruediv": lambda x, y: pc.divide_checked(y, cast_for_truediv(x, y)),
+        "floordiv": lambda x, y: floordiv_compat(x, y),
+        "rfloordiv": lambda x, y: floordiv_compat(y, x),
         "mod": NotImplemented,
         "rmod": NotImplemented,
         "divmod": NotImplemented,
@@ -359,8 +340,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         return self._data
 
     def __invert__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
-        if pa_version_under2p0:
-            raise NotImplementedError("__invert__ not implement for pyarrow < 2.0")
         return type(self)(pc.invert(self._data))
 
     def __neg__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
@@ -394,10 +373,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 f"{op.__name__} not implemented for {type(other)}"
             )
 
-        if pa_version_under2p0:
-            result = result.to_pandas().values
-        else:
-            result = result.to_numpy()
+        result = result.to_numpy()
         return BooleanArray._from_sequence(result)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
@@ -463,10 +439,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         This should return a 1-D array the same length as 'self'.
         """
-        if pa_version_under2p0:
-            return self._data.is_null().to_pandas().values
-        else:
-            return self._data.is_null().to_numpy()
+        return self._data.is_null().to_numpy()
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(
@@ -491,10 +464,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         result = pc.array_sort_indices(
             self._data, order=order, null_placement=null_placement
         )
-        if pa_version_under2p0:
-            np_result = result.to_pandas().values
-        else:
-            np_result = result.to_numpy()
+        np_result = result.to_numpy()
         return np_result.astype(np.intp, copy=False)
 
     def _argmin_max(self, skipna: bool, method: str) -> int:
@@ -547,10 +517,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return type(self)(pc.drop_null(self._data))
 
     def isin(self, values) -> npt.NDArray[np.bool_]:
-        if pa_version_under2p0:
-            fallback_performancewarning(version="2")
-            return super().isin(values)
-
         # for an empty value_set pyarrow 3.0.0 segfaults and pyarrow 2.0.0 returns True
         # for null values, so we short-circuit to return all False array.
         if not len(values):
@@ -583,10 +549,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         The values returned by this method are also used in
         :func:`pandas.util.hash_pandas_object`.
         """
-        if pa_version_under2p0:
-            values = self._data.to_pandas().values
-        else:
-            values = self._data.to_numpy()
+        values = self._data.to_numpy()
         return values, self.dtype.na_value
 
     @doc(ExtensionArray.factorize)
@@ -739,11 +702,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         ArrowExtensionArray
         """
-        if pa_version_under2p0:
-            fallback_performancewarning(version="2")
-            return super().unique()
-        else:
-            return type(self)(pc.unique(self._data))
+        return type(self)(pc.unique(self._data))
 
     def value_counts(self, dropna: bool = True) -> Series:
         """

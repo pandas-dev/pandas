@@ -6,10 +6,7 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    pa_version_under2p0,
-    pa_version_under4p0,
-)
+from pandas.compat import pa_version_under4p0
 from pandas.errors import PerformanceWarning
 
 from pandas import (
@@ -266,11 +263,7 @@ def test_empty_str_methods(any_string_dtype):
     tm.assert_series_equal(empty_bool, empty.str.isalnum())
     tm.assert_series_equal(empty_bool, empty.str.isalpha())
     tm.assert_series_equal(empty_bool, empty.str.isdigit())
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under2p0,
-    ):
-        tm.assert_series_equal(empty_bool, empty.str.isspace())
+    tm.assert_series_equal(empty_bool, empty.str.isspace())
     tm.assert_series_equal(empty_bool, empty.str.islower())
     tm.assert_series_equal(empty_bool, empty.str.isupper())
     tm.assert_series_equal(empty_bool, empty.str.istitle())
@@ -321,13 +314,7 @@ def test_ismethods(method, expected, any_string_dtype):
     )
     expected_dtype = "bool" if any_string_dtype == "object" else "boolean"
     expected = Series(expected, dtype=expected_dtype)
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]"
-        and pa_version_under2p0
-        and method == "isspace",
-    ):
-        result = getattr(ser.str, method)()
+    result = getattr(ser.str, method)()
     tm.assert_series_equal(result, expected)
 
     # compare with standard library
