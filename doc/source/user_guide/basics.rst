@@ -36,7 +36,7 @@ of elements to display is five, but you may pass a custom number.
 Attributes and underlying data
 ------------------------------
 
-pandas objects have a number of attributes enabling you to access the metadata
+Pandas objects have a number of attributes enabling you to access the metadata
 
 * **shape**: gives the axis dimensions of the object, consistent with ndarray
 * Axis labels
@@ -51,7 +51,7 @@ Note, **these attributes can be safely assigned to**!
    df.columns = [x.lower() for x in df.columns]
    df
 
-pandas objects (:class:`Index`, :class:`Series`, :class:`DataFrame`) can be
+Pandas objects (:class:`Index`, :class:`Series`, :class:`DataFrame`) can be
 thought of as containers for arrays, which hold the actual data and do the
 actual computation. For many types, the underlying array is a
 :class:`numpy.ndarray`. However, pandas and 3rd party libraries may *extend*
@@ -147,7 +147,7 @@ drawbacks:
 Accelerated operations
 ----------------------
 
-pandas has support for accelerating certain types of binary numerical and boolean operations using
+Pandas has support for accelerating certain types of binary numerical and boolean operations using
 the ``numexpr`` library and the ``bottleneck`` libraries.
 
 These libraries are especially useful when dealing with large data sets, and provide large
@@ -412,7 +412,7 @@ data structure with a scalar value:
    pd.Series(["foo", "bar", "baz"]) == "foo"
    pd.Index(["foo", "bar", "baz"]) == "foo"
 
-pandas also handles element-wise comparisons between different array-like
+Pandas also handles element-wise comparisons between different array-like
 objects of the same length:
 
 .. ipython:: python
@@ -817,7 +817,7 @@ Is equivalent to:
 
     df_p.pipe(extract_city_name).pipe(add_country_name, country_name="US")
 
-pandas encourages the second style, which is known as method chaining.
+Pandas encourages the second style, which is known as method chaining.
 ``pipe`` makes it easy to use your own or another library's functions
 in method chains, alongside pandas' methods.
 
@@ -1537,7 +1537,7 @@ Thus, for example, iterating over a DataFrame gives you the column names:
        print(col)
 
 
-pandas objects also have the dict-like :meth:`~DataFrame.items` method to
+Pandas objects also have the dict-like :meth:`~DataFrame.items` method to
 iterate over the (key, value) pairs.
 
 To iterate over the rows of a DataFrame, you can use the following methods:
@@ -1792,7 +1792,7 @@ description.
 Sorting
 -------
 
-pandas supports three kinds of sorting: sorting by index labels,
+Pandas supports three kinds of sorting: sorting by index labels,
 sorting by column values, and sorting by a combination of both.
 
 .. _basics.sort_index:
@@ -2041,7 +2041,7 @@ columns of a DataFrame. NumPy provides support for ``float``,
 ``int``, ``bool``, ``timedelta64[ns]`` and ``datetime64[ns]`` (note that NumPy
 does not support timezone-aware datetimes).
 
-pandas and third-party libraries *extend* NumPy's type system in a few places.
+Pandas and third-party libraries *extend* NumPy's type system in a few places.
 This section describes the extensions pandas has made internally.
 See :ref:`extending.extension-types` for how to write your own extension that
 works with pandas. See :ref:`ecosystem.extensions` for a list of third-party
@@ -2079,7 +2079,7 @@ documentation sections for more on each type.
 | :ref:`Boolean (with NA) <api.arrays.bool>`      | :class:`BooleanDtype`     | :class:`bool`      | :class:`arrays.BooleanArray`  | ``'boolean'``                          |
 +-------------------------------------------------+---------------------------+--------------------+-------------------------------+----------------------------------------+
 
-pandas has two ways to store strings.
+Pandas has two ways to store strings.
 
 1. ``object`` dtype, which can hold any Python object, including strings.
 2. :class:`StringDtype`, which is dedicated to strings.
@@ -2252,7 +2252,7 @@ Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFra
 object conversion
 ~~~~~~~~~~~~~~~~~
 
-pandas offers various functions to try to force conversion of types from the ``object`` dtype to other types.
+Pandas offers various functions to try to force conversion of types from the ``object`` dtype to other types.
 In cases where the data is already of the correct type, but stored in an ``object`` array, the
 :meth:`DataFrame.infer_objects` and :meth:`Series.infer_objects` methods can be used to soft convert
 to the correct type.
@@ -2489,5 +2489,5 @@ All NumPy dtypes are subclasses of ``numpy.generic``:
 
 .. note::
 
-    pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
+    Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
     NumPy hierarchy and won't show up with the above function.
