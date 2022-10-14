@@ -2366,7 +2366,7 @@ def maybe_convert_numeric(
 
     # This occurs since we disabled float nulls showing as null in anticipation
     # of seeing ints that were never seen. So then, we return float
-    if allow_null_in_int and seen.null_ and not seen.int_:
+    if allow_null_in_int and seen.null_ and not seen.int_ and not seen.bool_:
         seen.float_ = True
 
     if seen.complex_:
@@ -2386,6 +2386,8 @@ def maybe_convert_numeric(
         else:
             return (ints, None)
     elif seen.bool_:
+        if allow_null_in_int:
+            return (bools.view(np.bool_), mask.view(np.bool_))
         return (bools.view(np.bool_), None)
     elif seen.uint_:
         return (uints, None)

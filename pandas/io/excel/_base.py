@@ -267,6 +267,13 @@ comment : str, default None
     comment string and the end of the current line is ignored.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
+use_nullable_dtypes : bool = False
+    Whether or not to use nullable dtypes as default when reading data. If
+    set to True, nullable dtypes are used for all dtypes that have a nullable
+    implementation, even if no nulls are present.
+
+    .. versionadded:: 2.0
+
 {storage_options}
 
     .. versionadded:: 1.2.0
@@ -375,6 +382,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -413,6 +421,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> dict[IntStrT, DataFrame]:
     ...
 
@@ -451,6 +460,7 @@ def read_excel(
     comment: str | None = None,
     skipfooter: int = 0,
     storage_options: StorageOptions = None,
+    use_nullable_dtypes: bool = False,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
 
     should_close = False
@@ -487,6 +497,7 @@ def read_excel(
             decimal=decimal,
             comment=comment,
             skipfooter=skipfooter,
+            use_nullable_dtypes=use_nullable_dtypes,
         )
     finally:
         # make sure to close opened file handles
@@ -690,6 +701,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         decimal: str = ".",
         comment: str | None = None,
         skipfooter: int = 0,
+        use_nullable_dtypes: bool = False,
         **kwds,
     ):
 
@@ -848,6 +860,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     comment=comment,
                     skipfooter=skipfooter,
                     usecols=usecols,
+                    use_nullable_dtypes=use_nullable_dtypes,
                     **kwds,
                 )
 
@@ -1680,6 +1693,7 @@ class ExcelFile:
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,
+        use_nullable_dtypes: bool = False,
         **kwds,
     ) -> DataFrame | dict[str, DataFrame] | dict[int, DataFrame]:
         """
@@ -1711,6 +1725,7 @@ class ExcelFile:
             thousands=thousands,
             comment=comment,
             skipfooter=skipfooter,
+            use_nullable_dtypes=use_nullable_dtypes,
             **kwds,
         )
 
