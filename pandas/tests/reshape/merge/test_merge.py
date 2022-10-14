@@ -753,7 +753,11 @@ class TestMerge:
 
         dtype = f"m8[{unit}]"
         df2 = s.astype(dtype).to_frame("days")
-        assert df2["days"].dtype == "m8[ns]"
+        if unit in ["D", "h", "m"]:
+            # We get nearest supported unit, i.e. "s"
+            assert df2["days"].dtype == "m8[s]"
+        else:
+            assert df2["days"].dtype == dtype
 
         result = df1.merge(df2, left_on="entity_id", right_index=True)
 

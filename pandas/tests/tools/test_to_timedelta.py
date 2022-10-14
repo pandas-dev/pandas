@@ -68,15 +68,16 @@ class TestTimedeltas:
         # arrays of various dtypes
         arr = np.array([1] * 5, dtype=dtype)
         result = to_timedelta(arr, unit=unit)
-        expected = TimedeltaIndex([np.timedelta64(1, unit)] * 5)
+        exp_dtype = "m8[ns]" if dtype == "int64" else "m8[s]"
+        expected = TimedeltaIndex([np.timedelta64(1, unit)] * 5, dtype=exp_dtype)
         tm.assert_index_equal(result, expected)
 
     def test_to_timedelta_oob_non_nano(self):
-        arr = np.array([pd.NaT.value + 1], dtype="timedelta64[s]")
+        arr = np.array([pd.NaT.value + 1], dtype="timedelta64[m]")
 
         msg = (
-            "Cannot convert -9223372036854775807 seconds to "
-            r"timedelta64\[ns\] without overflow"
+            "Cannot convert -9223372036854775807 minutes to "
+            r"timedelta64\[s\] without overflow"
         )
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             to_timedelta(arr)

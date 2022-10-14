@@ -20,9 +20,11 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
     astype_overflowsafe,
+    get_supported_reso,
     get_unit_from_dtype,
     iNaT,
     is_supported_unit,
+    npy_unit_to_abbrev,
     periods_per_second,
     to_offset,
 )
@@ -197,14 +199,15 @@ class TimedeltaArray(dtl.TimelikeOps):
         return result
 
     @classmethod
-    def _from_sequence(
-        cls, data, *, dtype=TD64NS_DTYPE, copy: bool = False
-    ) -> TimedeltaArray:
+    def _from_sequence(cls, data, *, dtype=None, copy: bool = False) -> TimedeltaArray:
         if dtype:
-            _validate_td64_dtype(dtype)
+            dtype = _validate_td64_dtype(dtype)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=None)
         freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)
+
+        if dtype is not None:
+            data = astype_overflowsafe(data, dtype=dtype, copy=False)
 
         return cls._simple_new(data, dtype=data.dtype, freq=freq)
 
@@ -212,13 +215,13 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _from_sequence_not_strict(
         cls,
         data,
-        dtype=TD64NS_DTYPE,
+        dtype=None,
         copy: bool = False,
         freq=lib.no_default,
         unit=None,
     ) -> TimedeltaArray:
         if dtype:
-            _validate_td64_dtype(dtype)
+            dtype = _validate_td64_dtype(dtype)
 
         assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
 
@@ -231,6 +234,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
         if explicit_none:
             freq = None
+
+        if dtype is not None:
+            data = astype_overflowsafe(data, dtype=dtype, copy=False)
 
         result = cls._simple_new(data, dtype=data.dtype, freq=freq)
 
@@ -944,9 +950,13 @@ def sequence_to_td64ns(
         copy = False
 
     elif is_timedelta64_dtype(data.dtype):
-        if data.dtype != TD64NS_DTYPE:
-            # non-nano unit
-            data = astype_overflowsafe(data, dtype=TD64NS_DTYPE)
+        data_unit = get_unit_from_dtype(data.dtype)
+        if not is_supported_unit(data_unit):
+            # cast to closest supported unit, i.e. s or ns
+            new_reso = get_supported_reso(data_unit)
+            new_unit = npy_unit_to_abbrev(new_reso)
+            new_dtype = np.dtype(f"m8[{new_unit}]")
+            data = astype_overflowsafe(data, dtype=new_dtype, copy=False)
             copy = False
 
     else:
@@ -955,7 +965,9 @@ def sequence_to_td64ns(
 
     data = np.array(data, copy=copy)
 
-    assert data.dtype == "m8[ns]", data
+    assert data.dtype.kind == "m"
+    assert data.dtype != "m8"  # i.e. not unit-less
+
     return data, inferred_freq
 
 
@@ -1045,7 +1057,11 @@ def _validate_td64_dtype(dtype) -> DtypeObj:
         )
         raise ValueError(msg)
 
-    if not is_dtype_equal(dtype, TD64NS_DTYPE):
+    if (
+        not isinstance(dtype, np.dtype)
+        or dtype.kind != "m"
+        or not is_supported_unit(get_unit_from_dtype(dtype))
+    ):
         raise ValueError(f"dtype {dtype} cannot be converted to timedelta64[ns]")
 
     return dtype

@@ -248,9 +248,13 @@ class TestTimedeltaIndex:
             pd.Index(["2000"], dtype="timedelta64")
 
     def test_constructor_wrong_precision_raises(self):
-        msg = r"dtype timedelta64\[us\] cannot be converted to timedelta64\[ns\]"
+        msg = r"dtype timedelta64\[D\] cannot be converted to timedelta64\[ns\]"
         with pytest.raises(ValueError, match=msg):
-            TimedeltaIndex(["2000"], dtype="timedelta64[us]")
+            TimedeltaIndex(["2000"], dtype="timedelta64[D]")
+
+        # "timedelta64[us]" was unsupported pre-2.0, but now this works.
+        tdi = TimedeltaIndex(["2000"], dtype="timedelta64[us]")
+        assert tdi.dtype == "m8[us]"
 
     def test_explicit_none_freq(self):
         # Explicitly passing freq=None is respected

@@ -572,8 +572,10 @@ class TestTimedeltas:
         # validate all units, GH 6855, GH 21762
         # array-likes
         expected = TimedeltaIndex(
-            [np.timedelta64(i, np_unit) for i in np.arange(5).tolist()]
+            [np.timedelta64(i, np_unit) for i in np.arange(5).tolist()],
+            dtype="m8[ns]",
         )
+        # TODO(2.0): the desired output dtype may have non-nano resolution
         result = to_timedelta(wrapper(range(5)), unit=unit)
         tm.assert_index_equal(result, expected)
         result = TimedeltaIndex(wrapper(range(5)), unit=unit)
