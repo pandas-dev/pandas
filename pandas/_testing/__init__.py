@@ -197,7 +197,7 @@ if not pa_version_under1p01:
     import pyarrow as pa
 
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
-    SIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.int16(), pa.int32(), pa.uint64()]
+    SIGNED_INT_PYARROW_DTYPES = [pa.int8(), pa.int16(), pa.int32(), pa.int64()]
     ALL_INT_PYARROW_DTYPES = UNSIGNED_INT_PYARROW_DTYPES + SIGNED_INT_PYARROW_DTYPES
 
     FLOAT_PYARROW_DTYPES = [pa.float32(), pa.float64()]
