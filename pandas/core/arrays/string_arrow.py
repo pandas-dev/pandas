@@ -17,10 +17,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat import (
-    pa_version_under1p01,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
+    pa_version_under5p0,
 )
 
 from pandas.core.dtypes.common import (
@@ -44,7 +44,7 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-if not pa_version_under1p01:
+if not pa_version_under5p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -54,8 +54,8 @@ ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
 def _chk_pyarrow_available() -> None:
-    if pa_version_under1p01:
-        msg = "pyarrow>=1.0.0 is required for PyArrow backed ArrowExtensionArray."
+    if pa_version_under5p0:
+        msg = "pyarrow>=5.0.0 is required for PyArrow backed ArrowExtensionArray."
         raise ImportError(msg)
 
 
