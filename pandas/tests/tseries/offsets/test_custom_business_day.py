@@ -31,8 +31,6 @@ def offset2():
 
 
 class TestCustomBusinessDay:
-    _offset = CDay
-
     def test_repr(self, offset, offset2):
         assert repr(offset) == "<CustomBusinessDay>"
         assert repr(offset2) == "<2 * CustomBusinessDays>"

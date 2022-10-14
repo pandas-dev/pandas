@@ -19,7 +19,6 @@ from pandas._libs.tslibs.offsets import (
     CBMonthBegin,
     CBMonthEnd,
     CDay,
-    _CustomBusinessMonth,
 )
 
 from pandas import (
@@ -27,7 +26,6 @@ from pandas import (
     date_range,
 )
 from pandas.tests.tseries.offsets.common import (
-    Base,
     assert_is_on_offset,
     assert_offset_equal,
 )
@@ -42,50 +40,59 @@ def d():
     return datetime(2008, 1, 1)
 
 
-class CustomBusinessMonthBase:
-    def setup_method(self):
-        self.offset = self._offset()
-        self.offset1 = self.offset
-        self.offset2 = self._offset(2)
+class TestCommonCBM:
+    @pytest.mark.parametrize("offset2", [CBMonthBegin(2), CBMonthEnd(2)])
+    def test_eq(self, offset2):
+        assert offset2 == offset2
 
-    def test_eq(self):
-        assert self.offset2 == self.offset2
+    @pytest.mark.parametrize("offset2", [CBMonthBegin(2), CBMonthEnd(2)])
+    def test_hash(self, offset2):
+        assert hash(offset2) == hash(offset2)
 
-    def test_hash(self):
-        assert hash(self.offset2) == hash(self.offset2)
-
-    def test_roundtrip_pickle(self):
+    @pytest.mark.parametrize("_offset", [CBMonthBegin, CBMonthEnd])
+    def test_roundtrip_pickle(self, _offset):
         def _check_roundtrip(obj):
             unpickled = tm.round_trip_pickle(obj)
             assert unpickled == obj
 
-        _check_roundtrip(self._offset())
-        _check_roundtrip(self._offset(2))
-        _check_roundtrip(self._offset() * 2)
+        _check_roundtrip(_offset())
+        _check_roundtrip(_offset(2))
+        _check_roundtrip(_offset() * 2)
 
-    def test_copy(self):
+    @pytest.mark.parametrize("_offset", [CBMonthBegin, CBMonthEnd])
+    def test_copy(self, _offset):
         # GH 17452
-        off = self._offset(weekmask="Mon Wed Fri")
+        off = _offset(weekmask="Mon Wed Fri")
         assert off == off.copy()
 
 
-class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
-    _offset: type[_CustomBusinessMonth] = CBMonthBegin
+class TestCustomBusinessMonthBegin:
+    @pytest.fixture
+    def _offset(self):
+        return CBMonthBegin
 
-    def test_different_normalize_equals(self):
+    @pytest.fixture
+    def offset(self):
+        return CBMonthBegin()
+
+    @pytest.fixture
+    def offset2(self):
+        return CBMonthBegin(2)
+
+    def test_different_normalize_equals(self, _offset):
         # GH#21404 changed __eq__ to return False when `normalize` does not match
-        offset = self._offset()
-        offset2 = self._offset(normalize=True)
+        offset = _offset()
+        offset2 = _offset(normalize=True)
         assert offset != offset2
 
-    def test_repr(self):
-        assert repr(self.offset) == "<CustomBusinessMonthBegin>"
-        assert repr(self.offset2) == "<2 * CustomBusinessMonthBegins>"
+    def test_repr(self, offset, offset2):
+        assert repr(offset) == "<CustomBusinessMonthBegin>"
+        assert repr(offset2) == "<2 * CustomBusinessMonthBegins>"
 
-    def test_call(self, d):
+    def test_call(self, d, offset2):
         with tm.assert_produces_warning(FutureWarning):
             # GH#34171 DateOffset.__call__ is deprecated
-            assert self.offset2(d) == datetime(2008, 3, 3)
+            assert offset2(d) == datetime(2008, 3, 3)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
@@ -259,23 +266,33 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
             assert_offset_equal(offset, base, expected)
 
 
-class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
-    _offset: type[_CustomBusinessMonth] = CBMonthEnd
+class TestCustomBusinessMonthEnd:
+    @pytest.fixture
+    def _offset(self):
+        return CBMonthEnd
 
-    def test_different_normalize_equals(self):
+    @pytest.fixture
+    def offset(self):
+        return CBMonthEnd()
+
+    @pytest.fixture
+    def offset2(self):
+        return CBMonthEnd(2)
+
+    def test_different_normalize_equals(self, _offset):
         # GH#21404 changed __eq__ to return False when `normalize` does not match
-        offset = self._offset()
-        offset2 = self._offset(normalize=True)
+        offset = _offset()
+        offset2 = _offset(normalize=True)
         assert offset != offset2
 
-    def test_repr(self):
-        assert repr(self.offset) == "<CustomBusinessMonthEnd>"
-        assert repr(self.offset2) == "<2 * CustomBusinessMonthEnds>"
+    def test_repr(self, offset, offset2):
+        assert repr(offset) == "<CustomBusinessMonthEnd>"
+        assert repr(offset2) == "<2 * CustomBusinessMonthEnds>"
 
-    def test_call(self, d):
+    def test_call(self, d, offset2):
         with tm.assert_produces_warning(FutureWarning):
             # GH#34171 DateOffset.__call__ is deprecated
-            assert self.offset2(d) == datetime(2008, 2, 29)
+            assert offset2(d) == datetime(2008, 2, 29)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
