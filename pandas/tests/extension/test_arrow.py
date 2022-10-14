@@ -23,7 +23,6 @@ import pytest
 from pandas.compat import (
     is_ci_environment,
     is_platform_windows,
-    pa_version_under4p0,
     pa_version_under5p0,
     pa_version_under6p0,
     pa_version_under7p0,
@@ -1164,11 +1163,6 @@ def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
         ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
 
 
-@pytest.mark.xfail(
-    pa_version_under4p0,
-    raises=NotImplementedError,
-    reason="quantile only supported for pyarrow version >= 4.0",
-)
 @pytest.mark.parametrize(
     "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
 )

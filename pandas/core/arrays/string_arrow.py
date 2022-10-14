@@ -16,10 +16,7 @@ from pandas._typing import (
     Scalar,
     npt,
 )
-from pandas.compat import (
-    pa_version_under4p0,
-    pa_version_under5p0,
-)
+from pandas.compat import pa_version_under5p0
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -304,8 +301,8 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             return super()._str_contains(pat, case, flags, na, regex)
 
         if regex:
-            if pa_version_under4p0 or case is False:
-                fallback_performancewarning(version="4")
+            if case is False:
+                fallback_performancewarning()
                 return super()._str_contains(pat, case, flags, na, regex)
             else:
                 result = pc.match_substring_regex(self._data, pat)
@@ -320,18 +317,10 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         return result
 
     def _str_startswith(self, pat: str, na=None):
-        if pa_version_under4p0:
-            fallback_performancewarning(version="4")
-            return super()._str_startswith(pat, na)
-
         pat = "^" + re.escape(pat)
         return self._str_contains(pat, na=na, regex=True)
 
     def _str_endswith(self, pat: str, na=None):
-        if pa_version_under4p0:
-            fallback_performancewarning(version="4")
-            return super()._str_endswith(pat, na)
-
         pat = re.escape(pat) + "$"
         return self._str_contains(pat, na=na, regex=True)
 
@@ -344,14 +333,8 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         flags: int = 0,
         regex: bool = True,
     ):
-        if (
-            pa_version_under4p0
-            or isinstance(pat, re.Pattern)
-            or callable(repl)
-            or not case
-            or flags
-        ):
-            fallback_performancewarning(version="4")
+        if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
+            fallback_performancewarning()
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
@@ -361,10 +344,6 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
     def _str_match(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
-        if pa_version_under4p0:
-            fallback_performancewarning(version="4")
-            return super()._str_match(pat, case, flags, na)
-
         if not pat.startswith("^"):
             pat = "^" + pat
         return self._str_contains(pat, case, flags, na, regex=True)
@@ -372,10 +351,6 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
     def _str_fullmatch(
         self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
-        if pa_version_under4p0:
-            fallback_performancewarning(version="4")
-            return super()._str_fullmatch(pat, case, flags, na)
-
         if not pat.endswith("$") or pat.endswith("//$"):
             pat = pat + "$"
         return self._str_match(pat, case, flags, na)
@@ -417,10 +392,6 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         return BooleanDtype().__from_arrow__(result)
 
     def _str_len(self):
-        if pa_version_under4p0:
-            fallback_performancewarning(version="4")
-            return super()._str_len()
-
         result = pc.utf8_length(self._data)
         return Int64Dtype().__from_arrow__(result)
 
@@ -431,10 +402,6 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         return type(self)(pc.utf8_upper(self._data))
 
     def _str_strip(self, to_strip=None):
-        if pa_version_under4p0:
-            fallback_performancewarning(version="4")
-            return super()._str_strip(to_strip)
-
         if to_strip is None:
             result = pc.utf8_trim_whitespace(self._data)
         else:
@@ -442,10 +409,6 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         return type(self)(result)
 
     def _str_lstrip(self, to_strip=None):
-        if pa_version_under4p0:
-            fallback_performancewarning(version="4")
-            return super()._str_lstrip(to_strip)
-
         if to_strip is None:
             result = pc.utf8_ltrim_whitespace(self._data)
         else:
@@ -453,10 +416,6 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         return type(self)(result)
 
     def _str_rstrip(self, to_strip=None):
-        if pa_version_under4p0:
-            fallback_performancewarning(version="4")
-            return super()._str_rstrip(to_strip)
-
         if to_strip is None:
             result = pc.utf8_rtrim_whitespace(self._data)
         else:

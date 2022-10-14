@@ -17,7 +17,6 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat import (
-    pa_version_under4p0,
     pa_version_under5p0,
     pa_version_under6p0,
     pa_version_under7p0,
@@ -107,10 +106,8 @@ if not pa_version_under5p0:
         "rmod": NotImplemented,
         "divmod": NotImplemented,
         "rdivmod": NotImplemented,
-        "pow": NotImplemented if pa_version_under4p0 else pc.power_checked,
-        "rpow": NotImplemented
-        if pa_version_under4p0
-        else lambda x, y: pc.power_checked(y, x),
+        "pow": pc.power_checked,
+        "rpow": lambda x, y: pc.power_checked(y, x),
     }
 
 if TYPE_CHECKING:
@@ -549,11 +546,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         use_na_sentinel: bool | lib.NoDefault = lib.no_default,
     ) -> tuple[np.ndarray, ExtensionArray]:
         resolved_na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
-        if pa_version_under4p0:
-            encoded = self._data.dictionary_encode()
-        else:
-            null_encoding = "mask" if resolved_na_sentinel is not None else "encode"
-            encoded = self._data.dictionary_encode(null_encoding=null_encoding)
+        null_encoding = "mask" if resolved_na_sentinel is not None else "encode"
+        encoded = self._data.dictionary_encode(null_encoding=null_encoding)
         indices = pa.chunked_array(
             [c.indices for c in encoded.chunks], type=encoded.type.index_type
         ).to_pandas()
@@ -565,16 +559,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         if encoded.num_chunks:
             uniques = type(self)(encoded.chunk(0).dictionary)
-            if resolved_na_sentinel is None and pa_version_under4p0:
-                # TODO: share logic with BaseMaskedArray.factorize
-                # Insert na with the proper code
-                na_mask = indices.values == -1
-                na_index = na_mask.argmax()
-                if na_mask[na_index]:
-                    na_code = 0 if na_index == 0 else indices[:na_index].max() + 1
-                    uniques = uniques.insert(na_code, self.dtype.na_value)
-                    indices[indices >= na_code] += 1
-                    indices[indices == -1] = na_code
         else:
             uniques = type(self)(pa.array([], type=encoded.type.value_type))
 
@@ -905,10 +889,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         same type as self
         """
-        if pa_version_under4p0:
-            raise NotImplementedError(
-                "quantile only supported for pyarrow version >= 4.0"
-            )
         result = pc.quantile(self._data, q=qs, interpolation=interpolation)
         return type(self)(result)
 
