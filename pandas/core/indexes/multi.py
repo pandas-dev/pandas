@@ -723,13 +723,14 @@ class MultiIndex(Index):
                 vals = cast("CategoricalIndex", vals)
                 vals = vals._data._internal_get_values()
 
-            if isinstance(vals, ABCDatetimeIndex):
+            is_dti = isinstance(vals, ABCDatetimeIndex)
+
+            if is_dti:
                 # TODO: this can be removed after Timestamp.freq is removed
                 # The astype(object) below does not remove the freq from
                 # the underlying Timestamps so we remove it here to match
                 # the behavior of self._get_level_values
-                vals = vals.copy()
-                vals.freq = None
+                vals = algos.take_nd(vals, codes, fill_value=index._na_value)
 
             if isinstance(vals.dtype, ExtensionDtype) or isinstance(
                 vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
@@ -737,7 +738,8 @@ class MultiIndex(Index):
                 vals = vals.astype(object)
 
             vals = np.array(vals, copy=False)
-            vals = algos.take_nd(vals, codes, fill_value=index._na_value)
+            if not is_dti:
+                vals = algos.take_nd(vals, codes, fill_value=index._na_value)
             values.append(vals)
 
         arr = lib.fast_zip(values)
