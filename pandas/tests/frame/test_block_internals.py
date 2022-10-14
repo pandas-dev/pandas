@@ -215,14 +215,15 @@ class TestDataFrameBlockInternals:
 
     def test_construction_with_conversions(self):
 
-        # convert from a numpy array of non-ns timedelta64
+        # convert from a numpy array of non-ns timedelta64; as of 2.0 this does
+        #  *not* convert
         arr = np.array([1, 2, 3], dtype="timedelta64[s]")
         df = DataFrame(index=range(3))
         df["A"] = arr
         expected = DataFrame(
             {"A": pd.timedelta_range("00:00:01", periods=3, freq="s")}, index=range(3)
         )
-        tm.assert_frame_equal(df, expected)
+        tm.assert_numpy_array_equal(df["A"].to_numpy(), arr)
 
         expected = DataFrame(
             {

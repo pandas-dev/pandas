@@ -10,7 +10,6 @@ from datetime import (
     timedelta,
 )
 import functools
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -32,6 +31,10 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
+    get_supported_reso,
+    get_unit_from_dtype,
+    is_supported_unit,
+    npy_unit_to_abbrev,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
@@ -634,7 +637,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
                     "dtype is deprecated. In a future version, this will be cast "
                     "to object dtype. Pass `fill_value=Timestamp(date_obj)` instead.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 return dtype, fv
         elif isinstance(fill_value, str):
@@ -1305,7 +1308,7 @@ def maybe_infer_to_datetimelike(
             "and will be removed in a future version. To retain the old behavior "
             f"explicitly pass Series(data, dtype={value.dtype})",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
     return value
 
@@ -1364,7 +1367,7 @@ def maybe_cast_to_datetime(
                                 "`pd.Series(values).dt.tz_localize(None)` "
                                 "instead.",
                                 FutureWarning,
-                                stacklevel=find_stack_level(inspect.currentframe()),
+                                stacklevel=find_stack_level(),
                             )
                             # equiv: dta.view(dtype)
                             # Note: NOT equivalent to dta.astype(dtype)
@@ -1407,7 +1410,7 @@ def maybe_cast_to_datetime(
                                     ".tz_localize('UTC').tz_convert(dtype.tz) "
                                     "or pd.Series(data.view('int64'), dtype=dtype)",
                                     FutureWarning,
-                                    stacklevel=find_stack_level(inspect.currentframe()),
+                                    stacklevel=find_stack_level(),
                                 )
 
                             value = dta.tz_localize("UTC").tz_convert(dtype.tz)
@@ -1460,8 +1463,11 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     """
     Convert dtypes with granularity less than nanosecond to nanosecond
 
-    >>> _ensure_nanosecond_dtype(np.dtype("M8[s]"))
-    dtype('<M8[ns]')
+    >>> _ensure_nanosecond_dtype(np.dtype("M8[D]"))
+    dtype('<M8[s]')
+
+    >>> _ensure_nanosecond_dtype(np.dtype("M8[us]"))
+    dtype('<M8[us]')
 
     >>> _ensure_nanosecond_dtype(np.dtype("m8[ps]"))
     Traceback (most recent call last):
@@ -1480,13 +1486,15 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
         # i.e. datetime64tz
         pass
 
-    elif dtype.kind == "M" and dtype != DT64NS_DTYPE:
+    elif dtype.kind == "M" and not is_supported_unit(get_unit_from_dtype(dtype)):
         # pandas supports dtype whose granularity is less than [ns]
         # e.g., [ps], [fs], [as]
         if dtype <= np.dtype("M8[ns]"):
             if dtype.name == "datetime64":
                 raise ValueError(msg)
-            dtype = DT64NS_DTYPE
+            reso = get_supported_reso(get_unit_from_dtype(dtype))
+            unit = npy_unit_to_abbrev(reso)
+            dtype = np.dtype(f"M8[{unit}]")
         else:
             raise TypeError(f"cannot convert datetimelike to dtype [{dtype}]")
 
@@ -1496,7 +1504,9 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
         if dtype <= np.dtype("m8[ns]"):
             if dtype.name == "timedelta64":
                 raise ValueError(msg)
-            dtype = TD64NS_DTYPE
+            reso = get_supported_reso(get_unit_from_dtype(dtype))
+            unit = npy_unit_to_abbrev(reso)
+            dtype = np.dtype(f"m8[{unit}]")
         else:
             raise TypeError(f"cannot convert timedeltalike to dtype [{dtype}]")
     return dtype
@@ -1771,7 +1781,7 @@ def _maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
                 "`pd.Series(values).dt.tz_localize(None)` "
                 "instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             new_value = value.tz_localize(None)
             return _maybe_unbox_datetimelike(new_value, dtype)
@@ -1896,7 +1906,7 @@ def maybe_cast_to_integer_array(
             "In a future version this will raise OverflowError. To retain the "
             f"old behavior, use pd.Series(values).astype({dtype})",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return casted
 
@@ -1907,7 +1917,7 @@ def maybe_cast_to_integer_array(
             f"dtype={dtype} is deprecated and will raise in a future version. "
             "Use values.view(dtype) instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return casted
 

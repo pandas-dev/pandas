@@ -6,7 +6,6 @@ from datetime import (
     timedelta,
     tzinfo,
 )
-import inspect
 from typing import (
     TYPE_CHECKING,
     Iterator,
@@ -407,7 +406,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             raise ValueError("Neither `start` nor `end` can be NaT")
 
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
-        start, end, _normalized = _maybe_normalize_endpoints(start, end, normalize)
+        start, end = _maybe_normalize_endpoints(start, end, normalize)
         tz = _infer_tz_from_endpoints(start, end, tz)
 
         if tz is not None:
@@ -515,7 +514,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     "timezone. To retain the old behavior, explicitly cast to "
                     "object dtype before the operation.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 raise ValueError(f"Timezones don't match. '{self.tz}' != '{other.tz}'")
 
@@ -682,7 +681,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 "Passing unit-less datetime64 dtype to .astype is deprecated "
                 "and will raise in a future version. Pass 'datetime64[ns]' instead",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             # unit conversion e.g. datetime64[s]
             return self._ndarray.astype(dtype)
@@ -759,7 +758,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             warnings.warn(
                 "Non-vectorized DateOffset being applied to Series or DatetimeIndex.",
                 PerformanceWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             result = self.astype("O") + offset
             result = type(self)._from_sequence(result)
@@ -1162,7 +1161,7 @@ default 'raise'
                 "Converting to PeriodArray/Index representation "
                 "will drop timezone information.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if freq is None:
@@ -1204,7 +1203,7 @@ default 'raise'
             "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead.",
             FutureWarning,
             # stacklevel chosen to be correct for when called from DatetimeIndex
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         from pandas.core.arrays.timedeltas import TimedeltaArray
 
@@ -1406,7 +1405,7 @@ default 'raise'
             "weekofyear and return an Index, you may call "
             "pd.Int64Index(idx.isocalendar().week)",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         week_series = self.isocalendar().week
         if week_series.hasnans:
@@ -2302,7 +2301,7 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
                 "before passing the data to pandas. To get the future behavior, "
                 "first cast to 'int64'.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
     elif is_timedelta64_dtype(data.dtype) or is_bool_dtype(data.dtype):
@@ -2510,23 +2509,15 @@ def _infer_tz_from_endpoints(
 def _maybe_normalize_endpoints(
     start: Timestamp | None, end: Timestamp | None, normalize: bool
 ):
-    _normalized = True
 
-    if start is not None:
-        if normalize:
+    if normalize:
+        if start is not None:
             start = start.normalize()
-            _normalized = True
-        else:
-            _normalized = _normalized and start.time() == _midnight
 
-    if end is not None:
-        if normalize:
+        if end is not None:
             end = end.normalize()
-            _normalized = True
-        else:
-            _normalized = _normalized and end.time() == _midnight
 
-    return start, end, _normalized
+    return start, end
 
 
 def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous, nonexistent):

@@ -6,7 +6,6 @@ construction requirements, we need to do object instantiation in python
 (see Timestamp class below). This will serve as a C extension type that
 shadows the python class, where we do any heavy lifting.
 """
-import inspect
 import warnings
 
 cimport cython
@@ -251,7 +250,7 @@ cdef class _Timestamp(ABCTimestamp):
         warnings.warn(
             "Timestamp.freq is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self._freq
 
@@ -280,7 +279,7 @@ cdef class _Timestamp(ABCTimestamp):
             )
 
         obj.value = value
-        obj.reso = reso
+        obj.creso = reso
         pandas_datetime_to_datetimestruct(value, reso, &obj.dts)
         maybe_localize_tso(obj, tz, reso)
 
@@ -371,7 +370,7 @@ cdef class _Timestamp(ABCTimestamp):
                 "In a future version these will be considered non-comparable. "
                 "Use 'ts == pd.Timestamp(date)' or 'ts.date() == date' instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             return NotImplemented
         else:
@@ -437,9 +436,9 @@ cdef class _Timestamp(ABCTimestamp):
             # Matching numpy, we cast to the higher resolution. Unlike numpy,
             #  we raise instead of silently overflowing during this casting.
             if self._reso < other._reso:
-                self = (<_Timestamp>self)._as_reso(other._reso, round_ok=True)
+                self = (<_Timestamp>self)._as_creso(other._reso, round_ok=True)
             elif self._reso > other._reso:
-                other = (<_Timedelta>other)._as_reso(self._reso, round_ok=True)
+                other = (<_Timedelta>other)._as_creso(self._reso, round_ok=True)
 
             nanos = other.value
 
@@ -526,9 +525,9 @@ cdef class _Timestamp(ABCTimestamp):
             # Matching numpy, we cast to the higher resolution. Unlike numpy,
             #  we raise instead of silently overflowing during this casting.
             if self._reso < other._reso:
-                self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
+                self = (<_Timestamp>self)._as_creso(other._reso, round_ok=False)
             elif self._reso > other._reso:
-                other = (<_Timestamp>other)._as_reso(self._reso, round_ok=False)
+                other = (<_Timestamp>other)._as_creso(self._reso, round_ok=False)
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
@@ -626,7 +625,7 @@ cdef class _Timestamp(ABCTimestamp):
                     "version. When you have a freq, use "
                     f"freq.{field}(timestamp) instead.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
     @property
@@ -1063,7 +1062,7 @@ cdef class _Timestamp(ABCTimestamp):
     # Conversion Methods
 
     @cython.cdivision(False)
-    cdef _Timestamp _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
+    cdef _Timestamp _as_creso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
         cdef:
             int64_t value
 
@@ -1077,7 +1076,7 @@ cdef class _Timestamp(ABCTimestamp):
         dtype = np.dtype(f"M8[{unit}]")
         reso = get_unit_from_dtype(dtype)
         try:
-            return self._as_reso(reso, round_ok=round_ok)
+            return self._as_creso(reso, round_ok=round_ok)
         except OverflowError as err:
             raise OutOfBoundsDatetime(
                 f"Cannot cast {self} to unit='{unit}' without overflow."
@@ -1132,7 +1131,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         if self.nanosecond != 0 and warn:
             warnings.warn("Discarding nonzero nanoseconds in conversion.",
-                          UserWarning, stacklevel=find_stack_level(inspect.currentframe()))
+                          UserWarning, stacklevel=find_stack_level())
 
         return datetime(self.year, self.month, self.day,
                         self.hour, self.minute, self.second,
@@ -1211,7 +1210,7 @@ cdef class _Timestamp(ABCTimestamp):
             warnings.warn(
                 "Converting to Period representation will drop timezone information.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if freq is None:
@@ -1220,7 +1219,7 @@ cdef class _Timestamp(ABCTimestamp):
                 "In a future version, calling 'Timestamp.to_period()' without "
                 "passing a 'freq' will raise an exception.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         return Period(self, freq=freq)
@@ -1412,7 +1411,7 @@ class Timestamp(_Timestamp):
             "Timestamp.utcfromtimestamp(ts).tz_localize(None). "
             "To get the future behavior, use Timestamp.fromtimestamp(ts, 'UTC')",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return cls(datetime.utcfromtimestamp(ts))
 
@@ -1648,7 +1647,7 @@ class Timestamp(_Timestamp):
                 "as a wall time, not a UTC time.  To interpret as a UTC time, "
                 "use `Timestamp(dt64).tz_localize('UTC').tz_convert(tz)`",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             # Once this deprecation is enforced, we can do
             #  return Timestamp(ts_input).tz_localize(tzobj)
@@ -1671,12 +1670,12 @@ class Timestamp(_Timestamp):
                 "The 'freq' argument in Timestamp is deprecated and will be "
                 "removed in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             if not is_offset_object(freq):
                 freq = to_offset(freq)
 
-        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold, ts.reso)
+        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold, ts.creso)
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         cdef:
@@ -2007,7 +2006,7 @@ timedelta}, default 'raise'
         warnings.warn(
             "Timestamp.freqstr is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self._freqstr
 
