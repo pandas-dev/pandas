@@ -100,24 +100,24 @@ class TestHashTable:
         assert index in table
         assert table.get_item(index) == 42
         with pytest.raises(KeyError, match="NA"):
-            table.get_item(0, na_value=True)
+            table.get_na()
 
         table.set_item(index + 1, 41)
-        table.set_item(0, 41, na_value=True)
+        table.set_na(41)
         assert pd.NA in table
         assert index in table
         assert index + 1 in table
         assert len(table) == 3
         assert table.get_item(index) == 42
         assert table.get_item(index + 1) == 41
-        assert table.get_item(1, na_value=True) == 41
+        assert table.get_na() == 41
 
-        table.set_item(0, 21, na_value=True)
+        table.set_na(21)
         assert index in table
         assert index + 1 in table
         assert len(table) == 3
         assert table.get_item(index + 1) == 41
-        assert table.get_item(1, na_value=True) == 21
+        assert table.get_na() == 21
         assert index + 2 not in table
 
         with pytest.raises(KeyError, match=str(index + 2)):
@@ -159,7 +159,7 @@ class TestHashTable:
         with pytest.raises(KeyError, match=re.escape(str(keys[N - 1]))):
             table.get_item(keys[N - 1])
 
-        assert table.get_item(keys[N - 1], na_value=True) == 2
+        assert table.get_na() == 2
 
     def test_lookup(self, table_type, dtype, writable):
         N = 3

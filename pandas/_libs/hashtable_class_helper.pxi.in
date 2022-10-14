@@ -443,15 +443,13 @@ cdef class {{name}}HashTable(HashTable):
             'upper_bound' : self.table.upper_bound,
         }
 
-    cpdef get_item(self, {{dtype}}_t val, bint na_value = False):
-        """Extracts the position of val or na_value from the hashtable.
+    cpdef get_item(self, {{dtype}}_t val):
+        """Extracts the position of val from the hashtable.
 
         Parameters
         ----------
         val : Scalar
             The value that is looked up in the hashtable
-        na_value : bool, default False
-            Returns posiition of the NA value if using masked dtypes.
 
         Returns
         -------
@@ -464,14 +462,6 @@ cdef class {{name}}HashTable(HashTable):
             khiter_t k
             {{c_type}} cval
 
-        if not self.uses_mask and na_value:
-            raise NotImplementedError
-
-        if na_value:
-            if self.na_position == -1:
-                raise KeyError("NA")
-            return self.na_position
-
         cval = {{to_c_type}}(val)
         k = kh_get_{{dtype}}(self.table, cval)
         if k != self.table.n_buckets:
@@ -479,7 +469,22 @@ cdef class {{name}}HashTable(HashTable):
         else:
             raise KeyError(val)
 
-    cpdef set_item(self, {{dtype}}_t key, Py_ssize_t val, bint na_value = False):
+    cpdef get_na(self):
+        """Extracts the position of na_value from the hashtable.
+
+        Returns
+        -------
+        The position of the last na value.
+        """
+
+        if not self.uses_mask:
+            raise NotImplementedError
+
+        if self.na_position == -1:
+            raise KeyError("NA")
+        return self.na_position
+
+    cpdef set_item(self, {{dtype}}_t key, Py_ssize_t val):
         # Used in libjoin
         # Caller is responsible for checking for pd.NA
         cdef:
@@ -487,19 +492,24 @@ cdef class {{name}}HashTable(HashTable):
             int ret = 0
             {{c_type}} ckey
 
-        if na_value and not self.uses_mask:
+        ckey = {{to_c_type}}(key)
+        k = kh_put_{{dtype}}(self.table, ckey, &ret)
+        if kh_exist_{{dtype}}(self.table, k):
+            self.table.vals[k] = val
+        else:
+            raise KeyError(key)
+
+    cpdef set_na(self, Py_ssize_t val):
+        # Caller is responsible for checking for pd.NA
+        cdef:
+            khiter_t k
+            int ret = 0
+            {{c_type}} ckey
+
+        if not self.uses_mask:
             raise NotImplementedError
 
-        if na_value:
-            self.na_position = val
-
-        else:
-            ckey = {{to_c_type}}(key)
-            k = kh_put_{{dtype}}(self.table, ckey, &ret)
-            if kh_exist_{{dtype}}(self.table, k):
-                self.table.vals[k] = val
-            else:
-                raise KeyError(key)
+        self.na_position = val
 
     {{if dtype == "int64" }}
     # We only use this for int64, can reduce build size and make .pyi
