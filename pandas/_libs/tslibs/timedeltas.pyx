@@ -793,9 +793,9 @@ def _binary_op_method_timedeltalike(op, name):
         # Matching numpy, we cast to the higher resolution. Unlike numpy,
         #  we raise instead of silently overflowing during this casting.
         if self._reso < other._reso:
-            self = (<_Timedelta>self)._as_reso(other._reso, round_ok=True)
+            self = (<_Timedelta>self)._as_creso(other._reso, round_ok=True)
         elif self._reso > other._reso:
-            other = (<_Timedelta>other)._as_reso(self._reso, round_ok=True)
+            other = (<_Timedelta>other)._as_creso(self._reso, round_ok=True)
 
         res = op(self.value, other.value)
         if res == NPY_NAT:
@@ -1541,10 +1541,10 @@ cdef class _Timedelta(timedelta):
     def _as_unit(self, str unit, bint round_ok=True):
         dtype = np.dtype(f"m8[{unit}]")
         reso = get_unit_from_dtype(dtype)
-        return self._as_reso(reso, round_ok=round_ok)
+        return self._as_creso(reso, round_ok=round_ok)
 
     @cython.cdivision(False)
-    cdef _Timedelta _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
+    cdef _Timedelta _as_creso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
         cdef:
             int64_t value
 
@@ -1566,9 +1566,9 @@ cdef class _Timedelta(timedelta):
         If _resos do not match, cast to the higher resolution, raising on overflow.
         """
         if self._reso > other._reso:
-            other = other._as_reso(self._reso)
+            other = other._as_creso(self._reso)
         elif self._reso < other._reso:
-            self = self._as_reso(other._reso)
+            self = self._as_creso(other._reso)
         return self, other
 
 
