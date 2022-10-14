@@ -506,8 +506,8 @@ cdef class DatetimeEngine(Int64Engine):
                 return scalar.value
             else:
                 # Note: caller is responsible for catching potential ValueError
-                #  from _as_reso
-                return (<_Timestamp>scalar)._as_reso(self.reso, round_ok=False).value
+                #  from _as_creso
+                return (<_Timestamp>scalar)._as_creso(self.reso, round_ok=False).value
         raise TypeError(scalar)
 
     def __contains__(self, val: object) -> bool:
@@ -574,8 +574,8 @@ cdef class TimedeltaEngine(DatetimeEngine):
                 return scalar.value
             else:
                 # Note: caller is responsible for catching potential ValueError
-                #  from _as_reso
-                return (<_Timedelta>scalar)._as_reso(self.reso, round_ok=False).value
+                #  from _as_creso
+                return (<_Timedelta>scalar)._as_creso(self.reso, round_ok=False).value
         raise TypeError(scalar)
 
 
