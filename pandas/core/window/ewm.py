@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 from functools import partial
-import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -134,7 +133,8 @@ def _calculate_deltas(
     _times = np.asarray(
         times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
     )
-    _halflife = float(Timedelta(halflife).value)
+    # TODO: generalize to non-nano?
+    _halflife = float(Timedelta(halflife)._as_unit("ns").value)
     return np.diff(_times) / _halflife
 
 
@@ -392,7 +392,7 @@ class ExponentialMovingWindow(BaseWindow):
                         "into times instead."
                     ),
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 # self.times cannot be str anymore
                 self.times = cast("Series", self._selected_obj[self.times])
@@ -684,7 +684,7 @@ class ExponentialMovingWindow(BaseWindow):
                 "Use std instead."
             ),
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.std(bias, *args, **kwargs)
 
@@ -967,10 +967,10 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         self._mean.reset()
 
     def aggregate(self, func, *args, **kwargs):
-        return NotImplementedError
+        raise NotImplementedError("aggregate is not implemented.")
 
     def std(self, bias: bool = False, *args, **kwargs):
-        return NotImplementedError
+        raise NotImplementedError("std is not implemented.")
 
     def corr(
         self,
@@ -979,7 +979,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NotImplementedError
+        raise NotImplementedError("corr is not implemented.")
 
     def cov(
         self,
@@ -989,10 +989,10 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NotImplementedError
+        raise NotImplementedError("cov is not implemented.")
 
     def var(self, bias: bool = False, *args, **kwargs):
-        return NotImplementedError
+        raise NotImplementedError("var is not implemented.")
 
     def mean(self, *args, update=None, update_times=None, **kwargs):
         """

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from collections import abc
 from functools import partial
-import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -688,11 +687,7 @@ class SeriesGroupBy(GroupBy[Series]):
         # multi-index components
         codes = self.grouper.reconstructed_codes
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        # error: List item 0 has incompatible type "Union[ndarray[Any, Any], Index]";
-        # expected "Index"
-        levels = [ping.group_index for ping in self.grouper.groupings] + [
-            lev  # type: ignore[list-item]
-        ]
+        levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
 
         if dropna:
             mask = codes[-1] != -1
@@ -900,8 +895,7 @@ class SeriesGroupBy(GroupBy[Series]):
         result = self._op_via_apply("tshift", periods=periods, freq=freq)
         return result
 
-    # Decorated property not supported - https://github.com/python/mypy/issues/1362
-    @property  # type: ignore[misc]
+    @property
     @doc(Series.plot.__doc__)
     def plot(self):
         result = GroupByPlot(self)
@@ -960,15 +954,13 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return result
 
-    # Decorated property not supported - https://github.com/python/mypy/issues/1362
-    @property  # type: ignore[misc]
+    @property
     @doc(Series.is_monotonic_increasing.__doc__)
     def is_monotonic_increasing(self) -> Series:
         result = self._op_via_apply("is_monotonic_increasing")
         return result
 
-    # Decorated property not supported - https://github.com/python/mypy/issues/1362
-    @property  # type: ignore[misc]
+    @property
     @doc(Series.is_monotonic_decreasing.__doc__)
     def is_monotonic_decreasing(self) -> Series:
         result = self._op_via_apply("is_monotonic_decreasing")
@@ -1007,8 +999,7 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return result
 
-    # Decorated property not supported - https://github.com/python/mypy/issues/1362
-    @property  # type: ignore[misc]
+    @property
     @doc(Series.dtype.__doc__)
     def dtype(self) -> Series:
         result = self._op_via_apply("dtype")
@@ -1480,7 +1471,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "`.to_numpy()` to the result in the transform function to keep "
                 "the current behavior and silence this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         concat_index = obj.columns if self.axis == 0 else obj.index
@@ -1651,7 +1642,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "Indexing with multiple keys (implicitly converted to a tuple "
                 "of keys) will be deprecated, use a list instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         return super().__getitem__(key)
 
@@ -2331,7 +2322,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = self._op_via_apply("tshift", periods=periods, freq=freq, axis=axis)
         return result
 
-    @property  # type: ignore[misc]
+    @property
     @doc(DataFrame.plot.__doc__)
     def plot(self) -> GroupByPlot:
         result = GroupByPlot(self)
@@ -2402,8 +2393,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         return result
 
-    # Decorated property not supported - https://github.com/python/mypy/issues/1362
-    @property  # type: ignore[misc]
+    @property
     @doc(DataFrame.dtypes.__doc__)
     def dtypes(self) -> Series:
         result = self._op_via_apply("dtypes")

@@ -33,7 +33,7 @@ Source trees come from a variety of places:
 
 * a version-control system checkout (mostly used by developers)
 * a nightly tarball, produced by build automation
-* a snapshot tarball, produced by a web-based VCS browser, like github's
+* a snapshot tarball, produced by a web-based VCS browser, like GitHub's
   "tarball from tag" feature
 * a release tarball, produced by "setup.py sdist", distributed through PyPI
 
@@ -161,7 +161,7 @@ which may help identify what went wrong).
 ## Known Limitations
 
 Some situations are known to cause problems for Versioneer. This details the
-most significant ones. More can be found on Github
+most significant ones. More can be found on GitHub
 [issues page](https://github.com/python-versioneer/python-versioneer/issues).
 
 ### Subprojects
@@ -421,7 +421,7 @@ LONG_VERSION_PY[
     "git"
 ] = r'''
 # This file helps to compute a version number in source trees obtained from
-# git-archive tarball (such as those provided by githubs download-from-tag
+# git-archive tarball (such as those provided by GitHub's download-from-tag
 # feature). Distribution tarballs (built by setup.py sdist) and build
 # directories (produced by setup.py build) will contain a much shorter file
 # that just contains the computed version number.
@@ -1466,7 +1466,7 @@ def get_versions(verbose=False):
     # extract version from first of: _version.py, VCS command (e.g. 'git
     # describe'), parentdir. This is meant to work for developers using a
     # source checkout, for users of a tarball created by 'setup.py sdist',
-    # and for users of a tarball/zipball created by 'git archive' or github's
+    # and for users of a tarball/zipball created by 'git archive' or GitHub's
     # download-from-tag feature or the equivalent in other VCSes.
 
     get_keywords_f = handlers.get("get_keywords")

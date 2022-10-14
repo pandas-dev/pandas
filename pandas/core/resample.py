@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 from datetime import timedelta
-import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -522,11 +521,21 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Potentially wrap any results.
         """
+        # GH 47705
+        obj = self.obj
+        if (
+            isinstance(result, ABCDataFrame)
+            and result.empty
+            and not isinstance(result.index, PeriodIndex)
+        ):
+            result = result.set_index(
+                _asfreq_compat(obj.index[:0], freq=self.freq), append=True
+            )
+
         if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
-            obj = self.obj
             # When index is all NaT, result is empty but index is not
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
@@ -573,7 +582,7 @@ class Resampler(BaseGroupBy, PandasObject):
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.ffill(limit=limit)
 
@@ -760,7 +769,7 @@ class Resampler(BaseGroupBy, PandasObject):
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.bfill(limit=limit)
 
@@ -974,6 +983,28 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
+    def mean(
+        self,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        *args,
+        **kwargs,
+    ):
+        """
+        Compute mean of groups, excluding missing values.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+        Returns
+        -------
+        DataFrame or Series
+            Mean of values within each group.
+        """
+        nv.validate_resampler_func("mean", args, kwargs)
+        return self._downsample("mean", numeric_only=numeric_only)
+
     def std(
         self,
         ddof: int = 1,
@@ -1163,7 +1194,7 @@ def _add_downsample_kernel(
 
 for method in ["sum", "prod", "min", "max", "first", "last"]:
     _add_downsample_kernel(method, ("numeric_only", "min_count"))
-for method in ["mean", "median"]:
+for method in ["median"]:
     _add_downsample_kernel(method, ("numeric_only",))
 for method in ["sem"]:
     _add_downsample_kernel(method, ("ddof", "numeric_only"))
@@ -1902,7 +1933,9 @@ class TimeGrouper(Grouper):
         # NaT handling as in pandas._lib.lib.generate_bins_dt64()
         nat_count = 0
         if memb.hasnans:
-            nat_count = np.sum(memb._isnan)
+            # error: Incompatible types in assignment (expression has type
+            # "bool_", variable has type "int")  [assignment]
+            nat_count = np.sum(memb._isnan)  # type: ignore[assignment]
             memb = memb[~memb._isnan]
 
         if not len(memb):
