@@ -169,7 +169,7 @@ def cast_scalar_indexer(val, warn_float: bool = False):
                 "Indexing with a float is deprecated, and will raise an IndexError "
                 "in pandas 2.0. You can manually convert to an integer key instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         return int(val)
     return val
@@ -697,6 +697,4 @@ def deprecate_numeric_only_default(
         "this warning."
     )
 
-    warnings.warn(
-        msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-    )
+    warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())

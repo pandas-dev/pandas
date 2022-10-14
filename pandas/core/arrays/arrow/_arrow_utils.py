@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import warnings
 
 import numpy as np
@@ -18,9 +17,7 @@ def fallback_performancewarning(version: str | None = None) -> None:
     msg = "Falling back on a non-pyarrow code path which may decrease performance."
     if version is not None:
         msg += f" Upgrade to pyarrow >={version} to possibly suppress this warning."
-    warnings.warn(
-        msg, PerformanceWarning, stacklevel=find_stack_level(inspect.currentframe())
-    )
+    warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
 
 
 def pyarrow_array_to_numpy_and_mask(

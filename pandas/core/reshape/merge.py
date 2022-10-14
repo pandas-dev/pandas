@@ -6,7 +6,6 @@ from __future__ import annotations
 import copy
 import datetime
 from functools import partial
-import inspect
 import string
 from typing import (
     TYPE_CHECKING,
@@ -686,9 +685,7 @@ class _MergeOperation:
             )
             # stacklevel chosen to be correct when this is reached via pd.merge
             # (and not DataFrame.join)
-            warnings.warn(
-                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-            )
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
@@ -1313,7 +1310,7 @@ class _MergeOperation:
                                 "columns where the float values "
                                 "are not equal to their int representation.",
                                 UserWarning,
-                                stacklevel=find_stack_level(inspect.currentframe()),
+                                stacklevel=find_stack_level(),
                             )
                     continue
 
@@ -1335,7 +1332,7 @@ class _MergeOperation:
                                 "columns where the float values "
                                 "are not equal to their int representation.",
                                 UserWarning,
-                                stacklevel=find_stack_level(inspect.currentframe()),
+                                stacklevel=find_stack_level(),
                             )
                     continue
 
@@ -2484,7 +2481,7 @@ def _items_overlap_with_suffix(
             "unexpected results. Provide 'suffixes' as a tuple instead. In the "
             "future a 'TypeError' will be raised.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     to_rename = left.intersection(right)
@@ -2534,7 +2531,7 @@ def _items_overlap_with_suffix(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
             f"result is deprecated and will raise a MergeError in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     return llabels, rlabels

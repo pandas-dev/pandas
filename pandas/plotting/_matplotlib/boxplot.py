@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 from typing import (
     TYPE_CHECKING,
     Collection,
@@ -98,7 +97,7 @@ class BoxPlot(LinePlot):
                 warnings.warn(
                     "'color' and 'colormap' cannot be used "
                     "simultaneously. Using 'color'",
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
             self.color = self.kwds.pop("color")
 

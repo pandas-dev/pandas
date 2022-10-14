@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections import abc
-import inspect
 from numbers import Number
 import re
 from typing import Pattern
@@ -460,7 +459,7 @@ def is_inferred_bool_dtype(arr: ArrayLike) -> bool:
                 "will not be included in reductions with bool_only=True. "
                 "Explicitly cast to bool dtype instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         return result
 

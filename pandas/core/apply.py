@@ -292,7 +292,7 @@ class Apply(metaclass=abc.ABCMeta):
                 f"raised, this will raise in a future version of pandas. "
                 f"Drop these columns/ops to avoid this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         return concat(results, axis=1)
 
@@ -424,7 +424,7 @@ class Apply(metaclass=abc.ABCMeta):
             warnings.warn(
                 depr_nuisance_columns_msg.format(failed_names),
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         try:

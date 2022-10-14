@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from collections import abc
 from datetime import datetime
-import inspect
 import struct
 import warnings
 
@@ -416,7 +415,7 @@ class XportReader(ReaderBase, abc.Iterator):
         if total_records_length % 80 != 0:
             warnings.warn(
                 "xport file may be corrupted.",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if self.record_length > 80:

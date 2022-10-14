@@ -4,7 +4,6 @@ from abc import (
     ABC,
     abstractmethod,
 )
-import inspect
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -401,7 +400,7 @@ class MPLPlot(ABC):
         ) and self.colormap is not None:
             warnings.warn(
                 "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if "color" in self.kwds and self.style is not None:

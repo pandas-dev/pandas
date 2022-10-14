@@ -1,7 +1,6 @@
 """ io on the clipboard """
 from __future__ import annotations
 
-import inspect
 from io import StringIO
 import warnings
 
@@ -83,7 +82,7 @@ def read_clipboard(sep: str = r"\s+", **kwargs):  # pragma: no cover
     elif len(sep) > 1 and kwargs.get("engine") == "c":
         warnings.warn(
             "read_clipboard with regex separator does not work properly with c engine.",
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     return read_csv(StringIO(text), sep=sep, **kwargs)
@@ -140,12 +139,12 @@ def to_clipboard(
         except TypeError:
             warnings.warn(
                 "to_clipboard in excel mode requires a single character separator.",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
     elif sep is not None:
         warnings.warn(
             "to_clipboard with excel=False ignores the sep argument.",
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     if isinstance(obj, ABCDataFrame):

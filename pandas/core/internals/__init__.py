@@ -41,7 +41,6 @@ __all__ = [
 
 
 def __getattr__(name: str):
-    import inspect
     import warnings
 
     from pandas.util._exceptions import find_stack_level
@@ -51,7 +50,7 @@ def __getattr__(name: str):
             "CategoricalBlock is deprecated and will be removed in a future version. "
             "Use ExtensionBlock instead.",
             DeprecationWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         from pandas.core.internals.blocks import CategoricalBlock
 

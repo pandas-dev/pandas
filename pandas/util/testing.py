@@ -1,4 +1,3 @@
-import inspect
 import warnings
 
 from pandas.util._exceptions import find_stack_level
@@ -11,5 +10,5 @@ warnings.warn(
         "public API at pandas.testing instead."
     ),
     FutureWarning,
-    stacklevel=find_stack_level(inspect.currentframe()),
+    stacklevel=find_stack_level(),
 )

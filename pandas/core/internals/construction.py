@@ -5,7 +5,6 @@ constructors before passing them to a BlockManager.
 from __future__ import annotations
 
 from collections import abc
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -845,7 +844,7 @@ def to_arrays(
             "To retain the old behavior, pass as a dictionary "
             "DataFrame({col: categorical, ..})",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         if columns is None:
             columns = default_index(len(data))
