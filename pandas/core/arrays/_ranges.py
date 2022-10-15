@@ -49,13 +49,17 @@ def generate_regular_range(
     istart = start.value if start is not None else None
     iend = end.value if end is not None else None
     freq.nanos  # raises if non-fixed frequency
+    td = Timedelta(freq)
     try:
-        stride = Timedelta(freq)._as_unit(reso, round_ok=False).value
+        td = td._as_unit(  # pyright: ignore[reportGeneralTypeIssues]
+            reso, round_ok=False
+        )
     except ValueError as err:
         raise ValueError(
             f"freq={freq} is incompatible with reso={reso}. "
             "Use a lower freq or a higher reso instead."
         ) from err
+    stride = td.value
 
     if periods is None and istart is not None and iend is not None:
         b = istart
