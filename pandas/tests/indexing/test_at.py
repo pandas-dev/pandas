@@ -234,3 +234,11 @@ class TestAtErrors:
             for key in [0, 1]:
                 with pytest.raises(KeyError, match=str(key)):
                     df.at[key, key]
+
+    def test_at_with_two_values(self):
+        # GH#48224
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+        msg = "Invalid call for scalar access"
+        with pytest.raises(ValueError, match=msg):
+            df.at[slice(0, 1, None), "c"] = 7
