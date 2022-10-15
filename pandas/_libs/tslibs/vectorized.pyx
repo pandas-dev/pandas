@@ -183,7 +183,7 @@ def ints_to_pydatetime(
 
             if use_ts:
                 res_val = create_timestamp_from_ts(
-                    utc_val, dts, new_tz, freq, fold, creso=reso
+                    utc_val, dts, new_tz, freq, fold, reso=reso
                 )
             elif use_pydt:
                 res_val = datetime(

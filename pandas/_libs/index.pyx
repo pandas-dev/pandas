@@ -570,12 +570,12 @@ cdef class TimedeltaEngine(DatetimeEngine):
         if scalar is NaT:
             return NaT.value
         elif isinstance(scalar, _Timedelta):
-            if scalar._creso == self.reso:
+            if scalar._creso == self._creso:
                 return scalar.value
             else:
                 # Note: caller is responsible for catching potential ValueError
                 #  from _as_creso
-                return (<_Timedelta>scalar)._as_creso(self.reso, round_ok=False).value
+                return (<_Timedelta>scalar)._as_creso(self._creso, round_ok=False).value
         raise TypeError(scalar)
 
 
