@@ -23,7 +23,6 @@ import pytest
 from pandas.compat import (
     is_ci_environment,
     is_platform_windows,
-    pa_version_under5p0,
     pa_version_under6p0,
     pa_version_under7p0,
     pa_version_under8p0,
@@ -929,7 +928,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if (
             all_arithmetic_operators == "__rpow__"
             and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
-            and not pa_version_under5p0
+            and not pa_version_under6p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -952,7 +951,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         elif (
             all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"}
             and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
-            and not pa_version_under5p0
+            and not pa_version_under6p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -991,7 +990,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if (
             all_arithmetic_operators == "__rpow__"
             and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
-            and not pa_version_under5p0
+            and not pa_version_under6p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1014,7 +1013,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         elif (
             all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"}
             and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
-            and not pa_version_under5p0
+            and not pa_version_under6p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1053,7 +1052,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if (
             all_arithmetic_operators == "__rpow__"
             and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
-            and not pa_version_under5p0
+            and not pa_version_under6p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1070,7 +1069,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                 "__rsub__",
             )
             and pa.types.is_unsigned_integer(pa_dtype)
-            and not pa_version_under5p0
+            and not pa_version_under6p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1094,7 +1093,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         elif (
             all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"}
             and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
-            and not pa_version_under5p0
+            and not pa_version_under6p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(

@@ -388,7 +388,7 @@ PyTables                  3.6.1              HDF5-based reading / writing
 blosc                     1.21.0             Compression for HDF5
 zlib                                         Compression for HDF5
 fastparquet               0.4.0              Parquet reading / writing
-pyarrow                   5.0.0              Parquet, ORC, and feather reading / writing
+pyarrow                   6.0.0              Parquet, ORC, and feather reading / writing
 pyreadstat                1.1.2              SPSS files (.sav) reading
 ========================= ================== =============================================================
 

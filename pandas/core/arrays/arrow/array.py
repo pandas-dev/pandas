@@ -17,7 +17,6 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat import (
-    pa_version_under5p0,
     pa_version_under6p0,
     pa_version_under7p0,
 )
@@ -44,7 +43,7 @@ from pandas.core.indexers import (
     validate_indices,
 )
 
-if not pa_version_under5p0:
+if not pa_version_under6p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -182,8 +181,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
-        if pa_version_under5p0:
-            msg = "pyarrow>=5.0.0 is required for PyArrow backed ArrowExtensionArray."
+        if pa_version_under6p0:
+            msg = "pyarrow>=6.0.0 is required for PyArrow backed ArrowExtensionArray."
             raise ImportError(msg)
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
@@ -1004,7 +1003,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         mask = np.zeros(len(chunk), dtype=np.bool_)
         mask[indices] = True
 
-        if pa_version_under5p0:
+        if pa_version_under6p0:
             arr = chunk.to_numpy(zero_copy_only=False)
             arr[mask] = value
             return pa.array(arr, type=chunk.type)

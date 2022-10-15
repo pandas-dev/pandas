@@ -15,7 +15,6 @@ from pandas._config import get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under5p0,
     pa_version_under6p0,
     pa_version_under8p0,
 )
@@ -236,7 +235,7 @@ def check_partition_names(path, expected):
     expected: iterable of str
         Expected partition names.
     """
-    if pa_version_under5p0:
+    if pa_version_under6p0:
         import pyarrow.parquet as pq
 
         dataset = pq.ParquetDataset(path, validate_schema=False)
@@ -969,7 +968,7 @@ class TestParquetPyArrow(Base):
 
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
         if (
-            not pa_version_under5p0
+            not pa_version_under6p0
             and timezone_aware_date_list.tzinfo != datetime.timezone.utc
         ):
             request.node.add_marker(
