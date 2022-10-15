@@ -44,7 +44,7 @@ def test_federal_holiday_inconsistent_returntype():
     # User that the USFederalHolidayCalendar() would return inconsistent datatype
     # for August before 2019.   Noticed user was passing start/end as datetime.date(), 
     # but the error doesn't occur if start/end are passed as "YYYY-MM-DD".
-    test_calendar= USFederalHolidayCalendar()
+    test_calendar = USFederalHolidayCalendar()
 
     results_2018 = test_calendar().holidays(
         start=datetime(2018, 8, 1), end=datetime(2018, 8, 31)
