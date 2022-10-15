@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pandas.tseries.holiday import (
     AbstractHolidayCalendar,
+    USFederalHolidayCalendar,
     USMartinLutherKingJr,
     USMemorialDay,
 )
@@ -38,18 +39,18 @@ def test_memorial_day():
     ]
 
 
-def test_holiday_calendar_inconsistent_returntype():
+def test_federal_holiday_inconsistent_returntype():
     # GH 49075
 
-    class AugustCalendar(AbstractHolidayCalendar):
-        rules = []
+    # class test_calendar(USFederalHolidayCalendar):
+    #     rules = []
+    test_calendar= USFederalHolidayCalendar()
 
-    results_2018 = AugustCalendar().holidays(
-        start=datetime.date(2018, 8, 1), end=datetime.date(2018, 8, 31)
+    results_2018 = test_calendar().holidays(
+        start=datetime(2018, 8, 1), end=datetime(2018, 8, 31)
     )
-    results_2019 = AugustCalendar().holidays(
-        start=datetime.date(2019, 8, 1), end=datetime.date(2019, 8, 31)
+    results_2019 = test_calendar().holidays(
+        start=datetime(2019, 8, 1), end=datetime(2019, 8, 31)
     )
 
-    assert type(results_2018) == DatetimeIndex
-    assert type(results_2019) == DatetimeIndex
+    assert type(results_2018) == type(results_2019)
