@@ -2428,29 +2428,24 @@ class _AtIndexer(_ScalarAccessIndexer):
     def __getitem__(self, key):
 
         if self.ndim == 2:
+            # GH#33041 fall back to .loc
+            if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
+                raise ValueError("Invalid call for scalar access (getting)!")
+
             if not self._axes_are_unique:
-                # GH#33041 fall back to .loc
-                if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
-                    raise ValueError("Invalid call for scalar access (getting)!")
                 return self.obj.loc[key]
-            else:
-                if isinstance(key, tuple) and not all(is_scalar(x) for x in key):
-                    raise ValueError("Invalid call for scalar access (getting)!")
 
         return super().__getitem__(key)
 
     def __setitem__(self, key, value):
         if self.ndim == 2:
-            if not self._axes_are_unique:
-                # GH#33041 fall back to .loc
-                if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
-                    raise ValueError("Invalid call for scalar access (setting)!")
+            # GH#33041 fall back to .loc
+            if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
+                raise ValueError("Invalid call for scalar access (setting)!")
 
+            if not self._axes_are_unique:
                 self.obj.loc[key] = value
                 return
-            else:
-                if isinstance(key, tuple) and not all(is_scalar(x) for x in key):
-                    raise ValueError("Invalid call for scalar access (setting)!")
 
         return super().__setitem__(key, value)
 
