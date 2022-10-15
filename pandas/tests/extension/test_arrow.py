@@ -35,6 +35,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_bool_dtype
 from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow", minversion="1.0.1")
@@ -1350,6 +1351,10 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_where_series(data, na_value, as_frame)
 
+    def test_basic_equals(self, data):
+        # https://github.com/pandas-dev/pandas/issues/34660
+        assert pd.Series(data).equals(pd.Series(data))
+
 
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
@@ -1619,6 +1624,13 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     reason=f"add_checked not implemented for {pa_dtype}",
                 )
             )
+        elif pa_dtype.equals("int8"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowInvalid,
+                    reason=f"raises on overflow for {pa_dtype}",
+                )
+            )
         super().test_add_series_with_extension_array(data)
 
 
@@ -1748,4 +1760,15 @@ def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
     ser = pd.Series(data)
     result = ser.mode(dropna=dropna)
     expected = pd.Series(data_for_grouping.take(exp_idx))
+    tm.assert_series_equal(result, expected)
+
+
+def test_is_bool_dtype():
+    # GH 22667
+    data = ArrowExtensionArray(pa.array([True, False, True]))
+    assert is_bool_dtype(data)
+    assert pd.core.common.is_bool_indexer(data)
+    s = pd.Series(range(len(data)))
+    result = s[data]
+    expected = s[np.asarray(data)]
     tm.assert_series_equal(result, expected)

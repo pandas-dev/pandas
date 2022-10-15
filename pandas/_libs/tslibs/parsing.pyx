@@ -1,7 +1,6 @@
 """
 Parsing functions for datetime and datetime-like strings.
 """
-import inspect
 import re
 import time
 import warnings
@@ -218,7 +217,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
                     format='MM/DD/YYYY',
                     dayfirst='True',
                 ),
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         elif not dayfirst and swapped_day_and_month:
             warnings.warn(
@@ -226,7 +225,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
                     format='DD/MM/YYYY',
                     dayfirst='False (the default)',
                 ),
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         # In Python <= 3.6.0 there is no range checking for invalid dates
         # in C api, thus we call faster C version for 3.6.1 or newer
@@ -976,7 +975,6 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         (('hour',), '%H', 2),
         (('minute',), '%M', 2),
         (('second',), '%S', 2),
-        (('microsecond',), '%f', 6),
         (('second', 'microsecond'), '%S.%f', 0),
         (('tzinfo',), '%z', 0),
         (('tzinfo',), '%Z', 0),
@@ -1048,7 +1046,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
         parsed_formatted = parsed_datetime.strftime(attr_format)
         for i, token_format in enumerate(format_guess):
-            token_filled = tokens[i].zfill(padding)
+            token_filled = _fill_token(tokens[i], padding)
             if token_format is None and token_filled == parsed_formatted:
                 format_guess[i] = attr_format
                 tokens[i] = token_filled
@@ -1090,6 +1088,19 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     else:
         return None
 
+cdef str _fill_token(token: str, padding: int):
+    cdef str token_filled
+    if '.' not in token:
+        token_filled = token.zfill(padding)
+    else:
+        seconds, nanoseconds = token.split('.')
+        seconds = f'{int(seconds):02d}'
+        # right-pad so we get nanoseconds, then only take
+        # first 6 digits (microseconds) as stdlib datetime
+        # doesn't support nanoseconds
+        nanoseconds = nanoseconds.ljust(9, '0')[:6]
+        token_filled = f'{seconds}.{nanoseconds}'
+    return token_filled
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

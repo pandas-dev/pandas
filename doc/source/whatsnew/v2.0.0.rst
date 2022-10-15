@@ -1,30 +1,30 @@
-.. _whatsnew_160:
+.. _whatsnew_200:
 
-What's new in 1.6.0 (??)
+What's new in 2.0.0 (??)
 ------------------------
 
-These are the changes in pandas 1.6.0. See :ref:`release` for a full changelog
+These are the changes in pandas 2.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
 {{ header }}
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.enhancements:
+.. _whatsnew_200.enhancements:
 
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_160.enhancements.enhancement1:
+.. _whatsnew_200.enhancements.enhancement1:
 
 enhancement1
 ^^^^^^^^^^^^
 
-.. _whatsnew_160.enhancements.enhancement2:
+.. _whatsnew_200.enhancements.enhancement2:
 
 enhancement2
 ^^^^^^^^^^^^
 
-.. _whatsnew_160.enhancements.other:
+.. _whatsnew_200.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
@@ -36,17 +36,17 @@ Other enhancements
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
 - Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
 - :class:`.CategoricalConversionWarning`, :class:`.InvalidComparison`, :class:`.InvalidVersion`, :class:`.LossySetitemError`, and :class:`.NoBufferPresent` are now exposed in ``pandas.errors`` (:issue:`27656`)
--
+- :func:`DataFrame.astype` exception message thrown improved to include column name when type conversion is not possible. (:issue:`47571`)
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.notable_bug_fixes:
+.. _whatsnew_200.notable_bug_fixes:
 
 Notable bug fixes
 ~~~~~~~~~~~~~~~~~
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_160.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_200.notable_bug_fixes.notable_bug_fix1:
 
 :meth:`.GroupBy.cumsum` and :meth:`.GroupBy.cumprod` overflow instead of lossy casting to float
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -76,18 +76,18 @@ We return incorrect results with the 6th value.
 
 We overflow with the 7th value, but the 6th value is still correct.
 
-.. _whatsnew_160.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_200.notable_bug_fixes.notable_bug_fix2:
 
 notable_bug_fix2
 ^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.api_breaking:
+.. _whatsnew_200.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_160.api_breaking.deps:
+.. _whatsnew_200.api_breaking.deps:
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -112,18 +112,22 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
-.. _whatsnew_160.api_breaking.other:
+.. _whatsnew_200.api_breaking.other:
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - Passing ``nanoseconds`` greater than 999 or less than 0 in :class:`Timestamp` now raises a ``ValueError`` (:issue:`48538`, :issue:`48255`)
 - :func:`read_csv`: specifying an incorrect number of columns with ``index_col`` of now raises ``ParserError`` instead of ``IndexError`` when using the c parser.
+- Default value of ``dtype`` in :func:`get_dummies` is changed to ``bool`` from ``uint8`` (:issue:`45848`)
 - :meth:`DataFrame.astype`, :meth:`Series.astype`, and :meth:`DatetimeIndex.astype` casting datetime64 data to any of "datetime64[s]", "datetime64[ms]", "datetime64[us]" will return an object with the given resolution instead of coercing back to "datetime64[ns]" (:issue:`48928`)
 - :meth:`DataFrame.astype`, :meth:`Series.astype`, and :meth:`DatetimeIndex.astype` casting timedelta64 data to any of "timedelta64[s]", "timedelta64[ms]", "timedelta64[us]" will return an object with the given resolution instead of coercing to "float64" dtype (:issue:`48963`)
+- Passing data with dtype of "timedelta64[s]", "timedelta64[ms]", or "timedelta64[us]" to :class:`TimedeltaIndex`, :class:`Series`, or :class:`DataFrame` constructors will now retain that dtype instead of casting to "timedelta64[ns]"; timedelta64 data with lower resolution will be cast to the lowest supported resolution "timedelta64[s]" (:issue:`49014`)
+- Passing ``dtype`` of "timedelta64[s]", "timedelta64[ms]", or "timedelta64[us]" to :class:`TimedeltaIndex`, :class:`Series`, or :class:`DataFrame` constructors will now retain that dtype instead of casting to "timedelta64[ns]"; passing a dtype with lower resolution for :class:`Series` or :class:`DataFrame` will be cast to the lowest supported resolution "timedelta64[s]" (:issue:`49014`)
+- Passing a ``np.datetime64`` object with non-nanosecond resolution to :class:`Timestamp` will retain the input resolution if it is "s", "ms", or "ns"; otherwise it will be cast to the closest supported resolution (:issue:`49008`)
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.deprecations:
+.. _whatsnew_200.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
@@ -131,15 +135,16 @@ Deprecations
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.performance:
+.. _whatsnew_200.performance:
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.DataFrameGroupBy.median` and :meth:`.SeriesGroupBy.median` and :meth:`.GroupBy.cumprod` for nullable dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
 - Performance improvement in :meth:`MultiIndex.size` (:issue:`48723`)
-- Performance improvement in :meth:`MultiIndex.union` without missing values and without duplicates (:issue:`48505`)
+- Performance improvement in :meth:`MultiIndex.union` without missing values and without duplicates (:issue:`48505`, :issue:`48752`)
 - Performance improvement in :meth:`MultiIndex.difference` (:issue:`48606`)
+- Performance improvement in :class:`MultiIndex` set operations with sort=None (:issue:`49010`)
 - Performance improvement in :meth:`.DataFrameGroupBy.mean`, :meth:`.SeriesGroupBy.mean`, :meth:`.DataFrameGroupBy.var`, and :meth:`.SeriesGroupBy.var` for extension array dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.isin` when ``level=None`` (:issue:`48622`)
 - Performance improvement in :meth:`Index.union` and :meth:`MultiIndex.union` when index contains duplicates (:issue:`48900`)
@@ -157,7 +162,7 @@ Performance improvements
 - Performance improvement in :class:`DataFrameGroupBy` and :class:`SeriesGroupBy` when ``by`` is a categorical type and ``sort=False`` (:issue:`48976`)
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.bug_fixes:
+.. _whatsnew_200.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
@@ -189,7 +194,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in :meth:`DataFrame.add` cannot apply ufunc when inputs contain mixed DataFrame type and Series type (:issue:`39853`)
 -
 
 Conversion
@@ -215,11 +220,13 @@ Indexing
 - Bug in :meth:`DataFrame.reindex` filling with wrong values when indexing columns and index for ``uint`` dtypes (:issue:`48184`)
 - Bug in :meth:`DataFrame.reindex` casting dtype to ``object`` when :class:`DataFrame` has single extension array column when re-indexing ``columns`` and ``index`` (:issue:`48190`)
 - Bug in :func:`~DataFrame.describe` when formatting percentiles in the resulting index showed more decimals than needed (:issue:`46362`)
+- Bug in :meth:`DataFrame.compare` does not recognize differences when comparing ``NA`` with value in nullable dtypes (:issue:`48939`)
+-
 
 Missing
 ^^^^^^^
 - Bug in :meth:`Index.equals` raising ``TypeError`` when :class:`Index` consists of tuples that contain ``NA`` (:issue:`48446`)
--
+- Bug in :meth:`Series.map` caused incorrect result when data has NaNs and defaultdict mapping was used (:issue:`48813`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -229,6 +236,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.unique` losing extension array dtype (:issue:`48335`)
 - Bug in :meth:`MultiIndex.intersection` losing extension array (:issue:`48604`)
 - Bug in :meth:`MultiIndex.union` losing extension array (:issue:`48498`, :issue:`48505`, :issue:`48900`)
+- Bug in :meth:`MultiIndex.union` not sorting when sort=None and index contains missing values (:issue:`49010`)
 - Bug in :meth:`MultiIndex.append` not checking names for equality (:issue:`48288`)
 - Bug in :meth:`MultiIndex.symmetric_difference` losing extension array (:issue:`48607`)
 -
@@ -259,6 +267,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 - Bug in :meth:`DataFrame.pivot_table` raising ``TypeError`` for nullable dtype and ``margins=True`` (:issue:`48681`)
+- Bug in :meth:`DataFrame.unstack` and :meth:`Series.unstack` unstacking wrong level of :class:`MultiIndex` when :class:`MultiIndex` has mixed names (:issue:`48763`)
 - Bug in :meth:`DataFrame.pivot` not respecting ``None`` as column name (:issue:`48293`)
 - Bug in :func:`join` when ``left_on`` or ``right_on`` is or includes a :class:`CategoricalIndex` incorrectly raising ``AttributeError`` (:issue:`48464`)
 -
@@ -293,7 +302,7 @@ Other
 -
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_160.contributors:
+.. _whatsnew_200.contributors:
 
 Contributors
 ~~~~~~~~~~~~
