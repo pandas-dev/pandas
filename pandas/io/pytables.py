@@ -3560,7 +3560,7 @@ class Table(Fixed):
                 )
 
     @cache_readonly
-    def indexables(self) -> list:
+    def indexables(self):
         """create/cache the indexables if they don't exist"""
         _indexables = []
 
