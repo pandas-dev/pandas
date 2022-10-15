@@ -703,6 +703,10 @@ cpdef ndarray[object] ensure_string_array(
     if copy and result is arr:
         result = result.copy()
 
+    if util.is_array(arr) and issubclass(arr.dtype.type, np.str_):
+        # short-circuit, all elements are str
+        return result
+
     for i in range(n):
         val = arr[i]
 
