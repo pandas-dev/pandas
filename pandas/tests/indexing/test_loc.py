@@ -40,7 +40,7 @@ import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.api import Float64Index
 from pandas.core.indexing import _one_ellipsis_message
-from pandas.tests.indexing.common import Base
+from pandas.tests.indexing.common import check_result
 
 
 @pytest.mark.parametrize(
@@ -59,16 +59,20 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
     tm.assert_frame_equal(df.notna(), ~expected)
 
 
-class TestLoc(Base):
-    def test_loc_getitem_int(self):
+class TestLoc:
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_int(self, kind, request):
 
         # int label
-        self.check_result("loc", 2, typs=["labels"], fails=KeyError)
+        obj = request.getfixturevalue(f"{kind}_labels")
+        check_result(obj, "loc", 2, fails=KeyError)
 
-    def test_loc_getitem_label(self):
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_label(self, kind, request):
 
         # label
-        self.check_result("loc", "c", typs=["empty"], fails=KeyError)
+        obj = request.getfixturevalue(f"{kind}_empty")
+        check_result(obj, "loc", "c", fails=KeyError)
 
     @pytest.mark.parametrize(
         "key, typs, axes",
@@ -81,10 +85,12 @@ class TestLoc(Base):
             [20, ["floats"], 0],
         ],
     )
-    def test_loc_getitem_label_out_of_range(self, key, typs, axes):
-
-        # out of range label
-        self.check_result("loc", key, typs=typs, axes=axes, fails=KeyError)
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_label_out_of_range(self, key, typs, axes, kind, request):
+        for typ in typs:
+            obj = request.getfixturevalue(f"{kind}_{typ}")
+            # out of range label
+            check_result(obj, "loc", key, axes=axes, fails=KeyError)
 
     @pytest.mark.parametrize(
         "key, typs",
@@ -93,9 +99,12 @@ class TestLoc(Base):
             [[1, 3.0, "A"], ["ints", "uints", "floats"]],
         ],
     )
-    def test_loc_getitem_label_list(self, key, typs):
-        # list of labels
-        self.check_result("loc", key, typs=typs, fails=KeyError)
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_label_list(self, key, typs, kind, request):
+        for typ in typs:
+            obj = request.getfixturevalue(f"{kind}_{typ}")
+            # list of labels
+            check_result(obj, "loc", key, fails=KeyError)
 
     @pytest.mark.parametrize(
         "key, typs, axes",
@@ -107,25 +116,31 @@ class TestLoc(Base):
             [[(1, 3), (1, 4), (2, 5)], ["multi"], 0],
         ],
     )
-    def test_loc_getitem_label_list_with_missing(self, key, typs, axes):
-        self.check_result("loc", key, typs=typs, axes=axes, fails=KeyError)
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_label_list_with_missing(self, key, typs, axes, kind, request):
+        for typ in typs:
+            obj = request.getfixturevalue(f"{kind}_{typ}")
+            check_result(obj, "loc", key, axes=axes, fails=KeyError)
 
-    def test_loc_getitem_label_list_fails(self):
+    @pytest.mark.parametrize("typs", ["ints", "uints"])
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_label_list_fails(self, typs, kind, request):
         # fails
-        self.check_result(
-            "loc", [20, 30, 40], typs=["ints", "uints"], axes=1, fails=KeyError
-        )
+        obj = request.getfixturevalue(f"{kind}_{typs}")
+        check_result(obj, "loc", [20, 30, 40], axes=1, fails=KeyError)
 
     def test_loc_getitem_label_array_like(self):
         # TODO: test something?
         # array like
         pass
 
-    def test_loc_getitem_bool(self):
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_bool(self, kind, request):
+        obj = request.getfixturevalue(f"{kind}_empty")
         # boolean indexers
         b = [True, False, True, False]
 
-        self.check_result("loc", b, typs=["empty"], fails=IndexError)
+        check_result(obj, "loc", b, fails=IndexError)
 
     @pytest.mark.parametrize(
         "slc, typs, axes, fails",
@@ -142,21 +157,23 @@ class TestLoc(Base):
             [slice(2, 4, 2), ["mixed"], 0, TypeError],
         ],
     )
-    def test_loc_getitem_label_slice(self, slc, typs, axes, fails):
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_label_slice(self, slc, typs, axes, fails, kind, request):
 
         # label slices (with ints)
 
         # real label slices
 
         # GH 14316
-
-        self.check_result(
-            "loc",
-            slc,
-            typs=typs,
-            axes=axes,
-            fails=fails,
-        )
+        for typ in typs:
+            obj = request.getfixturevalue(f"{kind}_{typ}")
+            check_result(
+                obj,
+                "loc",
+                slc,
+                axes=axes,
+                fails=fails,
+            )
 
     def test_setitem_from_duplicate_axis(self):
         # GH#34034

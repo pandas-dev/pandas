@@ -3,6 +3,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    MultiIndex,
     Series,
     date_range,
 )
@@ -90,3 +91,17 @@ def frame_empty():
 @pytest.fixture
 def series_empty():
     return Series(dtype=object)
+
+
+@pytest.fixture
+def frame_multi():
+    return DataFrame(
+        np.random.randn(4, 4),
+        index=MultiIndex.from_product([[1, 2], [3, 4]]),
+        columns=MultiIndex.from_product([[5, 6], [7, 8]]),
+    )
+
+
+@pytest.fixture
+def series_multi():
+    return Series(np.random.rand(4), index=MultiIndex.from_product([[1, 2], [3, 4]]))
