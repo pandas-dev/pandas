@@ -1195,7 +1195,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
             if n > max_seq_items:
                 n = min(max_seq_items // 2, 10)
+                # GH 48855 - suppress a pylint false positive.
+                # TODO: Given comment above, should should this be addressed
+                #       when this is eventually integrated with categorical?
+                # pylint: disable-next=not-an-iterable
                 head = [formatter(x) for x in self[:n]]
+                # pylint: disable-next=not-an-iterable
                 tail = [formatter(x) for x in self[-n:]]
                 head_str = ", ".join(head)
                 tail_str = ", ".join(tail)

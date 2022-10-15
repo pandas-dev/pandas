@@ -317,12 +317,12 @@ class _FrequencyInferer:
     @cache_readonly
     def day_deltas(self) -> list[int]:
         ppd = periods_per_day(self._reso)
-        return [x / ppd for x in self.deltas]
+        return [x / ppd for x in self.deltas[:]]
 
     @cache_readonly
     def hour_deltas(self) -> list[int]:
         pph = periods_per_day(self._reso) // 24
-        return [x / pph for x in self.deltas]
+        return [x / pph for x in self.deltas[:]]
 
     @cache_readonly
     def fields(self) -> np.ndarray:  # structured array of fields
