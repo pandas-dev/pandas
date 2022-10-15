@@ -54,7 +54,7 @@ cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
 cdef class Localizer:
     # cdef:
     #    tzinfo tz
-    #    NPY_DATETIMEUNIT _reso
+    #    NPY_DATETIMEUNIT _creso
     #    bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz
     #    ndarray trans
     #    Py_ssize_t ntrans
@@ -64,9 +64,9 @@ cdef class Localizer:
 
     @cython.initializedcheck(False)
     @cython.boundscheck(False)
-    def __cinit__(self, tzinfo tz, NPY_DATETIMEUNIT reso):
+    def __cinit__(self, tzinfo tz, NPY_DATETIMEUNIT creso):
         self.tz = tz
-        self._creso = reso
+        self._creso = creso
         self.use_utc = self.use_tzlocal = self.use_fixed = False
         self.use_dst = self.use_pytz = False
         self.ntrans = -1  # placeholder
@@ -82,22 +82,22 @@ cdef class Localizer:
 
         else:
             trans, deltas, typ = get_dst_info(tz)
-            if reso != NPY_DATETIMEUNIT.NPY_FR_ns:
+            if creso != NPY_DATETIMEUNIT.NPY_FR_ns:
                 # NB: using floordiv here is implicitly assuming we will
                 #  never see trans or deltas that are not an integer number
                 #  of seconds.
                 # TODO: avoid these np.array calls
-                if reso == NPY_DATETIMEUNIT.NPY_FR_us:
+                if creso == NPY_DATETIMEUNIT.NPY_FR_us:
                     trans = np.array(trans) // 1_000
                     deltas = np.array(deltas) // 1_000
-                elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
+                elif creso == NPY_DATETIMEUNIT.NPY_FR_ms:
                     trans = np.array(trans) // 1_000_000
                     deltas = np.array(deltas) // 1_000_000
-                elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
+                elif creso == NPY_DATETIMEUNIT.NPY_FR_s:
                     trans = np.array(trans) // 1_000_000_000
                     deltas = np.array(deltas) // 1_000_000_000
                 else:
-                    raise NotImplementedError(reso)
+                    raise NotImplementedError(creso)
 
             self.trans = trans
             self.ntrans = self.trans.shape[0]
@@ -236,7 +236,7 @@ timedelta-like}
         bint shift_forward = False, shift_backward = False
         bint fill_nonexist = False
         str stamp
-        Localizer info = Localizer(tz, reso=reso)
+        Localizer info = Localizer(tz, creso=reso)
         int64_t pph = periods_per_day(reso) // 24
 
     # Vectorized version of DstTzInfo.localize
@@ -585,7 +585,7 @@ cpdef int64_t tz_convert_from_utc_single(
     converted: int64
     """
     cdef:
-        Localizer info = Localizer(tz, reso=reso)
+        Localizer info = Localizer(tz, creso=reso)
         Py_ssize_t pos
 
     # Note: caller is responsible for ensuring utc_val != NPY_NAT
