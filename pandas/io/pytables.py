@@ -3523,8 +3523,8 @@ class Table(Fixed):
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
         self.levels: list[Hashable] = getattr(self.attrs, "levels", None) or []
-        self.index_axes = [a for a in self.indexables if a.is_an_indexable]
-        self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
+        self.index_axes = [a for a in self.indexables[:] if a.is_an_indexable]
+        self.values_axes = [a for a in self.indexables[:] if not a.is_an_indexable]
 
     def validate_version(self, where=None) -> None:
         """are we trying to operate on an old version?"""
@@ -3560,7 +3560,7 @@ class Table(Fixed):
                 )
 
     @cache_readonly
-    def indexables(self):
+    def indexables(self) -> list:
         """create/cache the indexables if they don't exist"""
         _indexables = []
 
