@@ -2465,7 +2465,7 @@ class TestLabelSlicing:
         tm.assert_frame_equal(df.loc[:, 1:], expected)
 
 
-class TestLocBooleanLabelsAndSlices(Base):
+class TestLocBooleanLabelsAndSlices:
     @pytest.mark.parametrize("bool_value", [True, False])
     def test_loc_bool_incompatible_index_raises(
         self, index, frame_or_series, bool_value

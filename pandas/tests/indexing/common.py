@@ -20,13 +20,6 @@ def _mklbl(prefix, n):
     return [f"{prefix}{i}" for i in range(n)]
 
 
-def _axify(obj, key, axis):
-    # create a tuple accessor
-    axes = [slice(None)] * obj.ndim
-    axes[axis] = key
-    return tuple(axes)
-
-
 class Base:
     """indexing comprehensive base class"""
 
@@ -154,20 +147,6 @@ class Base:
             tm.assert_almost_equal(result, expected)
 
     def check_result(self, method, key, typs=None, axes=None, fails=None):
-        def _eq(axis, obj, key):
-            """compare equal for these 2 keys"""
-            axified = _axify(obj, key, axis)
-            try:
-                getattr(obj, method).__getitem__(axified)
-
-            except (IndexError, TypeError, KeyError) as detail:
-
-                # if we are in fails, the ok, otherwise raise it
-                if fails is not None:
-                    if isinstance(detail, fails):
-                        return
-                raise
-
         if typs is None:
             typs = self._typs
 
@@ -187,4 +166,15 @@ class Base:
 
                     obj = d[typ]
                     if ax < obj.ndim:
-                        _eq(axis=ax, obj=obj, key=key)
+                        # create a tuple accessor
+                        axes = [slice(None)] * obj.ndim
+                        axes[ax] = key
+                        axified = tuple(axes)
+                        try:
+                            getattr(obj, method).__getitem__(axified)
+                        except (IndexError, TypeError, KeyError) as detail:
+                            # if we are in fails, the ok, otherwise raise it
+                            if fails is not None:
+                                if isinstance(detail, fails):
+                                    return
+                            raise
