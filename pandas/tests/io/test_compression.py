@@ -201,9 +201,13 @@ def test_gzip_reproducibility_file_object():
     assert output == buffer.getvalue()
 
 
-def test_with_missing_lzma():
+def test_with_missing_lzma(monkeypatch):
     """Tests if import pandas works when lzma is not present."""
     # https://github.com/pandas-dev/pandas/issues/27575
+    # Can't import pandas from the test directory since its not
+    # built inplace with meson
+    if pd._built_with_meson:
+        monkeypatch.chdir("..")
     code = textwrap.dedent(
         """\
         import sys
@@ -214,10 +218,14 @@ def test_with_missing_lzma():
     subprocess.check_output([sys.executable, "-c", code], stderr=subprocess.PIPE)
 
 
-def test_with_missing_lzma_runtime():
+def test_with_missing_lzma_runtime(monkeypatch):
     """Tests if RuntimeError is hit when calling lzma without
     having the module available.
     """
+    # Can't import pandas from the test directory since its not
+    # built inplace with meson
+    if pd._built_with_meson:
+        monkeypatch.chdir("..")
     code = textwrap.dedent(
         """
         import sys

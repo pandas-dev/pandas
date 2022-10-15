@@ -58,7 +58,11 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
         elif "# optional dependencies" in line:
             seen_optional = True
         elif seen_required and line.strip():
-            package, version = line.strip().split("=")
+            try:
+                package, version = line.strip().split("=")
+            except ValueError:
+                # pip dependencies, just skip
+                continue
             package = package[2:]
             if package in EXCLUDE_DEPS:
                 continue
