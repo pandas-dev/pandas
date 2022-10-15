@@ -45,10 +45,10 @@ def test_federal_holiday_inconsistent_returntype():
     # for August before 2019.
     test_calendar = USFederalHolidayCalendar()
 
-    results_2018 = test_calendar().holidays(
+    results_2018 = test_calendar.holidays(
         start=datetime(2018, 8, 1), end=datetime(2018, 8, 31)
     )
-    results_2019 = test_calendar().holidays(
+    results_2019 = test_calendar.holidays(
         start=datetime(2019, 8, 1), end=datetime(2019, 8, 31)
     )
 
