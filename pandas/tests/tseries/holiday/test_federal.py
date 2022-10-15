@@ -36,3 +36,20 @@ def test_memorial_day():
         datetime(1978, 5, 29, 0, 0),
         datetime(1979, 5, 28, 0, 0),
     ]
+
+
+def test_holiday_calendar_inconsistent_returntype():
+    # GH 49075
+
+    class AugustCalendar(AbstractHolidayCalendar):
+        rules = []
+
+    results_2018 = AugustCalendar().holidays(
+        start=datetime.date(2018, 8, 1), end=datetime.date(2018, 8, 31)
+    )
+    results_2019 = AugustCalendar().holidays(
+        start=datetime.date(2019, 8, 1), end=datetime.date(2019, 8, 31)
+    )
+
+    assert type(results_2018) == DatetimeIndex
+    assert type(results_2019) == DatetimeIndex
