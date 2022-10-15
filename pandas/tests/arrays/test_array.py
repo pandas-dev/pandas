@@ -271,7 +271,7 @@ cet = pytz.timezone("CET")
         ),
         (
             np.array([1, 2], dtype="m8[us]"),
-            TimedeltaArray(np.array([1000, 2000], dtype="m8[ns]")),
+            TimedeltaArray(np.array([1, 2], dtype="m8[us]")),
         ),
         # integer
         ([1, 2], IntegerArray._from_sequence([1, 2])),

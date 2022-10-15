@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from functools import wraps
-import inspect
 from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
@@ -735,13 +734,14 @@ class MultiIndex(Index):
                 vals = cast("CategoricalIndex", vals)
                 vals = vals._data._internal_get_values()
 
-            if isinstance(vals, ABCDatetimeIndex):
+            is_dti = isinstance(vals, ABCDatetimeIndex)
+
+            if is_dti:
                 # TODO: this can be removed after Timestamp.freq is removed
                 # The astype(object) below does not remove the freq from
                 # the underlying Timestamps so we remove it here to match
                 # the behavior of self._get_level_values
-                vals = vals.copy()
-                vals.freq = None
+                vals = algos.take_nd(vals, codes, fill_value=index._na_value)
 
             if isinstance(vals.dtype, ExtensionDtype) or isinstance(
                 vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
@@ -749,7 +749,8 @@ class MultiIndex(Index):
                 vals = vals.astype(object)
 
             vals = np.array(vals, copy=False)
-            vals = algos.take_nd(vals, codes, fill_value=index._na_value)
+            if not is_dti:
+                vals = algos.take_nd(vals, codes, fill_value=index._na_value)
             values.append(vals)
 
         arr = lib.fast_zip(values)
@@ -943,7 +944,7 @@ class MultiIndex(Index):
             warnings.warn(
                 "inplace is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         else:
             inplace = False
@@ -1104,7 +1105,7 @@ class MultiIndex(Index):
             warnings.warn(
                 "inplace is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         else:
             inplace = False
@@ -1218,7 +1219,7 @@ class MultiIndex(Index):
                 "parameter levels is deprecated and will be removed in a future "
                 "version. Use the set_levels method instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             keep_id = False
         if codes is not None:
@@ -1226,7 +1227,7 @@ class MultiIndex(Index):
                 "parameter codes is deprecated and will be removed in a future "
                 "version. Use the set_codes method instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             keep_id = False
 
@@ -1258,7 +1259,7 @@ class MultiIndex(Index):
                 "parameter dtype is deprecated and will be removed in a future "
                 "version. Use the astype method instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             new_index = new_index.astype(dtype)
         return new_index
@@ -1821,7 +1822,7 @@ class MultiIndex(Index):
                 "the future `None` will be used as the name of the resulting "
                 "DataFrame column.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             name = lib.no_default
 
@@ -1890,7 +1891,7 @@ class MultiIndex(Index):
             "MultiIndex.is_lexsorted is deprecated as a public function, "
             "users should use MultiIndex.is_monotonic_increasing instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self._is_lexsorted()
 
@@ -1934,7 +1935,7 @@ class MultiIndex(Index):
             "MultiIndex.lexsort_depth is deprecated as a public function, "
             "users should use MultiIndex.is_monotonic_increasing instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self._lexsort_depth
 
@@ -2315,7 +2316,7 @@ class MultiIndex(Index):
                             "dropping on a non-lexsorted multi-index "
                             "without a level parameter may impact performance.",
                             PerformanceWarning,
-                            stacklevel=find_stack_level(inspect.currentframe()),
+                            stacklevel=find_stack_level(),
                         )
                     loc = loc.nonzero()[0]
                     inds.extend(loc)
@@ -3000,7 +3001,7 @@ class MultiIndex(Index):
         warnings.warn(
             "indexing past lexsort depth may impact performance.",
             PerformanceWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
         loc = np.arange(start, stop, dtype=np.intp)
@@ -3439,7 +3440,7 @@ class MultiIndex(Index):
                                 # TODO: how to handle IntervalIndex level?
                                 #  (no test cases)
                                 FutureWarning,
-                                stacklevel=find_stack_level(inspect.currentframe()),
+                                stacklevel=find_stack_level(),
                             )
                             continue
                         else:
@@ -3689,7 +3690,7 @@ class MultiIndex(Index):
             or other.has_duplicates
         ):
             # This is only necessary if both sides have nans or other has dups,
-            # fast_unique_multiple is faster
+            # otherwise difference is faster
             result = super()._union(other, sort)
 
             if isinstance(result, MultiIndex):
@@ -3699,10 +3700,9 @@ class MultiIndex(Index):
             )
 
         else:
-            rvals = other._values.astype(object, copy=False)
-            right_missing = lib.fast_unique_multiple(self._values, rvals)
-            if right_missing:
-                result = self.append(other.take(right_missing))
+            right_missing = other.difference(self, sort=False)
+            if len(right_missing):
+                result = self.append(right_missing)
             else:
                 result = self._get_reconciled_name_object(other)
 
@@ -3714,7 +3714,7 @@ class MultiIndex(Index):
                         "The values in the array are unorderable. "
                         "Pass `sort=False` to suppress this warning.",
                         RuntimeWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
                     pass
             return result

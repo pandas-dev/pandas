@@ -139,7 +139,7 @@ Otherwise, you need to do it manually:
         warnings.warn(
             'Use new_func instead.',
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         new_func()
 
@@ -651,7 +651,7 @@ Example
 ^^^^^^^
 
 Here is an example of a self-contained set of tests in a file ``pandas/tests/test_cool_feature.py``
-that illustrate multiple features that we like to use. Please remember to add the Github Issue Number
+that illustrate multiple features that we like to use. Please remember to add the GitHub Issue Number
 as a comment to a new test.
 
 .. code-block:: python
@@ -790,14 +790,11 @@ Or with one of the following constructs::
     pytest pandas/tests/[test-module].py::[TestClass]
     pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
 
-Using `pytest-xdist <https://pypi.org/project/pytest-xdist>`_, one can
-speed up local testing on multicore machines. To use this feature, you will
-need to install ``pytest-xdist`` via::
-
-    pip install pytest-xdist
-
-The ``-n`` flag then can be specified when running ``pytest`` to parallelize a test run
-across the number of specified cores or ``auto`` to utilize all the available cores on your machine.
+Using `pytest-xdist <https://pypi.org/project/pytest-xdist>`_, which is
+included in our 'pandas-dev' environment, one can speed up local testing on
+multicore machines. The ``-n`` number flag then can be specified when running
+pytest to parallelize a test run across the number of specified cores or auto to
+utilize all the available cores on your machine.
 
 .. code-block:: bash
 
@@ -807,8 +804,57 @@ across the number of specified cores or ``auto`` to utilize all the available co
    # Utilizes all available cores
    pytest -n auto pandas
 
-This can significantly reduce the time it takes to locally run tests before
-submitting a pull request.
+If you'd like to speed things along further a more advanced use of this
+command would look like this
+
+.. code-block:: bash
+
+    pytest pandas -n 4 -m "not slow and not network and not db and not single_cpu" -r sxX
+
+In addition to the multithreaded performance increase this improves test
+speed by skipping some tests using the ``-m`` mark flag:
+
+- slow: any test taking long (think seconds rather than milliseconds)
+- network: tests requiring network connectivity
+- db: tests requiring a database (mysql or postgres)
+- single_cpu: tests that should run on a single cpu only
+
+You might want to enable the following option if it's relevant for you:
+
+- arm_slow: any test taking long on arm64 architecture
+
+These markers are defined `in this toml file <https://github.com/pandas-dev/pandas/blob/main/pyproject.toml>`_
+, under ``[tool.pytest.ini_options]`` in a list called ``markers``, in case
+you want to check if new ones have been created which are of interest to you.
+
+The ``-r`` report flag will display a short summary info (see `pytest
+documentation <https://docs.pytest.org/en/4.6.x/usage.html#detailed-summary-report>`_)
+. Here we are displaying the number of:
+
+- s: skipped tests
+- x: xfailed tests
+- X: xpassed tests
+
+The summary is optional and can be removed if you don't need the added
+information. Using the parallelization option can significantly reduce the
+time it takes to locally run tests before submitting a pull request.
+
+If you require assistance with the results,
+which has happened in the past, please set a seed before running the command
+and opening a bug report, that way we can reproduce it. Here's an example
+for setting a seed on windows
+
+.. code-block:: bash
+
+    set PYTHONHASHSEED=314159265
+    pytest pandas -n 4 -m "not slow and not network and not db and not single_cpu" -r sxX
+
+On Unix use
+
+.. code-block:: bash
+
+    export PYTHONHASHSEED=314159265
+    pytest pandas -n 4 -m "not slow and not network and not db and not single_cpu" -r sxX
 
 For more, see the `pytest <https://docs.pytest.org/en/latest/>`_ documentation.
 

@@ -21,6 +21,7 @@ from pandas._libs.tslibs import (
     iNaT,
     parsing,
 )
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -692,9 +693,18 @@ class TestToDatetime:
         msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(dt, errors="raise")
-        msg = f"Out of bounds nanosecond timestamp: {dt}"
+
+        # TODO(2.0): The Timestamp and to_datetime behaviors should match;
+        #  as of 2022-09-28, the Timestamp constructor has been updated
+        #  to cast to M8[s] but to_datetime has not
+        ts = Timestamp(dt)
+        assert ts._creso == NpyDatetimeUnit.NPY_FR_s.value
+        assert ts.asm8 == dt
+
+        msg = "Out of bounds nanosecond timestamp"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            Timestamp(dt)
+            Timestamp(np.datetime64(np.iinfo(np.int64).max, "D"))
+
         assert to_datetime(dt, errors="coerce", cache=cache) is NaT
 
     @pytest.mark.parametrize("unit", ["s", "D"])
@@ -1878,7 +1888,7 @@ class TestToDatetimeMisc:
     def test_to_datetime_overflow(self):
         # gh-17637
         # we are overflowing Timedelta range here
-        msg = "Cannot cast 139999 days, 0:00:00 to unit=ns without overflow"
+        msg = "Cannot cast 139999 days 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
 
