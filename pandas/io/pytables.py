@@ -22,6 +22,7 @@ from typing import (
     Final,
     Hashable,
     Iterator,
+    List,
     Literal,
     Sequence,
     cast,

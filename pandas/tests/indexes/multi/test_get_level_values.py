@@ -111,7 +111,7 @@ def test_get_level_values_when_periods():
     idx2 = MultiIndex.from_arrays(
         [idx._get_level_values(level) for level in range(idx.nlevels)]
     )
-    assert all(x.is_monotonic_increasing for x in idx2.levels)
+    assert all(x.is_monotonic_increasing for x in idx2[:].levels)
 
 
 def test_values_loses_freq_of_underlying_index():

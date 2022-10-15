@@ -58,7 +58,7 @@ def test_values_multiindex_datetimeindex():
     aware = pd.DatetimeIndex(ints, tz="US/Central")
 
     idx = MultiIndex.from_arrays([naive, aware])
-    result = idx.values
+    result = idx[:].values
 
     outer = pd.DatetimeIndex([x[0] for x in result])
     tm.assert_index_equal(outer, naive)
@@ -82,7 +82,7 @@ def test_values_multiindex_periodindex():
     pidx = pd.PeriodIndex(ints, freq="D")
 
     idx = MultiIndex.from_arrays([ints, pidx])
-    result = idx.values
+    result = idx[:].values
 
     outer = Int64Index([x[0] for x in result])
     tm.assert_index_equal(outer, Int64Index(ints))

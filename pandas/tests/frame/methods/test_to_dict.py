@@ -288,7 +288,7 @@ class TestDataFrameToDict:
 
         df = DataFrame({"a": data})
         d = df.to_dict(orient="records")
-        assert all(type(record["a"]) is dtype for record in d)
+        assert all(type(record["a"]) is dtype for record in d[:])
 
     @pytest.mark.parametrize(
         "data,expected_dtype",

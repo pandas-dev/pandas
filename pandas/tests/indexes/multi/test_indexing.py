@@ -751,7 +751,7 @@ class TestContains:
             names=[None, "B"],
         )
         assert ("C", pd.Timestamp("2012-01-01")) in mi
-        for val in mi.values:
+        for val in mi[:].values:
             assert val in mi
 
     def test_contains(self, idx):
