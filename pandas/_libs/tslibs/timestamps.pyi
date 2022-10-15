@@ -27,7 +27,7 @@ _DatetimeT = TypeVar("_DatetimeT", bound=datetime)
 def integer_op_not_supported(obj: object) -> TypeError: ...
 
 class Timestamp(datetime):
-    _reso: int
+    _creso: int
     min: ClassVar[Timestamp]
     max: ClassVar[Timestamp]
 
