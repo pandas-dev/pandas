@@ -9261,6 +9261,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         mask = ~((self == other) | (self.isna() & other.isna()))
+        mask.fillna(True, inplace=True)
 
         if not keep_equal:
             self = self.where(mask)
@@ -12042,7 +12043,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(Rolling)
     def rolling(
         self,
-        window: int | timedelta | BaseOffset | BaseIndexer,
+        window: int | timedelta | str | BaseOffset | BaseIndexer,
         min_periods: int | None = None,
         center: bool_t = False,
         win_type: str | None = None,

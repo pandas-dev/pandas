@@ -1325,7 +1325,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
             weeks = kwds.get("weeks", 0) * self.n
             if weeks:
                 delta = Timedelta(days=7 * weeks)
-                td = (<_Timedelta>delta)._as_reso(reso)
+                td = (<_Timedelta>delta)._as_creso(reso)
                 dt64other = dt64other + td
 
             timedelta_kwds = {
@@ -1335,7 +1335,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
             }
             if timedelta_kwds:
                 delta = Timedelta(**timedelta_kwds)
-                td = (<_Timedelta>delta)._as_reso(reso)
+                td = (<_Timedelta>delta)._as_creso(reso)
                 dt64other = dt64other + (self.n * td)
             return dt64other
         elif not self._use_relativedelta and hasattr(self, "_offset"):
@@ -1346,7 +1346,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta((self._offset + rem_nano) * self.n)
             else:
                 delta = Timedelta(self._offset * self.n)
-            td = (<_Timedelta>delta)._as_reso(reso)
+            td = (<_Timedelta>delta)._as_creso(reso)
             return dt64other + td
         else:
             # relativedelta with other keywords
@@ -3394,7 +3394,7 @@ cdef class FY5253Quarter(FY5253Mixin):
             for qlen in qtr_lens:
                 if qlen * 7 <= tdelta.days:
                     num_qtrs += 1
-                    tdelta -= (<_Timedelta>Timedelta(days=qlen * 7))._as_reso(norm._reso)
+                    tdelta -= (<_Timedelta>Timedelta(days=qlen * 7))._as_creso(norm._reso)
                 else:
                     break
         else:
