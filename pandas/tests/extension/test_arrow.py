@@ -16,6 +16,10 @@ from datetime import (
     time,
     timedelta,
 )
+from io import (
+    BytesIO,
+    StringIO,
+)
 
 import numpy as np
 import pytest
@@ -93,6 +97,10 @@ def data(dtype):
             + [None]
             + [time(0, 5), time(5, 0)]
         )
+    elif pa.types.is_string(pa_dtype):
+        data = ["a", "b"] * 4 + [None] + ["1", "2"] * 44 + [None] + ["!", ">"]
+    elif pa.types.is_binary(pa_dtype):
+        data = [b"a", b"b"] * 4 + [None] + [b"1", b"2"] * 44 + [None] + [b"!", b">"]
     else:
         raise NotImplementedError
     return pd.array(data, dtype=dtype)
@@ -158,6 +166,14 @@ def data_for_grouping(dtype):
         A = time(0, 0)
         B = time(0, 12)
         C = time(12, 12)
+    elif pa.types.is_string(pa_dtype):
+        A = "a"
+        B = "b"
+        C = "c"
+    elif pa.types.is_binary(pa_dtype):
+        A = b"a"
+        B = b"b"
+        C = b"c"
     else:
         raise NotImplementedError
     return pd.array([B, B, None, None, A, A, B, C], dtype=dtype)
@@ -206,7 +222,15 @@ def na_value():
 
 
 class TestBaseCasting(base.BaseCastingTests):
-    pass
+    def test_astype_str(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_binary(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"For {pa_dtype} .astype(str) decodes.",
+                )
+            )
+        super().test_astype_str(data)
 
 
 class TestConstructors(base.BaseConstructorsTests):
@@ -227,6 +251,12 @@ class TestConstructors(base.BaseConstructorsTests):
                         reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
                     )
                 )
+        elif pa.types.is_string(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="ArrowDtype(pa.string()) != StringDtype('pyarrow')",
+                )
+            )
         super().test_from_dtype(data)
 
     def test_from_sequence_pa_array(self, data, request):
@@ -325,7 +355,7 @@ class TestGetitemTests(base.BaseGetitemTests):
         reason=(
             "data.dtype.type return pyarrow.DataType "
             "but this (intentionally) returns "
-            "Python scalars or pd.Na"
+            "Python scalars or pd.NA"
         )
     )
     def test_getitem_scalar(self, data):
@@ -442,7 +472,11 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             or pa.types.is_boolean(pa_dtype)
         ) and not (
             all_numeric_reductions in {"min", "max"}
-            and (pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype))
+            and (
+                (pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype))
+                or pa.types.is_string(pa_dtype)
+                or pa.types.is_binary(pa_dtype)
+            )
         ):
             request.node.add_marker(xfail_mark)
         elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
@@ -584,6 +618,16 @@ class TestBaseDtype(base.BaseDtypeTests):
                     reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
                 )
             )
+        elif pa.types.is_string(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason=(
+                        "Still support StringDtype('pyarrow') "
+                        "over ArrowDtype(pa.string())"
+                    ),
+                )
+            )
         super().test_construct_from_string_own_name(dtype)
 
     def test_is_dtype_from_name(self, dtype, request):
@@ -595,6 +639,15 @@ class TestBaseDtype(base.BaseDtypeTests):
                     reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
                 )
             )
+        elif pa.types.is_string(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        "Still support StringDtype('pyarrow') "
+                        "over ArrowDtype(pa.string())"
+                    ),
+                )
+            )
         super().test_is_dtype_from_name(dtype)
 
     def test_construct_from_string(self, dtype, request):
@@ -604,6 +657,16 @@ class TestBaseDtype(base.BaseDtypeTests):
                 pytest.mark.xfail(
                     raises=NotImplementedError,
                     reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+                )
+            )
+        elif pa.types.is_string(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason=(
+                        "Still support StringDtype('pyarrow') "
+                        "over ArrowDtype(pa.string())"
+                    ),
                 )
             )
         super().test_construct_from_string(dtype)
@@ -623,6 +686,8 @@ class TestBaseDtype(base.BaseDtypeTests):
                 and (pa_dtype.unit != "ns" or pa_dtype.tz is not None)
             )
             or (pa.types.is_duration(pa_dtype) and pa_dtype.unit != "ns")
+            or pa.types.is_string(pa_dtype)
+            or pa.types.is_binary(pa_dtype)
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1017,7 +1082,21 @@ class TestBaseParsing(base.BaseParsingTests):
                     reason=f"Parameterized types with tz={pa_dtype.tz} not supported.",
                 )
             )
-        super().test_EA_types(engine, data)
+        elif pa.types.is_binary(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(reason="CSV parsers don't correctly handle binary")
+            )
+        df = pd.DataFrame({"with_dtype": pd.Series(data, dtype=str(data.dtype))})
+        csv_output = df.to_csv(index=False, na_rep=np.nan)
+        if pa.types.is_binary(pa_dtype):
+            csv_output = BytesIO(csv_output)
+        else:
+            csv_output = StringIO(csv_output)
+        result = pd.read_csv(
+            csv_output, dtype={"with_dtype": str(data.dtype)}, engine=engine
+        )
+        expected = df
+        self.assert_frame_equal(result, expected)
 
 
 class TestBaseUnaryOps(base.BaseUnaryOpsTests):
@@ -1328,6 +1407,13 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"{pa_dtype} cannot be added to {pa_dtype}",
                 )
             )
+        elif pa.types.is_binary(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 49108: NA + bytes raises",
+                )
+            )
         super().test_combine_add(data_repeated)
 
     def test_searchsorted(self, data_for_sorting, as_series, request):
@@ -1349,6 +1435,15 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"Unsupported cast from double to {pa_dtype}",
                 )
             )
+        elif pa.types.is_binary(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        "GH 49111: mask(other=np.nan) coerces "
+                        "np.nan to b'' instead of pd.NA"
+                    ),
+                )
+            )
         super().test_where_series(data, na_value, as_frame)
 
     def test_basic_equals(self, data):
@@ -1356,6 +1451,7 @@ class TestBaseMethods(base.BaseMethodsTests):
         assert pd.Series(data).equals(pd.Series(data))
 
 
+# TODO(Matt): Stopped here
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
     divmod_exc = NotImplementedError
