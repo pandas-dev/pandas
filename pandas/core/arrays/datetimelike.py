@@ -440,7 +440,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                     tz=self.tz,
                     freq=self.freq,
                     box="timestamp",
-                    reso=self._reso,
+                    reso=self._creso,
                 )
                 return converted
 
@@ -1079,7 +1079,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if not is_period_dtype(self.dtype):
             self = cast(TimelikeOps, self)
-            if self._reso != other._reso:
+            if self._creso != other._creso:
                 if not isinstance(other, type(self)):
                     # i.e. Timedelta/Timestamp, cast to ndarray and let
                     #  compare_mismatched_resolutions handle broadcasting
@@ -2039,7 +2039,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     # --------------------------------------------------------------
 
     @cache_readonly
-    def _reso(self) -> int:
+    def _creso(self) -> int:
         return get_unit_from_dtype(self._ndarray.dtype)
 
     @cache_readonly
@@ -2068,9 +2068,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     # TODO: annotate other as DatetimeArray | TimedeltaArray | Timestamp | Timedelta
     #  with the return type matching input type.  TypeVar?
     def _ensure_matching_resos(self, other):
-        if self._reso != other._reso:
+        if self._creso != other._creso:
             # Just as with Timestamp/Timedelta, we cast to the higher resolution
-            if self._reso < other._reso:
+            if self._creso < other._creso:
                 self = self._as_unit(other._unit)
             else:
                 other = other._as_unit(self._unit)
@@ -2103,7 +2103,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         values = self.view("i8")
         values = cast(np.ndarray, values)
         nanos = to_offset(freq).nanos  # raises on non-fixed frequencies
-        nanos = delta_to_nanoseconds(to_offset(freq), self._reso)
+        nanos = delta_to_nanoseconds(to_offset(freq), self._creso)
         result_i8 = round_nsint64(values, mode, nanos)
         result = self._maybe_mask_results(result_i8, fill_value=iNaT)
         result = result.view(self._ndarray.dtype)

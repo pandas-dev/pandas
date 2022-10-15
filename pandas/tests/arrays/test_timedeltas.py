@@ -40,7 +40,7 @@ class TestNonNano:
         tda = TimedeltaArray._simple_new(arr, dtype=arr.dtype)
 
         assert tda.dtype == arr.dtype
-        assert tda[0]._reso == reso
+        assert tda[0]._creso == reso
 
     @pytest.mark.parametrize("field", TimedeltaArray._field_ops)
     def test_fields(self, tda, field):
@@ -80,23 +80,23 @@ class TestNonNano:
     def test_add_nat_datetimelike_scalar(self, nat, tda):
         result = tda + nat
         assert isinstance(result, DatetimeArray)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
         assert result.isna().all()
 
         result = nat + tda
         assert isinstance(result, DatetimeArray)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
         assert result.isna().all()
 
     def test_add_pdnat(self, tda):
         result = tda + pd.NaT
         assert isinstance(result, TimedeltaArray)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
         assert result.isna().all()
 
         result = pd.NaT + tda
         assert isinstance(result, TimedeltaArray)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
         assert result.isna().all()
 
     # TODO: 2022-07-11 this is the only test that gets to DTA.tz_convert
@@ -130,28 +130,28 @@ class TestNonNano:
         result = tda * other
         expected = TimedeltaArray._simple_new(tda._ndarray * other, dtype=tda.dtype)
         tm.assert_extension_array_equal(result, expected)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
 
     def test_mul_listlike(self, tda):
         other = np.arange(len(tda))
         result = tda * other
         expected = TimedeltaArray._simple_new(tda._ndarray * other, dtype=tda.dtype)
         tm.assert_extension_array_equal(result, expected)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
 
     def test_mul_listlike_object(self, tda):
         other = np.arange(len(tda))
         result = tda * other.astype(object)
         expected = TimedeltaArray._simple_new(tda._ndarray * other, dtype=tda.dtype)
         tm.assert_extension_array_equal(result, expected)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
 
     def test_div_numeric_scalar(self, tda):
         other = 2
         result = tda / other
         expected = TimedeltaArray._simple_new(tda._ndarray / other, dtype=tda.dtype)
         tm.assert_extension_array_equal(result, expected)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
 
     def test_div_td_scalar(self, tda):
         other = timedelta(seconds=1)
@@ -164,7 +164,7 @@ class TestNonNano:
         result = tda / other
         expected = TimedeltaArray._simple_new(tda._ndarray / other, dtype=tda.dtype)
         tm.assert_extension_array_equal(result, expected)
-        assert result._reso == tda._reso
+        assert result._creso == tda._creso
 
     def test_div_td_array(self, tda):
         other = tda._ndarray + tda._ndarray[-1]

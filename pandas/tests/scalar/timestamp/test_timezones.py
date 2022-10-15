@@ -72,11 +72,11 @@ class TestTimestampTZOperations:
 
         result = ts.tz_localize("US/Central", ambiguous=True)
         assert result == expected0
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
         result = ts.tz_localize("US/Central", ambiguous=False)
         assert result == expected1
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     def test_tz_localize_ambiguous(self):
         ts = Timestamp("2014-11-02 01:00")
@@ -270,7 +270,7 @@ class TestTimestampTZOperations:
             assert result == expected.replace(microsecond=0, nanosecond=0)
         else:
             assert result == expected
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     @pytest.mark.parametrize("offset", [-1, 1])
     @pytest.mark.parametrize("tz_type", ["", "dateutil/"])

@@ -575,7 +575,7 @@ class TestCommon(Base):
             result = dta + off
 
         exp_unit = unit
-        if isinstance(off, Tick) and off._reso > dta._reso:
+        if isinstance(off, Tick) and off._creso > dta._creso:
             # cast to higher reso like we would with Timedelta scalar
             exp_unit = Timedelta(off)._unit
         expected = expected._as_unit(exp_unit)

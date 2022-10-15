@@ -502,7 +502,7 @@ cdef class DatetimeEngine(Int64Engine):
         if scalar is NaT:
             return NaT.value
         elif isinstance(scalar, _Timestamp):
-            if scalar._reso == self.reso:
+            if scalar._creso == self.reso:
                 return scalar.value
             else:
                 # Note: caller is responsible for catching potential ValueError
@@ -570,7 +570,7 @@ cdef class TimedeltaEngine(DatetimeEngine):
         if scalar is NaT:
             return NaT.value
         elif isinstance(scalar, _Timedelta):
-            if scalar._reso == self.reso:
+            if scalar._creso == self.reso:
                 return scalar.value
             else:
                 # Note: caller is responsible for catching potential ValueError

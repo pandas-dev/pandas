@@ -66,7 +66,7 @@ cdef class Localizer:
     @cython.boundscheck(False)
     def __cinit__(self, tzinfo tz, NPY_DATETIMEUNIT reso):
         self.tz = tz
-        self._reso = reso
+        self._creso = reso
         self.use_utc = self.use_tzlocal = self.use_fixed = False
         self.use_dst = self.use_pytz = False
         self.ntrans = -1  # placeholder
@@ -121,7 +121,7 @@ cdef class Localizer:
             return utc_val
         elif self.use_tzlocal:
             return utc_val + _tz_localize_using_tzinfo_api(
-                utc_val, self.tz, to_utc=False, reso=self._reso, fold=fold
+                utc_val, self.tz, to_utc=False, reso=self._creso, fold=fold
             )
         elif self.use_fixed:
             return utc_val + self.delta

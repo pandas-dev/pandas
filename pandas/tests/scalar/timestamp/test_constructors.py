@@ -458,8 +458,8 @@ class TestTimestampConstructors:
 
         # We used to raise on these before supporting non-nano
         us_val = NpyDatetimeUnit.NPY_FR_us.value
-        assert Timestamp(min_ts_us - one_us)._reso == us_val
-        assert Timestamp(max_ts_us + one_us)._reso == us_val
+        assert Timestamp(min_ts_us - one_us)._creso == us_val
+        assert Timestamp(max_ts_us + one_us)._creso == us_val
 
         # https://github.com/numpy/numpy/issues/22346 for why
         #  we can't use the same construction as above with minute resolution
@@ -506,7 +506,7 @@ class TestTimestampConstructors:
                     assert ts.value == dt64.view("i8")
                 else:
                     # we chose the closest unit that we _do_ support
-                    assert ts._reso == NpyDatetimeUnit.NPY_FR_s.value
+                    assert ts._creso == NpyDatetimeUnit.NPY_FR_s.value
 
         # With more extreme cases, we can't even fit inside second resolution
         info = np.iinfo(np.int64)

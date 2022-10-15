@@ -18,7 +18,7 @@ cdef class _Timedelta(timedelta):
         int64_t value      # nanoseconds
         bint _is_populated  # are my components populated
         int64_t _d, _h, _m, _s, _ms, _us, _ns
-        NPY_DATETIMEUNIT _reso
+        NPY_DATETIMEUNIT _creso
 
     cpdef timedelta to_pytimedelta(_Timedelta self)
     cdef bint _has_ns(self)

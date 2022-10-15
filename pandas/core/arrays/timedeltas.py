@@ -73,7 +73,7 @@ if TYPE_CHECKING:
 def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:
         values = self.asi8
-        result = get_timedelta_field(values, alias, reso=self._reso)
+        result = get_timedelta_field(values, alias, reso=self._creso)
         if self._hasna:
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
@@ -149,7 +149,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         y = x.view("i8")
         if y == NaT.value:
             return NaT
-        return Timedelta._from_value_and_reso(y, reso=self._reso)
+        return Timedelta._from_value_and_reso(y, reso=self._creso)
 
     @property
     # error: Return type "dtype" of "dtype" incompatible with return type
@@ -795,7 +795,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         Float64Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0],
                      dtype='float64')
         """
-        pps = periods_per_second(self._reso)
+        pps = periods_per_second(self._creso)
         return self._maybe_mask_results(self.asi8 / pps, fill_value=None)
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:

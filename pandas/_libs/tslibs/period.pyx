@@ -1693,7 +1693,7 @@ cdef class _Period(PeriodMixin):
             return NaT
 
         try:
-            inc = delta_to_nanoseconds(other, reso=self.freq._reso, round_ok=False)
+            inc = delta_to_nanoseconds(other, reso=self.freq._creso, round_ok=False)
         except ValueError as err:
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})") from err

@@ -78,7 +78,7 @@ def delta_to_nanoseconds(
 ) -> int: ...
 
 class Timedelta(timedelta):
-    _reso: int
+    _creso: int
     min: ClassVar[Timedelta]
     max: ClassVar[Timedelta]
     resolution: ClassVar[Timedelta]
