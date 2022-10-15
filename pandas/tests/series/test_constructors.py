@@ -925,10 +925,6 @@ class TestSeriesConstructors:
         assert isna(s[1])
         assert s.dtype == "M8[ns]"
 
-    @pytest.mark.xfail(
-        reason="Series(dates, dtype='M8[ms]') does not yet respect non-nano "
-        "dtype keyword"
-    )
     def test_constructor_dtype_datetime64_10(self):
         # GH3416
         pydates = [datetime(2013, 1, 1), datetime(2013, 1, 2), datetime(2013, 1, 3)]
