@@ -70,3 +70,23 @@ def frame_floats():
         index=Float64Index(range(0, 8, 2)),
         columns=Float64Index(range(0, 12, 3)),
     )
+
+
+@pytest.fixture
+def series_mixed():
+    return Series(np.random.randn(4), index=[2, 4, "null", 8])
+
+
+@pytest.fixture
+def frame_mixed():
+    return DataFrame(np.random.randn(4, 4), index=[2, 4, "null", 8])
+
+
+@pytest.fixture
+def frame_empty():
+    return DataFrame()
+
+
+@pytest.fixture
+def series_empty():
+    return Series(dtype=object)

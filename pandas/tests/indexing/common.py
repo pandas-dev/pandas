@@ -1,6 +1,4 @@
 """ common utilities """
-import itertools
-
 import numpy as np
 
 from pandas import (
@@ -9,7 +7,6 @@ from pandas import (
     Series,
     date_range,
 )
-import pandas._testing as tm
 from pandas.core.api import (
     Float64Index,
     UInt64Index,
@@ -18,6 +15,29 @@ from pandas.core.api import (
 
 def _mklbl(prefix, n):
     return [f"{prefix}{i}" for i in range(n)]
+
+
+def check_result(obj, method, key, axes=None, fails=None):
+    if axes is None:
+        axes = [0, 1]
+    else:
+        assert axes in [0, 1]
+        axes = [axes]
+
+    for ax in axes:
+        if ax < obj.ndim:
+            # create a tuple accessor
+            axes = [slice(None)] * obj.ndim
+            axes[ax] = key
+            axified = tuple(axes)
+            try:
+                getattr(obj, method).__getitem__(axified)
+            except (IndexError, TypeError, KeyError) as detail:
+                # if we are in fails, the ok, otherwise raise it
+                if fails is not None:
+                    if isinstance(detail, fails):
+                        return
+                raise
 
 
 class Base:
@@ -101,80 +121,3 @@ class Base:
                 d[typ] = getattr(self, f"{kind}_{typ}")
 
             setattr(self, kind, d)
-
-    def generate_indices(self, f, values=False):
-        """
-        generate the indices
-        if values is True , use the axis values
-        is False, use the range
-        """
-        axes = f.axes
-        if values:
-            axes = (list(range(len(ax))) for ax in axes)
-
-        return itertools.product(*axes)
-
-    def get_value(self, name, f, i, values=False):
-        """return the value for the location i"""
-        # check against values
-        if values:
-            return f.values[i]
-
-        elif name == "iat":
-            return f.iloc[i]
-        else:
-            assert name == "at"
-            return f.loc[i]
-
-    def check_values(self, f, func, values=False):
-
-        if f is None:
-            return
-        axes = f.axes
-        indices = itertools.product(*axes)
-
-        for i in indices:
-            result = getattr(f, func)[i]
-
-            # check against values
-            if values:
-                expected = f.values[i]
-            else:
-                expected = f
-                for a in reversed(i):
-                    expected = expected.__getitem__(a)
-
-            tm.assert_almost_equal(result, expected)
-
-    def check_result(self, method, key, typs=None, axes=None, fails=None):
-        if typs is None:
-            typs = self._typs
-
-        if axes is None:
-            axes = [0, 1]
-        else:
-            assert axes in [0, 1]
-            axes = [axes]
-
-        # check
-        for kind in self._kinds:
-
-            d = getattr(self, kind)
-            for ax in axes:
-                for typ in typs:
-                    assert typ in self._typs
-
-                    obj = d[typ]
-                    if ax < obj.ndim:
-                        # create a tuple accessor
-                        axes = [slice(None)] * obj.ndim
-                        axes[ax] = key
-                        axified = tuple(axes)
-                        try:
-                            getattr(obj, method).__getitem__(axified)
-                        except (IndexError, TypeError, KeyError) as detail:
-                            # if we are in fails, the ok, otherwise raise it
-                            if fails is not None:
-                                if isinstance(detail, fails):
-                                    return
-                            raise
