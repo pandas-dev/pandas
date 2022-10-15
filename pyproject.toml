@@ -63,7 +63,6 @@ disable = [
   "W",
   "abstract-class-instantiated",
   "access-member-before-definition",
-  "c-extension-no-member",
   "import-error",
   "invalid-repr-returned",
   "invalid-unary-operand-type",
