@@ -23,7 +23,7 @@ cdef int64_t tz_localize_to_utc_single(
 cdef class Localizer:
     cdef:
         tzinfo tz
-        NPY_DATETIMEUNIT _reso
+        NPY_DATETIMEUNIT _creso
         bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz
         ndarray trans
         Py_ssize_t ntrans
