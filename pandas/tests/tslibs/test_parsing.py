@@ -209,7 +209,6 @@ def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
 @pytest.mark.parametrize(
     "invalid_dt",
     [
-        "2013",
         "01/2013",
         "12:00:00",
         "1/1/1/1",
