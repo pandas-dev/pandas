@@ -46,11 +46,7 @@ def test_federal_holiday_inconsistent_returntype():
     cal1 = USFederalHolidayCalendar()
     cal2 = USFederalHolidayCalendar()
 
-    results_2018 = cal1.holidays(
-        start=datetime(2018, 8, 1), end=datetime(2018, 8, 31)
-    )
-    results_2019 = cal2.holidays(
-        start=datetime(2019, 8, 1), end=datetime(2019, 8, 31)
-    )
+    results_2018 = cal1.holidays(start=datetime(2018, 8, 1), end=datetime(2018, 8, 31))
+    results_2019 = cal2.holidays(start=datetime(2019, 8, 1), end=datetime(2019, 8, 31))
 
     assert type(results_2018) == type(results_2019)
