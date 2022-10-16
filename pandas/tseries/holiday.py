@@ -532,13 +532,6 @@ USLaborDay = Holiday("Labor Day", month=9, day=1, offset=DateOffset(weekday=MO(1
 USColumbusDay = Holiday(
     "Columbus Day", month=10, day=1, offset=DateOffset(weekday=MO(2))
 )
-USJuneteenthIndepedence = Holiday(
-    "Juneteenth National Independence Day",
-    start_date=datetime(2021, 6, 18),
-    month=6,
-    day=19,
-    observance=nearest_workday,
-)
 USThanksgivingDay = Holiday(
     "Thanksgiving Day", month=11, day=1, offset=DateOffset(weekday=TH(4))
 )
@@ -569,7 +562,13 @@ class USFederalHolidayCalendar(AbstractHolidayCalendar):
         USMartinLutherKingJr,
         USPresidentsDay,
         USMemorialDay,
-        USJuneteenthIndepedence,
+        Holiday(
+            "Juneteenth National Independence Day",
+            month=6,
+            day=19,
+            start_date="2021-06-18",
+            observance=nearest_workday,
+        ),
         Holiday("Independence Day", month=7, day=4, observance=nearest_workday),
         USLaborDay,
         USColumbusDay,
