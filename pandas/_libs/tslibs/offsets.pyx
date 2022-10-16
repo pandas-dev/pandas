@@ -2476,12 +2476,42 @@ cdef class MonthOffset(SingleConstructorOffset):
 cdef class MonthEnd(MonthOffset):
     """
     DateOffset of one month end.
+    
+    When parameter n=0, always offset to the end of month.
+    
+    When parameter n=1, depend on the given date:
+        a) Given date is on an anchor point (last day of the month) -> offset to the end of the following month
+        b) Given date is not on an anchor point -> offset to the end of the same month
+   
+    
+    Parameters
+    ----------
+    n : int, default 1
+        
 
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
-    >>> ts + pd.offsets.MonthEnd()
+    >>> ts + pd.offsets.MonthEnd(n=1)
     Timestamp('2022-01-31 00:00:00')
+    
+    >>> ts = pd.Timestamp(2022, 1, 31)
+    >>> ts + pd.offsets.MonthEnd(n=0)
+    Timestamp('2022-01-31 00:00:00')
+    
+    
+    >>> ts = pd.Timestamp(2022, 1, 31)
+    >>> ts + pd.offsets.MonthEnd(n=1)
+    Timestamp('2022-02-28 00:00:00')
+    
+    
+    >>> ts = pd.Timestamp(2022, 1, 31)
+    >>> ts + pd.offsets.MonthEnd(n=2)
+    Timestamp('2022-03-31 00:00:00')
+    
+    >>> ts = pd.Timestamp(2022, 1, 31)
+    >>> ts + pd.offsets.MonthEnd(n=-1)
+    Timestamp('2021-12-31 00:00:00')
     """
     _period_dtype_code = PeriodDtypeCode.M
     _prefix = "M"
