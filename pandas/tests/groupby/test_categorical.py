@@ -782,7 +782,7 @@ def test_preserve_categories():
     # ordered=False
     df = DataFrame({"A": Categorical(list("ba"), categories=categories, ordered=False)})
     sort_index = CategoricalIndex(categories, categories, ordered=False, name="A")
-    nosort_index = CategoricalIndex(list("bac"), list("bac"), ordered=False, name="A")
+    nosort_index = CategoricalIndex(list("bac"), list("abc"), ordered=False, name="A")
     tm.assert_index_equal(
         df.groupby("A", sort=True, observed=False).first().index, sort_index
     )
@@ -965,7 +965,7 @@ def test_sort2():
 
     index = CategoricalIndex(
         ["(7.5, 10]", "(2.5, 5]", "(5, 7.5]", "(0, 2.5]"],
-        categories=["(7.5, 10]", "(2.5, 5]", "(5, 7.5]", "(0, 2.5]"],
+        categories=["(0, 2.5]", "(2.5, 5]", "(5, 7.5]", "(7.5, 10]"],
         name="range",
     )
     expected_nosort = DataFrame(
@@ -1042,27 +1042,34 @@ def test_sort_datetimelike():
 
     # ordered = False
     df["dt"] = Categorical(df["dt"], ordered=False)
-    index = [
-        datetime(2011, 1, 1),
-        datetime(2011, 2, 1),
-        datetime(2011, 5, 1),
-        datetime(2011, 7, 1),
-    ]
+    sort_index = CategoricalIndex(
+        [
+            datetime(2011, 1, 1),
+            datetime(2011, 2, 1),
+            datetime(2011, 5, 1),
+            datetime(2011, 7, 1),
+        ],
+        name="dt",
+    )
     result_sort = DataFrame(
-        [[1, 60], [5, 30], [6, 40], [10, 10]], columns=["foo", "bar"]
+        [[1, 60], [5, 30], [6, 40], [10, 10]], columns=["foo", "bar"], index=sort_index
     )
-    result_sort.index = CategoricalIndex(index, name="dt")
 
-    index = [
-        datetime(2011, 7, 1),
-        datetime(2011, 2, 1),
-        datetime(2011, 5, 1),
-        datetime(2011, 1, 1),
-    ]
-    result_nosort = DataFrame(
-        [[10, 10], [5, 30], [6, 40], [1, 60]], columns=["foo", "bar"]
+    nosort_index = CategoricalIndex(
+        [
+            datetime(2011, 7, 1),
+            datetime(2011, 2, 1),
+            datetime(2011, 5, 1),
+            datetime(2011, 1, 1),
+        ],
+        categories=sort_index.categories,
+        name="dt",
     )
-    result_nosort.index = CategoricalIndex(index, categories=index, name="dt")
+    result_nosort = DataFrame(
+        [[10, 10], [5, 30], [6, 40], [1, 60]],
+        columns=["foo", "bar"],
+        index=nosort_index,
+    )
 
     col = "dt"
     tm.assert_frame_equal(
