@@ -131,7 +131,6 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
-- Deprecate behavior of :meth:`DataFrameGroupBy.fillna` and :meth:`SeriesGroupBy.fillna` allowing only keyword arguments to be passed except ``value`` (:issue:`48395`)
 
 
 .. ---------------------------------------------------------------------------
@@ -221,7 +220,6 @@ Indexing
 - Bug in :meth:`DataFrame.reindex` casting dtype to ``object`` when :class:`DataFrame` has single extension array column when re-indexing ``columns`` and ``index`` (:issue:`48190`)
 - Bug in :func:`~DataFrame.describe` when formatting percentiles in the resulting index showed more decimals than needed (:issue:`46362`)
 - Bug in :meth:`DataFrame.compare` does not recognize differences when comparing ``NA`` with value in nullable dtypes (:issue:`48939`)
--
 
 Missing
 ^^^^^^^
@@ -295,6 +293,7 @@ Metadata
 
 Other
 ^^^^^
+- Add future warnings in :meth:`DataFrameGroupBy.fillna` and :meth:`SeriesGroupBy.fillna` allowing only keyword arguments to be passed except ``value`` (:issue:`48395`)
 
 .. ***DO NOT USE THIS SECTION***
 

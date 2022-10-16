@@ -748,7 +748,6 @@ class SeriesGroupBy(GroupBy[Series]):
     def fillna(
         self,
         value: object | ArrayLike | None = None,
-        *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
@@ -841,6 +840,12 @@ class SeriesGroupBy(GroupBy[Series]):
         5    NaN
         dtype: float64
         """
+        warnings.warn(
+            'In a future version of pandas, all the parameters except "value" '
+            "of SeriesGroupBy.fillna have to be keyword-only.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         result = self._op_via_apply(
             "fillna",
             value=value,
@@ -2151,7 +2156,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def fillna(
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
-        *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
@@ -2269,6 +2273,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  3.0  NaN  2.0
         4  3.0  NaN  NaN
         """
+        warnings.warn(
+            'In a future version of pandas, all the parameters except "value" '
+            "of DataFrameGroupBy.fillna have to be keyword-only.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         result = self._op_via_apply(
             "fillna",
             value=value,
