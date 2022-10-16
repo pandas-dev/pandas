@@ -170,7 +170,7 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 - Bug in :meth:`Categorical.set_categories` losing dtype information (:issue:`48812`)
--
+- Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` would reorder categories when used as a grouper (:issue:`48749`)
 
 Datetimelike
 ^^^^^^^^^^^^
