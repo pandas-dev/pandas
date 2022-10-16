@@ -126,9 +126,8 @@ start_caching_at = 50
 
 def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str | None:
     # Try to guess the format based on the first non-NaN element, return None if can't
-    non_nan_elements = notna(arr).nonzero()[0]
-    if len(non_nan_elements):
-        if type(first_non_nan_element := arr[non_nan_elements[0]]) is str:
+    if (first_non_null := tslib.first_non_null(arr)) != -1:
+        if type(first_non_nan_element := arr[first_non_null]) is str:
             # GH#32264 np.str_ object
             return guess_datetime_format(first_non_nan_element, dayfirst=dayfirst)
     return None
