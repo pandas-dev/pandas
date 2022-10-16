@@ -2099,10 +2099,10 @@ default 'raise'
             value = tz_localize_to_utc_single(self.value, tz,
                                               ambiguous=ambiguous,
                                               nonexistent=nonexistent,
-                                              reso=self._creso)
+                                              creso=self._creso)
         elif tz is None:
             # reset tz
-            value = tz_convert_from_utc_single(self.value, self.tz, reso=self._creso)
+            value = tz_convert_from_utc_single(self.value, self.tz, creso=self._creso)
 
         else:
             raise TypeError(
@@ -2245,7 +2245,7 @@ default 'raise'
             fold = self.fold
 
         if tzobj is not None:
-            value = tz_convert_from_utc_single(value, tzobj, reso=self._creso)
+            value = tz_convert_from_utc_single(value, tzobj, creso=self._creso)
 
         # setup components
         pandas_datetime_to_datetimestruct(value, self._creso, &dts)

@@ -490,11 +490,11 @@ cdef class ObjectEngine(IndexEngine):
 cdef class DatetimeEngine(Int64Engine):
 
     cdef:
-        NPY_DATETIMEUNIT reso
+        NPY_DATETIMEUNIT _creso
 
     def __init__(self, ndarray values):
         super().__init__(values.view("i8"))
-        self.reso = get_unit_from_dtype(values.dtype)
+        self._creso = get_unit_from_dtype(values.dtype)
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         # NB: caller is responsible for ensuring tzawareness compat
@@ -502,12 +502,12 @@ cdef class DatetimeEngine(Int64Engine):
         if scalar is NaT:
             return NaT.value
         elif isinstance(scalar, _Timestamp):
-            if scalar._creso == self.reso:
+            if scalar._creso == self._creso:
                 return scalar.value
             else:
                 # Note: caller is responsible for catching potential ValueError
                 #  from _as_creso
-                return (<_Timestamp>scalar)._as_creso(self.reso, round_ok=False).value
+                return (<_Timestamp>scalar)._as_creso(self._creso, round_ok=False).value
         raise TypeError(scalar)
 
     def __contains__(self, val: object) -> bool:
@@ -570,12 +570,12 @@ cdef class TimedeltaEngine(DatetimeEngine):
         if scalar is NaT:
             return NaT.value
         elif isinstance(scalar, _Timedelta):
-            if scalar._creso == self.reso:
+            if scalar._creso == self._creso:
                 return scalar.value
             else:
                 # Note: caller is responsible for catching potential ValueError
                 #  from _as_creso
-                return (<_Timedelta>scalar)._as_creso(self.reso, round_ok=False).value
+                return (<_Timedelta>scalar)._as_creso(self._creso, round_ok=False).value
         raise TypeError(scalar)
 
 
