@@ -41,14 +41,15 @@ def test_memorial_day():
 
 def test_federal_holiday_inconsistent_returntype():
     # GH 49075
-    # User that the USFederalHolidayCalendar() would return inconsistent datatype
-    # for August before 2019.
-    test_calendar = USFederalHolidayCalendar()
 
-    results_2018 = test_calendar.holidays(
+    # Instantiate two calendars to rule out _cache
+    cal1 = USFederalHolidayCalendar()
+    cal2 = USFederalHolidayCalendar()
+
+    results_2018 = cal1.holidays(
         start=datetime(2018, 8, 1), end=datetime(2018, 8, 31)
     )
-    results_2019 = test_calendar.holidays(
+    results_2019 = cal2.holidays(
         start=datetime(2019, 8, 1), end=datetime(2019, 8, 31)
     )
 
