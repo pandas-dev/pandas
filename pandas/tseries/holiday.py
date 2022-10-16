@@ -220,9 +220,9 @@ class Holiday:
         self.day = day
         self.offset = offset
         self.start_date = (
-            Timestamp(start_date) if start_date is not None else start_date
+            Timestamp(start_date) if start_date is not None else AbstractHolidayCalendar.start_date
         )
-        self.end_date = Timestamp(end_date) if end_date is not None else end_date
+        self.end_date = Timestamp(end_date) if end_date is not None else AbstractHolidayCalendar.end_date
         self.observance = observance
         assert days_of_week is None or type(days_of_week) == tuple
         self.days_of_week = days_of_week
