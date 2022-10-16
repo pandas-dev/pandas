@@ -463,7 +463,9 @@ def test_maybe_promote_timedelta64_with_any(timedelta64_dtype, any_numpy_dtype_r
     [pd.Timedelta(days=1), np.timedelta64(24, "h"), datetime.timedelta(1)],
     ids=["pd.Timedelta", "np.timedelta64", "datetime.timedelta"],
 )
-def test_maybe_promote_any_with_timedelta64(any_numpy_dtype_reduced, fill_value):
+def test_maybe_promote_any_with_timedelta64(
+    any_numpy_dtype_reduced, fill_value, request
+):
     dtype = np.dtype(any_numpy_dtype_reduced)
 
     # filling anything but timedelta with timedelta casts to object
@@ -471,6 +473,19 @@ def test_maybe_promote_any_with_timedelta64(any_numpy_dtype_reduced, fill_value)
         expected_dtype = dtype
         # for timedelta dtypes, scalar values get cast to pd.Timedelta.value
         exp_val_for_scalar = pd.Timedelta(fill_value).to_timedelta64()
+
+        if isinstance(fill_value, np.timedelta64) and fill_value.dtype != "m8[ns]":
+            mark = pytest.mark.xfail(
+                reason="maybe_promote not yet updated to handle non-nano "
+                "Timedelta scalar"
+            )
+            request.node.add_marker(mark)
+        elif type(fill_value) is datetime.timedelta:
+            mark = pytest.mark.xfail(
+                reason="maybe_promote not yet updated to handle non-nano "
+                "Timedelta scalar"
+            )
+            request.node.add_marker(mark)
     else:
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = fill_value
