@@ -1455,7 +1455,8 @@ class ExtensionArray:
         """
         if self.ndim > 1:
             return [x.tolist() for x in self]
-        return list(self)
+        # faster than list(self)
+        return self.to_numpy().tolist()
 
     def delete(self: ExtensionArrayT, loc: PositionalIndexer) -> ExtensionArrayT:
         indexer = np.delete(np.arange(len(self)), loc)
