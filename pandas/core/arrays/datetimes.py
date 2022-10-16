@@ -1021,7 +1021,7 @@ default 'raise'
                 tz,
                 ambiguous=ambiguous,
                 nonexistent=nonexistent,
-                reso=self._creso,
+                creso=self._creso,
             )
         new_dates = new_dates.view(f"M8[{self._unit}]")
         dtype = tz_to_dtype(tz, unit=self._unit)
