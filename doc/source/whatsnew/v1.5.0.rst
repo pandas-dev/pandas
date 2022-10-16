@@ -654,7 +654,7 @@ Deprecations
     In the next major version release, 2.0, several larger API changes are being considered without a formal deprecation such as
     making the standard library `zoneinfo <https://docs.python.org/3/library/zoneinfo.html>`_ the default timezone implementation instead of ``pytz``,
     having the :class:`Index` support all data types instead of having multiple subclasses (:class:`CategoricalIndex`, :class:`Int64Index`, etc.), and more.
-    The changes under consideration are logged in `this Github issue <https://github.com/pandas-dev/pandas/issues/44823>`_, and any
+    The changes under consideration are logged in `this GitHub issue <https://github.com/pandas-dev/pandas/issues/44823>`_, and any
     feedback or concerns are welcome.
 
 .. _whatsnew_150.deprecations.int_slicing_series:

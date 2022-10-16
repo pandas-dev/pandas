@@ -76,6 +76,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.loc` raising ``FutureWarning`` when setting an empty :class:`DataFrame` (:issue:`48480`)
 - Fixed regression in :meth:`DataFrame.describe` raising ``TypeError`` when result contains ``NA`` (:issue:`48778`)
 - Fixed regression in :meth:`DataFrame.plot` ignoring invalid ``colormap`` for ``kind="scatter"`` (:issue:`48726`)
+- Fixed regression in :meth:`MultiIndex.values`` resetting ``freq`` attribute of underlying :class:`Index` object (:issue:`49054`)
 - Fixed performance regression in :func:`factorize` when ``na_sentinel`` is not ``None`` and ``sort=False`` (:issue:`48620`)
 - Fixed regression causing an ``AttributeError`` during warning emitted if the provided table name in :meth:`DataFrame.to_sql` and the table name actually used in the database do not match (:issue:`48733`)
 - Fixed regression in :func:`to_datetime` when ``arg`` was a date string with nanosecond and ``format`` contained ``%f`` would raise a ``ValueError`` (:issue:`48767`)
@@ -85,6 +86,7 @@ Fixed regressions
 - Fixed Regression in :meth:`DataFrameGroupBy.apply` when user defined function is called on an empty dataframe (:issue:`47985`)
 - Fixed regression in :meth:`DataFrame.apply` when passing non-zero ``axis`` via keyword argument (:issue:`48656`)
 - Fixed regression in :meth:`Series.groupby` and :meth:`DataFrame.groupby` when the grouper is a nullable data type (e.g. :class:`Int64`) or a PyArrow-backed string array, contains null values, and ``dropna=False`` (:issue:`48794`)
+- Fixed regression in :meth:`DataFrame.to_parquet` raising when file name was specified as ``bytes`` (:issue:`48944`)
 - Fixed regression in :class:`ExcelWriter` where the ``book`` attribute could no longer be set; however setting this attribute is now deprecated and this ability will be removed in a future version of pandas (:issue:`48780`)
 
 .. ---------------------------------------------------------------------------
