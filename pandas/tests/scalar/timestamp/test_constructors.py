@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.compat import PY310
 from pandas.errors import OutOfBoundsDatetime
 
@@ -455,14 +456,26 @@ class TestTimestampConstructors:
         Timestamp(min_ts_us)
         Timestamp(max_ts_us)
 
+        # We used to raise on these before supporting non-nano
+        us_val = NpyDatetimeUnit.NPY_FR_us.value
+        assert Timestamp(min_ts_us - one_us)._creso == us_val
+        assert Timestamp(max_ts_us + one_us)._creso == us_val
+
+        # https://github.com/numpy/numpy/issues/22346 for why
+        #  we can't use the same construction as above with minute resolution
+
+        # too_low, too_high are the _just_ outside the range of M8[s]
+        too_low = np.datetime64("-292277022657-01-27T08:29", "m")
+        too_high = np.datetime64("292277026596-12-04T15:31", "m")
+
         msg = "Out of bounds"
         # One us less than the minimum is an error
         with pytest.raises(ValueError, match=msg):
-            Timestamp(min_ts_us - one_us)
+            Timestamp(too_low)
 
         # One us more than the maximum is an error
         with pytest.raises(ValueError, match=msg):
-            Timestamp(max_ts_us + one_us)
+            Timestamp(too_high)
 
     def test_out_of_bounds_string(self):
         msg = "Out of bounds"
@@ -487,7 +500,20 @@ class TestTimestampConstructors:
         for date_string in out_of_bounds_dates:
             for unit in time_units:
                 dt64 = np.datetime64(date_string, unit)
-                msg = "Out of bounds"
+                ts = Timestamp(dt64)
+                if unit in ["s", "ms", "us"]:
+                    # We can preserve the input unit
+                    assert ts.value == dt64.view("i8")
+                else:
+                    # we chose the closest unit that we _do_ support
+                    assert ts._creso == NpyDatetimeUnit.NPY_FR_s.value
+
+        # With more extreme cases, we can't even fit inside second resolution
+        info = np.iinfo(np.int64)
+        msg = "Out of bounds nanosecond timestamp:"
+        for value in [info.min + 1, info.max]:
+            for unit in ["D", "h", "m"]:
+                dt64 = np.datetime64(value, unit)
                 with pytest.raises(OutOfBoundsDatetime, match=msg):
                     Timestamp(dt64)
 

@@ -121,6 +121,13 @@ class TestConstructors(base.BaseConstructorsTests):
         # base test uses string representation of dtype
         pass
 
+    def test_constructor_from_list(self):
+        # GH 27673
+        pytest.importorskip("pyarrow", minversion="1.0.0")
+        result = pd.Series(["E"], dtype=StringDtype(storage="pyarrow"))
+        assert isinstance(result.dtype, StringDtype)
+        assert result.dtype.storage == "pyarrow"
+
 
 class TestReshaping(base.BaseReshapingTests):
     def test_transpose(self, data, request):

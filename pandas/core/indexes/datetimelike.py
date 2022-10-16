@@ -4,7 +4,6 @@ Base and utility classes for tseries type pandas objects.
 from __future__ import annotations
 
 from datetime import datetime
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -400,7 +399,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             f"{type(self).__name__}.is_type_compatible is deprecated and will be "
             "removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return kind in self._data._infer_matches
 
@@ -433,7 +432,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             new_freq = to_offset(Timedelta(res_i8.step))
             res_i8 = res_i8
 
-        # TODO: we cannot just do
+        # TODO(GH#41493): we cannot just do
         #  type(self._data)(res_i8.values, dtype=self.dtype, freq=new_freq)
         # because test_setops_preserve_freq fails with _validate_frequency raising.
         # This raising is incorrect, as 'on_freq' is incorrect. This will
