@@ -1414,6 +1414,9 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
     -------
     The casted array.
     """
+    if is_extension_array_dtype(arr.dtype):
+        return arr
+
     na_value = na_values[arr.dtype]
 
     if issubclass(arr.dtype.type, np.integer):
