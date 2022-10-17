@@ -131,20 +131,20 @@ def _field_accessor(name: str, field: str, docstring=None):
                     month_kw = kwds.get("startingMonth", kwds.get("month", 12))
 
                 result = fields.get_start_end_field(
-                    values, field, self.freqstr, month_kw, reso=self._reso
+                    values, field, self.freqstr, month_kw, reso=self._creso
                 )
             else:
-                result = fields.get_date_field(values, field, reso=self._reso)
+                result = fields.get_date_field(values, field, reso=self._creso)
 
             # these return a boolean by-definition
             return result
 
         if field in self._object_ops:
-            result = fields.get_date_name_field(values, field, reso=self._reso)
+            result = fields.get_date_name_field(values, field, reso=self._creso)
             result = self._maybe_mask_results(result, fill_value=None)
 
         else:
-            result = fields.get_date_field(values, field, reso=self._reso)
+            result = fields.get_date_field(values, field, reso=self._creso)
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
             )
@@ -283,7 +283,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         else:
             # DatetimeTZDtype. If we have e.g. DatetimeTZDtype[us, UTC],
             #  then values.dtype should be M8[us].
-            assert dtype._reso == get_unit_from_dtype(values.dtype)
+            assert dtype._creso == get_unit_from_dtype(values.dtype)
 
         result = super()._simple_new(values, dtype)
         result._freq = freq
@@ -392,7 +392,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             raise ValueError("Neither `start` nor `end` can be NaT")
 
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
-        start, end, _normalized = _maybe_normalize_endpoints(start, end, normalize)
+        start, end = _maybe_normalize_endpoints(start, end, normalize)
         tz = _infer_tz_from_endpoints(start, end, tz)
 
         if tz is not None:
@@ -510,7 +510,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _box_func(self, x: np.datetime64) -> Timestamp | NaTType:
         # GH#42228
         value = x.view("i8")
-        ts = Timestamp._from_value_and_reso(value, reso=self._reso, tz=self.tz)
+        ts = Timestamp._from_value_and_reso(value, reso=self._creso, tz=self.tz)
         # Non-overlapping identity check (left operand type: "Timestamp",
         # right operand type: "NaTType")
         if ts is not NaT:  # type: ignore[comparison-overlap]
@@ -577,11 +577,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         """
         Returns True if all of the dates are at midnight ("no time")
         """
-        return is_date_array_normalized(self.asi8, self.tz, reso=self._reso)
+        return is_date_array_normalized(self.asi8, self.tz, reso=self._creso)
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _resolution_obj(self) -> Resolution:
-        return get_resolution(self.asi8, self.tz, reso=self._reso)
+        return get_resolution(self.asi8, self.tz, reso=self._creso)
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
@@ -619,7 +619,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     tz=self.tz,
                     freq=self.freq,
                     box="timestamp",
-                    reso=self._reso,
+                    reso=self._creso,
                 )
                 yield from converted
 
@@ -687,7 +687,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         fmt = get_format_datetime64_from_values(self, date_format)
 
         return tslib.format_array_from_datetime(
-            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep, reso=self._reso
+            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep, reso=self._creso
         )
 
     # -----------------------------------------------------------------
@@ -773,7 +773,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if self.tz is None or timezones.is_utc(self.tz):
             # Avoid the copy that would be made in tzconversion
             return self.asi8
-        return tz_convert_from_utc(self.asi8, self.tz, reso=self._reso)
+        return tz_convert_from_utc(self.asi8, self.tz, reso=self._creso)
 
     def tz_convert(self, tz) -> DatetimeArray:
         """
@@ -1021,7 +1021,7 @@ default 'raise'
                 tz,
                 ambiguous=ambiguous,
                 nonexistent=nonexistent,
-                reso=self._reso,
+                creso=self._creso,
             )
         new_dates = new_dates.view(f"M8[{self._unit}]")
         dtype = tz_to_dtype(tz, unit=self._unit)
@@ -1047,7 +1047,7 @@ default 'raise'
         -------
         datetimes : ndarray[object]
         """
-        return ints_to_pydatetime(self.asi8, tz=self.tz, reso=self._reso)
+        return ints_to_pydatetime(self.asi8, tz=self.tz, reso=self._creso)
 
     def normalize(self) -> DatetimeArray:
         """
@@ -1087,7 +1087,7 @@ default 'raise'
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
-        new_values = normalize_i8_timestamps(self.asi8, self.tz, reso=self._reso)
+        new_values = normalize_i8_timestamps(self.asi8, self.tz, reso=self._creso)
         dt64_values = new_values.view(self._ndarray.dtype)
 
         dta = type(self)._simple_new(dt64_values, dtype=dt64_values.dtype)
@@ -1242,7 +1242,7 @@ default 'raise'
         values = self._local_timestamps()
 
         result = fields.get_date_name_field(
-            values, "month_name", locale=locale, reso=self._reso
+            values, "month_name", locale=locale, reso=self._creso
         )
         result = self._maybe_mask_results(result, fill_value=None)
         return result
@@ -1286,7 +1286,7 @@ default 'raise'
         values = self._local_timestamps()
 
         result = fields.get_date_name_field(
-            values, "day_name", locale=locale, reso=self._reso
+            values, "day_name", locale=locale, reso=self._creso
         )
         result = self._maybe_mask_results(result, fill_value=None)
         return result
@@ -1303,7 +1303,7 @@ default 'raise'
         # keeping their timezone and not using UTC
         timestamps = self._local_timestamps()
 
-        return ints_to_pydatetime(timestamps, box="time", reso=self._reso)
+        return ints_to_pydatetime(timestamps, box="time", reso=self._creso)
 
     @property
     def timetz(self) -> npt.NDArray[np.object_]:
@@ -1312,7 +1312,7 @@ default 'raise'
 
         The time part of the Timestamps.
         """
-        return ints_to_pydatetime(self.asi8, self.tz, box="time", reso=self._reso)
+        return ints_to_pydatetime(self.asi8, self.tz, box="time", reso=self._creso)
 
     @property
     def date(self) -> npt.NDArray[np.object_]:
@@ -1327,7 +1327,7 @@ default 'raise'
         # keeping their timezone and not using UTC
         timestamps = self._local_timestamps()
 
-        return ints_to_pydatetime(timestamps, box="date", reso=self._reso)
+        return ints_to_pydatetime(timestamps, box="date", reso=self._creso)
 
     def isocalendar(self) -> DataFrame:
         """
@@ -1366,7 +1366,7 @@ default 'raise'
         from pandas import DataFrame
 
         values = self._local_timestamps()
-        sarray = fields.build_isocalendar_sarray(values, reso=self._reso)
+        sarray = fields.build_isocalendar_sarray(values, reso=self._creso)
         iso_calendar_df = DataFrame(
             sarray, columns=["year", "week", "day"], dtype="UInt32"
         )
@@ -2477,23 +2477,15 @@ def _infer_tz_from_endpoints(
 def _maybe_normalize_endpoints(
     start: Timestamp | None, end: Timestamp | None, normalize: bool
 ):
-    _normalized = True
 
-    if start is not None:
-        if normalize:
+    if normalize:
+        if start is not None:
             start = start.normalize()
-            _normalized = True
-        else:
-            _normalized = _normalized and start.time() == _midnight
 
-    if end is not None:
-        if normalize:
+        if end is not None:
             end = end.normalize()
-            _normalized = True
-        else:
-            _normalized = _normalized and end.time() == _midnight
 
-    return start, end, _normalized
+    return start, end
 
 
 def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous, nonexistent):
