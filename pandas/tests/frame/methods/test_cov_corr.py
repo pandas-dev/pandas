@@ -410,6 +410,7 @@ class TestDataFrameCorrWith:
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_corrwith_spearman_with_tied_data(self):
         # GH#48826
         df1 = DataFrame(
