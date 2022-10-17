@@ -16,7 +16,7 @@ fs = import('fs')
 py = py_mod.find_installation('python')
 py_dep = py.dependency()
 tempita = files('scripts/generate_pxi.py')
-versioneer = files('scripts/generate_version.py')
+versioneer = files('generate_version.py')
 
 if fs.exists('_version_meson.py')
     py.install_sources('_version_meson.py', subdir: 'pandas')
