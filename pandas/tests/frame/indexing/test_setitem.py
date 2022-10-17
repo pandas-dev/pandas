@@ -748,6 +748,14 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_frame_midx_columns(self):
+        # GH#49121
+        df = DataFrame({("a", "b"): [10]})
+        expected = df.copy()
+        col_name = ("a", "b")
+        df[col_name] = df[[col_name]]
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
