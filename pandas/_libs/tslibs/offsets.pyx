@@ -2501,7 +2501,7 @@ cdef class MonthEnd(MonthOffset):
     
     With the ``n`` parameter, we can control logic of offset.
     
-    See below, when ``n`` is set to 0, offset is always made the end of the current month:
+    See below, when ``n`` is set to 0, offset is always made to the end of the current month:
     
     >>> ts = pd.Timestamp(2022, 1, 31)
     >>> ts + pd.offsets.MonthEnd(n=0)
