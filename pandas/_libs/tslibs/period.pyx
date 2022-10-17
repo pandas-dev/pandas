@@ -2288,9 +2288,14 @@ cdef class _Period(PeriodMixin):
         return bool(is_leapyear(self.year))
 
     @classmethod
-    def now(cls, freq=None):
+    def now(cls, freq):
         """
         Return the period of now's date.
+
+        Parameters
+        ----------
+        freq : str, BaseOffset
+            Frequency to use for the returned period.
         """
         return Period(datetime.now(), freq=freq)
 
