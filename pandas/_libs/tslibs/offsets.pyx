@@ -2480,15 +2480,13 @@ cdef class MonthEnd(MonthOffset):
     When parameter n=0, always offset to the end of month.
     
     When parameter n=1, depend on the given date:
-        a) Given date is on an anchor point (last day of the month) -> offset to the end of the following month
-        b) Given date is not on an anchor point -> offset to the end of the same month
-   
-    
+        a) Given date is on an anchor point (last day of the month) -> offset to the end of the following month.
+        b) Given date is not on an anchor point -> offset to the end of the same month.
+        
     Parameters
     ----------
     n : int, default 1
-        
-
+    
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
@@ -2497,13 +2495,11 @@ cdef class MonthEnd(MonthOffset):
     
     >>> ts = pd.Timestamp(2022, 1, 31)
     >>> ts + pd.offsets.MonthEnd(n=0)
-    Timestamp('2022-01-31 00:00:00')
-    
+    Timestamp('2022-01-31 00:00:00') 
     
     >>> ts = pd.Timestamp(2022, 1, 31)
     >>> ts + pd.offsets.MonthEnd(n=1)
     Timestamp('2022-02-28 00:00:00')
-    
     
     >>> ts = pd.Timestamp(2022, 1, 31)
     >>> ts + pd.offsets.MonthEnd(n=2)
