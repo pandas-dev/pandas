@@ -856,17 +856,6 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_searchsorted(data_for_sorting, as_series)
 
-    def test_where_series(self, data, na_value, as_frame, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_temporal(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"Unsupported cast from double to {pa_dtype}",
-                )
-            )
-        super().test_where_series(data, na_value, as_frame)
-
     def test_basic_equals(self, data):
         # https://github.com/pandas-dev/pandas/issues/34660
         assert pd.Series(data).equals(pd.Series(data))
