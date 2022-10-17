@@ -2513,7 +2513,7 @@ cdef class MonthEnd(MonthOffset):
     >>> ts + pd.offsets.MonthEnd(n=1)
     Timestamp('2022-02-28 00:00:00')
     
-    When ``n`` is set to 2, method offsets one additional month. And again depends whether given date is on on anchor point:
+    When ``n`` is set to 2, method offsets one additional month. And again depends whether given date is on an anchor point:
     
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.MonthEnd(n=2)
