@@ -161,7 +161,6 @@ from pandas.core.apply import (
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
-    BaseMaskedArray,
     DatetimeArray,
     ExtensionArray,
     PeriodArray,
@@ -10578,47 +10577,8 @@ Parrot 2  Parrot       24.0
         if numeric_only is lib.no_default and len(this.columns) < len(self.columns):
             com.deprecate_numeric_only_default(type(self), "corrwith")
 
-        # GH46174: when other is a Series object and axis=0, we achieve a speedup over
-        # passing .corr() to .apply() by taking the columns as ndarrays and iterating
-        # over the transposition row-wise. Then we delegate the correlation coefficient
-        # computation and null-masking to np.corrcoef and np.isnan respectively,
-        # which are much faster. We exploit the fact that the Spearman correlation
-        # of two vectors is equal to the Pearson correlation of their ranks to use
-        # substantially the same method for Pearson and Spearman,
-        # just with intermediate argsorts on the latter.
         if isinstance(other, Series):
-            if axis == 0 and method in ["pearson", "spearman"]:
-                corrs = {}
-                if numeric_only:
-                    cols = self.select_dtypes(include=np.number).columns
-                else:
-                    cols = self.columns
-                k = other.values
-                k_mask = ~other.isna()
-                if isinstance(k, BaseMaskedArray):
-                    k = k._data
-                if method == "pearson":
-                    for col in cols:
-                        val = self[col].values
-                        nonnull_mask = ~self[col].isna() & k_mask
-                        if isinstance(val, BaseMaskedArray):
-                            val = val._data
-                        corrs[col] = np.corrcoef(val[nonnull_mask], k[nonnull_mask])[
-                            0, 1
-                        ]
-                else:
-                    for col in cols:
-                        val = self[col].values
-                        nonnull_mask = ~self[col].isna() & k_mask
-                        if isinstance(val, BaseMaskedArray):
-                            val = val._data
-                        corrs[col] = np.corrcoef(
-                            libalgos.rank_1d(val[nonnull_mask]),
-                            libalgos.rank_1d(k[nonnull_mask]),
-                        )[0, 1]
-                return Series(corrs)
-            else:
-                return this.apply(lambda x: other.corr(x, method=method), axis=axis)
+            return this.apply(lambda x: other.corr(x, method=method), axis=axis)
 
         if numeric_only_bool:
             other = other._get_numeric_data()
