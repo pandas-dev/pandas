@@ -411,7 +411,7 @@ class TestDataFrameCorrWith:
         tm.assert_series_equal(result, expected)
 
     def test_corrwith_spearman_with_tied_data(self):
-        # GH#21925
+        # GH#48826
         df = DataFrame(
             {
                 "A": [2, 5, 8, 9],
