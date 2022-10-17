@@ -713,7 +713,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         self._tz = tz
 
     @cache_readonly
-    def _reso(self) -> int:
+    def _creso(self) -> int:
         """
         The NPY_DATETIMEUNIT corresponding to this dtype's resolution.
         """
