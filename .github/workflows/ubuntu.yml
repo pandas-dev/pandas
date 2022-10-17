@@ -77,7 +77,6 @@ jobs:
           - name: "Numpy Dev"
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
-            pandas_testing_mode: "deprecate"
             test_args: "-W error::DeprecationWarning:numpy -W error::FutureWarning:numpy"
         exclude:
           - env_file: actions-39.yaml
@@ -96,7 +95,6 @@ jobs:
       EXTRA_APT: ${{ matrix.extra_apt || '' }}
       LANG: ${{ matrix.lang || '' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
-      PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode || '' }}
       PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}

@@ -15,7 +15,6 @@ from typing import (
     Counter,
     Iterable,
 )
-import warnings
 
 import numpy as np
 
@@ -235,28 +234,6 @@ if not pa_version_under1p01:
 
 
 EMPTY_STRING_PATTERN = re.compile("^$")
-
-# set testing_mode
-_testing_mode_warnings = (DeprecationWarning, ResourceWarning)
-
-
-def set_testing_mode() -> None:
-    # set the testing mode filters
-    testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
-    if "deprecate" in testing_mode:
-        for category in _testing_mode_warnings:
-            warnings.simplefilter("always", category)
-
-
-def reset_testing_mode() -> None:
-    # reset the testing mode filters
-    testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
-    if "deprecate" in testing_mode:
-        for category in _testing_mode_warnings:
-            warnings.simplefilter("ignore", category)
-
-
-set_testing_mode()
 
 
 def reset_display_options() -> None:
@@ -1142,14 +1119,12 @@ __all__ = [
     "randbool",
     "rands",
     "reset_display_options",
-    "reset_testing_mode",
     "RNGContext",
     "round_trip_localpath",
     "round_trip_pathlib",
     "round_trip_pickle",
     "setitem",
     "set_locale",
-    "set_testing_mode",
     "set_timezone",
     "shares_memory",
     "SIGNED_INT_EA_DTYPES",
