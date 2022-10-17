@@ -153,8 +153,6 @@ def _to_ordinalf(tm: pydt.time) -> float:
 def time2num(d):
     if isinstance(d, str):
         parsed = Timestamp(d)
-        if not isinstance(parsed, datetime):
-            raise ValueError(f"Could not parse time {d}")
         return _to_ordinalf(parsed.time())
     if isinstance(d, pydt.time):
         return _to_ordinalf(d)
