@@ -99,6 +99,8 @@ If installed, we now require:
 +=================+=================+==========+=========+
 | mypy (dev)      | 0.981           |          |    X    |
 +-----------------+-----------------+----------+---------+
+| python-dateutil | 2.8.2           |    X     |    X    |
++-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
@@ -107,7 +109,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | Package         | Minimum Version | Changed |
 +=================+=================+=========+
-|                 |                 |    X    |
+| pyarrow         | 6.0.0           |    X    |
 +-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
@@ -154,6 +156,7 @@ Performance improvements
 - Performance improvement in :func:`merge` and :meth:`DataFrame.join` when joining on a sorted :class:`MultiIndex` (:issue:`48504`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`48384`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
+- Performance improvement for :func:`concat` with extension array backed indexes (:issue:`49128`)
 - Performance improvement in :meth:`DataFrame.join` when joining on a subset of a :class:`MultiIndex` (:issue:`48611`)
 - Performance improvement for :meth:`MultiIndex.intersection` (:issue:`48604`)
 - Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
@@ -218,6 +221,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.reindex` filling with wrong values when indexing columns and index for ``uint`` dtypes (:issue:`48184`)
+- Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` when right hand side is :class:`DataFrame` with :class:`MultiIndex` columns (:issue:`49121`)
 - Bug in :meth:`DataFrame.reindex` casting dtype to ``object`` when :class:`DataFrame` has single extension array column when re-indexing ``columns`` and ``index`` (:issue:`48190`)
 - Bug in :func:`~DataFrame.describe` when formatting percentiles in the resulting index showed more decimals than needed (:issue:`46362`)
 - Bug in :meth:`DataFrame.compare` does not recognize differences when comparing ``NA`` with value in nullable dtypes (:issue:`48939`)
@@ -227,6 +231,7 @@ Missing
 ^^^^^^^
 - Bug in :meth:`Index.equals` raising ``TypeError`` when :class:`Index` consists of tuples that contain ``NA`` (:issue:`48446`)
 - Bug in :meth:`Series.map` caused incorrect result when data has NaNs and defaultdict mapping was used (:issue:`48813`)
+- Bug in :class:`NA` raising a ``TypeError`` instead of return :class:`NA` when performing a binary operation with a ``bytes`` object (:issue:`49108`)
 
 MultiIndex
 ^^^^^^^^^^

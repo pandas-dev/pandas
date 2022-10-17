@@ -500,7 +500,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         values = self._data._local_timestamps()
 
-        reso = self._data._reso
+        reso = self._data._creso
         ppd = periods_per_day(reso)
 
         frac = values % ppd
