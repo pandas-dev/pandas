@@ -10072,7 +10072,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def mask(
         self: NDFrameT,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace: bool_t = False,
         axis: Axis | None = None,
         level: Level = None,
