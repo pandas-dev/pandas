@@ -1244,6 +1244,11 @@ cdef class _Timedelta(timedelta):
     def view(self, dtype):
         """
         Array view compatibility.
+
+        Parameters
+        ----------
+        dtype : str or dtype
+            The dtype to view the underlying data as.
         """
         return np.timedelta64(self.value).view(dtype)
 
