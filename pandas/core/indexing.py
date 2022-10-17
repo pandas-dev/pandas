@@ -1898,16 +1898,20 @@ class _iLocIndexer(_LocationIndexer):
 
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
-        # GH#7551 Note that this coerces the dtype if we are mixed
-        value = np.array(value, dtype=object)
+        if not is_array_like(value):
+            # cast lists to array
+            value = np.array(value, dtype=object)
         if len(ilocs) != value.shape[1]:
             raise ValueError(
                 "Must have equal len keys and value when setting with an ndarray"
             )
 
         for i, loc in enumerate(ilocs):
-            # setting with a list, re-coerces
-            self._setitem_single_column(loc, value[:, i].tolist(), pi)
+            value_col = value[:, i]
+            if is_object_dtype(value_col):
+                # try coerce values as good as possible
+                value_col = value_col.tolist()
+            self._setitem_single_column(loc, value_col, pi)
 
     def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
@@ -2255,7 +2259,7 @@ class _iLocIndexer(_LocationIndexer):
                 ser_values = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 
                 # single indexer
-                if len(indexer) > 1 and not multiindex_indexer:
+                if len(indexer) > 1 and len(indexer[1]) > 1 and not multiindex_indexer:
                     len_indexer = len(indexer[1])
                     ser_values = (
                         np.tile(ser_values, len_indexer).reshape(len_indexer, -1).T
