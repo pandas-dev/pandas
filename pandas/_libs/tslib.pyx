@@ -421,6 +421,23 @@ def array_with_unit_to_datetime(
 
     return oresult, tz
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def first_non_null(values: ndarray) -> int:
+    """Find position of first non-null value, return -1 if there isn't one."""
+    cdef:
+        Py_ssize_t n = len(values)
+        Py_ssize_t i
+        int result
+    for i in range(n):
+        val = values[i]
+        if checknull_with_nat_and_na(val):
+            continue
+        if isinstance(val, str) and (len(val) == 0 or val in nat_strings):
+            continue
+        return i
+    else:
+        return -1
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -536,7 +553,7 @@ cpdef array_to_datetime(
                             raise ValueError('Cannot mix tz-aware with '
                                              'tz-naive values')
                         if isinstance(val, _Timestamp):
-                            iresult[i] = (<_Timestamp>val)._as_reso(NPY_FR_ns).value
+                            iresult[i] = (<_Timestamp>val)._as_creso(NPY_FR_ns).value
                         else:
                             iresult[i] = pydatetime_to_dt64(val, &dts)
                             check_dts_bounds(&dts)

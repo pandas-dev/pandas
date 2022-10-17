@@ -206,19 +206,21 @@ cdef class _TSObject:
     #    int64_t value               # numpy dt64
     #    tzinfo tzinfo
     #    bint fold
-    #    NPY_DATETIMEUNIT reso
+    #    NPY_DATETIMEUNIT creso
 
     def __cinit__(self):
         # GH 25057. As per PEP 495, set fold to 0 by default
         self.fold = 0
-        self.reso = NPY_FR_ns  # default value
+        self.creso = NPY_FR_ns  # default value
 
-    cdef ensure_reso(self, NPY_DATETIMEUNIT reso):
-        if self.reso != reso:
+    cdef ensure_reso(self, NPY_DATETIMEUNIT creso):
+        if self.creso != creso:
             try:
-                self.value = convert_reso(self.value, self.reso, reso, False)
+                self.value = convert_reso(self.value, self.creso, creso, False)
             except OverflowError as err:
                 raise OutOfBoundsDatetime from err
+
+            self.creso = creso
 
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
@@ -250,7 +252,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
         reso = get_supported_reso(get_datetime64_unit(ts))
-        obj.reso = reso
+        obj.creso = reso
         obj.value = get_datetime64_nanos(ts, reso)
         if obj.value != NPY_NAT:
             pandas_datetime_to_datetimestruct(obj.value, reso, &obj.dts)
@@ -317,7 +319,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         raise TypeError(f'Cannot convert input [{ts}] of type {type(ts)} to '
                         f'Timestamp')
 
-    maybe_localize_tso(obj, tz, obj.reso)
+    maybe_localize_tso(obj, tz, obj.creso)
     return obj
 
 
@@ -362,7 +364,7 @@ cdef _TSObject convert_datetime_to_tsobject(
         _TSObject obj = _TSObject()
         int64_t pps
 
-    obj.reso = reso
+    obj.creso = reso
     obj.fold = ts.fold
     if tz is not None:
         tz = maybe_get_tz(tz)

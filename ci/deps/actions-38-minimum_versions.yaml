@@ -16,7 +16,7 @@ dependencies:
   - boto3
 
   # required dependencies
-  - python-dateutil=2.8.1
+  - python-dateutil=2.8.2
   - numpy=1.20.3
   - pytz=2020.1
 

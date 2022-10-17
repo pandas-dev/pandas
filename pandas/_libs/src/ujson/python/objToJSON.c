@@ -332,8 +332,8 @@ static npy_int64 get_long_attr(PyObject *o, const char *attr) {
         return long_val;
     }
 
-    // ensure we are in nanoseconds, similar to Timestamp._as_reso or _as_unit
-    PyObject* reso = PyObject_GetAttrString(o, "_reso");
+    // ensure we are in nanoseconds, similar to Timestamp._as_creso or _as_unit
+    PyObject* reso = PyObject_GetAttrString(o, "_creso");
     // if (!PyLong_Check(reso)) {
     // TODO(anyone): we should have error handling here, but one step at a time
     // }
