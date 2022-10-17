@@ -355,7 +355,10 @@ class TestDataFrameCorrWith:
             expected = Series(data=corrs, index=["a", "b"])
             tm.assert_series_equal(result, expected)
         else:
-            with pytest.raises(TypeError, match="not supported for the input types"):
+            with pytest.raises(
+                TypeError,
+                match=r"unsupported operand type\(s\) for /: 'str' and 'int'",
+            ):
                 df.corrwith(s, numeric_only=numeric_only)
 
     def test_corrwith_index_intersection(self):
@@ -405,4 +408,27 @@ class TestDataFrameCorrWith:
         df = DataFrame(np.random.random(size=(100, 3)))
         result = df.corrwith(df**2, method="kendall")
         expected = Series(np.ones(len(result)))
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no_scipy
+    def test_corrwith_spearman_with_tied_data(self):
+        # GH#48826
+        df1 = DataFrame(
+            {
+                "A": [1, np.nan, 7, 8],
+                "B": [False, True, True, False],
+                "C": [10, 4, 9, 3],
+            }
+        )
+        df2 = df1[["B", "C"]]
+        result = (df1 + 1).corrwith(df2.B, method="spearman")
+        expected = Series([0.0, 1.0, 0.0], index=["A", "B", "C"])
+        tm.assert_series_equal(result, expected)
+
+        df_bool = DataFrame(
+            {"A": [True, True, False, False], "B": [True, False, False, True]}
+        )
+        ser_bool = Series([True, True, False, True])
+        result = df_bool.corrwith(ser_bool)
+        expected = Series([0.57735, 0.57735], index=["A", "B"])
         tm.assert_series_equal(result, expected)
