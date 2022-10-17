@@ -211,8 +211,13 @@ class TestAtErrors:
     def test_at_frame_multiple_columns(self):
         # GH#48296 - at shouldn't modify multiple columns
         df = DataFrame({"a": [1, 2], "b": [3, 4]})
-        with pytest.raises(InvalidIndexError, match=r"slice\(None, None, None\)"):
-            df.at[5] = [6, 7]
+        new_row = [6, 7]
+        with pytest.raises(
+            InvalidIndexError,
+            match=r"You can only assign a scalar value not a \\{type(new_row)} "
+            f"with value \\{new_row}",
+        ):
+            df.at[5] = new_row
 
     def test_at_getitem_mixed_index_no_fallback(self):
         # GH#19860
@@ -239,5 +244,9 @@ class TestAtErrors:
         # GH#48729 .at should raise InvalidIndexError when assigning rows
         df = DataFrame(index=["a"], columns=["col1", "col2"])
         new_row = [123, 15]
-        with pytest.raises(InvalidIndexError, match=r"slice\(None, None, None\)"):
+        with pytest.raises(
+            InvalidIndexError,
+            match=r"You can only assign a scalar value not a \\{type(new_row)} "
+            f"with value \\{new_row}",
+        ):
             df.at["a"] = new_row
