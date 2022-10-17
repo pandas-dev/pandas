@@ -181,7 +181,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return ser
 
     def _get_data_to_aggregate(self) -> SingleManager:
-        ser = self._obj_with_exclusions
+        ser = self._selected_obj
         single = ser._mgr
         return single
 
@@ -906,7 +906,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         f = partial(Series.nlargest, n=n, keep=keep)
-        data = self._obj_with_exclusions
+        data = self._selected_obj
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
         result = self._python_apply_general(f, data, not_indexed_same=True)
@@ -917,7 +917,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         f = partial(Series.nsmallest, n=n, keep=keep)
-        data = self._obj_with_exclusions
+        data = self._selected_obj
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
         result = self._python_apply_general(f, data, not_indexed_same=True)
