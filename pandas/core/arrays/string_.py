@@ -20,6 +20,7 @@ from pandas._typing import (
 )
 from pandas.compat import pa_version_under6p0
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -214,7 +215,11 @@ class BaseStringArray(ExtensionArray):
     Mixin class for StringArray, ArrowStringArray.
     """
 
-    pass
+    @doc(ExtensionArray.tolist)
+    def tolist(self):
+        if self.ndim > 1:
+            return [x.tolist() for x in self]
+        return list(self.to_numpy())
 
 
 class StringArray(BaseStringArray, PandasArray):

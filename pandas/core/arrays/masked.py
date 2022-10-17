@@ -427,6 +427,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             data = self._data.astype(dtype, copy=copy)
         return data
 
+    @doc(ExtensionArray.tolist)
+    def tolist(self):
+        if self.ndim > 1:
+            return [x.tolist() for x in self]
+        if not self._hasna:
+            # faster than list(self)
+            return list(self._data)
+        return list(self)
+
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
         ...

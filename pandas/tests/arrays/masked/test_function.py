@@ -49,3 +49,9 @@ def test_round(data, numpy_dtype):
         dtype=data.dtype,
     )
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_tolist(data):
+    result = data.tolist()
+    expected = list(data)
+    tm.assert_equal(result, expected)
