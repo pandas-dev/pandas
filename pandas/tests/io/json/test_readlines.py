@@ -1,4 +1,5 @@
 from io import StringIO
+import os
 from pathlib import Path
 from typing import Iterator
 
@@ -24,6 +25,37 @@ def test_read_jsonl():
     # GH9180
     result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
     expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_jsonl_engine_pyarrow(json_dir_path):
+    # '{"a": 1, "b": 2}\n{"a": 3, "b": 4}\n{"a": 5, "b": 6}'
+
+    result = read_json(
+        os.path.join(json_dir_path, "line_delimited.json"),
+        lines=True,
+        engine="pyarrow",
+    )
+    expected = DataFrame({"a": [1, 3, 5], "b": [2, 4, 6]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.xfail
+def test_read_jsonl_engine_pyarrow_lines_false(json_dir_path):
+    result = read_json(
+        os.path.join(json_dir_path, "line_delimited.json"),
+        engine="pyarrow",
+    )
+    expected = DataFrame({"a": [1, 3, 5], "b": [2, 4, 6]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.xfail
+def test_read_jsonl_engine_pyarrow_json_string():
+    result = read_json(
+        '{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}', engine="pyarrow"
+    )
+    expected = DataFrame({"a": [1, 3, 5], "b": [2, 4, 6]})
     tm.assert_frame_equal(result, expected)
 
 

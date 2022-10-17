@@ -73,8 +73,7 @@ from pandas.io.json._table_schema import (
     build_table_schema,
     parse_table_schema,
 )
-from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
-from pandas.io.parsers.base_parser import ParserBase
+from pandas.io.json.arrow_json_parser_wrapper import ArrowJsonParserWrapper
 from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
@@ -383,7 +382,7 @@ def read_json(
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    engine: JSONEngine | None = ...,
+    engine: JSONEngine = ...,
     lines: bool = ...,
     chunksize: int,
     compression: CompressionOptions = ...,
@@ -408,7 +407,7 @@ def read_json(
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    engine: JSONEngine | None = ...,
+    engine: JSONEngine = ...,
     lines: bool = ...,
     chunksize: int,
     compression: CompressionOptions = ...,
@@ -433,7 +432,7 @@ def read_json(
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    engine: JSONEngine | None = ...,
+    engine: JSONEngine = ...,
     lines: bool = ...,
     chunksize: None = ...,
     compression: CompressionOptions = ...,
@@ -457,7 +456,7 @@ def read_json(
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    engine: JSONEngine | None = None,
+    engine: JSONEngine = ...,
     lines: bool = ...,
     chunksize: None = ...,
     compression: CompressionOptions = ...,
@@ -486,7 +485,7 @@ def read_json(
     date_unit: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
-    engine: JSONEngine | None = None,
+    engine: JSONEngine = "ujson",
     lines: bool = False,
     chunksize: int | None = None,
     compression: CompressionOptions = "infer",
@@ -615,7 +614,7 @@ def read_json(
 
         .. versionadded:: 1.3.0
 
-    engine : {{'ujson', 'pyarrow'}}
+    engine : {{'ujson', 'pyarrow'}}, default "ujson"
         Parser engine to use.
 
     lines : bool, default False
@@ -792,13 +791,13 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         precise_float: bool,
         date_unit,
         encoding,
-        engine,
         lines: bool,
         chunksize: int | None,
         compression: CompressionOptions,
         nrows: int | None,
         storage_options: StorageOptions = None,
         encoding_errors: str | None = "strict",
+        engine: JSONEngine = "ujson",
     ) -> None:
 
         self.orient = orient
@@ -829,33 +828,45 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
+        if self.engine == "pyarrow":
+            if not self.lines:
+                raise ValueError(
+                    "currently pyarrow engine only supports "
+                    "the line-delimited JSON format"
+                )
 
-        if engine is not None:
+        if self.engine == "pyarrow":
             self._engine = self._make_engine(filepath_or_buffer, self.engine)
-        else:
+        if self.engine == "ujson":
             data = self._get_data_from_filepath(filepath_or_buffer)
             self.data = self._preprocess_data(data)
 
     def _make_engine(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
-        engine: JSONEngine,
-    ) -> ParserBase:
-
-        mapping: dict[str, type[ParserBase]] = {
-            "pyarrow": ArrowParserWrapper,
-            "ujson": ...,
-        }
-
-        if engine not in mapping:
-            raise ValueError(
-                f"Unknown engine: {engine} (valid options are {mapping.keys()})"
-            )
+        engine: JSONEngine = "pyarrow",
+    ) -> ArrowJsonParserWrapper:
 
         if not isinstance(filepath_or_buffer, list):
-            ...
+            is_text = False
+            mode = "rb"
+            self.handles = get_handle(
+                filepath_or_buffer,
+                mode=mode,
+                encoding=self.encoding,
+                is_text=is_text,
+                compression=self.compression,
+                storage_options=self.storage_options,
+                errors=self.encoding_errors,
+            )
+            filepath_or_buffer = self.handles.handle
 
-        return mapping[engine](filepath_or_buffer)
+        try:
+            return ArrowJsonParserWrapper(filepath_or_buffer)
+        except Exception:
+            if self.handles is not None:
+                self.handles.close()
+            raise
 
     def _preprocess_data(self, data):
         """
@@ -939,20 +950,23 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         Read the whole JSON input into a pandas object.
         """
         obj: DataFrame | Series
-        if self.lines:
-            if self.chunksize:
-                obj = concat(self)
-            elif self.nrows:
-                lines = list(islice(self.data, self.nrows))
-                lines_json = self._combine_lines(lines)
-                obj = self._get_object_parser(lines_json)
+        if self.engine == "pyarrow":
+            obj = self._engine.read()
+        if self.engine == "ujson":
+            if self.lines:
+                if self.chunksize:
+                    obj = concat(self)
+                elif self.nrows:
+                    lines = list(islice(self.data, self.nrows))
+                    lines_json = self._combine_lines(lines)
+                    obj = self._get_object_parser(lines_json)
+                else:
+                    data = ensure_str(self.data)
+                    data_lines = data.split("\n")
+                    obj = self._get_object_parser(self._combine_lines(data_lines))
             else:
-                data = ensure_str(self.data)
-                data_lines = data.split("\n")
-                obj = self._get_object_parser(self._combine_lines(data_lines))
-        else:
-            obj = self._get_object_parser(self.data)
-        self.close()
+                obj = self._get_object_parser(self.data)
+            self.close()
         return obj
 
     def _get_object_parser(self, json) -> DataFrame | Series:
