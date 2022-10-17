@@ -236,7 +236,7 @@ Dependencies
 Package                                                          Minimum supported version
 ================================================================ ==========================
 `NumPy <https://numpy.org>`__                                    1.20.3
-`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.1
+`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
 ================================================================ ==========================
 
