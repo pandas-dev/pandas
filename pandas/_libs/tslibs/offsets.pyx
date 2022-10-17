@@ -2476,34 +2476,55 @@ cdef class MonthOffset(SingleConstructorOffset):
 cdef class MonthEnd(MonthOffset):
     """
     DateOffset of one month end.
-    
-    When parameter n=0, always offset to the end of month.
-    
-    When parameter n=1, depend on the given date:
-        a) Given date is on an anchor point (last day of the month) -> offset to the end of the following month.
-        b) Given date is not on an anchor point -> offset to the end of the same month.
-        
+
+     
     Parameters
     ----------
     n : int, default 1
+        n = 0 -> offset to the end of month.
+        n = 1 -> depend on the given date:
+            a) Given date is on an anchor point (last day of the month) -> offset to the end of the following month.
+            b) Given date is not on an anchor point -> offset to the end of the same month.
     
     Examples
     --------
+    Offset to the end of the month:
+    
     >>> ts = pd.Timestamp(2022, 1, 1)
-    >>> ts + pd.offsets.MonthEnd(n=1)
+    >>> ts + pd.offsets.MonthEnd()
     Timestamp('2022-01-31 00:00:00')
+    
+    However be careful, if given date is the last day of a month, method offsets to the end of the following month:
+    
+    >>> ts = pd.Timestamp(2022, 1, 31)
+    >>> ts + pd.offsets.MonthEnd()
+    Timestamp('2022-02-28 00:00:00')
+    
+    With the ``n`` parameter, we can control logic of offset.
+    
+    See below, when ``n`` is set to 0, offset is always made the end of the current month:
     
     >>> ts = pd.Timestamp(2022, 1, 31)
     >>> ts + pd.offsets.MonthEnd(n=0)
     Timestamp('2022-01-31 00:00:00') 
     
+    When ``n`` is set to 1 (default) it will be moved to the following month:
+    
     >>> ts = pd.Timestamp(2022, 1, 31)
     >>> ts + pd.offsets.MonthEnd(n=1)
+    Timestamp('2022-02-28 00:00:00')
+    
+      When ``n`` is set to 2, method offsets one additional month. And again depends whether given date is on on anchor point:
+    
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.MonthEnd(n=2)
     Timestamp('2022-02-28 00:00:00')
     
     >>> ts = pd.Timestamp(2022, 1, 31)
     >>> ts + pd.offsets.MonthEnd(n=2)
     Timestamp('2022-03-31 00:00:00')
+    
+    Also we can use negative ``n`` to find end of previous months:
     
     >>> ts = pd.Timestamp(2022, 1, 31)
     >>> ts + pd.offsets.MonthEnd(n=-1)
