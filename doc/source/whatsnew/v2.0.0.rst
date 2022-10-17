@@ -253,7 +253,7 @@ Period
 
 Plotting
 ^^^^^^^^
--
+- ``ax.set_xlim`` was sometimes raising ``UserWarning`` which users couldn't address due to ``set_xlim`` not accepting parsing arguments - the converter now uses :func:`Timestamp` instead (:issue:`49148`)
 -
 
 Groupby/resample/rolling
