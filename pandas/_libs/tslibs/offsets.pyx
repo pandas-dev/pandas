@@ -2477,7 +2477,6 @@ cdef class MonthEnd(MonthOffset):
     """
     DateOffset of one month end.
 
-     
     Parameters
     ----------
     n : int, default 1
@@ -2506,7 +2505,7 @@ cdef class MonthEnd(MonthOffset):
     
     >>> ts = pd.Timestamp(2022, 1, 31)
     >>> ts + pd.offsets.MonthEnd(n=0)
-    Timestamp('2022-01-31 00:00:00') 
+    Timestamp('2022-01-31 00:00:00')
     
     When ``n`` is set to 1 (default) it will be moved to the following month:
     
@@ -2514,7 +2513,7 @@ cdef class MonthEnd(MonthOffset):
     >>> ts + pd.offsets.MonthEnd(n=1)
     Timestamp('2022-02-28 00:00:00')
     
-      When ``n`` is set to 2, method offsets one additional month. And again depends whether given date is on on anchor point:
+    When ``n`` is set to 2, method offsets one additional month. And again depends whether given date is on on anchor point:
     
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.MonthEnd(n=2)
