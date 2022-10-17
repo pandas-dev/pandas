@@ -28,7 +28,7 @@ from pandas._typing import (
     Dtype,
     Frequency,
 )
-from pandas.compat import pa_version_under1p01
+from pandas.compat import pa_version_under6p0
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -194,7 +194,7 @@ NP_NAT_OBJECTS = [
     ]
 ]
 
-if not pa_version_under1p01:
+if not pa_version_under6p0:
     import pyarrow as pa
 
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]

@@ -10,7 +10,6 @@ import pytest
 
 from pandas.compat import (
     IS64,
-    pa_version_under2p0,
     pa_version_under7p0,
 )
 from pandas.errors import PerformanceWarning
@@ -230,12 +229,7 @@ class TestCommon:
         except NotImplementedError:
             pass
 
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under2p0
-            and getattr(index_flat.dtype, "storage", "") == "pyarrow",
-        ):
-            result = idx.unique()
+        result = idx.unique()
         tm.assert_index_equal(result, idx_unique)
 
         # nans:
@@ -255,13 +249,7 @@ class TestCommon:
 
         expected = idx_unique_nan
         for pos, i in enumerate([idx_nan, idx_unique_nan]):
-            with tm.maybe_produces_warning(
-                PerformanceWarning,
-                pa_version_under2p0
-                and getattr(index_flat.dtype, "storage", "") == "pyarrow"
-                and pos == 0,
-            ):
-                result = i.unique()
+            result = i.unique()
             tm.assert_index_equal(result, expected)
 
     def test_searchsorted_monotonic(self, index_flat, request):
