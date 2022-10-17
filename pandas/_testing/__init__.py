@@ -15,7 +15,6 @@ from typing import (
     Counter,
     Iterable,
 )
-import warnings
 
 import numpy as np
 
@@ -102,7 +101,6 @@ from pandas._testing.contexts import (
     RNGContext,
     decompress_file,
     ensure_clean,
-    ensure_clean_dir,
     ensure_safe_environment_variables,
     set_timezone,
     use_numexpr,
@@ -200,7 +198,7 @@ if not pa_version_under1p01:
     import pyarrow as pa
 
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
-    SIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.int16(), pa.int32(), pa.uint64()]
+    SIGNED_INT_PYARROW_DTYPES = [pa.int8(), pa.int16(), pa.int32(), pa.int64()]
     ALL_INT_PYARROW_DTYPES = UNSIGNED_INT_PYARROW_DTYPES + SIGNED_INT_PYARROW_DTYPES
 
     FLOAT_PYARROW_DTYPES = [pa.float32(), pa.float64()]
@@ -236,28 +234,6 @@ if not pa_version_under1p01:
 
 
 EMPTY_STRING_PATTERN = re.compile("^$")
-
-# set testing_mode
-_testing_mode_warnings = (DeprecationWarning, ResourceWarning)
-
-
-def set_testing_mode() -> None:
-    # set the testing mode filters
-    testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
-    if "deprecate" in testing_mode:
-        for category in _testing_mode_warnings:
-            warnings.simplefilter("always", category)
-
-
-def reset_testing_mode() -> None:
-    # reset the testing mode filters
-    testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
-    if "deprecate" in testing_mode:
-        for category in _testing_mode_warnings:
-            warnings.simplefilter("ignore", category)
-
-
-set_testing_mode()
 
 
 def reset_display_options() -> None:
@@ -296,7 +272,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
             # pd.array would return an IntegerArray
             expected = PandasArray(np.asarray(expected._values))
         else:
-            expected = pd.array(expected)
+            expected = pd.array(expected, copy=False)
     elif box_cls is Index:
         expected = Index._with_infer(expected)
     elif box_cls is Series:
@@ -1087,7 +1063,6 @@ __all__ = [
     "EMPTY_STRING_PATTERN",
     "ENDIAN",
     "ensure_clean",
-    "ensure_clean_dir",
     "ensure_safe_environment_variables",
     "equalContents",
     "external_error_raised",
@@ -1144,14 +1119,12 @@ __all__ = [
     "randbool",
     "rands",
     "reset_display_options",
-    "reset_testing_mode",
     "RNGContext",
     "round_trip_localpath",
     "round_trip_pathlib",
     "round_trip_pickle",
     "setitem",
     "set_locale",
-    "set_testing_mode",
     "set_timezone",
     "shares_memory",
     "SIGNED_INT_EA_DTYPES",

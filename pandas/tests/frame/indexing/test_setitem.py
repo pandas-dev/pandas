@@ -260,9 +260,7 @@ class TestDataFrameSetItem:
             # property would require instantiation
             if not isinstance(dtype.name, property)
         ]
-        # mypy doesn't allow adding lists of different types
-        # https://github.com/python/mypy/issues/5492
-        + ["datetime64[ns, UTC]", "period[D]"],  # type: ignore[list-item]
+        + ["datetime64[ns, UTC]", "period[D]"],
     )
     def test_setitem_with_ea_name(self, ea_name):
         # GH 38386
@@ -748,6 +746,14 @@ class TestDataFrameSetItem:
                 "b": [2, 4],
             }
         )
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_frame_midx_columns(self):
+        # GH#49121
+        df = DataFrame({("a", "b"): [10]})
+        expected = df.copy()
+        col_name = ("a", "b")
+        df[col_name] = df[[col_name]]
         tm.assert_frame_equal(df, expected)
 
 
