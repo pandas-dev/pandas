@@ -60,7 +60,6 @@ from pandas._testing._io import (
     write_to_compressed,
 )
 from pandas._testing._random import (
-    randbool,
     rands,
     rands_array,
 )
@@ -1116,7 +1115,6 @@ __all__ = [
     "NULL_OBJECTS",
     "OBJECT_DTYPES",
     "raise_assert_detail",
-    "randbool",
     "rands",
     "reset_display_options",
     "RNGContext",
