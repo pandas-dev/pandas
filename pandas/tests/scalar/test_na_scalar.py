@@ -49,36 +49,29 @@ def test_hashable():
     assert d[NA] == "test"
 
 
-def test_arithmetic_ops(all_arithmetic_functions):
+@pytest.mark.parametrize(
+    "other", [NA, 1, 1.0, "a", b"a", np.int64(1), np.nan], ids=repr
+)
+def test_arithmetic_ops(all_arithmetic_functions, other):
     op = all_arithmetic_functions
 
-    for other in [NA, 1, 1.0, "a", np.int64(1), np.nan]:
-        if op.__name__ in ("pow", "rpow", "rmod") and isinstance(other, str):
-            continue
-        if op.__name__ in ("divmod", "rdivmod"):
-            assert op(NA, other) is (NA, NA)
-        else:
-            if op.__name__ == "rpow":
-                # avoid special case
-                other += 1
-            assert op(NA, other) is NA
+    if op.__name__ in ("pow", "rpow", "rmod") and isinstance(other, (str, bytes)):
+        pytest.skip(reason=f"{op.__name__} with NA and {other} not defined.")
+    if op.__name__ in ("divmod", "rdivmod"):
+        assert op(NA, other) is (NA, NA)
+    else:
+        if op.__name__ == "rpow":
+            # avoid special case
+            other += 1
+        assert op(NA, other) is NA
 
 
-def test_comparison_ops():
-
-    for other in [NA, 1, 1.0, "a", np.int64(1), np.nan, np.bool_(True)]:
-        assert (NA == other) is NA
-        assert (NA != other) is NA
-        assert (NA > other) is NA
-        assert (NA >= other) is NA
-        assert (NA < other) is NA
-        assert (NA <= other) is NA
-        assert (other == NA) is NA
-        assert (other != NA) is NA
-        assert (other > NA) is NA
-        assert (other >= NA) is NA
-        assert (other < NA) is NA
-        assert (other <= NA) is NA
+@pytest.mark.parametrize(
+    "other", [NA, 1, 1.0, "a", b"a", np.int64(1), np.nan, np.bool_(True)]
+)
+def test_comparison_ops(comparison_op, other):
+    assert comparison_op(NA, other) is NA
+    assert comparison_op(other, NA) is NA
 
 
 @pytest.mark.parametrize(
