@@ -9871,6 +9871,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If other is callable, it is computed on the {klass} and
             should return scalar or {klass}. The callable must not
             change input {klass} (though pandas doesn't check it).
+            If not specified, entries will be filled with the corresponding
+            NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension
+            dtypes).
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         axis : int, default None
