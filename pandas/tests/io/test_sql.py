@@ -18,6 +18,7 @@ The SQL tests are broken down in different classes:
 """
 from __future__ import annotations
 
+import contextlib
 from contextlib import closing
 import csv
 from datetime import (
@@ -456,9 +457,9 @@ def sqlite_iris_conn(sqlite_iris_engine):
 
 @pytest.fixture
 def sqlite_buildin():
-    with sqlite3.connect(":memory:") as conn:
-        yield conn
-    conn.close()
+    with contextlib.closing(sqlite3.connect(":memory:")) as closing_conn:
+        with closing_conn as conn:
+            yield conn
 
 
 @pytest.fixture
@@ -1562,9 +1563,12 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
             def __getattr__(self, name):
                 return getattr(self.conn, name)
 
-        conn = MockSqliteConnection(":memory:")
-        with tm.assert_produces_warning(UserWarning):
-            sql.read_sql("SELECT 1", conn)
+            def close(self):
+                self.conn.close()
+
+        with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
+            with tm.assert_produces_warning(UserWarning):
+                sql.read_sql("SELECT 1", conn)
 
     def test_read_sql_delegate(self):
         iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
@@ -1946,7 +1950,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # comes back as datetime64
         tm.assert_series_equal(result, expected)
 
-    def test_datetime_time(self):
+    def test_datetime_time(self, sqlite_buildin):
         # test support for datetime.time
         df = DataFrame([time(9, 0, 0), time(9, 1, 30)], columns=["a"])
         assert df.to_sql("test_time", self.conn, index=False) == 2
@@ -1955,7 +1959,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         # GH8341
         # first, use the fallback to have the sqlite adapter put in place
-        sqlite_conn = TestSQLiteFallback.connect()
+        sqlite_conn = sqlite_buildin
         assert sql.to_sql(df, "test_time2", sqlite_conn, index=False) == 2
         res = sql.read_sql_query("SELECT * FROM test_time2", sqlite_conn)
         ref = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
@@ -2874,12 +2878,11 @@ class TestXSQLite:
         PRIMARY KEY (a, b)
         );
         """
-        conn = sqlite3.connect(":memory:")
-        cur = conn.cursor()
-        cur.execute(create_sql)
+        with contextlib.closing(sqlite3.connect(":memory:")) as conn:
+            cur = conn.cursor()
+            cur.execute(create_sql)
 
-        sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', conn)
-        conn.close()
+            sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', conn)
 
         msg = "Cannot operate on a closed database."
         with pytest.raises(sqlite3.ProgrammingError, match=msg):
