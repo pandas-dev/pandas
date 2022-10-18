@@ -960,7 +960,6 @@ class TestBaseMethods(base.BaseMethodsTests):
         assert pd.Series(data).equals(pd.Series(data))
 
 
-# TODO(Matt): Stopped here
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
     divmod_exc = NotImplementedError
@@ -999,7 +998,11 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             or all_arithmetic_operators in ("__sub__", "__rsub__")
             and pa.types.is_temporal(pa_dtype)
         )
-        if all_arithmetic_operators in {
+        if all_arithmetic_operators == "__rmod__" and (
+            pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
+        ):
+            pytest.skip("Skip testing Python string formatting")
+        elif all_arithmetic_operators in {
             "__mod__",
             "__rmod__",
         }:
@@ -1065,7 +1068,11 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             or all_arithmetic_operators in ("__sub__", "__rsub__")
             and pa.types.is_temporal(pa_dtype)
         )
-        if all_arithmetic_operators in {
+        if all_arithmetic_operators == "__rmod__" and (
+            pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
+        ):
+            pytest.skip("Skip testing Python string formatting")
+        elif all_arithmetic_operators in {
             "__mod__",
             "__rmod__",
         }:
@@ -1224,6 +1231,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         super().test_add_series_with_extension_array(data)
 
 
+# TODO(Matt): Stopped here
 class TestBaseComparisonOps(base.BaseComparisonOpsTests):
     def assert_series_equal(self, left, right, *args, **kwargs):
         # Series.combine for "expected" retains bool[pyarrow] dtype
