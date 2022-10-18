@@ -120,6 +120,9 @@ def legacy_pickle(request, datapath):
         array("I", [1, 2, 3]),
         memoryview(b"123456").cast("B", (3, 2)),
         memoryview(b"123456").cast("B", (3, 2))[::2],
+        np.arange(12).reshape((3, 4), order="C"),
+        np.arange(12).reshape((3, 4), order="F"),
+        np.arange(12).reshape((3, 4), order="C")[:, ::2],
     ],
 )
 def test_flatten_buffer(data):
