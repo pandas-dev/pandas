@@ -916,13 +916,6 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"{pa_dtype} cannot be added to {pa_dtype}",
                 )
             )
-        elif pa.types.is_binary(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason="GH 49108: NA + bytes raises",
-                )
-            )
         super().test_combine_add(data_repeated)
 
     def test_searchsorted(self, data_for_sorting, as_series, request):
