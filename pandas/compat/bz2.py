@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import bz2
 
-from pandas.compat.pickle_compat import flatten_buffer
+from pandas.compat._utils import flatten_buffer
 
 
 class BZ2File(bz2.BZ2File):

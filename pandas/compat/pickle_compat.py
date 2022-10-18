@@ -33,28 +33,6 @@ if TYPE_CHECKING:
     )
 
 
-def flatten_buffer(b: bytes | bytearray | memoryview | pkl.PickleBuffer):
-    """
-    Return some 1-D `uint8` typed buffer.
-
-    Coerces anything that does not match that description to one that does
-    without copying if possible (otherwise will copy).
-    """
-
-    if isinstance(b, (bytes, bytearray)):
-        return b
-
-    if not isinstance(b, pkl.PickleBuffer):
-        b = pkl.PickleBuffer(b)
-
-    try:
-        # coerce to 1-D `uint8` C-contiguous `memoryview` zero-copy
-        return b.raw()
-    except BufferError:
-        # perform in-memory copy if buffer is not contiguous
-        return memoryview(b).tobytes()
-
-
 def load_reduce(self):
     stack = self.stack
     args = stack.pop()

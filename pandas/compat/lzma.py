@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import lzma
 
-from pandas.compat.pickle_compat import flatten_buffer
+from pandas.compat._utils import flatten_buffer
 
 
 class LZMAFile(lzma.LZMAFile):
