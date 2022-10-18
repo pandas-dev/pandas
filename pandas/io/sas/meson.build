@@ -9,6 +9,17 @@ py.extension_module(
     subdir: 'pandas/io/sas',
     install: true
 )
+py.extension_module(
+    '_byteswap',
+    ['byteswap.pyx'],
+    include_directories: [inc_np],
+    dependencies: [py_dep],
+    # The file is named byteswap.pyx but we want the
+    # extension module to be named _byteswap
+    cython_args: ['--module-name=pandas.io.sas._byteswap'],
+    subdir: 'pandas/io/sas',
+    install: true
+)
 top_level_py_list = [
     '__init__.py',
     'sas7bdat.py',
