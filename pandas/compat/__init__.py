@@ -10,7 +10,6 @@ Other items:
 from __future__ import annotations
 
 import os
-from pickle import PickleBuffer
 import platform
 import sys
 

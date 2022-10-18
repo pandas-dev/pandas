@@ -20,7 +20,6 @@ from io import (
 import mmap
 import os
 from pathlib import Path
-from pickle import PickleBuffer
 import re
 import tarfile
 from typing import (
