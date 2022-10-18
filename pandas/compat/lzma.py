@@ -9,7 +9,6 @@ import sys
 
 from pandas.compat._utils import flatten_buffer
 
-
 if sys.version_info < (3, 10):
 
     class LZMAFile(lzma.LZMAFile):
