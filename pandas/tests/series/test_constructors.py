@@ -1987,7 +1987,7 @@ class TestSeriesConstructorIndexCoercion:
         with tm.assert_produces_warning(FutureWarning):
             assert ser.index.is_all_dates
         # as of 2.0, we no longer silently cast the object-dtype index
-        #  to DatetimeIndex
+        #  to DatetimeIndex GH#39307, GH#23598
         assert not isinstance(ser.index, DatetimeIndex)
 
     def test_series_constructor_infer_multiindex(self):
