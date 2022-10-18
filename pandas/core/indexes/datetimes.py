@@ -7,7 +7,6 @@ from datetime import (
     timedelta,
     tzinfo,
 )
-import inspect
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -448,7 +447,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "DatetimeIndex.union_many is deprecated and will be removed in "
             "a future version. Use obj.union instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
         this = self
@@ -501,7 +500,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         values = self._data._local_timestamps()
 
-        reso = self._data._reso
+        reso = self._data._creso
         ppd = periods_per_day(reso)
 
         frac = values % ppd
@@ -572,7 +571,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "is deprecated and will be removed in a future version. "
                     "You can stop passing 'keep_tz' to silence this warning.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
             else:
                 warnings.warn(
@@ -582,7 +581,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "can do 'idx.tz_convert(None)' before calling "
                     "'to_series'.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
         else:
             keep_tz = True
@@ -685,9 +684,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "raise KeyError in a future version. "
                     "Use a timezone-aware object instead."
                 )
-            warnings.warn(
-                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-            )
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -836,7 +833,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 "with non-existing keys is deprecated and will raise a "
                 "KeyError in a future Version.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         indexer = mask.nonzero()[0][::step]
         if len(indexer) == len(self):
@@ -1116,7 +1113,7 @@ def date_range(
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         if closed is None:
             inclusive = "both"

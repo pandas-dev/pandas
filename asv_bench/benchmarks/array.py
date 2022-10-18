@@ -71,3 +71,6 @@ class ArrowStringArray:
 
     def time_setitem_slice(self, multiple_chunks):
         self.array[::10] = "foo"
+
+    def time_tolist(self, multiple_chunks):
+        self.array.tolist()

@@ -9,7 +9,6 @@ import codecs
 import dataclasses
 import functools
 import gzip
-import inspect
 from io import (
     BufferedIOBase,
     BytesIO,
@@ -324,7 +323,7 @@ def _get_filepath_or_buffer(
         warnings.warn(
             "compression has no effect when passing a non-binary object as input.",
             RuntimeWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         compression_method = None
 
@@ -340,7 +339,7 @@ def _get_filepath_or_buffer(
         warnings.warn(
             f"{compression} will not write the byte order mark for {encoding}",
             UnicodeWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     # Use binary mode when converting path-like objects to file-like objects (fsspec)
