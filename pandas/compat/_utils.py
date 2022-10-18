@@ -28,4 +28,4 @@ def flatten_buffer(
         return b.raw()
     except BufferError:
         # perform in-memory copy if buffer is not contiguous
-        return memoryview(b).tobytes()
+        return memoryview(b).tobytes("A")

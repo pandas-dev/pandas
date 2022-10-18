@@ -127,7 +127,8 @@ def legacy_pickle(request, datapath):
 )
 def test_flatten_buffer(data):
     result = flatten_buffer(data)
-    assert result == bytes(data)
+    expected = memoryview(data).tobytes("A")
+    assert result == expected
     if isinstance(result, memoryview):
         assert result.ndim == 1
         assert result.format == "B"
