@@ -547,14 +547,20 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         resolved_na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
         null_encoding = "mask" if resolved_na_sentinel is not None else "encode"
         encoded = self._data.dictionary_encode(null_encoding=null_encoding)
-        encoded_idx_type = encoded.type.index_type
-        indices = encoded.combine_chunks().indices.cast(encoded_idx_type)
-        if pa.types.is_floating(encoded_idx_type):
-            fill_value = (
-                resolved_na_sentinel if resolved_na_sentinel is not None else -1
+        if encoded.length() == 0:
+            indices = np.array([], dtype=np.intp)
+            uniques = type(self)(pa.chunked_array([], type=encoded.type.value_type))
+        else:
+            indices = encoded.combine_chunks().indices
+            if indices.null_count > 0:
+                fill_value = (
+                    resolved_na_sentinel if resolved_na_sentinel is not None else -1
+                )
+                indices = pc.fill_null(indices, fill_value)
+            indices = indices.to_numpy(zero_copy_only=False, writable=True).astype(
+                np.intp, copy=False
             )
-            indices = pc.fill_null(indices, fill_value)
-            indices = indices.cast(pa.int64())
+            uniques = type(self)(encoded.chunk(0).dictionary)
         # indices = pa.chunked_array(
         #     [c.indices for c in encoded.chunks], type=encoded.type.index_type
         # ).to_pandas()
@@ -563,13 +569,14 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         #         resolved_na_sentinel if resolved_na_sentinel is not None else -1
         #     )
         # indices = indices.astype(np.int64, copy=False)
+        #
+        # if encoded.num_chunks:
+        #     uniques = type(self)(encoded.chunk(0).dictionary)
+        # else:
+        #     uniques = type(self)(pa.array([], type=encoded.type.value_type))
 
-        if encoded.num_chunks:
-            uniques = type(self)(encoded.chunk(0).dictionary)
-        else:
-            uniques = type(self)(pa.array([], type=encoded_idx_type))
-
-        return indices.to_numpy(zero_copy_only=False, writable=True), uniques
+        # return indices.values, uniques
+        return indices, uniques
 
     def reshape(self, *args, **kwargs):
         raise NotImplementedError(
