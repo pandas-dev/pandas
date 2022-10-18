@@ -514,7 +514,10 @@ class TestDataFrameToCSV:
             tsframe.index = MultiIndex.from_arrays(new_index)
 
             tsframe.to_csv(path, index_label=["time", "foo"])
-            recons = self.read_csv(path, index_col=[0, 1])
+            with tm.assert_produces_warning(
+                UserWarning, match="Could not infer format"
+            ):
+                recons = self.read_csv(path, index_col=[0, 1], parse_dates=True)
 
             # TODO to_csv drops column name
             tm.assert_frame_equal(tsframe, recons, check_names=False)
