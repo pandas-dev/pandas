@@ -324,7 +324,7 @@ cdef class _Timestamp(ABCTimestamp):
         elif other is NaT:
             return op == Py_NE
         elif is_datetime64_object(other):
-            ots = _Timestamp._from_dt64(other)
+            ots = Timestamp(other)
         elif PyDateTime_Check(other):
             if self.nanosecond == 0:
                 val = self.to_pydatetime()

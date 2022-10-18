@@ -236,7 +236,7 @@ Dependencies
 Package                                                          Minimum supported version
 ================================================================ ==========================
 `NumPy <https://numpy.org>`__                                    1.20.3
-`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.1
+`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
 ================================================================ ==========================
 
@@ -419,7 +419,7 @@ PyTables                  3.6.1              hdf5             HDF5-based reading
 blosc                     1.21.0             hdf5             Compression for HDF5
 zlib                                         hdf5             Compression for HDF5
 fastparquet               0.4.0              -                Parquet reading / writing (pyarrow is default)
-pyarrow                   1.0.1              parquet, feather Parquet, ORC, and feather reading / writing
+pyarrow                   6.0.0              parquet, feather Parquet, ORC, and feather reading / writing
 pyreadstat                1.1.2              spss             SPSS files (.sav) reading
 odfpy                     1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing
 ========================= ================== ================ =============================================================
@@ -434,7 +434,7 @@ odfpy                     1.4.1              excel            Open document form
       ========================= ================== =============================================================
       System                    Conda              PyPI
       ========================= ================== =============================================================
-      Linux                     Successful         Failed(pyarrow==3.0 Successful)
+      Linux                     Successful         Failed
       macOS                     Successful         Failed
       Windows                   Failed             Failed
       ========================= ================== =============================================================
