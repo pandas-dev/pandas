@@ -354,9 +354,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         data_unit = np.datetime_data(subarr.dtype)[0]
         data_dtype = tz_to_dtype(tz, data_unit)
         result = cls._simple_new(subarr, freq=freq, dtype=data_dtype)
-        if unit is not None and unit != result._unit:
+        if unit is not None and unit != result.unit:
             # If unit was specified in user-passed dtype, cast to it here
-            result = result._as_unit(unit)
+            result = result.as_unit(unit)
 
         if inferred_freq is None and freq is not None:
             # this condition precludes `freq_infer`
