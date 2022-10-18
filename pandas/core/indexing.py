@@ -1908,8 +1908,8 @@ class _iLocIndexer(_LocationIndexer):
 
         for i, loc in enumerate(ilocs):
             value_col = value[:, i]
-            if is_object_dtype(value_col):
-                # try coerce values as good as possible
+            if is_object_dtype(value_col.dtype):
+                # casting to list so that we do type inference in setitem_single_column
                 value_col = value_col.tolist()
             self._setitem_single_column(loc, value_col, pi)
 
