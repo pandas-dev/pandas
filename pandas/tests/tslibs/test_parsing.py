@@ -235,19 +235,19 @@ def test_guess_datetime_format_wrong_type_inputs(invalid_type_dt):
 
 
 @pytest.mark.parametrize(
-    "string,fmt",
+    "string,fmt,dayfirst",
     [
-        ("2011-1-1", "%Y-%m-%d"),
-        ("1/1/2011", "%m/%d/%Y"),
-        ("30-1-2011", "%d-%m-%Y"),
-        ("2011-1-1 0:0:0", "%Y-%m-%d %H:%M:%S"),
-        ("2011-1-3T00:00:0", "%Y-%m-%dT%H:%M:%S"),
-        ("2011-1-1 00:00:00", "%Y-%m-%d %H:%M:%S"),
+        ("2011-1-1", "%Y-%m-%d", False),
+        ("1/1/2011", "%m/%d/%Y", False),
+        ("30-1-2011", "%d-%m-%Y", True),
+        ("2011-1-1 0:0:0", "%Y-%m-%d %H:%M:%S", False),
+        ("2011-1-3T00:00:0", "%Y-%m-%dT%H:%M:%S", False),
+        ("2011-1-1 00:00:00", "%Y-%m-%d %H:%M:%S", False),
     ],
 )
-def test_guess_datetime_format_no_padding(string, fmt):
+def test_guess_datetime_format_no_padding(string, fmt, dayfirst):
     # see gh-11142
-    result = parsing.guess_datetime_format(string)
+    result = parsing.guess_datetime_format(string, dayfirst=dayfirst)
     assert result == fmt
 
 
