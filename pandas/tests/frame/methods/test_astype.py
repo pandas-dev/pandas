@@ -424,9 +424,8 @@ class TestAstype:
             # GH#48928
             exp_dtype = dtype
         else:
-            # TODO(2.0): use the nearest supported dtype (i.e. M8[s]) instead
-            #  of nanos
-            exp_dtype = "M8[ns]"
+            # we use the nearest supported dtype (i.e. M8[s])
+            exp_dtype = "M8[s]"
         # TODO(2.0): once DataFrame constructor doesn't cast ndarray inputs.
         #  can simplify this
         exp_values = arr.astype(exp_dtype)

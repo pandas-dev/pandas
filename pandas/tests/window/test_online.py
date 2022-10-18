@@ -71,7 +71,7 @@ class TestEWM:
         times = Series(
             np.array(
                 ["2020-01-01", "2020-01-05", "2020-01-07", "2020-01-17", "2020-01-21"],
-                dtype="datetime64",
+                dtype="datetime64[ns]",
             )
         )
         expected = obj.ewm(
