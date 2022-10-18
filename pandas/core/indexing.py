@@ -2259,7 +2259,7 @@ class _iLocIndexer(_LocationIndexer):
                 ser_values = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 
                 # single indexer
-                if len(indexer) > 1 and len(indexer[1]) > 1 and not multiindex_indexer:
+                if len(indexer) > 1 and not multiindex_indexer:
                     len_indexer = len(indexer[1])
                     ser_values = (
                         np.tile(ser_values, len_indexer).reshape(len_indexer, -1).T
