@@ -888,11 +888,18 @@ class TestReaders:
                 ]
             }
         )
-
-        actual = pd.read_excel("times_1900" + read_ext, sheet_name="Sheet1")
+        if engine == "odf":
+            # odf recognises cell type as time (from its attribute)
+            # so tries to parse it.
+            warning = UserWarning
+        else:
+            warning = None
+        with tm.assert_produces_warning(warning, match="Could not infer format"):
+            actual = pd.read_excel("times_1900" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
 
-        actual = pd.read_excel("times_1904" + read_ext, sheet_name="Sheet1")
+        with tm.assert_produces_warning(warning, match="Could not infer format"):
+            actual = pd.read_excel("times_1904" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_multiindex(self, request, read_ext):

@@ -826,7 +826,13 @@ def test_yy_format_with_year_first(all_parsers, parse_dates):
 090331,0830,5,6
 """
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), index_col=0, parse_dates=parse_dates)
+    result = parser.read_csv_check_warnings(
+        UserWarning,
+        "Could not infer format",
+        StringIO(data),
+        index_col=0,
+        parse_dates=parse_dates,
+    )
     index = DatetimeIndex(
         [
             datetime(2009, 1, 31, 0, 10, 0),
@@ -899,7 +905,13 @@ def test_multi_index_parse_dates(all_parsers, index_col):
         columns=["A", "B", "C"],
         index=index,
     )
-    result = parser.read_csv(StringIO(data), index_col=index_col, parse_dates=True)
+    result = parser.read_csv_check_warnings(
+        UserWarning,
+        "Could not infer format",
+        StringIO(data),
+        index_col=index_col,
+        parse_dates=True,
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -1232,19 +1244,55 @@ def test_read_with_parse_dates_invalid_type(all_parsers, parse_dates):
 
 
 @pytest.mark.parametrize("cache_dates", [True, False])
-@pytest.mark.parametrize("value", ["nan", "0", ""])
+@pytest.mark.parametrize("value", ["nan", ""])
 def test_bad_date_parse(all_parsers, cache_dates, value):
     # if we have an invalid date make sure that we handle this with
     # and w/o the cache properly
     parser = all_parsers
     s = StringIO((f"{value},\n") * 50000)
 
-    parser.read_csv(
+    if parser.engine == "pyarrow":
+        # None in input gets converted to 'None', for which
+        # pandas tries to guess the datetime format, triggering
+        # the warning. TODO: parse dates directly in pyarrow, see
+        # https://github.com/pandas-dev/pandas/issues/48017
+        warn = UserWarning
+    else:
+        warn = None
+    parser.read_csv_check_warnings(
+        warn,
+        "Could not infer format",
         s,
         header=None,
         names=["foo", "bar"],
         parse_dates=["foo"],
-        infer_datetime_format=False,
+        cache_dates=cache_dates,
+    )
+
+
+@pytest.mark.parametrize("cache_dates", [True, False])
+@pytest.mark.parametrize("value", ["0"])
+def test_bad_date_parse_with_warning(all_parsers, cache_dates, value):
+    # if we have an invalid date make sure that we handle this with
+    # and w/o the cache properly.
+    parser = all_parsers
+    s = StringIO((f"{value},\n") * 50000)
+
+    if parser.engine == "pyarrow":
+        # pyarrow reads "0" as 0 (of type int64), and so
+        # pandas doesn't try to guess the datetime format
+        # TODO: parse dates directly in pyarrow, see
+        # https://github.com/pandas-dev/pandas/issues/48017
+        warn = None
+    else:
+        warn = UserWarning
+    parser.read_csv_check_warnings(
+        warn,
+        "Could not infer format",
+        s,
+        header=None,
+        names=["foo", "bar"],
+        parse_dates=["foo"],
         cache_dates=cache_dates,
     )
 
@@ -1260,6 +1308,19 @@ def test_parse_dates_empty_string(all_parsers):
         [[datetime(2012, 1, 1), 1], [pd.NaT, 2]], columns=["Date", "test"]
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_parse_dates_infer_datetime_format_warning(all_parsers):
+    # GH 49024
+    parser = all_parsers
+    data = "Date,test\n2012-01-01,1\n,2"
+    parser.read_csv_check_warnings(
+        UserWarning,
+        "The argument 'infer_datetime_format' is deprecated",
+        StringIO(data),
+        parse_dates=["Date"],
+        infer_datetime_format=True,
+    )
 
 
 @xfail_pyarrow
@@ -1635,7 +1696,13 @@ def test_parse_timezone(all_parsers):
 def test_invalid_parse_delimited_date(all_parsers, date_string):
     parser = all_parsers
     expected = DataFrame({0: [date_string]}, dtype="object")
-    result = parser.read_csv(StringIO(date_string), header=None, parse_dates=[0])
+    result = parser.read_csv_check_warnings(
+        UserWarning,
+        "Could not infer format",
+        StringIO(date_string),
+        header=None,
+        parse_dates=[0],
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -1786,7 +1853,13 @@ def test_date_parser_and_names(all_parsers):
     # GH#33699
     parser = all_parsers
     data = StringIO("""x,y\n1,2""")
-    result = parser.read_csv(data, parse_dates=["B"], names=["B"])
+    result = parser.read_csv_check_warnings(
+        UserWarning,
+        "Could not infer format",
+        data,
+        parse_dates=["B"],
+        names=["B"],
+    )
     expected = DataFrame({"B": ["y", "2"]}, index=["x", "1"])
     tm.assert_frame_equal(result, expected)
 
@@ -1833,7 +1906,9 @@ def test_date_parser_usecols_thousands(all_parsers):
     """
 
     parser = all_parsers
-    result = parser.read_csv(
+    result = parser.read_csv_check_warnings(
+        UserWarning,
+        "Could not infer format",
         StringIO(data),
         parse_dates=[1],
         usecols=[1, 2],
@@ -1947,7 +2022,12 @@ def test_infer_first_column_as_index(all_parsers):
     # GH#11019
     parser = all_parsers
     data = "a,b,c\n1970-01-01,2,3,4"
-    result = parser.read_csv(StringIO(data), parse_dates=["a"])
+    result = parser.read_csv_check_warnings(
+        UserWarning,
+        "Could not infer format",
+        StringIO(data),
+        parse_dates=["a"],
+    )
     expected = DataFrame({"a": "2", "b": 3, "c": 4}, index=["1970-01-01"])
     tm.assert_frame_equal(result, expected)
 
