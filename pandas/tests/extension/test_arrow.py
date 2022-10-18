@@ -1231,7 +1231,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         super().test_add_series_with_extension_array(data)
 
 
-# TODO(Matt): Stopped here
 class TestBaseComparisonOps(base.BaseComparisonOpsTests):
     def assert_series_equal(self, left, right, *args, **kwargs):
         # Series.combine for "expected" retains bool[pyarrow] dtype
@@ -1332,7 +1331,11 @@ def test_quantile(data, interpolation, quantile, request):
 )
 def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
     pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-    if pa.types.is_temporal(pa_dtype):
+    if (
+        pa.types.is_temporal(pa_dtype)
+        or pa.types.is_string(pa_dtype)
+        or pa.types.is_binary(pa_dtype)
+    ):
         request.node.add_marker(
             pytest.mark.xfail(
                 raises=pa.ArrowNotImplementedError,
