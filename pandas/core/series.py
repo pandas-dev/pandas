@@ -6205,7 +6205,7 @@ Keep all original rows and also all original values
     def mask(  # type: ignore[override]
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,

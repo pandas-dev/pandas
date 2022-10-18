@@ -4110,7 +4110,7 @@ class DataFrame(NDFrame, OpsMixin):
         if key in self.columns:
             loc = self.columns.get_loc(key)
             cols = self.columns[loc]
-            len_cols = 1 if is_scalar(cols) else len(cols)
+            len_cols = 1 if is_scalar(cols) or isinstance(cols, tuple) else len(cols)
             if len_cols != len(value.columns):
                 raise ValueError("Columns must be same length as key")
 
@@ -11998,7 +11998,7 @@ Parrot 2  Parrot       24.0
     def mask(  # type: ignore[override]
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
