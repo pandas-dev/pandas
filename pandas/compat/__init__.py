@@ -12,13 +12,7 @@ from __future__ import annotations
 import os
 import platform
 import sys
-
-try:
-    import pandas.compat.lzma
-
-    has_lzma = True
-except ImportError:
-    has_lzma = False
+from typing import TYPE_CHECKING
 
 from pandas._typing import F
 from pandas.compat.numpy import (
@@ -31,6 +25,9 @@ from pandas.compat.pyarrow import (
     pa_version_under8p0,
     pa_version_under9p0,
 )
+
+if TYPE_CHECKING:
+    import pandas.compat.lzma
 
 PY39 = sys.version_info >= (3, 9)
 PY310 = sys.version_info >= (3, 10)
@@ -138,7 +135,9 @@ def get_lzma_file() -> type[pandas.compat.lzma.LZMAFile]:
     RuntimeError
         If the `lzma` module was not imported correctly, or didn't exist.
     """
-    if not has_lzma:
+    try:
+        import pandas.compat.lzma
+    except ImportError:
         raise RuntimeError(
             "lzma module not available. "
             "A Python re-install with the proper dependencies, "
