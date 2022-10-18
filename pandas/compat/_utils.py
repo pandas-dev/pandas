@@ -2,6 +2,8 @@
 Utilities used in various `compat` components.
 """
 
+from __future__ import annotations
+
 import pickle
 
 
