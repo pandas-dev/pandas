@@ -64,6 +64,12 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         Make a copy of input ndarray.
     name : object
         Name to be stored in the index.
+    closed : arg ("left", "right")
+        It is a parameter that you choose between "left" or "right" for an interval data.
+        Using "left" or "right" specifies what period of time will be included in the interval
+    dtype: object
+        The parameter is from numpy that stands for data type, identifying the type of an 
+        object that you want to know.
 
     Attributes
     ----------
