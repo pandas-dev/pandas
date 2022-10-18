@@ -10,6 +10,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+from array import array
 import bz2
 import datetime
 import functools
@@ -38,6 +39,7 @@ from pandas.compat import (
     is_platform_little_endian,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.pickle import flatten_buffer
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -105,6 +107,26 @@ def legacy_pickle(request, datapath):
 # ---------------------
 # tests
 # ---------------------
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        b"123",
+        b"123456",
+        bytearray(b"123"),
+        memoryview(b"123"),
+        pickle.PickleBuffer(b"123"),
+        array("I", [1, 2, 3]),
+        memoryview(b"123456").cast("B", (3, 2)),
+        memoryview(b"123456").cast("B", (3, 2))[::2],
+    ],
+)
+def test_flatten_buffer(data):
+    result = flatten_buffer(data)
+    assert result == bytes(data)
+
+
 def test_pickles(legacy_pickle):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
