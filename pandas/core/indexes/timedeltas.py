@@ -60,6 +60,11 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
         inferred frequency upon creation.
+    closed : str, default None
+        Make the interval closed with respect to the given frequency to
+        the 'left', 'right', or both sides (None).
+    dtype : numpy.dtype or None, default dtype('<m8[ns]')
+        If None, dtype will be inferred.
     copy  : bool
         Make a copy of input ndarray.
     name : object
