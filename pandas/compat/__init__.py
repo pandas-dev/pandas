@@ -15,7 +15,7 @@ import platform
 import sys
 
 try:
-    import lzma
+    import pandas.compat.lzma
 
     has_lzma = True
 except ImportError:
@@ -43,24 +43,6 @@ PY310 = sys.version_info >= (3, 10)
 PY311 = sys.version_info >= (3, 11)
 PYPY = platform.python_implementation() == "PyPy"
 IS64 = sys.maxsize > 2**32
-
-
-if has_lzma:
-
-    class _LZMAFile(lzma.LZMAFile):
-        def write(self, b) -> int:
-            if isinstance(b, PickleBuffer):
-                # Workaround issue where `lzma.LZMAFile` expects `len`
-                # to return the number of bytes in `b` by converting
-                # `b` into something that meets that constraint with
-                # minimal copying.
-                try:
-                    # coerce to 1-D `uint8` C-contiguous `memoryview` zero-copy
-                    b = b.raw()
-                except BufferError:
-                    # perform in-memory copy if buffer is not contiguous
-                    b = memoryview(b).tobytes()
-            return super().write(b)
 
 
 def set_function_name(f: F, name: str, cls) -> F:
@@ -148,7 +130,7 @@ def is_ci_environment() -> bool:
     return os.environ.get("PANDAS_CI", "0") == "1"
 
 
-def get_lzma_file() -> type[_LZMAFile]:
+def get_lzma_file() -> type[pandas.compat.lzma.LZMAFile]:
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -168,7 +150,7 @@ def get_lzma_file() -> type[_LZMAFile]:
             "A Python re-install with the proper dependencies, "
             "might be required to solve this issue."
         )
-    return _LZMAFile
+    return pandas.compat.lzma.LZMAFile
 
 
 __all__ = [
