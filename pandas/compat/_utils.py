@@ -7,7 +7,9 @@ from __future__ import annotations
 import pickle
 
 
-def flatten_buffer(b: bytes | bytearray | memoryview | pickle.PickleBuffer):
+def flatten_buffer(
+    b: bytes | bytearray | memoryview | pickle.PickleBuffer,
+) -> bytes | memoryview:
     """
     Return some 1-D `uint8` typed buffer.
 
