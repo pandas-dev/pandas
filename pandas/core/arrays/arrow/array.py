@@ -561,21 +561,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 np.intp, copy=False
             )
             uniques = type(self)(encoded.chunk(0).dictionary)
-        # indices = pa.chunked_array(
-        #     [c.indices for c in encoded.chunks], type=encoded.type.index_type
-        # ).to_pandas()
-        # if indices.dtype.kind == "f":
-        #     indices[np.isnan(indices)] = (
-        #         resolved_na_sentinel if resolved_na_sentinel is not None else -1
-        #     )
-        # indices = indices.astype(np.int64, copy=False)
-        #
-        # if encoded.num_chunks:
-        #     uniques = type(self)(encoded.chunk(0).dictionary)
-        # else:
-        #     uniques = type(self)(pa.array([], type=encoded.type.value_type))
-
-        # return indices.values, uniques
         return indices, uniques
 
     def reshape(self, *args, **kwargs):
