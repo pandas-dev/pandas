@@ -5,7 +5,6 @@ from abc import (
     ABC,
     abstractmethod,
 )
-import bz2
 import codecs
 import dataclasses
 import functools
@@ -57,7 +56,7 @@ from pandas._typing import (
     WriteBuffer,
 )
 from pandas.compat import get_lzma_file
-from pandas.compat.pickle_compat import flatten_buffer
+from pandas.compat.bz2 import BZ2File as _BZ2File
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -1002,15 +1001,6 @@ class _BytesTarFile(_BufferedWriter):
         tarinfo = tarfile.TarInfo(name=archive_name)
         tarinfo.size = len(self.getvalue())
         self.buffer.addfile(tarinfo, self)
-
-
-class _BZ2File(bz2.BZ2File):
-    def write(self, b) -> int:
-        # Workaround issue where `bz2.BZ2File` expects `len`
-        # to return the number of bytes in `b` by converting
-        # `b` into something that meets that constraint with
-        # minimal copying.
-        return super().write(flatten_buffer(b))
 
 
 class _BytesZipFile(_BufferedWriter):
