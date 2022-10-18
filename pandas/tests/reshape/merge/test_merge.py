@@ -3,7 +3,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-import random
 import re
 
 import numpy as np
@@ -41,18 +40,15 @@ from pandas.core.reshape.merge import (
     merge,
 )
 
-N = 50
-NGROUPS = 8
 
-
-def get_test_data(ngroups=NGROUPS, n=N):
+def get_test_data(ngroups=8, n=50):
     unique_groups = list(range(ngroups))
     arr = np.asarray(np.tile(unique_groups, n // ngroups))
 
     if len(arr) < n:
         arr = np.asarray(list(arr) + unique_groups[: n - len(arr)])
 
-    random.shuffle(arr)
+    np.random.shuffle(arr)
     return arr
 
 
@@ -118,32 +114,40 @@ def dfs_for_indicator():
 
 
 class TestMerge:
-    def setup_method(self):
-        # aggregate multiple columns
-        self.df = DataFrame(
+    @pytest.fixture
+    def df(self):
+        df = DataFrame(
             {
                 "key1": get_test_data(),
                 "key2": get_test_data(),
-                "data1": np.random.randn(N),
-                "data2": np.random.randn(N),
+                "data1": np.random.randn(50),
+                "data2": np.random.randn(50),
             }
         )
 
         # exclude a couple keys for fun
-        self.df = self.df[self.df["key2"] > 1]
+        df = df[df["key2"] > 1]
+        return df
 
-        self.df2 = DataFrame(
+    @pytest.fixture
+    def df2(self):
+        return DataFrame(
             {
-                "key1": get_test_data(n=N // 5),
-                "key2": get_test_data(ngroups=NGROUPS // 2, n=N // 5),
-                "value": np.random.randn(N // 5),
+                "key1": get_test_data(n=10),
+                "key2": get_test_data(ngroups=4, n=10),
+                "value": np.random.randn(10),
             }
         )
 
-        self.left = DataFrame(
+    @pytest.fixture
+    def left(self):
+        return DataFrame(
             {"key": ["a", "b", "c", "d", "e", "e", "a"], "v1": np.random.randn(7)}
         )
-        self.right = DataFrame({"v2": np.random.randn(4)}, index=["d", "b", "c", "a"])
+
+    @pytest.fixture
+    def right(self):
+        return DataFrame({"v2": np.random.randn(4)}, index=["d", "b", "c", "a"])
 
     def test_merge_inner_join_empty(self):
         # GH 15328
@@ -153,9 +157,9 @@ class TestMerge:
         expected = DataFrame({"a": []}, index=[], dtype="int64")
         tm.assert_frame_equal(result, expected)
 
-    def test_merge_common(self):
-        joined = merge(self.df, self.df2)
-        exp = merge(self.df, self.df2, on=["key1", "key2"])
+    def test_merge_common(self, df, df2):
+        joined = merge(df, df2)
+        exp = merge(df, df2, on=["key1", "key2"])
         tm.assert_frame_equal(joined, exp)
 
     def test_merge_non_string_columns(self):
@@ -170,13 +174,13 @@ class TestMerge:
         result = merge(left, right)
         tm.assert_frame_equal(expected, result)
 
-    def test_merge_index_as_on_arg(self):
+    def test_merge_index_as_on_arg(self, df, df2):
         # GH14355
 
-        left = self.df.set_index("key1")
-        right = self.df2.set_index("key1")
+        left = df.set_index("key1")
+        right = df2.set_index("key1")
         result = merge(left, right, on="key1")
-        expected = merge(self.df, self.df2, on="key1").set_index("key1")
+        expected = merge(df, df2, on="key1").set_index("key1")
         tm.assert_frame_equal(result, expected)
 
     def test_merge_index_singlekey_right_vs_left(self):
@@ -216,31 +220,31 @@ class TestMerge:
         expected = left.join(right, on="key").loc[result.index]
         tm.assert_frame_equal(result, expected.loc[:, result.columns])
 
-    def test_merge_misspecified(self):
+    def test_merge_misspecified(self, df, df2, left, right):
         msg = "Must pass right_on or right_index=True"
         with pytest.raises(pd.errors.MergeError, match=msg):
-            merge(self.left, self.right, left_index=True)
+            merge(left, right, left_index=True)
         msg = "Must pass left_on or left_index=True"
         with pytest.raises(pd.errors.MergeError, match=msg):
-            merge(self.left, self.right, right_index=True)
+            merge(left, right, right_index=True)
 
         msg = (
             'Can only pass argument "on" OR "left_on" and "right_on", not '
             "a combination of both"
         )
         with pytest.raises(pd.errors.MergeError, match=msg):
-            merge(self.left, self.left, left_on="key", on="key")
+            merge(left, left, left_on="key", on="key")
 
         msg = r"len\(right_on\) must equal len\(left_on\)"
         with pytest.raises(ValueError, match=msg):
-            merge(self.df, self.df2, left_on=["key1"], right_on=["key1", "key2"])
+            merge(df, df2, left_on=["key1"], right_on=["key1", "key2"])
 
-    def test_index_and_on_parameters_confusion(self):
+    def test_index_and_on_parameters_confusion(self, df, df2):
         msg = "right_index parameter must be of type bool, not <class 'list'>"
         with pytest.raises(ValueError, match=msg):
             merge(
-                self.df,
-                self.df2,
+                df,
+                df2,
                 how="left",
                 left_index=False,
                 right_index=["key1", "key2"],
@@ -248,24 +252,24 @@ class TestMerge:
         msg = "left_index parameter must be of type bool, not <class 'list'>"
         with pytest.raises(ValueError, match=msg):
             merge(
-                self.df,
-                self.df2,
+                df,
+                df2,
                 how="left",
                 left_index=["key1", "key2"],
                 right_index=False,
             )
         with pytest.raises(ValueError, match=msg):
             merge(
-                self.df,
-                self.df2,
+                df,
+                df2,
                 how="left",
                 left_index=["key1", "key2"],
                 right_index=["key1", "key2"],
             )
 
-    def test_merge_overlap(self):
-        merged = merge(self.left, self.left, on="key")
-        exp_len = (self.left["key"].value_counts() ** 2).sum()
+    def test_merge_overlap(self, left):
+        merged = merge(left, left, on="key")
+        exp_len = (left["key"].value_counts() ** 2).sum()
         assert len(merged) == exp_len
         assert "v1_x" in merged
         assert "v1_y" in merged
@@ -671,14 +675,14 @@ class TestMerge:
         )[["i1", "i2", "i1_", "i3"]]
         tm.assert_frame_equal(result, expected)
 
-    def test_merge_type(self):
+    def test_merge_type(self, df, df2):
         class NotADataFrame(DataFrame):
             @property
             def _constructor(self):
                 return NotADataFrame
 
-        nad = NotADataFrame(self.df)
-        result = nad.merge(self.df2, on="key1")
+        nad = NotADataFrame(df)
+        result = nad.merge(df2, on="key1")
 
         assert isinstance(result, NotADataFrame)
 
@@ -719,35 +723,27 @@ class TestMerge:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_other_datetime_unit(self):
+    @pytest.mark.parametrize("unit", ["D", "h", "m", "s", "ms", "us", "ns"])
+    def test_other_datetime_unit(self, unit):
         # GH 13389
         df1 = DataFrame({"entity_id": [101, 102]})
-        s = Series([None, None], index=[101, 102], name="days")
+        ser = Series([None, None], index=[101, 102], name="days")
 
-        for dtype in [
-            "datetime64[D]",
-            "datetime64[h]",
-            "datetime64[m]",
-            "datetime64[s]",
-            "datetime64[ms]",
-            "datetime64[us]",
-            "datetime64[ns]",
-        ]:
+        dtype = f"datetime64[{unit}]"
+        df2 = ser.astype(dtype).to_frame("days")
+        # coerces to datetime64[ns], thus should not be affected
+        assert df2["days"].dtype == "datetime64[ns]"
 
-            df2 = s.astype(dtype).to_frame("days")
-            # coerces to datetime64[ns], thus should not be affected
-            assert df2["days"].dtype == "datetime64[ns]"
+        result = df1.merge(df2, left_on="entity_id", right_index=True)
 
-            result = df1.merge(df2, left_on="entity_id", right_index=True)
-
-            exp = DataFrame(
-                {
-                    "entity_id": [101, 102],
-                    "days": np.array(["nat", "nat"], dtype="datetime64[ns]"),
-                },
-                columns=["entity_id", "days"],
-            )
-            tm.assert_frame_equal(result, exp)
+        exp = DataFrame(
+            {
+                "entity_id": [101, 102],
+                "days": np.array(["nat", "nat"], dtype="datetime64[ns]"),
+            },
+            columns=["entity_id", "days"],
+        )
+        tm.assert_frame_equal(result, exp)
 
     @pytest.mark.parametrize("unit", ["D", "h", "m", "s", "ms", "us", "ns"])
     def test_other_timedelta_unit(self, unit):
@@ -757,7 +753,11 @@ class TestMerge:
 
         dtype = f"m8[{unit}]"
         df2 = s.astype(dtype).to_frame("days")
-        assert df2["days"].dtype == "m8[ns]"
+        if unit in ["D", "h", "m"]:
+            # We get nearest supported unit, i.e. "s"
+            assert df2["days"].dtype == "m8[s]"
+        else:
+            assert df2["days"].dtype == dtype
 
         result = df1.merge(df2, left_on="entity_id", right_index=True)
 

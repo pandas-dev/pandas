@@ -1,13 +1,17 @@
 """
 Tests for DatetimeArray
 """
+from datetime import timedelta
 import operator
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import tz_compare
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+    npy_unit_to_abbrev,
+)
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -67,7 +71,7 @@ class TestNonNano:
         dta = DatetimeArray._simple_new(arr, dtype=dtype)
 
         assert dta.dtype == dtype
-        assert dta[0]._reso == reso
+        assert dta[0]._creso == reso
         assert tz_compare(dta.tz, dta[0].tz)
         assert (dta[0] == dta[:1]).all()
 
@@ -120,7 +124,7 @@ class TestNonNano:
 
         # we should match the nano-reso std, but floored to our reso.
         res = dta.std()
-        assert res._reso == dta._reso
+        assert res._creso == dta._creso
         assert res == dti.std().floor(unit)
 
     @pytest.mark.filterwarnings("ignore:Converting to PeriodArray.*:UserWarning")
@@ -137,12 +141,12 @@ class TestNonNano:
 
         assert type(res) is pd.Timestamp
         assert res.value == expected.value
-        assert res._reso == expected._reso
+        assert res._creso == expected._creso
         assert res == expected
 
     def test_astype_object(self, dta):
         result = dta.astype(object)
-        assert all(x._reso == dta._reso for x in result)
+        assert all(x._creso == dta._creso for x in result)
         assert all(x == y for x, y in zip(result, dta))
 
     def test_to_pydatetime(self, dta_dti):
@@ -220,6 +224,35 @@ class TestNonNano:
         # even though the result is an even number of days
         #  (so we _could_ downcast to unit="s"), we do not.
         assert res._unit == "us"
+
+    @pytest.mark.parametrize(
+        "scalar",
+        [
+            timedelta(hours=2),
+            pd.Timedelta(hours=2),
+            np.timedelta64(2, "h"),
+            np.timedelta64(2 * 3600 * 1000, "ms"),
+            pd.offsets.Minute(120),
+            pd.offsets.Hour(2),
+        ],
+    )
+    def test_add_timedeltalike_scalar_mismatched_reso(self, dta_dti, scalar):
+        dta, dti = dta_dti
+
+        td = pd.Timedelta(scalar)
+        exp_reso = max(dta._creso, td._creso)
+        exp_unit = npy_unit_to_abbrev(exp_reso)
+
+        expected = (dti + td)._data._as_unit(exp_unit)
+        result = dta + scalar
+        tm.assert_extension_array_equal(result, expected)
+
+        result = scalar + dta
+        tm.assert_extension_array_equal(result, expected)
+
+        expected = (dti - td)._data._as_unit(exp_unit)
+        result = dta - scalar
+        tm.assert_extension_array_equal(result, expected)
 
     def test_sub_datetimelike_scalar_mismatch(self):
         dti = pd.date_range("2016-01-01", periods=3)

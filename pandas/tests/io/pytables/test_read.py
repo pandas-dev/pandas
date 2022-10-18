@@ -1,3 +1,4 @@
+from contextlib import closing
 from pathlib import Path
 import re
 
@@ -207,11 +208,10 @@ def test_read_hdf_open_store(tmp_path, setup_path):
     path = tmp_path / setup_path
     df.to_hdf(path, "df", mode="w")
     direct = read_hdf(path, "df")
-    store = HDFStore(path, mode="r")
-    indirect = read_hdf(store, "df")
-    tm.assert_frame_equal(direct, indirect)
-    assert store.is_open
-    store.close()
+    with HDFStore(path, mode="r") as store:
+        indirect = read_hdf(store, "df")
+        tm.assert_frame_equal(direct, indirect)
+        assert store.is_open
 
 
 def test_read_hdf_iterator(tmp_path, setup_path):
@@ -223,10 +223,10 @@ def test_read_hdf_iterator(tmp_path, setup_path):
     df.to_hdf(path, "df", mode="w", format="t")
     direct = read_hdf(path, "df")
     iterator = read_hdf(path, "df", iterator=True)
-    assert isinstance(iterator, TableIterator)
-    indirect = next(iterator.__iter__())
-    tm.assert_frame_equal(direct, indirect)
-    iterator.store.close()
+    with closing(iterator.store):
+        assert isinstance(iterator, TableIterator)
+        indirect = next(iterator.__iter__())
+        tm.assert_frame_equal(direct, indirect)
 
 
 def test_read_nokey(tmp_path, setup_path):

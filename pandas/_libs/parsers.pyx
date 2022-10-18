@@ -972,7 +972,7 @@ cdef class TextReader:
                     "Defining usecols with out of bounds indices is deprecated "
                     "and will raise a ParserError in a future version.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
         results = {}
@@ -1023,7 +1023,7 @@ cdef class TextReader:
                     warnings.warn((f"Both a converter and dtype were specified "
                                    f"for column {name} - only the converter will "
                                    f"be used."), ParserWarning,
-                                  stacklevel=find_stack_level(inspect.currentframe()))
+                                  stacklevel=find_stack_level())
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
@@ -1427,6 +1427,9 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
     -------
     The casted array.
     """
+    if is_extension_array_dtype(arr.dtype):
+        return arr
+
     na_value = na_values[arr.dtype]
 
     if issubclass(arr.dtype.type, np.integer):

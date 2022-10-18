@@ -15,8 +15,6 @@ from pandas._config import get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under2p0,
-    pa_version_under5p0,
     pa_version_under6p0,
     pa_version_under8p0,
 )
@@ -237,7 +235,7 @@ def check_partition_names(path, expected):
     expected: iterable of str
         Expected partition names.
     """
-    if pa_version_under5p0:
+    if pa_version_under6p0:
         import pyarrow.parquet as pq
 
         dataset = pq.ParquetDataset(path, validate_schema=False)
@@ -836,13 +834,8 @@ class TestParquetPyArrow(Base):
         expected_df = df_compat.copy()
 
         # GH #35791
-        # read_table uses the new Arrow Datasets API since pyarrow 1.0.0
-        # Previous behaviour was pyarrow partitioned columns become 'category' dtypes
-        # These are added to back of dataframe on read. In new API category dtype is
-        # only used if partition field is string, but this changed again to use
-        # category dtype for all types (not only strings) in pyarrow 2.0.0
         if partition_col:
-            partition_col_type = "int32" if pa_version_under2p0 else "category"
+            partition_col_type = "category"
 
             expected_df[partition_col] = expected_df[partition_col].astype(
                 partition_col_type
@@ -975,7 +968,7 @@ class TestParquetPyArrow(Base):
 
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
         if (
-            not pa_version_under2p0
+            not pa_version_under6p0
             and timezone_aware_date_list.tzinfo != datetime.timezone.utc
         ):
             request.node.add_marker(
@@ -1179,3 +1172,13 @@ class TestParquetFastParquet(Base):
                 read_parquet(path, engine="fastparquet")
             # The next line raises an error on Windows if the file is still open
             pathlib.Path(path).unlink(missing_ok=False)
+
+    def test_bytes_file_name(self, engine):
+        # GH#48944
+        df = pd.DataFrame(data={"A": [0, 1], "B": [1, 0]})
+        with tm.ensure_clean("test.parquet") as path:
+            with open(path.encode(), "wb") as f:
+                df.to_parquet(f)
+
+            result = read_parquet(path, engine=engine)
+        tm.assert_frame_equal(result, df)
