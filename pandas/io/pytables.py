@@ -3006,7 +3006,7 @@ class GenericFixed(Fixed):
         attrs = node._v_attrs
         factory, kwargs = self._get_index_factory(attrs)
 
-        if kind == "date":
+        if kind == "date" or kind == "object":
             index = factory(
                 _unconvert_index(
                     data, kind, encoding=self.encoding, errors=self.errors

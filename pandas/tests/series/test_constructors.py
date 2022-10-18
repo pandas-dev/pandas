@@ -1986,7 +1986,9 @@ class TestSeriesConstructorIndexCoercion:
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
         with tm.assert_produces_warning(FutureWarning):
             assert ser.index.is_all_dates
-        assert isinstance(ser.index, DatetimeIndex)
+        # as of 2.0, we no longer silently cast the object-dtype index
+        #  to DatetimeIndex GH#39307, GH#23598
+        assert not isinstance(ser.index, DatetimeIndex)
 
     def test_series_constructor_infer_multiindex(self):
         index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]
