@@ -1,19 +1,26 @@
 """
 Tests for DatetimeArray
 """
+from datetime import timedelta
 import operator
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import tz_compare
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+    npy_unit_to_abbrev,
+)
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 
 
 class TestNonNano:
@@ -64,7 +71,7 @@ class TestNonNano:
         dta = DatetimeArray._simple_new(arr, dtype=dtype)
 
         assert dta.dtype == dtype
-        assert dta[0]._reso == reso
+        assert dta[0]._creso == reso
         assert tz_compare(dta.tz, dta[0].tz)
         assert (dta[0] == dta[:1]).all()
 
@@ -117,7 +124,7 @@ class TestNonNano:
 
         # we should match the nano-reso std, but floored to our reso.
         res = dta.std()
-        assert res._reso == dta._reso
+        assert res._creso == dta._creso
         assert res == dti.std().floor(unit)
 
     @pytest.mark.filterwarnings("ignore:Converting to PeriodArray.*:UserWarning")
@@ -134,12 +141,12 @@ class TestNonNano:
 
         assert type(res) is pd.Timestamp
         assert res.value == expected.value
-        assert res._reso == expected._reso
+        assert res._creso == expected._creso
         assert res == expected
 
     def test_astype_object(self, dta):
         result = dta.astype(object)
-        assert all(x._reso == dta._reso for x in result)
+        assert all(x._creso == dta._creso for x in result)
         assert all(x == y for x, y in zip(result, dta))
 
     def test_to_pydatetime(self, dta_dti):
@@ -206,6 +213,72 @@ class TestNonNano:
             #  able to remove compare_mismatched_resolutions
             np_res = op(left._ndarray, right._ndarray)
             tm.assert_numpy_array_equal(np_res[1:], ~expected[1:])
+
+    def test_add_mismatched_reso_doesnt_downcast(self):
+        # https://github.com/pandas-dev/pandas/pull/48748#issuecomment-1260181008
+        td = pd.Timedelta(microseconds=1)
+        dti = pd.date_range("2016-01-01", periods=3) - td
+        dta = dti._data._as_unit("us")
+
+        res = dta + td._as_unit("us")
+        # even though the result is an even number of days
+        #  (so we _could_ downcast to unit="s"), we do not.
+        assert res._unit == "us"
+
+    @pytest.mark.parametrize(
+        "scalar",
+        [
+            timedelta(hours=2),
+            pd.Timedelta(hours=2),
+            np.timedelta64(2, "h"),
+            np.timedelta64(2 * 3600 * 1000, "ms"),
+            pd.offsets.Minute(120),
+            pd.offsets.Hour(2),
+        ],
+    )
+    def test_add_timedeltalike_scalar_mismatched_reso(self, dta_dti, scalar):
+        dta, dti = dta_dti
+
+        td = pd.Timedelta(scalar)
+        exp_reso = max(dta._creso, td._creso)
+        exp_unit = npy_unit_to_abbrev(exp_reso)
+
+        expected = (dti + td)._data._as_unit(exp_unit)
+        result = dta + scalar
+        tm.assert_extension_array_equal(result, expected)
+
+        result = scalar + dta
+        tm.assert_extension_array_equal(result, expected)
+
+        expected = (dti - td)._data._as_unit(exp_unit)
+        result = dta - scalar
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_sub_datetimelike_scalar_mismatch(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+        dta = dti._data._as_unit("us")
+
+        ts = dta[0]._as_unit("s")
+
+        result = dta - ts
+        expected = (dti - dti[0])._data._as_unit("us")
+        assert result.dtype == "m8[us]"
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_sub_datetime64_reso_mismatch(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+        left = dti._data._as_unit("s")
+        right = left._as_unit("ms")
+
+        result = left - right
+        exp_values = np.array([0, 0, 0], dtype="m8[ms]")
+        expected = TimedeltaArray._simple_new(
+            exp_values,
+            dtype=exp_values.dtype,
+        )
+        tm.assert_extension_array_equal(result, expected)
+        result2 = right - left
+        tm.assert_extension_array_equal(result2, expected)
 
 
 class TestDatetimeArrayComparisons:

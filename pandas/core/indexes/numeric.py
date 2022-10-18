@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 from typing import (
     Callable,
     Hashable,
@@ -123,7 +122,7 @@ class NumericIndex(Index):
         }[self.dtype.kind]
 
     def __new__(
-        cls, data=None, dtype: Dtype | None = None, copy=False, name=None
+        cls, data=None, dtype: Dtype | None = None, copy: bool = False, name=None
     ) -> NumericIndex:
         name = maybe_extract_name(name, data, cls)
 
@@ -140,7 +139,7 @@ class NumericIndex(Index):
         if not isinstance(data, (np.ndarray, Index)):
             # Coerce to ndarray if not already ndarray or Index
             if is_scalar(data):
-                raise cls._scalar_data_error(data)
+                cls._raise_scalar_data_error(data)
 
             # other iterable of some kind
             if not isinstance(data, (ABCSeries, list, tuple)):
@@ -213,8 +212,7 @@ class NumericIndex(Index):
     # ----------------------------------------------------------------
     # Indexing Methods
 
-    # error: Decorated property not supported
-    @cache_readonly  # type: ignore[misc]
+    @cache_readonly
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
         return False
@@ -281,7 +279,13 @@ class NumericIndex(Index):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
     def _format_native_types(
-        self, *, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
+        self,
+        *,
+        na_rep: str = "",
+        float_format=None,
+        decimal: str = ".",
+        quoting=None,
+        **kwargs,
     ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import FloatArrayFormatter
 
@@ -361,7 +365,7 @@ class IntegerIndex(NumericIndex):
         warnings.warn(
             "Index.asi8 is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self._values.view(self._default_dtype)
 

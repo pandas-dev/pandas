@@ -205,7 +205,7 @@ class Writer(ABC):
 
     def __init__(
         self,
-        obj,
+        obj: NDFrame,
         orient: str | None,
         date_format: str,
         double_precision: int,

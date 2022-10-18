@@ -17,6 +17,7 @@ from pandas._libs import (
 from pandas._libs.missing import NA
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     DtypeObj,
     Manager,
     Shape,
@@ -70,7 +71,7 @@ if TYPE_CHECKING:
 
 
 def _concatenate_array_managers(
-    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
+    mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
 ) -> Manager:
     """
     Concatenate array managers into one.
@@ -174,7 +175,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
 
 
 def concatenate_managers(
-    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
+    mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
 ) -> Manager:
     """
     Concatenate block managers into one.
@@ -525,7 +526,7 @@ class JoinUnit:
 
 
 def _concatenate_join_units(
-    join_units: list[JoinUnit], concat_axis: int, copy: bool
+    join_units: list[JoinUnit], concat_axis: AxisInt, copy: bool
 ) -> ArrayLike:
     """
     Concatenate values from several join units along selected axis.
@@ -702,7 +703,7 @@ def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
     return JoinUnit(block=extra_block, indexers=extra_indexers, shape=extra_shape)
 
 
-def _combine_concat_plans(plans, concat_axis: int):
+def _combine_concat_plans(plans, concat_axis: AxisInt):
     """
     Combine multiple concatenation plans into one.
 

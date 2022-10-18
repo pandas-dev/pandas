@@ -29,6 +29,8 @@ from cython cimport (
     floating,
 )
 
+from pandas._libs.missing import check_na_tuples_nonequal
+
 import_datetime()
 
 import numpy as np
@@ -306,46 +308,6 @@ def item_from_zerodim(val: object) -> object:
     if cnp.PyArray_IsZeroDim(val):
         return cnp.PyArray_ToScalar(cnp.PyArray_DATA(val), val)
     return val
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def fast_unique_multiple(ndarray left, ndarray right) -> list:
-    """
-    Generate a list indices we have to add to the left to get the union
-    of both arrays.
-
-    Parameters
-    ----------
-    left : np.ndarray
-        Left array that is used as base.
-    right : np.ndarray
-        right array that is checked for values that are not in left.
-        right can not have duplicates.
-
-    Returns
-    -------
-    list of indices that we have to add to the left array.
-    """
-    cdef:
-        Py_ssize_t j, n
-        list indices = []
-        set table = set()
-        object val, stub = 0
-
-    n = len(left)
-    for j in range(n):
-        val = left[j]
-        if val not in table:
-            table.add(val)
-
-    n = len(right)
-    for j in range(n):
-        val = right[j]
-        if val not in table:
-            indices.append(j)
-
-    return indices
 
 
 @cython.wraparound(False)
@@ -636,7 +598,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                 or is_matching_na(x, y, nan_matches_none=True)
             ):
                 return False
-        except ValueError:
+        except (ValueError, TypeError):
             # Avoid raising ValueError when comparing Numpy arrays to other types
             if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
                 # Only compare scalars to scalars and non-scalars to non-scalars
@@ -645,7 +607,12 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                   and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
                 # Check if non-scalars have the same type
                 return False
+            elif check_na_tuples_nonequal(x, y):
+                # We have tuples where one Side has a NA and the other side does not
+                # Only condition we may end up with a TypeError
+                return False
             raise
+
     return True
 
 

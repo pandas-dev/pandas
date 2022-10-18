@@ -76,6 +76,13 @@ class TestPeriodConstruction:
         assert i1 == i2
         assert i1 == i3
 
+        i1 = Period.now("D")
+        i2 = Period(datetime.now(), freq="D")
+        i3 = Period.now(offsets.Day())
+
+        assert i1 == i2
+        assert i1 == i3
+
         i1 = Period("1982", freq="min")
         i2 = Period("1982", freq="MIN")
         assert i1 == i2
@@ -840,6 +847,7 @@ class TestPeriodProperties:
             assert isinstance(p1, Period)
             assert isinstance(p2, Period)
 
+    @staticmethod
     def _period_constructor(bound, offset):
         return Period(
             year=bound.year,

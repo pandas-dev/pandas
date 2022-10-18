@@ -600,8 +600,7 @@ class TestLocBaseIndependent:
         expected = DataFrame(columns=["x", "y"])
         expected["x"] = expected["x"].astype(np.int64)
         df = DataFrame(columns=["x", "y"])
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(None):
             df.loc[:, "x"] = 1
         tm.assert_frame_equal(df, expected)
 
@@ -650,14 +649,14 @@ class TestLocBaseIndependent:
             )
 
         with tm.assert_produces_warning(None, match=msg):
-            # timedelta64[s] -> float64, so this cannot be done inplace, so
+            # timedelta64[m] -> float64, so this cannot be done inplace, so
             #  no warning
             df.loc[:, ("Respondent", "Duration")] = df.loc[
                 :, ("Respondent", "Duration")
-            ].astype("timedelta64[s]")
+            ].astype("timedelta64[m]")
 
         expected = Series(
-            [1380, 720, 840, 2160.0], index=df.index, name=("Respondent", "Duration")
+            [23.0, 12.0, 14.0, 36.0], index=df.index, name=("Respondent", "Duration")
         )
         tm.assert_series_equal(df[("Respondent", "Duration")], expected)
 
