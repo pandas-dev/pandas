@@ -11,6 +11,7 @@ from pandas.compat._utils import flatten_buffer
 
 
 if sys.version_info < (3, 10):
+
     class LZMAFile(lzma.LZMAFile):
         def write(self, b) -> int:
             # Workaround issue where `lzma.LZMAFile` expects `len`
@@ -20,6 +21,8 @@ if sys.version_info < (3, 10):
             #
             # Note: This is fixed in Python 3.10.
             return super().write(flatten_buffer(b))
+
 else:
+
     class LZMAFile(lzma.LZMAFile):
         pass
