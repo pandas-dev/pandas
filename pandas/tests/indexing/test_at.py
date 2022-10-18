@@ -214,8 +214,7 @@ class TestAtErrors:
         new_row = [6, 7]
         with pytest.raises(
             InvalidIndexError,
-            match=r"You can only assign a scalar value not a \\{type(new_row)} "
-            f"with value \\{new_row}",
+            match=f"You can only assign a scalar value not a \\{type(new_row)}",
         ):
             df.at[5] = new_row
 
@@ -246,7 +245,6 @@ class TestAtErrors:
         new_row = [123, 15]
         with pytest.raises(
             InvalidIndexError,
-            match=r"You can only assign a scalar value not a \\{type(new_row)} "
-            f"with value \\{new_row}",
+            match=f"You can only assign a scalar value not a \\{type(new_row)}",
         ):
             df.at["a"] = new_row
