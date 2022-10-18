@@ -698,7 +698,7 @@ class TestToDatetime:
         #  as of 2022-09-28, the Timestamp constructor has been updated
         #  to cast to M8[s] but to_datetime has not
         ts = Timestamp(dt)
-        assert ts._reso == NpyDatetimeUnit.NPY_FR_s.value
+        assert ts._creso == NpyDatetimeUnit.NPY_FR_s.value
         assert ts.asm8 == dt
 
         msg = "Out of bounds nanosecond timestamp"
@@ -2093,9 +2093,8 @@ class TestToDatetimeMisc:
 
 
 class TestGuessDatetimeFormat:
-    @td.skip_if_not_us_locale
     @pytest.mark.parametrize(
-        "test_array",
+        "test_list",
         [
             [
                 "2011-12-30 00:00:00.000000",
@@ -2103,11 +2102,14 @@ class TestGuessDatetimeFormat:
                 "2011-12-30 00:00:00.000000",
             ],
             [np.nan, np.nan, "2011-12-30 00:00:00.000000"],
+            ["", "2011-12-30 00:00:00.000000"],
+            ["NaT", "2011-12-30 00:00:00.000000"],
             ["2011-12-30 00:00:00.000000", "random_string"],
         ],
     )
-    def test_guess_datetime_format_for_array(self, test_array):
+    def test_guess_datetime_format_for_array(self, test_list):
         expected_format = "%Y-%m-%d %H:%M:%S.%f"
+        test_array = np.array(test_list, dtype=object)
         assert tools._guess_datetime_format_for_array(test_array) == expected_format
 
     @td.skip_if_not_us_locale

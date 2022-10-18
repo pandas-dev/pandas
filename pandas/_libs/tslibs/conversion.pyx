@@ -1,4 +1,3 @@
-import inspect
 import warnings
 
 import numpy as np
@@ -206,16 +205,16 @@ cdef class _TSObject:
     #    int64_t value               # numpy dt64
     #    tzinfo tzinfo
     #    bint fold
-    #    NPY_DATETIMEUNIT reso
+    #    NPY_DATETIMEUNIT creso
 
     def __cinit__(self):
         # GH 25057. As per PEP 495, set fold to 0 by default
         self.fold = 0
-        self.reso = NPY_FR_ns  # default value
+        self.creso = NPY_FR_ns  # default value
 
-    cdef void ensure_reso(self, NPY_DATETIMEUNIT reso):
-        if self.reso != reso:
-            self.value = convert_reso(self.value, self.reso, reso, False)
+    cdef void ensure_reso(self, NPY_DATETIMEUNIT creso):
+        if self.creso != creso:
+            self.value = convert_reso(self.value, self.creso, creso, False)
 
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
@@ -247,7 +246,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
         reso = get_supported_reso(get_datetime64_unit(ts))
-        obj.reso = reso
+        obj.creso = reso
         obj.value = get_datetime64_nanos(ts, reso)
         if obj.value != NPY_NAT:
             pandas_datetime_to_datetimestruct(obj.value, reso, &obj.dts)
@@ -286,7 +285,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                         "Conversion of non-round float with unit={unit} is ambiguous "
                         "and will raise in a future version.",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
 
             ts = cast_from_unit(ts, unit)
@@ -306,7 +305,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         raise TypeError(f'Cannot convert input [{ts}] of type {type(ts)} to '
                         f'Timestamp')
 
-    maybe_localize_tso(obj, tz, obj.reso)
+    maybe_localize_tso(obj, tz, obj.creso)
     return obj
 
 

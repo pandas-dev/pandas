@@ -18,8 +18,9 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.compat import pa_version_under1p01
+from pandas.compat import pa_version_under6p0
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -106,9 +107,9 @@ class StringDtype(StorageExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under1p01:
+        if storage == "pyarrow" and pa_version_under6p0:
             raise ImportError(
-                "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
+                "pyarrow>=6.0.0 is required for PyArrow backed StringArray."
             )
         self.storage = storage
 
@@ -214,7 +215,11 @@ class BaseStringArray(ExtensionArray):
     Mixin class for StringArray, ArrowStringArray.
     """
 
-    pass
+    @doc(ExtensionArray.tolist)
+    def tolist(self):
+        if self.ndim > 1:
+            return [x.tolist() for x in self]
+        return list(self.to_numpy())
 
 
 class StringArray(BaseStringArray, PandasArray):
