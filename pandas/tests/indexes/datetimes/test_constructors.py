@@ -1042,10 +1042,18 @@ class TestTimeSeries:
         arr = np.array(["1/1/2005", "1/2/2005", "1/3/2005", "2005-01-04"], dtype="O")
         idx4 = DatetimeIndex(arr)
 
-        arr = to_datetime(["1/1/2005", "1/2/2005", "1/3/2005", "2005-01-04"])
+        # Can't be parsed consistently, need to parse each element individually
+        arr = [
+            to_datetime(date_string)
+            for date_string in ["1/1/2005", "1/2/2005", "1/3/2005", "2005-01-04"]
+        ]
         idx5 = DatetimeIndex(arr)
 
-        arr = to_datetime(["1/1/2005", "1/2/2005", "Jan 3, 2005", "2005-01-04"])
+        # Can't be parsed consistently, need to parse each element individually
+        arr = [
+            to_datetime(date_string)
+            for date_string in ["1/1/2005", "1/2/2005", "Jan 3, 2005", "2005-01-04"]
+        ]
         idx6 = DatetimeIndex(arr)
 
         idx7 = DatetimeIndex(["12/05/2007", "25/01/2008"], dayfirst=True)

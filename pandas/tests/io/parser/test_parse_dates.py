@@ -1666,9 +1666,9 @@ def test_parse_delimited_date_swap_no_warning(
 @pytest.mark.parametrize(
     "date_string,dayfirst,expected",
     [
-        # %d/%m/%Y; month > 12 thus replacement
+        # %d/%m/%Y; month > 12
         ("13/02/2019", False, datetime(2019, 2, 13)),
-        # %m/%d/%Y; day > 12 thus there will be no replacement
+        # %m/%d/%Y; day > 12
         ("02/13/2019", True, datetime(2019, 2, 13)),
     ],
 )
@@ -1677,7 +1677,10 @@ def test_parse_delimited_date_swap_with_warning(
 ):
     parser = all_parsers
     expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
-    warning_msg = "Specify a format to ensure consistent parsing"
+    warning_msg = (
+        "Parsing dates in .* format when dayfirst=.* was specified. "
+        "Pass `dayfirst=.*` or specify a format to silence this warning."
+    )
     result = parser.read_csv_check_warnings(
         UserWarning,
         warning_msg,
@@ -1691,13 +1694,11 @@ def test_parse_delimited_date_swap_with_warning(
 
 def test_parse_multiple_delimited_dates_with_swap_warnings():
     # GH46210
-    warning_msg = "Specify a format to ensure consistent parsing"
-    with tm.assert_produces_warning(UserWarning, match=warning_msg) as record:
+    with pytest.raises(
+        ValueError,
+        match=r"^time data '31/05/2000' does not match format '%m/%d/%Y' \(match\)$",
+    ):
         pd.to_datetime(["01/01/2000", "31/05/2000", "31/05/2001", "01/02/2000"])
-    assert len({str(warning.message) for warning in record}) == 1
-    # Using set(record) as repetitions of the same warning are suppressed
-    # https://docs.python.org/3/library/warnings.html
-    # and here we care to check that the warning is only shows once to users.
 
 
 def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
@@ -1860,96 +1861,50 @@ def test_parse_dates_and_keep_orgin_column(all_parsers):
 
 def test_dayfirst_warnings():
     # GH 12585
-    warning_msg_day_first = (
-        r"Parsing dates in DD/MM/YYYY format when dayfirst=False \(the default\) was "
-        r"specified. This may lead to inconsistently parsed dates! Specify a format "
-        r"to ensure consistent parsing."
-    )
-    warning_msg_month_first = (
-        "Parsing dates in MM/DD/YYYY format when dayfirst=True was "
-        "specified. This may lead to inconsistently parsed dates! Specify a format "
-        "to ensure consistent parsing."
-    )
 
     # CASE 1: valid input
     input = "date\n31/12/2014\n10/03/2011"
-    expected_consistent = DatetimeIndex(
+    expected = DatetimeIndex(
         ["2014-12-31", "2011-03-10"], dtype="datetime64[ns]", freq=None, name="date"
     )
-    expected_inconsistent = DatetimeIndex(
-        ["2014-12-31", "2011-10-03"], dtype="datetime64[ns]", freq=None, name="date"
+    warning_msg = (
+        "Parsing dates in .* format when dayfirst=.* was specified. "
+        "Pass `dayfirst=.*` or specify a format to silence this warning."
     )
 
     # A. dayfirst arg correct, no warning
     res1 = read_csv(
         StringIO(input), parse_dates=["date"], dayfirst=True, index_col="date"
     ).index
-    tm.assert_index_equal(expected_consistent, res1)
+    tm.assert_index_equal(expected, res1)
 
-    # B. dayfirst arg incorrect, warning + incorrect output
-    with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+    # B. dayfirst arg incorrect, warning
+    with tm.assert_produces_warning(UserWarning, match=warning_msg):
         res2 = read_csv(
             StringIO(input), parse_dates=["date"], dayfirst=False, index_col="date"
         ).index
-    tm.assert_index_equal(expected_inconsistent, res2)
-
-    # C. dayfirst default arg, same as B
-    with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
-        res3 = read_csv(
-            StringIO(input), parse_dates=["date"], dayfirst=False, index_col="date"
-        ).index
-    tm.assert_index_equal(expected_inconsistent, res3)
-
-    # D. infer_datetime_format=True overrides dayfirst default
-    # no warning + correct result
-    res4 = read_csv(
-        StringIO(input),
-        parse_dates=["date"],
-        infer_datetime_format=True,
-        index_col="date",
-    ).index
-    tm.assert_index_equal(expected_consistent, res4)
+    tm.assert_index_equal(expected, res2)
 
     # CASE 2: invalid input
     # cannot consistently process with single format
-    # warnings *always* raised
+    # return to user unaltered
 
     # first in DD/MM/YYYY, second in MM/DD/YYYY
     input = "date\n31/12/2014\n03/30/2011"
-    expected = DatetimeIndex(
-        ["2014-12-31", "2011-03-30"], dtype="datetime64[ns]", freq=None, name="date"
-    )
+    expected = Index(["31/12/2014", "03/30/2011"], dtype="object", name="date")
 
     # A. use dayfirst=True
-    with tm.assert_produces_warning(UserWarning, match=warning_msg_month_first):
-        res5 = read_csv(
-            StringIO(input), parse_dates=["date"], dayfirst=True, index_col="date"
-        ).index
+    res5 = read_csv(
+        StringIO(input), parse_dates=["date"], dayfirst=True, index_col="date"
+    ).index
     tm.assert_index_equal(expected, res5)
 
     # B. use dayfirst=False
-    with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+    with tm.assert_produces_warning(UserWarning, match=warning_msg):
         res6 = read_csv(
             StringIO(input), parse_dates=["date"], dayfirst=False, index_col="date"
         ).index
     tm.assert_index_equal(expected, res6)
-
-    # C. use dayfirst default arg, same as B
-    with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
-        res7 = read_csv(
-            StringIO(input), parse_dates=["date"], dayfirst=False, index_col="date"
-        ).index
-    tm.assert_index_equal(expected, res7)
-
-    # D. use infer_datetime_format=True
-    with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
-        res8 = read_csv(
-            StringIO(input),
-            parse_dates=["date"],
-            infer_datetime_format=True,
-            index_col="date",
-        ).index
-    tm.assert_index_equal(expected, res8)
 
 
 @pytest.mark.parametrize(
@@ -1973,9 +1928,11 @@ def test_dayfirst_warnings_no_leading_zero(date_string, dayfirst):
     expected = DatetimeIndex(
         ["2014-01-31"], dtype="datetime64[ns]", freq=None, name="date"
     )
-    with tm.assert_produces_warning(
-        UserWarning, match=r"may lead to inconsistently parsed dates"
-    ):
+    warning_msg = (
+        "Parsing dates in .* format when dayfirst=.* was specified. "
+        "Pass `dayfirst=.*` or specify a format to silence this warning."
+    )
+    with tm.assert_produces_warning(UserWarning, match=warning_msg):
         res = read_csv(
             StringIO(initial_value),
             parse_dates=["date"],

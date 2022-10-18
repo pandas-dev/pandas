@@ -27,7 +27,7 @@ from pandas.io.common import get_handle
 
 class TestDataFrameToCSV:
     def read_csv(self, path, **kwargs):
-        params = {"index_col": 0, "parse_dates": True}
+        params = {"index_col": 0}
         params.update(**kwargs)
 
         return read_csv(path, **params)
@@ -46,17 +46,17 @@ class TestDataFrameToCSV:
             # freq does not roundtrip
             datetime_frame.index = datetime_frame.index._with_freq(None)
             datetime_frame.to_csv(path)
-            recons = self.read_csv(path)
+            recons = self.read_csv(path, parse_dates=True)
             tm.assert_frame_equal(datetime_frame, recons)
 
             datetime_frame.to_csv(path, index_label="index")
-            recons = self.read_csv(path, index_col=None)
+            recons = self.read_csv(path, index_col=None, parse_dates=True)
 
             assert len(recons.columns) == len(datetime_frame.columns) + 1
 
             # no index
             datetime_frame.to_csv(path, index=False)
-            recons = self.read_csv(path, index_col=None)
+            recons = self.read_csv(path, index_col=None, parse_dates=True)
             tm.assert_almost_equal(datetime_frame.values, recons.values)
 
             # corner case
@@ -1056,7 +1056,7 @@ class TestDataFrameToCSV:
 
             # test NaTs
             nat_index = to_datetime(
-                ["NaT"] * 10 + ["2000-01-01", "1/1/2000", "1-1-2000"]
+                ["NaT"] * 10 + ["2000-01-01", "2000-01-01", "2000-01-01"]
             )
             nat_frame = DataFrame({"A": nat_index}, index=nat_index)
             nat_frame.to_csv(path, date_format="%Y-%m-%d")
