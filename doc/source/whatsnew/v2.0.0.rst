@@ -114,6 +114,39 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
+Datetimes are now parsed with a consistent format
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`to_datetime` now parses dates with a consistent format, which is guessed from the first non-NA value
+(unless ``format`` is specified). Previously, it would've guessed the format for each element individually.
+
+*Old behavior*:
+
+  .. code-block:: ipython
+
+     In [1]: ser = pd.Series(['13-01-2000', '12-01-2000'])
+     In [2]: pd.to_datetime(ser)
+     Out[2]:
+     0   2000-01-13
+     1   2000-12-01
+     dtype: datetime64[ns]
+
+*New behavior*:
+
+  .. ipython:: python
+    :okwarning:
+
+     ser = pd.Series(['13-01-2000', '12-01-2000'])
+     pd.to_datetime(ser)
+
+Note that this affects :func:`read_csv` as well.
+
+If you still need to parse dates with inconsistent formats, you'll need to apply :func:`to_datetime`
+to each element individually, e.g. ::
+
+     ser = pd.Series(['13-01-2000', '12 January 2000'])
+     ser.apply(pd.to_datetime)
+
 .. _whatsnew_200.api_breaking.other:
 
 Other API changes

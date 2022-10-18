@@ -13,17 +13,6 @@ a tremendous amount of new functionality for manipulating time series data.
 
 For example, pandas supports:
 
-Parsing time series information from various sources and formats
-
-.. ipython:: python
-
-   import datetime
-
-   dti = pd.to_datetime(
-       ["1/1/2018", np.datetime64("2018-01-01"), datetime.datetime(2018, 1, 1)]
-   )
-   dti
-
 Generate sequences of fixed-frequency dates and time spans
 
 .. ipython:: python
@@ -132,6 +121,8 @@ time.
 
 .. ipython:: python
 
+   import datetime
+
    pd.Timestamp(datetime.datetime(2012, 5, 1))
    pd.Timestamp("2012-05-01")
    pd.Timestamp(2012, 5, 1)
@@ -196,26 +187,24 @@ is converted to a ``DatetimeIndex``:
 
 .. ipython:: python
 
-    pd.to_datetime(pd.Series(["Jul 31, 2009", "2010-01-10", None]))
+    pd.to_datetime(pd.Series(["Jul 31, 2009", "Jan 10, 2010", None]))
 
-    pd.to_datetime(["2005/11/23", "2010.12.31"])
+    pd.to_datetime(["2005/11/23", "2010/12/31"])
 
 If you use dates which start with the day first (i.e. European style),
 you can pass the ``dayfirst`` flag:
 
 .. ipython:: python
-   :okwarning:
+    :okwarning:
 
     pd.to_datetime(["04-01-2012 10:00"], dayfirst=True)
-
-    pd.to_datetime(["14-01-2012", "01-14-2012"], dayfirst=True)
+    pd.to_datetime(["04-14-2012 10:00"], dayfirst=True)
 
 .. warning::
 
    You see in the above example that ``dayfirst`` isn't strict. If a date
    can't be parsed with the day being first it will be parsed as if
-   ``dayfirst`` were False, and in the case of parsing delimited date strings
-   (e.g. ``31-12-2012``) then a warning will also be raised.
+   ``dayfirst`` were False and a warning will also be raised.
 
 If you pass a single string to ``to_datetime``, it returns a single ``Timestamp``.
 ``Timestamp`` can also accept string input, but it doesn't accept string parsing
@@ -768,7 +757,7 @@ partially matching dates:
    rng2 = pd.date_range("2011-01-01", "2012-01-01", freq="W")
    ts2 = pd.Series(np.random.randn(len(rng2)), index=rng2)
 
-   ts2.truncate(before="2011-11", after="2011-12")
+   ts2.truncate(before="2011-11-01", after="2011-12-01")
    ts2["2011-11":"2011-12"]
 
 Even complicated fancy indexing that breaks the ``DatetimeIndex`` frequency
