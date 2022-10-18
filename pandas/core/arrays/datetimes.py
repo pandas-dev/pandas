@@ -2147,7 +2147,7 @@ def _sequence_to_dt64ns(
             # TODO: if tz is UTC, are there situations where we *don't* want a
             #  copy?  tz_localize_to_utc always makes one.
             data = tzconversion.tz_localize_to_utc(
-                data.view("i8"), tz, ambiguous=ambiguous, reso=data_unit
+                data.view("i8"), tz, ambiguous=ambiguous, creso=data_unit
             )
             data = data.view(new_dtype)
 
