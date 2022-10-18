@@ -228,11 +228,13 @@ class TestDataFrameBlockInternals:
         expected = DataFrame(
             {
                 "dt1": Timestamp("20130101"),
-                "dt2": date_range("20130101", periods=3),
+                "dt2": date_range("20130101", periods=3).astype("M8[s]"),
                 # 'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
             },
             index=range(3),
         )
+        assert expected.dtypes["dt1"] == "M8[ns]"
+        assert expected.dtypes["dt2"] == "M8[s]"
 
         df = DataFrame(index=range(3))
         df["dt1"] = np.datetime64("2013-01-01")
