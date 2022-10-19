@@ -551,13 +551,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             indices = np.array([], dtype=np.intp)
             uniques = type(self)(pa.chunked_array([], type=encoded.type.value_type))
         else:
-            indices = encoded.combine_chunks().indices
-            if indices.null_count > 0:
+            pa_indices = encoded.combine_chunks().indices
+            if pa_indices.null_count > 0:
                 fill_value = (
                     resolved_na_sentinel if resolved_na_sentinel is not None else -1
                 )
-                indices = pc.fill_null(indices, fill_value)
-            indices = indices.to_numpy(zero_copy_only=False, writable=True).astype(
+                pa_indices = pc.fill_null(pa_indices, fill_value)
+            indices = pa_indices.to_numpy(zero_copy_only=False, writable=True).astype(
                 np.intp, copy=False
             )
             uniques = type(self)(encoded.chunk(0).dictionary)
