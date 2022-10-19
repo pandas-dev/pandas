@@ -20,11 +20,19 @@ from pandas.core.base import (
 )
 
 
+def series_via_frame_from_dict(x, **kwargs):
+    return DataFrame({"a": x}, **kwargs)["a"]
+
+
+def series_via_frame_from_scalar(x, **kwargs):
+    return DataFrame(x, **kwargs)[0]
+
+
 @pytest.fixture(
     params=[
         Series,
-        lambda x, **kwargs: DataFrame({"a": x}, **kwargs)["a"],
-        lambda x, **kwargs: DataFrame(x, **kwargs)[0],
+        series_via_frame_from_dict,
+        series_via_frame_from_scalar,
         Index,
     ],
     ids=["Series", "DataFrame-dict", "DataFrame-array", "Index"],
@@ -117,15 +125,6 @@ class TestConstruction:
     # Index and DataFrame
 
     @pytest.mark.parametrize(
-        "klass",
-        [
-            Series,
-            lambda x, **kwargs: DataFrame({"a": x}, **kwargs)["a"],
-            lambda x, **kwargs: DataFrame(x, **kwargs)[0],
-            Index,
-        ],
-    )
-    @pytest.mark.parametrize(
         "a",
         [
             np.array(["2263-01-01"], dtype="datetime64[D]"),
@@ -140,18 +139,18 @@ class TestConstruction:
             "object-string",
         ],
     )
-    def test_constructor_datetime_outofbound(self, a, klass):
+    def test_constructor_datetime_outofbound(self, a, constructor):
         # GH-26853 (+ bug GH-26206 out of bound non-ns unit)
 
         # No dtype specified (dtype inference)
         # datetime64[non-ns] raise error, other cases result in object dtype
         # and preserve original data
         if a.dtype.kind == "M":
-            msg = "Out of bounds"
-            with pytest.raises(pd.errors.OutOfBoundsDatetime, match=msg):
-                klass(a)
+            # Can't fit in nanosecond bounds -> get the nearest supported unit
+            result = constructor(a)
+            assert result.dtype == "M8[s]"
         else:
-            result = klass(a)
+            result = constructor(a)
             assert result.dtype == "object"
             tm.assert_numpy_array_equal(result.to_numpy(), a)
 
@@ -159,11 +158,14 @@ class TestConstruction:
         # Forced conversion fails for all -> all cases raise error
         msg = "Out of bounds|Out of bounds .* present at position 0"
         with pytest.raises(pd.errors.OutOfBoundsDatetime, match=msg):
-            klass(a, dtype="datetime64[ns]")
+            constructor(a, dtype="datetime64[ns]")
 
     def test_constructor_datetime_nonns(self, constructor):
         arr = np.array(["2020-01-01T00:00:00.000000"], dtype="datetime64[us]")
-        expected = constructor(pd.to_datetime(["2020-01-01"]))
+        dta = pd.core.arrays.DatetimeArray._simple_new(arr, dtype=arr.dtype)
+        expected = constructor(dta)
+        assert expected.dtype == arr.dtype
+
         result = constructor(arr)
         tm.assert_equal(result, expected)
 

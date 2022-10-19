@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-import inspect
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -418,11 +417,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 f"Specify dtype option on import or set low_memory=False."
             ]
         )
-        warnings.warn(
-            warning_message,
-            DtypeWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
+        warnings.warn(warning_message, DtypeWarning, stacklevel=find_stack_level())
     return result
 
 

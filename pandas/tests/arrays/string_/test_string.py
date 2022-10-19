@@ -5,11 +5,7 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    pa_version_under2p0,
-    pa_version_under6p0,
-)
-from pandas.errors import PerformanceWarning
+from pandas.compat import pa_version_under6p0
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -564,31 +560,19 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
 def test_isin(dtype, fixed_now_ts):
     s = pd.Series(["a", "b", None], dtype=dtype)
 
-    with tm.maybe_produces_warning(
-        PerformanceWarning, dtype.storage == "pyarrow" and pa_version_under2p0
-    ):
-        result = s.isin(["a", "c"])
+    result = s.isin(["a", "c"])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)
 
-    with tm.maybe_produces_warning(
-        PerformanceWarning, dtype.storage == "pyarrow" and pa_version_under2p0
-    ):
-        result = s.isin(["a", pd.NA])
+    result = s.isin(["a", pd.NA])
     expected = pd.Series([True, False, True])
     tm.assert_series_equal(result, expected)
 
-    with tm.maybe_produces_warning(
-        PerformanceWarning, dtype.storage == "pyarrow" and pa_version_under2p0
-    ):
-        result = s.isin([])
+    result = s.isin([])
     expected = pd.Series([False, False, False])
     tm.assert_series_equal(result, expected)
 
-    with tm.maybe_produces_warning(
-        PerformanceWarning, dtype.storage == "pyarrow" and pa_version_under2p0
-    ):
-        result = s.isin(["a", fixed_now_ts])
+    result = s.isin(["a", fixed_now_ts])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)
 
@@ -611,3 +595,19 @@ def test_setitem_scalar_with_mask_validation(dtype):
         msg = "Scalar must be NA or str"
     with pytest.raises(ValueError, match=msg):
         ser[mask] = 1
+
+
+def test_from_numpy_str(dtype):
+    vals = ["a", "b", "c"]
+    arr = np.array(vals, dtype=np.str_)
+    result = pd.array(arr, dtype=dtype)
+    expected = pd.array(vals, dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_tolist(dtype):
+    vals = ["a", "b", "c"]
+    arr = pd.array(vals, dtype=dtype)
+    result = arr.tolist()
+    expected = vals
+    tm.assert_equal(result, expected)

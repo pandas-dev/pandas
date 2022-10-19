@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime
 import functools
-import inspect
 from itertools import zip_longest
 import operator
 from typing import (
@@ -449,7 +448,7 @@ class Index(IndexOpsMixin, PandasObject):
                 "'tupleize_cols' is deprecated and will raise TypeError in a "
                 "future version.  Use the specific Index subclass directly instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         from pandas.core.arrays import PandasArray
@@ -554,7 +553,7 @@ class Index(IndexOpsMixin, PandasObject):
             return klass._simple_new(arr, name)
 
         elif is_scalar(data):
-            raise cls._scalar_data_error(data)
+            raise cls._raise_scalar_data_error(data)
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         else:
@@ -627,7 +626,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "dense numpy ndarray. To retain the old behavior, use "
                     "pd.Index(arr.to_numpy()) instead",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 return cls._dtype_to_subclass(dtype.subtype)
 
@@ -695,7 +694,7 @@ class Index(IndexOpsMixin, PandasObject):
         warnings.warn(
             "Index.asi8 is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return None
 
@@ -809,7 +808,7 @@ class Index(IndexOpsMixin, PandasObject):
             "The Index._get_attributes_dict method is deprecated, and will be "
             "removed in a future version",
             DeprecationWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return {k: getattr(self, k, None) for k in self._attributes}
 
@@ -1027,7 +1026,7 @@ class Index(IndexOpsMixin, PandasObject):
             "Index.ravel returning ndarray is deprecated; in a future version "
             "this will return a view on self.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         if needs_i8_conversion(self.dtype):
             # Item "ndarray[Any, Any]" of "Union[ExtensionArray, ndarray[Any, Any]]"
@@ -1332,7 +1331,7 @@ class Index(IndexOpsMixin, PandasObject):
                 "parameter names is deprecated and will be removed in a future "
                 "version. Use the name parameter instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         name = self._validate_names(name=name, names=names, deep=deep)[0]
@@ -1347,7 +1346,7 @@ class Index(IndexOpsMixin, PandasObject):
                 "parameter dtype is deprecated and will be removed in a future "
                 "version. Use the astype method instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             new_index = new_index.astype(dtype)
         return new_index
@@ -1539,7 +1538,7 @@ class Index(IndexOpsMixin, PandasObject):
             "The 'to_native_types' method is deprecated and will be removed in "
             "a future version. Use 'astype(str)' instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         values = self
         if slicer is not None:
@@ -1740,7 +1739,7 @@ class Index(IndexOpsMixin, PandasObject):
                 "the future `None` will be used as the name of the resulting "
                 "DataFrame column.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             name = lib.no_default
 
@@ -2351,7 +2350,7 @@ class Index(IndexOpsMixin, PandasObject):
             "is_monotonic is deprecated and will be removed in a future version. "
             "Use is_monotonic_increasing instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.is_monotonic_increasing
 
@@ -2776,7 +2775,7 @@ class Index(IndexOpsMixin, PandasObject):
             "Index.is_mixed is deprecated and will be removed in a future version. "
             "Check index.inferred_type directly instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.inferred_type in ["mixed"]
 
@@ -2821,7 +2820,7 @@ class Index(IndexOpsMixin, PandasObject):
             "Index.is_all_dates is deprecated, will be removed in a future version. "
             "check index.inferred_type instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self._is_all_dates
 
@@ -3200,7 +3199,7 @@ class Index(IndexOpsMixin, PandasObject):
             "in the future this will be a logical operation matching "
             "Series.__and__.  Use index.intersection(other) instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.intersection(other)
 
@@ -3211,7 +3210,7 @@ class Index(IndexOpsMixin, PandasObject):
             "in the future this will be a logical operation matching "
             "Series.__or__.  Use index.union(other) instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.union(other)
 
@@ -3222,7 +3221,7 @@ class Index(IndexOpsMixin, PandasObject):
             "in the future this will be a logical operation matching "
             "Series.__xor__.  Use index.symmetric_difference(other) instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.symmetric_difference(other)
 
@@ -3278,7 +3277,7 @@ class Index(IndexOpsMixin, PandasObject):
                 "object dtype. To retain the old behavior, "
                 f"use `index.astype(object).{setop}(other)`",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
     @final
@@ -3444,7 +3443,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif not other.is_unique:
             # other has duplicates
-            result_dups = algos.union_with_duplicates(lvals, rvals)
+            result_dups = algos.union_with_duplicates(self, other)
             return _maybe_try_sort(result_dups, sort)
 
         # Self may have duplicates; other already checked as unique
@@ -3873,7 +3872,7 @@ class Index(IndexOpsMixin, PandasObject):
             "and will raise in a future version. Use "
             "index.get_indexer([item], method=...) instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
         if is_scalar(key) and isna(key) and not self.hasnans:
@@ -4343,7 +4342,7 @@ class Index(IndexOpsMixin, PandasObject):
                         "lookups. To retain the old behavior, use `series.iloc[i:j]`. "
                         "To get the future behavior, use `series.loc[i:j]`.",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
             if self.is_integer() or is_index_slice:
                 # Note: these checks are redundant if we know is_index_slice
@@ -4377,7 +4376,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "and will raise TypeError in a future version.  "
                     "Use .loc with labels or .iloc with positions instead.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
             indexer = key
         else:
@@ -4386,14 +4385,23 @@ class Index(IndexOpsMixin, PandasObject):
         return indexer
 
     @final
-    def _invalid_indexer(self, form: str_t, key) -> TypeError:
+    def _raise_invalid_indexer(
+        self,
+        form: str_t,
+        key,
+        reraise: lib.NoDefault | None | Exception = lib.no_default,
+    ) -> None:
         """
-        Consistent invalid indexer message.
+        Raise consistent invalid indexer message.
         """
-        return TypeError(
+        msg = (
             f"cannot do {form} indexing on {type(self).__name__} with these "
             f"indexers [{key}] of type {type(key).__name__}"
         )
+        if reraise is not lib.no_default:
+            raise TypeError(msg) from reraise
+        else:
+            raise TypeError(msg)
 
     # --------------------------------------------------------------------
     # Reindex Methods
@@ -4528,7 +4536,7 @@ class Index(IndexOpsMixin, PandasObject):
                         "reindexing with a non-unique Index is deprecated and "
                         "will raise in a future version.",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
 
         target = self._wrap_reindex_result(target, indexer, preserve_names)
@@ -5171,9 +5179,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data
 
-    # error: Decorated property not supported
-    # https://github.com/python/mypy/issues/1362
-    @cache_readonly  # type: ignore[misc]
+    @cache_readonly
     @doc(IndexOpsMixin.array)
     def array(self) -> ExtensionArray:
         array = self._data
@@ -5281,10 +5287,10 @@ class Index(IndexOpsMixin, PandasObject):
     # construction helpers
     @final
     @classmethod
-    def _scalar_data_error(cls, data):
+    def _raise_scalar_data_error(cls, data):
         # We return the TypeError so that we can raise it from the constructor
         #  in order to keep mypy happy
-        return TypeError(
+        raise TypeError(
             f"{cls.__name__}(...) must be called with a collection of some "
             f"kind, {repr(data)} was passed"
         )
@@ -5343,7 +5349,7 @@ class Index(IndexOpsMixin, PandasObject):
             "Index.is_type_compatible is deprecated and will be removed in a "
             "future version.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return kind == self.inferred_type
 
@@ -5990,7 +5996,7 @@ class Index(IndexOpsMixin, PandasObject):
             "get_value is deprecated and will be removed in a future version. "
             "Use Series[key] instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
         self._check_indexing_error(key)
@@ -6058,7 +6064,7 @@ class Index(IndexOpsMixin, PandasObject):
                 "will be removed in a future version."
             ),
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         loc = self._engine.get_loc(key)
         if not can_hold_element(arr, value):
@@ -6676,7 +6682,7 @@ class Index(IndexOpsMixin, PandasObject):
         return ensure_index(target)
 
     @final
-    def _validate_indexer(self, form: str_t, key, kind: str_t):
+    def _validate_indexer(self, form: str_t, key, kind: str_t) -> None:
         """
         If we are positional indexer, validate that we have appropriate
         typed bounds must be an integer.
@@ -6684,7 +6690,7 @@ class Index(IndexOpsMixin, PandasObject):
         assert kind in ["getitem", "iloc"]
 
         if key is not None and not is_integer(key):
-            raise self._invalid_indexer(form, key)
+            self._raise_invalid_indexer(form, key)
 
     def _maybe_cast_slice_bound(self, label, side: str_t, kind=no_default):
         """
@@ -6716,7 +6722,7 @@ class Index(IndexOpsMixin, PandasObject):
         # datetimelike Indexes
         # reject them, if index does not contain label
         if (is_float(label) or is_integer(label)) and label not in self:
-            raise self._invalid_indexer("slice", label)
+            self._raise_invalid_indexer("slice", label)
 
         return label
 
@@ -7326,7 +7332,7 @@ class Index(IndexOpsMixin, PandasObject):
                 f"'{name}' argument in {methodname} is deprecated "
                 "and will be removed in a future version.  Do not pass it.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
 
@@ -7524,7 +7530,7 @@ def _maybe_cast_data_without_dtype(
             "In a future version, the Index constructor will not infer numeric "
             "dtypes when passed object-dtype sequences (matching Series behavior)",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
     result = ensure_wrapped_if_datetimelike(result)
     return result
@@ -7580,6 +7586,6 @@ def _maybe_try_sort(result, sort):
             warnings.warn(
                 f"{err}, sort order is undefined for incomparable objects.",
                 RuntimeWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
     return result

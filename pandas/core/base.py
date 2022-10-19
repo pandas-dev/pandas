@@ -4,7 +4,6 @@ Base and utility classes for pandas objects.
 
 from __future__ import annotations
 
-import inspect
 import textwrap
 from typing import (
     TYPE_CHECKING,
@@ -84,6 +83,7 @@ if TYPE_CHECKING:
         DropKeep,
         NumpySorter,
         NumpyValueArrayLike,
+        ScalarLike_co,
     )
 
     from pandas import (
@@ -830,7 +830,9 @@ class IndexOpsMixin(OpsMixin):
                 # If a dictionary subclass defines a default value method,
                 # convert mapper to a lookup function (GH #15999).
                 dict_with_default = mapper
-                mapper = lambda x: dict_with_default[x]
+                mapper = lambda x: dict_with_default[
+                    np.nan if isinstance(x, float) and np.isnan(x) else x
+                ]
             else:
                 # Dictionary does not have a default. Thus it's safe to
                 # convert to an Series for efficiency.
@@ -1077,7 +1079,7 @@ class IndexOpsMixin(OpsMixin):
             "is_monotonic is deprecated and will be removed in a future version. "
             "Use is_monotonic_increasing instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.is_monotonic_increasing
 
@@ -1275,7 +1277,7 @@ class IndexOpsMixin(OpsMixin):
     # return types  [misc]
     def searchsorted(  # type: ignore[misc]
         self,
-        value: npt._ScalarLike_co,
+        value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
         sorter: NumpySorter = ...,
     ) -> np.intp:

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from contextlib import suppress
-import inspect
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -1111,7 +1110,7 @@ class _LocIndexer(_LocationIndexer):
     # Key Checks
 
     @doc(_LocationIndexer._validate_key)
-    def _validate_key(self, key, axis: AxisInt):
+    def _validate_key(self, key, axis: Axis):
         # valid for a collection of labels (we check their presence later)
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
@@ -1505,7 +1504,7 @@ class _iLocIndexer(_LocationIndexer):
                 "a future version.\n"
                 "consider using .loc with a DataFrame indexer for automatic alignment.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if not isinstance(indexer, tuple):
@@ -1899,16 +1898,20 @@ class _iLocIndexer(_LocationIndexer):
 
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
-        # GH#7551 Note that this coerces the dtype if we are mixed
-        value = np.array(value, dtype=object)
+        if not is_array_like(value):
+            # cast lists to array
+            value = np.array(value, dtype=object)
         if len(ilocs) != value.shape[1]:
             raise ValueError(
                 "Must have equal len keys and value when setting with an ndarray"
             )
 
         for i, loc in enumerate(ilocs):
-            # setting with a list, re-coerces
-            self._setitem_single_column(loc, value[:, i].tolist(), pi)
+            value_col = value[:, i]
+            if is_object_dtype(value_col.dtype):
+                # casting to list so that we do type inference in setitem_single_column
+                value_col = value_col.tolist()
+            self._setitem_single_column(loc, value_col, pi)
 
     def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
@@ -2006,7 +2009,7 @@ class _iLocIndexer(_LocationIndexer):
 
         new_values = self.obj._get_column_array(loc)
 
-        if can_hold_element(orig_values, new_values):
+        if can_hold_element(orig_values, new_values) and not len(new_values) == 0:
             # Don't issue the warning yet, as we can still trim a few cases where
             #  behavior will not change.
 
@@ -2032,7 +2035,7 @@ class _iLocIndexer(_LocationIndexer):
                     "`df[df.columns[i]] = newvals` or, if columns are non-unique, "
                     "`df.isetitem(i, newvals)`",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 # TODO: how to get future behavior?
                 # TODO: what if we got here indirectly via loc?
@@ -2515,7 +2518,7 @@ def convert_to_index_sliceable(obj: DataFrame, key):
                     "and will be removed in a future version. Use `frame.loc[string]` "
                     "instead.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 return res
             except (KeyError, ValueError, NotImplementedError):
@@ -2669,7 +2672,7 @@ def check_deprecated_indexers(key) -> None:
             "Passing a set as an indexer is deprecated and will raise in "
             "a future version. Use a list instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
     if (
         isinstance(key, dict)
@@ -2680,5 +2683,5 @@ def check_deprecated_indexers(key) -> None:
             "Passing a dict as an indexer is deprecated and will raise in "
             "a future version. Use a list instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
