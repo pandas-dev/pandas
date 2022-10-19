@@ -37,7 +37,7 @@ Other enhancements
 - Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
 - :class:`.CategoricalConversionWarning`, :class:`.InvalidComparison`, :class:`.InvalidVersion`, :class:`.LossySetitemError`, and :class:`.NoBufferPresent` are now exposed in ``pandas.errors`` (:issue:`27656`)
 - :func:`DataFrame.astype` exception message thrown improved to include column name when type conversion is not possible. (:issue:`47571`)
-- :func:`date_range` now supports a ``reso`` keyword ("s", "ms", "us", or "ns") to specify the desired resolution of the output index (:issue:`49106`)
+- :func:`date_range` now supports a ``unit`` keyword ("s", "ms", "us", or "ns") to specify the desired resolution of the output index (:issue:`49106`)
 -
 
 .. ---------------------------------------------------------------------------

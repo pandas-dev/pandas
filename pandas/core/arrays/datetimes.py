@@ -385,7 +385,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         nonexistent: TimeNonexistent = "raise",
         inclusive: IntervalClosedType = "both",
         *,
-        reso: str | None = None,
+        unit: str | None = None,
     ) -> DatetimeArray:
 
         periods = dtl.validate_periods(periods)
@@ -408,16 +408,16 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if start is NaT or end is NaT:
             raise ValueError("Neither `start` nor `end` can be NaT")
 
-        if reso is not None:
-            if reso not in ["s", "ms", "us", "ns"]:
-                raise ValueError("'reso' must be one of 's', 'ms', 'us', 'ns'")
+        if unit is not None:
+            if unit not in ["s", "ms", "us", "ns"]:
+                raise ValueError("'unit' must be one of 's', 'ms', 'us', 'ns'")
         else:
-            reso = "ns"
+            unit = "ns"
 
-        if start is not None and reso is not None:
-            start = start._as_unit(reso)
-        if end is not None and reso is not None:
-            end = end._as_unit(reso)
+        if start is not None and unit is not None:
+            start = start._as_unit(unit)
+        if end is not None and unit is not None:
+            end = end._as_unit(unit)
 
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
         start, end = _maybe_normalize_endpoints(start, end, normalize)
@@ -444,7 +444,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     end = end.tz_localize(None)
 
             if isinstance(freq, Tick):
-                i8values = generate_regular_range(start, end, periods, freq, reso=reso)
+                i8values = generate_regular_range(start, end, periods, freq, unit=unit)
             else:
                 xdr = _generate_range(
                     start=start, end=end, periods=periods, offset=freq
@@ -458,13 +458,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 if not timezones.is_utc(tz):
                     # short-circuit tz_localize_to_utc which would make
                     #  an unnecessary copy with UTC but be a no-op.
-                    creso = abbrev_to_npy_unit(reso)
+                    creso = abbrev_to_npy_unit(unit)
                     i8values = tzconversion.tz_localize_to_utc(
                         i8values,
                         tz,
                         ambiguous=ambiguous,
                         nonexistent=nonexistent,
-                        reso=creso,
+                        creso=creso,
                     )
 
                 # i8values is localized datetime64 array -> have to convert
@@ -499,8 +499,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 if not right_inclusive and len(i8values) and i8values[-1] == end_i8:
                     i8values = i8values[:-1]
 
-        dt64_values = i8values.view(f"datetime64[{reso}]")
-        dtype = tz_to_dtype(tz, unit=reso)
+        dt64_values = i8values.view(f"datetime64[{unit}]")
+        dtype = tz_to_dtype(tz, unit=unit)
         return cls._simple_new(dt64_values, freq=freq, dtype=dtype)
 
     # -----------------------------------------------------------------

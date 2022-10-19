@@ -1170,22 +1170,22 @@ def test_date_range_with_custom_holidays():
 
 class TestDateRangeNonNano:
     def test_date_range_reso_validation(self):
-        msg = "'reso' must be one of 's', 'ms', 'us', 'ns'"
+        msg = "'unit' must be one of 's', 'ms', 'us', 'ns'"
         with pytest.raises(ValueError, match=msg):
-            date_range("2016-01-01", "2016-03-04", periods=3, reso="h")
+            date_range("2016-01-01", "2016-03-04", periods=3, unit="h")
 
     def test_date_range_freq_higher_than_reso(self):
         # freq being higher-resolution than reso is a problem
-        msg = "Use a lower freq or a higher reso instead"
+        msg = "Use a lower freq or a higher unit instead"
         with pytest.raises(ValueError, match=msg):
             # TODO give a more useful or informative message?
-            date_range("2016-01-01", "2016-01-01 00:00:00.000001", freq="ns", reso="ms")
+            date_range("2016-01-01", "2016-01-01 00:00:00.000001", freq="ns", unit="ms")
 
     def test_date_range_non_nano(self):
         start = np.datetime64("1066-10-14")  # Battle of Hastings
         end = np.datetime64("2305-07-13")  # Jean-Luc Picard's birthday
 
-        dti = date_range(start, end, freq="D", reso="s")
+        dti = date_range(start, end, freq="D", unit="s")
         assert dti.freq == "D"
         assert dti.dtype == "M8[s]"
 

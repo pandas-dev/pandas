@@ -949,7 +949,7 @@ def date_range(
     closed: Literal["left", "right"] | None | lib.NoDefault = lib.no_default,
     inclusive: IntervalClosedType | None = None,
     *,
-    reso: str | None = None,
+    unit: str | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -995,7 +995,7 @@ def date_range(
         Include boundaries; Whether to set each bound as closed or open.
 
         .. versionadded:: 1.4.0
-    reso : str, default None
+    unit : str, default None
         Specify the desired resolution of the result.
 
         .. versionadded:: 2.0.0
@@ -1143,7 +1143,7 @@ def date_range(
         tz=tz,
         normalize=normalize,
         inclusive=inclusive,
-        reso=reso,
+        unit=unit,
         **kwargs,
     )
     return DatetimeIndex._simple_new(dtarr, name=name)
