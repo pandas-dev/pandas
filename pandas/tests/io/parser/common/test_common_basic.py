@@ -921,6 +921,7 @@ def test_malformed_second_line(all_parsers):
 
 @xfail_pyarrow
 def test_short_single_line(all_parsers):
+    # GH 47566
     parser = all_parsers
     columns = ["a", "b", "c"]
     data = "1,2"
@@ -931,6 +932,7 @@ def test_short_single_line(all_parsers):
 
 @xfail_pyarrow
 def test_short_multi_line(all_parsers):
+    # GH 47566
     parser = all_parsers
     columns = ["a", "b", "c"]
     data = "1,2\n1,2"
