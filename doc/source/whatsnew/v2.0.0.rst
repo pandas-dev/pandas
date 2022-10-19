@@ -149,7 +149,6 @@ Removal of prior version deprecations/changes
 - Remove :meth:`DataFrameGroupBy.pad` and :meth:`DataFrameGroupBy.backfill` (:issue:`45076`)
 - Removed the ``center`` keyword in :meth:`DataFrame.expanding` (:issue:`20647`)
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
->>>>>>> upstream/main
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:
