@@ -1336,71 +1336,6 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     return issubclass(dtype.type, np.bool_)
 
 
-def is_extension_type(arr) -> bool:
-    """
-    Check whether an array-like is of a pandas extension class instance.
-
-    .. deprecated:: 1.0.0
-        Use ``is_extension_array_dtype`` instead.
-
-    Extension classes include categoricals, pandas sparse objects (i.e.
-    classes represented within the pandas library and not ones external
-    to it like scipy sparse matrices), and datetime-like arrays.
-
-    Parameters
-    ----------
-    arr : array-like, scalar
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is of a pandas extension class instance.
-
-    Examples
-    --------
-    >>> is_extension_type([1, 2, 3])
-    False
-    >>> is_extension_type(np.array([1, 2, 3]))
-    False
-    >>>
-    >>> cat = pd.Categorical([1, 2, 3])
-    >>>
-    >>> is_extension_type(cat)
-    True
-    >>> is_extension_type(pd.Series(cat))
-    True
-    >>> is_extension_type(pd.arrays.SparseArray([1, 2, 3]))
-    True
-    >>> from scipy.sparse import bsr_matrix
-    >>> is_extension_type(bsr_matrix([1, 2, 3]))
-    False
-    >>> is_extension_type(pd.DatetimeIndex([1, 2, 3]))
-    False
-    >>> is_extension_type(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
-    True
-    >>>
-    >>> dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    >>> s = pd.Series([], dtype=dtype)
-    >>> is_extension_type(s)
-    True
-    """
-    warnings.warn(
-        "'is_extension_type' is deprecated and will be removed in a future "
-        "version.  Use 'is_extension_array_dtype' instead.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-
-    if is_categorical_dtype(arr):
-        return True
-    elif is_sparse(arr):
-        return True
-    elif is_datetime64tz_dtype(arr):
-        return True
-    return False
-
-
 def is_1d_only_ea_obj(obj: Any) -> bool:
     """
     ExtensionArray that does not support 2D, or more specifically that does
@@ -1853,7 +1788,6 @@ __all__ = [
     "is_dtype_equal",
     "is_ea_or_datetimelike_dtype",
     "is_extension_array_dtype",
-    "is_extension_type",
     "is_file_like",
     "is_float_dtype",
     "is_int64_dtype",
