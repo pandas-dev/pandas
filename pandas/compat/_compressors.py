@@ -41,9 +41,9 @@ def flatten_buffer(
         return memoryview(b).tobytes("A")
 
 
-if not PY310:
+class BZ2File(bz2.BZ2File):
+    if not PY310:
 
-    class BZ2File(bz2.BZ2File):
         def write(self, b) -> int:
             # Workaround issue where `bz2.BZ2File` expects `len`
             # to return the number of bytes in `b` by converting
@@ -53,9 +53,12 @@ if not PY310:
             # Note: This is fixed in Python 3.10.
             return super().write(flatten_buffer(b))
 
-    if has_lzma:
 
-        class LZMAFile(lzma.LZMAFile):
+if has_lzma:
+
+    class LZMAFile(lzma.LZMAFile):
+        if not PY310:
+
             def write(self, b) -> int:
                 # Workaround issue where `lzma.LZMAFile` expects `len`
                 # to return the number of bytes in `b` by converting
@@ -64,13 +67,3 @@ if not PY310:
                 #
                 # Note: This is fixed in Python 3.10.
                 return super().write(flatten_buffer(b))
-
-else:
-
-    class BZ2File(bz2.BZ2File):
-        pass
-
-    if has_lzma:
-
-        class LZMAFile(lzma.LZMAFile):
-            pass
