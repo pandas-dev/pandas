@@ -4110,7 +4110,7 @@ class DataFrame(NDFrame, OpsMixin):
         if key in self.columns:
             loc = self.columns.get_loc(key)
             cols = self.columns[loc]
-            len_cols = 1 if is_scalar(cols) else len(cols)
+            len_cols = 1 if is_scalar(cols) or isinstance(cols, tuple) else len(cols)
             if len_cols != len(value.columns):
                 raise ValueError("Columns must be same length as key")
 
@@ -10577,40 +10577,8 @@ Parrot 2  Parrot       24.0
         if numeric_only is lib.no_default and len(this.columns) < len(self.columns):
             com.deprecate_numeric_only_default(type(self), "corrwith")
 
-        # GH46174: when other is a Series object and axis=0, we achieve a speedup over
-        # passing .corr() to .apply() by taking the columns as ndarrays and iterating
-        # over the transposition row-wise. Then we delegate the correlation coefficient
-        # computation and null-masking to np.corrcoef and np.isnan respectively,
-        # which are much faster. We exploit the fact that the Spearman correlation
-        # of two vectors is equal to the Pearson correlation of their ranks to use
-        # substantially the same method for Pearson and Spearman,
-        # just with intermediate argsorts on the latter.
         if isinstance(other, Series):
-            if axis == 0 and method in ["pearson", "spearman"]:
-                corrs = {}
-                if numeric_only:
-                    cols = self.select_dtypes(include=np.number).columns
-                    ndf = self[cols].values.transpose()
-                else:
-                    cols = self.columns
-                    ndf = self.values.transpose()
-                k = other.values
-                if method == "pearson":
-                    for i, r in enumerate(ndf):
-                        nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[cols[i]] = np.corrcoef(r[nonnull_mask], k[nonnull_mask])[
-                            0, 1
-                        ]
-                else:
-                    for i, r in enumerate(ndf):
-                        nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[cols[i]] = np.corrcoef(
-                            r[nonnull_mask].argsort().argsort(),
-                            k[nonnull_mask].argsort().argsort(),
-                        )[0, 1]
-                return Series(corrs)
-            else:
-                return this.apply(lambda x: other.corr(x, method=method), axis=axis)
+            return this.apply(lambda x: other.corr(x, method=method), axis=axis)
 
         if numeric_only_bool:
             other = other._get_numeric_data()
@@ -12030,7 +11998,7 @@ Parrot 2  Parrot       24.0
     def mask(  # type: ignore[override]
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,

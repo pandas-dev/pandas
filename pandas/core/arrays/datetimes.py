@@ -29,12 +29,14 @@ from pandas._libs.tslibs import (
     astype_overflowsafe,
     fields,
     get_resolution,
+    get_supported_reso,
     get_unit_from_dtype,
     ints_to_pydatetime,
     is_date_array_normalized,
     is_supported_unit,
     is_unitless,
     normalize_i8_timestamps,
+    npy_unit_to_abbrev,
     timezones,
     to_offset,
     tz_convert_from_utc,
@@ -132,20 +134,20 @@ def _field_accessor(name: str, field: str, docstring=None):
                     month_kw = kwds.get("startingMonth", kwds.get("month", 12))
 
                 result = fields.get_start_end_field(
-                    values, field, self.freqstr, month_kw, reso=self._reso
+                    values, field, self.freqstr, month_kw, reso=self._creso
                 )
             else:
-                result = fields.get_date_field(values, field, reso=self._reso)
+                result = fields.get_date_field(values, field, reso=self._creso)
 
             # these return a boolean by-definition
             return result
 
         if field in self._object_ops:
-            result = fields.get_date_name_field(values, field, reso=self._reso)
+            result = fields.get_date_name_field(values, field, reso=self._creso)
             result = self._maybe_mask_results(result, fill_value=None)
 
         else:
-            result = fields.get_date_field(values, field, reso=self._reso)
+            result = fields.get_date_field(values, field, reso=self._creso)
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
             )
@@ -284,7 +286,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         else:
             # DatetimeTZDtype. If we have e.g. DatetimeTZDtype[us, UTC],
             #  then values.dtype should be M8[us].
-            assert dtype._reso == get_unit_from_dtype(values.dtype)
+            assert dtype._creso == get_unit_from_dtype(values.dtype)
 
         result = super()._simple_new(values, dtype)
         result._freq = freq
@@ -322,6 +324,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         # if dtype has an embedded tz, capture it
         tz = validate_tz_from_dtype(dtype, tz, explicit_tz_none)
 
+        unit = None
+        if dtype is not None:
+            if isinstance(dtype, np.dtype):
+                unit = np.datetime_data(dtype)[0]
+            else:
+                # DatetimeTZDtype
+                unit = dtype.unit
+
         subarr, tz, inferred_freq = _sequence_to_dt64ns(
             data,
             copy=copy,
@@ -342,8 +352,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if explicit_none:
             freq = None
 
-        dtype = tz_to_dtype(tz)
-        result = cls._simple_new(subarr, freq=freq, dtype=dtype)
+        data_unit = np.datetime_data(subarr.dtype)[0]
+        data_dtype = tz_to_dtype(tz, data_unit)
+        result = cls._simple_new(subarr, freq=freq, dtype=data_dtype)
+        if unit is not None and unit != result._unit:
+            # If unit was specified in user-passed dtype, cast to it here
+            result = result._as_unit(unit)
 
         if inferred_freq is None and freq is not None:
             # this condition precludes `freq_infer`
@@ -529,7 +543,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _box_func(self, x: np.datetime64) -> Timestamp | NaTType:
         # GH#42228
         value = x.view("i8")
-        ts = Timestamp._from_value_and_reso(value, reso=self._reso, tz=self.tz)
+        ts = Timestamp._from_value_and_reso(value, reso=self._creso, tz=self.tz)
         # Non-overlapping identity check (left operand type: "Timestamp",
         # right operand type: "NaTType")
         if ts is not NaT:  # type: ignore[comparison-overlap]
@@ -596,11 +610,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         """
         Returns True if all of the dates are at midnight ("no time")
         """
-        return is_date_array_normalized(self.asi8, self.tz, reso=self._reso)
+        return is_date_array_normalized(self.asi8, self.tz, reso=self._creso)
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _resolution_obj(self) -> Resolution:
-        return get_resolution(self.asi8, self.tz, reso=self._reso)
+        return get_resolution(self.asi8, self.tz, reso=self._creso)
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
@@ -638,7 +652,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     tz=self.tz,
                     freq=self.freq,
                     box="timestamp",
-                    reso=self._reso,
+                    reso=self._creso,
                 )
                 yield from converted
 
@@ -706,7 +720,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         fmt = get_format_datetime64_from_values(self, date_format)
 
         return tslib.format_array_from_datetime(
-            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep, reso=self._reso
+            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep, reso=self._creso
         )
 
     # -----------------------------------------------------------------
@@ -792,7 +806,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if self.tz is None or timezones.is_utc(self.tz):
             # Avoid the copy that would be made in tzconversion
             return self.asi8
-        return tz_convert_from_utc(self.asi8, self.tz, reso=self._reso)
+        return tz_convert_from_utc(self.asi8, self.tz, reso=self._creso)
 
     def tz_convert(self, tz) -> DatetimeArray:
         """
@@ -1040,7 +1054,7 @@ default 'raise'
                 tz,
                 ambiguous=ambiguous,
                 nonexistent=nonexistent,
-                reso=self._reso,
+                creso=self._creso,
             )
         new_dates = new_dates.view(f"M8[{self._unit}]")
         dtype = tz_to_dtype(tz, unit=self._unit)
@@ -1066,7 +1080,7 @@ default 'raise'
         -------
         datetimes : ndarray[object]
         """
-        return ints_to_pydatetime(self.asi8, tz=self.tz, reso=self._reso)
+        return ints_to_pydatetime(self.asi8, tz=self.tz, reso=self._creso)
 
     def normalize(self) -> DatetimeArray:
         """
@@ -1106,7 +1120,7 @@ default 'raise'
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
-        new_values = normalize_i8_timestamps(self.asi8, self.tz, reso=self._reso)
+        new_values = normalize_i8_timestamps(self.asi8, self.tz, reso=self._creso)
         dt64_values = new_values.view(self._ndarray.dtype)
 
         dta = type(self)._simple_new(dt64_values, dtype=dt64_values.dtype)
@@ -1261,7 +1275,7 @@ default 'raise'
         values = self._local_timestamps()
 
         result = fields.get_date_name_field(
-            values, "month_name", locale=locale, reso=self._reso
+            values, "month_name", locale=locale, reso=self._creso
         )
         result = self._maybe_mask_results(result, fill_value=None)
         return result
@@ -1305,7 +1319,7 @@ default 'raise'
         values = self._local_timestamps()
 
         result = fields.get_date_name_field(
-            values, "day_name", locale=locale, reso=self._reso
+            values, "day_name", locale=locale, reso=self._creso
         )
         result = self._maybe_mask_results(result, fill_value=None)
         return result
@@ -1322,7 +1336,7 @@ default 'raise'
         # keeping their timezone and not using UTC
         timestamps = self._local_timestamps()
 
-        return ints_to_pydatetime(timestamps, box="time", reso=self._reso)
+        return ints_to_pydatetime(timestamps, box="time", reso=self._creso)
 
     @property
     def timetz(self) -> npt.NDArray[np.object_]:
@@ -1331,7 +1345,7 @@ default 'raise'
 
         The time part of the Timestamps.
         """
-        return ints_to_pydatetime(self.asi8, self.tz, box="time", reso=self._reso)
+        return ints_to_pydatetime(self.asi8, self.tz, box="time", reso=self._creso)
 
     @property
     def date(self) -> npt.NDArray[np.object_]:
@@ -1346,7 +1360,7 @@ default 'raise'
         # keeping their timezone and not using UTC
         timestamps = self._local_timestamps()
 
-        return ints_to_pydatetime(timestamps, box="date", reso=self._reso)
+        return ints_to_pydatetime(timestamps, box="date", reso=self._creso)
 
     def isocalendar(self) -> DataFrame:
         """
@@ -1385,7 +1399,7 @@ default 'raise'
         from pandas import DataFrame
 
         values = self._local_timestamps()
-        sarray = fields.build_isocalendar_sarray(values, reso=self._reso)
+        sarray = fields.build_isocalendar_sarray(values, reso=self._creso)
         iso_calendar_df = DataFrame(
             sarray, columns=["year", "week", "day"], dtype="UInt32"
         )
@@ -2023,7 +2037,8 @@ def sequence_to_datetimes(data, require_iso8601: bool = False) -> DatetimeArray:
         require_iso8601=require_iso8601,
     )
 
-    dtype = tz_to_dtype(tz)
+    unit = np.datetime_data(result.dtype)[0]
+    dtype = tz_to_dtype(tz, unit)
     dta = DatetimeArray._simple_new(result, freq=freq, dtype=dtype)
     return dta
 
@@ -2129,8 +2144,21 @@ def _sequence_to_dt64ns(
     elif is_datetime64_dtype(data_dtype):
         # tz-naive DatetimeArray or ndarray[datetime64]
         data = getattr(data, "_ndarray", data)
-        if data.dtype != DT64NS_DTYPE:
-            data = astype_overflowsafe(data, dtype=DT64NS_DTYPE)
+        new_dtype = data.dtype
+        data_unit = get_unit_from_dtype(new_dtype)
+        if not is_supported_unit(data_unit):
+            # Cast to the nearest supported unit, generally "s"
+            new_reso = get_supported_reso(data_unit)
+            new_unit = npy_unit_to_abbrev(new_reso)
+            new_dtype = np.dtype(f"M8[{new_unit}]")
+            data = astype_overflowsafe(data, dtype=new_dtype, copy=False)
+            copy = False
+
+        if data.dtype.byteorder == ">":
+            # TODO: better way to handle this?  non-copying alternative?
+            #  without this, test_constructor_datetime64_bigendian fails
+            data = data.astype(data.dtype.newbyteorder("<"))
+            new_dtype = data.dtype
             copy = False
 
         if tz is not None:
@@ -2138,11 +2166,11 @@ def _sequence_to_dt64ns(
             # TODO: if tz is UTC, are there situations where we *don't* want a
             #  copy?  tz_localize_to_utc always makes one.
             data = tzconversion.tz_localize_to_utc(
-                data.view("i8"), tz, ambiguous=ambiguous
+                data.view("i8"), tz, ambiguous=ambiguous, creso=data_unit
             )
-            data = data.view(DT64NS_DTYPE)
+            data = data.view(new_dtype)
 
-        assert data.dtype == DT64NS_DTYPE, data.dtype
+        assert data.dtype == new_dtype, data.dtype
         result = data
 
     else:
@@ -2156,7 +2184,9 @@ def _sequence_to_dt64ns(
         result = result.copy()
 
     assert isinstance(result, np.ndarray), type(result)
-    assert result.dtype == "M8[ns]", result.dtype
+    assert result.dtype.kind == "M"
+    assert result.dtype != "M8"
+    assert is_supported_unit(get_unit_from_dtype(result.dtype))
     return result, tz, inferred_freq
 
 
@@ -2377,12 +2407,14 @@ def _validate_dt64_dtype(dtype):
             )
             raise ValueError(msg)
 
-        if (isinstance(dtype, np.dtype) and dtype != DT64NS_DTYPE) or not isinstance(
-            dtype, (np.dtype, DatetimeTZDtype)
-        ):
+        if (
+            isinstance(dtype, np.dtype)
+            and (dtype.kind != "M" or not is_supported_unit(get_unit_from_dtype(dtype)))
+        ) or not isinstance(dtype, (np.dtype, DatetimeTZDtype)):
             raise ValueError(
                 f"Unexpected value for 'dtype': '{dtype}'. "
-                "Must be 'datetime64[ns]' or DatetimeTZDtype'."
+                "Must be 'datetime64[s]', 'datetime64[ms]', 'datetime64[us]', "
+                "'datetime64[ns]' or DatetimeTZDtype'."
             )
 
         if getattr(dtype, "tz", None):
