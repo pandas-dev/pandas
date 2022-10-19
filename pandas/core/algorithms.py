@@ -1893,15 +1893,18 @@ def safe_sort(
     return ordered, ensure_platform_int(new_codes)
 
 
-def _sort_mixed(values) -> np.ndarray:
+def _sort_mixed(values) -> AnyArrayLike:
     """order ints before strings before nulls in 1d arrays"""
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
     null_pos = np.array([isna(x) for x in values], dtype=bool)
-    nums = np.sort(values[~str_pos & ~null_pos])
-    strs = np.sort(values[str_pos])
-    return np.concatenate(
-        [nums, np.asarray(strs, dtype=object), np.array(values[null_pos])]
-    )
+    num_pos = ~str_pos & ~null_pos
+    str_argsort = np.argsort(values[str_pos])
+    num_argsort = np.argsort(values[num_pos])
+    str_locs = str_pos.nonzero()[0].take(str_argsort)
+    num_locs = num_pos.nonzero()[0].take(num_argsort)
+    null_locs = null_pos.nonzero()[0]
+    locs = np.concatenate([num_locs, str_locs, null_locs])
+    return values.take(locs)
 
 
 def _sort_tuples(values: np.ndarray) -> np.ndarray:
