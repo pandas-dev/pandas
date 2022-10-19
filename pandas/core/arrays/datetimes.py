@@ -415,9 +415,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             unit = "ns"
 
         if start is not None and unit is not None:
-            start = start._as_unit(unit)
+            start = start._as_unit(unit, round_ok=False)
         if end is not None and unit is not None:
-            end = end._as_unit(unit)
+            end = end._as_unit(unit, round_ok=False)
 
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
         start, end = _maybe_normalize_endpoints(start, end, normalize)
@@ -433,6 +433,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             end = _maybe_localize_point(
                 end, end_tz, end, freq, tz, ambiguous, nonexistent
             )
+
         if freq is not None:
             # We break Day arithmetic (fixed 24 hour) here and opt for
             # Day to mean calendar day (23/24/25 hour). Therefore, strip

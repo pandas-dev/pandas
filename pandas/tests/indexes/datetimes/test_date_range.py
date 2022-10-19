@@ -1178,8 +1178,25 @@ class TestDateRangeNonNano:
         # freq being higher-resolution than reso is a problem
         msg = "Use a lower freq or a higher unit instead"
         with pytest.raises(ValueError, match=msg):
-            # TODO give a more useful or informative message?
-            date_range("2016-01-01", "2016-01-01 00:00:00.000001", freq="ns", unit="ms")
+            #    # TODO give a more useful or informative message?
+            date_range("2016-01-01", "2016-01-02", freq="ns", unit="ms")
+
+        # But matching reso is OK
+        date_range("2016-01-01", "2016-01-01 00:00:01", freq="ms", unit="ms")
+        date_range("2016-01-01", "2016-01-01 00:00:01", freq="us", unit="us")
+        date_range("2016-01-01", "2016-01-01 00:00:00.001", freq="ns", unit="ns")
+
+    def test_date_range_freq_lower_than_endpoints(self):
+        start = Timestamp("2022-10-19 11:50:44.719781")
+        end = Timestamp("2022-10-19 11:50:47.066458")
+
+        # start and end cannot be cast to "s" unit without lossy rounding,
+        #  so we do not allow this in date_range
+        with pytest.raises(ValueError, match="Cannot losslessly convert units"):
+            date_range(start, end, periods=3, unit="s")
+
+        # but we can losslessly cast to "us"
+        date_range(start, end, periods=3, unit="us")
 
     def test_date_range_non_nano(self):
         start = np.datetime64("1066-10-14")  # Battle of Hastings
