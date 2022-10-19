@@ -1,0 +1,41 @@
+.. _whatsnew_152:
+
+What's new in 1.5.2 (November ??, 2022)
+---------------------------------------
+
+These are the changes in pandas 1.5.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_152.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_152.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_152.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_152.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.5.1..v1.5.2|HEAD
