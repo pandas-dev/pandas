@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -132,7 +131,7 @@ class _Unstacker:
                 f"The following operation may generate {num_cells} cells "
                 f"in the resulting pandas object.",
                 PerformanceWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         self._make_selectors()
@@ -471,9 +470,9 @@ def unstack(obj: Series | DataFrame, level, fill_value=None):
         else:
             level = level[0]
 
-    # Prioritize integer interpretation (GH #21677):
     if not is_integer(level) and not level == "__placeholder__":
-        level = obj.index._get_level_number(level)
+        # check if level is valid in case of regular index
+        obj.index._get_level_number(level)
 
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):

@@ -1,7 +1,6 @@
 """Sparse Dtype"""
 from __future__ import annotations
 
-import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -410,7 +409,7 @@ class SparseDtype(ExtensionDtype):
                 f"values: '{fill_values}'. Picking the first and "
                 "converting the rest.",
                 PerformanceWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
