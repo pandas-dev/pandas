@@ -913,9 +913,9 @@ class TestDatetimeIndex:
             Index(["2000"], dtype="datetime64")
 
     def test_constructor_wrong_precision_raises(self):
-        msg = "Unexpected value for 'dtype': 'datetime64\\[us\\]'"
-        with pytest.raises(ValueError, match=msg):
-            DatetimeIndex(["2000"], dtype="datetime64[us]")
+        dti = DatetimeIndex(["2000"], dtype="datetime64[us]")
+        assert dti.dtype == "M8[us]"
+        assert dti[0] == Timestamp(2000, 1, 1)
 
     def test_index_constructor_with_numpy_object_array_and_timestamp_tz_with_nan(self):
         # GH 27011
