@@ -139,6 +139,15 @@ Deprecations
 -
 
 .. ---------------------------------------------------------------------------
+
+.. _whatsnew_200.prior_deprecations:
+
+Removal of prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Disallow passing non-round floats to :class:`Timestamp` with ``unit="M"`` or ``unit="Y"`` (:issue:`47266`)
+-
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:
 
 Performance improvements
