@@ -148,6 +148,7 @@ Removal of prior version deprecations/changes
 - Removed :func:`is_extension_type` in favor of :func:`is_extension_array_dtype` (:issue:`29457`)
 - Remove :meth:`DataFrameGroupBy.pad` and :meth:`DataFrameGroupBy.backfill` (:issue:`45076`)
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
+- Enforced disallowing a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:
