@@ -1010,8 +1010,12 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
                 found_attrs.update(attrs)
                 break
 
-    # Only consider it a valid guess if we have a year, month and day
-    if len({'year', 'month', 'day'} & found_attrs) != 3:
+    # Only consider it a valid guess if we have a year, month and day,
+    # unless it's %Y which is both common and unambiguous.
+    if (
+        len({'year', 'month', 'day'} & found_attrs) != 3
+        and format_guess != ['%Y']
+    ):
         return None
 
     output_format = []

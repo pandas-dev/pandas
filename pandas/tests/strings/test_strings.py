@@ -6,12 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    pa_version_under2p0,
-    pa_version_under4p0,
-)
-from pandas.errors import PerformanceWarning
-
 from pandas import (
     DataFrame,
     Index,
@@ -182,34 +176,14 @@ def test_empty_str_methods(any_string_dtype):
     assert "" == empty.str.cat()
     tm.assert_series_equal(empty_str, empty.str.title())
     tm.assert_series_equal(empty_int, empty.str.count("a"))
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
-    ):
-        tm.assert_series_equal(empty_bool, empty.str.contains("a"))
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
-    ):
-        tm.assert_series_equal(empty_bool, empty.str.startswith("a"))
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
-    ):
-        tm.assert_series_equal(empty_bool, empty.str.endswith("a"))
+    tm.assert_series_equal(empty_bool, empty.str.contains("a"))
+    tm.assert_series_equal(empty_bool, empty.str.startswith("a"))
+    tm.assert_series_equal(empty_bool, empty.str.endswith("a"))
     tm.assert_series_equal(empty_str, empty.str.lower())
     tm.assert_series_equal(empty_str, empty.str.upper())
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
-    ):
-        tm.assert_series_equal(empty_str, empty.str.replace("a", "b"))
+    tm.assert_series_equal(empty_str, empty.str.replace("a", "b"))
     tm.assert_series_equal(empty_str, empty.str.repeat(3))
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
-    ):
-        tm.assert_series_equal(empty_bool, empty.str.match("^a"))
+    tm.assert_series_equal(empty_bool, empty.str.match("^a"))
     tm.assert_frame_equal(
         DataFrame(columns=[0], dtype=any_string_dtype),
         empty.str.extract("()", expand=True),
@@ -225,11 +199,7 @@ def test_empty_str_methods(any_string_dtype):
     )
     tm.assert_frame_equal(empty_df, empty.str.get_dummies())
     tm.assert_series_equal(empty_str, empty_str.str.join(""))
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
-    ):
-        tm.assert_series_equal(empty_int, empty.str.len())
+    tm.assert_series_equal(empty_int, empty.str.len())
     tm.assert_series_equal(empty_object, empty_str.str.findall("a"))
     tm.assert_series_equal(empty_int, empty.str.find("a"))
     tm.assert_series_equal(empty_int, empty.str.rfind("a"))
@@ -243,21 +213,9 @@ def test_empty_str_methods(any_string_dtype):
     tm.assert_frame_equal(empty_df, empty.str.rpartition("a"))
     tm.assert_series_equal(empty_str, empty.str.slice(stop=1))
     tm.assert_series_equal(empty_str, empty.str.slice(step=1))
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
-    ):
-        tm.assert_series_equal(empty_str, empty.str.strip())
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
-    ):
-        tm.assert_series_equal(empty_str, empty.str.lstrip())
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
-    ):
-        tm.assert_series_equal(empty_str, empty.str.rstrip())
+    tm.assert_series_equal(empty_str, empty.str.strip())
+    tm.assert_series_equal(empty_str, empty.str.lstrip())
+    tm.assert_series_equal(empty_str, empty.str.rstrip())
     tm.assert_series_equal(empty_str, empty.str.wrap(42))
     tm.assert_series_equal(empty_str, empty.str.get(0))
     tm.assert_series_equal(empty_object, empty_bytes.str.decode("ascii"))
@@ -266,11 +224,7 @@ def test_empty_str_methods(any_string_dtype):
     tm.assert_series_equal(empty_bool, empty.str.isalnum())
     tm.assert_series_equal(empty_bool, empty.str.isalpha())
     tm.assert_series_equal(empty_bool, empty.str.isdigit())
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under2p0,
-    ):
-        tm.assert_series_equal(empty_bool, empty.str.isspace())
+    tm.assert_series_equal(empty_bool, empty.str.isspace())
     tm.assert_series_equal(empty_bool, empty.str.islower())
     tm.assert_series_equal(empty_bool, empty.str.isupper())
     tm.assert_series_equal(empty_bool, empty.str.istitle())
@@ -321,13 +275,7 @@ def test_ismethods(method, expected, any_string_dtype):
     )
     expected_dtype = "bool" if any_string_dtype == "object" else "boolean"
     expected = Series(expected, dtype=expected_dtype)
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]"
-        and pa_version_under2p0
-        and method == "isspace",
-    ):
-        result = getattr(ser.str, method)()
+    result = getattr(ser.str, method)()
     tm.assert_series_equal(result, expected)
 
     # compare with standard library
@@ -397,11 +345,7 @@ def test_len(any_string_dtype):
         ["foo", "fooo", "fooooo", np.nan, "fooooooo", "foo\n", "あ"],
         dtype=any_string_dtype,
     )
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
-    ):
-        result = ser.str.len()
+    result = ser.str.len()
     expected_dtype = "float64" if any_string_dtype == "object" else "Int64"
     expected = Series([3, 4, 6, np.nan, 8, 4, 1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
@@ -488,11 +432,7 @@ def test_pipe_failures(any_string_dtype):
     expected = Series([["A", "B", "C"]], dtype=object)
     tm.assert_series_equal(result, expected)
 
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
-    ):
-        result = ser.str.replace("|", " ", regex=False)
+    result = ser.str.replace("|", " ", regex=False)
     expected = Series(["A B C"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -562,11 +502,7 @@ def test_slice_replace(start, stop, repl, expected, any_string_dtype):
 def test_strip_lstrip_rstrip(any_string_dtype, method, exp):
     ser = Series(["  aa   ", " bb \n", np.nan, "cc  "], dtype=any_string_dtype)
 
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
-    ):
-        result = getattr(ser.str, method)()
+    result = getattr(ser.str, method)()
     expected = Series(exp, dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -598,11 +534,7 @@ def test_strip_lstrip_rstrip_mixed_object(method, exp):
 def test_strip_lstrip_rstrip_args(any_string_dtype, method, exp):
     ser = Series(["xxABCxx", "xx BNSD", "LDFJH xx"], dtype=any_string_dtype)
 
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
-    ):
-        result = getattr(ser.str, method)("x")
+    result = getattr(ser.str, method)("x")
     expected = Series(exp, dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 

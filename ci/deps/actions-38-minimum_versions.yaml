@@ -16,7 +16,7 @@ dependencies:
   - boto3
 
   # required dependencies
-  - python-dateutil=2.8.1
+  - python-dateutil=2.8.2
   - numpy=1.20.3
   - pytz=2020.1
 
@@ -39,7 +39,7 @@ dependencies:
   - openpyxl=3.0.7
   - pandas-gbq=0.15.0
   - psycopg2=2.8.6
-  - pyarrow=1.0.1
+  - pyarrow=6.0.0
   - pymysql=1.0.2
   - pyreadstat=1.1.2
   - pytables=3.6.1
