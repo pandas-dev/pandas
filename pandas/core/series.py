@@ -2183,6 +2183,8 @@ Name: Max Speed, dtype: float64
             * Categorical
             * Period
             * Datetime with Timezone
+            * Datetime without Timezone
+            * Timedelta
             * Interval
             * Sparse
             * IntegerNA
