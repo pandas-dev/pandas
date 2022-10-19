@@ -102,7 +102,6 @@ if TYPE_CHECKING:
         Categorical,
         DataFrame,
         Index,
-        MultiIndex,
         Series,
     )
     from pandas.core.arrays import (
@@ -1766,7 +1765,7 @@ def safe_sort(
     na_sentinel: int | None = -1,
     assume_unique: bool = False,
     verify: bool = True,
-) -> np.ndarray | MultiIndex | tuple[np.ndarray | MultiIndex, np.ndarray]:
+) -> AnyArrayLike | tuple[AnyArrayLike, np.ndarray]:
     """
     Sort ``values`` and reorder corresponding ``codes``.
 
@@ -1795,7 +1794,7 @@ def safe_sort(
 
     Returns
     -------
-    ordered : ndarray or MultiIndex
+    ordered : AnyArrayLike
         Sorted ``values``
     new_codes : ndarray
         Reordered ``codes``; returned when ``codes`` is not None.
@@ -1814,7 +1813,7 @@ def safe_sort(
             "Only list-like objects are allowed to be passed to safe_sort as values"
         )
 
-    if not isinstance(values, (np.ndarray, ABCExtensionArray, ABCMultiIndex)):
+    if not is_array_like(values):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
         # error: Argument "dtype" to "asarray" has incompatible type "Union[dtype[Any],
@@ -1824,7 +1823,7 @@ def safe_sort(
         values = np.asarray(values, dtype=dtype)  # type: ignore[arg-type]
 
     sorter = None
-    ordered: np.ndarray | MultiIndex
+    ordered: AnyArrayLike
 
     if (
         not is_extension_array_dtype(values)
