@@ -144,6 +144,9 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Removed Date parser functions :func:`~pandas.io.date_converters.parse_date_time`,
+  :func:`~pandas.io.date_converters.parse_date_fields`, :func:`~pandas.io.date_converters.parse_all_fields`
+  and :func:`~pandas.io.date_converters.generic_parser` (:issue:`24518`)
 - Disallow passing non-round floats to :class:`Timestamp` with ``unit="M"`` or ``unit="Y"`` (:issue:`47266`)
 -
 
