@@ -1225,40 +1225,6 @@ class TestToDatetime:
         )
         tm.assert_index_equal(result, expected)
 
-    def test_iso8601_strings_mixed_offsets_with_naive(self):
-        # GH 24992
-        # Can't parse consistently, need to parse each element in loop.
-        result = DatetimeIndex(
-            [
-                to_datetime(string, utc=True)
-                for string in [
-                    "2018-11-28T00:00:00",
-                    "2018-11-28T00:00:00+12:00",
-                    "2018-11-28T00:00:00",
-                    "2018-11-28T00:00:00+06:00",
-                    "2018-11-28T00:00:00",
-                ]
-            ]
-        )
-        expected = to_datetime(
-            [
-                "2018-11-28T00:00:00",
-                "2018-11-27T12:00:00",
-                "2018-11-28T00:00:00",
-                "2018-11-27T18:00:00",
-                "2018-11-28T00:00:00",
-            ],
-            utc=True,
-        )
-        tm.assert_index_equal(result, expected)
-
-    def test_iso8601_strings_mixed_offsets_with_naive_reversed(self):
-        items = ["2018-11-28T00:00:00+12:00", "2018-11-28T00:00:00"]
-        # Can't parse consistently, need to parse each element in loop.
-        result = [to_datetime(item, utc=True) for item in items]
-        expected = [to_datetime(item, utc=True) for item in list(reversed(items))][::-1]
-        assert result == expected
-
     def test_mixed_offsets_with_native_datetime_raises(self):
         # GH 25978
 
@@ -1910,9 +1876,7 @@ class TestToDatetimeMisc:
     def test_string_na_nat_conversion(self, cache):
         # GH #999, #858
 
-        strings = np.array(
-            ["1/1/2000", "1/2/2000", np.nan, "1/4/2000, 12:34:56"], dtype=object
-        )
+        strings = np.array(["1/1/2000", "1/2/2000", np.nan, "1/4/2000"], dtype=object)
 
         expected = np.empty(4, dtype="M8[ns]")
         for i, val in enumerate(strings):
@@ -1924,10 +1888,7 @@ class TestToDatetimeMisc:
         result = tslib.array_to_datetime(strings)[0]
         tm.assert_almost_equal(result, expected)
 
-        # Can't parse in consistent format, so need to convert each individually.
-        result2 = DatetimeIndex(
-            [to_datetime(string, cache=cache) for string in strings]
-        )
+        result2 = to_datetime(strings, cache=cache)
         assert isinstance(result2, DatetimeIndex)
         tm.assert_numpy_array_equal(result, result2.values)
 
