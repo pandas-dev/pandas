@@ -198,15 +198,11 @@ class TestUltraJSONTests:
         assert nested_input == json.loads(output)
         assert nested_input == ujson.decode(output)
 
-        assert nested_input == ujson.decode(output)
-
     def test_encode_array_of_doubles(self):
         doubles_input = [31337.31337, 31337.31337, 31337.31337, 31337.31337] * 10
         output = ujson.encode(doubles_input)
 
         assert doubles_input == json.loads(output)
-        assert doubles_input == ujson.decode(output)
-
         assert doubles_input == ujson.decode(output)
 
     def test_double_precision(self):
@@ -303,8 +299,6 @@ class TestUltraJSONTests:
         assert output == json.dumps(arr_in_arr_input)
         assert arr_in_arr_input == ujson.decode(output)
 
-        assert arr_in_arr_input == ujson.decode(output)
-
     @pytest.mark.parametrize(
         "num_input",
         [
@@ -324,8 +318,6 @@ class TestUltraJSONTests:
         output = ujson.encode(list_input)
 
         assert list_input == json.loads(output)
-        assert list_input == ujson.decode(output)
-
         assert list_input == ujson.decode(output)
 
     def test_encode_dict_conversion(self):
@@ -558,8 +550,6 @@ class TestUltraJSONTests:
         output = ujson.encode(long_input)
 
         assert long_input == json.loads(output)
-        assert long_input == ujson.decode(output)
-
         assert long_input == ujson.decode(output)
 
     @pytest.mark.parametrize("long_input", [9223372036854775807, 18446744073709551615])
