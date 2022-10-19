@@ -220,8 +220,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         Construct a new ExtensionArray from a sequence of strings.
         """
         pa_type = to_pyarrow_type(dtype)
-        if pa_type is None:
-            # Let pyarrow try to infer or raise
+        if (
+            pa_type is None
+            or pa.types.is_binary(pa_type)
+            or pa.types.is_string(pa_type)
+        ):
+            # pa_type is None: Let pa.array infer
+            # pa_type is string/binary: scalars already correct type
             scalars = strings
         elif pa.types.is_timestamp(pa_type):
             from pandas.core.tools.datetimes import to_datetime
