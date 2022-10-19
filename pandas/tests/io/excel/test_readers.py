@@ -655,6 +655,14 @@ class TestReaders:
         actual = pd.read_excel("blank_with_header" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
 
+    def test_value_error_message_includes_sheet_name(self, read_ext):
+        # GH 48706
+        msg = (
+            r"Passed header=\[1\], len of 1, but only 1 lines in file \(sheet: Sheet1\)"
+        )
+        with pytest.raises(ValueError, match=msg):
+            pd.read_excel("blank_with_header" + read_ext, header=[1], sheet_name=None)
+
     @pytest.mark.filterwarnings("ignore:Cell A4 is marked:UserWarning:openpyxl")
     def test_date_conversion_overflow(self, request, engine, read_ext):
         # GH 10001 : pandas.ExcelFile ignore parse_dates=False
