@@ -96,10 +96,7 @@ class TestRolling:
             "mean",
             "min",
             "max",
-            pytest.param(
-                "count",
-                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
-            ),
+            "count",
             "kurt",
             "skew",
         ],

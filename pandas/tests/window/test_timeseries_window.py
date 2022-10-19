@@ -592,10 +592,7 @@ class TestRollingTS:
         [
             "sum",
             "mean",
-            pytest.param(
-                "count",
-                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
-            ),
+            "count",
             "median",
             "std",
             "var",
