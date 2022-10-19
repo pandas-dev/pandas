@@ -922,13 +922,13 @@ class Window(BaseWindow):
 
     Parameters
     ----------
-    window : int, offset, or BaseIndexer subclass
+    window : int, timedelta, str, offset, or BaseIndexer subclass
         Size of the moving window.
 
         If an integer, the fixed number of observations used for
         each window.
 
-        If an offset, the time period of each window. Each
+        If a timedelta, str, or offset, the time period of each window. Each
         window will be a variable sized based on the observations included in
         the time-period. This is only valid for datetimelike indexes.
         To learn more about the offsets & frequency strings, please see `this link
