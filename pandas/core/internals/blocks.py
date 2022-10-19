@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from functools import wraps
-import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -185,7 +184,7 @@ class Block(PandasObject):
             "future version.  Use isinstance(block.values, Categorical) "
             "instead. See https://github.com/pandas-dev/pandas/issues/40226",
             DeprecationWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return isinstance(self.values, Categorical)
 
@@ -256,7 +255,7 @@ class Block(PandasObject):
                     "already been cast to DatetimeArray and TimedeltaArray, "
                     "respectively.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
             values = new_values
 
@@ -1514,6 +1513,8 @@ class EABackedBlock(Block):
         See Block.putmask.__doc__
         """
         mask = extract_bool_array(mask)
+        if new is lib.no_default:
+            new = self.fill_value
 
         values = self.values
         if values.ndim == 2:
@@ -1586,7 +1587,7 @@ class EABackedBlock(Block):
                     "(usually object) instead of raising, matching the "
                     "behavior of other dtypes.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 raise
             else:
