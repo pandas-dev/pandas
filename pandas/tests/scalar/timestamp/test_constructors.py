@@ -42,10 +42,11 @@ class TestTimestampConstructors:
     def test_constructor_float_not_round_with_YM_unit_deprecated(self):
         # GH#47267 avoid the conversions in cast_from-unit
 
-        with tm.assert_produces_warning(FutureWarning, match="ambiguous"):
+        msg = "Conversion of non-round float with unit=[MY] is ambiguous"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(150.5, unit="Y")
 
-        with tm.assert_produces_warning(FutureWarning, match="ambiguous"):
+        with pytest.raises(ValueError, match=msg):
             Timestamp(150.5, unit="M")
 
     def test_constructor_datetime64_with_tz(self):

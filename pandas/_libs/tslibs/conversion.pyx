@@ -1,8 +1,4 @@
-import warnings
-
 import numpy as np
-
-from pandas.util._exceptions import find_stack_level
 
 cimport numpy as cnp
 from numpy cimport (
@@ -281,11 +277,8 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                     # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
                     #  but not clear what 2.5 "M" corresponds to, so we will
                     #  disallow that case.
-                    warnings.warn(
-                        "Conversion of non-round float with unit={unit} is ambiguous "
-                        "and will raise in a future version.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
+                    raise ValueError(
+                        f"Conversion of non-round float with unit={unit} is ambiguous."
                     )
 
             ts = cast_from_unit(ts, unit)
