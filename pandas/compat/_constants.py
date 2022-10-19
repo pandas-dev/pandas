@@ -7,8 +7,8 @@ Constants relevant for the Python implementation.
 
 from __future__ import annotations
 
-import sys
 import platform
+import sys
 
 PY39 = sys.version_info >= (3, 9)
 PY310 = sys.version_info >= (3, 10)
