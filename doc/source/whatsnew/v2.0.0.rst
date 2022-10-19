@@ -145,7 +145,8 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Disallow passing non-round floats to :class:`Timestamp` with ``unit="M"`` or ``unit="Y"`` (:issue:`47266`)
--
+- Remove argument ``inplace`` from :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` (:issue:`35626`)
+- Disallow passing positional arguments to :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` (:issue:`41485`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:
