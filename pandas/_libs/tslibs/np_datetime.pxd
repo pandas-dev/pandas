@@ -95,6 +95,17 @@ cdef int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
+    const char *format,
+    const char *date_sep,
+    const char *time_sep,
+    const char *micro_or_tz,
+    bint year,
+    bint month,
+    bint day,
+    bint hour,
+    bint minute,
+    bint second,
+    bint exact,
 ) except? -1
 
 cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype)

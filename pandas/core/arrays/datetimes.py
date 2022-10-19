@@ -78,6 +78,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
+from f import ISO8601Info
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
@@ -2180,6 +2181,8 @@ def objects_to_datetime64ns(
     require_iso8601: bool = False,
     allow_object: bool = False,
     allow_mixed: bool = False,
+    iso_info=ISO8601Info(),
+    exact: bool = False,
 ):
     """
     Convert data to array of timestamps.
@@ -2193,11 +2196,14 @@ def objects_to_datetime64ns(
         Whether to convert timezone-aware timestamps to UTC.
     errors : {'raise', 'ignore', 'coerce'}
     require_iso8601 : bool, default False
+        If True, then only try parsing in ISO8601 format, and skip other formats.
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the
         data contains more than one timezone.
     allow_mixed : bool, default False
         Interpret integers as timestamps when datetime objects are also present.
+    iso_info : ISO860Info
+        Info about how to parse the ISO8601-formatted string.
 
     Returns
     -------
@@ -2227,6 +2233,8 @@ def objects_to_datetime64ns(
             yearfirst=yearfirst,
             require_iso8601=require_iso8601,
             allow_mixed=allow_mixed,
+            **iso_info._asdict(),
+            exact=exact,
         )
         result = result.reshape(data.shape, order=order)
     except OverflowError as err:

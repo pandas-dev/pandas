@@ -32,9 +32,8 @@ from pandas._libs.tslibs import (
     parsing,
     timezones,
 )
-from pandas._libs.tslibs.parsing import (
+from pandas._libs.tslibs.parsing import (  # format_is_iso,
     DateParseError,
-    format_is_iso,
     guess_datetime_format,
 )
 from pandas._libs.tslibs.strptime import array_strptime
@@ -65,6 +64,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from f import (
+    ISO8601Info,
+    format_is_iso,
+)
 from pandas.arrays import (
     DatetimeArray,
     IntegerArray,
@@ -424,19 +427,21 @@ def _convert_listlike_datetimes(
         raise
 
     arg = ensure_object(arg)
-    require_iso8601 = False
 
     if format is None:
         format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
 
-    # There is a special fast-path for iso8601 formatted
-    # datetime strings, so in those cases don't use the inferred
-    # format because this path makes process slower in this
-    # special case
-    if format is not None and format_is_iso(format):
-        require_iso8601 = True
-        format = None
     if format is not None:
+        iso_info = format_is_iso(format)
+        require_iso8601 = True
+    else:
+        iso_info = ISO8601Info()
+        require_iso8601 = False
+    if format is not None and not iso_info.format:
+        # There is a special fast-path for iso8601 formatted
+        # datetime strings, so in those cases don't use the inferred
+        # format because this path makes process slower in this
+        # special case
         return _to_datetime_with_format(arg, orig_arg, name, tz, format, exact, errors)
 
     utc = tz == "utc"
@@ -448,6 +453,8 @@ def _convert_listlike_datetimes(
         errors=errors,
         require_iso8601=require_iso8601,
         allow_object=True,
+        iso_info=iso_info,
+        exact=exact,
     )
 
     if tz_parsed is not None:

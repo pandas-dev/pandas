@@ -69,7 +69,18 @@ This file implements string parsing and creation for NumPy datetime.
 int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                             npy_datetimestruct *out,
                             NPY_DATETIMEUNIT *out_bestunit,
-                            int *out_local, int *out_tzoffset) {
+                            int *out_local, int *out_tzoffset,
+        int format_length,
+        const char *date_sep,
+        const char *time_sep,
+        const char *micro_or_tz,
+        int year,
+        int month,
+        int day,
+        int hour,
+        int minute,
+        int second,
+        int exact) {
     int year_leap = 0;
     int i, numdigits;
     const char *substr;
@@ -134,6 +145,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     /* Check whether it's a leap-year */
     year_leap = is_leapyear(out->year);
 
+    /* If the format contains month but we're
+    already at the end of the string, error */
+    if ((format_length > 0) && month && (sublen == 0)) {
+        goto parse_error;
+    }
     /* Next character must be a separator, start of month, or end of string */
     if (sublen == 0) {
         if (out_local != NULL) {
@@ -154,6 +170,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         }
         has_ymd_sep = 1;
         ymd_sep = valid_ymd_sep[i];
+        if ((format_length > 0) && (ymd_sep != *date_sep)) {
+            goto parse_error;
+        }
         ++substr;
         --sublen;
         /* Cannot have trailing separator */
@@ -163,6 +182,12 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE MONTH */
+
+    /* If the format doesn't contain month, and there's still some
+    string to be parsed, and we're not checking for an exact match, error*/
+    if ((format_length > 0) && !month && exact) {
+        goto parse_error;
+    }
     /* First digit required */
     out->month = (*substr - '0');
     ++substr;
@@ -183,6 +208,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         goto error;
     }
 
+    if ((format_length > 0) && day && (sublen == 0)) {
+        goto parse_error;
+    }
     /* Next character must be the separator, start of day, or end of string */
     if (sublen == 0) {
         bestunit = NPY_FR_M;
@@ -206,6 +234,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE DAY */
+    if ((format_length > 0) && !day && exact) {
+        goto parse_error;
+    }
     /* First digit required */
     if (!isdigit(*substr)) {
         goto parse_error;
@@ -230,6 +261,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         goto error;
     }
 
+    if ((format_length > 0) && hour && (sublen == 0)) {
+        goto parse_error;
+    }
     /* Next character must be a 'T', ' ', or end of string */
     if (sublen == 0) {
         if (out_local != NULL) {
@@ -239,13 +273,18 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         goto finish;
     }
 
-    if ((*substr != 'T' && *substr != ' ') || sublen == 1) {
+    if ((format_length > 0) && (*substr != *time_sep)) {
+        goto parse_error;
+    } else if ((*substr != 'T' && *substr != ' ') || sublen == 1) {
         goto parse_error;
     }
     ++substr;
     --sublen;
 
     /* PARSE THE HOURS */
+    if ((format_length > 0) && !hour && exact) {
+        goto parse_error;
+    }
     /* First digit required */
     if (!isdigit(*substr)) {
         goto parse_error;
@@ -269,6 +308,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         }
     }
 
+    if ((format_length > 0) && minute && (sublen == 0)) {
+        goto parse_error;
+    }
     /* Next character must be a ':' or the end of the string */
     if (sublen == 0) {
         if (!hour_was_2_digits) {
@@ -294,6 +336,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE MINUTES */
+    if ((format_length > 0) && !minute && exact) {
+        goto parse_error;
+    }
     /* First digit required */
     out->min = (*substr - '0');
     ++substr;
@@ -315,6 +360,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         goto parse_error;
     }
 
+    if ((format_length > 0) && second && (sublen == 0)) {
+        goto parse_error;
+    }
     if (sublen == 0) {
         bestunit = NPY_FR_m;
         goto finish;
@@ -335,6 +383,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE SECONDS */
+    if ((format_length > 0) && !second && exact) {
+        goto parse_error;
+    }
     /* First digit required */
     out->sec = (*substr - '0');
     ++substr;

@@ -488,7 +488,18 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
     else:
         string_to_dts_failed = string_to_dts(
             ts, &dts, &out_bestunit, &out_local,
-            &out_tzoffset, False
+            &out_tzoffset, False,
+                        '',
+                        date_sep='',
+                        time_sep='',
+                        micro_or_tz='',
+                        year=False,
+                        month=False,
+                        day=False,
+                        hour=False,
+                        minute=False,
+                        second=False,
+                        exact=False,
         )
         if not string_to_dts_failed:
             try:
