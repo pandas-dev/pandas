@@ -8,15 +8,14 @@ import bz2
 import pickle
 import sys
 
+from pandas.compat._constants import PY310
+
 try:
     import lzma
 
     has_lzma = True
 except ImportError:
     has_lzma = False
-
-
-PY310 = sys.version_info >= (3, 10)
 
 
 def flatten_buffer(

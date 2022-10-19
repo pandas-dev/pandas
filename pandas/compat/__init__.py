@@ -26,11 +26,7 @@ from pandas.compat.pyarrow import (
     pa_version_under9p0,
 )
 
-PY39 = sys.version_info >= (3, 9)
-PY310 = sys.version_info >= (3, 10)
-PY311 = sys.version_info >= (3, 11)
-PYPY = platform.python_implementation() == "PyPy"
-IS64 = sys.maxsize > 2**32
+from pandas.compat._constants import *
 
 
 def set_function_name(f: F, name: str, cls) -> F:
