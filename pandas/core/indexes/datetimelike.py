@@ -4,7 +4,6 @@ Base and utility classes for tseries type pandas objects.
 from __future__ import annotations
 
 from datetime import datetime
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -30,6 +29,7 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
+from pandas._typing import Axis
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -313,12 +313,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                 # DTI -> parsing.DateParseError
                 # TDI -> 'unit abbreviation w/o a number'
                 # PI -> string cannot be parsed as datetime-like
-                raise self._invalid_indexer("slice", label) from err
+                self._raise_invalid_indexer("slice", label, err)
 
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             return lower if side == "left" else upper
         elif not isinstance(label, self._data._recognized_scalars):
-            raise self._invalid_indexer("slice", label)
+            self._raise_invalid_indexer("slice", label)
 
         return label
 
@@ -399,7 +399,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             f"{type(self).__name__}.is_type_compatible is deprecated and will be "
             "removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return kind in self._data._infer_matches
 
@@ -432,7 +432,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             new_freq = to_offset(Timedelta(res_i8.step))
             res_i8 = res_i8
 
-        # TODO: we cannot just do
+        # TODO(GH#41493): we cannot just do
         #  type(self._data)(res_i8.values, dtype=self.dtype, freq=new_freq)
         # because test_setops_preserve_freq fails with _validate_frequency raising.
         # This raising is incorrect, as 'on_freq' is incorrect. This will
@@ -695,7 +695,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     # NDArray-Like Methods
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill: bool = True, fill_value=None, **kwargs):
+    def take(
+        self,
+        indices,
+        axis: Axis = 0,
+        allow_fill: bool = True,
+        fill_value=None,
+        **kwargs,
+    ):
         nv.validate_take((), kwargs)
         indices = np.asarray(indices, dtype=np.intp)
 

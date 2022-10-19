@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from collections import abc
 import csv
-import inspect
 import sys
 from textwrap import fill
 from types import TracebackType
@@ -427,6 +426,13 @@ float_precision : str, optional
 
     .. versionadded:: 1.2
 
+use_nullable_dtypes : bool = False
+    Whether or not to use nullable dtypes as default when reading data. If
+    set to True, nullable dtypes are used for all dtypes that have a nullable
+    implementation, even if no nulls are present.
+
+    .. versionadded:: 2.0
+
 Returns
 -------
 DataFrame or TextFileReader
@@ -502,21 +508,21 @@ _deprecated_defaults: dict[str, _DeprecationConfig] = {
 
 
 @overload
-def validate_integer(name, val: None, min_val=...) -> None:
+def validate_integer(name, val: None, min_val: int = ...) -> None:
     ...
 
 
 @overload
-def validate_integer(name, val: float, min_val=...) -> int:
+def validate_integer(name, val: float, min_val: int = ...) -> int:
     ...
 
 
 @overload
-def validate_integer(name, val: int | None, min_val=...) -> int | None:
+def validate_integer(name, val: int | None, min_val: int = ...) -> int | None:
     ...
 
 
-def validate_integer(name, val: int | float | None, min_val=0) -> int | None:
+def validate_integer(name, val: int | float | None, min_val: int = 0) -> int | None:
     """
     Checks whether the 'name' parameter for parsing is either
     an integer OR float that can SAFELY be cast to an integer
@@ -669,6 +675,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> TextFileReader:
     ...
 
@@ -729,6 +736,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> TextFileReader:
     ...
 
@@ -789,6 +797,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -849,6 +858,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame | TextFileReader:
     ...
 
@@ -928,6 +938,7 @@ def read_csv(
     memory_map: bool = False,
     float_precision: Literal["high", "legacy"] | None = None,
     storage_options: StorageOptions = None,
+    use_nullable_dtypes: bool = False,
 ) -> DataFrame | TextFileReader:
     # locals() should never be modified
     kwds = locals().copy()
@@ -1008,6 +1019,7 @@ def read_table(
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> TextFileReader:
     ...
 
@@ -1068,6 +1080,7 @@ def read_table(
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> TextFileReader:
     ...
 
@@ -1128,6 +1141,7 @@ def read_table(
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -1188,6 +1202,7 @@ def read_table(
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame | TextFileReader:
     ...
 
@@ -1267,6 +1282,7 @@ def read_table(
     memory_map: bool = False,
     float_precision: str | None = None,
     storage_options: StorageOptions = None,
+    use_nullable_dtypes: bool = False,
 ) -> DataFrame | TextFileReader:
     # locals() should never be modified
     kwds = locals().copy()
@@ -1619,7 +1635,7 @@ class TextFileReader(abc.Iterator):
                     "engine='python'."
                 ),
                 ParserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         index_col = options["index_col"]
@@ -1638,11 +1654,7 @@ class TextFileReader(abc.Iterator):
                     f"The {arg} argument has been deprecated and will be "
                     f"removed in a future version. {depr_default.msg}\n\n"
                 )
-                warnings.warn(
-                    msg,
-                    FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
-                )
+                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
             else:
                 result[arg] = parser_default
 
@@ -2232,9 +2244,7 @@ def _merge_with_dialect_properties(
 
         if conflict_msgs:
             warnings.warn(
-                "\n\n".join(conflict_msgs),
-                ParserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                "\n\n".join(conflict_msgs), ParserWarning, stacklevel=find_stack_level()
             )
         kwds[param] = dialect_val
     return kwds

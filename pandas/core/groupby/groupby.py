@@ -46,6 +46,7 @@ import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    Axis,
     AxisInt,
     Dtype,
     FillnaOptions,
@@ -835,7 +836,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                     "to avoid this warning."
                 ),
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         return self.grouper.get_iterator(self._selected_obj, axis=self.axis)
 
@@ -920,7 +921,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         obj: NDFrameT,
         keys: _KeysArgType | None = None,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         level: IndexLabel | None = None,
         grouper: ops.BaseGrouper | None = None,
         exclusions: frozenset[Hashable] | None = None,
@@ -1359,7 +1360,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}. This will "
                 "raise a TypeError in a future version of pandas",
                 category=FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             raise NotImplementedError(
                 f"{type(self).__name__}.{how} does not implement numeric_only"
@@ -1621,9 +1622,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 "To adopt the future behavior and silence this warning, use "
                 "\n\n\t>>> .groupby(..., group_keys=True)"
             )
-            warnings.warn(
-                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-            )
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
             # We want to behave as if `self.group_keys=False` when reconstructing
             # the object. However, we don't want to mutate the stateful GroupBy
             # object, so we just override it.
@@ -1864,11 +1863,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             out = algorithms.take_nd(result._values, ids)
             output = obj._constructor(out, index=obj.index, name=obj.name)
         else:
+            # `.size()` gives Series output on DataFrame input, need axis 0
+            axis = 0 if result.ndim == 1 else self.axis
             # GH#46209
             # Don't convert indices: negative indices need to give rise
             # to null values in the result
-            output = result._take(ids, axis=self.axis, convert_indices=False)
-            output = output.set_axis(obj._get_axis(self.axis), axis=self.axis)
+            output = result._take(ids, axis=axis, convert_indices=False)
+            output = output.set_axis(obj._get_axis(self.axis), axis=axis)
         return output
 
     # -----------------------------------------------------------------
@@ -2391,13 +2392,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             or a DataFrame if as_index is False.
         """
         result = self.grouper.size()
-
-        if self.axis == 1:
-            return DataFrame(
-                data=np.tile(result.values, (self.obj.shape[0], 1)),
-                columns=result.index,
-                index=self.obj.index,
-            )
 
         # GH28330 preserve subclassed Series/DataFrames through calls
         if isinstance(self.obj, Series):
@@ -2942,31 +2936,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         return self._fill("ffill", limit=limit)
 
-    def pad(self, limit=None):
-        """
-        Forward fill the values.
-
-        .. deprecated:: 1.4
-            Use ffill instead.
-
-        Parameters
-        ----------
-        limit : int, optional
-            Limit of how many values to fill.
-
-        Returns
-        -------
-        Series or DataFrame
-            Object with missing values filled.
-        """
-        warnings.warn(
-            "pad is deprecated and will be removed in a future version. "
-            "Use ffill instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self.ffill(limit=limit)
-
     @final
     @Substitution(name="groupby")
     def bfill(self, limit=None):
@@ -2991,31 +2960,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("bfill", limit=limit)
-
-    def backfill(self, limit=None):
-        """
-        Backward fill the values.
-
-        .. deprecated:: 1.4
-            Use bfill instead.
-
-        Parameters
-        ----------
-        limit : int, optional
-            Limit of how many values to fill.
-
-        Returns
-        -------
-        Series or DataFrame
-            Object with missing values filled.
-        """
-        warnings.warn(
-            "backfill is deprecated and will be removed in a future version. "
-            "Use bfill instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self.bfill(limit=limit)
 
     @final
     @Substitution(name="groupby")
@@ -3677,7 +3621,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumprod(self, axis=0, *args, **kwargs) -> NDFrameT:
+    def cumprod(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative product for each group.
 
@@ -3695,7 +3639,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumsum(self, axis=0, *args, **kwargs) -> NDFrameT:
+    def cumsum(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative sum for each group.
 
@@ -3713,7 +3657,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummin(self, axis=0, numeric_only: bool = False, **kwargs) -> NDFrameT:
+    def cummin(
+        self, axis: AxisInt = 0, numeric_only: bool = False, **kwargs
+    ) -> NDFrameT:
         """
         Cumulative min for each group.
 
@@ -3737,7 +3683,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummax(self, axis=0, numeric_only: bool = False, **kwargs) -> NDFrameT:
+    def cummax(
+        self, axis: AxisInt = 0, numeric_only: bool = False, **kwargs
+    ) -> NDFrameT:
         """
         Cumulative max for each group.
 
@@ -3907,7 +3855,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
+    def shift(self, periods: int = 1, freq=None, axis: Axis = 0, fill_value=None):
         """
         Shift each group by periods observations.
 
@@ -3999,11 +3947,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Appender(_common_see_also)
     def pct_change(
         self,
-        periods=1,
+        periods: int = 1,
         fill_method: FillnaOptions = "ffill",
         limit=None,
         freq=None,
-        axis=0,
+        axis: Axis = 0,
     ):
         """
         Calculate pct_change of each value to previous entry in group.
@@ -4454,7 +4402,7 @@ def warn_dropping_nuisance_columns_deprecated(cls, how: str, numeric_only) -> No
             f"Before calling .{how}, select only columns which "
             "should be valid for the function.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
     elif numeric_only is lib.no_default:
         warnings.warn(
@@ -4464,5 +4412,5 @@ def warn_dropping_nuisance_columns_deprecated(cls, how: str, numeric_only) -> No
             f"Either specify numeric_only or select only columns which "
             "should be valid for the function.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )

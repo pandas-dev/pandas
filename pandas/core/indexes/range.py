@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import timedelta
-import inspect
 import operator
 from sys import getsizeof
 from typing import (
@@ -264,7 +263,7 @@ class RangeIndex(NumericIndex):
         warnings.warn(
             self._deprecation_message.format("_start", "start"),
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.start
 
@@ -287,7 +286,7 @@ class RangeIndex(NumericIndex):
         warnings.warn(
             self._deprecation_message.format("_stop", "stop"),
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.stop
 
@@ -311,7 +310,7 @@ class RangeIndex(NumericIndex):
         warnings.warn(
             self._deprecation_message.format("_step", "step"),
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.step
 
@@ -472,7 +471,7 @@ class RangeIndex(NumericIndex):
                 "parameter dtype is deprecated and will be removed in a future "
                 "version. Use the astype method instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             new_index = new_index.astype(dtype)
         return new_index
@@ -554,8 +553,6 @@ class RangeIndex(NumericIndex):
         na_position: str = "last",
         key: Callable | None = None,
     ):
-        sorted_index = self
-        indexer = RangeIndex(range(len(self)))
         if key is not None:
             return super().sort_values(
                 return_indexer=return_indexer,
@@ -565,17 +562,22 @@ class RangeIndex(NumericIndex):
             )
         else:
             sorted_index = self
+            inverse_indexer = False
             if ascending:
                 if self.step < 0:
                     sorted_index = self[::-1]
-                    indexer = indexer[::-1]
+                    inverse_indexer = True
             else:
                 if self.step > 0:
                     sorted_index = self[::-1]
-                    indexer = indexer = indexer[::-1]
+                    inverse_indexer = True
 
         if return_indexer:
-            return sorted_index, indexer
+            if inverse_indexer:
+                rng = range(len(self) - 1, -1, -1)
+            else:
+                rng = range(len(self))
+            return sorted_index, RangeIndex(rng)
         else:
             return sorted_index
 

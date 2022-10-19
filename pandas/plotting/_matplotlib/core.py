@@ -4,7 +4,6 @@ from abc import (
     ABC,
     abstractmethod,
 )
-import inspect
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -21,6 +20,7 @@ import numpy as np
 from pandas._typing import (
     IndexLabel,
     PlottingOrientation,
+    npt,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
@@ -400,7 +400,7 @@ class MPLPlot(ABC):
         ) and self.colormap is not None:
             warnings.warn(
                 "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if "color" in self.kwds and self.style is not None:
@@ -1657,7 +1657,14 @@ class BarPlot(MPLPlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax: Axes, x, y, w, start=0, log: bool = False, **kwds
+        cls,
+        ax: Axes,
+        x,
+        y,
+        w,
+        start: int | npt.NDArray[np.intp] = 0,
+        log: bool = False,
+        **kwds,
     ):
         return ax.bar(x, y, w, bottom=start, log=log, **kwds)
 
@@ -1783,7 +1790,14 @@ class BarhPlot(BarPlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax: Axes, x, y, w, start=0, log: bool = False, **kwds
+        cls,
+        ax: Axes,
+        x,
+        y,
+        w,
+        start: int | npt.NDArray[np.intp] = 0,
+        log: bool = False,
+        **kwds,
     ):
         return ax.barh(x, y, w, left=start, log=log, **kwds)
 

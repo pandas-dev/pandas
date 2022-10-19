@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 from typing import (
     Callable,
     Hashable,
@@ -140,7 +139,7 @@ class NumericIndex(Index):
         if not isinstance(data, (np.ndarray, Index)):
             # Coerce to ndarray if not already ndarray or Index
             if is_scalar(data):
-                raise cls._scalar_data_error(data)
+                cls._raise_scalar_data_error(data)
 
             # other iterable of some kind
             if not isinstance(data, (ABCSeries, list, tuple)):
@@ -213,8 +212,7 @@ class NumericIndex(Index):
     # ----------------------------------------------------------------
     # Indexing Methods
 
-    # error: Decorated property not supported
-    @cache_readonly  # type: ignore[misc]
+    @cache_readonly
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
         return False
@@ -367,7 +365,7 @@ class IntegerIndex(NumericIndex):
         warnings.warn(
             "Index.asi8 is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self._values.view(self._default_dtype)
 

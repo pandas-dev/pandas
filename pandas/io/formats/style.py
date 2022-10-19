@@ -6,7 +6,6 @@ from __future__ import annotations
 from contextlib import contextmanager
 import copy
 from functools import partial
-import inspect
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -105,7 +104,7 @@ props = """props : str, default None
            CSS properties to use for highlighting. If ``props`` is given, ``color``
            is not used."""
 
-color = """color : str, default 'yellow'
+color = """color : str, default '{default}'
            Background color to use for highlighting."""
 
 buf = """buf : str, path object, file-like object, optional
@@ -449,7 +448,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.to_html()`",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
@@ -2129,7 +2128,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.applymap()`",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
         if other is None:
@@ -2161,7 +2160,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.format(precision=..)`",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         self.precision = precision
         return self.format(precision=precision, na_rep=self.na_rep)
@@ -2673,7 +2672,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.format(na_rep=..)`",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
@@ -2727,7 +2726,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             'this method is deprecated in favour of `Styler.hide(axis="index")`',
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.hide(axis="index", level=level, subset=subset, names=names)
 
@@ -2780,7 +2779,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             'this method is deprecated in favour of `Styler.hide(axis="columns")`',
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.hide(axis="columns", level=level, subset=subset, names=names)
 
@@ -3335,7 +3334,7 @@ class Styler(StylerRenderer):
 
         return self
 
-    @Substitution(subset=subset, props=props, color=color)
+    @Substitution(subset=subset, props=props, color=color.format(default="red"))
     def highlight_null(
         self,
         color: str | None = None,
@@ -3386,7 +3385,7 @@ class Styler(StylerRenderer):
             warnings.warn(
                 "`null_color` is deprecated: use `color` instead",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if color is None and null_color == lib.no_default:
@@ -3397,7 +3396,7 @@ class Styler(StylerRenderer):
             props = f"background-color: {color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_max(
         self,
         subset: Subset | None = None,
@@ -3441,7 +3440,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_min(
         self,
         subset: Subset | None = None,
@@ -3485,7 +3484,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_between(
         self,
         subset: Subset | None = None,
@@ -3589,7 +3588,7 @@ class Styler(StylerRenderer):
             inclusive=inclusive,
         )
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_quantile(
         self,
         subset: Subset | None = None,

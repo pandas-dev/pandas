@@ -3,7 +3,6 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
-import inspect
 from textwrap import dedent
 from typing import (
     IO,
@@ -30,7 +29,6 @@ from pandas._libs import (
     lib,
     properties,
     reshape,
-    tslibs,
 )
 from pandas._libs.lib import no_default
 from pandas._typing import (
@@ -133,13 +131,11 @@ from pandas.core.indexers import (
 )
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
-    CategoricalIndex,
     DatetimeIndex,
     Float64Index,
     Index,
     MultiIndex,
     PeriodIndex,
-    TimedeltaIndex,
     default_index,
     ensure_index,
 )
@@ -399,7 +395,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "of 'float64' in a future version. Specify a dtype explicitly "
                     "to silence this warning.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 # uncomment the line below when removing the FutureWarning
                 # dtype = np.dtype(object)
@@ -570,36 +566,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @property
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
-
-    def _set_axis(self, axis: AxisInt, labels: AnyArrayLike | list) -> None:
-        """
-        Override generic, we want to set the _typ here.
-
-        This is called from the cython code when we set the `index` attribute
-        directly, e.g. `series.index = [1, 2, 3]`.
-        """
-        labels = ensure_index(labels)
-
-        if labels._is_all_dates and not (
-            type(labels) is Index and not isinstance(labels.dtype, np.dtype)
-        ):
-            # exclude e.g. timestamp[ns][pyarrow] dtype from this casting
-            deep_labels = labels
-            if isinstance(labels, CategoricalIndex):
-                deep_labels = labels.categories
-
-            if not isinstance(
-                deep_labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
-            ):
-                try:
-                    labels = DatetimeIndex(labels)
-                except (tslibs.OutOfBoundsDatetime, ValueError):
-                    # labels may exceeds datetime bounds,
-                    # or not be a DatetimeIndex
-                    pass
-
-        # The ensure_index call above ensures we have an Index object
-        self._mgr.set_axis(axis, labels)
 
     # ndarray compatibility
     @property
@@ -931,7 +897,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 "is_copy is deprecated and will be removed in a future version. "
                 "'take' always returns a copy, so there is no need to specify this.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         nv.validate_take((), kwargs)
 
@@ -942,7 +908,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result = self._constructor(new_values, index=new_index, fastpath=True)
         return result.__finalize__(self, method="take")
 
-    def _take_with_is_copy(self, indices, axis=0) -> Series:
+    def _take_with_is_copy(self, indices, axis: Axis = 0) -> Series:
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
@@ -967,7 +933,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: AxisInt = 0) -> Series:
+    def _slice(self, slobj: slice, axis: Axis = 0) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         return self._get_values(slobj)
@@ -1062,9 +1028,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             #  see tests.series.timeseries.test_mpl_compat_hack
             # the asarray is needed to avoid returning a 2D DatetimeArray
             result = np.asarray(self._values[key])
-            deprecate_ndim_indexing(
-                result, stacklevel=find_stack_level(inspect.currentframe())
-            )
+            deprecate_ndim_indexing(result, stacklevel=find_stack_level())
             return result
 
         if not isinstance(self.index, MultiIndex):
@@ -1128,7 +1092,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                         "Series. Use `series.iloc[an_int] = val` to treat the "
                         "key as positional.",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
                 # can't use _mgr.setitem_inplace yet bc could have *both*
                 #  KeyError and then ValueError, xref GH#45070
@@ -1854,7 +1818,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             "iteritems is deprecated and will be removed in a future version. "
             "Use .items instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.items()
 
@@ -1937,7 +1901,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 "the future `None` will be used as the name of the resulting "
                 "DataFrame column.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             name = lib.no_default
 
@@ -2075,7 +2039,7 @@ Name: Max Speed, dtype: float64
                     "will be removed in a future version."
                 ),
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         else:
             squeeze = False
@@ -2134,7 +2098,7 @@ Name: Max Speed, dtype: float64
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. ser.count(level=1) should use ser.groupby(level=1).count().",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             if not isinstance(self.index, MultiIndex):
                 raise ValueError("Series.count level is only valid with a MultiIndex")
@@ -3143,7 +3107,7 @@ Name: Max Speed, dtype: float64
             "and will be removed from pandas in a future version. "
             "Use pandas.concat instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
         return self._append(to_append, ignore_index, verify_integrity)
@@ -4784,7 +4748,7 @@ Keep all original rows and also all original values
         op,
         name: str,
         *,
-        axis=0,
+        axis: Axis = 0,
         skipna: bool = True,
         numeric_only=None,
         filter_type=None,
@@ -4816,7 +4780,7 @@ Keep all original rows and also all original values
                     f"Calling Series.{name} with {kwd_name}={numeric_only} and "
                     f"dtype {self.dtype} will raise a TypeError in the future",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 raise NotImplementedError(
                     f"Series.{name} does not implement {kwd_name}."
@@ -5654,7 +5618,7 @@ Keep all original rows and also all original values
                 "Boolean inputs to the `inclusive` argument are deprecated in "
                 "favour of `both` or `neither`.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             if inclusive:
                 inclusive = "both"
@@ -5704,6 +5668,7 @@ Keep all original rows and also all original values
                 convert_integer,
                 convert_boolean,
                 convert_floating,
+                infer_objects,
             )
             result = input_series.astype(inferred_dtype)
         else:
@@ -6207,7 +6172,7 @@ Keep all original rows and also all original values
     def mask(  # type: ignore[override]
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
@@ -6227,7 +6192,7 @@ Keep all original rows and also all original values
     # Add index
     _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index"]
     _AXIS_LEN = len(_AXIS_ORDERS)
-    _info_axis_number = 0
+    _info_axis_number: Literal[0] = 0
     _info_axis_name: Literal["index"] = "index"
 
     index = properties.AxisProperty(

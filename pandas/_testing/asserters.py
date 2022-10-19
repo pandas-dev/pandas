@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 from typing import (
     Literal,
     cast,
@@ -113,7 +112,7 @@ def assert_almost_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -340,7 +339,7 @@ def assert_index_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -397,6 +396,9 @@ def assert_index_equal(
     if check_exact and check_categorical:
         if not left.equals(right):
             mismatch = left._values != right._values
+
+            if is_extension_array_dtype(mismatch):
+                mismatch = cast("ExtensionArray", mismatch).fillna(True)
 
             diff = np.sum(mismatch.astype(int)) * 100.0 / len(left)
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
@@ -827,7 +829,7 @@ def assert_extension_array_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -982,7 +984,7 @@ def assert_series_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -1275,7 +1277,7 @@ def assert_frame_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
