@@ -5,7 +5,7 @@ Patched ``BZ2File`` and ``LZMAFile`` to handle pickle protocol 5.
 from __future__ import annotations
 
 import bz2
-import pickle
+from pickle import PickleBuffer
 
 from pandas.compat._constants import PY310
 
@@ -18,7 +18,7 @@ except ImportError:
 
 
 def flatten_buffer(
-    b: bytes | bytearray | memoryview | pickle.PickleBuffer,
+    b: bytes | bytearray | memoryview | PickleBuffer,
 ) -> bytes | memoryview:
     """
     Return some 1-D `uint8` typed buffer.
@@ -30,8 +30,8 @@ def flatten_buffer(
     if isinstance(b, (bytes, bytearray)):
         return b
 
-    if not isinstance(b, pickle.PickleBuffer):
-        b = pickle.PickleBuffer(b)
+    if not isinstance(b, PickleBuffer):
+        b = PickleBuffer(b)
 
     try:
         # coerce to 1-D `uint8` C-contiguous `memoryview` zero-copy
