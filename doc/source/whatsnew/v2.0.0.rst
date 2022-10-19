@@ -148,7 +148,9 @@ Removal of prior version deprecations/changes
 - Removed :meth:`.Rolling.validate`, :meth:`.Expanding.validate`, and :meth:`.ExponentialMovingWindow.validate` (:issue:`43665`)
 - Removed :attr:`Rolling.win_type` returning ``"freq"`` (:issue:`38963`)
 - Removed :attr:`Rolling.is_datetimelike` (:issue:`38963`)
+- Removed :func:`is_extension_type` in favor of :func:`is_extension_array_dtype` (:issue:`29457`)
 - Remove :meth:`DataFrameGroupBy.pad` and :meth:`DataFrameGroupBy.backfill` (:issue:`45076`)
+- Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:
@@ -222,7 +224,7 @@ Conversion
 - Bug in :meth:`DataFrame.eval` incorrectly raising an ``AttributeError`` when there are negative values in function call (:issue:`46471`)
 - Bug in :meth:`Series.convert_dtypes` not converting dtype to nullable dtype when :class:`Series` contains ``NA`` and has dtype ``object`` (:issue:`48791`)
 - Bug where any :class:`ExtensionDtype` subclass with ``kind="M"`` would be interpreted as a timezone type (:issue:`34986`)
--
+- Bug in :class:`.arrays.ArrowExtensionArray` that would raise ``NotImplementedError`` when passed a sequence of strings or binary (:issue:`49172`)
 
 Strings
 ^^^^^^^
@@ -266,6 +268,7 @@ MultiIndex
 I/O
 ^^^
 - Bug in :func:`read_sas` caused fragmentation of :class:`DataFrame` and raised :class:`.errors.PerformanceWarning` (:issue:`48595`)
+- Bug in :func:`read_csv` for a single-line csv with fewer columns than ``names`` raised :class:`.errors.ParserError` with ``engine="c"`` (:issue:`47566`)
 -
 
 Period
