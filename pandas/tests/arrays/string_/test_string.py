@@ -595,3 +595,19 @@ def test_setitem_scalar_with_mask_validation(dtype):
         msg = "Scalar must be NA or str"
     with pytest.raises(ValueError, match=msg):
         ser[mask] = 1
+
+
+def test_from_numpy_str(dtype):
+    vals = ["a", "b", "c"]
+    arr = np.array(vals, dtype=np.str_)
+    result = pd.array(arr, dtype=dtype)
+    expected = pd.array(vals, dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_tolist(dtype):
+    vals = ["a", "b", "c"]
+    arr = pd.array(vals, dtype=dtype)
+    result = arr.tolist()
+    expected = vals
+    tm.assert_equal(result, expected)

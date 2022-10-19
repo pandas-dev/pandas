@@ -20,7 +20,6 @@ import pandas._testing as tm
 
 
 class TestDataFrameSetitemCoercion:
-    @pytest.mark.xfail(reason="Unnecessary cast.")
     @pytest.mark.parametrize("consolidate", [True, False])
     def test_loc_setitem_multiindex_columns(self, consolidate):
         # GH#18415 Setting values in a single column preserves dtype,
@@ -36,9 +35,7 @@ class TestDataFrameSetitemCoercion:
         A.loc[2:3, (1, slice(2, 3))] = np.ones((2, 2), dtype=np.float32)
         assert (A.dtypes == np.float32).all()
 
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            A.loc[0:5, (1, slice(2, 3))] = np.ones((6, 2), dtype=np.float32)
+        A.loc[0:5, (1, slice(2, 3))] = np.ones((6, 2), dtype=np.float32)
 
         assert (A.dtypes == np.float32).all()
 
@@ -119,7 +116,6 @@ def test_15231():
     tm.assert_series_equal(df.dtypes, exp_dtypes)
 
 
-@pytest.mark.xfail(reason="Unnecessarily upcasts to float64")
 def test_iloc_setitem_unnecesssary_float_upcasting():
     # GH#12255
     df = DataFrame(
@@ -132,10 +128,7 @@ def test_iloc_setitem_unnecesssary_float_upcasting():
     orig = df.copy()
 
     values = df[0].values.reshape(2, 1)
-
-    msg = "will attempt to set the values inplace instead"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.iloc[:, 0:1] = values
+    df.iloc[:, 0:1] = values
 
     tm.assert_frame_equal(df, orig)
 
