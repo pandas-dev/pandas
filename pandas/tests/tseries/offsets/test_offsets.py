@@ -19,6 +19,7 @@ import pytest
 
 from pandas._libs.tslibs import (
     NaT,
+    Timedelta,
     Timestamp,
     conversion,
     timezones,
@@ -233,7 +234,14 @@ class TestCommon(Base):
             # test tz when input is datetime or Timestamp
             return
 
-        for tz in self.timezones:
+        for tz in [
+            None,
+            "UTC",
+            "Asia/Tokyo",
+            "US/Eastern",
+            "dateutil/Asia/Tokyo",
+            "dateutil/US/Pacific",
+        ]:
             expected_localize = expected.tz_localize(tz)
             tz_obj = timezones.maybe_get_tz(tz)
             dt_tz = conversion.localize_pydatetime(dt, tz_obj)
@@ -566,6 +574,12 @@ class TestCommon(Base):
             expected = dti._data + off
             result = dta + off
 
+        exp_unit = unit
+        if isinstance(off, Tick) and off._creso > dta._creso:
+            # cast to higher reso like we would with Timedelta scalar
+            exp_unit = Timedelta(off)._unit
+        expected = expected._as_unit(exp_unit)
+
         if len(w):
             # PerformanceWarning was issued bc _apply_array raised, so we
             #  fell back to object dtype, for which the code path does
@@ -576,9 +590,7 @@ class TestCommon(Base):
             )
             request.node.add_marker(mark)
 
-        tm.assert_numpy_array_equal(
-            result._ndarray, expected._ndarray.astype(arr.dtype)
-        )
+        tm.assert_numpy_array_equal(result._ndarray, expected._ndarray)
 
 
 class TestDateOffset(Base):
