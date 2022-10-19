@@ -129,7 +129,9 @@ def test_flatten_buffer(data):
     result = flatten_buffer(data)
     expected = memoryview(data).tobytes("A")
     assert result == expected
-    if isinstance(result, memoryview):
+    if isinstance(data, (bytes, bytearray)):
+        assert result is data
+    elif isinstance(result, memoryview):
         assert result.ndim == 1
         assert result.format == "B"
         assert result.contiguous
