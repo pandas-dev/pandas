@@ -1,7 +1,6 @@
 """
 Parsing functions for datetime and datetime-like strings.
 """
-import inspect
 import re
 import time
 import warnings
@@ -218,7 +217,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
                     format='MM/DD/YYYY',
                     dayfirst='True',
                 ),
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         elif not dayfirst and swapped_day_and_month:
             warnings.warn(
@@ -226,7 +225,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
                     format='DD/MM/YYYY',
                     dayfirst='False (the default)',
                 ),
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         # In Python <= 3.6.0 there is no range checking for invalid dates
         # in C api, thus we call faster C version for 3.6.1 or newer
@@ -1054,8 +1053,12 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
                 found_attrs.update(attrs)
                 break
 
-    # Only consider it a valid guess if we have a year, month and day
-    if len({'year', 'month', 'day'} & found_attrs) != 3:
+    # Only consider it a valid guess if we have a year, month and day,
+    # unless it's %Y which is both common and unambiguous.
+    if (
+        len({'year', 'month', 'day'} & found_attrs) != 3
+        and format_guess != ['%Y']
+    ):
         return None
 
     output_format = []
