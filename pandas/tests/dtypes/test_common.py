@@ -13,6 +13,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     CategoricalDtypeType,
     DatetimeTZDtype,
+    ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
 )
@@ -237,6 +238,18 @@ def test_is_datetime64tz_dtype():
     assert not com.is_datetime64tz_dtype([1, 2, 3])
     assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
     assert com.is_datetime64tz_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+
+
+def test_custom_ea_kind_M_not_datetime64tz():
+    # GH 34986
+    class NotTZDtype(ExtensionDtype):
+        @property
+        def kind(self) -> str:
+            return "M"
+
+    not_tz_dtype = NotTZDtype()
+    assert not com.is_datetime64tz_dtype(not_tz_dtype)
+    assert not com.needs_i8_conversion(not_tz_dtype)
 
 
 def test_is_timedelta64_dtype():
@@ -584,36 +597,6 @@ def test_is_bool_dtype():
 def test_is_bool_dtype_numpy_error():
     # GH39010
     assert not com.is_bool_dtype("0 - Name")
-
-
-@pytest.mark.filterwarnings("ignore:'is_extension_type' is deprecated:FutureWarning")
-@pytest.mark.parametrize(
-    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
-)
-def test_is_extension_type(check_scipy):
-    assert not com.is_extension_type([1, 2, 3])
-    assert not com.is_extension_type(np.array([1, 2, 3]))
-    assert not com.is_extension_type(pd.DatetimeIndex([1, 2, 3]))
-
-    cat = pd.Categorical([1, 2, 3])
-    assert com.is_extension_type(cat)
-    assert com.is_extension_type(pd.Series(cat))
-    assert com.is_extension_type(SparseArray([1, 2, 3]))
-    assert com.is_extension_type(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
-
-    dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
-    assert com.is_extension_type(s)
-
-    if check_scipy:
-        import scipy.sparse
-
-        assert not com.is_extension_type(scipy.sparse.bsr_matrix([1, 2, 3]))
-
-
-def test_is_extension_type_deprecation():
-    with tm.assert_produces_warning(FutureWarning):
-        com.is_extension_type([1, 2, 3])
 
 
 @pytest.mark.parametrize(

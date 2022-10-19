@@ -1326,7 +1326,8 @@ class TestDataFrameIndexing:
     def test_loc_setitem_rhs_frame(self, idxr, val):
         # GH#47578
         df = DataFrame({"a": [1, 2]})
-        df.loc[:, "a"] = DataFrame({"a": [val, 11]}, index=[1, 2])
+        with tm.assert_produces_warning(None):
+            df.loc[:, idxr] = DataFrame({"a": [val, 11]}, index=[1, 2])
         expected = DataFrame({"a": [np.nan, val]})
         tm.assert_frame_equal(df, expected)
 
@@ -1403,6 +1404,37 @@ class TestDataFrameIndexing:
             )
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("indexer", [["a"], "a"])
+    @pytest.mark.parametrize("col", [{}, {"b": 1}])
+    def test_set_2d_casting_date_to_int(self, col, indexer):
+        # GH#49159
+        df = DataFrame(
+            {"a": [Timestamp("2022-12-29"), Timestamp("2022-12-30")], **col},
+        )
+        df.loc[[1], indexer] = df["a"] + pd.Timedelta(days=1)
+        expected = DataFrame(
+            {"a": [Timestamp("2022-12-29"), Timestamp("2022-12-31")], **col},
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("col", [{}, {"name": "a"}])
+    def test_loc_setitem_reordering_with_all_true_indexer(self, col):
+        # GH#48701
+        n = 17
+        df = DataFrame({**col, "x": range(n), "y": range(n)})
+        expected = df.copy()
+        df.loc[n * [True], ["x", "y"]] = df[["x", "y"]]
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_rhs_empty_warning(self):
+        # GH48480
+        df = DataFrame(columns=["a", "b"])
+        expected = df.copy()
+        rhs = DataFrame(columns=["a"])
+        with tm.assert_produces_warning(None):
+            df.loc[:, "a"] = rhs
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameIndexingUInt64:

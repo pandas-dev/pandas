@@ -14,6 +14,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas.compat import is_numpy_dev
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -735,13 +736,18 @@ class TestSeriesConstructors:
     def test_constructor_signed_int_overflow_deprecation(self):
         # GH#41734 disallow silent overflow
         msg = "Values are too large to be losslessly cast"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        numpy_warning = DeprecationWarning if is_numpy_dev else None
+        with tm.assert_produces_warning(
+            (FutureWarning, numpy_warning), match=msg, check_stacklevel=False
+        ):
             ser = Series([1, 200, 923442], dtype="int8")
 
         expected = Series([1, -56, 50], dtype="int8")
         tm.assert_series_equal(ser, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            (FutureWarning, numpy_warning), match=msg, check_stacklevel=False
+        ):
             ser = Series([1, 200, 923442], dtype="uint8")
 
         expected = Series([1, 200, 50], dtype="uint8")
@@ -921,28 +927,22 @@ class TestSeriesConstructors:
 
     def test_constructor_dtype_datetime64_10(self):
         # GH3416
-        dates = [
-            np.datetime64(datetime(2013, 1, 1)),
-            np.datetime64(datetime(2013, 1, 2)),
-            np.datetime64(datetime(2013, 1, 3)),
-        ]
+        pydates = [datetime(2013, 1, 1), datetime(2013, 1, 2), datetime(2013, 1, 3)]
+        dates = [np.datetime64(x) for x in pydates]
 
-        s = Series(dates)
-        assert s.dtype == "M8[ns]"
+        ser = Series(dates)
+        assert ser.dtype == "M8[ns]"
 
-        s.iloc[0] = np.nan
-        assert s.dtype == "M8[ns]"
+        ser.iloc[0] = np.nan
+        assert ser.dtype == "M8[ns]"
 
         # GH3414 related
-        expected = Series(
-            [datetime(2013, 1, 1), datetime(2013, 1, 2), datetime(2013, 1, 3)],
-            dtype="datetime64[ns]",
-        )
+        expected = Series(pydates, dtype="datetime64[ms]")
 
         result = Series(Series(dates).view(np.int64) / 1000000, dtype="M8[ms]")
         tm.assert_series_equal(result, expected)
 
-        result = Series(dates, dtype="datetime64[ns]")
+        result = Series(dates, dtype="datetime64[ms]")
         tm.assert_series_equal(result, expected)
 
         expected = Series(
@@ -950,6 +950,10 @@ class TestSeriesConstructors:
         )
         result = Series([np.nan] + dates[1:], dtype="datetime64[ns]")
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_dtype_datetime64_11(self):
+        pydates = [datetime(2013, 1, 1), datetime(2013, 1, 2), datetime(2013, 1, 3)]
+        dates = [np.datetime64(x) for x in pydates]
 
         dts = Series(dates, dtype="datetime64[ns]")
 
@@ -989,10 +993,15 @@ class TestSeriesConstructors:
         values2 = dates.view(np.ndarray).astype("datetime64[ns]")
         expected = Series(values2, index=dates)
 
-        for dtype in ["s", "D", "ms", "us", "ns"]:
-            values1 = dates.view(np.ndarray).astype(f"M8[{dtype}]")
+        for unit in ["s", "D", "ms", "us", "ns"]:
+            dtype = np.dtype(f"M8[{unit}]")
+            values1 = dates.view(np.ndarray).astype(dtype)
             result = Series(values1, dates)
-            tm.assert_series_equal(result, expected)
+            if unit == "D":
+                # for unit="D" we cast to nearest-supported reso, i.e. "s"
+                dtype = np.dtype("M8[s]")
+            assert result.dtype == dtype
+            tm.assert_series_equal(result, expected.astype(dtype))
 
         # GH 13876
         # coerce to non-ns to object properly
@@ -1151,16 +1160,26 @@ class TestSeriesConstructors:
         assert all(ser[i] is vals[i] for i in range(len(vals)))
 
     @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
-    @pytest.mark.parametrize("dtype", ["M8", "m8"])
+    @pytest.mark.parametrize("kind", ["M", "m"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
-    def test_construction_to_datetimelike_unit(self, arr_dtype, dtype, unit):
+    def test_construction_to_datetimelike_unit(self, arr_dtype, kind, unit):
         # tests all units
         # gh-19223
-        dtype = f"{dtype}[{unit}]"
+        # TODO: GH#19223 was about .astype, doesn't belong here
+        dtype = f"{kind}8[{unit}]"
         arr = np.array([1, 2, 3], dtype=arr_dtype)
-        s = Series(arr)
-        result = s.astype(dtype)
+        ser = Series(arr)
+        result = ser.astype(dtype)
+
         expected = Series(arr.astype(dtype))
+
+        if unit in ["ns", "us", "ms", "s"]:
+            assert result.dtype == dtype
+            assert expected.dtype == dtype
+        else:
+            # Otherwise we cast to nearest-supported unit, i.e. seconds
+            assert result.dtype == f"{kind}8[s]"
+            assert expected.dtype == f"{kind}8[s]"
 
         tm.assert_series_equal(result, expected)
 
@@ -1177,7 +1196,8 @@ class TestSeriesConstructors:
         arr = np.array([np.datetime64(1, "ms")], dtype=">M8[ms]")
 
         result = Series(arr)
-        expected = Series([Timestamp(ms)])
+        expected = Series([Timestamp(ms)]).astype("M8[ms]")
+        assert expected.dtype == "M8[ms]"
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("interval_constructor", [IntervalIndex, IntervalArray])
@@ -1559,16 +1579,22 @@ class TestSeriesConstructors:
     def test_convert_non_ns(self):
         # convert from a numpy array of non-ns timedelta64
         arr = np.array([1, 2, 3], dtype="timedelta64[s]")
-        s = Series(arr)
-        expected = Series(timedelta_range("00:00:01", periods=3, freq="s"))
-        tm.assert_series_equal(s, expected)
+        ser = Series(arr)
+        assert ser.dtype == arr.dtype
+
+        tdi = timedelta_range("00:00:01", periods=3, freq="s")
+        tda = tdi._data._as_unit("s")
+        expected = Series(tda)
+        assert expected.dtype == arr.dtype
+        tm.assert_series_equal(ser, expected)
 
         # convert from a numpy array of non-ns datetime64
         arr = np.array(
             ["2013-01-01", "2013-01-02", "2013-01-03"], dtype="datetime64[D]"
         )
         ser = Series(arr)
-        expected = Series(date_range("20130101", periods=3, freq="D"))
+        expected = Series(date_range("20130101", periods=3, freq="D"), dtype="M8[s]")
+        assert expected.dtype == "M8[s]"
         tm.assert_series_equal(ser, expected)
 
         arr = np.array(
@@ -1576,7 +1602,10 @@ class TestSeriesConstructors:
             dtype="datetime64[s]",
         )
         ser = Series(arr)
-        expected = Series(date_range("20130101 00:00:01", periods=3, freq="s"))
+        expected = Series(
+            date_range("20130101 00:00:01", periods=3, freq="s"), dtype="M8[s]"
+        )
+        assert expected.dtype == "M8[s]"
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize(
@@ -1881,18 +1910,41 @@ class TestSeriesConstructors:
         expected = Series(True, index=[0], dtype="bool")
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_int64_dtype(self, any_int_dtype):
+        # GH#44923
+        result = Series(["0", "1", "2"], dtype=any_int_dtype)
+        expected = Series([0, 1, 2], dtype=any_int_dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_raise_on_lossy_conversion_of_strings(self):
+        # GH#44923
+        with pytest.raises(
+            ValueError, match="string values cannot be losslessly cast to int8"
+        ):
+            Series(["128"], dtype="int8")
+
     def test_constructor_dtype_timedelta_alternative_construct(self):
         # GH#35465
         result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
         expected = Series(pd.to_timedelta([1000000, 200000, 3000000], unit="ns"))
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(
+        reason="Not clear what the correct expected behavior should be with "
+        "integers now that we support non-nano. ATM (2022-10-08) we treat ints "
+        "as nanoseconds, then cast to the requested dtype. xref #48312"
+    )
     def test_constructor_dtype_timedelta_ns_s(self):
         # GH#35465
         result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
         expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(
+        reason="Not clear what the correct expected behavior should be with "
+        "integers now that we support non-nano. ATM (2022-10-08) we treat ints "
+        "as nanoseconds, then cast to the requested dtype. xref #48312"
+    )
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
         # GH#35465
         result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
@@ -1934,7 +1986,9 @@ class TestSeriesConstructorIndexCoercion:
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
         with tm.assert_produces_warning(FutureWarning):
             assert ser.index.is_all_dates
-        assert isinstance(ser.index, DatetimeIndex)
+        # as of 2.0, we no longer silently cast the object-dtype index
+        #  to DatetimeIndex GH#39307, GH#23598
+        assert not isinstance(ser.index, DatetimeIndex)
 
     def test_series_constructor_infer_multiindex(self):
         index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]

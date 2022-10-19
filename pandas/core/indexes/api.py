@@ -9,6 +9,7 @@ from pandas._libs import (
     NaT,
     lib,
 )
+from pandas._typing import Axis
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.cast import find_common_type
@@ -76,7 +77,7 @@ __all__ = [
 
 
 def get_objs_combined_axis(
-    objs, intersect: bool = False, axis=0, sort: bool = True, copy: bool = False
+    objs, intersect: bool = False, axis: Axis = 0, sort: bool = True, copy: bool = False
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
@@ -189,6 +190,9 @@ def safe_sort_index(index: Index) -> Index:
     except TypeError:
         pass
     else:
+        if isinstance(array_sorted, MultiIndex):
+            return array_sorted
+
         array_sorted = cast(np.ndarray, array_sorted)
         if isinstance(index, MultiIndex):
             index = MultiIndex.from_tuples(array_sorted, names=index.names)

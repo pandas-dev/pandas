@@ -3,7 +3,6 @@ Utility functions related to concat.
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -14,6 +13,7 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     DtypeObj,
 )
 from pandas.util._exceptions import find_stack_level
@@ -27,7 +27,10 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_sparse,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex,
     ABCExtensionArray,
@@ -66,7 +69,7 @@ def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     return astype_array(arr, dtype=dtype, copy=False)
 
 
-def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
+def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
     """
     provide concatenation of an array of arrays each of which is a single
     'normalized' dtypes (in that for example, if it's object, then it is a
@@ -103,10 +106,12 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
         # ea_compat_axis see GH#39574
         to_concat = non_empties
 
+    dtypes = {obj.dtype for obj in to_concat}
     kinds = {obj.dtype.kind for obj in to_concat}
-    contains_datetime = any(kind in ["m", "M"] for kind in kinds) or any(
-        isinstance(obj, ABCExtensionArray) and obj.ndim > 1 for obj in to_concat
-    )
+    contains_datetime = any(
+        isinstance(dtype, (np.dtype, DatetimeTZDtype)) and dtype.kind in ["m", "M"]
+        for dtype in dtypes
+    ) or any(isinstance(obj, ABCExtensionArray) and obj.ndim > 1 for obj in to_concat)
 
     all_empty = not len(non_empties)
     single_dtype = len({x.dtype for x in to_concat}) == 1
@@ -153,7 +158,7 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
             "(instead of coercing bools to numeric values). To retain the old "
             "behavior, explicitly cast bool-dtype arrays to numeric dtype.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
     return result
 
@@ -324,14 +329,14 @@ def union_categoricals(
     return Categorical(new_codes, categories=categories, ordered=ordered, fastpath=True)
 
 
-def _concatenate_2d(to_concat, axis: int):
+def _concatenate_2d(to_concat, axis: AxisInt):
     # coerce to 2d if needed & concatenate
     if axis == 1:
         to_concat = [np.atleast_2d(x) for x in to_concat]
     return np.concatenate(to_concat, axis=axis)
 
 
-def _concat_datetime(to_concat, axis=0):
+def _concat_datetime(to_concat, axis: AxisInt = 0):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
     single M8[ns], datetime64[ns, tz] or m8[ns] dtype

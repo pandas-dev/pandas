@@ -1140,7 +1140,9 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_fallback_success(self, datapath):
         banklist_data = datapath("io", "data", "html", "banklist.html")
-        self.read_html(banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"])
+        self.read_html(
+            banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"]
+        )  # pylint: disable=redundant-keyword-arg
 
     def test_to_html_timestamp(self):
         rng = date_range("2000-01-01", periods=10)
@@ -1278,9 +1280,14 @@ class TestReadHtml:
             def seekable(self):
                 return True
 
+            # GH 49036 pylint checks for presence of __next__ for iterators
+            def __next__(self):
+                ...
+
             def __iter__(self) -> Iterator:
-                # to fool `is_file_like`, should never end up here
-                assert False
+                # `is_file_like` depends on the presence of
+                # the __iter__ attribute.
+                return self
 
         good = MockFile("<table><tr><td>spam<br />eggs</td></tr></table>")
         bad = MockFile("<table><tr><td>spam<foobr />eggs</td></tr></table>")

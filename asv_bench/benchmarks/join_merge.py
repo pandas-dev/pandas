@@ -4,8 +4,10 @@ import numpy as np
 
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     Series,
+    array,
     concat,
     date_range,
     merge,
@@ -91,6 +93,39 @@ class ConcatDataFrames:
         concat(self.frame_f, axis=axis, ignore_index=ignore_index)
 
 
+class ConcatIndexDtype:
+
+    params = (
+        ["datetime64[ns]", "int64", "Int64", "string[python]", "string[pyarrow]"],
+        [0, 1],
+        [True, False],
+        [True, False],
+    )
+    param_names = ["dtype", "axis", "sort", "is_monotonic"]
+
+    def setup(self, dtype, axis, sort, is_monotonic):
+        N = 10_000
+        if dtype == "datetime64[ns]":
+            vals = date_range("1970-01-01", periods=N)
+        elif dtype in ("int64", "Int64"):
+            vals = np.arange(N, dtype=np.int64)
+        elif dtype in ("string[python]", "string[pyarrow]"):
+            vals = tm.makeStringIndex(N)
+        else:
+            raise NotImplementedError
+
+        idx = Index(vals, dtype=dtype)
+        if is_monotonic:
+            idx = idx.sort_values()
+        else:
+            idx = idx[::-1]
+
+        self.series = [Series(i, idx[i:]) for i in range(5)]
+
+    def time_concat_series(self, dtype, axis, sort, is_monotonic):
+        concat(self.series, axis=axis, sort=sort)
+
+
 class Join:
 
     params = [True, False]
@@ -156,6 +191,18 @@ class JoinIndex:
 
     def time_left_outer_join_index(self):
         self.left.join(self.right, on="jim")
+
+
+class JoinMultiindexSubset:
+    def setup(self):
+        N = 100_000
+        mi1 = MultiIndex.from_arrays([np.arange(N)] * 4, names=["a", "b", "c", "d"])
+        mi2 = MultiIndex.from_arrays([np.arange(N)] * 2, names=["a", "b"])
+        self.left = DataFrame({"col1": 1}, index=mi1)
+        self.right = DataFrame({"col2": 2}, index=mi2)
+
+    def time_join_multiindex_subset(self):
+        self.left.join(self.right)
 
 
 class JoinEmpty:
@@ -409,6 +456,42 @@ class MergeAsof:
             direction=direction,
             tolerance=tolerance,
         )
+
+
+class MergeMultiIndex:
+    params = [
+        [
+            ("int64", "int64"),
+            ("datetime64[ns]", "int64"),
+            ("Int64", "Int64"),
+        ],
+        ["left", "right", "inner", "outer"],
+    ]
+    param_names = ["dtypes", "how"]
+
+    def setup(self, dtypes, how):
+        n = 100_000
+        offset = 50_000
+        mi1 = MultiIndex.from_arrays(
+            [
+                array(np.arange(n), dtype=dtypes[0]),
+                array(np.arange(n), dtype=dtypes[1]),
+            ]
+        )
+        mi2 = MultiIndex.from_arrays(
+            [
+                array(np.arange(offset, n + offset), dtype=dtypes[0]),
+                array(np.arange(offset, n + offset), dtype=dtypes[1]),
+            ]
+        )
+        self.df1 = DataFrame({"col1": 1}, index=mi1)
+        self.df2 = DataFrame({"col2": 2}, index=mi2)
+
+    def time_merge_sorted_multiindex(self, dtypes, how):
+        # copy to avoid MultiIndex._values caching
+        df1 = self.df1.copy()
+        df2 = self.df2.copy()
+        merge(df1, df2, how=how, left_index=True, right_index=True)
 
 
 class Align:

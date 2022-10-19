@@ -468,7 +468,7 @@ class TestFactorize:
             (
                 ["a", None, "b", "a"],
                 np.array([0, 1, 2, 0], dtype=np.dtype("intp")),
-                np.array(["a", None, "b"], dtype=object),
+                np.array(["a", np.nan, "b"], dtype=object),
             ),
             (
                 ["a", np.nan, "b", "a"],
@@ -482,8 +482,8 @@ class TestFactorize:
     ):
         codes, uniques = algos.factorize(data, use_na_sentinel=False)
 
-        tm.assert_numpy_array_equal(uniques, expected_uniques)
-        tm.assert_numpy_array_equal(codes, expected_codes)
+        tm.assert_numpy_array_equal(uniques, expected_uniques, strict_nan=True)
+        tm.assert_numpy_array_equal(codes, expected_codes, strict_nan=True)
 
     @pytest.mark.parametrize(
         "data, expected_codes, expected_uniques",
@@ -491,7 +491,7 @@ class TestFactorize:
             (
                 [1, None, 1, 2],
                 np.array([0, 1, 0, 2], dtype=np.dtype("intp")),
-                np.array([1, None, 2], dtype="O"),
+                np.array([1, np.nan, 2], dtype="O"),
             ),
             (
                 [1, np.nan, 1, 2],
@@ -505,8 +505,8 @@ class TestFactorize:
     ):
         codes, uniques = algos.factorize(data, use_na_sentinel=False)
 
-        tm.assert_numpy_array_equal(uniques, expected_uniques)
-        tm.assert_numpy_array_equal(codes, expected_codes)
+        tm.assert_numpy_array_equal(uniques, expected_uniques, strict_nan=True)
+        tm.assert_numpy_array_equal(codes, expected_codes, strict_nan=True)
 
 
 class TestUnique:

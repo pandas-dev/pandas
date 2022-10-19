@@ -573,13 +573,10 @@ def test_intersection_duplicates_all_indexes(index):
         # No duplicates in empty indexes
         return
 
-    def check_intersection_commutative(left, right):
-        assert left.intersection(right).equals(right.intersection(left))
-
     idx = index
     idx_non_unique = idx[[0, 0, 1, 2]]
 
-    check_intersection_commutative(idx, idx_non_unique)
+    assert idx.intersection(idx_non_unique).equals(idx_non_unique.intersection(idx))
     assert idx.intersection(idx_non_unique).is_unique
 
 

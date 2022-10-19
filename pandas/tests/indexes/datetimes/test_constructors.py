@@ -37,6 +37,21 @@ if PY39:
 
 
 class TestDatetimeIndex:
+    def test_explicit_tz_none(self):
+        # GH#48659
+        dti = date_range("2016-01-01", periods=10, tz="UTC")
+
+        msg = "Passed data is timezone-aware, incompatible with 'tz=None'"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, tz=None)
+
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(np.array(dti), tz=None)
+
+        msg = "Cannot pass both a timezone-aware dtype and tz=None"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex([], dtype="M8[ns, UTC]", tz=None)
+
     @pytest.mark.parametrize(
         "dt_cls", [DatetimeIndex, DatetimeArray._from_sequence_not_strict]
     )
@@ -681,6 +696,7 @@ class TestDatetimeIndex:
         idx = DatetimeIndex(["2013-01-01", "2013-01-02"], tz="US/Eastern")
         tm.assert_index_equal(idx, expected)
 
+    def test_constructor_dtype_tz_mismatch_raises(self):
         # if we already have a tz and its not the same, then raise
         idx = DatetimeIndex(
             ["2013-01-01", "2013-01-02"], dtype="datetime64[ns, US/Eastern]"
@@ -897,9 +913,9 @@ class TestDatetimeIndex:
             Index(["2000"], dtype="datetime64")
 
     def test_constructor_wrong_precision_raises(self):
-        msg = "Unexpected value for 'dtype': 'datetime64\\[us\\]'"
-        with pytest.raises(ValueError, match=msg):
-            DatetimeIndex(["2000"], dtype="datetime64[us]")
+        dti = DatetimeIndex(["2000"], dtype="datetime64[us]")
+        assert dti.dtype == "M8[us]"
+        assert dti[0] == Timestamp(2000, 1, 1)
 
     def test_index_constructor_with_numpy_object_array_and_timestamp_tz_with_nan(self):
         # GH 27011

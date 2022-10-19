@@ -6,8 +6,10 @@ from __future__ import annotations
 
 import numpy as np
 
+from pandas._typing import AxisInt
 
-def shift(values: np.ndarray, periods: int, axis: int, fill_value) -> np.ndarray:
+
+def shift(values: np.ndarray, periods: int, axis: AxisInt, fill_value) -> np.ndarray:
     new_values = values
 
     if periods == 0 or values.size == 0:
