@@ -99,6 +99,7 @@ def to_json(
     index: bool = ...,
     indent: int = ...,
     storage_options: StorageOptions = ...,
+    mode: Literal["a", "w"] = ...,
 ) -> None:
     ...
 
@@ -118,6 +119,7 @@ def to_json(
     index: bool = ...,
     indent: int = ...,
     storage_options: StorageOptions = ...,
+    mode: Literal["a", "w"] = ...,
 ) -> str:
     ...
 
