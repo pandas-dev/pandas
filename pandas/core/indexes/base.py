@@ -4640,7 +4640,7 @@ class Index(IndexOpsMixin, PandasObject):
         return_indexers: Literal[True],
         sort: bool = ...,
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        ...
+        raise NotImplementedError
 
     @overload
     def join(
@@ -4652,7 +4652,7 @@ class Index(IndexOpsMixin, PandasObject):
         return_indexers: Literal[False] = ...,
         sort: bool = ...,
     ) -> Index:
-        ...
+        raise NotImplementedError
 
     @overload
     def join(
@@ -4664,7 +4664,7 @@ class Index(IndexOpsMixin, PandasObject):
         return_indexers: bool = ...,
         sort: bool = ...,
     ) -> Index | tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        ...
+        raise NotImplementedError
 
     @final
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "other"])

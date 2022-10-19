@@ -850,7 +850,7 @@ class ParserBase:
         names: Index,
         data: DataFrame,
     ) -> tuple[Sequence[Hashable] | Index, DataFrame]:
-        ...
+        raise NotImplementedError
 
     @overload
     def _do_date_conversions(
@@ -858,7 +858,7 @@ class ParserBase:
         names: Sequence[Hashable],
         data: Mapping[Hashable, ArrayLike],
     ) -> tuple[Sequence[Hashable], Mapping[Hashable, ArrayLike]]:
-        ...
+        raise NotImplementedError
 
     def _do_date_conversions(
         self,
