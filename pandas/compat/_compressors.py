@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import bz2
 import pickle
-import sys
 
 from pandas.compat._constants import PY310
 
