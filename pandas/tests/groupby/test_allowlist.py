@@ -217,8 +217,6 @@ def test_tab_completion(mframe):
         "idxmin",
         "ffill",
         "bfill",
-        "pad",
-        "backfill",
         "rolling",
         "expanding",
         "pipe",
