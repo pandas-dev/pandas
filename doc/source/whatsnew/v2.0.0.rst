@@ -118,7 +118,7 @@ Datetimes are now parsed with a consistent format
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`to_datetime` now parses dates with a consistent format, which is guessed from the first non-NA value
-(unless ``format`` is specified). Previously, it would've guessed the format for each element individually.
+(unless ``format`` is specified). Previously, it would have guessed the format for each element individually.
 
 *Old behavior*:
 

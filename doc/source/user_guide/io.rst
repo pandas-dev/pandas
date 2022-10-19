@@ -1023,7 +1023,14 @@ format.
    df
 
 In the case that you have mixed datetime formats within the same column, you'll need to
-first read it in the file, and then apply :func:`to_datetime` to each element.
+first read it in as an object dtype and then apply :func:`to_datetime` to each element.
+
+.. ipython:: python
+
+   data = io.StringIO("date\n12 Jan 2000\n2000-01-13\n")
+   df = pd.read_csv(data)
+   df['date'] = df['date'].apply(pd.to_datetime)
+   df
 
 .. ipython:: python
    :suppress:
