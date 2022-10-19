@@ -543,13 +543,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if name is None:
             name = self.name
 
-        if self.tz is not None:
-            # preserve the tz & copy
-            values = self.copy(deep=True)
-        else:
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ExtensionArray, ndarray]", variable has type "DatetimeIndex")
-            values = self._values.view("M8[ns]").copy()  # type: ignore[assignment]
+        values = self._values.copy()
 
         return Series(values, index=index, name=name)
 
