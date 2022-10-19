@@ -4,7 +4,6 @@ split-apply-combine paradigm.
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -986,7 +985,7 @@ def _check_deprecated_resample_kwargs(kwargs, origin) -> None:
             "\nbecomes:\n"
             '\n>>> df.resample(freq="3s", offset="2s")\n',
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
     if kwargs.get("loffset", None) is not None:
         warnings.warn(
@@ -997,5 +996,5 @@ def _check_deprecated_resample_kwargs(kwargs, origin) -> None:
             '\n>>> df = df.resample(freq="3s").mean()'
             '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 from functools import partial
-import inspect
 from textwrap import dedent
 from typing import TYPE_CHECKING
 import warnings
@@ -667,7 +666,7 @@ class ExponentialMovingWindow(BaseWindow):
                 "Use std instead."
             ),
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.std(bias, *args, **kwargs)
 
