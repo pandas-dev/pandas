@@ -1,6 +1,6 @@
 .. _whatsnew_151:
 
-What's new in 1.5.1 (October ??, 2022)
+What's new in 1.5.1 (October 19, 2022)
 --------------------------------------
 
 These are the changes in pandas 1.5.1. See :ref:`release` for a full changelog
@@ -111,8 +111,6 @@ Bug fixes
 Other
 ~~~~~
 - Avoid showing deprecated signatures when introspecting functions with warnings about arguments becoming keyword-only (:issue:`48692`)
--
--
 
 .. ---------------------------------------------------------------------------
 
@@ -120,3 +118,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v1.5.0..v1.5.1
