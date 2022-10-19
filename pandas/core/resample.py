@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 from datetime import timedelta
-import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -12,7 +11,6 @@ from typing import (
     final,
     no_type_check,
 )
-import warnings
 
 import numpy as np
 
@@ -51,7 +49,6 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -522,11 +519,21 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Potentially wrap any results.
         """
+        # GH 47705
+        obj = self.obj
+        if (
+            isinstance(result, ABCDataFrame)
+            and result.empty
+            and not isinstance(result.index, PeriodIndex)
+        ):
+            result = result.set_index(
+                _asfreq_compat(obj.index[:0], freq=self.freq), append=True
+            )
+
         if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
-            obj = self.obj
             # When index is all NaT, result is empty but index is not
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
@@ -552,30 +559,6 @@ class Resampler(BaseGroupBy, PandasObject):
         DataFrame.fillna: Fill NA/NaN values using the specified method.
         """
         return self._upsample("ffill", limit=limit)
-
-    def pad(self, limit=None):
-        """
-        Forward fill the values.
-
-        .. deprecated:: 1.4
-            Use ffill instead.
-
-        Parameters
-        ----------
-        limit : int, optional
-            Limit of how many values to fill.
-
-        Returns
-        -------
-        An upsampled Series.
-        """
-        warnings.warn(
-            "pad is deprecated and will be removed in a future version. "
-            "Use ffill instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self.ffill(limit=limit)
 
     def nearest(self, limit=None):
         """
@@ -738,31 +721,6 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 02:00:00  6.0  5.0
         """
         return self._upsample("bfill", limit=limit)
-
-    def backfill(self, limit=None):
-        """
-        Backward fill the values.
-
-        .. deprecated:: 1.4
-            Use bfill instead.
-
-        Parameters
-        ----------
-        limit : int, optional
-            Limit of how many values to fill.
-
-        Returns
-        -------
-        Series, DataFrame
-            An upsampled Series or DataFrame with backward filled NaN values.
-        """
-        warnings.warn(
-            "backfill is deprecated and will be removed in a future version. "
-            "Use bfill instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self.bfill(limit=limit)
 
     def fillna(self, method, limit=None):
         """
@@ -974,6 +932,28 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
+    def mean(
+        self,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        *args,
+        **kwargs,
+    ):
+        """
+        Compute mean of groups, excluding missing values.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+        Returns
+        -------
+        DataFrame or Series
+            Mean of values within each group.
+        """
+        nv.validate_resampler_func("mean", args, kwargs)
+        return self._downsample("mean", numeric_only=numeric_only)
+
     def std(
         self,
         ddof: int = 1,
@@ -1163,7 +1143,7 @@ def _add_downsample_kernel(
 
 for method in ["sum", "prod", "min", "max", "first", "last"]:
     _add_downsample_kernel(method, ("numeric_only", "min_count"))
-for method in ["mean", "median"]:
+for method in ["median"]:
     _add_downsample_kernel(method, ("numeric_only",))
 for method in ["sem"]:
     _add_downsample_kernel(method, ("ddof", "numeric_only"))

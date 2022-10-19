@@ -124,6 +124,26 @@ from pandas.tests.extension.decimal import (
             None,
             TimedeltaArray._from_sequence(["1H", "2H"]),
         ),
+        (
+            # preserve non-nano, i.e. don't cast to PandasArray
+            TimedeltaArray._simple_new(
+                np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
+            ),
+            None,
+            TimedeltaArray._simple_new(
+                np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
+            ),
+        ),
+        (
+            # preserve non-nano, i.e. don't cast to PandasArray
+            TimedeltaArray._simple_new(
+                np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
+            ),
+            np.dtype("m8[s]"),
+            TimedeltaArray._simple_new(
+                np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
+            ),
+        ),
         # Category
         (["a", "b"], "category", pd.Categorical(["a", "b"])),
         (
@@ -222,7 +242,9 @@ cet = pytz.timezone("CET")
         ),
         (
             np.array([1, 2], dtype="M8[us]"),
-            DatetimeArray(np.array([1000, 2000], dtype="M8[ns]")),
+            DatetimeArray._simple_new(
+                np.array([1, 2], dtype="M8[us]"), dtype=np.dtype("M8[us]")
+            ),
         ),
         # datetimetz
         (
@@ -251,7 +273,7 @@ cet = pytz.timezone("CET")
         ),
         (
             np.array([1, 2], dtype="m8[us]"),
-            TimedeltaArray(np.array([1000, 2000], dtype="m8[ns]")),
+            TimedeltaArray(np.array([1, 2], dtype="m8[us]")),
         ),
         # integer
         ([1, 2], IntegerArray._from_sequence([1, 2])),

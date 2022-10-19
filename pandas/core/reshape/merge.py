@@ -6,7 +6,6 @@ from __future__ import annotations
 import copy
 import datetime
 from functools import partial
-import inspect
 import string
 from typing import (
     TYPE_CHECKING,
@@ -686,9 +685,7 @@ class _MergeOperation:
             )
             # stacklevel chosen to be correct when this is reached via pd.merge
             # (and not DataFrame.join)
-            warnings.warn(
-                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-            )
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
@@ -911,6 +908,8 @@ class _MergeOperation:
         left_has_missing = None
         right_has_missing = None
 
+        assert all(is_array_like(x) for x in self.left_join_keys)
+
         keys = zip(self.join_names, self.left_on, self.right_on)
         for i, (name, lname, rname) in enumerate(keys):
             if not _should_fill(lname, rname):
@@ -947,7 +946,7 @@ class _MergeOperation:
                             ):
                                 take_right = self.right[name]._values
 
-            elif left_indexer is not None and is_array_like(self.left_join_keys[i]):
+            elif left_indexer is not None:
                 take_left = self.left_join_keys[i]
                 take_right = self.right_join_keys[i]
 
@@ -1311,7 +1310,7 @@ class _MergeOperation:
                                 "columns where the float values "
                                 "are not equal to their int representation.",
                                 UserWarning,
-                                stacklevel=find_stack_level(inspect.currentframe()),
+                                stacklevel=find_stack_level(),
                             )
                     continue
 
@@ -1333,7 +1332,7 @@ class _MergeOperation:
                                 "columns where the float values "
                                 "are not equal to their int representation.",
                                 UserWarning,
-                                stacklevel=find_stack_level(inspect.currentframe()),
+                                stacklevel=find_stack_level(),
                             )
                     continue
 
@@ -1725,7 +1724,8 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        join_levels = join_levels + [restore_levels]
+        # error: Cannot determine type of "__add__"
+        join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
         join_codes = join_codes + [restore_codes]
         join_names = join_names + [dropped_level_name]
 
@@ -2481,7 +2481,7 @@ def _items_overlap_with_suffix(
             "unexpected results. Provide 'suffixes' as a tuple instead. In the "
             "future a 'TypeError' will be raised.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     to_rename = left.intersection(right)
@@ -2531,7 +2531,7 @@ def _items_overlap_with_suffix(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
             f"result is deprecated and will raise a MergeError in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     return llabels, rlabels

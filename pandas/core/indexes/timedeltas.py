@@ -12,7 +12,6 @@ from pandas._libs.tslibs import (
 from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.common import (
-    TD64NS_DTYPE,
     is_scalar,
     is_timedelta64_dtype,
 )
@@ -121,14 +120,14 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         unit=None,
         freq=lib.no_default,
         closed=None,
-        dtype=TD64NS_DTYPE,
+        dtype=None,
         copy: bool = False,
         name=None,
     ):
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
-            raise cls._scalar_data_error(data)
+            cls._raise_scalar_data_error(data)
 
         if unit in {"Y", "y", "M"}:
             raise ValueError(
