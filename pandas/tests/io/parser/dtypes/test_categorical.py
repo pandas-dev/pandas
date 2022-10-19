@@ -263,7 +263,15 @@ def test_categorical_coerces_timestamp(all_parsers):
     dtype = {"b": CategoricalDtype([Timestamp("2014")])}
 
     data = "b\n2014-01-01\n2014-01-01T00:00:00"
-    expected = DataFrame({"b": Categorical([Timestamp("2014")] * 2)})
+    if parser.engine == "pyarrow":
+        # pyarrow parses the data, and then
+        # converts to the dtypes
+        expected = DataFrame({"b": Categorical([Timestamp("2014")] * 2)})
+    else:
+        # pandas parses the data as the dtype as it reads it,
+        # but the second row doesn't respect the format inferred
+        # from the first row (%Y-%m-%d)
+        expected = DataFrame({"b": Categorical([Timestamp("2014"), pd.NaT])})
 
     result = parser.read_csv(StringIO(data), dtype=dtype)
     tm.assert_frame_equal(result, expected)
