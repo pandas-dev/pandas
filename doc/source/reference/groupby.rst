@@ -65,7 +65,6 @@ Function application
 
    DataFrameGroupBy.all
    DataFrameGroupBy.any
-   DataFrameGroupBy.backfill
    DataFrameGroupBy.bfill
    DataFrameGroupBy.corr
    DataFrameGroupBy.corrwith
@@ -94,7 +93,6 @@ Function application
    DataFrameGroupBy.nth
    DataFrameGroupBy.nunique
    DataFrameGroupBy.ohlc
-   DataFrameGroupBy.pad
    DataFrameGroupBy.pct_change
    DataFrameGroupBy.prod
    DataFrameGroupBy.quantile
@@ -120,7 +118,6 @@ Function application
 
    SeriesGroupBy.all
    SeriesGroupBy.any
-   SeriesGroupBy.backfill
    SeriesGroupBy.bfill
    SeriesGroupBy.corr
    SeriesGroupBy.count
@@ -153,7 +150,6 @@ Function application
    SeriesGroupBy.nunique
    SeriesGroupBy.unique
    SeriesGroupBy.ohlc
-   SeriesGroupBy.pad
    SeriesGroupBy.pct_change
    SeriesGroupBy.prod
    SeriesGroupBy.quantile
