@@ -1825,7 +1825,7 @@ class _iLocIndexer(_LocationIndexer):
 
         # we need an iterable, with a ndim of at least 1
         # eg. don't pass through np.array(0)
-        if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
+        if is_list_like_indexer(value) and np.iterable(value) and getattr(value, "ndim", 1) > 0:
 
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
@@ -1977,6 +1977,7 @@ class _iLocIndexer(_LocationIndexer):
             pass
         elif (
             is_array_like(value)
+            and getattr(value, "shape", False)
             and len(value.shape) > 0
             and self.obj.shape[0] == value.shape[0]
             and not is_empty_indexer(pi)

@@ -1,6 +1,15 @@
 import numpy as np
 import pytest
 
+try:
+    import uncertainties.unumpy as unp
+    from uncertainties import ufloat, UFloat
+    HAS_UNCERTAINTIES = True
+    _ufloat_nan = ufloat(np.nan, 0)
+except ImportError:
+    unp = np
+    HAS_UNCERTAINTIES = False
+
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
@@ -97,7 +106,11 @@ class BaseSetitemTests(BaseExtensionTests):
         assert arr[0] == data[1]
 
     def test_setitem_loc_scalar_mixed(self, data):
-        df = pd.DataFrame({"A": np.arange(len(data)), "B": data})
+        if HAS_UNCERTAINTIES:
+            scalar_data = np.arange(len(data)) + ufloat(0, 0)
+        else:
+            scalar_data = np.arange(len(data))
+        df = pd.DataFrame({"A": scalar_data , "B": data})
         df.loc[0, "B"] = data[1]
         assert df.loc[0, "B"] == data[1]
 
@@ -112,7 +125,11 @@ class BaseSetitemTests(BaseExtensionTests):
         assert df.loc[10, "B"] == data[1]
 
     def test_setitem_iloc_scalar_mixed(self, data):
-        df = pd.DataFrame({"A": np.arange(len(data)), "B": data})
+        if HAS_UNCERTAINTIES:
+            scalar_data = np.arange(len(data)) + ufloat(0, 0)
+        else:
+            scalar_data = np.arange(len(data))
+        df = pd.DataFrame({"A": scalar_data , "B": data})
         df.iloc[0, 1] = data[1]
         assert df.loc[0, "B"] == data[1]
 
@@ -427,7 +444,10 @@ class BaseSetitemTests(BaseExtensionTests):
         # GH#40763
         ser = pd.Series(data, name="data")
 
-        taker = np.arange(len(ser))
+        if HAS_UNCERTAINTIES:
+            taker = np.arange(len(ser)) + ufloat(0, 0)
+        else:
+            taker = np.arange(len(ser))
         taker = np.delete(taker, 1)
 
         expected = ser[taker]
