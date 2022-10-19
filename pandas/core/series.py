@@ -2195,7 +2195,9 @@ Name: Max Speed, dtype: float64
         array([2, 1, 3])
 
         >>> pd.Series([pd.Timestamp('2016-01-01') for _ in range(3)]).unique()
-        array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+        <DatetimeArray>
+        ['2016-01-01 00:00:00']
+        Length: 1, dtype: datetime64[ns]
 
         >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
         ...            for _ in range(3)]).unique()
