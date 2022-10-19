@@ -19,7 +19,7 @@ except ImportError:
 
 def flatten_buffer(
     b: bytes | bytearray | memoryview | PickleBuffer,
-) -> bytes | memoryview:
+) -> bytes | bytearray | memoryview:
     """
     Return some 1-D `uint8` typed buffer.
 
