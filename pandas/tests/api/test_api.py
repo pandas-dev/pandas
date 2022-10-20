@@ -98,9 +98,6 @@ class TestPDApi(Base):
     # these are already deprecated; awaiting removal
     deprecated_classes: list[str] = ["Float64Index", "Int64Index", "UInt64Index"]
 
-    # these should be deprecated in the future
-    deprecated_classes_in_future: list[str] = ["SparseArray"]
-
     # external modules exposed in pandas namespace
     modules: list[str] = []
 
@@ -235,21 +232,12 @@ class TestPDApi(Base):
     def test_depr(self):
         deprecated_list = (
             self.deprecated_classes
-            + self.deprecated_classes_in_future
             + self.deprecated_funcs
             + self.deprecated_funcs_in_future
         )
         for depr in deprecated_list:
             with tm.assert_produces_warning(FutureWarning):
                 _ = getattr(pd, depr)
-
-
-def test_sparsearray():
-    import warnings
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
-        assert isinstance(pd.array([1, 2, 3], dtype="Sparse"), pd.SparseArray)
 
 
 class TestApi(Base):

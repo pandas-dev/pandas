@@ -167,6 +167,7 @@ Removal of prior version deprecations/changes
 - Removed the ``center`` keyword in :meth:`DataFrame.expanding` (:issue:`20647`)
 - Removed the  ``pandas.datetime`` (:issue:`30489`)
 - Removed the ``pandas.np`` submodule (:issue:`30296`)
+- Removed ``pandas.SparseArray`` in favor of :class:`arrays.SparseArray` (:issue:`30642`)
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
 -
 

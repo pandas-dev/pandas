@@ -223,19 +223,6 @@ def __getattr__(name):
 
         return type(name, (), {})
 
-    elif name == "SparseArray":
-
-        warnings.warn(
-            "The pandas.SparseArray class is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Use pandas.arrays.SparseArray instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        from pandas.core.arrays.sparse import SparseArray as _SparseArray
-
-        return _SparseArray
-
     raise AttributeError(f"module 'pandas' has no attribute '{name}'")
 
 
