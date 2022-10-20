@@ -11892,7 +11892,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -11906,7 +11905,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -11920,7 +11918,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -11937,7 +11934,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         return super().where(
             cond,
@@ -11945,7 +11941,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
     @overload
@@ -11958,7 +11953,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -11972,7 +11966,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -11986,7 +11979,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -12003,7 +11995,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         return super().mask(
             cond,
@@ -12011,7 +12002,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
 
