@@ -213,16 +213,6 @@ def __getattr__(name):
             "UInt64Index": UInt64Index,
         }[name]
 
-    elif name in {"SparseSeries", "SparseDataFrame"}:
-        warnings.warn(
-            f"The {name} class is removed from pandas. Accessing it from "
-            "the top-level namespace will also be removed in the next version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return type(name, (), {})
-
     raise AttributeError(f"module 'pandas' has no attribute '{name}'")
 
 
