@@ -93,6 +93,7 @@ def test_tick_equality(cls, n, m):
 
     right = cls(n)
     assert left == right
+    assert not left != right
 
     if n != 0:
         assert cls(n) != cls(-n)
