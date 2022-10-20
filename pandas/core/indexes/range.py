@@ -456,24 +456,9 @@ class RangeIndex(NumericIndex):
         return result
 
     @doc(Int64Index.copy)
-    def copy(
-        self,
-        name: Hashable = None,
-        deep: bool = False,
-        dtype: Dtype | None = None,
-        names=None,
-    ):
-        name = self._validate_names(name=name, names=names, deep=deep)[0]
+    def copy(self, name: Hashable = None, deep: bool = False):
+        name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
-
-        if dtype:
-            warnings.warn(
-                "parameter dtype is deprecated and will be removed in a future "
-                "version. Use the astype method instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            new_index = new_index.astype(dtype)
         return new_index
 
     def _minmax(self, meth: str):
