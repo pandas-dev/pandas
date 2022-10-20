@@ -2228,7 +2228,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     """
 
     def font_weight(value, arg):
-        if value in ('bold', 'bolder'):
+        if value in ("bold", "bolder"):
             return "bfseries", f"{arg}"
         return None
 
