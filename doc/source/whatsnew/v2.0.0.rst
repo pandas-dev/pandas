@@ -146,6 +146,7 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Remove arguments ``names`` and ``dtype`` from :meth:`Index.copy` and ``levels`` and ``codes`` from :meth:`MultiIndex.copy` (:issue:`35853`, :issue:`36685`)
 - Disallow passing non-round floats to :class:`Timestamp` with ``unit="M"`` or ``unit="Y"`` (:issue:`47266`)
+- Removed the ``numeric_only`` keyword from :meth:`Categorical.min` and :meth:`Categorical.max` in favor of ``skipna`` (:issue:`48821`)
 - Removed :func:`is_extension_type` in favor of :func:`is_extension_array_dtype` (:issue:`29457`)
 - Remove :meth:`DataFrameGroupBy.pad` and :meth:`DataFrameGroupBy.backfill` (:issue:`45076`)
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
