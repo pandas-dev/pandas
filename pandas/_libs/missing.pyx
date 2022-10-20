@@ -341,7 +341,7 @@ def is_numeric_na(values: ndarray) -> ndarray:
 def _create_binary_propagating_op(name, is_divmod=False):
 
     def method(self, other):
-        if (other is C_NA or isinstance(other, str)
+        if (other is C_NA or isinstance(other, (str, bytes))
                 or isinstance(other, (numbers.Number, np.bool_))
                 or util.is_array(other) and not other.shape):
             # Need the other.shape clause to handle NumPy scalars,

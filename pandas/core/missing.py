@@ -418,7 +418,7 @@ def _interpolate_1d(
 
     # For example if limit_direction='forward' then preserve_nans will
     # contain indices of NaNs at the beginning of the series, and NaNs that
-    # are more than'limit' away from the prior non-NaN.
+    # are more than 'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
     preserve_nans: list | set

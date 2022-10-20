@@ -10,7 +10,6 @@ from datetime import (
     date,
     tzinfo,
 )
-import inspect
 import itertools
 import os
 import re
@@ -693,7 +692,7 @@ class HDFStore:
             "iteritems is deprecated and will be removed in a future version. "
             "Use .items instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         yield from self.items()
 
@@ -1658,13 +1657,6 @@ class HDFStore:
         if value is not None and not isinstance(value, (Series, DataFrame)):
             raise TypeError("value must be None, Series, or DataFrame")
 
-        def error(t):
-            # return instead of raising so mypy can tell where we are raising
-            return TypeError(
-                f"cannot properly create the storer for: [{t}] [group->"
-                f"{group},value->{type(value)},format->{format}"
-            )
-
         pt = _ensure_decoded(getattr(group._v_attrs, "pandas_type", None))
         tt = _ensure_decoded(getattr(group._v_attrs, "table_type", None))
 
@@ -1699,7 +1691,10 @@ class HDFStore:
             try:
                 cls = _STORER_MAP[pt]
             except KeyError as err:
-                raise error("_STORER_MAP") from err
+                raise TypeError(
+                    f"cannot properly create the storer for: [_STORER_MAP] [group->"
+                    f"{group},value->{type(value)},format->{format}"
+                ) from err
             return cls(self, group, encoding=encoding, errors=errors)
 
         # existing node (and must be a table)
@@ -1732,7 +1727,10 @@ class HDFStore:
         try:
             cls = _TABLE_MAP[tt]
         except KeyError as err:
-            raise error("_TABLE_MAP") from err
+            raise TypeError(
+                f"cannot properly create the storer for: [_TABLE_MAP] [group->"
+                f"{group},value->{type(value)},format->{format}"
+            ) from err
 
         return cls(self, group, encoding=encoding, errors=errors)
 
@@ -2199,9 +2197,7 @@ class IndexCol:
                 if key in ["freq", "index_name"]:
                     ws = attribute_conflict_doc % (key, existing_value, value)
                     warnings.warn(
-                        ws,
-                        AttributeConflictWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        ws, AttributeConflictWarning, stacklevel=find_stack_level()
                     )
 
                     # reset
@@ -3010,7 +3006,7 @@ class GenericFixed(Fixed):
         attrs = node._v_attrs
         factory, kwargs = self._get_index_factory(attrs)
 
-        if kind == "date":
+        if kind == "date" or kind == "object":
             index = factory(
                 _unconvert_index(
                     data, kind, encoding=self.encoding, errors=self.errors
@@ -3096,11 +3092,7 @@ class GenericFixed(Fixed):
                 pass
             else:
                 ws = performance_doc % (inferred_type, key, items)
-                warnings.warn(
-                    ws,
-                    PerformanceWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
-                )
+                warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
@@ -3541,7 +3533,7 @@ class Table(Fixed):
                 warnings.warn(
                     ws,
                     IncompatibilityWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
     def validate_min_itemsize(self, min_itemsize) -> None:

@@ -147,6 +147,7 @@ def test_parsers_month_freq(date_str, expected):
     [
         ("20111230", "%Y%m%d"),
         ("2011-12-30", "%Y-%m-%d"),
+        ("2011", "%Y"),
         ("30-12-2011", "%d-%m-%Y"),
         ("2011-12-30 00:00:00", "%Y-%m-%d %H:%M:%S"),
         ("2011-12-30T00:00:00", "%Y-%m-%dT%H:%M:%S"),
@@ -208,12 +209,12 @@ def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
 @pytest.mark.parametrize(
     "invalid_dt",
     [
-        "2013",
         "01/2013",
         "12:00:00",
         "1/1/1/1",
         "this_is_not_a_datetime",
         "51a",
+        "13/2019",
     ],
 )
 def test_guess_datetime_format_invalid_inputs(invalid_dt):
@@ -294,4 +295,19 @@ def test_parse_time_string_check_instance_type_raise_exception():
 def test_is_iso_format(fmt, expected):
     # see gh-41047
     result = parsing.format_is_iso(fmt)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "input",
+    [
+        "2018-01-01T00:00:00.123456789",
+        "2018-01-01T00:00:00.123456",
+        "2018-01-01T00:00:00.123",
+    ],
+)
+def test_guess_datetime_format_f(input):
+    # https://github.com/pandas-dev/pandas/issues/49043
+    result = parsing.guess_datetime_format(input)
+    expected = "%Y-%m-%dT%H:%M:%S.%f"
     assert result == expected

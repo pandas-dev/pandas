@@ -1280,9 +1280,14 @@ class TestReadHtml:
             def seekable(self):
                 return True
 
+            # GH 49036 pylint checks for presence of __next__ for iterators
+            def __next__(self):
+                ...
+
             def __iter__(self) -> Iterator:
-                # to fool `is_file_like`, should never end up here
-                assert False
+                # `is_file_like` depends on the presence of
+                # the __iter__ attribute.
+                return self
 
         good = MockFile("<table><tr><td>spam<br />eggs</td></tr></table>")
         bad = MockFile("<table><tr><td>spam<foobr />eggs</td></tr></table>")

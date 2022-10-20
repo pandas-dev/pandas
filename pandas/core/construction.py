@@ -6,7 +6,6 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -45,7 +44,6 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
     maybe_upcast,
-    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
@@ -578,7 +576,7 @@ def sanitize_array(
                     "passed dtype. To retain the old behavior, call Series(arr) or "
                     "DataFrame(arr) without passing a dtype.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 subarr = np.array(data, copy=copy)
             except ValueError:
@@ -590,7 +588,7 @@ def sanitize_array(
                         "if they cannot be cast losslessly (matching Series behavior). "
                         "To retain the old behavior, use DataFrame(data).astype(dtype)",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
                     # GH#40110 until the deprecation is enforced, we _dont_
                     #  ignore the dtype for DataFrame, and _do_ cast even though
@@ -782,7 +780,9 @@ def _try_cast(
         if is_ndarray:
             arr = cast(np.ndarray, arr)
             if arr.dtype != object:
-                return sanitize_to_nanoseconds(arr, copy=copy)
+                if copy:
+                    return arr.copy()
+                return arr
 
             out = maybe_infer_to_datetimelike(arr)
             if out is arr and copy:
@@ -862,7 +862,7 @@ def _try_cast(
                 "passed to 'DataFrame', either all columns will be cast to that "
                 "dtype, or a TypeError will be raised.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             subarr = np.array(arr, dtype=object, copy=copy)
     return subarr

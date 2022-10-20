@@ -14,7 +14,6 @@ import collections
 from collections import abc
 import datetime
 import functools
-import inspect
 from io import StringIO
 import itertools
 from textwrap import dedent
@@ -684,7 +683,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "removed in a future version.  Pass "
                     "{name: data[name] for name in data.dtype.names} instead.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
             # a masked array
@@ -1363,7 +1362,7 @@ class DataFrame(NDFrame, OpsMixin):
             "iteritems is deprecated and will be removed in a future version. "
             "Use .items instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         yield from self.items()
 
@@ -1977,7 +1976,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "DataFrame columns are not unique, some columns will be omitted.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         # GH16122
         into_c = com.standardize_mapping(into)
@@ -2001,7 +2000,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "will be used in a future version. Use one of the above "
                 "to silence this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
             if orient.startswith("d"):
@@ -2850,7 +2849,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "'showindex' is deprecated. Only 'index' will be used "
                 "in a future version. Use 'index' to silence this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         kwargs.setdefault("headers", "keys")
@@ -3464,7 +3463,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "null_counts is deprecated. Use show_counts instead",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             show_counts = null_counts
         info = DataFrameInfo(
@@ -3855,7 +3854,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "Boolean Series key will be reindexed to match DataFrame index.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         elif len(key) != len(self.index):
             raise ValueError(
@@ -4111,7 +4110,7 @@ class DataFrame(NDFrame, OpsMixin):
         if key in self.columns:
             loc = self.columns.get_loc(key)
             cols = self.columns[loc]
-            len_cols = 1 if is_scalar(cols) else len(cols)
+            len_cols = 1 if is_scalar(cols) or isinstance(cols, tuple) else len(cols)
             if len_cols != len(value.columns):
                 raise ValueError("Columns must be same length as key")
 
@@ -4965,9 +4964,7 @@ class DataFrame(NDFrame, OpsMixin):
             "You can use DataFrame.melt and DataFrame.loc "
             "as a substitute."
         )
-        warnings.warn(
-            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         n = len(row_labels)
         if n != len(col_labels):
@@ -8387,23 +8384,10 @@ Parrot 2  Parrot       24.0
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = no_default,
-        squeeze: bool | lib.NoDefault = no_default,
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
-
-        if squeeze is not no_default:
-            warnings.warn(
-                (
-                    "The `squeeze` parameter is deprecated and "
-                    "will be removed in a future version."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-        else:
-            squeeze = False
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -8417,7 +8401,6 @@ Parrot 2  Parrot       24.0
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )
@@ -9783,7 +9766,7 @@ Parrot 2  Parrot       24.0
             "and will be removed from pandas in a future version. "
             "Use pandas.concat instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
         return self._append(other, ignore_index, verify_integrity, sort)
@@ -10580,40 +10563,8 @@ Parrot 2  Parrot       24.0
         if numeric_only is lib.no_default and len(this.columns) < len(self.columns):
             com.deprecate_numeric_only_default(type(self), "corrwith")
 
-        # GH46174: when other is a Series object and axis=0, we achieve a speedup over
-        # passing .corr() to .apply() by taking the columns as ndarrays and iterating
-        # over the transposition row-wise. Then we delegate the correlation coefficient
-        # computation and null-masking to np.corrcoef and np.isnan respectively,
-        # which are much faster. We exploit the fact that the Spearman correlation
-        # of two vectors is equal to the Pearson correlation of their ranks to use
-        # substantially the same method for Pearson and Spearman,
-        # just with intermediate argsorts on the latter.
         if isinstance(other, Series):
-            if axis == 0 and method in ["pearson", "spearman"]:
-                corrs = {}
-                if numeric_only:
-                    cols = self.select_dtypes(include=np.number).columns
-                    ndf = self[cols].values.transpose()
-                else:
-                    cols = self.columns
-                    ndf = self.values.transpose()
-                k = other.values
-                if method == "pearson":
-                    for i, r in enumerate(ndf):
-                        nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[cols[i]] = np.corrcoef(r[nonnull_mask], k[nonnull_mask])[
-                            0, 1
-                        ]
-                else:
-                    for i, r in enumerate(ndf):
-                        nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[cols[i]] = np.corrcoef(
-                            r[nonnull_mask].argsort().argsort(),
-                            k[nonnull_mask].argsort().argsort(),
-                        )[0, 1]
-                return Series(corrs)
-            else:
-                return this.apply(lambda x: other.corr(x, method=method), axis=axis)
+            return this.apply(lambda x: other.corr(x, method=method), axis=axis)
 
         if numeric_only_bool:
             other = other._get_numeric_data()
@@ -10749,7 +10700,7 @@ Parrot 2  Parrot       24.0
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.count(level=1) should use df.groupby(level=1).count().",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             res = self._count_level(level, axis=axis, numeric_only=numeric_only)
             return res.__finalize__(self, method="count")
@@ -10851,7 +10802,7 @@ Parrot 2  Parrot       24.0
                     "will include datetime64 and datetime64tz columns in a "
                     "future version.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 # Non-copy equivalent to
                 #  dt64_cols = self.dtypes.apply(is_datetime64_any_dtype)
@@ -10952,7 +10903,7 @@ Parrot 2  Parrot       24.0
                 "version this will raise TypeError.  Select only valid "
                 "columns before calling the reduction.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if hasattr(result, "dtype"):
@@ -11927,7 +11878,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -11941,7 +11891,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -11955,7 +11904,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -11972,7 +11920,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         return super().where(
             cond,
@@ -11980,7 +11927,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
     @overload
@@ -11993,7 +11939,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -12007,7 +11952,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -12021,7 +11965,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -12033,12 +11976,11 @@ Parrot 2  Parrot       24.0
     def mask(  # type: ignore[override]
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         return super().mask(
             cond,
@@ -12046,7 +11988,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
 

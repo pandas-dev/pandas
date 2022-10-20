@@ -17,6 +17,10 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
+from pandas._libs.tslibs import (
+    get_unit_from_dtype,
+    is_supported_unit,
+)
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -423,6 +427,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             data = self._data.astype(dtype, copy=copy)
         return data
 
+    @doc(ExtensionArray.tolist)
+    def tolist(self):
+        if self.ndim > 1:
+            return [x.tolist() for x in self]
+        if not self._hasna:
+            # faster than list(self)
+            return list(self._data)
+        return list(self)
+
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
         ...
@@ -750,12 +763,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return BooleanArray(result, mask, copy=False)
 
-        elif result.dtype == "timedelta64[ns]":
+        elif (
+            isinstance(result.dtype, np.dtype)
+            and result.dtype.kind == "m"
+            and is_supported_unit(get_unit_from_dtype(result.dtype))
+        ):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
             if not isinstance(result, TimedeltaArray):
-                result = TimedeltaArray._simple_new(result)
+                result = TimedeltaArray._simple_new(result, dtype=result.dtype)
 
             result[mask] = result.dtype.type("NaT")
             return result
