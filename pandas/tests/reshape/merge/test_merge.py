@@ -621,7 +621,7 @@ class TestMerge:
         }
         df = DataFrame.from_dict(d)
         var3 = df.var3.unique()
-        var3.sort()
+        var3 = np.sort(var3)
         new = DataFrame.from_dict({"var3": var3, "var8": np.random.random(7)})
 
         result = df.merge(new, on="var3", sort=False)

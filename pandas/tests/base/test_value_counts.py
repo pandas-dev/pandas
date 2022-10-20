@@ -245,14 +245,16 @@ def test_value_counts_datetime64(index_or_series):
     expected_s = Series([3, 2, 1], index=idx)
     tm.assert_series_equal(s.value_counts(), expected_s)
 
-    expected = np.array(
-        ["2010-01-01 00:00:00", "2009-01-01 00:00:00", "2008-09-09 00:00:00"],
-        dtype="datetime64[ns]",
+    expected = pd.array(
+        np.array(
+            ["2010-01-01 00:00:00", "2009-01-01 00:00:00", "2008-09-09 00:00:00"],
+            dtype="datetime64[ns]",
+        )
     )
     if isinstance(s, Index):
         tm.assert_index_equal(s.unique(), DatetimeIndex(expected))
     else:
-        tm.assert_numpy_array_equal(s.unique(), expected)
+        tm.assert_extension_array_equal(s.unique(), expected)
 
     assert s.nunique() == 3
 
@@ -277,7 +279,7 @@ def test_value_counts_datetime64(index_or_series):
         exp_idx = DatetimeIndex(expected.tolist() + [pd.NaT])
         tm.assert_index_equal(unique, exp_idx)
     else:
-        tm.assert_numpy_array_equal(unique[:3], expected)
+        tm.assert_extension_array_equal(unique[:3], expected)
         assert pd.isna(unique[3])
 
     assert s.nunique() == 3
@@ -295,7 +297,7 @@ def test_value_counts_datetime64(index_or_series):
     if isinstance(td, Index):
         tm.assert_index_equal(td.unique(), expected)
     else:
-        tm.assert_numpy_array_equal(td.unique(), expected.values)
+        tm.assert_extension_array_equal(td.unique(), expected._values)
 
     td2 = timedelta(1) + (df.dt - df.dt)
     td2 = klass(td2, name="dt")
