@@ -774,39 +774,11 @@ class TestTake:
 
 
 class TestGetValue:
-    def test_get_value(self):
-        # GH 17717
-        p0 = Period("2017-09-01")
-        p1 = Period("2017-09-02")
-        p2 = Period("2017-09-03")
-
-        idx0 = PeriodIndex([p0, p1, p2])
-        input0 = Series(np.array([1, 2, 3]), index=idx0)
-        expected0 = 2
-
-        with tm.assert_produces_warning(FutureWarning):
-            result0 = idx0.get_value(input0, p1)
-        assert result0 == expected0
-
-        idx1 = PeriodIndex([p1, p1, p2])
-        input1 = Series(np.array([1, 2, 3]), index=idx1)
-        expected1 = input1.iloc[[0, 1]]
-
-        with tm.assert_produces_warning(FutureWarning):
-            result1 = idx1.get_value(input1, p1)
-        tm.assert_series_equal(result1, expected1)
-
-        idx2 = PeriodIndex([p1, p2, p1])
-        input2 = Series(np.array([1, 2, 3]), index=idx2)
-        expected2 = input2.iloc[[0, 2]]
-
-        with tm.assert_produces_warning(FutureWarning):
-            result2 = idx2.get_value(input2, p1)
-        tm.assert_series_equal(result2, expected2)
-
     @pytest.mark.parametrize("freq", ["H", "D"])
     def test_get_value_datetime_hourly(self, freq):
         # get_loc and get_value should treat datetime objects symmetrically
+        # TODO: this test used to test get_value, which is removed in 2.0.
+        #  should this test be moved somewhere, or is what's left redundant?
         dti = date_range("2016-01-01", periods=3, freq="MS")
         pi = dti.to_period(freq)
         ser = Series(range(7, 10), index=pi)
@@ -814,8 +786,6 @@ class TestGetValue:
         ts = dti[0]
 
         assert pi.get_loc(ts) == 0
-        with tm.assert_produces_warning(FutureWarning):
-            assert pi.get_value(ser, ts) == 7
         assert ser[ts] == 7
         assert ser.loc[ts] == 7
 
@@ -824,34 +794,13 @@ class TestGetValue:
             with pytest.raises(KeyError, match="2016-01-01 03:00"):
                 pi.get_loc(ts2)
             with pytest.raises(KeyError, match="2016-01-01 03:00"):
-                with tm.assert_produces_warning(FutureWarning):
-                    pi.get_value(ser, ts2)
-            with pytest.raises(KeyError, match="2016-01-01 03:00"):
                 ser[ts2]
             with pytest.raises(KeyError, match="2016-01-01 03:00"):
                 ser.loc[ts2]
         else:
             assert pi.get_loc(ts2) == 0
-            with tm.assert_produces_warning(FutureWarning):
-                assert pi.get_value(ser, ts2) == 7
             assert ser[ts2] == 7
             assert ser.loc[ts2] == 7
-
-    def test_get_value_integer(self):
-        msg = "index 16801 is out of bounds for axis 0 with size 3"
-        dti = date_range("2016-01-01", periods=3)
-        pi = dti.to_period("D")
-        ser = Series(range(3), index=pi)
-        with pytest.raises(IndexError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                pi.get_value(ser, 16801)
-
-        msg = "index 46 is out of bounds for axis 0 with size 3"
-        pi2 = dti.to_period("Y")  # duplicates, ordinals are all 46
-        ser2 = Series(range(3), index=pi2)
-        with pytest.raises(IndexError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                pi2.get_value(ser2, 46)
 
 
 class TestContains:
@@ -864,7 +813,6 @@ class TestContains:
 
         ps0 = [p0, p1, p2]
         idx0 = PeriodIndex(ps0)
-        ser = Series(range(6, 9), index=idx0)
 
         for p in ps0:
             assert p in idx0
@@ -876,9 +824,6 @@ class TestContains:
         assert key not in idx0
         with pytest.raises(KeyError, match=key):
             idx0.get_loc(key)
-        with pytest.raises(KeyError, match=key):
-            with tm.assert_produces_warning(FutureWarning):
-                idx0.get_value(ser, key)
 
         assert "2017-09" in idx0
 

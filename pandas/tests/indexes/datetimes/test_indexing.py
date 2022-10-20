@@ -710,33 +710,6 @@ class TestMaybeCastSliceBound:
         assert result == expected
 
 
-class TestGetValue:
-    def test_get_value(self):
-        # specifically make sure we have test for np.datetime64 key
-        dti = date_range("2016-01-01", periods=3)
-
-        arr = np.arange(6, 9)
-        ser = pd.Series(arr, index=dti)
-
-        key = dti[1]
-
-        with pytest.raises(AttributeError, match="has no attribute '_values'"):
-            with tm.assert_produces_warning(FutureWarning):
-                dti.get_value(arr, key)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = dti.get_value(ser, key)
-        assert result == 7
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = dti.get_value(ser, key.to_pydatetime())
-        assert result == 7
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = dti.get_value(ser, key.to_datetime64())
-        assert result == 7
-
-
 class TestGetSliceBounds:
     @pytest.mark.parametrize("box", [date, datetime, Timestamp])
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])

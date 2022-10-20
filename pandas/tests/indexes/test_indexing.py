@@ -28,7 +28,6 @@ from pandas import (
     NaT,
     PeriodIndex,
     RangeIndex,
-    Series,
     TimedeltaIndex,
 )
 import pandas._testing as tm
@@ -174,25 +173,6 @@ class TestContains:
         )
         with pytest.raises(TypeError, match=msg):
             {} in index._engine
-
-
-class TestGetValue:
-    @pytest.mark.parametrize(
-        "index", ["string", "int", "datetime", "timedelta"], indirect=True
-    )
-    def test_get_value(self, index):
-        # TODO(2.0): can remove once get_value deprecation is enforced GH#19728
-        values = np.random.randn(100)
-        value = index[67]
-
-        with pytest.raises(AttributeError, match="has no attribute '_values'"):
-            # Index.get_value requires a Series, not an ndarray
-            with tm.assert_produces_warning(FutureWarning):
-                index.get_value(values, value)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = index.get_value(Series(values, index=values), value)
-        tm.assert_almost_equal(result, values[67])
 
 
 class TestGetLoc:
