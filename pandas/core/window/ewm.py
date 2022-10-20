@@ -103,7 +103,7 @@ def get_center_of_mass(
 
 
 def _calculate_deltas(
-    times: str | np.ndarray | NDFrame | None,
+    times: np.ndarray | NDFrame,
     halflife: float | TimedeltaConvertibleTypes | None,
 ) -> np.ndarray:
     """
@@ -112,7 +112,7 @@ def _calculate_deltas(
 
     Parameters
     ----------
-    times : str, np.ndarray, Series, default None
+    times : np.ndarray, Series
         Times corresponding to the observations. Must be monotonically increasing
         and ``datetime64[ns]`` dtype.
     halflife : float, str, timedelta, optional
@@ -123,13 +123,7 @@ def _calculate_deltas(
     np.ndarray
         Diff of the times divided by the half-life
     """
-    # error: Item "str" of "Union[str, ndarray, NDFrameT, None]" has no
-    # attribute "view"
-    # error: Item "None" of "Union[str, ndarray, NDFrameT, None]" has no
-    # attribute "view"
-    _times = np.asarray(
-        times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
-    )
+    _times = np.asarray(times.view(np.int64), dtype=np.float64)
     # TODO: generalize to non-nano?
     _halflife = float(Timedelta(halflife)._as_unit("ns").value)
     return np.diff(_times) / _halflife
@@ -353,7 +347,7 @@ class ExponentialMovingWindow(BaseWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | NDFrame | None = None,
+        times: np.ndarray | NDFrame | None = None,
         method: str = "single",
         *,
         selection=None,
@@ -879,7 +873,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             # sort the times and recalculate the deltas according to the groups
             groupby_order = np.concatenate(list(self._grouper.indices.values()))
             self._deltas = _calculate_deltas(
-                self.times.take(groupby_order),  # type: ignore[union-attr]
+                self.times.take(groupby_order),
                 self.halflife,
             )
 
