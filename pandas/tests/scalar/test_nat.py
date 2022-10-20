@@ -195,8 +195,6 @@ def test_nat_iso_format(get_nat):
             Timedelta,
             [
                 "components",
-                "delta",
-                "is_populated",
                 "resolution_string",
                 "to_pytimedelta",
                 "to_timedelta64",
