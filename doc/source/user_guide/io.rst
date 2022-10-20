@@ -1918,6 +1918,7 @@ with optional parameters:
 * ``date_unit`` : The time unit to encode to, governs timestamp and ISO8601 precision. One of 's', 'ms', 'us' or 'ns' for seconds, milliseconds, microseconds and nanoseconds respectively. Default 'ms'.
 * ``default_handler`` : The handler to call if an object cannot otherwise be converted to a suitable format for JSON. Takes a single argument, which is the object to convert, and returns a serializable object.
 * ``lines`` : If ``records`` orient, then will write each record per line as json.
+* ``mode`` : string, writer mode when writing to path. 'w' for write, 'a' for append. Default 'w'
 
 Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datetime`` objects will be converted based on the ``date_format`` and ``date_unit`` parameters.
 
@@ -2111,8 +2112,6 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is ``True``
 * ``convert_dates`` : a list of columns to parse for dates; If ``True``, then try to parse date-like columns, default is ``True``.
 * ``keep_default_dates`` : boolean, default ``True``. If parsing dates, then parse the default date-like columns.
-* ``numpy`` : direct decoding to NumPy arrays. default is ``False``;
-  Supports numeric data only, although labels may be non-numeric. Also note that the JSON ordering **MUST** be the same for each term if ``numpy=True``.
 * ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality.
 * ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
   None. By default the timestamp precision will be detected, if this is not desired
@@ -2215,74 +2214,6 @@ Dates written in nanoseconds need to be read back in nanoseconds:
    # Or specify that all timestamps are in nanoseconds
    dfju = pd.read_json(json, date_unit="ns")
    dfju
-
-The Numpy parameter
-+++++++++++++++++++
-
-.. note::
-  This param has been deprecated as of version 1.0.0 and will raise a ``FutureWarning``.
-
-  This supports numeric data only. Index and columns labels may be non-numeric, e.g. strings, dates etc.
-
-If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
-an appropriate dtype during deserialization and to subsequently decode directly
-to NumPy arrays, bypassing the need for intermediate Python objects.
-
-This can provide speedups if you are deserialising a large amount of numeric
-data:
-
-.. ipython:: python
-
-   randfloats = np.random.uniform(-100, 1000, 10000)
-   randfloats.shape = (1000, 10)
-   dffloats = pd.DataFrame(randfloats, columns=list("ABCDEFGHIJ"))
-
-   jsonfloats = dffloats.to_json()
-
-.. ipython:: python
-
-   %timeit pd.read_json(jsonfloats)
-
-.. ipython:: python
-   :okwarning:
-
-   %timeit pd.read_json(jsonfloats, numpy=True)
-
-The speedup is less noticeable for smaller datasets:
-
-.. ipython:: python
-
-   jsonfloats = dffloats.head(100).to_json()
-
-.. ipython:: python
-
-   %timeit pd.read_json(jsonfloats)
-
-.. ipython:: python
-   :okwarning:
-
-   %timeit pd.read_json(jsonfloats, numpy=True)
-
-.. warning::
-
-   Direct NumPy decoding makes a number of assumptions and may fail or produce
-   unexpected output if these assumptions are not satisfied:
-
-    - data is numeric.
-
-    - data is uniform. The dtype is sniffed from the first value decoded.
-      A ``ValueError`` may be raised, or incorrect output may be produced
-      if this condition is not satisfied.
-
-    - labels are ordered. Labels are only read from the first container, it is assumed
-      that each subsequent row / column has been encoded in the same order. This should be satisfied if the
-      data was encoded using ``to_json`` but may not be the case if the JSON
-      is from another source.
-
-.. ipython:: python
-   :suppress:
-
-   os.remove("test.json")
 
 .. _io.json_normalize:
 
