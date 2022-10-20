@@ -13,7 +13,6 @@ from typing import (
     cast,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -36,7 +35,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -393,15 +391,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
-
-    def is_type_compatible(self, kind: str) -> bool:
-        warnings.warn(
-            f"{type(self).__name__}.is_type_compatible is deprecated and will be "
-            "removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return kind in self._data._infer_matches
 
     @property
     def values(self) -> np.ndarray:
