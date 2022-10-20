@@ -2933,31 +2933,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         return self._fill("ffill", limit=limit)
 
-    def pad(self, limit=None):
-        """
-        Forward fill the values.
-
-        .. deprecated:: 1.4
-            Use ffill instead.
-
-        Parameters
-        ----------
-        limit : int, optional
-            Limit of how many values to fill.
-
-        Returns
-        -------
-        Series or DataFrame
-            Object with missing values filled.
-        """
-        warnings.warn(
-            "pad is deprecated and will be removed in a future version. "
-            "Use ffill instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.ffill(limit=limit)
-
     @final
     @Substitution(name="groupby")
     def bfill(self, limit=None):
@@ -2982,31 +2957,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("bfill", limit=limit)
-
-    def backfill(self, limit=None):
-        """
-        Backward fill the values.
-
-        .. deprecated:: 1.4
-            Use bfill instead.
-
-        Parameters
-        ----------
-        limit : int, optional
-            Limit of how many values to fill.
-
-        Returns
-        -------
-        Series or DataFrame
-            Object with missing values filled.
-        """
-        warnings.warn(
-            "backfill is deprecated and will be removed in a future version. "
-            "Use bfill instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.bfill(limit=limit)
 
     @final
     @Substitution(name="groupby")
