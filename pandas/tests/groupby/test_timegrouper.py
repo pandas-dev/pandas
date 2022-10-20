@@ -887,9 +887,7 @@ class TestGroupBy:
         # We need to create a GroupBy object with only one non-NaT group,
         #  so use a huge freq so that all non-NaT dates will be grouped together
         tdg = Grouper(key="Date", freq="100Y")
-
-        with tm.assert_produces_warning(FutureWarning, match="`squeeze` parameter"):
-            gb = df.groupby(tdg, squeeze=True)
+        gb = df.groupby(tdg)
 
         # check that we will go through the singular_series path
         #  in _wrap_applied_output_series
@@ -899,13 +897,12 @@ class TestGroupBy:
         # function that returns a Series
         res = gb.apply(lambda x: x["Quantity"] * 2)
 
-        key = Timestamp("2013-12-31")
-        ordering = df["Date"].sort_values().dropna().index
-        mi = MultiIndex.from_product([[key], ordering], names=["Date", None])
-
-        ex_values = df["Quantity"].take(ordering).values * 2
-        expected = Series(ex_values, index=mi, name="Quantity")
-        tm.assert_series_equal(res, expected)
+        expected = DataFrame(
+            [[36, 6, 6, 10, 2]],
+            index=Index([Timestamp("2013-12-31")], name="Date"),
+            columns=Index([0, 1, 5, 2, 3], name="Quantity"),
+        )
+        tm.assert_frame_equal(res, expected)
 
     @td.skip_if_no("numba")
     def test_groupby_agg_numba_timegrouper_with_nat(

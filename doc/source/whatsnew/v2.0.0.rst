@@ -144,6 +144,7 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Remove argument ``squeeze`` from :meth:`DataFrame.groupby` and :meth:`Series.groupby` (:issue:`32380`)
 - Removed ``keep_tz`` argument in :meth:`DatetimeIndex.to_series` (:issue:`29731`)
 - Remove arguments ``names`` and ``dtype`` from :meth:`Index.copy` and ``levels`` and ``codes`` from :meth:`MultiIndex.copy` (:issue:`35853`, :issue:`36685`)
 - Removed argument ``try_cast`` from :meth:`DataFrame.mask`, :meth:`DataFrame.where`, :meth:`Series.mask` and :meth:`Series.where` (:issue:`38836`)

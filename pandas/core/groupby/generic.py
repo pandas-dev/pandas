@@ -1317,33 +1317,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         all_indexed_same = all_indexes_same(x.index for x in values)
 
-        # GH3596
-        # provide a reduction (Frame -> Series) if groups are
-        # unique
-        if self.squeeze:
-            applied_index = self._selected_obj._get_axis(self.axis)
-            singular_series = len(values) == 1 and applied_index.nlevels == 1
-
-            if singular_series:
-                # GH2893
-                # we have series in the values array, we want to
-                # produce a series:
-                # if any of the sub-series are not indexed the same
-                # OR we don't have a multi-index and we have only a
-                # single values
-                return self._concat_objects(
-                    values,
-                    not_indexed_same=not_indexed_same,
-                    override_group_keys=override_group_keys,
-                )
-
-            # still a series
-            # path added as of GH 5545
-            elif all_indexed_same:
-                from pandas.core.reshape.concat import concat
-
-                return concat(values)
-
         if not all_indexed_same:
             # GH 8467
             return self._concat_objects(
@@ -1673,7 +1646,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 as_index=self.as_index,
                 sort=self.sort,
                 group_keys=self.group_keys,
-                squeeze=self.squeeze,
                 observed=self.observed,
                 mutated=self.mutated,
                 dropna=self.dropna,
@@ -1688,7 +1660,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 selection=key,
                 sort=self.sort,
                 group_keys=self.group_keys,
-                squeeze=self.squeeze,
                 observed=self.observed,
                 dropna=self.dropna,
             )

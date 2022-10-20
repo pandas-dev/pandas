@@ -109,46 +109,6 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_return_type():
-
-    # GH2893, return a reduced type
-
-    def func(dataf):
-        return dataf["val2"] - dataf["val2"].mean()
-
-    df1 = DataFrame(
-        [
-            {"val1": 1, "val2": 20},
-            {"val1": 1, "val2": 19},
-            {"val1": 2, "val2": 27},
-            {"val1": 2, "val2": 12},
-        ]
-    )
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = df1.groupby("val1", squeeze=True).apply(func)
-    assert isinstance(result, Series)
-
-    df2 = DataFrame(
-        [
-            {"val1": 1, "val2": 20},
-            {"val1": 1, "val2": 19},
-            {"val1": 1, "val2": 27},
-            {"val1": 1, "val2": 12},
-        ]
-    )
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = df2.groupby("val1", squeeze=True).apply(func)
-    assert isinstance(result, Series)
-
-    # GH3596, return a consistent type (regression in 0.11 from 0.10.1)
-    df = DataFrame([[1, 1], [1, 1]], columns=["X", "Y"])
-    with tm.assert_produces_warning(FutureWarning):
-        result = df.groupby("X", squeeze=False).count()
-    assert isinstance(result, DataFrame)
-
-
 def test_inconsistent_return_type():
     # GH5592
     # inconsistent return type
@@ -2498,7 +2458,6 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
         (DataFrame, "as_index", False),
         (DataFrame, "sort", False),
         (DataFrame, "group_keys", False),
-        (DataFrame, "squeeze", True),
         (DataFrame, "observed", True),
         (DataFrame, "dropna", False),
         pytest.param(
@@ -2513,13 +2472,9 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
         (Series, "as_index", False),
         (Series, "sort", False),
         (Series, "group_keys", False),
-        (Series, "squeeze", True),
         (Series, "observed", True),
         (Series, "dropna", False),
     ],
-)
-@pytest.mark.filterwarnings(
-    "ignore:The `squeeze` parameter is deprecated:FutureWarning"
 )
 def test_subsetting_columns_keeps_attrs(klass, attr, value):
     # GH 9959 - When subsetting columns, don't drop attributes
