@@ -165,6 +165,8 @@ Removal of prior version deprecations/changes
 - Remove :meth:`DataFrameGroupBy.pad` and :meth:`DataFrameGroupBy.backfill` (:issue:`45076`)
 - Remove ``numpy`` argument from :func:`read_json` (:issue:`30636`)
 - Removed the ``center`` keyword in :meth:`DataFrame.expanding` (:issue:`20647`)
+- Removed the  ``pandas.datetime`` (:issue:`30489`)
+- Removed the ``pandas.np`` submodule (:issue:`30296`)
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
 -
 

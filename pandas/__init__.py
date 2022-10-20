@@ -212,31 +212,6 @@ def __getattr__(name):
             "Int64Index": Int64Index,
             "UInt64Index": UInt64Index,
         }[name]
-    elif name == "datetime":
-        warnings.warn(
-            "The pandas.datetime class is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Import from datetime module instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        from datetime import datetime as dt
-
-        return dt
-
-    elif name == "np":
-
-        warnings.warn(
-            "The pandas.np module is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Import numpy directly instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        import numpy as np
-
-        return np
 
     elif name in {"SparseSeries", "SparseDataFrame"}:
         warnings.warn(
