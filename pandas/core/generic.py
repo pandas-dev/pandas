@@ -825,7 +825,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             setattr(obj, obj._get_axis_name(axis), labels)
             return obj
 
+    @final
     def _set_axis(self, axis: AxisInt, labels: AnyArrayLike | list) -> None:
+        """
+        This is called from the cython code when we set the `index` attribute
+        directly, e.g. `series.index = [1, 2, 3]`.
+        """
         labels = ensure_index(labels)
         self._mgr.set_axis(axis, labels)
         self._clear_item_cache()
@@ -9871,6 +9876,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If other is callable, it is computed on the {klass} and
             should return scalar or {klass}. The callable must not
             change input {klass} (though pandas doesn't check it).
+            If not specified, entries will be filled with the corresponding
+            NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension
+            dtypes).
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         axis : int, default None
@@ -10072,7 +10080,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def mask(
         self: NDFrameT,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace: bool_t = False,
         axis: Axis | None = None,
         level: Level = None,

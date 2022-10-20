@@ -744,6 +744,8 @@ cdef class TextReader:
         elif self.names is not None:
             # Names passed
             if self.parser.lines < 1:
+                if not self.has_usecols:
+                    self.parser.expected_fields = len(self.names)
                 self._tokenize_rows(1)
 
             header = [self.names]
@@ -756,6 +758,7 @@ cdef class TextReader:
             # Enforce this unless usecols
             if not self.has_usecols:
                 self.parser.expected_fields = max(field_count, len(self.names))
+
         else:
             # No header passed nor to be found in the file
             if self.parser.lines < 1:
@@ -1414,6 +1417,9 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
     -------
     The casted array.
     """
+    if is_extension_array_dtype(arr.dtype):
+        return arr
+
     na_value = na_values[arr.dtype]
 
     if issubclass(arr.dtype.type, np.integer):
