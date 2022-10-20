@@ -44,7 +44,10 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 import pandas.core.common as com
 
 
@@ -573,6 +576,10 @@ class TestUnique:
         if any_numpy_dtype in tm.STRING_DTYPES:
             expected = expected.astype(object)
 
+        if expected.dtype.kind in ["m", "M"]:
+            # We get TimedeltaArray/DatetimeArray
+            assert isinstance(result, (DatetimeArray, TimedeltaArray))
+            result = np.array(result)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_datetime64_dtype_array_returned(self):
