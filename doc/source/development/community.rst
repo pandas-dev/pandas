@@ -100,6 +100,8 @@ The pandas mailing list `pandas-dev@python.org <mailto://pandas-dev@python
 conversations and to engages people in the wider community who might not
 be active on the issue tracker but we would like to include in discussions.
 
+.. _community.slack:
+
 Community slack
 ---------------
 
