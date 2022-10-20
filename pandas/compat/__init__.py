@@ -15,7 +15,13 @@ import sys
 
 from pandas._typing import F
 import pandas.compat._compressors
-from pandas.compat._constants import *  # noqa: F401, F403
+from pandas.compat._constants import (  # noqa: F401
+    IS64,
+    PY39,
+    PY310,
+    PY311,
+    PYPY,
+)
 from pandas.compat.numpy import (
     is_numpy_dev,
     np_version_under1p21,
