@@ -1,7 +1,9 @@
 import pandas as pd
-from pandas import Series
+from pandas import (
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import date_range
 
 
 def test_interpolate_posargs_deprecation():
