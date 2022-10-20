@@ -789,8 +789,8 @@ class PythonParser(ParserBase):
             return line
         except csv.Error as e:
             if (
-                self.on_bad_lines == self.BadLineHandleMethod.ERROR
-                or self.on_bad_lines == self.BadLineHandleMethod.WARN
+                self.on_bad_lines in
+                (self.BadLineHandleMethod.ERROR, self.BadLineHandleMethod.WARN)
             ):
                 msg = str(e)
 
@@ -1014,8 +1014,9 @@ class PythonParser(ParserBase):
                         if new_l is not None:
                             content.append(new_l)
                     elif (
-                        self.on_bad_lines == self.BadLineHandleMethod.ERROR
-                        or self.on_bad_lines == self.BadLineHandleMethod.WARN
+                        self.on_bad_lines in
+                        (self.BadLineHandleMethod.ERROR,
+                         self.BadLineHandleMethod.WARN)
                     ):
                         row_num = self.pos - (content_len - i + footers)
                         bad_lines.append((row_num, actual_len))
