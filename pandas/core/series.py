@@ -6066,7 +6066,6 @@ Keep all original rows and also all original values
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> Series:
         ...
 
@@ -6080,7 +6079,6 @@ Keep all original rows and also all original values
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -6094,7 +6092,6 @@ Keep all original rows and also all original values
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> Series | None:
         ...
 
@@ -6111,7 +6108,6 @@ Keep all original rows and also all original values
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = lib.no_default,
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> Series | None:
         return super().where(
             cond,
@@ -6119,7 +6115,6 @@ Keep all original rows and also all original values
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
     @overload
@@ -6132,7 +6127,6 @@ Keep all original rows and also all original values
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> Series:
         ...
 
@@ -6146,7 +6140,6 @@ Keep all original rows and also all original values
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -6160,7 +6153,6 @@ Keep all original rows and also all original values
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> Series | None:
         ...
 
@@ -6177,7 +6169,6 @@ Keep all original rows and also all original values
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = lib.no_default,
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> Series | None:
         return super().mask(
             cond,
@@ -6185,7 +6176,6 @@ Keep all original rows and also all original values
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
     # ----------------------------------------------------------------------
