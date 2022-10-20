@@ -367,7 +367,7 @@ class Styler(StylerRenderer):
                 "number of index levels must be same in `other` "
                 "as in `Styler`. See documentation for suggestions."
             )
-        self.concatenated = other
+        self.concatenated.append(other)
         return self
 
     def _repr_html_(self) -> str | None:

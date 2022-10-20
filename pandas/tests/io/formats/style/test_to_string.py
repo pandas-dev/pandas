@@ -53,3 +53,37 @@ def test_concat(styler):
     """
     )
     assert result == expected
+
+
+def test_concat_recursion(styler):
+    styler1 = styler
+    styler2 = styler.data.agg(["sum"]).style
+    styler3 = styler.data.agg(["sum"]).style
+    result = styler1.concat(styler2.concat(styler3)).to_string()
+    expected = dedent(
+        """\
+     A B C
+    0 0 -0.61 ab
+    1 1 -1.22 cd
+    sum 1 -1.830000 abcd
+    sum 1 -1.830000 abcd
+    """
+    )
+    assert result == expected
+
+
+def test_concat_chain(styler):
+    styler1 = styler
+    styler2 = styler.data.agg(["sum"]).style
+    styler3 = styler.data.agg(["sum"]).style
+    result = styler1.concat(styler2).concat(styler3).to_string()
+    expected = dedent(
+        """\
+     A B C
+    0 0 -0.61 ab
+    1 1 -1.22 cd
+    sum 1 -1.830000 abcd
+    sum 1 -1.830000 abcd
+    """
+    )
+    assert result == expected
