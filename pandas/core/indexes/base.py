@@ -6018,9 +6018,6 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 raise
 
-        if is_integer(loc):
-            return series._values[loc]
-
         return self._get_values_for_loc(series, loc, key)
 
     def _check_indexing_error(self, key):
@@ -6036,33 +6033,19 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return not self.holds_integer()
 
-    def get_loc_result_index(self, loc, key):
-        """
-        Find the index to attach to the result of a Series.loc lookup.
-
-        Assumes `loc` is not an integer.
-
-        key is included for MultiIndex compat.
-        """
-        return self[loc]
-
-    # TODO(2.0): remove once get_value deprecation is enforced
-    @final
     def _get_values_for_loc(self, series: Series, loc, key):
         """
         Do a positional lookup on the given Series, returning either a scalar
         or a Series.
 
-        Assumes that `series.index is self` and that `loc` is not an integer,
-        the result of self.get_loc(key)
+        Assumes that `series.index is self`
 
         key is included for MultiIndex compat.
         """
-        new_values = series._values[loc]
+        if is_integer(loc):
+            return series._values[loc]
 
-        new_index = self.get_loc_result_index(loc, key)
-        new_ser = series._constructor(new_values, index=new_index, name=series.name)
-        return new_ser.__finalize__(series)
+        return series.iloc[loc]
 
     @final
     def set_value(self, arr, key, value) -> None:

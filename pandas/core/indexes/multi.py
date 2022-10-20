@@ -2633,16 +2633,25 @@ class MultiIndex(Index):
         # GH#33355
         return self.levels[0]._should_fallback_to_positional
 
-    def get_loc_result_index(self, loc, key):
+    def _get_values_for_loc(self, series: Series, loc, key):
         """
-        Find the index to attach to the result of a Series.loc lookup.
+        Do a positional lookup on the given Series, returning either a scalar
+        or a Series.
 
-        Assumes `loc` is not an integer.
-
-        key is included for MultiIndex compat.
+        Assumes that `series.index is self`
         """
-        new_index = super().get_loc_result_index(loc, key)
-        return maybe_droplevels(new_index, key)
+        new_values = series._values[loc]
+        if is_scalar(loc):
+            return new_values
+
+        if len(new_values) == 1 and not self.nlevels > 1:
+            # If more than one level left, we can not return a scalar
+            return new_values[0]
+
+        new_index = self[loc]
+        new_index = maybe_droplevels(new_index, key)
+        new_ser = series._constructor(new_values, index=new_index, name=series.name)
+        return new_ser.__finalize__(series)
 
     def _get_indexer_strict(
         self, key, axis_name: str
@@ -2949,15 +2958,6 @@ class MultiIndex(Index):
 
         if not isinstance(key, tuple):
             loc = self._get_level_indexer(key, level=0)
-            if (
-                self.nlevels == 1
-                and isinstance(loc, slice)
-                and loc.stop - loc.start == 1
-                and loc.step is None
-            ):
-                # e.g. test_multiindex_at_get_one_level
-                # TODO: is this the right level at which to do this check?
-                return loc.start
             return _maybe_to_slice(loc)
 
         keylen = len(key)

@@ -140,6 +140,7 @@ from pandas.core.indexes.api import (
     ensure_index,
 )
 import pandas.core.indexes.base as ibase
+from pandas.core.indexes.multi import maybe_droplevels
 from pandas.core.indexing import (
     check_bool_indexer,
     check_deprecated_indexers,
@@ -1060,17 +1061,26 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if takeable:
             return self._values[label]
 
-        index = self.index
-
         # Similar to Index.get_value, but we do not fall back to positional
         loc = self.index.get_loc(label)
-        res_values = self._values[loc]
-        if is_integer(loc):
-            return res_values
 
-        res_index = index.get_loc_result_index(loc, label)
-        result = self._constructor(res_values, index=res_index, name=self.name)
-        return result.__finalize__(self)
+        if is_integer(loc):
+            return self._values[loc]
+
+        if isinstance(self.index, MultiIndex):
+            mi = self.index
+            new_values = self._values[loc]
+            if len(new_values) == 1 and mi.nlevels == 1:
+                # If more than one level left, we can not return a scalar
+                return new_values[0]
+
+            new_index = mi[loc]
+            new_index = maybe_droplevels(new_index, label)
+            new_ser = self._constructor(new_values, index=new_index, name=self.name)
+            return new_ser.__finalize__(self)
+
+        else:
+            return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
         check_deprecated_indexers(key)
