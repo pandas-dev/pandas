@@ -252,6 +252,7 @@ MultiIndex
 I/O
 ^^^
 - Bug in :func:`read_sas` caused fragmentation of :class:`DataFrame` and raised :class:`.errors.PerformanceWarning` (:issue:`48595`)
+- Improved error message in :func:`read_excel` by including the offending sheet name when a ``ValueError`` is raised while reading a file (:issue:`48706`)
 -
 
 Period
