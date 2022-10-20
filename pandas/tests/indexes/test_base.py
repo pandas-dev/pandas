@@ -1305,19 +1305,6 @@ class TestMixedIntIndex(Base):
         assert index.name == "MyName"
         assert index2.name == "NewName"
 
-        with tm.assert_produces_warning(FutureWarning):
-            index3 = index.copy(names=["NewName"])
-        tm.assert_index_equal(index, index3, check_names=False)
-        assert index.name == "MyName"
-        assert index.names == ["MyName"]
-        assert index3.name == "NewName"
-        assert index3.names == ["NewName"]
-
-    def test_copy_names_deprecated(self, simple_index):
-        # GH44916
-        with tm.assert_produces_warning(FutureWarning):
-            simple_index.copy(names=["a"])
-
     def test_unique_na(self):
         idx = Index([2, np.nan, 2, 1], name="my_index")
         expected = Index([2, np.nan, 1], name="my_index")
