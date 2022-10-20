@@ -11,7 +11,6 @@ from typing import (
     final,
     no_type_check,
 )
-import warnings
 
 import numpy as np
 
@@ -50,7 +49,6 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -166,7 +164,6 @@ class Resampler(BaseGroupBy, PandasObject):
         # [int, Literal['index', 'columns', 'rows']]", variable has type "int")
         self.axis = axis  # type: ignore[assignment]
         self.kind = kind
-        self.squeeze = False
         self.group_keys = group_keys
         self.as_index = True
 
@@ -562,30 +559,6 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("ffill", limit=limit)
 
-    def pad(self, limit=None):
-        """
-        Forward fill the values.
-
-        .. deprecated:: 1.4
-            Use ffill instead.
-
-        Parameters
-        ----------
-        limit : int, optional
-            Limit of how many values to fill.
-
-        Returns
-        -------
-        An upsampled Series.
-        """
-        warnings.warn(
-            "pad is deprecated and will be removed in a future version. "
-            "Use ffill instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.ffill(limit=limit)
-
     def nearest(self, limit=None):
         """
         Resample by using the nearest value.
@@ -747,31 +720,6 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 02:00:00  6.0  5.0
         """
         return self._upsample("bfill", limit=limit)
-
-    def backfill(self, limit=None):
-        """
-        Backward fill the values.
-
-        .. deprecated:: 1.4
-            Use bfill instead.
-
-        Parameters
-        ----------
-        limit : int, optional
-            Limit of how many values to fill.
-
-        Returns
-        -------
-        Series, DataFrame
-            An upsampled Series or DataFrame with backward filled NaN values.
-        """
-        warnings.warn(
-            "backfill is deprecated and will be removed in a future version. "
-            "Use bfill instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.bfill(limit=limit)
 
     def fillna(self, method, limit=None):
         """
