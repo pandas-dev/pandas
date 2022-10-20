@@ -146,6 +146,8 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Enforced deprecation disallowing passing a timezone-aware :class:`Timestamp` and ``dtype="datetime64[ns]"`` to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
+- Enforced deprecation disallowing passing a sequence of timezone-aware values and ``dtype="datetime64[ns]"`` to to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
 - Removed Date parser functions :func:`~pandas.io.date_converters.parse_date_time`,
   :func:`~pandas.io.date_converters.parse_date_fields`, :func:`~pandas.io.date_converters.parse_all_fields`
   and :func:`~pandas.io.date_converters.generic_parser` (:issue:`24518`)
@@ -156,12 +158,15 @@ Removal of prior version deprecations/changes
 - Disallow passing positional arguments to :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` (:issue:`41485`)
 - Removed argument ``try_cast`` from :meth:`DataFrame.mask`, :meth:`DataFrame.where`, :meth:`Series.mask` and :meth:`Series.where` (:issue:`38836`)
 - Disallow passing non-round floats to :class:`Timestamp` with ``unit="M"`` or ``unit="Y"`` (:issue:`47266`)
+- Removed deprecated :meth:`Timedelta.delta`, :meth:`Timedelta.is_populated`, and :attr:`Timedelta.freq` (:issue:`46430`, :issue:`46476`)
 - Removed the ``numeric_only`` keyword from :meth:`Categorical.min` and :meth:`Categorical.max` in favor of ``skipna`` (:issue:`48821`)
 - Removed :func:`is_extension_type` in favor of :func:`is_extension_array_dtype` (:issue:`29457`)
+- Removed :meth:`Index.get_value` (:issue:`33907`)
 - Remove :meth:`DataFrameGroupBy.pad` and :meth:`DataFrameGroupBy.backfill` (:issue:`45076`)
 - Remove ``numpy`` argument from :func:`read_json` (:issue:`30636`)
 - Removed the ``center`` keyword in :meth:`DataFrame.expanding` (:issue:`20647`)
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:
