@@ -5,7 +5,6 @@ from copy import copy
 import csv
 import datetime
 from enum import Enum
-import inspect
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -78,8 +77,6 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
-
-from pandas.io.date_converters import generic_parser
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -569,7 +566,7 @@ class ParserBase:
                             f"for column {c} - only the converter will be used."
                         ),
                         ParserWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
 
                 try:
@@ -907,7 +904,7 @@ class ParserBase:
                 "Length of header or names does not match length of data. This leads "
                 "to a loss of data with index_col=False.",
                 ParserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
     @overload
@@ -1136,17 +1133,14 @@ def _make_date_converter(
                     raise Exception("scalar parser")
                 return result
             except Exception:
-                try:
-                    return tools.to_datetime(
-                        parsing.try_parse_dates(
-                            parsing.concat_date_cols(date_cols),
-                            parser=date_parser,
-                            dayfirst=dayfirst,
-                        ),
-                        errors="ignore",
-                    )
-                except Exception:
-                    return generic_parser(date_parser, *date_cols)
+                return tools.to_datetime(
+                    parsing.try_parse_dates(
+                        parsing.concat_date_cols(date_cols),
+                        parser=date_parser,
+                        dayfirst=dayfirst,
+                    ),
+                    errors="ignore",
+                )
 
     return converter
 

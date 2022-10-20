@@ -45,7 +45,7 @@ contributing_docstring,development/contributing_docstring
 developer,development/developer
 extending,development/extending
 internals,development/internals
-development/meeting,development/community
+development/meeting,community
 
 # api moved function
 reference/api/pandas.io.json.json_normalize,pandas.json_normalize
@@ -662,7 +662,6 @@ generated/pandas.Index.get_indexer_non_unique,../reference/api/pandas.Index.get_
 generated/pandas.Index.get_level_values,../reference/api/pandas.Index.get_level_values
 generated/pandas.Index.get_loc,../reference/api/pandas.Index.get_loc
 generated/pandas.Index.get_slice_bound,../reference/api/pandas.Index.get_slice_bound
-generated/pandas.Index.get_value,../reference/api/pandas.Index.get_value
 generated/pandas.Index.groupby,../reference/api/pandas.Index.groupby
 generated/pandas.Index.has_duplicates,../reference/api/pandas.Index.has_duplicates
 generated/pandas.Index.hasnans,../reference/api/pandas.Index.hasnans
