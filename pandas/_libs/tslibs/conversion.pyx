@@ -469,6 +469,22 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
         datetime dt
         int64_t ival
         NPY_DATETIMEUNIT out_bestunit
+        ISOInfo iso_info
+
+    iso_info = ISOInfo(
+        format='',
+        format_len=0,
+                        date_sep='',
+                        time_sep='',
+                        micro_or_tz='',
+                        year=False,
+                        month=False,
+                        day=False,
+                        hour=False,
+                        minute=False,
+                        second=False,
+                        exact=False,
+    )
 
     if len(ts) == 0 or ts in nat_strings:
         ts = NaT
@@ -488,18 +504,7 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
     else:
         string_to_dts_failed = string_to_dts(
             ts, &dts, &out_bestunit, &out_local,
-            &out_tzoffset, False,
-                        '',
-                        date_sep='',
-                        time_sep='',
-                        micro_or_tz='',
-                        year=False,
-                        month=False,
-                        day=False,
-                        hour=False,
-                        minute=False,
-                        second=False,
-                        exact=False,
+            &out_tzoffset, False, &iso_info,
         )
         if not string_to_dts_failed:
             try:

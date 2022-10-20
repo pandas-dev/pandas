@@ -95,17 +95,7 @@ cdef int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
-    const char *format,
-    const char *date_sep,
-    const char *time_sep,
-    const char *micro_or_tz,
-    bint year,
-    bint month,
-    bint day,
-    bint hour,
-    bint minute,
-    bint second,
-    bint exact,
+    ISOInfo* iso_info,
 ) except? -1
 
 cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype)
@@ -129,3 +119,19 @@ cdef int64_t convert_reso(
     NPY_DATETIMEUNIT to_reso,
     bint round_ok,
 ) except? -1
+
+cdef extern from "src/datetime/np_datetime_strings.h":
+
+    ctypedef struct ISOInfo:
+        const char *format
+        int format_len
+        const char *date_sep
+        const char *time_sep
+        const char *micro_or_tz
+        int year
+        int month
+        int day
+        int hour
+        int minute
+        int second
+        int exact

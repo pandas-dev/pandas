@@ -48,23 +48,6 @@ cdef extern from "src/datetime/np_datetime.h":
 
     PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype);
 
-cdef extern from "src/datetime/np_datetime_strings.h":
-    int parse_iso_8601_datetime(const char *str, int len, int want_exc,
-                                npy_datetimestruct *out,
-                                NPY_DATETIMEUNIT *out_bestunit,
-                                int *out_local, int *out_tzoffset,
-        int format,
-        const char *date_sep,
-        const char *time_sep,
-        const char *micro_or_tz,
-        int year,
-        int month,
-        int day,
-        int hour,
-        int minute,
-        int second,
-        int exact
-        )
 
 
 # ----------------------------------------------------------------------
@@ -285,38 +268,16 @@ cdef inline int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
-    const char *format,
-    const char *date_sep,
-    const char *time_sep,
-    const char *micro_or_tz,
-    bint year,
-    bint month,
-    bint day,
-    bint hour,
-    bint minute,
-    bint second,
-    bint exact,
+    ISOInfo* iso_info,
 ) except? -1:
     cdef:
         Py_ssize_t length
-        Py_ssize_t format_length
         const char* buf
 
+
     buf = get_c_string_buf_and_size(val, &length)
-    format_length = len(format)
     result = parse_iso_8601_datetime(buf, length, want_exc,
-                                   dts, out_bestunit, out_local, out_tzoffset,
-        format_length,
-        date_sep,
-        time_sep,
-        micro_or_tz,
-        year,
-        month,
-        day,
-        hour,
-        minute,
-        second,
-        exact,
+                                   dts, out_bestunit, out_local, out_tzoffset, iso_info
     )
     return result
 
@@ -640,3 +601,11 @@ cdef int64_t _convert_reso_with_dtstruct(
     pandas_datetime_to_datetimestruct(value, from_unit, &dts)
     check_dts_bounds(&dts, to_unit)
     return npy_datetimestruct_to_datetime(to_unit, &dts)
+
+cdef extern from "src/datetime/np_datetime_strings.h":
+    int parse_iso_8601_datetime(const char *str, int len, int want_exc,
+                                npy_datetimestruct *out,
+                                NPY_DATETIMEUNIT *out_bestunit,
+                                int *out_local, int *out_tzoffset,
+                                ISOInfo *iso_info
+        )

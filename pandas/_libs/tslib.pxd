@@ -1,7 +1,3 @@
-
-cpdef str get_rule_month(str source)
-cpdef quarter_to_myear(int year, int quarter, str freq)
-cpdef ISOInfo null_iso_info()
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     npy_datetimestruct,

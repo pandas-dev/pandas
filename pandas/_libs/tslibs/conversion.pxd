@@ -40,3 +40,18 @@ cdef int64_t cast_from_unit(object ts, str unit) except? -1
 cpdef (int64_t, int) precision_from_unit(str unit)
 
 cdef maybe_localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso)
+
+cdef extern from "src/datetime/np_datetime_strings.h":
+    ctypedef struct ISOInfo:
+        const char *format
+        int format_len
+        const char *date_sep
+        const char *time_sep
+        const char *micro_or_tz
+        int year
+        int month
+        int day
+        int hour
+        int minute
+        int second
+        int exact

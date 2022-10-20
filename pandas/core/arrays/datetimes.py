@@ -42,6 +42,7 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
     tzconversion,
 )
+from pandas._libs.tslibs.parsing import null_iso_info
 from pandas._typing import (
     DateTimeErrorChoices,
     IntervalClosedType,
@@ -78,7 +79,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
-from f import ISO8601Info
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
@@ -2181,7 +2181,7 @@ def objects_to_datetime64ns(
     require_iso8601: bool = False,
     allow_object: bool = False,
     allow_mixed: bool = False,
-    iso_info=ISO8601Info(),
+    iso_info=None,
     exact: bool = False,
 ):
     """
@@ -2219,6 +2219,9 @@ def objects_to_datetime64ns(
     """
     assert errors in ["raise", "ignore", "coerce"]
 
+    if iso_info is None:
+        iso_info = null_iso_info()
+
     # if str-dtype, convert
     data = np.array(data, copy=False, dtype=np.object_)
 
@@ -2227,14 +2230,13 @@ def objects_to_datetime64ns(
     try:
         result, tz_parsed = tslib.array_to_datetime(
             data.ravel("K"),
+            iso_info=iso_info,
             errors=errors,
             utc=utc,
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             require_iso8601=require_iso8601,
             allow_mixed=allow_mixed,
-            **iso_info._asdict(),
-            exact=exact,
         )
         result = result.reshape(data.shape, order=order)
     except OverflowError as err:

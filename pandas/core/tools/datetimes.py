@@ -34,7 +34,9 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.parsing import (  # format_is_iso,
     DateParseError,
+    format_is_iso,
     guess_datetime_format,
+    null_iso_info,
 )
 from pandas._libs.tslibs.strptime import array_strptime
 from pandas._typing import (
@@ -64,10 +66,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
-from f import (
-    ISO8601Info,
-    format_is_iso,
-)
 from pandas.arrays import (
     DatetimeArray,
     IntegerArray,
@@ -432,12 +430,12 @@ def _convert_listlike_datetimes(
         format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
 
     if format is not None:
-        iso_info = format_is_iso(format)
+        iso_info = format_is_iso(format, exact=exact)
         require_iso8601 = True
     else:
-        iso_info = ISO8601Info()
+        iso_info = null_iso_info()
         require_iso8601 = False
-    if format is not None and not iso_info.format:
+    if format is not None and not iso_info["format"]:
         # There is a special fast-path for iso8601 formatted
         # datetime strings, so in those cases don't use the inferred
         # format because this path makes process slower in this

@@ -397,6 +397,22 @@ cdef parse_datetime_string_with_reso(
         NPY_DATETIMEUNIT out_bestunit
         int out_local
         int out_tzoffset
+        ISOInfo iso_info
+
+    iso_info = ISOInfo(
+                        format='',
+                        format_len=0,
+                        date_sep='',
+                        time_sep='',
+                        micro_or_tz='',
+                        year=False,
+                        month=False,
+                        day=False,
+                        hour=False,
+                        minute=False,
+                        second=False,
+                        exact=False,
+    )
 
     if not _does_string_look_like_datetime(date_string):
         raise ValueError(f'Given date string {date_string} not likely a datetime')
@@ -409,18 +425,7 @@ cdef parse_datetime_string_with_reso(
     # TODO: does this render some/all of parse_delimited_date redundant?
     string_to_dts_failed = string_to_dts(
         date_string, &dts, &out_bestunit, &out_local,
-        &out_tzoffset, False,
-        '',
-        '',
-        '',
-        '',
-        False,
-        False,
-        False,
-        False,
-        False,
-        False,
-        False,
+        &out_tzoffset, False, &iso_info,
     )
     if not string_to_dts_failed:
         if dts.ps != 0 or out_local:
@@ -933,26 +938,115 @@ class _timelex:
 
 _DATEUTIL_LEXER_SPLIT = _timelex.split
 
+cpdef ISOInfo null_iso_info():
+    return ISOInfo(
+                format=''.encode('utf-8'),
+                format_len=0,
+                date_sep=''.encode('utf-8'),
+                time_sep=''.encode('utf-8'),
+                micro_or_tz=''.encode('utf-8'),
+                year=False,
+                month=False,
+                day=False,
+                hour=False,
+                minute=False,
+                second=False,
+                exact=False,
+            )
 
-def format_is_iso(f: str) -> bint:
+def format_is_iso(f: str, bint exact) -> ISOInfo:
     """
     Does format match the iso8601 set that can be handled by the C parser?
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
     but must be consistent.  Leading 0s in dates and times are optional.
     """
-    iso_template = '%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S{micro_or_tz}'.format
-    excluded_formats = ['%Y%m%d', '%Y%m', '%Y']
+    excluded_formats = ["%Y%m%d", "%Y%m", "%Y"]
 
-    for date_sep in [' ', '/', '\\', '-', '.', '']:
-        for time_sep in [' ', 'T']:
-            for micro_or_tz in ['', '%z', '%Z', '.%f', '.%f%z', '.%f%Z']:
-                if (iso_template(date_sep=date_sep,
-                                 time_sep=time_sep,
-                                 micro_or_tz=micro_or_tz,
-                                 ).startswith(f) and f not in excluded_formats):
-                    return True
-    return False
+    cdef ISOInfo null_info
 
+    if f in excluded_formats:
+        return null_iso_info()
+
+    for date_sep in [" ", "/", "\\", "-", ".", ""]:
+        for time_sep in [" ", "T"]:
+            for micro_or_tz in ["", "%z", "%Z", ".%f", ".%f%z", ".%f%Z"]:
+                if f"%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S{micro_or_tz}" == f:
+                    return ISOInfo(
+                        format=f.encode("utf-8"),
+                        format_len=len(f),
+                        date_sep=date_sep.encode("utf-8"),
+                        time_sep=time_sep.encode("utf-8"),
+                        micro_or_tz=micro_or_tz.encode("utf-8"),
+                        year=True,
+                        month=True,
+                        day=True,
+                        hour=True,
+                        minute=True,
+                        second=True,
+                        exact=exact,
+                    )
+                elif f"%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M" == f:
+                    return ISOInfo(
+                        format=f.encode("utf-8"),
+                        format_len=len(f),
+                        date_sep=date_sep.encode("utf-8"),
+                        time_sep=time_sep.encode("utf-8"),
+                        micro_or_tz=micro_or_tz.encode("utf-8"),
+                        year=True,
+                        month=True,
+                        day=True,
+                        hour=True,
+                        minute=True,
+                        second=False,
+                        exact=exact,
+                    )
+                elif f"%Y{date_sep}%m{date_sep}%d{time_sep}%H" == f:
+                    return ISOInfo(
+                        format=f.encode("utf-8"),
+                        format_len=len(f),
+                        date_sep=date_sep.encode("utf-8"),
+                        time_sep=time_sep.encode("utf-8"),
+                        micro_or_tz=micro_or_tz.encode("utf-8"),
+                        year=True,
+                        month=True,
+                        day=True,
+                        hour=True,
+                        minute=False,
+                        second=False,
+                        exact=exact,
+                    )
+                elif f"%Y{date_sep}%m{date_sep}%d" == f:
+                    return ISOInfo(
+                        format=f.encode("utf-8"),
+                        format_len=len(f),
+                        date_sep=date_sep.encode("utf-8"),
+                        time_sep=time_sep.encode("utf-8"),
+                        micro_or_tz=micro_or_tz.encode("utf-8"),
+                        year=True,
+                        month=True,
+                        day=True,
+                        hour=False,
+                        minute=False,
+                        second=False,
+                        exact=exact,
+                    )
+                elif f"%Y{date_sep}%m" == f:
+                    return ISOInfo(
+                        format=f.encode("utf-8"),
+                        format_len=len(f),
+                        date_sep=date_sep.encode("utf-8"),
+                        time_sep=time_sep.encode("utf-8"),
+                        micro_or_tz=micro_or_tz.encode("utf-8"),
+                        year=True,
+                        month=True,
+                        day=False,
+                        hour=False,
+                        minute=False,
+                        second=False,
+                        exact=exact,
+                    )
+
+    return null_iso_info()
 
 def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     """

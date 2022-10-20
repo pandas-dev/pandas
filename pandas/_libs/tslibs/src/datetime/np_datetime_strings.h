@@ -53,23 +53,29 @@ This file implements string parsing and creation for NumPy datetime.
  *
  * Returns 0 on success, -1 on failure.
  */
+
+typedef struct {
+    const char *format;
+    int format_len;
+    const char *date_sep;
+    const char *time_sep;
+    const char *micro_or_tz;
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+    int second;
+    int exact;
+} ISOInfo;
+
 int
 parse_iso_8601_datetime(const char *str, int len, int want_exc,
                         npy_datetimestruct *out,
                         NPY_DATETIMEUNIT *out_bestunit,
                         int *out_local,
                         int *out_tzoffset,
-        int format_length,
-        const char *date_sep,
-        const char *time_sep,
-        const char *micro_or_tz,
-        int year,
-        int month,
-        int day,
-        int hour,
-        int minute,
-        int second,
-        int exact);
+                        ISOInfo *iso_info);
 
 /*
  * Provides a string length to use for converting datetime
