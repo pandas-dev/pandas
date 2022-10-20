@@ -27,14 +27,6 @@ def try_parse_dates(
     dayfirst: bool = ...,
     default: datetime | None = ...,
 ) -> npt.NDArray[np.object_]: ...
-def try_parse_date_and_time(
-    dates: npt.NDArray[np.object_],  # object[:]
-    times: npt.NDArray[np.object_],  # object[:]
-    date_parser=...,
-    time_parser=...,
-    dayfirst: bool = ...,
-    default: datetime | None = ...,
-) -> npt.NDArray[np.object_]: ...
 def try_parse_year_month_day(
     years: npt.NDArray[np.object_],  # object[:]
     months: npt.NDArray[np.object_],  # object[:]
