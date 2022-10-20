@@ -23,12 +23,11 @@ import pandas.tseries.offsets as offsets
     [
         [np.mean, "mean", {}],
         [np.nansum, "sum", {}],
-        pytest.param(
+        [
             lambda x: np.isfinite(x).astype(float).sum(),
             "count",
             {},
-            marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
-        ),
+        ],
         [np.median, "median", {}],
         [np.min, "min", {}],
         [np.max, "max", {}],
@@ -50,12 +49,11 @@ def test_series(series, compare_func, roll_func, kwargs, step):
     [
         [np.mean, "mean", {}],
         [np.nansum, "sum", {}],
-        pytest.param(
+        [
             lambda x: np.isfinite(x).astype(float).sum(),
             "count",
             {},
-            marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
-        ),
+        ],
         [np.median, "median", {}],
         [np.min, "min", {}],
         [np.max, "max", {}],
