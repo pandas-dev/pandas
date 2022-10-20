@@ -50,7 +50,6 @@ from pandas._typing import (
     Axes,
     Axis,
     DropKeep,
-    Dtype,
     DtypeObj,
     F,
     IgnoreRaise,
@@ -1292,29 +1291,17 @@ class Index(IndexOpsMixin, PandasObject):
         self: _IndexT,
         name: Hashable | None = None,
         deep: bool = False,
-        dtype: Dtype | None = None,
-        names: Sequence[Hashable] | None = None,
     ) -> _IndexT:
         """
         Make a copy of this object.
 
-        Name and dtype sets those attributes on the new object.
+        Name is set on the new object.
 
         Parameters
         ----------
         name : Label, optional
             Set name for new object.
         deep : bool, default False
-        dtype : numpy dtype or pandas type, optional
-            Set dtype for new object.
-
-            .. deprecated:: 1.2.0
-                use ``astype`` method instead.
-        names : list-like, optional
-            Kept for compatibility with MultiIndex. Should not be used.
-
-            .. deprecated:: 1.4.0
-                use ``name`` instead.
 
         Returns
         -------
@@ -1326,29 +1313,13 @@ class Index(IndexOpsMixin, PandasObject):
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         """
-        if names is not None:
-            warnings.warn(
-                "parameter names is deprecated and will be removed in a future "
-                "version. Use the name parameter instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
-        name = self._validate_names(name=name, names=names, deep=deep)[0]
+        name = self._validate_names(name=name, deep=deep)[0]
         if deep:
             new_data = self._data.copy()
             new_index = type(self)._simple_new(new_data, name=name)
         else:
             new_index = self._rename(name=name)
-
-        if dtype:
-            warnings.warn(
-                "parameter dtype is deprecated and will be removed in a future "
-                "version. Use the astype method instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            new_index = new_index.astype(dtype)
         return new_index
 
     @final
@@ -5980,45 +5951,6 @@ class Index(IndexOpsMixin, PandasObject):
         # This works for either ndarray or EA, is overridden
         #  by RangeIndex, MultIIndex
         return self._data.argsort(*args, **kwargs)
-
-    @final
-    def get_value(self, series: Series, key):
-        """
-        Fast lookup of value from 1-dimensional ndarray.
-
-        Only use this if you know what you're doing.
-
-        Returns
-        -------
-        scalar or Series
-        """
-        warnings.warn(
-            "get_value is deprecated and will be removed in a future version. "
-            "Use Series[key] instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        self._check_indexing_error(key)
-
-        try:
-            # GH 20882, 21257
-            # First try to convert the key to a location
-            # If that fails, raise a KeyError if an integer
-            # index, otherwise, see if key is an integer, and
-            # try that
-            loc = self.get_loc(key)
-        except KeyError:
-            if not self._should_fallback_to_positional:
-                raise
-            elif is_integer(key):
-                # If the Index cannot hold integer, then this is unambiguously
-                #  a locational lookup.
-                loc = key
-            else:
-                raise
-
-        return self._get_values_for_loc(series, loc, key)
 
     def _check_indexing_error(self, key):
         if not is_scalar(key):

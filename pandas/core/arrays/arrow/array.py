@@ -220,8 +220,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         Construct a new ExtensionArray from a sequence of strings.
         """
         pa_type = to_pyarrow_type(dtype)
-        if pa_type is None:
-            # Let pyarrow try to infer or raise
+        if (
+            pa_type is None
+            or pa.types.is_binary(pa_type)
+            or pa.types.is_string(pa_type)
+        ):
+            # pa_type is None: Let pa.array infer
+            # pa_type is string/binary: scalars already correct type
             scalars = strings
         elif pa.types.is_timestamp(pa_type):
             from pandas.core.tools.datetimes import to_datetime
@@ -345,6 +350,17 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     def __abs__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
         return type(self)(pc.abs_checked(self._data))
+
+    # GH 42600: __getstate__/__setstate__ not necessary once
+    # https://issues.apache.org/jira/browse/ARROW-10739 is addressed
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_data"] = self._data.combine_chunks()
+        return state
+
+    def __setstate__(self, state) -> None:
+        state["_data"] = pa.chunked_array(state["_data"])
+        self.__dict__.update(state)
 
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
