@@ -36,10 +36,12 @@ _ALLOWLIST = [  # should be empty
     "pandas._libs.hashtable.HashTable.factorize",
     "pandas._libs.hashtable.HashTable.get_item",
     "pandas._libs.hashtable.HashTable.get_labels",
+    "pandas._libs.hashtable.HashTable.get_na",
     "pandas._libs.hashtable.HashTable.get_state",
     "pandas._libs.hashtable.HashTable.lookup",
     "pandas._libs.hashtable.HashTable.map_locations",
     "pandas._libs.hashtable.HashTable.set_item",
+    "pandas._libs.hashtable.HashTable.set_na",
     "pandas._libs.hashtable.HashTable.sizeof",
     "pandas._libs.hashtable.HashTable.unique",
     # stubtest might be too sensitive
