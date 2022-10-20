@@ -782,6 +782,7 @@ def test_preserve_categories():
     # ordered=False
     df = DataFrame({"A": Categorical(list("ba"), categories=categories, ordered=False)})
     sort_index = CategoricalIndex(categories, categories, ordered=False, name="A")
+    # GH#48749 - don't change order of categories
     nosort_index = CategoricalIndex(list("bac"), list("abc"), ordered=False, name="A")
     tm.assert_index_equal(
         df.groupby("A", sort=True, observed=False).first().index, sort_index
@@ -965,6 +966,7 @@ def test_sort2():
 
     index = CategoricalIndex(
         ["(7.5, 10]", "(2.5, 5]", "(5, 7.5]", "(0, 2.5]"],
+        # GH#48749 - don't change order of categories
         categories=["(0, 2.5]", "(2.5, 5]", "(5, 7.5]", "(7.5, 10]"],
         name="range",
     )
@@ -1062,6 +1064,7 @@ def test_sort_datetimelike():
             datetime(2011, 5, 1),
             datetime(2011, 1, 1),
         ],
+        # GH#48749 - don't change order of categories
         categories=sort_index.categories,
         name="dt",
     )
