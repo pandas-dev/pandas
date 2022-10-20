@@ -83,12 +83,6 @@ JSOBJ Object_npyNewArrayList(void *prv, void *decoder);
 JSOBJ Object_npyEndArrayList(void *prv, JSOBJ obj);
 int Object_npyArrayListAddItem(void *prv, JSOBJ obj, JSOBJ value);
 
-// labelled support, encode keys and values of JS object into separate numpy
-// arrays
-JSOBJ Object_npyNewObject(void *prv, void *decoder);
-JSOBJ Object_npyEndObject(void *prv, JSOBJ obj);
-int Object_npyObjectAddKey(void *prv, JSOBJ obj, JSOBJ name, JSOBJ value);
-
 // free the numpy context buffer
 void Npy_releaseContext(NpyArrContext *npyarr) {
     PRINTMARK();
@@ -374,68 +368,6 @@ int Object_npyArrayListAddItem(void *prv, JSOBJ obj, JSOBJ value) {
     return 1;
 }
 
-JSOBJ Object_npyNewObject(void *prv, void *_decoder) {
-    PyObjectDecoder *decoder = (PyObjectDecoder *)_decoder;
-    PRINTMARK();
-    if (decoder->curdim > 1) {
-        PyErr_SetString(PyExc_ValueError,
-                        "labels only supported up to 2 dimensions");
-        return NULL;
-    }
-
-    return ((JSONObjectDecoder *)decoder)->newArray(prv, decoder);
-}
-
-JSOBJ Object_npyEndObject(void *prv, JSOBJ obj) {
-    PyObject *list;
-    npy_intp labelidx;
-    NpyArrContext *npyarr = (NpyArrContext *)obj;
-    PRINTMARK();
-    if (!npyarr) {
-        return NULL;
-    }
-
-    labelidx = npyarr->dec->curdim - 1;
-
-    list = npyarr->labels[labelidx];
-    if (list) {
-        npyarr->labels[labelidx] = PyArray_FROM_O(list);
-        Py_DECREF(list);
-    }
-
-    return (PyObject *)((JSONObjectDecoder *)npyarr->dec)->endArray(prv, obj);
-}
-
-int Object_npyObjectAddKey(void *prv, JSOBJ obj, JSOBJ name, JSOBJ value) {
-    PyObject *label, *labels;
-    npy_intp labelidx;
-    // add key to label array, value to values array
-    NpyArrContext *npyarr = (NpyArrContext *)obj;
-    PRINTMARK();
-    if (!npyarr) {
-        return 0;
-    }
-
-    label = (PyObject *)name;
-    labelidx = npyarr->dec->curdim - 1;
-
-    if (!npyarr->labels[labelidx]) {
-        npyarr->labels[labelidx] = PyList_New(0);
-    }
-    labels = npyarr->labels[labelidx];
-    // only fill label array once, assumes all column labels are the same
-    // for 2-dimensional arrays.
-    if (PyList_Check(labels) && PyList_GET_SIZE(labels) <= npyarr->elcount) {
-        PyList_Append(labels, label);
-    }
-
-    if (((JSONObjectDecoder *)npyarr->dec)->arrayAddItem(prv, obj, value)) {
-        Py_DECREF(label);
-        return 1;
-    }
-    return 0;
-}
-
 int Object_objectAddKey(void *prv, JSOBJ obj, JSOBJ name, JSOBJ value) {
     int ret = PyDict_SetItem(obj, name, value);
     Py_DECREF((PyObject *)name);
@@ -494,7 +426,7 @@ static void Object_releaseObject(void *prv, JSOBJ obj, void *_decoder) {
     }
 }
 
-static char *g_kwlist[] = {"obj",      "precise_float", "numpy",
+static char *g_kwlist[] = {"obj",      "precise_float",
                            "labelled", "dtype",         NULL};
 
 PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
@@ -505,7 +437,7 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
     JSONObjectDecoder *decoder;
     PyObjectDecoder pyDecoder;
     PyArray_Descr *dtype = NULL;
-    int numpy = 0, labelled = 0;
+    int labelled = 0;
 
     JSONObjectDecoder dec = {
         Object_newString, Object_objectAddKey,  Object_arrayAddItem,
@@ -528,7 +460,7 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
     decoder = (JSONObjectDecoder *)&pyDecoder;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiiO&", g_kwlist, &arg,
-                                     &opreciseFloat, &numpy, &labelled,
+                                     &opreciseFloat, &labelled,
                                      PyArray_DescrConverter2, &dtype)) {
         Npy_releaseContext(pyDecoder.npyarr);
         return NULL;
@@ -553,19 +485,6 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     decoder->errorStr = NULL;
     decoder->errorOffset = NULL;
-
-    if (numpy) {
-        pyDecoder.dtype = dtype;
-        decoder->newArray = Object_npyNewArray;
-        decoder->endArray = Object_npyEndArray;
-        decoder->arrayAddItem = Object_npyArrayAddItem;
-
-        if (labelled) {
-            decoder->newObject = Object_npyNewObject;
-            decoder->endObject = Object_npyEndObject;
-            decoder->objectAddKey = Object_npyObjectAddKey;
-        }
-    }
 
     ret = JSON_DecodeObject(decoder, PyBytes_AS_STRING(sarg),
                             PyBytes_GET_SIZE(sarg));
