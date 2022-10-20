@@ -33,12 +33,6 @@ from pandas.compat.pyarrow import (
     pa_version_under9p0,
 )
 
-IS64 = IS64
-PY39 = PY39
-PY310 = PY310
-PY311 = PY311
-PYPY = PYPY
-
 
 def set_function_name(f: F, name: str, cls) -> F:
     """
@@ -155,4 +149,9 @@ __all__ = [
     "pa_version_under7p0",
     "pa_version_under8p0",
     "pa_version_under9p0",
+    "IS64",
+    "PY39",
+    "PY310",
+    "PY311",
+    "PYPY",
 ]
