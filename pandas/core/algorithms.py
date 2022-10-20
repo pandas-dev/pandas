@@ -1900,6 +1900,7 @@ def _sort_mixed(values) -> AnyArrayLike:
     num_pos = ~str_pos & ~null_pos
     str_argsort = np.argsort(values[str_pos])
     num_argsort = np.argsort(values[num_pos])
+    # convert boolean arrays to positional indices, then order by underlying values
     str_locs = str_pos.nonzero()[0].take(str_argsort)
     num_locs = num_pos.nonzero()[0].take(num_argsort)
     null_locs = null_pos.nonzero()[0]
