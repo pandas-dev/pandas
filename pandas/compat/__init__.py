@@ -15,12 +15,12 @@ import sys
 
 from pandas._typing import F
 import pandas.compat._compressors
-from pandas.compat._constants import (  # noqa: F401
-    IS64,
-    PY39,
-    PY310,
-    PY311,
-    PYPY,
+from pandas.compat._constants import (
+    IS64 as IS64,
+    PY39 as PY39,
+    PY310 as PY310,
+    PY311 as PY311,
+    PYPY as PYPY,
 )
 from pandas.compat.numpy import (
     is_numpy_dev,
