@@ -243,9 +243,6 @@ def test_is_():
     assert mi.is_(mi2)
 
     assert not mi.is_(mi.set_names(["C", "D"]))
-    mi2 = mi.view()
-    mi2.set_names(["E", "F"], inplace=True)
-    assert mi.is_(mi2)
     # levels are inherent properties, they change identity
     mi3 = mi2.set_levels([list(range(10)), list(range(10))])
     assert not mi3.is_(mi2)
@@ -254,12 +251,10 @@ def test_is_():
     mi4 = mi3.view()
 
     # GH 17464 - Remove duplicate MultiIndex levels
-    with tm.assert_produces_warning(FutureWarning):
-        mi4.set_levels([list(range(10)), list(range(10))], inplace=True)
+    mi4 = mi4.set_levels([list(range(10)), list(range(10))])
     assert not mi4.is_(mi3)
     mi5 = mi.view()
-    with tm.assert_produces_warning(FutureWarning):
-        mi5.set_levels(mi5.levels, inplace=True)
+    mi5 = mi5.set_levels(mi5.levels)
     assert not mi5.is_(mi)
 
 
