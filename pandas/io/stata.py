@@ -2178,7 +2178,7 @@ def _dtype_to_default_stata_fmt(
         return "%9.0g"
     elif dtype == np.int32:
         return "%12.0g"
-    elif dtype == np.int8 or dtype == np.int16:
+    elif dtype in (np.int8, np.int16):
         return "%8.0g"
     else:  # pragma : no cover
         raise NotImplementedError(f"Data type {dtype} not supported.")

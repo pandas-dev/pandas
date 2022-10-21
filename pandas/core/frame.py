@@ -1754,7 +1754,7 @@ class DataFrame(NDFrame, OpsMixin):
                     # error: Incompatible types in assignment (expression has type
                     # "List[Any]", variable has type "Dict[Any, Any]")
                     data = list(data.values())  # type: ignore[assignment]
-        elif orient == "columns" or orient == "tight":
+        elif orient in ("columns", "tight"):
             if columns is not None:
                 raise ValueError(f"cannot use columns parameter with orient='{orient}'")
         else:  # pragma: no cover
@@ -5762,11 +5762,11 @@ class DataFrame(NDFrame, OpsMixin):
         res = self if inplace else self.copy()
         ax = self.columns
 
-        for i in range(len(ax)):
-            if ax[i] in mapping:
+        for i, ax_value in enumerate(ax):
+            if ax_value in mapping:
                 ser = self.iloc[:, i]
 
-                target, value = mapping[ax[i]]
+                target, value = mapping[ax_value]
                 newobj = ser.replace(target, value, regex=regex)
 
                 res._iset_item(i, newobj)
@@ -8384,23 +8384,10 @@ Parrot 2  Parrot       24.0
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = no_default,
-        squeeze: bool | lib.NoDefault = no_default,
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
-
-        if squeeze is not no_default:
-            warnings.warn(
-                (
-                    "The `squeeze` parameter is deprecated and "
-                    "will be removed in a future version."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            squeeze = False
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -8414,7 +8401,6 @@ Parrot 2  Parrot       24.0
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )
@@ -11892,7 +11878,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -11906,7 +11891,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -11920,7 +11904,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -11937,7 +11920,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         return super().where(
             cond,
@@ -11945,7 +11927,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
     @overload
@@ -11958,7 +11939,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -11972,7 +11952,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -11986,7 +11965,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -12003,7 +11981,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         return super().mask(
             cond,
@@ -12011,7 +11988,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
 

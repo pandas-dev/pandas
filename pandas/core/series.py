@@ -889,16 +889,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # Indexing Methods
 
     @Appender(NDFrame.take.__doc__)
-    def take(
-        self, indices, axis: Axis = 0, is_copy: bool | None = None, **kwargs
-    ) -> Series:
-        if is_copy is not None:
-            warnings.warn(
-                "is_copy is deprecated and will be removed in a future version. "
-                "'take' always returns a copy, so there is no need to specify this.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+    def take(self, indices, axis: Axis = 0, **kwargs) -> Series:
         nv.validate_take((), kwargs)
 
         indices = ensure_platform_int(indices)
@@ -2026,23 +2017,10 @@ Name: Max Speed, dtype: float64
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = no_default,
-        squeeze: bool | lib.NoDefault = no_default,
         observed: bool = False,
         dropna: bool = True,
     ) -> SeriesGroupBy:
         from pandas.core.groupby.generic import SeriesGroupBy
-
-        if squeeze is not no_default:
-            warnings.warn(
-                (
-                    "The `squeeze` parameter is deprecated and "
-                    "will be removed in a future version."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            squeeze = False
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -2056,7 +2034,6 @@ Name: Max Speed, dtype: float64
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )
@@ -2183,6 +2160,8 @@ Name: Max Speed, dtype: float64
             * Categorical
             * Period
             * Datetime with Timezone
+            * Datetime without Timezone
+            * Timedelta
             * Interval
             * Sparse
             * IntegerNA
@@ -2195,7 +2174,9 @@ Name: Max Speed, dtype: float64
         array([2, 1, 3])
 
         >>> pd.Series([pd.Timestamp('2016-01-01') for _ in range(3)]).unique()
-        array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+        <DatetimeArray>
+        ['2016-01-01 00:00:00']
+        Length: 1, dtype: datetime64[ns]
 
         >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
         ...            for _ in range(3)]).unique()
@@ -6066,7 +6047,6 @@ Keep all original rows and also all original values
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> Series:
         ...
 
@@ -6080,7 +6060,6 @@ Keep all original rows and also all original values
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -6094,7 +6073,6 @@ Keep all original rows and also all original values
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> Series | None:
         ...
 
@@ -6111,7 +6089,6 @@ Keep all original rows and also all original values
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = lib.no_default,
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> Series | None:
         return super().where(
             cond,
@@ -6119,7 +6096,6 @@ Keep all original rows and also all original values
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
     @overload
@@ -6132,7 +6108,6 @@ Keep all original rows and also all original values
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> Series:
         ...
 
@@ -6146,7 +6121,6 @@ Keep all original rows and also all original values
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -6160,7 +6134,6 @@ Keep all original rows and also all original values
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> Series | None:
         ...
 
@@ -6177,7 +6150,6 @@ Keep all original rows and also all original values
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = lib.no_default,
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> Series | None:
         return super().mask(
             cond,
@@ -6185,7 +6157,6 @@ Keep all original rows and also all original values
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
     # ----------------------------------------------------------------------

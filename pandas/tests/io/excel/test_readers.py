@@ -1222,7 +1222,7 @@ class TestReaders:
             ("testmultiindex", "both", [0, 1], [0, 1], None),
             ("testmultiindex", "mi_column_name", [0, 1], 0, None),
             ("testskiprows", "skiprows_list", None, None, [0, 2]),
-            ("testskiprows", "skiprows_list", None, None, lambda x: x == 0 or x == 2),
+            ("testskiprows", "skiprows_list", None, None, lambda x: x in (0, 2)),
         ],
     )
     def test_read_excel_nrows_params(
