@@ -1,3 +1,4 @@
+import re
 import warnings
 
 cimport cython
@@ -85,6 +86,8 @@ def _test_parse_iso8601(ts: str):
         _TSObject obj
         int out_local = 0, out_tzoffset = 0
         NPY_DATETIMEUNIT out_bestunit
+        char inferred_format
+        int format_len
 
     obj = _TSObject()
 
@@ -93,7 +96,7 @@ def _test_parse_iso8601(ts: str):
     elif ts == 'today':
         return Timestamp.now().normalize()
 
-    string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True)
+    string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True, &inferred_format, &format_len)
     obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:
@@ -449,6 +452,8 @@ cpdef array_to_datetime(
     bint utc=False,
     bint require_iso8601=False,
     bint allow_mixed=False,
+    str format=None,
+    bint exact=False,
 ):
     """
     Converts a 1D array of date-like values to a numpy array of either:
@@ -509,6 +514,8 @@ cpdef array_to_datetime(
         datetime py_dt
         tzinfo tz_out = None
         bint found_tz = False, found_naive = False
+        char inferred_format[100]
+        int format_len
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
@@ -568,6 +575,15 @@ cpdef array_to_datetime(
                     iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
 
                 elif is_integer_object(val) or is_float_object(val):
+                    if require_iso8601:
+                        if is_coerce:
+                            iresult[i] = NPY_NAT
+                            continue
+                        elif is_raise:
+                            raise ValueError(
+                                f"time data \"{val}\" at position {i} doesn't match format {format}"
+                            )
+                        return values, tz_out
                     # these must be ns unit by-definition
                     seen_integer = True
 
@@ -598,7 +614,8 @@ cpdef array_to_datetime(
 
                     string_to_dts_failed = string_to_dts(
                         val, &dts, &out_bestunit, &out_local,
-                        &out_tzoffset, False
+                        &out_tzoffset, False, inferred_format,
+                        &format_len,
                     )
                     if string_to_dts_failed:
                         # An error at this point is a _parsing_ error
@@ -613,7 +630,7 @@ cpdef array_to_datetime(
                                 continue
                             elif is_raise:
                                 raise ValueError(
-                                    f"time data \"{val}\" at position {i} doesn't match format specified"
+                                    f"time data \"{val}\" at position {i} doesn't match {format}"
                                 )
                             return values, tz_out
 
@@ -644,6 +661,21 @@ cpdef array_to_datetime(
                         _ts = convert_datetime_to_tsobject(py_dt, None)
                         iresult[i] = _ts.value
                     if not string_to_dts_failed:
+                        if require_iso8601:
+                            guess = inferred_format[:format_len].decode('utf-8')
+                            if (
+                                (exact and format != guess)
+                                or (not exact and re.search(format, guess) is None)
+                            ):
+                                if is_coerce:
+                                    iresult[i] = NPY_NAT
+                                    continue
+                                elif is_raise:
+                                    raise ValueError(
+                                        f"time data \"{val}\" at position {i} doesn't "
+                                        f"match format {format}"
+                                    )
+                                return values, tz_out
                         # No error reported by string_to_dts, pick back up
                         # where we left off
                         value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)

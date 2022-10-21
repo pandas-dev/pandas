@@ -426,16 +426,14 @@ def _convert_listlike_datetimes(
         format_is_iso8601 = format_is_iso(format)
         if format_is_iso8601:
             require_iso8601 = not infer_datetime_format
-            format = None
 
-    if format is not None:
+    if format is not None and not require_iso8601:
         res = _to_datetime_with_format(
             arg, orig_arg, name, tz, format, exact, errors, infer_datetime_format
         )
         if res is not None:
             return res
 
-    assert format is None or infer_datetime_format
     utc = tz == "utc"
     result, tz_parsed = objects_to_datetime64ns(
         arg,
@@ -445,6 +443,8 @@ def _convert_listlike_datetimes(
         errors=errors,
         require_iso8601=require_iso8601,
         allow_object=True,
+        format=format,
+        exact=exact,
     )
 
     if tz_parsed is not None:
@@ -968,13 +968,6 @@ def to_datetime(
     >>> pd.to_datetime('2018-10-26 12:00:00.0000000011',
     ...                format='%Y-%m-%d %H:%M:%S.%f')
     Timestamp('2018-10-26 12:00:00.000000001')
-
-    :const:`"%S"` without :const:`"%f"` will capture all the way
-    up to nanoseconds if present as decimal places.
-
-    >>> pd.to_datetime('2017-03-22 15:16:45.433502912',
-    ...                format='%Y-%m-%d %H:%M:%S')
-    Timestamp('2017-03-22 15:16:45.433502912')
 
     **Non-convertible date/times**
 
