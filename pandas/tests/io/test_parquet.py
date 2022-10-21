@@ -1014,9 +1014,6 @@ class TestParquetPyArrow(Base):
         else:
             assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
-    @pytest.mark.xfail(
-        pa_version_under2p0, reason="Timezone conversion incorrect for pyarrow < 2.0"
-    )
     def test_read_use_nullable_types_pyarrow_config(self, pa, df_full):
         import pyarrow
 
