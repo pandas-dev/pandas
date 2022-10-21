@@ -1,5 +1,8 @@
+import datetime
+
 import pytest
 
+from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.offsets import MonthOffset
 
 import pandas.tseries.offsets as offsets
@@ -29,3 +32,11 @@ def month_classes(request):
     Fixture for month based datetime offsets available for a time series.
     """
     return request.param
+
+
+@pytest.fixture
+def dt():
+    """
+    Fixture for common Timestamp.
+    """
+    return Timestamp(datetime.datetime(2008, 1, 2))
