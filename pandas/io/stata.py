@@ -1496,9 +1496,9 @@ class StataReader(StataParser, abc.Iterator):
         for i, typ in enumerate(self.typlist):
             if typ in self.NUMPY_TYPE_MAP:
                 typ = cast(str, typ)  # only strs in NUMPY_TYPE_MAP
-                dtypes.append(("s" + str(i), self.byteorder + self.NUMPY_TYPE_MAP[typ]))
+                dtypes.append((f"s{i}", f"{self.byteorder}{self.NUMPY_TYPE_MAP[typ]}"))
             else:
-                dtypes.append(("s" + str(i), "S" + str(typ)))
+                dtypes.append((f"s{i}", f"S{typ}"))
         self._dtype = np.dtype(dtypes)
 
         return self._dtype
@@ -1566,10 +1566,10 @@ the string values returned are correct."""
             n = self._read_uint32()
             txtlen = self._read_uint32()
             off = np.frombuffer(
-                self.path_or_buf.read(4 * n), dtype=self.byteorder + "i4", count=n
+                self.path_or_buf.read(4 * n), dtype=f"{self.byteorder}i4", count=n
             )
             val = np.frombuffer(
-                self.path_or_buf.read(4 * n), dtype=self.byteorder + "i4", count=n
+                self.path_or_buf.read(4 * n), dtype=f"{self.byteorder}i4", count=n
             )
             ii = np.argsort(off)
             off = off[ii]
