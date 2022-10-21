@@ -122,7 +122,6 @@ disable = [
   "inconsistent-return-statements",
   "invalid-sequence-index",
   "literal-comparison",
-  "no-else-break",
   "no-else-continue",
   "no-else-raise",
   "no-else-return",

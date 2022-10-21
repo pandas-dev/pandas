@@ -704,7 +704,7 @@ class PythonParser(ParserBase):
                         self._is_line_empty(self.data[self.pos - 1]) or line
                     ):
                         break
-                    elif self.skip_blank_lines:
+                    if self.skip_blank_lines:
                         ret = self._remove_empty_lines([line])
                         if ret:
                             line = ret[0]
