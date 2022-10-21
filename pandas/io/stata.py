@@ -23,6 +23,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     AnyStr,
+    Callable,
     Final,
     Hashable,
     Sequence,
@@ -1148,6 +1149,7 @@ class StataReader(StataParser, abc.Iterator):
         self._encoding = ""
         self._chunksize = chunksize
         self._using_iterator = False
+        self._entered = False
         if self._chunksize is None:
             self._chunksize = 1
         elif not isinstance(chunksize, int) or chunksize <= 0:
@@ -1177,21 +1179,36 @@ class StataReader(StataParser, abc.Iterator):
         """
         Open the file (with compression options, etc.), and read header information.
         """
-        with get_handle(
+        if not self._entered:
+            warnings.warn(
+                "StataReader is being used without using a context manager. "
+                "Using StataReader as a context manager is the only supported method.",
+                ResourceWarning,
+                stacklevel=find_stack_level(),
+            )
+        handles = get_handle(
             self._original_path_or_buf,
             "rb",
             storage_options=self._storage_options,
             is_text=False,
             compression=self._compression,
-        ) as handles:
-            # Copy to BytesIO, and ensure no encoding
-            self._path_or_buf = BytesIO(handles.handle.read())
+        )
+        if hasattr(handles.handle, "seekable") and handles.handle.seekable():
+            # If the handle is directly seekable, use it without an extra copy.
+            self._path_or_buf = handles.handle
+            self._close_file = handles.close
+        else:
+            # Copy to memory, and ensure no encoding.
+            with handles:
+                self._path_or_buf = BytesIO(handles.handle.read())
+            self._close_file = self._path_or_buf.close
 
         self._read_header()
         self._setup_dtype()
 
     def __enter__(self) -> StataReader:
         """enter context manager"""
+        self._entered = True
         return self
 
     def __exit__(
@@ -1200,12 +1217,26 @@ class StataReader(StataParser, abc.Iterator):
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        """exit context manager"""
-        self.close()
+        if self._close_file:
+            self._close_file()
 
     def close(self) -> None:
-        """close the handle if its open"""
-        self._path_or_buf.close()
+        """Close the handle if its open.
+
+        .. deprecated: 2.0.0
+
+           The close method is not part of the public API.
+           The only supported way to use StataReader is to use it as a context manager.
+        """
+        warnings.warn(
+            "The StataReader.close() method is not part of the public API and "
+            "will be removed in a future version without notice. "
+            "Using StataReader as a context manager is the only supported method.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        if self._close_file:
+            self._close_file()
 
     def _set_encoding(self) -> None:
         """
