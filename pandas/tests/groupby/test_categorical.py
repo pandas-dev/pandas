@@ -2014,12 +2014,7 @@ def test_many_categories(as_index, sort, index_kind, ordered):
         pytest.skip(reason="Result doesn't have categories, nothing to test")
     categories = np.arange(9999, -1, -1)
     grouper = Categorical([2, 1, 2, 3], categories=categories, ordered=ordered)
-    df = DataFrame(
-        {
-            "a": grouper,
-            "b": range(4),
-        }
-    )
+    df = DataFrame({"a": grouper, "b": range(4)})
     if index_kind == "range":
         keys = ["a"]
     elif index_kind == "single":
@@ -2033,7 +2028,7 @@ def test_many_categories(as_index, sort, index_kind, ordered):
     result = gb.sum()
 
     # Test is setup so that data and index are the same values
-    # TODO: GH##49223 - Order should be the same for all index_kinds
+    # TODO: GH#49223 - Order of values should be the same for all index_kinds
     if index_kind == "range":
         data = [3, 2, 1] if ordered else [2, 1, 3]
     else:
