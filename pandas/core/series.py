@@ -889,16 +889,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # Indexing Methods
 
     @Appender(NDFrame.take.__doc__)
-    def take(
-        self, indices, axis: Axis = 0, is_copy: bool | None = None, **kwargs
-    ) -> Series:
-        if is_copy is not None:
-            warnings.warn(
-                "is_copy is deprecated and will be removed in a future version. "
-                "'take' always returns a copy, so there is no need to specify this.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+    def take(self, indices, axis: Axis = 0, **kwargs) -> Series:
         nv.validate_take((), kwargs)
 
         indices = ensure_platform_int(indices)
@@ -2169,6 +2160,8 @@ Name: Max Speed, dtype: float64
             * Categorical
             * Period
             * Datetime with Timezone
+            * Datetime without Timezone
+            * Timedelta
             * Interval
             * Sparse
             * IntegerNA
@@ -2181,7 +2174,9 @@ Name: Max Speed, dtype: float64
         array([2, 1, 3])
 
         >>> pd.Series([pd.Timestamp('2016-01-01') for _ in range(3)]).unique()
-        array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+        <DatetimeArray>
+        ['2016-01-01 00:00:00']
+        Length: 1, dtype: datetime64[ns]
 
         >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
         ...            for _ in range(3)]).unique()

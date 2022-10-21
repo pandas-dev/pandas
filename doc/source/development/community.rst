@@ -77,10 +77,10 @@ Any community member can open issues to:
 - Ask questions, e.g. "I noticed the behavior of a certain function
   changed between versions. Is this expected?".
 
-    Ideally your questions should be related to how pandas work rather
+    Ideally, your questions should be related to how pandas works rather
     than how you use pandas. `StackOverflow <https://stackoverflow.com/>`_ is
     better suited for answering usage questions, and we ask that all usage
-    questions are first asked on StackOverflow. Thank you for respecting are
+    questions are first asked on StackOverflow. Thank you for respecting our
     time and wishes. 🙇
 
 Maintainers and frequent contributors might also open issues to discuss the
@@ -88,7 +88,7 @@ ongoing development of the project. For example:
 
 - Report issues with the CI, GitHub Actions, or the performance of pandas
 - Open issues relating to the internals
-- Start roadmap discussion aligning on proposals what to do in future
+- Start roadmap discussion aligning on proposals for what to do in future
   releases or changes to the API.
 - Open issues relating to the project's website, logo, or governance
 
@@ -97,8 +97,10 @@ The developer mailing list
 
 The pandas mailing list `pandas-dev@python.org <mailto://pandas-dev@python
 .org>`_ is used for long form
-conversations and to engages people in the wider community who might not
+conversations and to engage people in the wider community who might not
 be active on the issue tracker but we would like to include in discussions.
+
+.. _community.slack:
 
 Community slack
 ---------------
@@ -112,6 +114,6 @@ mailing list or GitHub.
 If this sounds like the right place for you, you are welcome to join! Email us
 at `slack@pandas.pydata.org <mailto://slack@pandas.pydata.org>`_ and let us
 know that you read and agree to our `Code of Conduct <https://pandas.pydata.org/community/coc.html>`_
-😉 to get an invite. And please remember the slack is not meant to replace the
+😉 to get an invite. And please remember that slack is not meant to replace the
 mailing list or issue tracker - all important announcements and conversations
 should still happen there.
