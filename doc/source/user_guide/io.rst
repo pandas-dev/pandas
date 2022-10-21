@@ -1011,7 +1011,9 @@ Inferring datetime format
 
 If you try to parse a column of date strings, pandas will attempt to guess the format
 from the first non-NaN element, and will then parse the rest of the column with that
-format.
+format. If pandas fails to guess the format, then a warning will be raised, and each
+row will have its format guessed individually by ``dateutil.parser.parse``. The safest
+way to parse dates is to explicitly set ``format=``.
 
 .. ipython:: python
 
