@@ -9,7 +9,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.util.version import Version
 
-# Update install.rst when updating versions!
+# Update install.rst & setup.cfg when updating versions!
 
 VERSIONS = {
     "bs4": "4.9.3",
