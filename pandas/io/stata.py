@@ -1198,9 +1198,42 @@ class StataReader(StataParser, abc.Iterator):
         else:
             self._encoding = "utf-8"
 
+    def _read_int8(self) -> int:
+        return struct.unpack("b", self.path_or_buf.read(1))[0]
+
+    def _read_uint8(self) -> int:
+        return struct.unpack("B", self.path_or_buf.read(1))[0]
+
+    def _read_uint16(self) -> int:
+        return struct.unpack(f"{self.byteorder}H", self.path_or_buf.read(2))[0]
+
+    def _read_uint32(self) -> int:
+        return struct.unpack(f"{self.byteorder}I", self.path_or_buf.read(4))[0]
+
+    def _read_uint64(self) -> int:
+        return struct.unpack(f"{self.byteorder}Q", self.path_or_buf.read(8))[0]
+
+    def _read_int16(self) -> int:
+        return struct.unpack(f"{self.byteorder}h", self.path_or_buf.read(2))[0]
+
+    def _read_int32(self) -> int:
+        return struct.unpack(f"{self.byteorder}i", self.path_or_buf.read(4))[0]
+
+    def _read_int64(self) -> int:
+        return struct.unpack(f"{self.byteorder}q", self.path_or_buf.read(8))[0]
+
+    def _read_char8(self) -> bytes:
+        return struct.unpack("c", self.path_or_buf.read(1))[0]
+
+    def _read_int16_count(self, count: int) -> tuple[int, ...]:
+        return struct.unpack(
+            f"{self.byteorder}{'h' * count}",
+            self.path_or_buf.read(2 * count),
+        )
+
     def _read_header(self) -> None:
-        first_char = self.path_or_buf.read(1)
-        if struct.unpack("c", first_char)[0] == b"<":
+        first_char = self._read_char8()
+        if first_char == b"<":
             self._read_new_header()
         else:
             self._read_old_header(first_char)
@@ -1220,11 +1253,9 @@ class StataReader(StataParser, abc.Iterator):
         self.path_or_buf.read(21)  # </release><byteorder>
         self.byteorder = ">" if self.path_or_buf.read(3) == b"MSF" else "<"
         self.path_or_buf.read(15)  # </byteorder><K>
-        nvar_type = "H" if self.format_version <= 118 else "I"
-        nvar_size = 2 if self.format_version <= 118 else 4
-        self.nvar = struct.unpack(
-            self.byteorder + nvar_type, self.path_or_buf.read(nvar_size)
-        )[0]
+        self.nvar = (
+            self._read_uint16() if self.format_version <= 118 else self._read_uint32()
+        )
         self.path_or_buf.read(7)  # </K><N>
 
         self.nobs = self._get_nobs()
@@ -1236,35 +1267,19 @@ class StataReader(StataParser, abc.Iterator):
         self.path_or_buf.read(8)  # 0x0000000000000000
         self.path_or_buf.read(8)  # position of <map>
 
-        self._seek_vartypes = (
-            struct.unpack(self.byteorder + "q", self.path_or_buf.read(8))[0] + 16
-        )
-        self._seek_varnames = (
-            struct.unpack(self.byteorder + "q", self.path_or_buf.read(8))[0] + 10
-        )
-        self._seek_sortlist = (
-            struct.unpack(self.byteorder + "q", self.path_or_buf.read(8))[0] + 10
-        )
-        self._seek_formats = (
-            struct.unpack(self.byteorder + "q", self.path_or_buf.read(8))[0] + 9
-        )
-        self._seek_value_label_names = (
-            struct.unpack(self.byteorder + "q", self.path_or_buf.read(8))[0] + 19
-        )
+        self._seek_vartypes = self._read_int64() + 16
+        self._seek_varnames = self._read_int64() + 10
+        self._seek_sortlist = self._read_int64() + 10
+        self._seek_formats = self._read_int64() + 9
+        self._seek_value_label_names = self._read_int64() + 19
 
         # Requires version-specific treatment
         self._seek_variable_labels = self._get_seek_variable_labels()
 
         self.path_or_buf.read(8)  # <characteristics>
-        self.data_location = (
-            struct.unpack(self.byteorder + "q", self.path_or_buf.read(8))[0] + 6
-        )
-        self.seek_strls = (
-            struct.unpack(self.byteorder + "q", self.path_or_buf.read(8))[0] + 7
-        )
-        self.seek_value_labels = (
-            struct.unpack(self.byteorder + "q", self.path_or_buf.read(8))[0] + 14
-        )
+        self.data_location = self._read_int64() + 6
+        self.seek_strls = self._read_int64() + 7
+        self.seek_value_labels = self._read_int64() + 14
 
         self.typlist, self.dtyplist = self._get_dtypes(self._seek_vartypes)
 
@@ -1272,10 +1287,7 @@ class StataReader(StataParser, abc.Iterator):
         self.varlist = self._get_varlist()
 
         self.path_or_buf.seek(self._seek_sortlist)
-        self.srtlist = struct.unpack(
-            self.byteorder + ("h" * (self.nvar + 1)),
-            self.path_or_buf.read(2 * (self.nvar + 1)),
-        )[:-1]
+        self.srtlist = self._read_int16_count(self.nvar + 1)[:-1]
 
         self.path_or_buf.seek(self._seek_formats)
         self.fmtlist = self._get_fmtlist()
@@ -1291,10 +1303,7 @@ class StataReader(StataParser, abc.Iterator):
         self, seek_vartypes: int
     ) -> tuple[list[int | str], list[str | np.dtype]]:
         self.path_or_buf.seek(seek_vartypes)
-        raw_typlist = [
-            struct.unpack(self.byteorder + "H", self.path_or_buf.read(2))[0]
-            for _ in range(self.nvar)
-        ]
+        raw_typlist = [self._read_uint16() for _ in range(self.nvar)]
 
         def f(typ: int) -> int | str:
             if typ <= 2045:
@@ -1363,16 +1372,16 @@ class StataReader(StataParser, abc.Iterator):
 
     def _get_nobs(self) -> int:
         if self.format_version >= 118:
-            return struct.unpack(self.byteorder + "Q", self.path_or_buf.read(8))[0]
+            return self._read_uint64()
         else:
-            return struct.unpack(self.byteorder + "I", self.path_or_buf.read(4))[0]
+            return self._read_uint32()
 
     def _get_data_label(self) -> str:
         if self.format_version >= 118:
-            strlen = struct.unpack(self.byteorder + "H", self.path_or_buf.read(2))[0]
+            strlen = self._read_uint16()
             return self._decode(self.path_or_buf.read(strlen))
         elif self.format_version == 117:
-            strlen = struct.unpack("b", self.path_or_buf.read(1))[0]
+            strlen = self._read_int8()
             return self._decode(self.path_or_buf.read(strlen))
         elif self.format_version > 105:
             return self._decode(self.path_or_buf.read(81))
@@ -1381,10 +1390,10 @@ class StataReader(StataParser, abc.Iterator):
 
     def _get_time_stamp(self) -> str:
         if self.format_version >= 118:
-            strlen = struct.unpack("b", self.path_or_buf.read(1))[0]
+            strlen = self._read_int8()
             return self.path_or_buf.read(strlen).decode("utf-8")
         elif self.format_version == 117:
-            strlen = struct.unpack("b", self.path_or_buf.read(1))[0]
+            strlen = self._read_int8()
             return self._decode(self.path_or_buf.read(strlen))
         elif self.format_version > 104:
             return self._decode(self.path_or_buf.read(18))
@@ -1399,22 +1408,20 @@ class StataReader(StataParser, abc.Iterator):
             # variable, 20 for the closing tag and 17 for the opening tag
             return self._seek_value_label_names + (33 * self.nvar) + 20 + 17
         elif self.format_version >= 118:
-            return struct.unpack(self.byteorder + "q", self.path_or_buf.read(8))[0] + 17
+            return self._read_int64() + 17
         else:
             raise ValueError()
 
     def _read_old_header(self, first_char: bytes) -> None:
-        self.format_version = struct.unpack("b", first_char)[0]
+        self.format_version = int(first_char[0])
         if self.format_version not in [104, 105, 108, 111, 113, 114, 115]:
             raise ValueError(_version_error.format(version=self.format_version))
         self._set_encoding()
-        self.byteorder = (
-            ">" if struct.unpack("b", self.path_or_buf.read(1))[0] == 0x1 else "<"
-        )
-        self.filetype = struct.unpack("b", self.path_or_buf.read(1))[0]
+        self.byteorder = (">" if self._read_int8() == 0x1 else "<")
+        self.filetype = self._read_int8()
         self.path_or_buf.read(1)  # unused
 
-        self.nvar = struct.unpack(self.byteorder + "H", self.path_or_buf.read(2))[0]
+        self.nvar = self._read_uint16()
         self.nobs = self._get_nobs()
 
         self._data_label = self._get_data_label()
@@ -1423,7 +1430,7 @@ class StataReader(StataParser, abc.Iterator):
 
         # descriptors
         if self.format_version > 108:
-            typlist = [ord(self.path_or_buf.read(1)) for _ in range(self.nvar)]
+            typlist = [int(c) for c in self.path_or_buf.read(self.nvar)]
         else:
             buf = self.path_or_buf.read(self.nvar)
             typlistb = np.frombuffer(buf, dtype=np.uint8)
@@ -1453,10 +1460,7 @@ class StataReader(StataParser, abc.Iterator):
             self.varlist = [
                 self._decode(self.path_or_buf.read(9)) for _ in range(self.nvar)
             ]
-        self.srtlist = struct.unpack(
-            self.byteorder + ("h" * (self.nvar + 1)),
-            self.path_or_buf.read(2 * (self.nvar + 1)),
-        )[:-1]
+        self.srtlist = self._read_int16_count(self.nvar + 1)[:-1]
 
         self.fmtlist = self._get_fmtlist()
 
@@ -1471,17 +1475,11 @@ class StataReader(StataParser, abc.Iterator):
 
         if self.format_version > 104:
             while True:
-                data_type = struct.unpack(
-                    self.byteorder + "b", self.path_or_buf.read(1)
-                )[0]
+                data_type = self._read_int8()
                 if self.format_version > 108:
-                    data_len = struct.unpack(
-                        self.byteorder + "i", self.path_or_buf.read(4)
-                    )[0]
+                    data_len = self._read_int32()
                 else:
-                    data_len = struct.unpack(
-                        self.byteorder + "h", self.path_or_buf.read(2)
-                    )[0]
+                    data_len = self._read_int16()
                 if data_type == 0:
                     break
                 self.path_or_buf.read(data_len)
@@ -1565,8 +1563,8 @@ the string values returned are correct."""
                 labname = self._decode(self.path_or_buf.read(129))
             self.path_or_buf.read(3)  # padding
 
-            n = struct.unpack(self.byteorder + "I", self.path_or_buf.read(4))[0]
-            txtlen = struct.unpack(self.byteorder + "I", self.path_or_buf.read(4))[0]
+            n = self._read_uint32()
+            txtlen = self._read_uint32()
             off = np.frombuffer(
                 self.path_or_buf.read(4 * n), dtype=self.byteorder + "i4", count=n
             )
@@ -1594,7 +1592,7 @@ the string values returned are correct."""
                 break
 
             if self.format_version == 117:
-                v_o = struct.unpack(self.byteorder + "Q", self.path_or_buf.read(8))[0]
+                v_o = self._read_uint64()
             else:
                 buf = self.path_or_buf.read(12)
                 # Only tested on little endian file on little endian machine.
@@ -1605,8 +1603,8 @@ the string values returned are correct."""
                     # This path may not be correct, impossible to test
                     buf = buf[0:v_size] + buf[(4 + v_size) :]
                 v_o = struct.unpack("Q", buf)[0]
-            typ = struct.unpack("B", self.path_or_buf.read(1))[0]
-            length = struct.unpack(self.byteorder + "I", self.path_or_buf.read(4))[0]
+            typ = self._read_uint8()
+            length = self._read_uint32()
             va = self.path_or_buf.read(length)
             if typ == 130:
                 decoded_va = va[0:-1].decode(self._encoding)
