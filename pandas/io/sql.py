@@ -1350,7 +1350,7 @@ def get_engine(engine: str) -> BaseEngine:
             try:
                 return engine_class()
             except ImportError as err:
-                error_msgs += "\n - " + str(err)
+                error_msgs += f"\n - {err}"
 
         raise ImportError(
             "Unable to find a usable engine; "
@@ -1911,7 +1911,7 @@ class SQLiteTable(SQLTable):
         escape = _get_valid_sqlite_name
 
         create_tbl_stmts = [
-            escape(cname) + " " + ctype for cname, ctype, _ in column_names_and_types
+            f"{escape(cname)} {ctype}" for cname, ctype, _ in column_names_and_types
         ]
 
         if self.keys is not None and len(self.keys):
@@ -1924,30 +1924,22 @@ class SQLiteTable(SQLTable):
                 f"CONSTRAINT {self.name}_pk PRIMARY KEY ({cnames_br})"
             )
         if self.schema:
-            schema_name = self.schema + "."
+            schema_name = f"{self.schema}."
         else:
             schema_name = ""
+        create_tbl_stmts_str = ",\n  ".join(create_tbl_stmts)
         create_stmts = [
-            "CREATE TABLE "
-            + schema_name
-            + escape(self.name)
-            + " (\n"
-            + ",\n  ".join(create_tbl_stmts)
-            + "\n)"
+            f"CREATE TABLE {schema_name}{escape(self.name)} "
+            f"(\n{create_tbl_stmts_str}\n)"
         ]
 
         ix_cols = [cname for cname, _, is_index in column_names_and_types if is_index]
         if len(ix_cols):
             cnames = "_".join(ix_cols)
             cnames_br = ",".join([escape(c) for c in ix_cols])
+            ix_name = f"ix_{self.name}_{cnames}"
             create_stmts.append(
-                "CREATE INDEX "
-                + escape("ix_" + self.name + "_" + cnames)
-                + "ON "
-                + escape(self.name)
-                + " ("
-                + cnames_br
-                + ")"
+                f"CREATE INDEX {escape(ix_name)} ON {escape(self.name)} ({cnames_br})"
             )
 
         return create_stmts

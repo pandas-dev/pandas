@@ -99,9 +99,7 @@ d    NaN
 f    1.0
 dtype: float64"""
 
-_add_example_SERIES = (
-    _common_examples_algebra_SERIES
-    + """
+_add_example_SERIES = f"""{_common_examples_algebra_SERIES}
 >>> a.add(b, fill_value=0)
 a    2.0
 b    1.0
@@ -110,11 +108,8 @@ d    1.0
 e    NaN
 dtype: float64
 """
-)
 
-_sub_example_SERIES = (
-    _common_examples_algebra_SERIES
-    + """
+_sub_example_SERIES = f"""{_common_examples_algebra_SERIES}
 >>> a.subtract(b, fill_value=0)
 a    0.0
 b    1.0
@@ -123,11 +118,8 @@ d   -1.0
 e    NaN
 dtype: float64
 """
-)
 
-_mul_example_SERIES = (
-    _common_examples_algebra_SERIES
-    + """
+_mul_example_SERIES = f"""{_common_examples_algebra_SERIES}
 >>> a.multiply(b, fill_value=0)
 a    1.0
 b    0.0
@@ -136,11 +128,8 @@ d    0.0
 e    NaN
 dtype: float64
 """
-)
 
-_div_example_SERIES = (
-    _common_examples_algebra_SERIES
-    + """
+_div_example_SERIES = f"""{_common_examples_algebra_SERIES}
 >>> a.divide(b, fill_value=0)
 a    1.0
 b    inf
@@ -149,11 +138,8 @@ d    0.0
 e    NaN
 dtype: float64
 """
-)
 
-_floordiv_example_SERIES = (
-    _common_examples_algebra_SERIES
-    + """
+_floordiv_example_SERIES = f"""{_common_examples_algebra_SERIES}
 >>> a.floordiv(b, fill_value=0)
 a    1.0
 b    NaN
@@ -162,11 +148,8 @@ d    0.0
 e    NaN
 dtype: float64
 """
-)
 
-_divmod_example_SERIES = (
-    _common_examples_algebra_SERIES
-    + """
+_divmod_example_SERIES = f"""{_common_examples_algebra_SERIES}
 >>> a.divmod(b, fill_value=0)
 (a    1.0
  b    NaN
@@ -181,11 +164,8 @@ _divmod_example_SERIES = (
  e    NaN
  dtype: float64)
 """
-)
 
-_mod_example_SERIES = (
-    _common_examples_algebra_SERIES
-    + """
+_mod_example_SERIES = f"""{_common_examples_algebra_SERIES}
 >>> a.mod(b, fill_value=0)
 a    0.0
 b    NaN
@@ -194,10 +174,7 @@ d    0.0
 e    NaN
 dtype: float64
 """
-)
-_pow_example_SERIES = (
-    _common_examples_algebra_SERIES
-    + """
+_pow_example_SERIES = f"""{_common_examples_algebra_SERIES}
 >>> a.pow(b, fill_value=0)
 a    1.0
 b    1.0
@@ -206,11 +183,8 @@ d    0.0
 e    NaN
 dtype: float64
 """
-)
 
-_ne_example_SERIES = (
-    _common_examples_algebra_SERIES
-    + """
+_ne_example_SERIES = f"""{_common_examples_algebra_SERIES}
 >>> a.ne(b, fill_value=0)
 a    False
 b     True
@@ -219,11 +193,8 @@ d     True
 e     True
 dtype: bool
 """
-)
 
-_eq_example_SERIES = (
-    _common_examples_algebra_SERIES
-    + """
+_eq_example_SERIES = f"""{_common_examples_algebra_SERIES}
 >>> a.eq(b, fill_value=0)
 a     True
 b    False
@@ -232,11 +203,8 @@ d    False
 e    False
 dtype: bool
 """
-)
 
-_lt_example_SERIES = (
-    _common_examples_comparison_SERIES
-    + """
+_lt_example_SERIES = f"""{_common_examples_comparison_SERIES}
 >>> a.lt(b, fill_value=0)
 a    False
 b    False
@@ -246,11 +214,8 @@ e    False
 f     True
 dtype: bool
 """
-)
 
-_le_example_SERIES = (
-    _common_examples_comparison_SERIES
-    + """
+_le_example_SERIES = f"""{_common_examples_comparison_SERIES}
 >>> a.le(b, fill_value=0)
 a    False
 b     True
@@ -260,11 +225,8 @@ e    False
 f     True
 dtype: bool
 """
-)
 
-_gt_example_SERIES = (
-    _common_examples_comparison_SERIES
-    + """
+_gt_example_SERIES = f"""{_common_examples_comparison_SERIES}
 >>> a.gt(b, fill_value=0)
 a     True
 b    False
@@ -274,11 +236,8 @@ e     True
 f    False
 dtype: bool
 """
-)
 
-_ge_example_SERIES = (
-    _common_examples_comparison_SERIES
-    + """
+_ge_example_SERIES = f"""{_common_examples_comparison_SERIES}
 >>> a.ge(b, fill_value=0)
 a     True
 b     True
@@ -288,7 +247,6 @@ e     True
 f    False
 dtype: bool
 """
-)
 
 _returns_series = """Series\n    The result of the operation."""
 

@@ -569,7 +569,7 @@ def makeCustomIndex(
 
     if names is True:
         # build default names
-        names = [prefix + str(i) for i in range(nlevels)]
+        names = [f"{prefix}{i}" for i in range(nlevels)]
     if names is False:
         # pass None to index constructor for no name
         names = None

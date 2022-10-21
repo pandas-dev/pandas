@@ -864,7 +864,7 @@ class StataMissingValue:
         # Conversion to long to avoid hash issues on 32 bit platforms #8968
         MISSING_VALUES[b] = "."
         for i in range(1, 27):
-            MISSING_VALUES[i + b] = "." + chr(96 + i)
+            MISSING_VALUES[i + b] = f".{chr(96 + i)}"
 
     float32_base: bytes = b"\x00\x00\x00\x7f"
     increment: int = struct.unpack("<i", b"\x00\x08\x00\x00")[0]
@@ -973,7 +973,7 @@ class StataParser:
         # with a label, but the underlying variable is -127 to 100
         # we're going to drop the label and cast to int
         self.DTYPE_MAP = dict(
-            list(zip(range(1, 245), [np.dtype("a" + str(i)) for i in range(1, 245)]))
+            list(zip(range(1, 245), [np.dtype(f"a{i}") for i in range(1, 245)]))
             + [
                 (251, np.dtype(np.int8)),
                 (252, np.dtype(np.int16)),
@@ -1502,9 +1502,9 @@ class StataReader(StataParser, abc.Iterator):
         for i, typ in enumerate(self.typlist):
             if typ in self.NUMPY_TYPE_MAP:
                 typ = cast(str, typ)  # only strs in NUMPY_TYPE_MAP
-                dtypes.append(("s" + str(i), self.byteorder + self.NUMPY_TYPE_MAP[typ]))
+                dtypes.append((f"s{i}", self.byteorder + self.NUMPY_TYPE_MAP[typ]))
             else:
-                dtypes.append(("s" + str(i), "S" + str(typ)))
+                dtypes.append((f"s{i}", f"S{typ}"))
         self._dtype = np.dtype(dtypes)
 
         return self._dtype
@@ -2092,7 +2092,7 @@ def _maybe_convert_to_int_keys(convert_dates: dict, varlist: list[Hashable]) -> 
     new_dict = {}
     for key in convert_dates:
         if not convert_dates[key].startswith("%"):  # make sure proper fmts
-            convert_dates[key] = "%" + convert_dates[key]
+            convert_dates[key] = f"%{convert_dates[key]}"
         if key in varlist:
             new_dict.update({varlist.index(key): convert_dates[key]})
         else:
@@ -2170,7 +2170,7 @@ def _dtype_to_default_stata_fmt(
                 return "%9s"
             else:
                 raise ValueError(excessive_string_length_error.format(column.name))
-        return "%" + str(max(itemsize, 1)) + "s"
+        return f"%{max(itemsize, 1)}s"
     elif dtype == np.float64:
         return "%10.0g"
     elif dtype == np.float32:
@@ -2475,11 +2475,11 @@ class StataWriter(StataParser):
 
             # Variable name must not be a reserved word
             if name in self.RESERVED_WORDS:
-                name = "_" + name
+                name = f"_{name}"
 
             # Variable name may not start with a number
             if "0" <= name[0] <= "9":
-                name = "_" + name
+                name = f"_{name}"
 
             name = name[: min(len(name), 32)]
 
@@ -2487,7 +2487,7 @@ class StataWriter(StataParser):
                 # check for duplicates
                 while columns.count(name) > 0:
                     # prepend ascending number to avoid duplicates
-                    name = "_" + str(duplicate_var_id) + name
+                    name = f"_{duplicate_var_id}{name}"
                     name = name[: min(len(name), 32)]
                     duplicate_var_id += 1
                 converted_names[orig_name] = name
@@ -3244,7 +3244,7 @@ class StataWriter117(StataWriter):
         """Surround val with <tag></tag>"""
         if isinstance(val, str):
             val = bytes(val, "utf-8")
-        return bytes("<" + tag + ">", "utf-8") + val + bytes("</" + tag + ">", "utf-8")
+        return bytes(f"<{tag}>", "utf-8") + val + bytes(f"</{tag}>", "utf-8")
 
     def _update_map(self, tag: str) -> None:
         """Update map location for tag with file position"""

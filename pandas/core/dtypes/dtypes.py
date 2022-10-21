@@ -1132,7 +1132,7 @@ class IntervalDtype(PandasExtensionDtype):
             )
             raise TypeError(msg)
 
-        key = str(subtype) + str(closed)
+        key = f"{subtype}{closed}"
         try:
             return cls._cache_dtypes[key]
         except KeyError:

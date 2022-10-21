@@ -2452,7 +2452,7 @@ class Styler(StylerRenderer):
 
             table_styles = [
                 {
-                    "selector": str(s["selector"]) + idf + str(idx),
+                    "selector": f"{s['selector']}{idf}{idx}",
                     "props": maybe_convert_css_to_tuples(s["props"]),
                 }
                 for key, styles in table_styles.items()
