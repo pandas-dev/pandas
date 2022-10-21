@@ -2180,7 +2180,7 @@ def objects_to_datetime64ns(
     require_iso8601: bool = False,
     allow_object: bool = False,
     allow_mixed: bool = False,
-    format: str = "",
+    format: str | None = None,
     exact: bool = False,
 ):
     """
@@ -2229,7 +2229,7 @@ def objects_to_datetime64ns(
             yearfirst=yearfirst,
             require_iso8601=require_iso8601,
             allow_mixed=allow_mixed,
-            format=format,
+            format=format or "",
             exact=exact,
         )
         result = result.reshape(data.shape, order=order)
