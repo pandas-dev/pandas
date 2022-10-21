@@ -211,15 +211,14 @@ class TestAstype:
         tm.assert_series_equal(result, expected)
 
         # astype - datetime64[ns, tz]
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "Cannot use .astype to convert from timezone-naive"
+        with pytest.raises(TypeError, match=msg):
             # dt64->dt64tz astype deprecated
-            result = Series(ser.values).astype("datetime64[ns, US/Eastern]")
-        tm.assert_series_equal(result, ser)
+            Series(ser.values).astype("datetime64[ns, US/Eastern]")
 
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match=msg):
             # dt64->dt64tz astype deprecated
-            result = Series(ser.values).astype(ser.dtype)
-        tm.assert_series_equal(result, ser)
+            Series(ser.values).astype(ser.dtype)
 
         result = ser.astype("datetime64[ns, CET]")
         expected = Series(date_range("20130101 06:00:00", periods=3, tz="CET"))

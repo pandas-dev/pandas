@@ -56,14 +56,12 @@ from pandas.errors import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
-from pandas.core.dtypes.astype import astype_dt64_to_dt64tz
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     INT64_DTYPE,
     is_bool_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
-    is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -660,15 +658,29 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             return type(self)._simple_new(res_values, dtype=res_values.dtype)
             # TODO: preserve freq?
 
-        elif is_datetime64_ns_dtype(dtype):
-            return astype_dt64_to_dt64tz(self, dtype, copy, via_utc=False)
-
         elif self.tz is not None and isinstance(dtype, DatetimeTZDtype):
             # tzaware unit conversion e.g. datetime64[s, UTC]
             np_dtype = np.dtype(dtype.str)
             res_values = astype_overflowsafe(self._ndarray, np_dtype, copy=copy)
-            return type(self)._simple_new(res_values, dtype=dtype)
-            # TODO: preserve freq?
+            return type(self)._simple_new(res_values, dtype=dtype, freq=self.freq)
+
+        elif self.tz is None and isinstance(dtype, DatetimeTZDtype):
+            # pre-2.0 this did self.tz_localize(dtype.tz), which did not match
+            #  the Series behavior
+            raise TypeError(
+                "Cannot use .astype to convert from timezone-naive dtype to "
+                "timezone-aware dtype. Use obj.tz_localize instead."
+            )
+
+        elif self.tz is not None and is_datetime64_dtype(dtype):
+            # pre-2.0 behavior for DTA/DTI was
+            #  values.tz_convert("UTC").tz_localize(None), which did not match
+            #  the Series behavior
+            raise TypeError(
+                "Cannot use .astype to convert from timezone-aware dtype to "
+                "timezone-naive dtype. Use obj.tz_localize(None) or "
+                "obj.tz_convert('UTC').tz_localize(None) instead."
+            )
 
         elif (
             self.tz is None

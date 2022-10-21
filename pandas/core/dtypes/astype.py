@@ -7,10 +7,8 @@ from __future__ import annotations
 import inspect
 from typing import (
     TYPE_CHECKING,
-    cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -27,7 +25,6 @@ from pandas._typing import (
     IgnoreRaise,
 )
 from pandas.errors import IntCastingNaNError
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -39,17 +36,13 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
     ExtensionDtype,
     PandasDtype,
 )
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import (
-        DatetimeArray,
-        ExtensionArray,
-    )
+    from pandas.core.arrays import ExtensionArray
 
 
 _dtype_obj = np.dtype(object)
@@ -227,7 +220,13 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
         raise TypeError(msg)
 
     if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
-        return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
+        # Series.astype behavior pre-2.0 did
+        #  values.tz_localize("UTC").tz_convert(dtype.tz)
+        #  which did not match the DTA/DTI behavior.
+        raise TypeError(
+            "Cannot use .astype to convert from timezone-naive dtype to "
+            "timezone-aware dtype. Use ser.dt.tz_localize instead."
+        )
 
     if is_dtype_equal(values.dtype, dtype):
         if copy:
@@ -351,80 +350,3 @@ def astype_td64_unit_conversion(
     mask = isna(values)
     np.putmask(result, mask, np.nan)
     return result
-
-
-def astype_dt64_to_dt64tz(
-    values: ArrayLike, dtype: DtypeObj, copy: bool, via_utc: bool = False
-) -> DatetimeArray:
-    # GH#33401 we have inconsistent behaviors between
-    #  Datetimeindex[naive].astype(tzaware)
-    #  Series[dt64].astype(tzaware)
-    # This collects them in one place to prevent further fragmentation.
-
-    from pandas.core.construction import ensure_wrapped_if_datetimelike
-
-    values = ensure_wrapped_if_datetimelike(values)
-    values = cast("DatetimeArray", values)
-    aware = isinstance(dtype, DatetimeTZDtype)
-
-    if via_utc:
-        # Series.astype behavior
-
-        # caller is responsible for checking this
-        assert values.tz is None and aware
-        dtype = cast(DatetimeTZDtype, dtype)
-
-        if copy:
-            # this should be the only copy
-            values = values.copy()
-
-        warnings.warn(
-            "Using .astype to convert from timezone-naive dtype to "
-            "timezone-aware dtype is deprecated and will raise in a "
-            "future version.  Use ser.dt.tz_localize instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        # GH#33401 this doesn't match DatetimeArray.astype, which
-        #  goes through the `not via_utc` path
-        return values.tz_localize("UTC").tz_convert(dtype.tz)
-
-    else:
-        # DatetimeArray/DatetimeIndex.astype behavior
-        if values.tz is None and aware:
-            dtype = cast(DatetimeTZDtype, dtype)
-            warnings.warn(
-                "Using .astype to convert from timezone-naive dtype to "
-                "timezone-aware dtype is deprecated and will raise in a "
-                "future version.  Use obj.tz_localize instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-            return values.tz_localize(dtype.tz)
-
-        elif aware:
-            # GH#18951: datetime64_tz dtype but not equal means different tz
-            dtype = cast(DatetimeTZDtype, dtype)
-            result = values.tz_convert(dtype.tz)
-            if copy:
-                result = result.copy()
-            return result
-
-        elif values.tz is not None:
-            warnings.warn(
-                "Using .astype to convert from timezone-aware dtype to "
-                "timezone-naive dtype is deprecated and will raise in a "
-                "future version.  Use obj.tz_localize(None) or "
-                "obj.tz_convert('UTC').tz_localize(None) instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-            result = values.tz_convert("UTC").tz_localize(None)
-            if copy:
-                result = result.copy()
-            return result
-
-        raise NotImplementedError("dtype_equal case should be handled elsewhere")

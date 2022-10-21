@@ -364,15 +364,22 @@ class TestDatetimeArray:
         ser = pd.Series([1, 2], dtype=dtype)
         orig = ser.copy()
 
-        warn = None
+        err = False
         if (dtype == "datetime64[ns]") ^ (other == "datetime64[ns]"):
             # deprecated in favor of tz_localize
-            warn = FutureWarning
+            err = True
 
-        with tm.assert_produces_warning(warn):
+        if err:
+            if dtype == "datetime64[ns]":
+                msg = "Use ser.dt.tz_localize instead"
+            else:
+                msg = "from timezone-aware dtype to timezone-naive dtype"
+            with pytest.raises(TypeError, match=msg):
+                ser.astype(other)
+        else:
             t = ser.astype(other)
-        t[:] = pd.NaT
-        tm.assert_series_equal(ser, orig)
+            t[:] = pd.NaT
+            tm.assert_series_equal(ser, orig)
 
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
