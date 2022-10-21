@@ -114,7 +114,6 @@ disable = [
   "consider-merging-isinstance",
   "consider-using-from-import",
   "consider-using-get",
-  "consider-using-in",
   "consider-using-min-builtin",
   "consider-using-sys-exit",
   "consider-using-ternary",

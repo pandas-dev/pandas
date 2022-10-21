@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pandas._testing as tm
 from pandas.api import types
 from pandas.tests.api.test_api import Base
@@ -49,7 +51,7 @@ class TestTypes(Base):
         "infer_dtype",
         "is_extension_array_dtype",
     ]
-    deprecated = ["is_extension_type"]
+    deprecated: list[str] = []
     dtypes = ["CategoricalDtype", "DatetimeTZDtype", "PeriodDtype", "IntervalDtype"]
 
     def test_types(self):
