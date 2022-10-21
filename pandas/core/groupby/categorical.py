@@ -72,7 +72,7 @@ def recode_for_groupby(
     # sort=False should order groups in as-encountered order (GH-8868)
 
     # xref GH:46909: Re-ordering codes faster than using (set|add|reorder)_categories
-    all_codes = np.arange(c.categories.nunique(), dtype=np.int8)
+    all_codes = np.arange(c.categories.nunique())
     # GH 38140: exclude nan from indexer for categories
     unique_notnan_codes = unique1d(c.codes[c.codes != -1])
     if c.ordered:
@@ -84,4 +84,10 @@ def recode_for_groupby(
     else:
         take_codes = unique_notnan_codes
 
+    print(c)
+    print(c.unique())
+    print("---")
+    print(take_codes)
+    print(c.unique().categories.take(take_codes))
+    print(c.unique().categories.take(take_codes).nunique())
     return Categorical(c, c.unique().categories.take(take_codes)), None
