@@ -313,8 +313,8 @@ def register_index_accessor(name):
 
     Notes
     -----
-    When accessed, your accessor will be initialiazed with the pandas_obj object the user is
-    interacting with. The code signature must be::
+    When accessed, your accessor will be initialiazed with the pandas_obj object
+    the user is interacting with. The code signature must be::
 
         def __init__(self, pandas_obj):
             # constructor logic
@@ -341,7 +341,7 @@ def register_index_accessor(name):
             def bar(self):
                 # return item value
                 return self.item
-                
+
     Back in an interactive IPython session:
 
         .. code-block:: ipython
