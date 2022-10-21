@@ -14,10 +14,19 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_200.enhancements.enhancement1:
+.. _whatsnew_200.enhancements.optional_dependency_management:
 
-enhancement1
-^^^^^^^^^^^^
+Optional dependencies version management
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Optional pandas dependencies can be managed as extras in a requirements/setup file, for example:
+
+.. code-block:: python
+
+  pandas[performance, aws]>=2.0.0
+
+Available optional dependencies (listed in order of appearance at `install guide <https://pandas.pydata.org/docs/getting_started/install>`_) are
+``[all, performance, computation, timezone, fss, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql,
+sql-other, html, xml, plot, output_formatting, clipboard, compression, test]`` (:issue:`39164`).
 
 .. _whatsnew_200.enhancements.enhancement2:
 
@@ -36,6 +45,7 @@ Other enhancements
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
 - Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
 - :class:`.CategoricalConversionWarning`, :class:`.InvalidComparison`, :class:`.InvalidVersion`, :class:`.LossySetitemError`, and :class:`.NoBufferPresent` are now exposed in ``pandas.errors`` (:issue:`27656`)
+- Fix ``test`` optional_extra by adding missing test package ``pytest-asyncio`` (:issue:`48361`)
 - :func:`DataFrame.astype` exception message thrown improved to include column name when type conversion is not possible. (:issue:`47571`)
 - :meth:`DataFrame.to_json` now supports a ``mode`` keyword with supported inputs 'w' and 'a'. Defaulting to 'w', 'a' can be used when lines=True and orient='records' to append record oriented json lines to an existing json file. (:issue:`35849`)
 
@@ -192,6 +202,7 @@ Performance improvements
 - Performance improvement in :func:`merge` and :meth:`DataFrame.join` when joining on a sorted :class:`MultiIndex` (:issue:`48504`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`48384`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
+- Reduce memory usage of :meth:`DataFrame.to_pickle`/:meth:`Series.to_pickle` when using BZ2 or LZMA (:issue:`49068`)
 - Performance improvement for :class:`~arrays.StringArray` constructor passing a numpy array with type ``np.str_`` (:issue:`49109`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.factorize` (:issue:`49177`)
 - Performance improvement for :func:`concat` with extension array backed indexes (:issue:`49128`)
