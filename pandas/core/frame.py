@@ -1754,7 +1754,7 @@ class DataFrame(NDFrame, OpsMixin):
                     # error: Incompatible types in assignment (expression has type
                     # "List[Any]", variable has type "Dict[Any, Any]")
                     data = list(data.values())  # type: ignore[assignment]
-        elif orient == "columns" or orient == "tight":
+        elif orient in ("columns", "tight"):
             if columns is not None:
                 raise ValueError(f"cannot use columns parameter with orient='{orient}'")
         else:  # pragma: no cover
@@ -5762,11 +5762,11 @@ class DataFrame(NDFrame, OpsMixin):
         res = self if inplace else self.copy()
         ax = self.columns
 
-        for i in range(len(ax)):
-            if ax[i] in mapping:
+        for i, ax_value in enumerate(ax):
+            if ax_value in mapping:
                 ser = self.iloc[:, i]
 
-                target, value = mapping[ax[i]]
+                target, value = mapping[ax_value]
                 newobj = ser.replace(target, value, regex=regex)
 
                 res._iset_item(i, newobj)
