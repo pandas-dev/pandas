@@ -2158,10 +2158,16 @@ def _sequence_to_dt64ns(
             # Convert tz-naive to UTC
             # TODO: if tz is UTC, are there situations where we *don't* want a
             #  copy?  tz_localize_to_utc always makes one.
+            shape = data.shape
+            if data.ndim > 1:
+                shape = data.shape
+                data = data.ravel()
+
             data = tzconversion.tz_localize_to_utc(
                 data.view("i8"), tz, ambiguous=ambiguous, creso=data_unit
             )
             data = data.view(new_dtype)
+            data = data.reshape(shape)
 
         assert data.dtype == new_dtype, data.dtype
         result = data

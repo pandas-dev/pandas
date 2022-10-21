@@ -65,7 +65,6 @@ from pandas.core.dtypes.common import (
     is_complex,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -1314,13 +1313,15 @@ def maybe_infer_to_datetimelike(
 
 
 def maybe_cast_to_datetime(
-    value: ExtensionArray | np.ndarray | list, dtype: DtypeObj | None
+    value: ExtensionArray | np.ndarray | list, dtype: np.dtype | None
 ) -> ExtensionArray | np.ndarray:
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
 
     We allow a list *only* when dtype is not None.
+
+    Caller is responsible for handling ExtensionDtype cases.
     """
     from pandas.core.arrays.datetimes import sequence_to_datetimes
     from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -1338,11 +1339,10 @@ def maybe_cast_to_datetime(
 
     if dtype is not None:
         is_datetime64 = is_datetime64_dtype(dtype)
-        is_datetime64tz = is_datetime64tz_dtype(dtype)
 
         vdtype = getattr(value, "dtype", None)
 
-        if is_datetime64 or is_datetime64tz:
+        if is_datetime64:
             dtype = _ensure_nanosecond_dtype(dtype)
 
             value = np.array(value, copy=False)
@@ -1352,59 +1352,22 @@ def maybe_cast_to_datetime(
                 _disallow_mismatched_datetimelike(value, dtype)
 
                 try:
-                    if is_datetime64:
-                        dta = sequence_to_datetimes(value)
-                        # GH 25843: Remove tz information since the dtype
-                        # didn't specify one
+                    dta = sequence_to_datetimes(value)
+                    # GH 25843: Remove tz information since the dtype
+                    # didn't specify one
 
-                        if dta.tz is not None:
-                            raise ValueError(
-                                "Cannot convert timezone-aware data to "
-                                "timezone-naive dtype. Use "
-                                "pd.Series(values).dt.tz_localize(None) instead."
-                            )
+                    if dta.tz is not None:
+                        raise ValueError(
+                            "Cannot convert timezone-aware data to "
+                            "timezone-naive dtype. Use "
+                            "pd.Series(values).dt.tz_localize(None) instead."
+                        )
 
-                        # TODO(2.0): Do this astype in sequence_to_datetimes to
-                        #  avoid potential extra copy?
-                        dta = dta.astype(dtype, copy=False)
-                        value = dta
-                    elif is_datetime64tz:
-                        dtype = cast(DatetimeTZDtype, dtype)
-                        # The string check can be removed once issue #13712
-                        # is solved. String data that is passed with a
-                        # datetime64tz is assumed to be naive which should
-                        # be localized to the timezone.
-                        is_dt_string = is_string_dtype(value.dtype)
-                        dta = sequence_to_datetimes(value)
-                        if dta.tz is not None:
-                            value = dta.astype(dtype, copy=False)
-                        elif is_dt_string:
-                            # Strings here are naive, so directly localize
-                            # equiv: dta.astype(dtype)  # though deprecated
+                    # TODO(2.0): Do this astype in sequence_to_datetimes to
+                    #  avoid potential extra copy?
+                    dta = dta.astype(dtype, copy=False)
+                    value = dta
 
-                            value = dta.tz_localize(dtype.tz)
-                        else:
-                            # Numeric values are UTC at this point,
-                            # so localize and convert
-                            # equiv: Series(dta).astype(dtype) # though deprecated
-                            if getattr(vdtype, "kind", None) == "M":
-                                # GH#24559, GH#33401 deprecate behavior inconsistent
-                                #  with DatetimeArray/DatetimeIndex
-                                warnings.warn(
-                                    "In a future version, constructing a Series "
-                                    "from datetime64[ns] data and a "
-                                    "DatetimeTZDtype will interpret the data "
-                                    "as wall-times instead of "
-                                    "UTC times, matching the behavior of "
-                                    "DatetimeIndex. To treat the data as UTC "
-                                    "times, use pd.Series(data).dt"
-                                    ".tz_localize('UTC').tz_convert(dtype.tz) "
-                                    "or pd.Series(data.view('int64'), dtype=dtype)",
-                                    FutureWarning,
-                                    stacklevel=find_stack_level(),
-                                )
-
-                            value = dta.tz_localize("UTC").tz_convert(dtype.tz)
                 except OutOfBoundsDatetime:
                     raise
                 except ParserError:
