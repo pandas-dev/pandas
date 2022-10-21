@@ -27,7 +27,7 @@ holidays = ["2014-06-27", datetime(2014, 6, 30), np.datetime64("2014-07-02")]
 
 
 @pytest.fixture
-def d():
+def dt():
     return datetime(2014, 7, 1, 10, 00)
 
 
@@ -73,11 +73,11 @@ class TestCustomBusinessHour:
         assert repr(offset1) == "<CustomBusinessHour: CBH=09:00-17:00>"
         assert repr(offset2) == "<CustomBusinessHour: CBH=09:00-17:00>"
 
-    def test_with_offset(self, d):
+    def test_with_offset(self, dt):
         expected = Timestamp("2014-07-01 13:00")
 
-        assert d + CustomBusinessHour() * 3 == expected
-        assert d + CustomBusinessHour(n=3) == expected
+        assert dt + CustomBusinessHour() * 3 == expected
+        assert dt + CustomBusinessHour(n=3) == expected
 
     def test_eq(self, offset1, offset2):
         for offset in [offset1, offset2]:
@@ -101,15 +101,15 @@ class TestCustomBusinessHour:
         assert hash(offset1) == hash(offset1)
         assert hash(offset2) == hash(offset2)
 
-    def test_call(self, d, offset1, offset2):
+    def test_call(self, dt, offset1, offset2):
         with tm.assert_produces_warning(FutureWarning):
             # GH#34171 DateOffset.__call__ is deprecated
-            assert offset1(d) == datetime(2014, 7, 1, 11)
-            assert offset2(d) == datetime(2014, 7, 1, 11)
+            assert offset1(dt) == datetime(2014, 7, 1, 11)
+            assert offset2(dt) == datetime(2014, 7, 1, 11)
 
-    def testRollback1(self, d, offset1, offset2):
-        assert offset1.rollback(d) == d
-        assert offset2.rollback(d) == d
+    def testRollback1(self, dt, offset1, offset2):
+        assert offset1.rollback(dt) == dt
+        assert offset2.rollback(dt) == dt
 
         d = datetime(2014, 7, 1, 0)
 
@@ -124,9 +124,9 @@ class TestCustomBusinessHour:
             2014, 7, 4, 17, 0
         )
 
-    def testRollforward1(self, d, offset1, offset2):
-        assert offset1.rollforward(d) == d
-        assert offset2.rollforward(d) == d
+    def testRollforward1(self, dt, offset1, offset2):
+        assert offset1.rollforward(dt) == dt
+        assert offset2.rollforward(dt) == dt
 
         d = datetime(2014, 7, 1, 0)
         assert offset1.rollforward(d) == datetime(2014, 7, 1, 9)

@@ -32,7 +32,7 @@ from pandas.tseries import offsets as offsets
 
 
 @pytest.fixture
-def d():
+def dt():
     return datetime(2008, 1, 1)
 
 
@@ -65,10 +65,10 @@ class TestBusinessDay:
         expected = "<BusinessDay: offset=datetime.timedelta(days=1)>"
         assert repr(offset + timedelta(1)) == expected
 
-    def test_with_offset(self, d, offset):
+    def test_with_offset(self, dt, offset):
         offset = offset + timedelta(hours=2)
 
-        assert (d + offset) == datetime(2008, 1, 2, 2)
+        assert (dt + offset) == datetime(2008, 1, 2, 2)
 
     @pytest.mark.parametrize(
         "td",
@@ -79,9 +79,9 @@ class TestBusinessDay:
         ],
         ids=lambda x: type(x),
     )
-    def test_with_offset_index(self, td, d, offset):
+    def test_with_offset_index(self, td, dt, offset):
 
-        dti = DatetimeIndex([d])
+        dti = DatetimeIndex([dt])
         expected = DatetimeIndex([datetime(2008, 1, 2, 2)])
 
         result = dti + (td + offset)
@@ -96,20 +96,20 @@ class TestBusinessDay:
     def test_hash(self, offset2):
         assert hash(offset2) == hash(offset2)
 
-    def test_call(self, d, offset2):
+    def test_call(self, dt, offset2):
         with tm.assert_produces_warning(FutureWarning):
             # GH#34171 DateOffset.__call__ is deprecated
-            assert offset2(d) == datetime(2008, 1, 3)
+            assert offset2(dt) == datetime(2008, 1, 3)
             assert offset2(np.datetime64("2008-01-01 00:00:00")) == datetime(2008, 1, 3)
 
-    def testRollback1(self, d, _offset):
-        assert _offset(10).rollback(d) == d
+    def testRollback1(self, dt, _offset):
+        assert _offset(10).rollback(dt) == dt
 
     def testRollback2(self, _offset):
         assert _offset(10).rollback(datetime(2008, 1, 5)) == datetime(2008, 1, 4)
 
-    def testRollforward1(self, d, _offset):
-        assert _offset(10).rollforward(d) == d
+    def testRollforward1(self, dt, _offset):
+        assert _offset(10).rollforward(dt) == dt
 
     def testRollforward2(self, _offset):
         assert _offset(10).rollforward(datetime(2008, 1, 5)) == datetime(2008, 1, 7)

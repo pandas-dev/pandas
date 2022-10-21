@@ -36,7 +36,7 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
 @pytest.fixture
-def d():
+def dt():
     return datetime(2008, 1, 1)
 
 
@@ -89,19 +89,19 @@ class TestCustomBusinessMonthBegin:
         assert repr(offset) == "<CustomBusinessMonthBegin>"
         assert repr(offset2) == "<2 * CustomBusinessMonthBegins>"
 
-    def test_call(self, d, offset2):
+    def test_call(self, dt, offset2):
         with tm.assert_produces_warning(FutureWarning):
             # GH#34171 DateOffset.__call__ is deprecated
-            assert offset2(d) == datetime(2008, 3, 3)
+            assert offset2(dt) == datetime(2008, 3, 3)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
 
-    def testRollback2(self, d):
-        assert CBMonthBegin(10).rollback(d) == datetime(2008, 1, 1)
+    def testRollback2(self, dt):
+        assert CBMonthBegin(10).rollback(dt) == datetime(2008, 1, 1)
 
-    def testRollforward1(self, d):
-        assert CBMonthBegin(10).rollforward(d) == datetime(2008, 1, 1)
+    def testRollforward1(self, dt):
+        assert CBMonthBegin(10).rollforward(dt) == datetime(2008, 1, 1)
 
     def test_roll_date_object(self):
         offset = CBMonthBegin()
@@ -289,19 +289,19 @@ class TestCustomBusinessMonthEnd:
         assert repr(offset) == "<CustomBusinessMonthEnd>"
         assert repr(offset2) == "<2 * CustomBusinessMonthEnds>"
 
-    def test_call(self, d, offset2):
+    def test_call(self, dt, offset2):
         with tm.assert_produces_warning(FutureWarning):
             # GH#34171 DateOffset.__call__ is deprecated
-            assert offset2(d) == datetime(2008, 2, 29)
+            assert offset2(dt) == datetime(2008, 2, 29)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
 
-    def testRollback2(self, d):
-        assert CBMonthEnd(10).rollback(d) == datetime(2007, 12, 31)
+    def testRollback2(self, dt):
+        assert CBMonthEnd(10).rollback(dt) == datetime(2007, 12, 31)
 
-    def testRollforward1(self, d):
-        assert CBMonthEnd(10).rollforward(d) == datetime(2008, 1, 31)
+    def testRollforward1(self, dt):
+        assert CBMonthEnd(10).rollforward(dt) == datetime(2008, 1, 31)
 
     def test_roll_date_object(self):
         offset = CBMonthEnd()
@@ -328,8 +328,8 @@ class TestCustomBusinessMonthEnd:
 
     @pytest.mark.parametrize("case", on_offset_cases)
     def test_is_on_offset(self, case):
-        offset, d, expected = case
-        assert_is_on_offset(offset, d, expected)
+        offset, dt, expected = case
+        assert_is_on_offset(offset, dt, expected)
 
     apply_cases: _ApplyCases = [
         (

@@ -110,7 +110,7 @@ def _create_offset(klass, value=1, normalize=False):
 
 
 @pytest.fixture
-def d():
+def dt():
     return Timestamp(datetime(2008, 1, 2))
 
 
@@ -658,8 +658,8 @@ class TestDateOffset:
         assert offset.kwds == {kwd: 2}
         assert getattr(offset, kwd) == 2
 
-    def test_default_constructor(self, d):
-        assert (d + DateOffset(2)) == datetime(2008, 1, 4)
+    def test_default_constructor(self, dt):
+        assert (dt + DateOffset(2)) == datetime(2008, 1, 4)
 
     def test_is_anchored(self):
         assert not DateOffset(2).is_anchored()
@@ -686,9 +686,9 @@ class TestDateOffset:
             ],
         ),
     )
-    def test_add(self, arithmatic_offset_type, expected, d):
-        assert DateOffset(**{arithmatic_offset_type: 1}) + d == Timestamp(expected)
-        assert d + DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
+    def test_add(self, arithmatic_offset_type, expected, dt):
+        assert DateOffset(**{arithmatic_offset_type: 1}) + dt == Timestamp(expected)
+        assert dt + DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
 
     @pytest.mark.parametrize(
         "arithmatic_offset_type, expected",
@@ -707,10 +707,10 @@ class TestDateOffset:
             ],
         ),
     )
-    def test_sub(self, arithmatic_offset_type, expected, d):
-        assert d - DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
+    def test_sub(self, arithmatic_offset_type, expected, dt):
+        assert dt - DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
         with pytest.raises(TypeError, match="Cannot subtract datetime from offset"):
-            DateOffset(**{arithmatic_offset_type: 1}) - d
+            DateOffset(**{arithmatic_offset_type: 1}) - dt
 
     @pytest.mark.parametrize(
         "arithmatic_offset_type, n, expected",
@@ -730,11 +730,11 @@ class TestDateOffset:
             ],
         ),
     )
-    def test_mul_add(self, arithmatic_offset_type, n, expected, d):
-        assert DateOffset(**{arithmatic_offset_type: 1}) * n + d == Timestamp(expected)
-        assert n * DateOffset(**{arithmatic_offset_type: 1}) + d == Timestamp(expected)
-        assert d + DateOffset(**{arithmatic_offset_type: 1}) * n == Timestamp(expected)
-        assert d + n * DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
+    def test_mul_add(self, arithmatic_offset_type, n, expected, dt):
+        assert DateOffset(**{arithmatic_offset_type: 1}) * n + dt == Timestamp(expected)
+        assert n * DateOffset(**{arithmatic_offset_type: 1}) + dt == Timestamp(expected)
+        assert dt + DateOffset(**{arithmatic_offset_type: 1}) * n == Timestamp(expected)
+        assert dt + n * DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
 
     @pytest.mark.parametrize(
         "arithmatic_offset_type, n, expected",
@@ -754,9 +754,9 @@ class TestDateOffset:
             ],
         ),
     )
-    def test_mul_sub(self, arithmatic_offset_type, n, expected, d):
-        assert d - DateOffset(**{arithmatic_offset_type: 1}) * n == Timestamp(expected)
-        assert d - n * DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
+    def test_mul_sub(self, arithmatic_offset_type, n, expected, dt):
+        assert dt - DateOffset(**{arithmatic_offset_type: 1}) * n == Timestamp(expected)
+        assert dt - n * DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
 
     def test_leap_year(self):
         d = datetime(2008, 1, 31)

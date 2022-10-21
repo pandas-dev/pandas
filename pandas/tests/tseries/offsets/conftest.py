@@ -35,7 +35,7 @@ def month_classes(request):
 
 
 @pytest.fixture
-def d():
+def dt():
     """
     Fixture for common Timestamp.
     """
