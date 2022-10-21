@@ -424,6 +424,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
     else:
         if isinstance(data.columns, MultiIndex):
             result = data
+            clocs.reverse()
             while clocs:
                 val = clocs.pop()
                 result = result.unstack(val, fill_value=fill_value)
@@ -634,6 +635,7 @@ def stack_multiple(frame, level, dropna: bool = True):
         # negative numbers to positive
         level = [frame.columns._get_level_number(lev) for lev in level]
 
+        level.reverse()
         while level:
             lev = level.pop()
             result = stack(result, lev, dropna=dropna)
