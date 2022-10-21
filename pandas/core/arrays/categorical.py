@@ -2052,24 +2052,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
         return values
 
-    def to_dense(self) -> np.ndarray:
-        """
-        Return my 'dense' representation
-
-        For internal compatibility with numpy arrays.
-
-        Returns
-        -------
-        dense : array
-        """
-        warn(
-            "Categorical.to_dense is deprecated and will be removed in "
-            "a future version.  Use np.asarray(cat) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return np.asarray(self)
-
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
 
@@ -2100,17 +2082,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return code
 
     # ------------------------------------------------------------------
-
-    def take_nd(
-        self, indexer, allow_fill: bool = False, fill_value=None
-    ) -> Categorical:
-        # GH#27745 deprecate alias that other EAs dont have
-        warn(
-            "Categorical.take_nd is deprecated, use Categorical.take instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.take(indexer, allow_fill=allow_fill, fill_value=fill_value)
 
     def __iter__(self) -> Iterator:
         """
@@ -2538,18 +2509,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         bool
         """
         return hash(self.dtype) == hash(other.dtype)
-
-    def is_dtype_equal(self, other) -> bool:
-        warn(
-            "Categorical.is_dtype_equal is deprecated and will be removed "
-            "in a future version",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        try:
-            return self._categories_match_up_to_permutation(other)
-        except (AttributeError, TypeError):
-            return False
 
     def describe(self) -> DataFrame:
         """
