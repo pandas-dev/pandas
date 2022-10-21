@@ -470,7 +470,7 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
         int64_t ival
         NPY_DATETIMEUNIT out_bestunit
         char inferred_format
-        int format_len
+        int inferred_format_len
 
     if len(ts) == 0 or ts in nat_strings:
         ts = NaT
@@ -490,7 +490,7 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
     else:
         string_to_dts_failed = string_to_dts(
             ts, &dts, &out_bestunit, &out_local,
-            &out_tzoffset, False, &inferred_format, &format_len
+            &out_tzoffset, False, &inferred_format, &inferred_format_len
         )
         if not string_to_dts_failed:
             try:

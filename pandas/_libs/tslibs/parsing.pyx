@@ -398,7 +398,7 @@ cdef parse_datetime_string_with_reso(
         int out_local
         int out_tzoffset
         char inferred_format
-        int format_len
+        int inferred_format_len
 
     if not _does_string_look_like_datetime(date_string):
         raise ValueError(f'Given date string {date_string} not likely a datetime')
@@ -411,7 +411,7 @@ cdef parse_datetime_string_with_reso(
     # TODO: does this render some/all of parse_delimited_date redundant?
     string_to_dts_failed = string_to_dts(
         date_string, &dts, &out_bestunit, &out_local,
-        &out_tzoffset, False, &inferred_format, &format_len
+        &out_tzoffset, False, &inferred_format, &inferred_format_len
     )
     if not string_to_dts_failed:
         if dts.ps != 0 or out_local:

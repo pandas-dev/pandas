@@ -70,8 +70,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                             npy_datetimestruct *out,
                             NPY_DATETIMEUNIT *out_bestunit,
                             int *out_local, int *out_tzoffset,
-                char *inferred_format, int *format_len) {
-    int fmt_idx = 0;
+                char *inferred_format, int *inferred_format_len) {
+    int inferred_format_idx = 0;
     int year_leap = 0;
     int i, numdigits;
     const char *substr;
@@ -106,8 +106,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
-    inferred_format[fmt_idx] = ' ';
-    ++fmt_idx;
+    inferred_format[inferred_format_idx] = ' ';
+    ++inferred_format_idx;
     }
 
     /* Leading '-' sign for negative year */
@@ -129,10 +129,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
 
         substr += 4;
         sublen -= 4;
-    inferred_format[fmt_idx] = '%';
-    ++fmt_idx;
-    inferred_format[fmt_idx] = 'Y';
-    ++fmt_idx;
+    inferred_format[inferred_format_idx] = '%';
+    ++inferred_format_idx;
+    inferred_format[inferred_format_idx] = 'Y';
+    ++inferred_format_idx;
     }
 
     /* Negate the year if necessary */
@@ -164,8 +164,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         ymd_sep = valid_ymd_sep[i];
         ++substr;
         --sublen;
-    inferred_format[fmt_idx] = ymd_sep;
-    ++fmt_idx;
+    inferred_format[inferred_format_idx] = ymd_sep;
+    ++inferred_format_idx;
         /* Cannot have trailing separator */
         if (sublen == 0 || !isdigit(*substr)) {
             goto parse_error;
@@ -193,10 +193,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         goto error;
     }
 
-    inferred_format[fmt_idx] = '%';
-    ++fmt_idx;
-    inferred_format[fmt_idx] = 'm';
-    ++fmt_idx;
+    inferred_format[inferred_format_idx] = '%';
+    ++inferred_format_idx;
+    inferred_format[inferred_format_idx] = 'm';
+    ++inferred_format_idx;
 
     /* Next character must be the separator, start of day, or end of string */
     if (sublen == 0) {
@@ -216,8 +216,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         if (*substr != ymd_sep || sublen == 1) {
             goto parse_error;
         }
-        inferred_format[fmt_idx] = *substr;
-        ++fmt_idx;
+        inferred_format[inferred_format_idx] = *substr;
+        ++inferred_format_idx;
         ++substr;
         --sublen;
     }
@@ -247,10 +247,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         goto error;
     }
 
-    inferred_format[fmt_idx] = '%';
-    ++fmt_idx;
-    inferred_format[fmt_idx] = 'd';
-    ++fmt_idx;
+    inferred_format[inferred_format_idx] = '%';
+    ++inferred_format_idx;
+    inferred_format[inferred_format_idx] = 'd';
+    ++inferred_format_idx;
 
     /* Next character must be a 'T', ' ', or end of string */
     if (sublen == 0) {
@@ -264,8 +264,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     if ((*substr != 'T' && *substr != ' ') || sublen == 1) {
         goto parse_error;
     }
-    inferred_format[fmt_idx] = *substr;
-    ++fmt_idx;
+    inferred_format[inferred_format_idx] = *substr;
+    ++inferred_format_idx;
     ++substr;
     --sublen;
 
@@ -293,10 +293,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         }
     }
 
-    inferred_format[fmt_idx] = '%';
-    ++fmt_idx;
-    inferred_format[fmt_idx] = 'H';
-    ++fmt_idx;
+    inferred_format[inferred_format_idx] = '%';
+    ++inferred_format_idx;
+    inferred_format[inferred_format_idx] = 'H';
+    ++inferred_format_idx;
 
     /* Next character must be a ':' or the end of the string */
     if (sublen == 0) {
@@ -308,8 +308,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     if (*substr == ':') {
-    inferred_format[fmt_idx] = ':';
-    ++fmt_idx;
+    inferred_format[inferred_format_idx] = ':';
+    ++inferred_format_idx;
         has_hms_sep = 1;
         ++substr;
         --sublen;
@@ -346,10 +346,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         goto parse_error;
     }
 
-    inferred_format[fmt_idx] = '%';
-    ++fmt_idx;
-    inferred_format[fmt_idx] = 'M';
-    ++fmt_idx;
+    inferred_format[inferred_format_idx] = '%';
+    ++inferred_format_idx;
+    inferred_format[inferred_format_idx] = 'M';
+    ++inferred_format_idx;
 
     if (sublen == 0) {
         bestunit = NPY_FR_m;
@@ -359,8 +359,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     /* If we make it through this condition block, then the next
      * character is a digit. */
     if (has_hms_sep && *substr == ':') {
-    inferred_format[fmt_idx] = ':';
-    ++fmt_idx;
+    inferred_format[inferred_format_idx] = ':';
+    ++inferred_format_idx;
         ++substr;
         --sublen;
         /* Cannot have a trailing ':' */
@@ -394,26 +394,26 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         goto parse_error;
     }
 
-    inferred_format[fmt_idx] = '%';
-    ++fmt_idx;
-    inferred_format[fmt_idx] = 'S';
-    ++fmt_idx;
+    inferred_format[inferred_format_idx] = '%';
+    ++inferred_format_idx;
+    inferred_format[inferred_format_idx] = 'S';
+    ++inferred_format_idx;
 
     /* Next character may be a '.' indicating fractional seconds */
     if (sublen > 0 && *substr == '.') {
         ++substr;
         --sublen;
-        inferred_format[fmt_idx] = '.';
-        ++fmt_idx;
+        inferred_format[inferred_format_idx] = '.';
+        ++inferred_format_idx;
     } else {
         bestunit = NPY_FR_s;
         goto parse_timezone;
     }
 
-    inferred_format[fmt_idx] = '%';
-    ++fmt_idx;
-    inferred_format[fmt_idx] = 'f';
-    ++fmt_idx;
+    inferred_format[inferred_format_idx] = '%';
+    ++inferred_format_idx;
+    inferred_format[inferred_format_idx] = 'f';
+    ++inferred_format_idx;
 
     /* PARSE THE MICROSECONDS (0 to 6 digits) */
     numdigits = 0;
@@ -480,8 +480,8 @@ parse_timezone:
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
-        inferred_format[fmt_idx] = ' ';
-        ++fmt_idx;
+        inferred_format[inferred_format_idx] = ' ';
+        ++inferred_format_idx;
     }
 
     if (sublen == 0) {
@@ -491,10 +491,10 @@ parse_timezone:
 
     /* UTC specifier */
     if (*substr == 'Z') {
-        inferred_format[fmt_idx] = '%';
-        ++fmt_idx;
-        inferred_format[fmt_idx] = 'Z';
-        ++fmt_idx;
+        inferred_format[inferred_format_idx] = '%';
+        ++inferred_format_idx;
+        inferred_format[inferred_format_idx] = 'Z';
+        ++inferred_format_idx;
         /* "Z" should be equivalent to tz offset "+00:00" */
         if (out_local != NULL) {
             *out_local = 1;
@@ -511,10 +511,10 @@ parse_timezone:
             --sublen;
         }
     } else if (*substr == '-' || *substr == '+') {
-        inferred_format[fmt_idx] = '%';
-        ++fmt_idx;
-        inferred_format[fmt_idx] = 'z';
-        ++fmt_idx;
+        inferred_format[inferred_format_idx] = '%';
+        ++inferred_format_idx;
+        inferred_format[inferred_format_idx] = 'z';
+        ++inferred_format_idx;
         /* Time zone offset */
         int offset_neg = 0, offset_hour = 0, offset_minute = 0;
 
@@ -598,8 +598,8 @@ parse_timezone:
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
-        inferred_format[fmt_idx] = ' ';
-        ++fmt_idx;
+        inferred_format[inferred_format_idx] = ' ';
+        ++inferred_format_idx;
     }
 
     if (sublen != 0) {
@@ -610,7 +610,7 @@ finish:
     if (out_bestunit != NULL) {
         *out_bestunit = bestunit;
     }
-    *format_len = fmt_idx;
+    *inferred_format_len = inferred_format_idx;
     return 0;
 
 parse_error:

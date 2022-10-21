@@ -60,7 +60,7 @@ parse_iso_8601_datetime(const char *str, int len, int want_exc,
                         int *out_local,
                         int *out_tzoffset,
                        char *inferred_format,
-            int *format_len);
+            int *inferred_format_len);
 
 /*
  * Provides a string length to use for converting datetime
