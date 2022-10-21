@@ -1,11 +1,23 @@
 """ common utilities """
+from __future__ import annotations
+
+from typing import (
+    Any,
+    Literal,
+)
 
 
-def _mklbl(prefix, n):
+def _mklbl(prefix: str, n: int):
     return [f"{prefix}{i}" for i in range(n)]
 
 
-def check_result(obj, method, key, axes=None, fails=None):
+def check_indexing_smoketest_or_raises(
+    obj,
+    method: Literal["iloc", "loc"],
+    key: Any,
+    axes: Literal[0, 1] | None = None,
+    fails: Exception | None = None,
+):
     if axes is None:
         axes = [0, 1]
     else:

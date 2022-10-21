@@ -40,7 +40,7 @@ import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.api import Float64Index
 from pandas.core.indexing import _one_ellipsis_message
-from pandas.tests.indexing.common import check_result
+from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 
 
 @pytest.mark.parametrize(
@@ -65,14 +65,14 @@ class TestLoc:
 
         # int label
         obj = request.getfixturevalue(f"{kind}_labels")
-        check_result(obj, "loc", 2, fails=KeyError)
+        check_indexing_smoketest_or_raises(obj, "loc", 2, fails=KeyError)
 
     @pytest.mark.parametrize("kind", ["series", "frame"])
     def test_loc_getitem_label(self, kind, request):
 
         # label
         obj = request.getfixturevalue(f"{kind}_empty")
-        check_result(obj, "loc", "c", fails=KeyError)
+        check_indexing_smoketest_or_raises(obj, "loc", "c", fails=KeyError)
 
     @pytest.mark.parametrize(
         "key, typs, axes",
@@ -90,7 +90,9 @@ class TestLoc:
         for typ in typs:
             obj = request.getfixturevalue(f"{kind}_{typ}")
             # out of range label
-            check_result(obj, "loc", key, axes=axes, fails=KeyError)
+            check_indexing_smoketest_or_raises(
+                obj, "loc", key, axes=axes, fails=KeyError
+            )
 
     @pytest.mark.parametrize(
         "key, typs",
@@ -104,7 +106,7 @@ class TestLoc:
         for typ in typs:
             obj = request.getfixturevalue(f"{kind}_{typ}")
             # list of labels
-            check_result(obj, "loc", key, fails=KeyError)
+            check_indexing_smoketest_or_raises(obj, "loc", key, fails=KeyError)
 
     @pytest.mark.parametrize(
         "key, typs, axes",
@@ -120,14 +122,18 @@ class TestLoc:
     def test_loc_getitem_label_list_with_missing(self, key, typs, axes, kind, request):
         for typ in typs:
             obj = request.getfixturevalue(f"{kind}_{typ}")
-            check_result(obj, "loc", key, axes=axes, fails=KeyError)
+            check_indexing_smoketest_or_raises(
+                obj, "loc", key, axes=axes, fails=KeyError
+            )
 
     @pytest.mark.parametrize("typs", ["ints", "uints"])
     @pytest.mark.parametrize("kind", ["series", "frame"])
     def test_loc_getitem_label_list_fails(self, typs, kind, request):
         # fails
         obj = request.getfixturevalue(f"{kind}_{typs}")
-        check_result(obj, "loc", [20, 30, 40], axes=1, fails=KeyError)
+        check_indexing_smoketest_or_raises(
+            obj, "loc", [20, 30, 40], axes=1, fails=KeyError
+        )
 
     def test_loc_getitem_label_array_like(self):
         # TODO: test something?
@@ -140,7 +146,7 @@ class TestLoc:
         # boolean indexers
         b = [True, False, True, False]
 
-        check_result(obj, "loc", b, fails=IndexError)
+        check_indexing_smoketest_or_raises(obj, "loc", b, fails=IndexError)
 
     @pytest.mark.parametrize(
         "slc, typs, axes, fails",
@@ -167,7 +173,7 @@ class TestLoc:
         # GH 14316
         for typ in typs:
             obj = request.getfixturevalue(f"{kind}_{typ}")
-            check_result(
+            check_indexing_smoketest_or_raises(
                 obj,
                 "loc",
                 slc,

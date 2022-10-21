@@ -32,7 +32,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
-from pandas.tests.indexing.common import check_result
+from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 
 # We pass through the error message from numpy
 _slice_iloc_msg = re.escape(
@@ -50,7 +50,7 @@ class TestiLoc:
     )
     def test_iloc_getitem_int_and_list_int(self, key, kind, col, request):
         obj = request.getfixturevalue(f"{kind}_{col}")
-        check_result(
+        check_indexing_smoketest_or_raises(
             obj,
             "iloc",
             key,
