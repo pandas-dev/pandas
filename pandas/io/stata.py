@@ -1706,7 +1706,6 @@ the string values returned are correct."""
         if (self._nobs == 0) and (nrows is None):
             self._can_read_value_labels = True
             self._data_read = True
-            self.close()
             return DataFrame(columns=self._varlist)
 
         # Handle options
@@ -1743,7 +1742,6 @@ the string values returned are correct."""
             # we are reading the file incrementally
             if convert_categoricals:
                 self._read_value_labels()
-            self.close()
             raise StopIteration
         offset = self._lines_read * dtype.itemsize
         self._path_or_buf.seek(self._data_location + offset)
@@ -1776,11 +1774,7 @@ the string values returned are correct."""
             data.index = Index(rng)  # set attr instead of set_index to avoid copy
 
         if columns is not None:
-            try:
-                data = self._do_select_columns(data, columns)
-            except ValueError:
-                self.close()
-                raise
+            data = self._do_select_columns(data, columns)
 
         # Decode strings
         for col, typ in zip(data, self._typlist):
@@ -1819,13 +1813,9 @@ the string values returned are correct."""
             cols = np.where([any_startswith(x) for x in self._fmtlist])[0]
             for i in cols:
                 col = data.columns[i]
-                try:
-                    data[col] = _stata_elapsed_date_to_datetime_vec(
-                        data[col], self._fmtlist[i]
-                    )
-                except ValueError:
-                    self.close()
-                    raise
+                data[col] = _stata_elapsed_date_to_datetime_vec(
+                    data[col], self._fmtlist[i]
+                )
 
         if convert_categoricals and self._format_version > 108:
             data = self._do_convert_categoricals(
