@@ -84,10 +84,4 @@ def recode_for_groupby(
     else:
         take_codes = unique_notnan_codes
 
-    print(c)
-    print(c.unique())
-    print("---")
-    print(take_codes)
-    print(c.unique().categories.take(take_codes))
-    print(c.unique().categories.take(take_codes).nunique())
     return Categorical(c, c.unique().categories.take(take_codes)), None
