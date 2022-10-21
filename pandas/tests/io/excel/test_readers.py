@@ -424,9 +424,6 @@ class TestReaders:
         # if not coercing number, then int comes in as float
         float_expected = expected.copy()
         float_expected.loc[float_expected.index[1], "Str2Col"] = 3.0
-        # raise_on_extra_warnings because xlrd raises a PendingDeprecationWarning
-        # on database job Linux_py37_IO (ci/deps/actions-37-db.yaml)
-        # See GH#41176
         actual = pd.read_excel(basename + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, float_expected)
 
@@ -1246,6 +1243,10 @@ class TestReaders:
             actual = pd.read_excel(f, sheet_name="one_column", squeeze=True)
             expected = Series([1, 2, 3], name="a")
             tm.assert_series_equal(actual, expected)
+
+    def test_deprecated_kwargs(self, read_ext):
+        with pytest.raises(TypeError, match="but 3 positional arguments"):
+            pd.read_excel("test1" + read_ext, "Sheet1", 0)
 
     def test_no_header_with_list_index_col(self, read_ext):
         # GH 31783
