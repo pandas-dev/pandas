@@ -514,7 +514,7 @@ cpdef array_to_datetime(
         datetime py_dt
         tzinfo tz_out = None
         bint found_tz = False, found_naive = False
-        char inferred_format[100]
+        char inferred_format[1000]
         int inferred_format_len
 
     # specify error conditions
