@@ -37,6 +37,7 @@ Other enhancements
 - Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
 - :class:`.CategoricalConversionWarning`, :class:`.InvalidComparison`, :class:`.InvalidVersion`, :class:`.LossySetitemError`, and :class:`.NoBufferPresent` are now exposed in ``pandas.errors`` (:issue:`27656`)
 - :func:`DataFrame.astype` exception message thrown improved to include column name when type conversion is not possible. (:issue:`47571`)
+- :meth:`DataFrame.to_json` now supports a ``mode`` keyword with supported inputs 'w' and 'a'. Defaulting to 'w', 'a' can be used when lines=True and orient='records' to append record oriented json lines to an existing json file. (:issue:`35849`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.notable_bug_fixes:
@@ -128,6 +129,7 @@ Other API changes
 - Passing a ``np.datetime64`` object with non-nanosecond resolution to :class:`Timestamp` will retain the input resolution if it is "s", "ms", or "ns"; otherwise it will be cast to the closest supported resolution (:issue:`49008`)
 - The ``other`` argument in :meth:`DataFrame.mask` and :meth:`Series.mask` now defaults to ``no_default`` instead of ``np.nan`` consistent with :meth:`DataFrame.where` and :meth:`Series.where`. Entries will be filled with the corresponding NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension dtypes). (:issue:`49111`)
 - When creating a :class:`Series` with a object-dtype :class:`Index` of datetime objects, pandas no longer silently converts the index to a :class:`DatetimeIndex` (:issue:`39307`, :issue:`23598`)
+- :meth:`Series.unique` with dtype "timedelta64[ns]" or "datetime64[ns]" now returns :class:`TimedeltaArray` or :class:`DatetimeArray` instead of ``numpy.ndarray`` (:issue:`49176`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -144,11 +146,27 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Enforced deprecation disallowing passing a timezone-aware :class:`Timestamp` and ``dtype="datetime64[ns]"`` to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
+- Enforced deprecation disallowing passing a sequence of timezone-aware values and ``dtype="datetime64[ns]"`` to to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
+- Removed Date parser functions :func:`~pandas.io.date_converters.parse_date_time`,
+  :func:`~pandas.io.date_converters.parse_date_fields`, :func:`~pandas.io.date_converters.parse_all_fields`
+  and :func:`~pandas.io.date_converters.generic_parser` (:issue:`24518`)
+- Remove argument ``squeeze`` from :meth:`DataFrame.groupby` and :meth:`Series.groupby` (:issue:`32380`)
+- Removed ``keep_tz`` argument in :meth:`DatetimeIndex.to_series` (:issue:`29731`)
 - Remove arguments ``names`` and ``dtype`` from :meth:`Index.copy` and ``levels`` and ``codes`` from :meth:`MultiIndex.copy` (:issue:`35853`, :issue:`36685`)
+- Remove argument ``inplace`` from :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` (:issue:`35626`)
+- Disallow passing positional arguments to :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` (:issue:`41485`)
+- Removed argument ``try_cast`` from :meth:`DataFrame.mask`, :meth:`DataFrame.where`, :meth:`Series.mask` and :meth:`Series.where` (:issue:`38836`)
 - Disallow passing non-round floats to :class:`Timestamp` with ``unit="M"`` or ``unit="Y"`` (:issue:`47266`)
+- Removed deprecated :meth:`Timedelta.delta`, :meth:`Timedelta.is_populated`, and :attr:`Timedelta.freq` (:issue:`46430`, :issue:`46476`)
+- Removed the ``numeric_only`` keyword from :meth:`Categorical.min` and :meth:`Categorical.max` in favor of ``skipna`` (:issue:`48821`)
 - Removed :func:`is_extension_type` in favor of :func:`is_extension_array_dtype` (:issue:`29457`)
+- Removed :meth:`Index.get_value` (:issue:`33907`)
 - Remove :meth:`DataFrameGroupBy.pad` and :meth:`DataFrameGroupBy.backfill` (:issue:`45076`)
+- Remove ``numpy`` argument from :func:`read_json` (:issue:`30636`)
+- Removed the ``center`` keyword in :meth:`DataFrame.expanding` (:issue:`20647`)
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:
@@ -266,6 +284,7 @@ MultiIndex
 I/O
 ^^^
 - Bug in :func:`read_sas` caused fragmentation of :class:`DataFrame` and raised :class:`.errors.PerformanceWarning` (:issue:`48595`)
+- Bug when a pickling a subset PyArrow-backed data that would serialize the entire data instead of the subset (:issue:`42600`)
 - Bug in :func:`read_csv` for a single-line csv with fewer columns than ``names`` raised :class:`.errors.ParserError` with ``engine="c"`` (:issue:`47566`)
 -
 
