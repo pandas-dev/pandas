@@ -1889,12 +1889,15 @@ def test_category_order_reducer(
         df = df.set_index(keys)
     args = get_groupby_method_args(reduction_func, df)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    op_result = getattr(gb, reduction_func)(*args)
+    msg = "is deprecated and will be removed in a future version"
+    warn = FutureWarning if reduction_func == "mad" else None
+    with tm.assert_produces_warning(warn, match=msg):
+        op_result = getattr(gb, reduction_func)(*args)
     if as_index:
         result = op_result.index.get_level_values("a").categories
     else:
         result = op_result["a"].cat.categories
-    expected = df["a"].categories
+    expected = Index([1, 4, 3, 2])
     tm.assert_index_equal(result, expected)
 
     if index_kind == "multi":
@@ -1923,7 +1926,10 @@ def test_category_order_transformer(
         df = df.set_index(keys)
     args = get_groupby_method_args(transformation_func, df)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    op_result = getattr(gb, transformation_func)(*args)
+    msg = "is deprecated and will be removed in a future version"
+    warn = FutureWarning if transformation_func == "tshift" else None
+    with tm.assert_produces_warning(warn, match=msg):
+        op_result = getattr(gb, transformation_func)(*args)
     result = op_result.index.get_level_values("a").categories
     expected = Index([1, 4, 3, 2])
     tm.assert_index_equal(result, expected)
@@ -1994,7 +2000,7 @@ def test_category_order_apply(as_index, sort, observed, method, index_kind, orde
         df["a2"] = df["a"]
         df = df.set_index(keys)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    op_result = getattr(gb, method)(lambda x: x.sum())
+    op_result = getattr(gb, method)(lambda x: x.sum(numeric_only=True))
     if (method == "transform" or not as_index) and index_kind == "range":
         result = op_result["a"].cat.categories
     else:
