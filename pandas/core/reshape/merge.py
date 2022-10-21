@@ -2152,12 +2152,12 @@ def _get_multiindex_indexer(
         rcodes = list(map(i8copy, index.codes))
 
     # fix right labels if there were any nulls
-    for i in range(len(join_keys)):
+    for i, join_key in enumerate(join_keys):
         mask = index.codes[i] == -1
         if mask.any():
             # check if there already was any nulls at this location
             # if there was, it is factorized to `shape[i] - 1`
-            a = join_keys[i][lcodes[i] == shape[i] - 1]
+            a = join_key[lcodes[i] == shape[i] - 1]
             if a.size == 0 or not a[0] != a[0]:
                 shape[i] += 1
 

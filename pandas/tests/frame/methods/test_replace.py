@@ -873,8 +873,8 @@ class TestDataFrameReplace:
         values = [-2, -1, "missing"]
         result = df.replace(to_rep, values)
         expected = df.copy()
-        for i in range(len(to_rep)):
-            return_value = expected.replace(to_rep[i], values[i], inplace=True)
+        for rep, value in zip(to_rep, values):
+            return_value = expected.replace(rep, value, inplace=True)
             assert return_value is None
         tm.assert_frame_equal(result, expected)
 
@@ -901,8 +901,8 @@ class TestDataFrameReplace:
         to_rep = [np.nan, 0, ""]
         result = df.replace(to_rep, -1)
         expected = df.copy()
-        for i in range(len(to_rep)):
-            return_value = expected.replace(to_rep[i], -1, inplace=True)
+        for rep in to_rep:
+            return_value = expected.replace(rep, -1, inplace=True)
             assert return_value is None
         tm.assert_frame_equal(result, expected)
 

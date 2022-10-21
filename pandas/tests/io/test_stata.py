@@ -774,15 +774,15 @@ class TestStata:
         mm = [0, 0, 59, 0, 0, 0]
         ss = [0, 0, 59, 0, 0, 0]
         expected = []
-        for i in range(len(yr)):
+        for year, month, day, hour, minute, second in zip(yr, mo, dd, hr, mm, ss):
             row = []
             for j in range(7):
                 if j == 0:
-                    row.append(datetime(yr[i], mo[i], dd[i], hr[i], mm[i], ss[i]))
+                    row.append(datetime(year, month, day, hour, minute, second))
                 elif j == 6:
-                    row.append(datetime(yr[i], 1, 1))
+                    row.append(datetime(year, 1, 1))
                 else:
-                    row.append(datetime(yr[i], mo[i], dd[i]))
+                    row.append(datetime(year, month, day))
             expected.append(row)
         expected.append([pd.NaT] * 7)
         columns = [

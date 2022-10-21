@@ -549,13 +549,9 @@ def _take_2d_multi_object(
             out[row_mask, :] = fill_value
         if col_needs:
             out[:, col_mask] = fill_value
-    for i in range(len(row_idx)):
-        u_ = row_idx[i]
-
+    for i, u_ in enumerate(row_idx):
         if u_ != -1:
-            for j in range(len(col_idx)):
-                v = col_idx[j]
-
+            for j, v in enumerate(col_idx):
                 if v != -1:
                     out[i, j] = arr[u_, v]
 

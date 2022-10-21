@@ -578,7 +578,7 @@ def test_setitem_scalar_into_readonly_backing_data():
     array.flags.writeable = False  # make the array immutable
     series = Series(array)
 
-    for n in range(len(series)):
+    for n in series.index:
         msg = "assignment destination is read-only"
         with pytest.raises(ValueError, match=msg):
             series[n] = 1
