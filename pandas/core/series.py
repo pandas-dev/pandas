@@ -889,16 +889,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # Indexing Methods
 
     @Appender(NDFrame.take.__doc__)
-    def take(
-        self, indices, axis: Axis = 0, is_copy: bool | None = None, **kwargs
-    ) -> Series:
-        if is_copy is not None:
-            warnings.warn(
-                "is_copy is deprecated and will be removed in a future version. "
-                "'take' always returns a copy, so there is no need to specify this.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+    def take(self, indices, axis: Axis = 0, **kwargs) -> Series:
         nv.validate_take((), kwargs)
 
         indices = ensure_platform_int(indices)

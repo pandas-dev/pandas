@@ -856,12 +856,9 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         indices: TakeIndexer,
         axis: Axis = 0,
-        is_copy: bool | None = None,
         **kwargs,
     ) -> Series:
-        result = self._op_via_apply(
-            "take", indices=indices, axis=axis, is_copy=is_copy, **kwargs
-        )
+        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
     @doc(Series.skew.__doc__)
@@ -2254,12 +2251,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         indices: TakeIndexer,
         axis: Axis | None = 0,
-        is_copy: bool | None = None,
         **kwargs,
     ) -> DataFrame:
-        result = self._op_via_apply(
-            "take", indices=indices, axis=axis, is_copy=is_copy, **kwargs
-        )
+        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
     @doc(DataFrame.skew.__doc__)
