@@ -65,12 +65,12 @@ class PyxlsbReader(BaseExcelReader):
         # There's a fix for this in the source, but the pypi package doesn't have it
         return self.book.get_sheet(index + 1)
 
-    def _convert_cell(self, cell, convert_float: bool) -> Scalar:
+    def _convert_cell(self, cell) -> Scalar:
         # TODO: there is no way to distinguish between floats and datetimes in pyxlsb
         # This means that there is no way to read datetime types from an xlsb file yet
         if cell.v is None:
             return ""  # Prevents non-named columns from not showing up as Unnamed: i
-        if isinstance(cell.v, float) and convert_float:
+        if isinstance(cell.v, float):
             val = int(cell.v)
             if val == cell.v:
                 return val
@@ -82,7 +82,6 @@ class PyxlsbReader(BaseExcelReader):
     def get_sheet_data(
         self,
         sheet,
-        convert_float: bool,
         file_rows_needed: int | None = None,
     ) -> list[list[Scalar]]:
         data: list[list[Scalar]] = []
@@ -91,7 +90,7 @@ class PyxlsbReader(BaseExcelReader):
         # not returned. The cells are namedtuples of row, col, value (r, c, v).
         for row in sheet.rows(sparse=True):
             row_number = row[0].r
-            converted_row = [self._convert_cell(cell, convert_float) for cell in row]
+            converted_row = [self._convert_cell(cell) for cell in row]
             while converted_row and converted_row[-1] == "":
                 # trim trailing empty elements
                 converted_row.pop()
