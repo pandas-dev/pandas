@@ -293,6 +293,65 @@ def register_series_accessor(name):
 
 @doc(_register_accessor, klass="Index")
 def register_index_accessor(name):
+    """
+    Register a custom accessor with an Index
+
+    Parameters
+    ----------
+    name : str
+        name used when calling the accessor after its registered
+
+    Returns
+    -------
+    callable
+        A class decorator.
+
+    See Also
+    --------
+    register_dataframe_accessor: Register a custom accessor on DataFrame objects
+    register_series_accessor: Register a custom accessor on Series objects
+
+    Notes
+    -----
+    When accessed, your accessor will be initialiazed with the pandas_obj object the user is
+    interacting with. The code signature must be::
+
+        def __init__(self, pandas_obj):
+            # constructor logic
+        ...
+
+    >>> pd.Series(['a', 'b']).dt
+    ...
+    Traceback (most recent call last):
+        ...
+    AttributeError: Can only use .dt accessor with datetimelike values
+
+    Examples
+    --------
+    In your library code::
+
+        @pd.api.extensions.register_index_accessor("foo")
+        class CustomAccessor:
+
+            def __init__(self, pandas_obj):
+                self._obj = pandas_obj
+                self.item = "baz"
+
+            @property
+            def bar(self):
+                # return item value
+                return self.item
+
+    Then, in an ipython session::
+
+        >>> ## Import if the accessor is in the other file.
+        >>> # from my_ext_lib import CustomAccessor
+        >>> df = pd.DataFrame({"longitude": np.linspace(0,10),
+        ...                     "latitude": np.linspace(0, 20)})
+        >>> df.index.foo.bar  # doctest: +SKIP
+        'baz'
+    """
+
     from pandas import Index
 
     return _register_accessor(name, Index)
