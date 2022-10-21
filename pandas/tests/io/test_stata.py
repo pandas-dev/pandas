@@ -736,10 +736,8 @@ class TestStata:
             original.to_stata(path, write_index=False)
 
             with StataReader(path) as sr:
-                typlist = sr.typlist
-                variables = sr.varlist
-                formats = sr.fmtlist
-                for variable, fmt, typ in zip(variables, formats, typlist):
+                sr._ensure_open()  # The `_*list` variables are initialized here
+                for variable, fmt, typ in zip(sr._varlist, sr._fmtlist, sr._typlist):
                     assert int(variable[1:]) == int(fmt[1:-1])
                     assert int(variable[1:]) == typ
 

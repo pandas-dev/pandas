@@ -1114,6 +1114,8 @@ class StataParser:
 class StataReader(StataParser, abc.Iterator):
     __doc__ = _stata_reader_doc
 
+    _path_or_buf: IO[bytes]  # Will be assigned by `_open_file`.
+
     def __init__(
         self,
         path_or_buf: FilePath | ReadBuffer[bytes],
@@ -1140,6 +1142,9 @@ class StataReader(StataParser, abc.Iterator):
         self._preserve_dtypes = preserve_dtypes
         self._columns = columns
         self._order_categoricals = order_categoricals
+        self._original_path_or_buf = path_or_buf
+        self._compression = compression
+        self._storage_options = storage_options
         self._encoding = ""
         self._chunksize = chunksize
         self._using_iterator = False
@@ -1149,6 +1154,7 @@ class StataReader(StataParser, abc.Iterator):
             raise ValueError("chunksize must be a positive integer when set.")
 
         # State variables for the file
+        self._close_file: Callable[[], None] | None = None
         self._has_string_data = False
         self._missing_values = False
         self._can_read_value_labels = False
@@ -1159,12 +1165,24 @@ class StataReader(StataParser, abc.Iterator):
         self._lines_read = 0
 
         self._native_byteorder = _set_endianness(sys.byteorder)
+
+    def _ensure_open(self) -> None:
+        """
+        Ensure the file has been opened and its header data read.
+        """
+        if not hasattr(self, "_path_or_buf"):
+            self._open_file()
+
+    def _open_file(self) -> None:
+        """
+        Open the file (with compression options, etc.), and read header information.
+        """
         with get_handle(
-            path_or_buf,
+            self._original_path_or_buf,
             "rb",
-            storage_options=storage_options,
+            storage_options=self._storage_options,
             is_text=False,
-            compression=compression,
+            compression=self._compression,
         ) as handles:
             # Copy to BytesIO, and ensure no encoding
             self._path_or_buf = BytesIO(handles.handle.read())
@@ -1530,6 +1548,7 @@ the string values returned are correct."""
             return s.decode("latin-1")
 
     def _read_value_labels(self) -> None:
+        self._ensure_open()
         if self._value_labels_read:
             # Don't read twice
             return
@@ -1649,6 +1668,7 @@ the string values returned are correct."""
         columns: Sequence[str] | None = None,
         order_categoricals: bool | None = None,
     ) -> DataFrame:
+        self._ensure_open()
         # Handle empty file or chunk.  If reading incrementally raise
         # StopIteration.  If reading the whole thing return an empty
         # data frame.
@@ -1976,48 +1996,15 @@ The repeated labels are:
         """
         Return data label of Stata file.
         """
+        self._ensure_open()
         return self._data_label
-
-    @property
-    def typlist(self) -> list[int | str]:
-        """
-        Return list of variable types.
-        """
-        return self._typlist
-
-    @property
-    def dtyplist(self) -> list[str | np.dtype]:
-        """
-        Return list of variable types.
-        """
-        return self._dtyplist
-
-    @property
-    def lbllist(self) -> list[str]:
-        """
-        Return list of variable labels.
-        """
-        return self._lbllist
-
-    @property
-    def varlist(self) -> list[str]:
-        """
-        Return list of variable names.
-        """
-        return self._varlist
-
-    @property
-    def fmtlist(self) -> list[str]:
-        """
-        Return list of variable formats.
-        """
-        return self._fmtlist
 
     @property
     def time_stamp(self) -> str:
         """
         Return time stamp of Stata file.
         """
+        self._ensure_open()
         return self._time_stamp
 
     def variable_labels(self) -> dict[str, str]:
@@ -2028,6 +2015,7 @@ The repeated labels are:
         -------
         dict
         """
+        self._ensure_open()
         return dict(zip(self._varlist, self._variable_labels))
 
     def value_labels(self) -> dict[str, dict[float, str]]:
