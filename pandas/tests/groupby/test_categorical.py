@@ -2033,6 +2033,7 @@ def test_many_categories(as_index, sort, index_kind, ordered):
     result = gb.sum()
 
     # Test is setup so that data and index are the same values
+    # TODO: Order should be the same for all index_kinds
     if index_kind == "range":
         data = [3, 2, 1] if ordered else [2, 1, 3]
     else:
