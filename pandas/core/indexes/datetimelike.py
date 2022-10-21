@@ -28,7 +28,10 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
-from pandas._typing import Axis
+from pandas._typing import (
+    Axis,
+    npt,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -78,7 +81,7 @@ _TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
     DatetimeLikeArrayMixin,
     cache=True,
 )
-@inherit_names(["mean", "asi8", "freq", "freqstr"], DatetimeLikeArrayMixin)
+@inherit_names(["mean", "freq", "freqstr"], DatetimeLikeArrayMixin)
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     """
     Common ops mixin to support a unified interface datetimelike Index.
@@ -90,6 +93,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     freq: BaseOffset | None
     freqstr: str | None
     _resolution_obj: Resolution
+
+    @property
+    def asi8(self) -> npt.NDArray[np.int64]:
+        return self._data.asi8
 
     # ------------------------------------------------------------------------
 

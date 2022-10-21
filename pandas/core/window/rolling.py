@@ -16,6 +16,7 @@ from typing import (
     Hashable,
     Iterator,
     Sized,
+    cast,
 )
 import warnings
 
@@ -442,7 +443,8 @@ class BaseWindow(SelectionMixin):
     def _index_array(self):
         # TODO: why do we get here with e.g. MultiIndex?
         if needs_i8_conversion(self._on.dtype):
-            return self._on.asi8
+            idx = cast("PeriodIndex | DatetimeIndex | TimedeltaIndex", self._on)
+            return idx.asi8
         return None
 
     def _resolve_output(self, out: DataFrame, obj: DataFrame) -> DataFrame:

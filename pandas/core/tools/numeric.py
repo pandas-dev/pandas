@@ -158,7 +158,7 @@ def to_numeric(
     elif isinstance(arg, ABCIndex):
         is_index = True
         if needs_i8_conversion(arg.dtype):
-            values = arg.asi8
+            values = arg.view("i8")
         else:
             values = arg.values
     elif isinstance(arg, (list, tuple)):
