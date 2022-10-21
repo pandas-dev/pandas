@@ -341,15 +341,16 @@ def register_index_accessor(name):
             def bar(self):
                 # return item value
                 return self.item
+                
+    Back in an interactive IPython session:
 
-    Then, in an ipython session::
+        .. code-block:: ipython
 
-        >>> ## Import if the accessor is in the other file.
-        >>> # from my_ext_lib import CustomAccessor
-        >>> df = pd.DataFrame({"longitude": np.linspace(0,10),
-        ...                     "latitude": np.linspace(0, 20)})
-        >>> df.index.foo.bar  # doctest: +SKIP
-        'baz'
+            In [1]: ds = pd.DataFrame({{"longitude": np.linspace(0, 10),
+               ...:                    "latitude": np.linspace(0, 20)}})
+            In [2]: ds.index.foo.bar
+            Out[2]: 'baz'
+
     """
 
     from pandas import Index
