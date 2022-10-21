@@ -550,8 +550,6 @@ def _take_2d_multi_object(
         if col_needs:
             out[:, col_mask] = fill_value
     for i, u_ in enumerate(row_idx):
-        u_ = row_idx[i]
-
         if u_ != -1:
             for j, v in enumerate(col_idx):
                 if v != -1:

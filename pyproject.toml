@@ -81,7 +81,6 @@ disable = [
  # pylint type "C": convention, for programming standard violation
   "consider-iterating-dictionary",
   "consider-using-dict-items",
-  "consider-using-enumerate",
   "consider-using-f-string",
   "disallowed-name",
   "import-outside-toplevel",
@@ -106,6 +105,7 @@ disable = [
   "useless-import-alias",
   "wrong-import-order",
   "wrong-import-position",
+  "c-extension-no-member",
 
   # pylint type "R": refactor, for bad code smell
   "chained-comparison",
