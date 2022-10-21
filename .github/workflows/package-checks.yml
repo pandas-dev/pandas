@@ -1,0 +1,50 @@
+name: Package Checks
+
+on:
+  push:
+    branches:
+      - main
+      - 1.5.x
+  pull_request:
+    branches:
+      - main
+      - 1.5.x
+
+permissions:
+  contents: read
+
+jobs:
+  pip:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        extra: ["test", "performance", "timezone", "computation", "fss", "aws", "gcp", "excel", "parquet", "feather", "hdf5", "spss", "postgresql", "mysql", "sql-other", "html", "xml", "plot", "output_formatting", "clipboard", "compression", "all"]
+      fail-fast: false
+    name: Install Extras - ${{ matrix.extra }}
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.extra }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        id: setup_python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.8'
+          cache: 'pip'
+
+      - name: Build pandas
+        run: |
+          python setup.py build_ext -j 1
+        shell: bash -el {0}
+
+      - name: Install with extra
+        run: |
+          python -m pip install -e .[${{ matrix.extra }}] --no-build-isolation --no-use-pep517
+        shell: bash -el {0}
