@@ -919,6 +919,28 @@ def test_malformed_second_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
+def test_short_single_line(all_parsers):
+    # GH 47566
+    parser = all_parsers
+    columns = ["a", "b", "c"]
+    data = "1,2"
+    result = parser.read_csv(StringIO(data), header=None, names=columns)
+    expected = DataFrame({"a": [1], "b": [2], "c": [np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow
+def test_short_multi_line(all_parsers):
+    # GH 47566
+    parser = all_parsers
+    columns = ["a", "b", "c"]
+    data = "1,2\n1,2"
+    result = parser.read_csv(StringIO(data), header=None, names=columns)
+    expected = DataFrame({"a": [1, 1], "b": [2, 2], "c": [np.nan, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_read_table_posargs_deprecation(all_parsers):
     # https://github.com/pandas-dev/pandas/issues/41485
     data = StringIO("a\tb\n1\t2")

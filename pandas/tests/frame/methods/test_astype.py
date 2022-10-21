@@ -424,9 +424,8 @@ class TestAstype:
             # GH#48928
             exp_dtype = dtype
         else:
-            # TODO(2.0): use the nearest supported dtype (i.e. M8[s]) instead
-            #  of nanos
-            exp_dtype = "M8[ns]"
+            # we use the nearest supported dtype (i.e. M8[s])
+            exp_dtype = "M8[s]"
         # TODO(2.0): once DataFrame constructor doesn't cast ndarray inputs.
         #  can simplify this
         exp_values = arr.astype(exp_dtype)
@@ -484,15 +483,21 @@ class TestAstype:
         dtype = f"m8[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
-        result = df.astype(dtype)
+        if unit in ["us", "ms", "s"]:
+            assert (df.dtypes == dtype).all()
+        else:
+            # We get the nearest supported unit, i.e. "s"
+            assert (df.dtypes == "m8[s]").all()
 
+        result = df.astype(dtype)
         if unit in ["m", "h", "D"]:
-            # We don't support these, so we use the old logic to convert to float
+            # We don't support these, so we use the pre-2.0 logic to convert to float
+            #  (xref GH#48979)
+
             expected = DataFrame(df.values.astype(dtype).astype(float))
         else:
-            tda = pd.core.arrays.TimedeltaArray._simple_new(arr, dtype=arr.dtype)
-            expected = DataFrame(tda)
-            assert (expected.dtypes == dtype).all()
+            # The conversion is a no-op, so we just get a copy
+            expected = df
 
         tm.assert_frame_equal(result, expected)
 
