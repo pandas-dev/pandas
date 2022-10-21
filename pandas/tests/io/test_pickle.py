@@ -10,6 +10,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+from array import array
 import bz2
 import datetime
 import functools
@@ -37,6 +38,7 @@ from pandas.compat import (
     get_lzma_file,
     is_platform_little_endian,
 )
+from pandas.compat._compressors import flatten_buffer
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -105,6 +107,37 @@ def legacy_pickle(request, datapath):
 # ---------------------
 # tests
 # ---------------------
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        b"123",
+        b"123456",
+        bytearray(b"123"),
+        memoryview(b"123"),
+        pickle.PickleBuffer(b"123"),
+        array("I", [1, 2, 3]),
+        memoryview(b"123456").cast("B", (3, 2)),
+        memoryview(b"123456").cast("B", (3, 2))[::2],
+        np.arange(12).reshape((3, 4), order="C"),
+        np.arange(12).reshape((3, 4), order="F"),
+        np.arange(12).reshape((3, 4), order="C")[:, ::2],
+    ],
+)
+def test_flatten_buffer(data):
+    result = flatten_buffer(data)
+    expected = memoryview(data).tobytes("A")
+    assert result == expected
+    if isinstance(data, (bytes, bytearray)):
+        assert result is data
+    elif isinstance(result, memoryview):
+        assert result.ndim == 1
+        assert result.format == "B"
+        assert result.contiguous
+        assert result.shape == (result.nbytes,)
+
+
 def test_pickles(legacy_pickle):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")

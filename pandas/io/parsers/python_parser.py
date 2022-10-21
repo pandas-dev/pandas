@@ -5,7 +5,6 @@ from collections import (
     defaultdict,
 )
 import csv
-import inspect
 from io import StringIO
 import re
 import sys
@@ -600,7 +599,7 @@ class PythonParser(ParserBase):
                         "Defining usecols with out of bounds indices is deprecated "
                         "and will raise a ParserError in a future version.",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
                 col_indices = self.usecols
 
@@ -789,9 +788,9 @@ class PythonParser(ParserBase):
             assert isinstance(line, list)
             return line
         except csv.Error as e:
-            if (
-                self.on_bad_lines == self.BadLineHandleMethod.ERROR
-                or self.on_bad_lines == self.BadLineHandleMethod.WARN
+            if self.on_bad_lines in (
+                self.BadLineHandleMethod.ERROR,
+                self.BadLineHandleMethod.WARN,
             ):
                 msg = str(e)
 
@@ -1014,9 +1013,9 @@ class PythonParser(ParserBase):
                         new_l = self.on_bad_lines(l)
                         if new_l is not None:
                             content.append(new_l)
-                    elif (
-                        self.on_bad_lines == self.BadLineHandleMethod.ERROR
-                        or self.on_bad_lines == self.BadLineHandleMethod.WARN
+                    elif self.on_bad_lines in (
+                        self.BadLineHandleMethod.ERROR,
+                        self.BadLineHandleMethod.WARN,
                     ):
                         row_num = self.pos - (content_len - i + footers)
                         bad_lines.append((row_num, actual_len))

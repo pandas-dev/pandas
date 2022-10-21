@@ -462,12 +462,14 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
-        if not is_signed_integer_dtype(comps):
+        orig_values = list(values)
+        values = _ensure_arraylike(orig_values)
+
+        if is_numeric_dtype(values) and not is_signed_integer_dtype(comps):
             # GH#46485 Use object to avoid upcast to float64 later
             # TODO: Share with _find_common_type_compat
-            values = construct_1d_object_array_from_listlike(list(values))
-        else:
-            values = _ensure_arraylike(list(values))
+            values = construct_1d_object_array_from_listlike(orig_values)
+
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
         values = np.array(values)
@@ -861,9 +863,7 @@ def resolve_na_sentinel(
                 "Specify `use_na_sentinel=True` to use the sentinel value -1, and "
                 "`use_na_sentinel=False` to encode NaN values."
             )
-        warnings.warn(
-            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
         result = na_sentinel
     return result
 
@@ -1067,7 +1067,7 @@ def mode(
     except TypeError as err:
         warnings.warn(
             f"Unable to sort modes: {err}",
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     result = _reconstruct_data(npresult, original.dtype, original)
@@ -1692,7 +1692,7 @@ def diff(arr, n: int, axis: AxisInt = 0):
                 "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             arr = np.asarray(arr)
             dtype = arr.dtype
