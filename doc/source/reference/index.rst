@@ -47,9 +47,7 @@ public functions related to data types in pandas.
 ..
     .. toctree::
 
-        api/pandas.Index.asi8
         api/pandas.Index.holds_integer
-        api/pandas.Index.is_type_compatible
         api/pandas.Index.nlevels
         api/pandas.Index.sort
 

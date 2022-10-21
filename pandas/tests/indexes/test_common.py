@@ -23,7 +23,6 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
     RangeIndex,
-    TimedeltaIndex,
 )
 import pandas._testing as tm
 from pandas.core.api import NumericIndex
@@ -422,16 +421,6 @@ class TestCommon:
             assert result.names == index.names
         else:
             assert result.name == index.name
-
-    def test_asi8_deprecation(self, index):
-        # GH#37877
-        if isinstance(index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
-            warn = None
-        else:
-            warn = FutureWarning
-
-        with tm.assert_produces_warning(warn):
-            index.asi8
 
     def test_hasnans_isnans(self, index_flat):
         # GH#11343, added tests for hasnans / isnans
