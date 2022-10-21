@@ -30,7 +30,7 @@ cmdclass = versioneer.get_cmdclass()
 
 
 def is_platform_windows():
-    return sys.platform == "win32" or sys.platform == "cygwin"
+    return sys.platform in ("win32", "cygwin")
 
 
 def is_platform_mac():

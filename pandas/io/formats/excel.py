@@ -277,7 +277,7 @@ class CSSToExcelConverter:
             # Return "none" will keep "border" in style dictionary
             return "none"
 
-        if style == "none" or style == "hidden":
+        if style in ("none", "hidden"):
             return "none"
 
         width_name = self._get_width_name(width)

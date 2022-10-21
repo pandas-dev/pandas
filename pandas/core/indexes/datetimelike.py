@@ -663,7 +663,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             if self.size:
                 if item is NaT:
                     pass
-                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                elif loc in (0, -len(self)) and item + self.freq == self[0]:
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq

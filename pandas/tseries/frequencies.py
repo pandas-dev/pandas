@@ -642,7 +642,7 @@ def _is_quarterly(rule: str) -> bool:
 
 def _is_monthly(rule: str) -> bool:
     rule = rule.upper()
-    return rule == "M" or rule == "BM"
+    return rule in ("M", "BM")
 
 
 def _is_weekly(rule: str) -> bool:

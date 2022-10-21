@@ -431,10 +431,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             subheader_processor = self._subheader_processors[subheader_index]
 
             if subheader_processor is None:
-                f1 = (
-                    subheader_compression == const.compressed_subheader_id
-                    or subheader_compression == 0
-                )
+                f1 = subheader_compression in (const.compressed_subheader_id, 0)
                 f2 = subheader_type == const.compressed_subheader_type
                 if self.compression and f1 and f2:
                     self._current_page_data_subheader_pointers.append(

@@ -211,7 +211,7 @@ class BinOp(ops.BinOp):
 
         kind = ensure_decoded(self.kind)
         meta = ensure_decoded(self.meta)
-        if kind == "datetime64" or kind == "datetime":
+        if kind in ("datetime64", "datetime"):
             if isinstance(v, (int, float)):
                 v = stringify(v)
             v = ensure_decoded(v)
@@ -219,7 +219,7 @@ class BinOp(ops.BinOp):
             if v.tz is not None:
                 v = v.tz_convert("UTC")
             return TermValue(v, v.value, kind)
-        elif kind == "timedelta64" or kind == "timedelta":
+        elif kind in ("timedelta64", "timedelta"):
             if isinstance(v, str):
                 v = Timedelta(v).value
             else:

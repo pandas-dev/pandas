@@ -69,7 +69,7 @@ def test_transform_empty_listlike(float_frame, ops, frame_or_series):
 @pytest.mark.parametrize("box", [dict, Series])
 def test_transform_dictlike(axis, float_frame, box):
     # GH 35964
-    if axis == 0 or axis == "index":
+    if axis in (0, "index"):
         e = float_frame.columns[0]
         expected = float_frame[[e]].transform(np.abs)
     else:

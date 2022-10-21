@@ -103,7 +103,7 @@ def test_union_different_types(index_flat, index_flat2, request):
         # complex objects non-sortable
         warn = RuntimeWarning
 
-    any_uint64 = idx1.dtype == np.uint64 or idx2.dtype == np.uint64
+    any_uint64 = np.uint64 in (idx1.dtype, idx2.dtype)
     idx1_signed = is_signed_integer_dtype(idx1.dtype)
     idx2_signed = is_signed_integer_dtype(idx2.dtype)
 

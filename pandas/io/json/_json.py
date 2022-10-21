@@ -1146,7 +1146,7 @@ class Parser:
                     pass
 
         # don't coerce 0-len data
-        if len(data) and (data.dtype == "float" or data.dtype == "object"):
+        if len(data) and data.dtype in ("float", "object"):
 
             # coerce ints if we can
             try:
