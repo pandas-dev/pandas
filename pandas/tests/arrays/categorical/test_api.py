@@ -330,12 +330,6 @@ class TestCategoricalAPI:
 
         tm.assert_numpy_array_equal(np.asarray(c), np.asarray(c2))
 
-    def test_to_dense_deprecated(self):
-        cat = Categorical(["a", "b", "c", "a"], ordered=True)
-
-        with tm.assert_produces_warning(FutureWarning):
-            cat.to_dense()
-
     @pytest.mark.parametrize(
         "values, categories, new_categories",
         [

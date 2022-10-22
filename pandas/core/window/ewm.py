@@ -3,10 +3,7 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -106,7 +103,7 @@ def get_center_of_mass(
 
 
 def _calculate_deltas(
-    times: str | np.ndarray | NDFrame | None,
+    times: np.ndarray | NDFrame,
     halflife: float | TimedeltaConvertibleTypes | None,
 ) -> np.ndarray:
     """
@@ -115,7 +112,7 @@ def _calculate_deltas(
 
     Parameters
     ----------
-    times : str, np.ndarray, Series, default None
+    times : np.ndarray, Series
         Times corresponding to the observations. Must be monotonically increasing
         and ``datetime64[ns]`` dtype.
     halflife : float, str, timedelta, optional
@@ -126,13 +123,7 @@ def _calculate_deltas(
     np.ndarray
         Diff of the times divided by the half-life
     """
-    # error: Item "str" of "Union[str, ndarray, NDFrameT, None]" has no
-    # attribute "view"
-    # error: Item "None" of "Union[str, ndarray, NDFrameT, None]" has no
-    # attribute "view"
-    _times = np.asarray(
-        times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
-    )
+    _times = np.asarray(times.view(np.int64), dtype=np.float64)
     # TODO: generalize to non-nano?
     _halflife = float(Timedelta(halflife)._as_unit("ns").value)
     return np.diff(_times) / _halflife
@@ -221,7 +212,7 @@ class ExponentialMovingWindow(BaseWindow):
 
         For `Series` this parameter is unused and defaults to 0.
 
-    times : str, np.ndarray, Series, default None
+    times : np.ndarray, Series, default None
 
         .. versionadded:: 1.1.0
 
@@ -231,9 +222,6 @@ class ExponentialMovingWindow(BaseWindow):
         ``datetime64[ns]`` dtype.
 
         If 1-D array like, a sequence with the same shape as the observations.
-
-        .. deprecated:: 1.4.0
-            If str, the name of the column in the DataFrame representing the times.
 
     method : str {'single', 'table'}, default 'single'
         .. versionadded:: 1.4.0
@@ -359,7 +347,7 @@ class ExponentialMovingWindow(BaseWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | NDFrame | None = None,
+        times: np.ndarray | NDFrame | None = None,
         method: str = "single",
         *,
         selection=None,
@@ -384,18 +372,6 @@ class ExponentialMovingWindow(BaseWindow):
         if self.times is not None:
             if not self.adjust:
                 raise NotImplementedError("times is not supported with adjust=False.")
-            if isinstance(self.times, str):
-                warnings.warn(
-                    (
-                        "Specifying times as a string column label is deprecated "
-                        "and will be removed in a future version. Pass the column "
-                        "into times instead."
-                    ),
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                # self.times cannot be str anymore
-                self.times = cast("Series", self._selected_obj[self.times])
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
             if len(self.times) != len(obj):
@@ -897,7 +873,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             # sort the times and recalculate the deltas according to the groups
             groupby_order = np.concatenate(list(self._grouper.indices.values()))
             self._deltas = _calculate_deltas(
-                self.times.take(groupby_order),  # type: ignore[union-attr]
+                self.times.take(groupby_order),
                 self.halflife,
             )
 
@@ -928,7 +904,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | NDFrame | None = None,
+        times: np.ndarray | NDFrame | None = None,
         engine: str = "numba",
         engine_kwargs: dict[str, bool] | None = None,
         *,
