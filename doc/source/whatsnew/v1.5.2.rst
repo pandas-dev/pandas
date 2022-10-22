@@ -13,7 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- Fixed regression in :meth:`DataFrame.query` raising ``UndefinedVariableError`` when querying it with class as a name (:issue:`48694`)
+- Fixed regression in :meth:`DataFrame.query` raising ``UndefinedVariableError`` when calling it with class as a name (:issue:`48694`)
 -
 
 .. ---------------------------------------------------------------------------
