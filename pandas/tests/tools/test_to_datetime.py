@@ -2362,7 +2362,7 @@ class TestDaysInMonth:
 
     @pytest.mark.parametrize("arg", ["2015-02-29", "2015-02-32", "2015-04-31"])
     def test_day_not_in_month_raise_value(self, cache, arg):
-        msg = f'time data "{arg}" at position 0 doesn\'t match format %Y-%m-%d'
+        msg = f'time data "{arg}" at position 0 doesn\'t match %Y-%m-%d'
         with pytest.raises(ValueError, match=msg):
             to_datetime(arg, errors="raise", format="%Y-%m-%d", cache=cache)
 
