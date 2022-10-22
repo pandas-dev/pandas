@@ -1908,7 +1908,7 @@ def test_negate_lt_eq_le(engine, parser):
 )
 def test_eval_no_support_column_name(request, column):
     # GH 44603
-    if column in ["True", "False", "inf", "Inf"]:
+    if column in ["True", "False"]:
         request.node.add_marker(
             pytest.mark.xfail(
                 raises=KeyError,
@@ -1922,6 +1922,15 @@ def test_eval_no_support_column_name(request, column):
 
     tm.assert_frame_equal(result, expected)
 
+def test_classname_frame_query():
+    # GH 48694
+    class A:
+        a = 1
+
+    df1 = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+    df_test = DataFrame({'x': [1], 'y': [4]})
+    tm.assert_frame_equal(df_test, df1.query(f'x=={A.a}'))
+    tm.assert_frame_equal(df_test, df1.query('x==@A.a'))
 
 @td.skip_array_manager_not_yet_implemented
 def test_set_inplace(using_copy_on_write):
