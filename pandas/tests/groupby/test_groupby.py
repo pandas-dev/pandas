@@ -109,48 +109,6 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_return_type():
-
-    # GH2893, return a reduced type
-    df1 = DataFrame(
-        [
-            {"val1": 1, "val2": 20},
-            {"val1": 1, "val2": 19},
-            {"val1": 2, "val2": 27},
-            {"val1": 2, "val2": 12},
-        ]
-    )
-
-    def func(dataf):
-        return dataf["val2"] - dataf["val2"].mean()
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = df1.groupby("val1", squeeze=True).apply(func)
-    assert isinstance(result, Series)
-
-    df2 = DataFrame(
-        [
-            {"val1": 1, "val2": 20},
-            {"val1": 1, "val2": 19},
-            {"val1": 1, "val2": 27},
-            {"val1": 1, "val2": 12},
-        ]
-    )
-
-    def func(dataf):
-        return dataf["val2"] - dataf["val2"].mean()
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = df2.groupby("val1", squeeze=True).apply(func)
-    assert isinstance(result, Series)
-
-    # GH3596, return a consistent type (regression in 0.11 from 0.10.1)
-    df = DataFrame([[1, 1], [1, 1]], columns=["X", "Y"])
-    with tm.assert_produces_warning(FutureWarning):
-        result = df.groupby("X", squeeze=False).count()
-    assert isinstance(result, DataFrame)
-
-
 def test_inconsistent_return_type():
     # GH5592
     # inconsistent return type
@@ -162,51 +120,51 @@ def test_inconsistent_return_type():
         }
     )
 
-    def f(grp):
+    def f_0(grp):
         return grp.iloc[0]
 
     expected = df.groupby("A").first()[["B"]]
-    result = df.groupby("A").apply(f)[["B"]]
+    result = df.groupby("A").apply(f_0)[["B"]]
     tm.assert_frame_equal(result, expected)
 
-    def f(grp):
+    def f_1(grp):
         if grp.name == "Tiger":
             return None
         return grp.iloc[0]
 
-    result = df.groupby("A").apply(f)[["B"]]
+    result = df.groupby("A").apply(f_1)[["B"]]
     e = expected.copy()
     e.loc["Tiger"] = np.nan
     tm.assert_frame_equal(result, e)
 
-    def f(grp):
+    def f_2(grp):
         if grp.name == "Pony":
             return None
         return grp.iloc[0]
 
-    result = df.groupby("A").apply(f)[["B"]]
+    result = df.groupby("A").apply(f_2)[["B"]]
     e = expected.copy()
     e.loc["Pony"] = np.nan
     tm.assert_frame_equal(result, e)
 
     # 5592 revisited, with datetimes
-    def f(grp):
+    def f_3(grp):
         if grp.name == "Pony":
             return None
         return grp.iloc[0]
 
-    result = df.groupby("A").apply(f)[["C"]]
+    result = df.groupby("A").apply(f_3)[["C"]]
     e = df.groupby("A").first()[["C"]]
     e.loc["Pony"] = pd.NaT
     tm.assert_frame_equal(result, e)
 
     # scalar outputs
-    def f(grp):
+    def f_4(grp):
         if grp.name == "Pony":
             return None
         return grp.iloc[0].loc["C"]
 
-    result = df.groupby("A").apply(f)
+    result = df.groupby("A").apply(f_4)
     e = df.groupby("A").first()["C"].copy()
     e.loc["Pony"] = np.nan
     e.name = None
@@ -2500,7 +2458,6 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
         (DataFrame, "as_index", False),
         (DataFrame, "sort", False),
         (DataFrame, "group_keys", False),
-        (DataFrame, "squeeze", True),
         (DataFrame, "observed", True),
         (DataFrame, "dropna", False),
         pytest.param(
@@ -2515,13 +2472,9 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
         (Series, "as_index", False),
         (Series, "sort", False),
         (Series, "group_keys", False),
-        (Series, "squeeze", True),
         (Series, "observed", True),
         (Series, "dropna", False),
     ],
-)
-@pytest.mark.filterwarnings(
-    "ignore:The `squeeze` parameter is deprecated:FutureWarning"
 )
 def test_subsetting_columns_keeps_attrs(klass, attr, value):
     # GH 9959 - When subsetting columns, don't drop attributes
@@ -2780,15 +2733,6 @@ def test_rolling_wrong_param_min_period():
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
 
 
-def test_pad_backfill_deprecation():
-    # GH 33396
-    s = Series([1, 2, 3])
-    with tm.assert_produces_warning(FutureWarning, match="backfill"):
-        s.groupby(level=0).backfill()
-    with tm.assert_produces_warning(FutureWarning, match="pad"):
-        s.groupby(level=0).pad()
-
-
 def test_by_column_values_with_same_starting_value():
     # GH29635
     df = DataFrame(
@@ -2906,4 +2850,35 @@ def test_groupby_cumsum_mask(any_numeric_ea_dtype, skipna, val):
         {"b": [1, pd.NA, val]},
         dtype=any_numeric_ea_dtype,
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "val_in, index, val_out",
+    [
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0],
+            ["foo", "foo", "bar", "baz", "blah"],
+            [3.0, 4.0, 5.0, 3.0],
+        ),
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+            ["foo", "foo", "bar", "baz", "blah", "blah"],
+            [3.0, 4.0, 11.0, 3.0],
+        ),
+    ],
+)
+def test_groupby_index_name_in_index_content(val_in, index, val_out):
+    # GH 48567
+    series = Series(data=val_in, name="values", index=Index(index, name="blah"))
+    result = series.groupby("blah").sum()
+    expected = Series(
+        data=val_out,
+        name="values",
+        index=Index(["bar", "baz", "blah", "foo"], name="blah"),
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = series.to_frame().groupby("blah").sum()
+    expected = expected.to_frame()
     tm.assert_frame_equal(result, expected)

@@ -919,6 +919,28 @@ def test_malformed_second_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
+def test_short_single_line(all_parsers):
+    # GH 47566
+    parser = all_parsers
+    columns = ["a", "b", "c"]
+    data = "1,2"
+    result = parser.read_csv(StringIO(data), header=None, names=columns)
+    expected = DataFrame({"a": [1], "b": [2], "c": [np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow
+def test_short_multi_line(all_parsers):
+    # GH 47566
+    parser = all_parsers
+    columns = ["a", "b", "c"]
+    data = "1,2\n1,2"
+    result = parser.read_csv(StringIO(data), header=None, names=columns)
+    expected = DataFrame({"a": [1, 1], "b": [2, 2], "c": [np.nan, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_read_table_posargs_deprecation(all_parsers):
     # https://github.com/pandas-dev/pandas/issues/41485
     data = StringIO("a\tb\n1\t2")
@@ -928,3 +950,17 @@ def test_read_table_posargs_deprecation(all_parsers):
         "except for the argument 'filepath_or_buffer' will be keyword-only"
     )
     parser.read_table_check_warnings(FutureWarning, msg, data, " ")
+
+
+def test_read_seek(all_parsers):
+    # GH48646
+    parser = all_parsers
+    prefix = "### DATA\n"
+    content = "nkey,value\ntables,rectangular\n"
+    with tm.ensure_clean() as path:
+        Path(path).write_text(prefix + content)
+        with open(path, encoding="utf-8") as file:
+            file.readline()
+            actual = parser.read_csv(file)
+        expected = parser.read_csv(StringIO(content))
+    tm.assert_frame_equal(actual, expected)

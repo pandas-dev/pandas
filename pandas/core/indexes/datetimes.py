@@ -7,7 +7,6 @@ from datetime import (
     timedelta,
     tzinfo,
 )
-import inspect
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -26,7 +25,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import (
-    BaseOffset,
     Resolution,
     periods_per_day,
     timezones,
@@ -37,8 +35,11 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    Frequency,
     IntervalClosedType,
     IntervalLeftRight,
+    TimeAmbiguous,
+    TimeNonexistent,
     npt,
 )
 from pandas.util._decorators import (
@@ -278,7 +279,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return type(self)._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.tz_localize)
-    def tz_localize(self, tz, ambiguous="raise", nonexistent="raise") -> DatetimeIndex:
+    def tz_localize(
+        self,
+        tz,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ) -> DatetimeIndex:
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -314,11 +320,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def __new__(
         cls,
         data=None,
-        freq: str | BaseOffset | lib.NoDefault = lib.no_default,
-        tz=None,
+        freq: Frequency | lib.NoDefault = lib.no_default,
+        tz=lib.no_default,
         normalize: bool = False,
         closed=None,
-        ambiguous="raise",
+        ambiguous: TimeAmbiguous = "raise",
         dayfirst: bool = False,
         yearfirst: bool = False,
         dtype: Dtype | None = None,
@@ -327,7 +333,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     ) -> DatetimeIndex:
 
         if is_scalar(data):
-            raise cls._scalar_data_error(data)
+            cls._raise_scalar_data_error(data)
 
         # - Cases checked above all return/raise before reaching here - #
 
@@ -336,7 +342,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if (
             isinstance(data, DatetimeArray)
             and freq is lib.no_default
-            and tz is None
+            and tz is lib.no_default
             and dtype is None
         ):
             # fastpath, similar logic in TimedeltaIndex.__new__;
@@ -347,7 +353,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         elif (
             isinstance(data, DatetimeArray)
             and freq is lib.no_default
-            and tz is None
+            and tz is lib.no_default
             and is_dtype_equal(data.dtype, dtype)
         ):
             # Reached via Index.__new__ when we call .astype
@@ -441,7 +447,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "DatetimeIndex.union_many is deprecated and will be removed in "
             "a future version. Use obj.union instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
         this = self
@@ -494,7 +500,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         values = self._data._local_timestamps()
 
-        reso = self._data._reso
+        reso = self._data._creso
         ppd = periods_per_day(reso)
 
         frac = values % ppd
@@ -512,7 +518,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         micros[self._isnan] = -1
         return micros
 
-    def to_series(self, keep_tz=lib.no_default, index=None, name=None):
+    def to_series(self, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys.
 
@@ -520,27 +526,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Parameters
         ----------
-        keep_tz : optional, defaults True
-            Return the data keeping the timezone.
-
-            If keep_tz is True:
-
-              If the timezone is not set, the resulting
-              Series will have a datetime64[ns] dtype.
-
-              Otherwise the Series will have an datetime64[ns, tz] dtype; the
-              tz will be preserved.
-
-            If keep_tz is False:
-
-              Series will have a datetime64[ns] dtype. TZ aware
-              objects will have the tz removed.
-
-            .. versionchanged:: 1.0.0
-                The default value is now True.  In a future version,
-                this keyword will be removed entirely.  Stop passing the
-                argument to obtain the future behavior and silence the warning.
-
         index : Index, optional
             Index of resulting Series. If None, defaults to original index.
         name : str, optional
@@ -558,39 +543,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if name is None:
             name = self.name
 
-        if keep_tz is not lib.no_default:
-            if keep_tz:
-                warnings.warn(
-                    "The 'keep_tz' keyword in DatetimeIndex.to_series "
-                    "is deprecated and will be removed in a future version. "
-                    "You can stop passing 'keep_tz' to silence this warning.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
-                )
-            else:
-                warnings.warn(
-                    "Specifying 'keep_tz=False' is deprecated and this "
-                    "option will be removed in a future release. If "
-                    "you want to remove the timezone information, you "
-                    "can do 'idx.tz_convert(None)' before calling "
-                    "'to_series'.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
-                )
-        else:
-            keep_tz = True
-
-        if keep_tz and self.tz is not None:
-            # preserve the tz & copy
-            values = self.copy(deep=True)
-        else:
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ExtensionArray, ndarray]", variable has type "DatetimeIndex")
-            values = self._values.view("M8[ns]").copy()  # type: ignore[assignment]
+        values = self._values.copy()
 
         return Series(values, index=index, name=name)
 
-    def snap(self, freq="S") -> DatetimeIndex:
+    def snap(self, freq: Frequency = "S") -> DatetimeIndex:
         """
         Snap time stamps to nearest occurring frequency.
 
@@ -678,9 +635,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "raise KeyError in a future version. "
                     "Use a timezone-aware object instead."
                 )
-            warnings.warn(
-                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-            )
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -829,7 +784,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 "with non-existing keys is deprecated and will raise a "
                 "KeyError in a future Version.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         indexer = mask.nonzero()[0][::step]
         if len(indexer) == len(self):
@@ -966,7 +921,7 @@ def date_range(
         Right bound for generating dates.
     periods : int, optional
         Number of periods to generate.
-    freq : str or DateOffset, default 'D'
+    freq : str, datetime.timedelta, or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'. See
         :ref:`here <timeseries.offset_aliases>` for a list of
         frequency aliases.
@@ -1109,7 +1064,7 @@ def date_range(
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         if closed is None:
             inclusive = "both"
@@ -1142,7 +1097,7 @@ def bdate_range(
     start=None,
     end=None,
     periods: int | None = None,
-    freq="B",
+    freq: Frequency = "B",
     tz=None,
     normalize: bool = True,
     name: Hashable = None,
@@ -1163,8 +1118,9 @@ def bdate_range(
         Right bound for generating dates.
     periods : int, default None
         Number of periods to generate.
-    freq : str or DateOffset, default 'B' (business daily)
-        Frequency strings can have multiples, e.g. '5H'.
+    freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'B'
+        Frequency strings can have multiples, e.g. '5H'. The default is
+        business daily ('B').
     tz : str or None
         Time zone name for returning localized DatetimeIndex, for example
         Asia/Beijing.

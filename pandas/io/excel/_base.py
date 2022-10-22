@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import datetime
 from functools import partial
-import inspect
 from io import BytesIO
 import os
 from textwrap import fill
@@ -43,8 +42,6 @@ from pandas.compat._optional import (
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import (
     Appender,
-    deprecate_kwarg,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -270,23 +267,6 @@ comment : str, default None
     comment string and the end of the current line is ignored.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
-convert_float : bool, default True
-    Convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
-    data will be read in as floats: Excel stores all numbers as floats
-    internally.
-
-    .. deprecated:: 1.3.0
-        convert_float will be removed in a future version
-
-mangle_dupe_cols : bool, default True
-    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
-    'X'...'X'. Passing in False will cause data to be overwritten if there
-    are duplicate names in the columns.
-
-    .. deprecated:: 1.5.0
-        Not implemented, and a new argument to specify the pattern for the
-        names of duplicated columns will be added instead
-
 {storage_options}
 
     .. versionadded:: 1.2.0
@@ -366,6 +346,7 @@ def read_excel(
     io,
     # sheet name is str or int -> DataFrame
     sheet_name: str | int = ...,
+    *,
     header: int | Sequence[int] | None = ...,
     names: list[str] | None = ...,
     index_col: int | Sequence[int] | None = ...,
@@ -393,8 +374,6 @@ def read_excel(
     decimal: str = ...,
     comment: str | None = ...,
     skipfooter: int = ...,
-    convert_float: bool | None = ...,
-    mangle_dupe_cols: bool = ...,
     storage_options: StorageOptions = ...,
 ) -> DataFrame:
     ...
@@ -405,6 +384,7 @@ def read_excel(
     io,
     # sheet name is list or None -> dict[IntStrT, DataFrame]
     sheet_name: list[IntStrT] | None,
+    *,
     header: int | Sequence[int] | None = ...,
     names: list[str] | None = ...,
     index_col: int | Sequence[int] | None = ...,
@@ -432,20 +412,17 @@ def read_excel(
     decimal: str = ...,
     comment: str | None = ...,
     skipfooter: int = ...,
-    convert_float: bool | None = ...,
-    mangle_dupe_cols: bool = ...,
     storage_options: StorageOptions = ...,
 ) -> dict[IntStrT, DataFrame]:
     ...
 
 
 @doc(storage_options=_shared_docs["storage_options"])
-@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
-@deprecate_nonkeyword_arguments(allowed_args=["io", "sheet_name"], version="2.0")
 @Appender(_read_excel_doc)
 def read_excel(
     io,
     sheet_name: str | int | list[IntStrT] | None = 0,
+    *,
     header: int | Sequence[int] | None = 0,
     names: list[str] | None = None,
     index_col: int | Sequence[int] | None = None,
@@ -473,8 +450,6 @@ def read_excel(
     decimal: str = ".",
     comment: str | None = None,
     skipfooter: int = 0,
-    convert_float: bool | None = None,
-    mangle_dupe_cols: bool = True,
     storage_options: StorageOptions = None,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
 
@@ -512,8 +487,6 @@ def read_excel(
             decimal=decimal,
             comment=comment,
             skipfooter=skipfooter,
-            convert_float=convert_float,
-            mangle_dupe_cols=mangle_dupe_cols,
         )
     finally:
         # make sure to close opened file handles
@@ -589,7 +562,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_sheet_data(self, sheet, convert_float: bool, rows: int | None = None):
+    def get_sheet_data(self, sheet, rows: int | None = None):
         pass
 
     def raise_if_bad_sheet_by_index(self, index: int) -> None:
@@ -717,19 +690,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         decimal: str = ".",
         comment: str | None = None,
         skipfooter: int = 0,
-        convert_float: bool | None = None,
-        mangle_dupe_cols: bool = True,
         **kwds,
     ):
-
-        if convert_float is None:
-            convert_float = True
-        else:
-            warnings.warn(
-                "convert_float is deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
 
         validate_header_arg(header)
         validate_integer("nrows", nrows)
@@ -764,7 +726,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 sheet = self.get_sheet_by_index(asheetname)
 
             file_rows_needed = self._calc_rows(header, index_col, skiprows, nrows)
-            data = self.get_sheet_data(sheet, convert_float, file_rows_needed)
+            data = self.get_sheet_data(sheet, file_rows_needed)
             if hasattr(sheet, "close"):
                 # pyxlsb opens two TemporaryFiles
                 sheet.close()
@@ -886,7 +848,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     comment=comment,
                     skipfooter=skipfooter,
                     usecols=usecols,
-                    mangle_dupe_cols=mangle_dupe_cols,
                     **kwds,
                 )
 
@@ -1131,7 +1092,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             warnings.warn(
                 "Use of **kwargs is deprecated, use engine_kwargs instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         # only switch class if generic(ExcelWriter)
@@ -1165,7 +1126,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         "deprecated and will also raise a warning, it can "
                         "be globally set and the warning suppressed.",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
 
             # for mypy
@@ -1200,6 +1161,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         Book instance. Class type will depend on the engine used.
 
         This attribute can be used to access engine-specific features.
+        """
+        pass
+
+    @book.setter
+    @abc.abstractmethod
+    def book(self, other) -> None:
+        """
+        Set book instance. Class type will depend on the engine used.
         """
         pass
 
@@ -1332,10 +1301,22 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         Deprecate attribute or method for ExcelWriter.
         """
         warnings.warn(
-            f"{attr} is not part of the public API, usage can give in unexpected "
+            f"{attr} is not part of the public API, usage can give unexpected "
             "results and will be removed in a future version",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
+        )
+
+    def _deprecate_set_book(self) -> None:
+        """
+        Deprecate setting the book attribute - GH#48780.
+        """
+        warnings.warn(
+            "Setting the `book` attribute is not part of the public API, "
+            "usage can give unexpected or corrupted results and will be "
+            "removed in a future version",
+            FutureWarning,
+            stacklevel=find_stack_level(),
         )
 
     @property
@@ -1699,8 +1680,6 @@ class ExcelFile:
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,
-        convert_float: bool | None = None,
-        mangle_dupe_cols: bool = True,
         **kwds,
     ) -> DataFrame | dict[str, DataFrame] | dict[int, DataFrame]:
         """
@@ -1732,8 +1711,6 @@ class ExcelFile:
             thousands=thousands,
             comment=comment,
             skipfooter=skipfooter,
-            convert_float=convert_float,
-            mangle_dupe_cols=mangle_dupe_cols,
             **kwds,
         )
 

@@ -440,6 +440,27 @@ def test_setops_disallow_true(method):
         getattr(idx1, method)(idx2, sort=True)
 
 
+@pytest.mark.parametrize("val", [pd.NA, 100])
+def test_difference_keep_ea_dtypes(any_numeric_ea_dtype, val):
+    # GH#48606
+    midx = MultiIndex.from_arrays(
+        [Series([1, 2], dtype=any_numeric_ea_dtype), [2, 1]], names=["a", None]
+    )
+    midx2 = MultiIndex.from_arrays(
+        [Series([1, 2, val], dtype=any_numeric_ea_dtype), [1, 1, 3]]
+    )
+    result = midx.difference(midx2)
+    expected = MultiIndex.from_arrays([Series([1], dtype=any_numeric_ea_dtype), [2]])
+    tm.assert_index_equal(result, expected)
+
+    result = midx.difference(midx.sort_values(ascending=False))
+    expected = MultiIndex.from_arrays(
+        [Series([], dtype=any_numeric_ea_dtype), Series([], dtype=int)],
+        names=["a", None],
+    )
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize("val", [pd.NA, 5])
 def test_symmetric_difference_keeping_ea_dtype(any_numeric_ea_dtype, val):
     # GH#48607
@@ -529,12 +550,20 @@ def test_intersection_with_missing_values_on_both_sides(nulls_fixture):
     tm.assert_index_equal(result, expected)
 
 
-def test_union_nan_got_duplicated():
-    # GH#38977
-    mi1 = MultiIndex.from_arrays([[1.0, np.nan], [2, 3]])
-    mi2 = MultiIndex.from_arrays([[1.0, np.nan, 3.0], [2, 3, 4]])
-    result = mi1.union(mi2)
-    tm.assert_index_equal(result, mi2)
+@pytest.mark.parametrize("dtype", ["float64", "Float64"])
+@pytest.mark.parametrize("sort", [None, False])
+def test_union_nan_got_duplicated(dtype, sort):
+    # GH#38977, GH#49010
+    mi1 = MultiIndex.from_arrays([pd.array([1.0, np.nan], dtype=dtype), [2, 3]])
+    mi2 = MultiIndex.from_arrays([pd.array([1.0, np.nan, 3.0], dtype=dtype), [2, 3, 4]])
+    result = mi1.union(mi2, sort=sort)
+    if sort is None:
+        expected = MultiIndex.from_arrays(
+            [pd.array([1.0, 3.0, np.nan], dtype=dtype), [2, 4, 3]]
+        )
+    else:
+        expected = mi2
+    tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("val", [4, 1])
@@ -554,6 +583,31 @@ def test_union_keep_ea_dtype(any_numeric_ea_dtype, val):
         expected = MultiIndex.from_arrays(
             [Series([1, 2], dtype=any_numeric_ea_dtype), [1, 2]]
         )
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("dupe_val", [3, pd.NA])
+def test_union_with_duplicates_keep_ea_dtype(dupe_val, any_numeric_ea_dtype):
+    # GH48900
+    mi1 = MultiIndex.from_arrays(
+        [
+            Series([1, dupe_val, 2], dtype=any_numeric_ea_dtype),
+            Series([1, dupe_val, 2], dtype=any_numeric_ea_dtype),
+        ]
+    )
+    mi2 = MultiIndex.from_arrays(
+        [
+            Series([2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
+            Series([2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
+        ]
+    )
+    result = mi1.union(mi2)
+    expected = MultiIndex.from_arrays(
+        [
+            Series([1, 2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
+            Series([1, 2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
+        ]
+    )
     tm.assert_index_equal(result, expected)
 
 

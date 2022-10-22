@@ -4,7 +4,6 @@ Concat routines.
 from __future__ import annotations
 
 from collections import abc
-import inspect
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -21,6 +20,7 @@ import numpy as np
 
 from pandas._typing import (
     Axis,
+    AxisInt,
     HashableT,
 )
 from pandas.util._decorators import (
@@ -390,7 +390,7 @@ class _Concatenator:
     def __init__(
         self,
         objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
-        axis=0,
+        axis: Axis = 0,
         join: str = "outer",
         keys=None,
         levels=None,
@@ -553,7 +553,7 @@ class _Concatenator:
                 "Passing non boolean values for sort is deprecated and "
                 "will error in a future version!",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         self.sort = sort
 
@@ -636,7 +636,7 @@ class _Concatenator:
             for i in range(ndim)
         ]
 
-    def _get_comb_axis(self, i: int) -> Index:
+    def _get_comb_axis(self, i: AxisInt) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
         return get_objs_combined_axis(
             self.objs,

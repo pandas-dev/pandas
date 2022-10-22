@@ -15,7 +15,6 @@ from typing import (
     Counter,
     Iterable,
 )
-import warnings
 
 import numpy as np
 
@@ -25,8 +24,11 @@ from pandas._config.localization import (
     set_locale,
 )
 
-from pandas._typing import Dtype
-from pandas.compat import pa_version_under1p01
+from pandas._typing import (
+    Dtype,
+    Frequency,
+)
+from pandas.compat import pa_version_under6p0
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -99,7 +101,6 @@ from pandas._testing.contexts import (
     RNGContext,
     decompress_file,
     ensure_clean,
-    ensure_clean_dir,
     ensure_safe_environment_variables,
     set_timezone,
     use_numexpr,
@@ -193,15 +194,18 @@ NP_NAT_OBJECTS = [
     ]
 ]
 
-if not pa_version_under1p01:
+if not pa_version_under6p0:
     import pyarrow as pa
 
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
-    SIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.int16(), pa.int32(), pa.uint64()]
+    SIGNED_INT_PYARROW_DTYPES = [pa.int8(), pa.int16(), pa.int32(), pa.int64()]
     ALL_INT_PYARROW_DTYPES = UNSIGNED_INT_PYARROW_DTYPES + SIGNED_INT_PYARROW_DTYPES
 
+    # pa.float16 doesn't seem supported
+    # https://github.com/apache/arrow/blob/master/python/pyarrow/src/arrow/python/helpers.cc#L86
     FLOAT_PYARROW_DTYPES = [pa.float32(), pa.float64()]
-    STRING_PYARROW_DTYPES = [pa.string(), pa.utf8()]
+    STRING_PYARROW_DTYPES = [pa.string()]
+    BINARY_PYARROW_DTYPES = [pa.binary()]
 
     TIME_PYARROW_DTYPES = [
         pa.time32("s"),
@@ -224,6 +228,8 @@ if not pa_version_under1p01:
     ALL_PYARROW_DTYPES = (
         ALL_INT_PYARROW_DTYPES
         + FLOAT_PYARROW_DTYPES
+        + STRING_PYARROW_DTYPES
+        + BINARY_PYARROW_DTYPES
         + TIME_PYARROW_DTYPES
         + DATE_PYARROW_DTYPES
         + DATETIME_PYARROW_DTYPES
@@ -233,28 +239,6 @@ if not pa_version_under1p01:
 
 
 EMPTY_STRING_PATTERN = re.compile("^$")
-
-# set testing_mode
-_testing_mode_warnings = (DeprecationWarning, ResourceWarning)
-
-
-def set_testing_mode() -> None:
-    # set the testing mode filters
-    testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
-    if "deprecate" in testing_mode:
-        for category in _testing_mode_warnings:
-            warnings.simplefilter("always", category)
-
-
-def reset_testing_mode() -> None:
-    # reset the testing mode filters
-    testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
-    if "deprecate" in testing_mode:
-        for category in _testing_mode_warnings:
-            warnings.simplefilter("ignore", category)
-
-
-set_testing_mode()
 
 
 def reset_display_options() -> None:
@@ -293,7 +277,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
             # pd.array would return an IntegerArray
             expected = PandasArray(np.asarray(expected._values))
         else:
-            expected = pd.array(expected)
+            expected = pd.array(expected, copy=False)
     elif box_cls is Index:
         expected = Index._with_infer(expected)
     elif box_cls is Series:
@@ -338,11 +322,13 @@ def getCols(k) -> str:
 
 
 # make index
-def makeStringIndex(k=10, name=None) -> Index:
+def makeStringIndex(k: int = 10, name=None) -> Index:
     return Index(rands_array(nchars=10, size=k), name=name)
 
 
-def makeCategoricalIndex(k=10, n=3, name=None, **kwargs) -> CategoricalIndex:
+def makeCategoricalIndex(
+    k: int = 10, n: int = 3, name=None, **kwargs
+) -> CategoricalIndex:
     """make a length k index or n categories"""
     x = rands_array(nchars=4, size=n, replace=False)
     return CategoricalIndex(
@@ -350,13 +336,13 @@ def makeCategoricalIndex(k=10, n=3, name=None, **kwargs) -> CategoricalIndex:
     )
 
 
-def makeIntervalIndex(k=10, name=None, **kwargs) -> IntervalIndex:
+def makeIntervalIndex(k: int = 10, name=None, **kwargs) -> IntervalIndex:
     """make a length k IntervalIndex"""
     x = np.linspace(0, 100, num=(k + 1))
     return IntervalIndex.from_breaks(x, name=name, **kwargs)
 
 
-def makeBoolIndex(k=10, name=None) -> Index:
+def makeBoolIndex(k: int = 10, name=None) -> Index:
     if k == 1:
         return Index([True], name=name)
     elif k == 2:
@@ -364,7 +350,7 @@ def makeBoolIndex(k=10, name=None) -> Index:
     return Index([False, True] + [False] * (k - 2), name=name)
 
 
-def makeNumericIndex(k=10, name=None, *, dtype) -> NumericIndex:
+def makeNumericIndex(k: int = 10, name=None, *, dtype) -> NumericIndex:
     dtype = pandas_dtype(dtype)
     assert isinstance(dtype, np.dtype)
 
@@ -382,32 +368,36 @@ def makeNumericIndex(k=10, name=None, *, dtype) -> NumericIndex:
     return NumericIndex(values, dtype=dtype, name=name)
 
 
-def makeIntIndex(k=10, name=None) -> Int64Index:
+def makeIntIndex(k: int = 10, name=None) -> Int64Index:
     base_idx = makeNumericIndex(k, name=name, dtype="int64")
     return Int64Index(base_idx)
 
 
-def makeUIntIndex(k=10, name=None) -> UInt64Index:
+def makeUIntIndex(k: int = 10, name=None) -> UInt64Index:
     base_idx = makeNumericIndex(k, name=name, dtype="uint64")
     return UInt64Index(base_idx)
 
 
-def makeRangeIndex(k=10, name=None, **kwargs) -> RangeIndex:
+def makeRangeIndex(k: int = 10, name=None, **kwargs) -> RangeIndex:
     return RangeIndex(0, k, 1, name=name, **kwargs)
 
 
-def makeFloatIndex(k=10, name=None) -> Float64Index:
+def makeFloatIndex(k: int = 10, name=None) -> Float64Index:
     base_idx = makeNumericIndex(k, name=name, dtype="float64")
     return Float64Index(base_idx)
 
 
-def makeDateIndex(k: int = 10, freq="B", name=None, **kwargs) -> DatetimeIndex:
+def makeDateIndex(
+    k: int = 10, freq: Frequency = "B", name=None, **kwargs
+) -> DatetimeIndex:
     dt = datetime(2000, 1, 1)
     dr = bdate_range(dt, periods=k, freq=freq, name=name)
     return DatetimeIndex(dr, name=name, **kwargs)
 
 
-def makeTimedeltaIndex(k: int = 10, freq="D", name=None, **kwargs) -> TimedeltaIndex:
+def makeTimedeltaIndex(
+    k: int = 10, freq: Frequency = "D", name=None, **kwargs
+) -> TimedeltaIndex:
     return pd.timedelta_range(start="1 day", periods=k, freq=freq, name=name, **kwargs)
 
 
@@ -416,7 +406,7 @@ def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     return pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
 
 
-def makeMultiIndex(k=10, names=None, **kwargs):
+def makeMultiIndex(k: int = 10, names=None, **kwargs):
     N = (k // 2) + 1
     rng = range(N)
     mi = MultiIndex.from_product([("foo", "bar"), rng], names=names, **kwargs)
@@ -484,7 +474,7 @@ def getSeriesData() -> dict[str, Series]:
     return {c: Series(np.random.randn(_N), index=index) for c in getCols(_K)}
 
 
-def makeTimeSeries(nper=None, freq="B", name=None) -> Series:
+def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
     if nper is None:
         nper = _N
     return Series(
@@ -498,7 +488,7 @@ def makePeriodSeries(nper=None, name=None) -> Series:
     return Series(np.random.randn(nper), index=makePeriodIndex(nper), name=name)
 
 
-def getTimeSeriesData(nper=None, freq="B") -> dict[str, Series]:
+def getTimeSeriesData(nper=None, freq: Frequency = "B") -> dict[str, Series]:
     return {c: makeTimeSeries(nper, freq) for c in getCols(_K)}
 
 
@@ -507,7 +497,7 @@ def getPeriodData(nper=None) -> dict[str, Series]:
 
 
 # make frame
-def makeTimeDataFrame(nper=None, freq="B") -> DataFrame:
+def makeTimeDataFrame(nper=None, freq: Frequency = "B") -> DataFrame:
     data = getTimeSeriesData(nper, freq)
     return DataFrame(data)
 
@@ -542,7 +532,7 @@ def makePeriodFrame(nper=None) -> DataFrame:
 def makeCustomIndex(
     nentries,
     nlevels,
-    prefix="#",
+    prefix: str = "#",
     names: bool | str | list[str] | None = False,
     ndupe_l=None,
     idx_type=None,
@@ -658,8 +648,8 @@ def makeCustomDataframe(
     ncols,
     c_idx_names: bool | list[str] = True,
     r_idx_names: bool | list[str] = True,
-    c_idx_nlevels=1,
-    r_idx_nlevels=1,
+    c_idx_nlevels: int = 1,
+    r_idx_nlevels: int = 1,
     data_gen_f=None,
     c_ndupe_l=None,
     r_ndupe_l=None,
@@ -760,7 +750,7 @@ def makeCustomDataframe(
     return DataFrame(data, index, columns, dtype=dtype)
 
 
-def _create_missing_idx(nrows, ncols, density, random_state=None):
+def _create_missing_idx(nrows, ncols, density: float, random_state=None):
     if random_state is None:
         random_state = np.random
     else:
@@ -787,7 +777,7 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
     return i.tolist(), j.tolist()
 
 
-def makeMissingDataframe(density=0.9, random_state=None) -> DataFrame:
+def makeMissingDataframe(density: float = 0.9, random_state=None) -> DataFrame:
     df = makeDataFrame()
     i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
     df.values[i, j] = np.nan
@@ -1078,7 +1068,6 @@ __all__ = [
     "EMPTY_STRING_PATTERN",
     "ENDIAN",
     "ensure_clean",
-    "ensure_clean_dir",
     "ensure_safe_environment_variables",
     "equalContents",
     "external_error_raised",
@@ -1135,14 +1124,12 @@ __all__ = [
     "randbool",
     "rands",
     "reset_display_options",
-    "reset_testing_mode",
     "RNGContext",
     "round_trip_localpath",
     "round_trip_pathlib",
     "round_trip_pickle",
     "setitem",
     "set_locale",
-    "set_testing_mode",
     "set_timezone",
     "shares_memory",
     "SIGNED_INT_EA_DTYPES",

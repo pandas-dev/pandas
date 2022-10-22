@@ -11,7 +11,6 @@ module is imported, register them here rather than in the module.
 """
 from __future__ import annotations
 
-import inspect
 import os
 from typing import Callable
 import warnings
@@ -131,11 +130,11 @@ pc_max_cols_doc = """
     a summary view. 'None' value means unlimited.
 
     In case python/IPython is running in a terminal and `large_repr`
-    equals 'truncate' this can be set to 0 and pandas will auto-detect
+    equals 'truncate' this can be set to 0 or None and pandas will auto-detect
     the width of the terminal and print a truncated object which fits
     the screen width. The IPython notebook, IPython qtconsole, or IDLE
     do not run in a terminal and hence it is not possible to do
-    correct auto-detection.
+    correct auto-detection and defaults to 20.
 """
 
 pc_max_categories_doc = """
@@ -371,7 +370,7 @@ with cf.config_prefix("display"):
             "in a future version. Use df.to_string(col_space=...) "
             "instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     cf.register_option("column_space", 12, validator=is_int, cb=_deprecate_column_space)
@@ -398,7 +397,7 @@ with cf.config_prefix("display"):
                 "will not be supported in future version. Instead, use None "
                 "to not limit the column width.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
     cf.register_option(
@@ -729,6 +728,20 @@ with cf.config_prefix("io.sql"):
         "auto",
         sql_engine_doc,
         validator=is_one_of_factory(["auto", "sqlalchemy"]),
+    )
+
+io_nullable_backend_doc = """
+: string
+    The nullable dtype implementation to return when ``use_nullable_dtypes=True``.
+    Available options: 'pandas', 'pyarrow', the default is 'pandas'.
+"""
+
+with cf.config_prefix("io.nullable_backend"):
+    cf.register_option(
+        "io_nullable_backend",
+        "pandas",
+        io_nullable_backend_doc,
+        validator=is_one_of_factory(["pandas", "pyarrow"]),
     )
 
 # --------

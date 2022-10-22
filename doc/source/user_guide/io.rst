@@ -197,6 +197,14 @@ dtype : Type name or dict of column -> type, default ``None``
      Support for defaultdict was added. Specify a defaultdict as input where
      the default determines the dtype of the columns which are not explicitly
      listed.
+
+use_nullable_dtypes : bool = False
+    Whether or not to use nullable dtypes as default when reading data. If
+    set to True, nullable dtypes are used for all dtypes that have a nullable
+    implementation, even if no nulls are present.
+
+    .. versionadded:: 2.0
+
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
   is currently more feature-complete. Multithreading is currently only supported by
@@ -1910,6 +1918,7 @@ with optional parameters:
 * ``date_unit`` : The time unit to encode to, governs timestamp and ISO8601 precision. One of 's', 'ms', 'us' or 'ns' for seconds, milliseconds, microseconds and nanoseconds respectively. Default 'ms'.
 * ``default_handler`` : The handler to call if an object cannot otherwise be converted to a suitable format for JSON. Takes a single argument, which is the object to convert, and returns a serializable object.
 * ``lines`` : If ``records`` orient, then will write each record per line as json.
+* ``mode`` : string, writer mode when writing to path. 'w' for write, 'a' for append. Default 'w'
 
 Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datetime`` objects will be converted based on the ``date_format`` and ``date_unit`` parameters.
 
@@ -2103,8 +2112,6 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is ``True``
 * ``convert_dates`` : a list of columns to parse for dates; If ``True``, then try to parse date-like columns, default is ``True``.
 * ``keep_default_dates`` : boolean, default ``True``. If parsing dates, then parse the default date-like columns.
-* ``numpy`` : direct decoding to NumPy arrays. default is ``False``;
-  Supports numeric data only, although labels may be non-numeric. Also note that the JSON ordering **MUST** be the same for each term if ``numpy=True``.
 * ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality.
 * ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
   None. By default the timestamp precision will be detected, if this is not desired
@@ -2207,74 +2214,6 @@ Dates written in nanoseconds need to be read back in nanoseconds:
    # Or specify that all timestamps are in nanoseconds
    dfju = pd.read_json(json, date_unit="ns")
    dfju
-
-The Numpy parameter
-+++++++++++++++++++
-
-.. note::
-  This param has been deprecated as of version 1.0.0 and will raise a ``FutureWarning``.
-
-  This supports numeric data only. Index and columns labels may be non-numeric, e.g. strings, dates etc.
-
-If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
-an appropriate dtype during deserialization and to subsequently decode directly
-to NumPy arrays, bypassing the need for intermediate Python objects.
-
-This can provide speedups if you are deserialising a large amount of numeric
-data:
-
-.. ipython:: python
-
-   randfloats = np.random.uniform(-100, 1000, 10000)
-   randfloats.shape = (1000, 10)
-   dffloats = pd.DataFrame(randfloats, columns=list("ABCDEFGHIJ"))
-
-   jsonfloats = dffloats.to_json()
-
-.. ipython:: python
-
-   %timeit pd.read_json(jsonfloats)
-
-.. ipython:: python
-   :okwarning:
-
-   %timeit pd.read_json(jsonfloats, numpy=True)
-
-The speedup is less noticeable for smaller datasets:
-
-.. ipython:: python
-
-   jsonfloats = dffloats.head(100).to_json()
-
-.. ipython:: python
-
-   %timeit pd.read_json(jsonfloats)
-
-.. ipython:: python
-   :okwarning:
-
-   %timeit pd.read_json(jsonfloats, numpy=True)
-
-.. warning::
-
-   Direct NumPy decoding makes a number of assumptions and may fail or produce
-   unexpected output if these assumptions are not satisfied:
-
-    - data is numeric.
-
-    - data is uniform. The dtype is sniffed from the first value decoded.
-      A ``ValueError`` may be raised, or incorrect output may be produced
-      if this condition is not satisfied.
-
-    - labels are ordered. Labels are only read from the first container, it is assumed
-      that each subsequent row / column has been encoded in the same order. This should be satisfied if the
-      data was encoded using ``to_json`` but may not be the case if the JSON
-      is from another source.
-
-.. ipython:: python
-   :suppress:
-
-   os.remove("test.json")
 
 .. _io.json_normalize:
 
@@ -5255,99 +5194,6 @@ You could inadvertently turn an actual ``nan`` value into a missing value.
    # here you need to specify a different nan rep
    store.append("dfss2", dfss, nan_rep="_nan_")
    store.select("dfss2")
-
-.. _io.external_compatibility:
-
-External compatibility
-''''''''''''''''''''''
-
-``HDFStore`` writes ``table`` format objects in specific formats suitable for
-producing loss-less round trips to pandas objects. For external
-compatibility, ``HDFStore`` can read native ``PyTables`` format
-tables.
-
-It is possible to write an ``HDFStore`` object that can easily be imported into ``R`` using the
-``rhdf5`` library (`Package website`_). Create a table format store like this:
-
-.. _package website: https://www.bioconductor.org/packages/release/bioc/html/rhdf5.html
-
-.. ipython:: python
-
-   df_for_r = pd.DataFrame(
-       {
-           "first": np.random.rand(100),
-           "second": np.random.rand(100),
-           "class": np.random.randint(0, 2, (100,)),
-       },
-       index=range(100),
-   )
-   df_for_r.head()
-
-   store_export = pd.HDFStore("export.h5")
-   store_export.append("df_for_r", df_for_r, data_columns=df_dc.columns)
-   store_export
-
-.. ipython:: python
-   :suppress:
-
-   store_export.close()
-   os.remove("export.h5")
-
-In R this file can be read into a ``data.frame`` object using the ``rhdf5``
-library. The following example function reads the corresponding column names
-and data values from the values and assembles them into a ``data.frame``:
-
-.. code-block:: R
-
-   # Load values and column names for all datasets from corresponding nodes and
-   # insert them into one data.frame object.
-
-   library(rhdf5)
-
-   loadhdf5data <- function(h5File) {
-
-   listing <- h5ls(h5File)
-   # Find all data nodes, values are stored in *_values and corresponding column
-   # titles in *_items
-   data_nodes <- grep("_values", listing$name)
-   name_nodes <- grep("_items", listing$name)
-   data_paths = paste(listing$group[data_nodes], listing$name[data_nodes], sep = "/")
-   name_paths = paste(listing$group[name_nodes], listing$name[name_nodes], sep = "/")
-   columns = list()
-   for (idx in seq(data_paths)) {
-     # NOTE: matrices returned by h5read have to be transposed to obtain
-     # required Fortran order!
-     data <- data.frame(t(h5read(h5File, data_paths[idx])))
-     names <- t(h5read(h5File, name_paths[idx]))
-     entry <- data.frame(data)
-     colnames(entry) <- names
-     columns <- append(columns, entry)
-   }
-
-   data <- data.frame(columns)
-
-   return(data)
-   }
-
-Now you can import the ``DataFrame`` into R:
-
-.. code-block:: R
-
-   > data = loadhdf5data("transfer.hdf5")
-   > head(data)
-            first    second class
-   1 0.4170220047 0.3266449     0
-   2 0.7203244934 0.5270581     0
-   3 0.0001143748 0.8859421     1
-   4 0.3023325726 0.3572698     1
-   5 0.1467558908 0.9085352     1
-   6 0.0923385948 0.6233601     1
-
-.. note::
-   The R function lists the entire HDF5 file's contents and assembles the
-   ``data.frame`` object from all matching nodes, so use this only as a
-   starting point if you have stored multiple ``DataFrame`` objects to a
-   single HDF5 file.
 
 
 Performance

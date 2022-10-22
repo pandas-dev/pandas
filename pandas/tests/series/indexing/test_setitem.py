@@ -562,6 +562,14 @@ class TestSetitemWithExpansion:
         expected = Series(expected_values, dtype=target_dtype)
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_enlargement_object_none(self, nulls_fixture):
+        # GH#48665
+        ser = Series(["a", "b"])
+        ser[3] = nulls_fixture
+        expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3])
+        tm.assert_series_equal(ser, expected)
+        assert ser[3] is nulls_fixture
+
 
 def test_setitem_scalar_into_readonly_backing_data():
     # GH#14359: test that you cannot mutate a read only buffer
@@ -570,7 +578,7 @@ def test_setitem_scalar_into_readonly_backing_data():
     array.flags.writeable = False  # make the array immutable
     series = Series(array)
 
-    for n in range(len(series)):
+    for n in series.index:
         msg = "assignment destination is read-only"
         with pytest.raises(ValueError, match=msg):
             series[n] = 1
