@@ -2296,21 +2296,17 @@ class TestMode:
     def test_categorical(self):
         c = Categorical([1, 2])
         exp = c
-        msg = "Categorical.mode is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = c.mode()
+        res = Series(c).mode()._values
         tm.assert_categorical_equal(res, exp)
 
         c = Categorical([1, "a", "a"])
         exp = Categorical(["a"], categories=[1, "a"])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = c.mode()
+        res = Series(c).mode()._values
         tm.assert_categorical_equal(res, exp)
 
         c = Categorical([1, 1, 2, 3, 3])
         exp = Categorical([1, 3], categories=[1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = c.mode()
+        res = Series(c).mode()._values
         tm.assert_categorical_equal(res, exp)
 
     def test_index(self):
