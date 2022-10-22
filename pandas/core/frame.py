@@ -1754,7 +1754,7 @@ class DataFrame(NDFrame, OpsMixin):
                     # error: Incompatible types in assignment (expression has type
                     # "List[Any]", variable has type "Dict[Any, Any]")
                     data = list(data.values())  # type: ignore[assignment]
-        elif orient == "columns" or orient == "tight":
+        elif orient in ("columns", "tight"):
             if columns is not None:
                 raise ValueError(f"cannot use columns parameter with orient='{orient}'")
         else:  # pragma: no cover
@@ -4110,7 +4110,7 @@ class DataFrame(NDFrame, OpsMixin):
         if key in self.columns:
             loc = self.columns.get_loc(key)
             cols = self.columns[loc]
-            len_cols = 1 if is_scalar(cols) else len(cols)
+            len_cols = 1 if is_scalar(cols) or isinstance(cols, tuple) else len(cols)
             if len_cols != len(value.columns):
                 raise ValueError("Columns must be same length as key")
 
@@ -5762,11 +5762,11 @@ class DataFrame(NDFrame, OpsMixin):
         res = self if inplace else self.copy()
         ax = self.columns
 
-        for i in range(len(ax)):
-            if ax[i] in mapping:
+        for i, ax_value in enumerate(ax):
+            if ax_value in mapping:
                 ser = self.iloc[:, i]
 
-                target, value = mapping[ax[i]]
+                target, value = mapping[ax_value]
                 newobj = ser.replace(target, value, regex=regex)
 
                 res._iset_item(i, newobj)
@@ -8384,23 +8384,10 @@ Parrot 2  Parrot       24.0
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = no_default,
-        squeeze: bool | lib.NoDefault = no_default,
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
-
-        if squeeze is not no_default:
-            warnings.warn(
-                (
-                    "The `squeeze` parameter is deprecated and "
-                    "will be removed in a future version."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            squeeze = False
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -8414,7 +8401,6 @@ Parrot 2  Parrot       24.0
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )
@@ -10577,40 +10563,8 @@ Parrot 2  Parrot       24.0
         if numeric_only is lib.no_default and len(this.columns) < len(self.columns):
             com.deprecate_numeric_only_default(type(self), "corrwith")
 
-        # GH46174: when other is a Series object and axis=0, we achieve a speedup over
-        # passing .corr() to .apply() by taking the columns as ndarrays and iterating
-        # over the transposition row-wise. Then we delegate the correlation coefficient
-        # computation and null-masking to np.corrcoef and np.isnan respectively,
-        # which are much faster. We exploit the fact that the Spearman correlation
-        # of two vectors is equal to the Pearson correlation of their ranks to use
-        # substantially the same method for Pearson and Spearman,
-        # just with intermediate argsorts on the latter.
         if isinstance(other, Series):
-            if axis == 0 and method in ["pearson", "spearman"]:
-                corrs = {}
-                if numeric_only:
-                    cols = self.select_dtypes(include=np.number).columns
-                    ndf = self[cols].values.transpose()
-                else:
-                    cols = self.columns
-                    ndf = self.values.transpose()
-                k = other.values
-                if method == "pearson":
-                    for i, r in enumerate(ndf):
-                        nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[cols[i]] = np.corrcoef(r[nonnull_mask], k[nonnull_mask])[
-                            0, 1
-                        ]
-                else:
-                    for i, r in enumerate(ndf):
-                        nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[cols[i]] = np.corrcoef(
-                            r[nonnull_mask].argsort().argsort(),
-                            k[nonnull_mask].argsort().argsort(),
-                        )[0, 1]
-                return Series(corrs)
-            else:
-                return this.apply(lambda x: other.corr(x, method=method), axis=axis)
+            return this.apply(lambda x: other.corr(x, method=method), axis=axis)
 
         if numeric_only_bool:
             other = other._get_numeric_data()
@@ -11924,7 +11878,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -11938,7 +11891,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -11952,7 +11904,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -11969,7 +11920,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         return super().where(
             cond,
@@ -11977,7 +11927,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
     @overload
@@ -11990,7 +11939,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -12004,7 +11952,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -12018,7 +11965,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -12030,12 +11976,11 @@ Parrot 2  Parrot       24.0
     def mask(  # type: ignore[override]
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         return super().mask(
             cond,
@@ -12043,7 +11988,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
 

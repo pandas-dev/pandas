@@ -1,6 +1,6 @@
 .. _whatsnew_151:
 
-What's new in 1.5.1 (October ??, 2022)
+What's new in 1.5.1 (October 19, 2022)
 --------------------------------------
 
 These are the changes in pandas 1.5.1. See :ref:`release` for a full changelog
@@ -86,8 +86,10 @@ Fixed regressions
 - Fixed Regression in :meth:`DataFrameGroupBy.apply` when user defined function is called on an empty dataframe (:issue:`47985`)
 - Fixed regression in :meth:`DataFrame.apply` when passing non-zero ``axis`` via keyword argument (:issue:`48656`)
 - Fixed regression in :meth:`Series.groupby` and :meth:`DataFrame.groupby` when the grouper is a nullable data type (e.g. :class:`Int64`) or a PyArrow-backed string array, contains null values, and ``dropna=False`` (:issue:`48794`)
+- Fixed performance regression in :meth:`Series.isin` with mismatching dtypes (:issue:`49162`)
 - Fixed regression in :meth:`DataFrame.to_parquet` raising when file name was specified as ``bytes`` (:issue:`48944`)
 - Fixed regression in :class:`ExcelWriter` where the ``book`` attribute could no longer be set; however setting this attribute is now deprecated and this ability will be removed in a future version of pandas (:issue:`48780`)
+- Fixed regression in :meth:`DataFrame.corrwith` when computing correlation on tied data with ``method="spearman"`` (:issue:`48826`)
 
 .. ---------------------------------------------------------------------------
 
@@ -109,8 +111,6 @@ Bug fixes
 Other
 ~~~~~
 - Avoid showing deprecated signatures when introspecting functions with warnings about arguments becoming keyword-only (:issue:`48692`)
--
--
 
 .. ---------------------------------------------------------------------------
 
@@ -118,3 +118,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v1.5.0..v1.5.1

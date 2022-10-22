@@ -214,6 +214,7 @@ def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
         "1/1/1/1",
         "this_is_not_a_datetime",
         "51a",
+        "13/2019",
     ],
 )
 def test_guess_datetime_format_invalid_inputs(invalid_dt):

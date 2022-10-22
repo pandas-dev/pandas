@@ -238,9 +238,6 @@ Properties
    Timedelta.asm8
    Timedelta.components
    Timedelta.days
-   Timedelta.delta
-   Timedelta.freq
-   Timedelta.is_populated
    Timedelta.max
    Timedelta.microseconds
    Timedelta.min
@@ -630,7 +627,6 @@ Data type introspection
     api.types.is_datetime64_dtype
     api.types.is_datetime64_ns_dtype
     api.types.is_datetime64tz_dtype
-    api.types.is_extension_type
     api.types.is_extension_array_dtype
     api.types.is_float_dtype
     api.types.is_int64_dtype

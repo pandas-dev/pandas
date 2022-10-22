@@ -5,7 +5,6 @@ from datetime import (
     timedelta,
 )
 from typing import Hashable
-import warnings
 
 import numpy as np
 
@@ -29,13 +28,8 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_datetime64_any_dtype,
-    is_integer,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
@@ -349,32 +343,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         return super().asof_locs(where, mask)
 
-    @doc(Index.astype)
-    def astype(self, dtype, copy: bool = True, how=lib.no_default):
-        dtype = pandas_dtype(dtype)
-
-        if how is not lib.no_default:
-            # GH#37982
-            warnings.warn(
-                "The 'how' keyword in PeriodIndex.astype is deprecated and "
-                "will be removed in a future version. "
-                "Use index.to_timestamp(how=how) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            how = "start"
-
-        if is_datetime64_any_dtype(dtype):
-            # 'how' is index-specific, isn't part of the EA interface.
-            # GH#45038 implement this for PeriodArray (but without "how")
-            #  once the "how" deprecation is enforced we can just dispatch
-            #  directly to PeriodArray.
-            tz = getattr(dtype, "tz", None)
-            return self.to_timestamp(how=how).tz_localize(tz)
-
-        return super().astype(dtype, copy=copy)
-
     @property
     def is_full(self) -> bool:
         """
@@ -386,7 +354,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         if not self.is_monotonic_increasing:
             raise ValueError("Index is not monotonic")
         values = self.asi8
-        return ((values[1:] - values[:-1]) < 2).all()
+        return bool(((values[1:] - values[:-1]) < 2).all())
 
     @property
     def inferred_type(self) -> str:

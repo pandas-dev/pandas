@@ -50,7 +50,6 @@ from pandas._typing import (
     Axes,
     Axis,
     DropKeep,
-    Dtype,
     DtypeObj,
     F,
     IgnoreRaise,
@@ -681,23 +680,6 @@ class Index(IndexOpsMixin, PandasObject):
     See each method's docstring.
     """
 
-    @property
-    def asi8(self):
-        """
-        Integer representation of the values.
-
-        Returns
-        -------
-        ndarray
-            An ndarray with int64 dtype.
-        """
-        warnings.warn(
-            "Index.asi8 is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return None
-
     @classmethod
     def _simple_new(cls: type[_IndexT], values, name: Hashable = None) -> _IndexT:
         """
@@ -1292,29 +1274,17 @@ class Index(IndexOpsMixin, PandasObject):
         self: _IndexT,
         name: Hashable | None = None,
         deep: bool = False,
-        dtype: Dtype | None = None,
-        names: Sequence[Hashable] | None = None,
     ) -> _IndexT:
         """
         Make a copy of this object.
 
-        Name and dtype sets those attributes on the new object.
+        Name is set on the new object.
 
         Parameters
         ----------
         name : Label, optional
             Set name for new object.
         deep : bool, default False
-        dtype : numpy dtype or pandas type, optional
-            Set dtype for new object.
-
-            .. deprecated:: 1.2.0
-                use ``astype`` method instead.
-        names : list-like, optional
-            Kept for compatibility with MultiIndex. Should not be used.
-
-            .. deprecated:: 1.4.0
-                use ``name`` instead.
 
         Returns
         -------
@@ -1326,29 +1296,13 @@ class Index(IndexOpsMixin, PandasObject):
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         """
-        if names is not None:
-            warnings.warn(
-                "parameter names is deprecated and will be removed in a future "
-                "version. Use the name parameter instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
-        name = self._validate_names(name=name, names=names, deep=deep)[0]
+        name = self._validate_names(name=name, deep=deep)[0]
         if deep:
             new_data = self._data.copy()
             new_index = type(self)._simple_new(new_data, name=name)
         else:
             new_index = self._rename(name=name)
-
-        if dtype:
-            warnings.warn(
-                "parameter dtype is deprecated and will be removed in a future "
-                "version. Use the astype method instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            new_index = new_index.astype(dtype)
         return new_index
 
     @final
@@ -2480,7 +2434,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2516,7 +2469,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2556,7 +2508,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2596,7 +2547,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2640,7 +2590,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_numeric : Check if the Index only consists of numeric data.
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2682,7 +2631,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
         is_interval : Check if the Index holds Interval objects.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2726,7 +2674,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2740,44 +2687,6 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
         return self.inferred_type in ["interval"]
-
-    @final
-    def is_mixed(self) -> bool:
-        """
-        Check if the Index holds data with mixed data types.
-
-        Returns
-        -------
-        bool
-            Whether or not the Index holds data with mixed data types.
-
-        See Also
-        --------
-        is_boolean : Check if the Index only consists of booleans.
-        is_integer : Check if the Index only consists of integers.
-        is_floating : Check if the Index is a floating type.
-        is_numeric : Check if the Index only consists of numeric data.
-        is_object : Check if the Index is of the object dtype.
-        is_categorical : Check if the Index holds categorical data.
-        is_interval : Check if the Index holds Interval objects.
-
-        Examples
-        --------
-        >>> idx = pd.Index(['a', np.nan, 'b'])
-        >>> idx.is_mixed()
-        True
-
-        >>> idx = pd.Index([1.0, 2.0, 3.0, 5.0])
-        >>> idx.is_mixed()
-        False
-        """
-        warnings.warn(
-            "Index.is_mixed is deprecated and will be removed in a future version. "
-            "Check index.inferred_type directly instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.inferred_type in ["mixed"]
 
     @final
     def holds_integer(self) -> bool:
@@ -4095,7 +4004,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "method='nearest' not implemented yet "
                     "for MultiIndex; see GitHub issue 9365"
                 )
-            elif method == "pad" or method == "backfill":
+            elif method in ("pad", "backfill"):
                 if tolerance is not None:
                     raise NotImplementedError(
                         "tolerance not implemented yet for MultiIndex"
@@ -5341,18 +5250,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.is_object()
 
-    def is_type_compatible(self, kind: str_t) -> bool:
-        """
-        Whether the index type is compatible with the provided type.
-        """
-        warnings.warn(
-            "Index.is_type_compatible is deprecated and will be removed in a "
-            "future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return kind == self.inferred_type
-
     def __contains__(self, key: Any) -> bool:
         """
         Return a boolean indicating whether the provided key is in the index.
@@ -5980,45 +5877,6 @@ class Index(IndexOpsMixin, PandasObject):
         # This works for either ndarray or EA, is overridden
         #  by RangeIndex, MultIIndex
         return self._data.argsort(*args, **kwargs)
-
-    @final
-    def get_value(self, series: Series, key):
-        """
-        Fast lookup of value from 1-dimensional ndarray.
-
-        Only use this if you know what you're doing.
-
-        Returns
-        -------
-        scalar or Series
-        """
-        warnings.warn(
-            "get_value is deprecated and will be removed in a future version. "
-            "Use Series[key] instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        self._check_indexing_error(key)
-
-        try:
-            # GH 20882, 21257
-            # First try to convert the key to a location
-            # If that fails, raise a KeyError if an integer
-            # index, otherwise, see if key is an integer, and
-            # try that
-            loc = self.get_loc(key)
-        except KeyError:
-            if not self._should_fallback_to_positional:
-                raise
-            elif is_integer(key):
-                # If the Index cannot hold integer, then this is unambiguously
-                #  a locational lookup.
-                loc = key
-            else:
-                raise
-
-        return self._get_values_for_loc(series, loc, key)
 
     def _check_indexing_error(self, key):
         if not is_scalar(key):

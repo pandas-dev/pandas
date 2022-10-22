@@ -825,7 +825,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             setattr(obj, obj._get_axis_name(axis), labels)
             return obj
 
+    @final
     def _set_axis(self, axis: AxisInt, labels: AnyArrayLike | list) -> None:
+        """
+        This is called from the cython code when we set the `index` attribute
+        directly, e.g. `series.index = [1, 2, 3]`.
+        """
         labels = ensure_index(labels)
         self._mgr.set_axis(axis, labels)
         self._clear_item_cache()
@@ -2407,6 +2412,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: bool_t = True,
         indent: int | None = None,
         storage_options: StorageOptions = None,
+        mode: Literal["a", "w"] = "w",
     ) -> str | None:
         """
         Convert the object to a JSON string.
@@ -2484,6 +2490,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {storage_options}
 
             .. versionadded:: 1.2.0
+
+        mode : str, default 'w' (writing)
+            Specify the IO mode for output when supplying a path_or_buf.
+            Accepted args are 'w' (writing) and 'a' (append) only.
+            mode='a' is only supported when lines is True and orient is 'records'.
 
         Returns
         -------
@@ -2668,6 +2679,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             index=index,
             indent=indent,
             storage_options=storage_options,
+            mode=mode,
         )
 
     @final
@@ -3782,9 +3794,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def take(
-        self: NDFrameT, indices, axis: Axis = 0, is_copy: bool_t | None = None, **kwargs
-    ) -> NDFrameT:
+    def take(self: NDFrameT, indices, axis: Axis = 0, **kwargs) -> NDFrameT:
         """
         Return the elements in the given *positional* indices along an axis.
 
@@ -3800,13 +3810,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
             For `Series` this parameter is unused and defaults to 0.
-        is_copy : bool
-            Before pandas 1.0, ``is_copy=False`` can be specified to ensure
-            that the return value is an actual copy. Starting with pandas 1.0,
-            ``take`` always returns a copy, and the keyword is therefore
-            deprecated.
-
-            .. deprecated:: 1.0.0
         **kwargs
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
@@ -3865,13 +3868,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1  monkey  mammal        NaN
         3    lion  mammal       80.5
         """
-        if is_copy is not None:
-            warnings.warn(
-                "is_copy is deprecated and will be removed in a future version. "
-                "'take' always returns a copy, so there is no need to specify this.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
         nv.validate_take((), kwargs)
 
@@ -9801,7 +9797,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool_t | lib.NoDefault = ...,
     ) -> NDFrameT:
         ...
 
@@ -9815,7 +9810,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool_t | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -9829,7 +9823,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool_t | lib.NoDefault = ...,
     ) -> NDFrameT | None:
         ...
 
@@ -9852,7 +9845,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast: bool_t | lib.NoDefault = lib.no_default,
     ) -> NDFrameT | None:
         """
         Replace values where the condition is {cond_rev}.
@@ -9871,6 +9863,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If other is callable, it is computed on the {klass} and
             should return scalar or {klass}. The callable must not
             change input {klass} (though pandas doesn't check it).
+            If not specified, entries will be filled with the corresponding
+            NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension
+            dtypes).
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         axis : int, default None
@@ -9887,12 +9882,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. deprecated:: 1.5.0
                This argument had no effect.
-
-        try_cast : bool, default None
-            Try to cast the result back to the input type (if possible).
-
-            .. deprecated:: 1.3.0
-                Manually cast back if necessary.
 
         Returns
         -------
@@ -10004,15 +9993,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4  True  True
         """
         other = com.apply_if_callable(other, self)
-
-        if try_cast is not lib.no_default:
-            warnings.warn(
-                "try_cast keyword is deprecated and will be removed in a "
-                "future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
         return self._where(cond, other, inplace, axis, level)
 
     @overload
@@ -10025,7 +10005,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool_t | lib.NoDefault = ...,
     ) -> NDFrameT:
         ...
 
@@ -10039,7 +10018,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool_t | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -10053,7 +10031,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool_t | lib.NoDefault = ...,
     ) -> NDFrameT | None:
         ...
 
@@ -10072,24 +10049,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def mask(
         self: NDFrameT,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace: bool_t = False,
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast: bool_t | lib.NoDefault = lib.no_default,
     ) -> NDFrameT | None:
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         cond = com.apply_if_callable(cond, self)
-
-        if try_cast is not lib.no_default:
-            warnings.warn(
-                "try_cast keyword is deprecated and will be removed in a "
-                "future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
         # see gh-21891
         if not hasattr(cond, "__invert__"):
@@ -12087,23 +12055,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def expanding(
         self,
         min_periods: int = 1,
-        center: bool_t | None = None,
         axis: Axis = 0,
         method: str = "single",
     ) -> Expanding:
         axis = self._get_axis_number(axis)
-        if center is not None:
-            warnings.warn(
-                "The `center` argument on `expanding` will be removed in the future.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            center = False
-
-        return Expanding(
-            self, min_periods=min_periods, center=center, axis=axis, method=method
-        )
+        return Expanding(self, min_periods=min_periods, axis=axis, method=method)
 
     @final
     @doc(ExponentialMovingWindow)
@@ -12117,7 +12073,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         adjust: bool_t = True,
         ignore_na: bool_t = False,
         axis: Axis = 0,
-        times: str | np.ndarray | DataFrame | Series | None = None,
+        times: np.ndarray | DataFrame | Series | None = None,
         method: str = "single",
     ) -> ExponentialMovingWindow:
         axis = self._get_axis_number(axis)

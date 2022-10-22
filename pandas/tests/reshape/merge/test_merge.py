@@ -621,7 +621,7 @@ class TestMerge:
         }
         df = DataFrame.from_dict(d)
         var3 = df.var3.unique()
-        var3.sort()
+        var3 = np.sort(var3)
         new = DataFrame.from_dict({"var3": var3, "var8": np.random.random(7)})
 
         result = df.merge(new, on="var3", sort=False)
@@ -731,18 +731,28 @@ class TestMerge:
 
         dtype = f"datetime64[{unit}]"
         df2 = ser.astype(dtype).to_frame("days")
-        # coerces to datetime64[ns], thus should not be affected
-        assert df2["days"].dtype == "datetime64[ns]"
+
+        if unit in ["D", "h", "m"]:
+            # not supported so we cast to the nearest supported unit, seconds
+            # TODO(2.0): cast to nearest (second) instead of ns
+            # coerces to datetime64[ns], thus should not be affected
+            exp_dtype = "datetime64[s]"
+        else:
+            exp_dtype = dtype
+        assert df2["days"].dtype == exp_dtype
 
         result = df1.merge(df2, left_on="entity_id", right_index=True)
 
+        days = np.array(["nat", "nat"], dtype=exp_dtype)
+        days = pd.core.arrays.DatetimeArray._simple_new(days, dtype=days.dtype)
         exp = DataFrame(
             {
                 "entity_id": [101, 102],
-                "days": np.array(["nat", "nat"], dtype="datetime64[ns]"),
+                "days": days,
             },
             columns=["entity_id", "days"],
         )
+        assert exp["days"].dtype == exp_dtype
         tm.assert_frame_equal(result, exp)
 
     @pytest.mark.parametrize("unit", ["D", "h", "m", "s", "ms", "us", "ns"])

@@ -1053,38 +1053,6 @@ cdef class _Timedelta(timedelta):
         # TODO: add nanos/1e9?
         return self.days * 24 * 3600 + self.seconds + self.microseconds / 1_000_000
 
-    @property
-    def freq(self) -> None:
-        """
-        Freq property.
-
-        .. deprecated:: 1.5.0
-            This argument is deprecated.
-        """
-        # GH#46430
-        warnings.warn(
-            "Timedelta.freq is deprecated and will be removed in a future version",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return None
-
-    @property
-    def is_populated(self) -> bool:
-        """
-        Is_populated property.
-
-        .. deprecated:: 1.5.0
-            This argument is deprecated.
-        """
-        # GH#46430
-        warnings.warn(
-            "Timedelta.is_populated is deprecated and will be removed in a future version",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._is_populated
-
     def __hash__(_Timedelta self):
         if self._has_ns():
             # Note: this does *not* satisfy the invariance
@@ -1240,6 +1208,11 @@ cdef class _Timedelta(timedelta):
     def view(self, dtype):
         """
         Array view compatibility.
+
+        Parameters
+        ----------
+        dtype : str or dtype
+            The dtype to view the underlying data as.
         """
         return np.timedelta64(self.value).view(dtype)
 
@@ -1252,45 +1225,6 @@ cdef class _Timedelta(timedelta):
         # return the named tuple
         return Components(self._d, self._h, self._m, self._s,
                           self._ms, self._us, self._ns)
-
-    @property
-    def delta(self):
-        """
-        Return the timedelta in nanoseconds (ns), for internal compatibility.
-
-        .. deprecated:: 1.5.0
-            This argument is deprecated.
-
-        Returns
-        -------
-        int
-            Timedelta in nanoseconds.
-
-        Examples
-        --------
-        >>> td = pd.Timedelta('1 days 42 ns')
-        >>> td.delta
-        86400000000042
-
-        >>> td = pd.Timedelta('3 s')
-        >>> td.delta
-        3000000000
-
-        >>> td = pd.Timedelta('3 ms 5 us')
-        >>> td.delta
-        3005000
-
-        >>> td = pd.Timedelta(42, unit='ns')
-        >>> td.delta
-        42
-        """
-        # Deprecated GH#46476
-        warnings.warn(
-            "Timedelta.delta is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.value
 
     @property
     def asm8(self) -> np.timedelta64:

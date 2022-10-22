@@ -424,9 +424,8 @@ class TestAstype:
             # GH#48928
             exp_dtype = dtype
         else:
-            # TODO(2.0): use the nearest supported dtype (i.e. M8[s]) instead
-            #  of nanos
-            exp_dtype = "M8[ns]"
+            # we use the nearest supported dtype (i.e. M8[s])
+            exp_dtype = "M8[s]"
         # TODO(2.0): once DataFrame constructor doesn't cast ndarray inputs.
         #  can simplify this
         exp_values = arr.astype(exp_dtype)
@@ -612,27 +611,10 @@ class TestAstype:
         result = timezone_frame.astype(object)
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "Cannot use .astype to convert from timezone-aware dtype to timezone-"
+        with pytest.raises(TypeError, match=msg):
             # dt64tz->dt64 deprecated
-            result = timezone_frame.astype("datetime64[ns]")
-        expected = DataFrame(
-            {
-                "A": date_range("20130101", periods=3),
-                "B": (
-                    date_range("20130101", periods=3, tz="US/Eastern")
-                    .tz_convert("UTC")
-                    .tz_localize(None)
-                ),
-                "C": (
-                    date_range("20130101", periods=3, tz="CET")
-                    .tz_convert("UTC")
-                    .tz_localize(None)
-                ),
-            }
-        )
-        expected.iloc[1, 1] = NaT
-        expected.iloc[1, 2] = NaT
-        tm.assert_frame_equal(result, expected)
+            timezone_frame.astype("datetime64[ns]")
 
     def test_astype_dt64tz_to_str(self, timezone_frame):
         # str formatting

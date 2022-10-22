@@ -181,7 +181,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return ser
 
     def _get_data_to_aggregate(self) -> SingleManager:
-        ser = self._obj_with_exclusions
+        ser = self._selected_obj
         single = ser._mgr
         return single
 
@@ -856,12 +856,9 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         indices: TakeIndexer,
         axis: Axis = 0,
-        is_copy: bool | None = None,
         **kwargs,
     ) -> Series:
-        result = self._op_via_apply(
-            "take", indices=indices, axis=axis, is_copy=is_copy, **kwargs
-        )
+        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
     @doc(Series.skew.__doc__)
@@ -906,7 +903,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         f = partial(Series.nlargest, n=n, keep=keep)
-        data = self._obj_with_exclusions
+        data = self._selected_obj
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
         result = self._python_apply_general(f, data, not_indexed_same=True)
@@ -917,7 +914,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         f = partial(Series.nsmallest, n=n, keep=keep)
-        data = self._obj_with_exclusions
+        data = self._selected_obj
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
         result = self._python_apply_general(f, data, not_indexed_same=True)
@@ -1317,33 +1314,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         all_indexed_same = all_indexes_same(x.index for x in values)
 
-        # GH3596
-        # provide a reduction (Frame -> Series) if groups are
-        # unique
-        if self.squeeze:
-            applied_index = self._selected_obj._get_axis(self.axis)
-            singular_series = len(values) == 1 and applied_index.nlevels == 1
-
-            if singular_series:
-                # GH2893
-                # we have series in the values array, we want to
-                # produce a series:
-                # if any of the sub-series are not indexed the same
-                # OR we don't have a multi-index and we have only a
-                # single values
-                return self._concat_objects(
-                    values,
-                    not_indexed_same=not_indexed_same,
-                    override_group_keys=override_group_keys,
-                )
-
-            # still a series
-            # path added as of GH 5545
-            elif all_indexed_same:
-                from pandas.core.reshape.concat import concat
-
-                return concat(values)
-
         if not all_indexed_same:
             # GH 8467
             return self._concat_objects(
@@ -1673,7 +1643,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 as_index=self.as_index,
                 sort=self.sort,
                 group_keys=self.group_keys,
-                squeeze=self.squeeze,
                 observed=self.observed,
                 mutated=self.mutated,
                 dropna=self.dropna,
@@ -1688,7 +1657,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 selection=key,
                 sort=self.sort,
                 group_keys=self.group_keys,
-                squeeze=self.squeeze,
                 observed=self.observed,
                 dropna=self.dropna,
             )
@@ -2283,12 +2251,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         indices: TakeIndexer,
         axis: Axis | None = 0,
-        is_copy: bool | None = None,
         **kwargs,
     ) -> DataFrame:
-        result = self._op_via_apply(
-            "take", indices=indices, axis=axis, is_copy=is_copy, **kwargs
-        )
+        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
     @doc(DataFrame.skew.__doc__)
