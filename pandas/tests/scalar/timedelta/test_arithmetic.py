@@ -1061,7 +1061,7 @@ class TestTimedeltaComparison:
         assert t != CustomClass(cmp_result=False)
 
         assert t < CustomClass(cmp_result=True)
-        assert t >= CustomClass(cmp_result=False)
+        assert not t < CustomClass(cmp_result=False)
 
         assert t == CustomClass(cmp_result=True)
 
