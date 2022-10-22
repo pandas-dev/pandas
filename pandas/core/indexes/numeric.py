@@ -4,7 +4,6 @@ from typing import (
     Callable,
     Hashable,
 )
-import warnings
 
 import numpy as np
 
@@ -20,7 +19,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_dtype_equal,
@@ -358,16 +356,6 @@ class IntegerIndex(NumericIndex):
     """
 
     _is_backward_compat_public_numeric_index: bool = False
-
-    @property
-    def asi8(self) -> npt.NDArray[np.int64]:
-        # do not cache or you'll create a memory leak
-        warnings.warn(
-            "Index.asi8 is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._values.view(self._default_dtype)
 
 
 class Int64Index(IntegerIndex):

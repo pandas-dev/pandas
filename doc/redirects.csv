@@ -401,10 +401,8 @@ generated/pandas.DataFrame.isna,../reference/api/pandas.DataFrame.isna
 generated/pandas.DataFrame.isnull,../reference/api/pandas.DataFrame.isnull
 generated/pandas.DataFrame.items,../reference/api/pandas.DataFrame.items
 generated/pandas.DataFrame.__iter__,../reference/api/pandas.DataFrame.__iter__
-generated/pandas.DataFrame.iteritems,../reference/api/pandas.DataFrame.iteritems
 generated/pandas.DataFrame.iterrows,../reference/api/pandas.DataFrame.iterrows
 generated/pandas.DataFrame.itertuples,../reference/api/pandas.DataFrame.itertuples
-generated/pandas.DataFrame.ix,../reference/api/pandas.DataFrame.ix
 generated/pandas.DataFrame.join,../reference/api/pandas.DataFrame.join
 generated/pandas.DataFrame.keys,../reference/api/pandas.DataFrame.keys
 generated/pandas.DataFrame.kurt,../reference/api/pandas.DataFrame.kurt
@@ -575,7 +573,6 @@ generated/pandas.DatetimeIndex.strftime,../reference/api/pandas.DatetimeIndex.st
 generated/pandas.DatetimeIndex.time,../reference/api/pandas.DatetimeIndex.time
 generated/pandas.DatetimeIndex.timetz,../reference/api/pandas.DatetimeIndex.timetz
 generated/pandas.DatetimeIndex.to_frame,../reference/api/pandas.DatetimeIndex.to_frame
-generated/pandas.DatetimeIndex.to_perioddelta,../reference/api/pandas.DatetimeIndex.to_perioddelta
 generated/pandas.DatetimeIndex.to_period,../reference/api/pandas.DatetimeIndex.to_period
 generated/pandas.DatetimeIndex.to_pydatetime,../reference/api/pandas.DatetimeIndex.to_pydatetime
 generated/pandas.DatetimeIndex.to_series,../reference/api/pandas.DatetimeIndex.to_series
@@ -708,7 +705,6 @@ generated/pandas.Index.rename,../reference/api/pandas.Index.rename
 generated/pandas.Index.repeat,../reference/api/pandas.Index.repeat
 generated/pandas.Index.searchsorted,../reference/api/pandas.Index.searchsorted
 generated/pandas.Index.set_names,../reference/api/pandas.Index.set_names
-generated/pandas.Index.set_value,../reference/api/pandas.Index.set_value
 generated/pandas.Index.shape,../reference/api/pandas.Index.shape
 generated/pandas.Index.shift,../reference/api/pandas.Index.shift
 generated/pandas.Index.size,../reference/api/pandas.Index.size
@@ -727,7 +723,6 @@ generated/pandas.Index.to_flat_index,../reference/api/pandas.Index.to_flat_index
 generated/pandas.Index.to_frame,../reference/api/pandas.Index.to_frame
 generated/pandas.Index.to_list,../reference/api/pandas.Index.to_list
 generated/pandas.Index.tolist,../reference/api/pandas.Index.tolist
-generated/pandas.Index.to_native_types,../reference/api/pandas.Index.to_native_types
 generated/pandas.Index.to_numpy,../reference/api/pandas.Index.to_numpy
 generated/pandas.Index.to_series,../reference/api/pandas.Index.to_series
 generated/pandas.Index.transpose,../reference/api/pandas.Index.transpose
@@ -1087,8 +1082,6 @@ generated/pandas.Series.is_unique,../reference/api/pandas.Series.is_unique
 generated/pandas.Series.item,../reference/api/pandas.Series.item
 generated/pandas.Series.items,../reference/api/pandas.Series.items
 generated/pandas.Series.__iter__,../reference/api/pandas.Series.__iter__
-generated/pandas.Series.iteritems,../reference/api/pandas.Series.iteritems
-generated/pandas.Series.ix,../reference/api/pandas.Series.ix
 generated/pandas.Series.keys,../reference/api/pandas.Series.keys
 generated/pandas.Series.kurt,../reference/api/pandas.Series.kurt
 generated/pandas.Series.kurtosis,../reference/api/pandas.Series.kurtosis
