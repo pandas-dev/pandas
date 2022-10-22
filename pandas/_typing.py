@@ -280,7 +280,7 @@ ColspaceArgType = Union[
 ]
 
 # Arguments for fillna()
-FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
+FillnaOptions = Literal["backfill", "bfill", "ffill"]
 
 # internals
 Manager = Union[

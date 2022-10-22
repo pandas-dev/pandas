@@ -250,7 +250,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     _internal_names_set: set[str] = set(_internal_names)
     _accessors: set[str] = set()
     _hidden_attrs: frozenset[str] = frozenset(
-        ["_AXIS_NAMES", "_AXIS_NUMBERS", "get_values", "tshift"]
+        ["_AXIS_NAMES", "_AXIS_NUMBERS", "get_values"]
     )
     _metadata: list[str] = []
     _is_copy: weakref.ReferenceType[NDFrame] | None = None
@@ -10122,8 +10122,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Index.shift : Shift values of Index.
         DatetimeIndex.shift : Shift values of DatetimeIndex.
         PeriodIndex.shift : Shift values of PeriodIndex.
-        tshift : Shift the time index, using the index's frequency if
-            available.
 
         Examples
         --------
@@ -10271,49 +10269,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         shifted_axis = self._get_axis(axis)[islicer]
         new_obj = new_obj.set_axis(shifted_axis, axis=axis, copy=False)
         return new_obj.__finalize__(self, method="slice_shift")
-
-    @final
-    def tshift(self: NDFrameT, periods: int = 1, freq=None, axis: Axis = 0) -> NDFrameT:
-        """
-        Shift the time index, using the index's frequency if available.
-
-        .. deprecated:: 1.1.0
-            Use `shift` instead.
-
-        Parameters
-        ----------
-        periods : int
-            Number of periods to move, can be positive or negative.
-        freq : DateOffset, timedelta, or str, default None
-            Increment to use from the tseries module
-            or time rule expressed as a string (e.g. 'EOM').
-        axis : {0 or ‘index’, 1 or ‘columns’, None}, default 0
-            Corresponds to the axis that contains the Index.
-            For `Series` this parameter is unused and defaults to 0.
-
-        Returns
-        -------
-        shifted : Series/DataFrame
-
-        Notes
-        -----
-        If freq is not specified then tries to use the freq or inferred_freq
-        attributes of the index. If neither of those attributes exist, a
-        ValueError is thrown
-        """
-        warnings.warn(
-            (
-                "tshift is deprecated and will be removed in a future version. "
-                "Please use shift instead."
-            ),
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        if freq is None:
-            freq = "infer"
-
-        return self.shift(periods, freq, axis)
 
     def truncate(
         self: NDFrameT,
@@ -11544,70 +11499,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     product = prod
 
-    def mad(
-        self,
-        axis: Axis | None = None,
-        skipna: bool_t = True,
-        level: Level | None = None,
-    ) -> Series | float:
-        """
-        {desc}
-
-        .. deprecated:: 1.5.0
-            mad is deprecated.
-
-        Parameters
-        ----------
-        axis : {axis_descr}
-            Axis for the function to be applied on.
-            For `Series` this parameter is unused and defaults to 0.
-        skipna : bool, default True
-            Exclude NA/null values when computing the result.
-        level : int or level name, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a {name1}.
-
-        Returns
-        -------
-        {name1} or {name2} (if level specified)\
-        {see_also}\
-        {examples}
-        """
-        msg = (
-            "The 'mad' method is deprecated and will be removed in a future version. "
-            "To compute the same result, you may do `(df - df.mean()).abs().mean()`."
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-
-        if not is_bool(skipna):
-            warnings.warn(
-                "Passing None for skipna is deprecated and will raise in a future"
-                "version. Pass True instead. Only boolean values will be allowed "
-                "in the future.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            skipna = True
-        if axis is None:
-            axis = self._stat_axis_number
-        if level is not None:
-            warnings.warn(
-                "Using the level keyword in DataFrame and Series aggregations is "
-                "deprecated and will be removed in a future version. Use groupby "
-                "instead. df.mad(level=1) should use df.groupby(level=1).mad()",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return self._agg_by_level("mad", axis=axis, level=level, skipna=skipna)
-
-        data = self._get_numeric_data()
-        if axis == 0:
-            # error: Unsupported operand types for - ("NDFrame" and "float")
-            demeaned = data - data.mean(axis=0)  # type: ignore[operator]
-        else:
-            demeaned = data.sub(data.mean(axis=1), axis=0)
-        return np.abs(demeaned).mean(axis=axis, skipna=skipna)
-
     @classmethod
     def _add_numeric_operations(cls) -> None:
         """
@@ -11663,21 +11554,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return NDFrame.all(self, axis, bool_only, skipna, level, **kwargs)
 
         setattr(cls, "all", all)
-
-        @doc(
-            NDFrame.mad.__doc__,
-            desc="Return the mean absolute deviation of the values "
-            "over the requested axis.",
-            name1=name1,
-            name2=name2,
-            axis_descr=axis_descr,
-            see_also="",
-            examples="",
-        )
-        def mad(self, axis: Axis | None = None, skipna: bool_t = True, level=None):
-            return NDFrame.mad(self, axis, skipna, level)
-
-        setattr(cls, "mad", mad)
 
         @doc(
             _num_ddof_doc,
