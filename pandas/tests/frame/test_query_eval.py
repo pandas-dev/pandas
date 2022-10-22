@@ -1276,7 +1276,7 @@ class TestDataFrameQueryBacktickQuoting:
         class A:
             a = 1
 
-        df1 = pd.DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+        df1 = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
         df_test = DataFrame({'x': [1], 'y': [4]})
         tm.assert_frame_equal(df_test, df1.query(f'x=={A.a}'))
         tm.assert_frame_equal(df_test, df1.query('x==@A.a'))
