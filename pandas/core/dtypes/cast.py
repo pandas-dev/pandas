@@ -1333,7 +1333,9 @@ def maybe_cast_to_datetime(
         # TODO: _from_sequence would raise ValueError in cases where
         #  _ensure_nanosecond_dtype raises TypeError
         dtype = cast(np.dtype, dtype)
-        dtype = _ensure_nanosecond_dtype(dtype)
+        # Incompatible types in assignment (expression has type "Union[dtype[Any],
+        # ExtensionDtype]", variable has type "Optional[dtype[Any]]")
+        dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
 
@@ -1343,7 +1345,10 @@ def maybe_cast_to_datetime(
         vdtype = getattr(value, "dtype", None)
 
         if is_datetime64:
-            dtype = _ensure_nanosecond_dtype(dtype)
+            # Incompatible types in assignment (expression has type
+            # "Union[dtype[Any], ExtensionDtype]", variable has type
+            # "Optional[dtype[Any]]")
+            dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
 
             value = np.array(value, copy=False)
 
