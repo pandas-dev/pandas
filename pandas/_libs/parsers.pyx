@@ -961,7 +961,7 @@ cdef class TextReader:
                     "Defining usecols with out of bounds indices is deprecated "
                     "and will raise a ParserError in a future version.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
         results = {}
@@ -1012,7 +1012,7 @@ cdef class TextReader:
                     warnings.warn((f"Both a converter and dtype were specified "
                                    f"for column {name} - only the converter will "
                                    f"be used."), ParserWarning,
-                                  stacklevel=find_stack_level(inspect.currentframe()))
+                                  stacklevel=find_stack_level())
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 

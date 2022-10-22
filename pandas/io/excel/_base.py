@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import datetime
 from functools import partial
-import inspect
 from io import BytesIO
 import os
 from textwrap import fill
@@ -727,7 +726,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             warnings.warn(
                 "convert_float is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         validate_header_arg(header)
@@ -1130,7 +1129,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             warnings.warn(
                 "Use of **kwargs is deprecated, use engine_kwargs instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         # only switch class if generic(ExcelWriter)
@@ -1164,7 +1163,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         "deprecated and will also raise a warning, it can "
                         "be globally set and the warning suppressed.",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
 
             # for mypy
@@ -1192,13 +1191,25 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """Mapping of sheet names to sheet objects."""
         pass
 
-    @property
+    # mypy doesn't handle abstract setters prior to 0.981
+    # https://github.com/python/mypy/issues/4165
+    @property  # type: ignore[misc]
     @abc.abstractmethod
     def book(self):
         """
         Book instance. Class type will depend on the engine used.
 
         This attribute can be used to access engine-specific features.
+        """
+        pass
+
+    # mypy doesn't handle abstract setters prior to 0.981
+    # https://github.com/python/mypy/issues/4165
+    @book.setter  # type: ignore[misc]
+    @abc.abstractmethod
+    def book(self, other) -> None:
+        """
+        Set book instance. Class type will depend on the engine used.
         """
         pass
 
@@ -1331,10 +1342,22 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         Deprecate attribute or method for ExcelWriter.
         """
         warnings.warn(
-            f"{attr} is not part of the public API, usage can give in unexpected "
+            f"{attr} is not part of the public API, usage can give unexpected "
             "results and will be removed in a future version",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
+        )
+
+    def _deprecate_set_book(self) -> None:
+        """
+        Deprecate setting the book attribute - GH#48780.
+        """
+        warnings.warn(
+            "Setting the `book` attribute is not part of the public API, "
+            "usage can give unexpected or corrupted results and will be "
+            "removed in a future version",
+            FutureWarning,
+            stacklevel=find_stack_level(),
         )
 
     @property

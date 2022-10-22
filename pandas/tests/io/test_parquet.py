@@ -1182,3 +1182,13 @@ class TestParquetFastParquet(Base):
                 read_parquet(path, engine="fastparquet")
             # The next line raises an error on Windows if the file is still open
             pathlib.Path(path).unlink(missing_ok=False)
+
+    def test_bytes_file_name(self, engine):
+        # GH#48944
+        df = pd.DataFrame(data={"A": [0, 1], "B": [1, 0]})
+        with tm.ensure_clean("test.parquet") as path:
+            with open(path.encode(), "wb") as f:
+                df.to_parquet(f)
+
+            result = read_parquet(path, engine=engine)
+        tm.assert_frame_equal(result, df)

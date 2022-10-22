@@ -371,7 +371,7 @@ def astype_dt64_to_dt64tz(
             "timezone-aware dtype is deprecated and will raise in a "
             "future version.  Use ser.dt.tz_localize instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
         # GH#33401 this doesn't match DatetimeArray.astype, which
@@ -387,7 +387,7 @@ def astype_dt64_to_dt64tz(
                 "timezone-aware dtype is deprecated and will raise in a "
                 "future version.  Use obj.tz_localize instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
             return values.tz_localize(dtype.tz)
@@ -407,7 +407,7 @@ def astype_dt64_to_dt64tz(
                 "future version.  Use obj.tz_localize(None) or "
                 "obj.tz_convert('UTC').tz_localize(None) instead",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
             result = values.tz_convert("UTC").tz_localize(None)

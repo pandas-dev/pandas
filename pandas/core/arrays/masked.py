@@ -911,7 +911,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 # mypy error: Slice index must be an integer or None
                 # https://github.com/python/mypy/issues/2410
-                na_code = codes[:na_index].argmax() + 1  # type: ignore[misc]
+                na_code = codes[:na_index].max() + 1  # type: ignore[misc]
             codes[codes >= na_code] += 1
             codes[codes == -1] = na_code
             # dummy value for uniques; not used since uniques_mask will be True

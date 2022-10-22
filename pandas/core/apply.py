@@ -291,7 +291,7 @@ class Apply(metaclass=abc.ABCMeta):
                 f"raised, this will raise in a future version of pandas. "
                 f"Drop these columns/ops to avoid this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         return concat(results, axis=1)
 
@@ -423,7 +423,7 @@ class Apply(metaclass=abc.ABCMeta):
             warnings.warn(
                 depr_nuisance_columns_msg.format(failed_names),
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         try:
@@ -550,7 +550,12 @@ class Apply(metaclass=abc.ABCMeta):
         func = getattr(obj, f, None)
         if callable(func):
             sig = inspect.getfullargspec(func)
-            if "axis" in sig.args:
+            arg_names = (*sig.args, *sig.kwonlyargs)
+            if self.axis != 0 and (
+                "axis" not in arg_names or f in ("corrwith", "mad", "skew")
+            ):
+                raise ValueError(f"Operation {f} does not support axis=1")
+            elif "axis" in arg_names:
                 self.kwargs["axis"] = self.axis
             elif self.axis != 0:
                 raise ValueError(f"Operation {f} does not support axis=1")

@@ -3,7 +3,6 @@ Utility functions related to concat.
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -158,7 +157,7 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
             "(instead of coercing bools to numeric values). To retain the old "
             "behavior, explicitly cast bool-dtype arrays to numeric dtype.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
     return result
 

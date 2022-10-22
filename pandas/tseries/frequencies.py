@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import warnings
 
 import numpy as np
@@ -117,7 +116,7 @@ def get_offset(name: str) -> BaseOffset:
         "get_offset is deprecated and will be removed in a future version, "
         "use to_offset instead.",
         FutureWarning,
-        stacklevel=find_stack_level(inspect.currentframe()),
+        stacklevel=find_stack_level(),
     )
     return _get_offset(name)
 
@@ -235,7 +234,7 @@ class _FrequencyInferer:
                 "warn is deprecated (and never implemented) and "
                 "will be removed in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         self.warn = warn
 

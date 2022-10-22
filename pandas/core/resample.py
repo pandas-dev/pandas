@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 from datetime import timedelta
-import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -565,7 +564,7 @@ class Resampler(BaseGroupBy, PandasObject):
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.ffill(limit=limit)
 
@@ -752,7 +751,7 @@ class Resampler(BaseGroupBy, PandasObject):
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.bfill(limit=limit)
 
@@ -1886,7 +1885,9 @@ class TimeGrouper(Grouper):
         # NaT handling as in pandas._lib.lib.generate_bins_dt64()
         nat_count = 0
         if memb.hasnans:
-            nat_count = np.sum(memb._isnan)
+            # error: Incompatible types in assignment (expression has type
+            # "bool_", variable has type "int")  [assignment]
+            nat_count = np.sum(memb._isnan)  # type: ignore[assignment]
             memb = memb[~memb._isnan]
 
         if not len(memb):

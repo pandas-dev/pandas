@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-import inspect
 from typing import cast
 import warnings
 
@@ -204,5 +203,5 @@ def maybe_warn_args_and_kwargs(cls, kernel: str, args, kwargs) -> None:
             "no impact on the result and is deprecated. This will "
             "raise a TypeError in a future version of pandas.",
             category=FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )

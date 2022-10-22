@@ -1,4 +1,3 @@
-import inspect
 import warnings
 
 from pandas.util._exceptions import find_stack_level
@@ -138,7 +137,7 @@ cdef class _NaT(datetime):
                 "order to match the standard library behavior. "
                 "In a future version these will be considered non-comparable.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             return False
 
@@ -382,7 +381,7 @@ class NaTType(_NaT):
         warnings.warn(
             "NaT.freq is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return None
 

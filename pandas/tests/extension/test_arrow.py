@@ -1570,6 +1570,13 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     reason=f"add_checked not implemented for {pa_dtype}",
                 )
             )
+        elif pa_dtype.equals("int8"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowInvalid,
+                    reason=f"raises on overflow for {pa_dtype}",
+                )
+            )
         super().test_add_series_with_extension_array(data)
 
 
@@ -1619,6 +1626,13 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             else:
                 with pytest.raises(type(exc)):
                     ser.combine(other, comparison_op)
+
+    def test_invalid_other_comp(self, data, comparison_op):
+        # GH 48833
+        with pytest.raises(
+            NotImplementedError, match=".* not implemented for <class 'object'>"
+        ):
+            comparison_op(data, object())
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
