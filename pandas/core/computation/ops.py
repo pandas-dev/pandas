@@ -4,6 +4,7 @@ Operator classes for eval.
 
 from __future__ import annotations
 
+import inspect
 from datetime import datetime
 from functools import partial
 import operator
@@ -104,7 +105,7 @@ class Term:
         is_local = self.is_local
         if local_name in self.env.scope and isinstance(
             self.env.scope[local_name], type
-        ):
+        ) and not inspect.isclass(self.env.scope[local_name]):
             is_local = False
 
         res = self.env.resolve(local_name, is_local=is_local)
