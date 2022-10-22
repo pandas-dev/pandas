@@ -93,11 +93,7 @@ cython_sources_list = [
 cython_sources = {}
 
 foreach source: cython_sources_list
-    source_pyx = configure_file(
-        input: source,
-        output: source,
-        copy: true
-    )
+    source_pyx = fs.copyfile(source)
     cython_sources += {source: source_pyx}
 endforeach
 
