@@ -11590,18 +11590,6 @@ Parrot 2  Parrot       24.0
     )
     columns = properties.AxisProperty(axis=0, doc="The column labels of the DataFrame.")
 
-    @property
-    def _AXIS_NUMBERS(self) -> dict[str, int]:
-        """.. deprecated:: 1.1.0"""
-        super()._AXIS_NUMBERS
-        return {"index": 0, "columns": 1}
-
-    @property
-    def _AXIS_NAMES(self) -> dict[int, str]:
-        """.. deprecated:: 1.1.0"""
-        super()._AXIS_NAMES
-        return {0: "index", 1: "columns"}
-
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
     plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
