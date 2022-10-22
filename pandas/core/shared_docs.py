@@ -94,7 +94,7 @@ groups.
 
 Parameters
 ----------
-by : mapping, function, label, or list of labels
+by : mapping, function, label, pd.Grouper or list of such
     Used to determine the groups for the groupby.
     If ``by`` is a function, it's called on each value of the object's
     index. If a dict or Series is passed, the Series or dict VALUES
@@ -110,7 +110,7 @@ axis : {0 or 'index', 1 or 'columns'}, default 0
     is unused and defaults to 0.
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
-    level or levels.
+    level or levels. Do not specify both ``by`` and ``level``.
 as_index : bool, default True
     For aggregated output, return object with group labels as the
     index. Only relevant for DataFrame input. as_index=False is
@@ -133,11 +133,6 @@ group_keys : bool, optional
        result from ``apply`` is a like-indexed Series or DataFrame.
        Specify ``group_keys`` explicitly to include the group keys or
        not.
-squeeze : bool, default False
-    Reduce the dimensionality of the return type if possible,
-    otherwise return a consistent type.
-
-    .. deprecated:: 1.1.0
 
 observed : bool, default False
     This only applies if any of the groupers are Categoricals.

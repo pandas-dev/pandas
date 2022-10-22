@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from collections import defaultdict
 import itertools
-from typing import Hashable
+from typing import (
+    Hashable,
+    Iterable,
+)
 
 import numpy as np
 
@@ -25,7 +28,7 @@ from pandas.core.series import Series
 def get_dummies(
     data,
     prefix=None,
-    prefix_sep="_",
+    prefix_sep: str | Iterable[str] | dict[str, str] = "_",
     dummy_na: bool = False,
     columns=None,
     sparse: bool = False,
@@ -34,6 +37,10 @@ def get_dummies(
 ) -> DataFrame:
     """
     Convert categorical variable into dummy/indicator variables.
+
+    Each variable is converted in as many 0/1 variables as there are different
+    values. Columns in the output are each named after a value; if the input is
+    a DataFrame, the name of the original variable is prepended to the value.
 
     Parameters
     ----------
@@ -59,17 +66,18 @@ def get_dummies(
     drop_first : bool, default False
         Whether to get k-1 dummies out of k categorical levels by removing the
         first level.
-    dtype : dtype, default np.uint8
+    dtype : dtype, default bool
         Data type for new columns. Only a single dtype is allowed.
 
     Returns
     -------
     DataFrame
-        Dummy-coded data.
+        Dummy-coded data. If `data` contains other columns than the
+        dummy-coded one(s), these will be prepended, unaltered, to the result.
 
     See Also
     --------
-    Series.str.get_dummies : Convert Series to dummy codes.
+    Series.str.get_dummies : Convert Series of strings to dummy codes.
     :func:`~pandas.from_dummies` : Convert dummy codes to categorical ``DataFrame``.
 
     Notes
@@ -81,50 +89,50 @@ def get_dummies(
     >>> s = pd.Series(list('abca'))
 
     >>> pd.get_dummies(s)
-       a  b  c
-    0  1  0  0
-    1  0  1  0
-    2  0  0  1
-    3  1  0  0
+           a      b      c
+    0   True  False  False
+    1  False   True  False
+    2  False  False   True
+    3   True  False  False
 
     >>> s1 = ['a', 'b', np.nan]
 
     >>> pd.get_dummies(s1)
-       a  b
-    0  1  0
-    1  0  1
-    2  0  0
+           a      b
+    0   True  False
+    1  False   True
+    2  False  False
 
     >>> pd.get_dummies(s1, dummy_na=True)
-       a  b  NaN
-    0  1  0    0
-    1  0  1    0
-    2  0  0    1
+           a      b    NaN
+    0   True  False  False
+    1  False   True  False
+    2  False  False   True
 
     >>> df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'],
     ...                    'C': [1, 2, 3]})
 
     >>> pd.get_dummies(df, prefix=['col1', 'col2'])
        C  col1_a  col1_b  col2_a  col2_b  col2_c
-    0  1       1       0       0       1       0
-    1  2       0       1       1       0       0
-    2  3       1       0       0       0       1
+    0  1    True   False   False    True   False
+    1  2   False    True    True   False   False
+    2  3    True   False   False   False    True
 
     >>> pd.get_dummies(pd.Series(list('abcaa')))
-       a  b  c
-    0  1  0  0
-    1  0  1  0
-    2  0  0  1
-    3  1  0  0
-    4  1  0  0
+           a      b      c
+    0   True  False  False
+    1  False   True  False
+    2  False  False   True
+    3   True  False  False
+    4   True  False  False
 
     >>> pd.get_dummies(pd.Series(list('abcaa')), drop_first=True)
-       b  c
-    0  0  0
-    1  1  0
-    2  0  1
-    3  0  0
-    4  0  0
+           b      c
+    0  False  False
+    1   True  False
+    2  False   True
+    3  False  False
+    4  False  False
 
     >>> pd.get_dummies(pd.Series(list('abc')), dtype=float)
          a    b    c
@@ -216,7 +224,7 @@ def get_dummies(
 def _get_dummies_1d(
     data,
     prefix,
-    prefix_sep="_",
+    prefix_sep: str | Iterable[str] | dict[str, str] = "_",
     dummy_na: bool = False,
     sparse: bool = False,
     drop_first: bool = False,
@@ -228,7 +236,7 @@ def _get_dummies_1d(
     codes, levels = factorize_from_iterable(Series(data))
 
     if dtype is None:
-        dtype = np.dtype(np.uint8)
+        dtype = np.dtype(bool)
     # error: Argument 1 to "dtype" has incompatible type "Union[ExtensionDtype, str,
     # dtype[Any], Type[object]]"; expected "Type[Any]"
     dtype = np.dtype(dtype)  # type: ignore[arg-type]
@@ -272,7 +280,7 @@ def _get_dummies_1d(
 
     if sparse:
 
-        fill_value: bool | float | int
+        fill_value: bool | float
         if is_integer_dtype(dtype):
             fill_value = 0
         elif dtype == np.dtype(bool):

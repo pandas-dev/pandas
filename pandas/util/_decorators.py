@@ -12,7 +12,10 @@ from typing import (
 import warnings
 
 from pandas._libs.properties import cache_readonly
-from pandas._typing import F
+from pandas._typing import (
+    F,
+    T,
+)
 from pandas.util._exceptions import find_stack_level
 
 
@@ -212,7 +215,7 @@ def deprecate_kwarg(
     return _deprecate_kwarg
 
 
-def _format_argument_list(allow_args: list[str]):
+def _format_argument_list(allow_args: list[str]) -> str:
     """
     Convert the allow_args argument (either string or integer) of
     `deprecate_nonkeyword_arguments` function to a string describing
@@ -287,14 +290,29 @@ def deprecate_nonkeyword_arguments(
     """
 
     def decorate(func):
+        old_sig = inspect.signature(func)
+
         if allowed_args is not None:
             allow_args = allowed_args
         else:
-            spec = inspect.getfullargspec(func)
+            allow_args = [
+                p.name
+                for p in old_sig.parameters.values()
+                if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+                and p.default is p.empty
+            ]
 
-            # We must have some defaults if we are deprecating default-less
-            assert spec.defaults is not None  # for mypy
-            allow_args = spec.args[: -len(spec.defaults)]
+        new_params = [
+            p.replace(kind=p.KEYWORD_ONLY)
+            if (
+                p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+                and p.name not in allow_args
+            )
+            else p
+            for p in old_sig.parameters.values()
+        ]
+        new_params.sort(key=lambda p: p.kind)
+        new_sig = old_sig.replace(parameters=new_params)
 
         num_allow_args = len(allow_args)
         msg = (
@@ -304,15 +322,17 @@ def deprecate_nonkeyword_arguments(
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            arguments = _format_argument_list(allow_args)
             if len(args) > num_allow_args:
                 warnings.warn(
-                    msg.format(arguments=arguments),
+                    msg.format(arguments=_format_argument_list(allow_args)),
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
             return func(*args, **kwargs)
 
+        # error: "Callable[[VarArg(Any), KwArg(Any)], Any]" has no
+        # attribute "__signature__"
+        wrapper.__signature__ = new_sig  # type: ignore[attr-defined]
         return wrapper
 
     return decorate
@@ -348,7 +368,7 @@ def rewrite_axis_style_signature(
     return decorate
 
 
-def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
+def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
     """
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
@@ -361,7 +381,7 @@ def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
 
     Parameters
     ----------
-    *docstrings : str or callable
+    *docstrings : None, str, or callable
         The string / docstring / docstring template to be appended in order
         after default docstring under callable.
     **params
@@ -375,6 +395,8 @@ def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
             docstring_components.append(dedent(decorated.__doc__))
 
         for docstring in docstrings:
+            if docstring is None:
+                continue
             if hasattr(docstring, "_docstring_components"):
                 # error: Item "str" of "Union[str, Callable[..., Any]]" has no attribute
                 # "_docstring_components"
@@ -386,13 +408,19 @@ def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
             elif isinstance(docstring, str) or docstring.__doc__:
                 docstring_components.append(docstring)
 
-        # formatting templates and concatenating docstring
+        params_applied = [
+            component.format(**params)
+            if isinstance(component, str) and len(params) > 0
+            else component
+            for component in docstring_components
+        ]
+
         decorated.__doc__ = "".join(
             [
-                component.format(**params)
+                component
                 if isinstance(component, str)
                 else dedent(component.__doc__ or "")
-                for component in docstring_components
+                for component in params_applied
             ]
         )
 
@@ -485,7 +513,7 @@ class Appender:
             self.addendum = addendum
         self.join = join
 
-    def __call__(self, func: F) -> F:
+    def __call__(self, func: T) -> T:
         func.__doc__ = func.__doc__ if func.__doc__ else ""
         self.addendum = self.addendum if self.addendum else ""
         docitems = [func.__doc__, self.addendum]

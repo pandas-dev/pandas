@@ -69,12 +69,16 @@ def test_numpy_compat(method):
     # see gh-12811
     e = ExponentialMovingWindow(Series([2, 4, 6]), alpha=0.5)
 
-    msg = "numpy operations are not valid with window objects"
+    error_msg = "numpy operations are not valid with window objects"
 
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(e, method)(1, 2, 3)
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(e, method)(dtype=np.float64)
+    warn_msg = f"Passing additional args to ExponentialMovingWindow.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(e, method)(1, 2, 3)
+    warn_msg = f"Passing additional kwargs to ExponentialMovingWindow.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(e, method)(dtype=np.float64)
 
 
 def test_ewma_times_not_datetime_type():
@@ -232,15 +236,13 @@ def test_float_dtype_ewma(func, expected, float_numpy_dtype):
     tm.assert_frame_equal(result, expected)
 
 
-def test_times_string_col_deprecated():
+def test_times_string_col_raises():
     # GH 43265
-    data = np.arange(10.0)
-    data[::2] = np.nan
-    df = DataFrame({"A": data, "time_col": date_range("2000", freq="D", periods=10)})
-    with tm.assert_produces_warning(FutureWarning, match="Specifying times"):
-        result = df.ewm(halflife="1 day", min_periods=0, times="time_col").mean()
-        expected = df.ewm(halflife=1.0, min_periods=0).mean()
-    tm.assert_frame_equal(result, expected)
+    df = DataFrame(
+        {"A": np.arange(10.0), "time_col": date_range("2000", freq="D", periods=10)}
+    )
+    with pytest.raises(ValueError, match="times must be datetime64"):
+        df.ewm(halflife="1 day", min_periods=0, times="time_col")
 
 
 def test_ewm_sum_adjust_false_notimplemented():

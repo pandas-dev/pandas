@@ -68,7 +68,6 @@ Modifying and computations
    Index.is_floating
    Index.is_integer
    Index.is_interval
-   Index.is_mixed
    Index.is_numeric
    Index.is_object
    Index.min
@@ -157,7 +156,6 @@ Selecting
    Index.get_level_values
    Index.get_loc
    Index.get_slice_bound
-   Index.get_value
    Index.isin
    Index.slice_indexer
    Index.slice_locs
@@ -242,7 +240,7 @@ IntervalIndex components
    IntervalIndex.left
    IntervalIndex.right
    IntervalIndex.mid
-   IntervalIndex.inclusive
+   IntervalIndex.closed
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_empty
@@ -251,7 +249,6 @@ IntervalIndex components
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
-   IntervalIndex.set_inclusive
    IntervalIndex.contains
    IntervalIndex.overlaps
    IntervalIndex.to_tuples

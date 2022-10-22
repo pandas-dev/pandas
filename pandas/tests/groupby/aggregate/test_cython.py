@@ -166,7 +166,7 @@ def test_cython_fail_agg():
         ("mean", np.mean),
         ("median", np.median),
         ("var", np.var),
-        ("add", np.sum),
+        ("sum", np.sum),
         ("prod", np.prod),
         ("min", np.min),
         ("max", np.max),
@@ -214,9 +214,9 @@ def test_cython_agg_empty_buckets_nanops(observed):
     grps = range(0, 25, 5)
     # add / sum
     result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
-        "add", alt=None, numeric_only=True
+        "sum", alt=None, numeric_only=True
     )
-    intervals = pd.interval_range(0, 20, freq=5, inclusive="right")
+    intervals = pd.interval_range(0, 20, freq=5)
     expected = DataFrame(
         {"a": [0, 0, 36, 0]},
         index=pd.CategoricalIndex(intervals, name="a", ordered=True),

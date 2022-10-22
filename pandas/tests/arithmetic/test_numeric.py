@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from collections import abc
+from datetime import timedelta
 from decimal import Decimal
 import operator
 from typing import Any
@@ -27,6 +28,7 @@ from pandas.core.api import (
     Int64Index,
     UInt64Index,
 )
+from pandas.core.arrays import TimedeltaArray
 from pandas.core.computation import expressions as expr
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
@@ -150,9 +152,11 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         right = np.array([1, 2, 3], dtype="m8[s]")
         right = box_cls(right)
 
-        expected = TimedeltaIndex(["10s", "40s", "90s"])
+        expected = TimedeltaIndex(["10s", "40s", "90s"], dtype=right.dtype)
+
         if isinstance(left, Series) or box_cls is Series:
             expected = Series(expected)
+        assert expected.dtype == right.dtype
 
         result = left * right
         tm.assert_equal(result, expected)
@@ -169,9 +173,10 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         right = np.array([10, 40, 90], dtype="m8[s]")
         right = box_cls(right)
 
-        expected = TimedeltaIndex(["1s", "2s", "3s"])
+        expected = TimedeltaIndex(["1s", "2s", "3s"], dtype=right.dtype)
         if isinstance(left, Series) or box_cls is Series:
             expected = Series(expected)
+        assert expected.dtype == right.dtype
 
         result = right / left
         tm.assert_equal(result, expected)
@@ -204,6 +209,16 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         box = box_with_array
         index = numeric_idx
         expected = TimedeltaIndex([Timedelta(days=n) for n in range(len(index))])
+        if isinstance(scalar_td, np.timedelta64):
+            # TODO(2.0): once TDA.astype converts to m8, just do expected.astype
+            tda = expected._data
+            dtype = scalar_td.dtype
+            expected = type(tda)._simple_new(tda._ndarray.astype(dtype), dtype=dtype)
+        elif type(scalar_td) is timedelta:
+            # TODO(2.0): once TDA.astype converts to m8, just do expected.astype
+            tda = expected._data
+            dtype = np.dtype("m8[us]")
+            expected = type(tda)._simple_new(tda._ndarray.astype(dtype), dtype=dtype)
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -235,6 +250,13 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         obj = tm.box_expected(arr, box, transpose=False)
 
         expected = arr_i8.view("timedelta64[D]").astype("timedelta64[ns]")
+        if type(scalar_td) is timedelta:
+            # TODO(2.0): this shouldn't depend on 'box'
+            expected = expected.astype("timedelta64[us]")
+            # TODO(2.0): won't be necessary to construct TimedeltaArray
+            #  explicitly.
+            expected = TimedeltaArray._simple_new(expected, dtype=expected.dtype)
+
         expected = tm.box_expected(expected, box, transpose=False)
 
         result = obj * scalar_td
@@ -249,6 +271,19 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         index = numeric_idx[1:3]
 
         expected = TimedeltaIndex(["3 Days", "36 Hours"])
+        if isinstance(three_days, np.timedelta64):
+            # TODO(2.0): just use expected.astype
+            tda = expected._data
+            dtype = three_days.dtype
+            if dtype < np.dtype("m8[s]"):
+                # i.e. resolution is lower -> use lowest supported resolution
+                dtype = np.dtype("m8[s]")
+            expected = type(tda)._simple_new(tda._ndarray.astype(dtype), dtype=dtype)
+        elif type(three_days) is timedelta:
+            # TODO(2.0): just use expected.astype
+            tda = expected._data
+            dtype = np.dtype("m8[us]")
+            expected = type(tda)._simple_new(tda._ndarray.astype(dtype), dtype=dtype)
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -911,7 +946,7 @@ class TestAdditionSubtraction:
         result = ser - ser.index
         tm.assert_series_equal(result, expected)
 
-        msg = "cannot subtract period"
+        msg = "cannot subtract PeriodArray from DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             # GH#18850
             result = ser - ser.index.to_period()

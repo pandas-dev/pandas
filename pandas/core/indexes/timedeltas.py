@@ -12,7 +12,6 @@ from pandas._libs.tslibs import (
 from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.common import (
-    TD64NS_DTYPE,
     is_scalar,
     is_timedelta64_dtype,
 )
@@ -47,8 +46,9 @@ from pandas.core.indexes.extension import inherit_names
 )
 class TimedeltaIndex(DatetimeTimedeltaMixin):
     """
-    Immutable ndarray of timedelta64 data, represented internally as int64, and
-    which can be boxed to timedelta objects.
+    Immutable Index of timedelta64 data.
+
+    Represented internally as int64, and scalars returned Timedelta objects.
 
     Parameters
     ----------
@@ -120,14 +120,14 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         unit=None,
         freq=lib.no_default,
         closed=None,
-        dtype=TD64NS_DTYPE,
-        copy=False,
+        dtype=None,
+        copy: bool = False,
         name=None,
     ):
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
-            raise cls._scalar_data_error(data)
+            cls._raise_scalar_data_error(data)
 
         if unit in {"Y", "y", "M"}:
             raise ValueError(
@@ -209,8 +209,7 @@ def timedelta_range(
     closed=None,
 ) -> TimedeltaIndex:
     """
-    Return a fixed frequency TimedeltaIndex, with day as the default
-    frequency.
+    Return a fixed frequency TimedeltaIndex with day as the default.
 
     Parameters
     ----------

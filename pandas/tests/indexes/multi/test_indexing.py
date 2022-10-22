@@ -884,9 +884,9 @@ def test_pyint_engine():
     # keys would collide; if truncating the last levels, the fifth and
     # sixth; if rotating bits rather than shifting, the third and fifth.
 
-    for idx in range(len(keys)):
+    for idx, key_value in enumerate(keys):
         index = MultiIndex.from_tuples(keys)
-        assert index.get_loc(keys[idx]) == idx
+        assert index.get_loc(key_value) == idx
 
         expected = np.arange(idx + 1, dtype=np.intp)
         result = index.get_indexer([keys[i] for i in expected])
@@ -897,4 +897,30 @@ def test_pyint_engine():
     expected = np.array([-1] + list(idces), dtype=np.intp)
     missing = tuple([0, 1] * 5 * N)
     result = index.get_indexer([missing] + [keys[i] for i in idces])
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "keys,expected",
+    [
+        ((slice(None), [5, 4]), [1, 0]),
+        ((slice(None), [4, 5]), [0, 1]),
+        (([True, False, True], [4, 6]), [0, 2]),
+        (([True, False, True], [6, 4]), [0, 2]),
+        ((2, [4, 5]), [0, 1]),
+        ((2, [5, 4]), [1, 0]),
+        (([2], [4, 5]), [0, 1]),
+        (([2], [5, 4]), [1, 0]),
+    ],
+)
+def test_get_locs_reordering(keys, expected):
+    # GH48384
+    idx = MultiIndex.from_arrays(
+        [
+            [2, 2, 1],
+            [4, 5, 6],
+        ]
+    )
+    result = idx.get_locs(keys)
+    expected = np.array(expected, dtype=np.intp)
     tm.assert_numpy_array_equal(result, expected)

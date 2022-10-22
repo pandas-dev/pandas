@@ -47,6 +47,7 @@ import pandas.core.config_init  # pyright: ignore # noqa:F401
 
 from pandas.core.api import (
     # dtype
+    ArrowDtype,
     Int8Dtype,
     Int16Dtype,
     Int32Dtype,
@@ -211,54 +212,6 @@ def __getattr__(name):
             "Int64Index": Int64Index,
             "UInt64Index": UInt64Index,
         }[name]
-    elif name == "datetime":
-        warnings.warn(
-            "The pandas.datetime class is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Import from datetime module instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        from datetime import datetime as dt
-
-        return dt
-
-    elif name == "np":
-
-        warnings.warn(
-            "The pandas.np module is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Import numpy directly instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        import numpy as np
-
-        return np
-
-    elif name in {"SparseSeries", "SparseDataFrame"}:
-        warnings.warn(
-            f"The {name} class is removed from pandas. Accessing it from "
-            "the top-level namespace will also be removed in the next version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return type(name, (), {})
-
-    elif name == "SparseArray":
-
-        warnings.warn(
-            "The pandas.SparseArray class is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Use pandas.arrays.SparseArray instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        from pandas.core.arrays.sparse import SparseArray as _SparseArray
-
-        return _SparseArray
 
     raise AttributeError(f"module 'pandas' has no attribute '{name}'")
 
@@ -308,6 +261,7 @@ Here are just a few of the things that pandas does well:
 # Pandas is not (yet) a py.typed library: the public API is determined
 # based on the documentation.
 __all__ = [
+    "ArrowDtype",
     "BooleanDtype",
     "Categorical",
     "CategoricalDtype",

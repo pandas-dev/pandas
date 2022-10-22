@@ -2,7 +2,6 @@ from collections import abc
 from decimal import Decimal
 from enum import Enum
 from typing import Literal
-import warnings
 
 cimport cython
 from cpython.datetime cimport (
@@ -30,6 +29,8 @@ from cython cimport (
     floating,
 )
 
+from pandas._libs.missing import check_na_tuples_nonequal
+
 import_datetime()
 
 import numpy as np
@@ -44,7 +45,6 @@ from numpy cimport (
     PyArray_IterNew,
     complex128_t,
     flatiter,
-    float32_t,
     float64_t,
     int64_t,
     intp_t,
@@ -308,54 +308,6 @@ def item_from_zerodim(val: object) -> object:
     if cnp.PyArray_IsZeroDim(val):
         return cnp.PyArray_ToScalar(cnp.PyArray_DATA(val), val)
     return val
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def fast_unique_multiple(list arrays, sort: bool = True):
-    """
-    Generate a list of unique values from a list of arrays.
-
-    Parameters
-    ----------
-    list : array-like
-        List of array-like objects.
-    sort : bool
-        Whether or not to sort the resulting unique list.
-
-    Returns
-    -------
-    list of unique values
-    """
-    cdef:
-        ndarray[object] buf
-        Py_ssize_t k = len(arrays)
-        Py_ssize_t i, j, n
-        list uniques = []
-        dict table = {}
-        object val, stub = 0
-
-    for i in range(k):
-        buf = arrays[i]
-        n = len(buf)
-        for j in range(n):
-            val = buf[j]
-            if val not in table:
-                table[val] = stub
-                uniques.append(val)
-
-    if sort is None:
-        try:
-            uniques.sort()
-        except TypeError:
-            warnings.warn(
-                "The values in the array are unorderable. "
-                "Pass `sort=False` to suppress this warning.",
-                RuntimeWarning,
-            )
-            pass
-
-    return uniques
 
 
 @cython.wraparound(False)
@@ -646,7 +598,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                 or is_matching_na(x, y, nan_matches_none=True)
             ):
                 return False
-        except ValueError:
+        except (ValueError, TypeError):
             # Avoid raising ValueError when comparing Numpy arrays to other types
             if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
                 # Only compare scalars to scalars and non-scalars to non-scalars
@@ -655,7 +607,12 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                   and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
                 # Check if non-scalars have the same type
                 return False
+            elif check_na_tuples_nonequal(x, y):
+                # We have tuples where one Side has a NA and the other side does not
+                # Only condition we may end up with a TypeError
+                return False
             raise
+
     return True
 
 
@@ -745,6 +702,10 @@ cpdef ndarray[object] ensure_string_array(
 
     if copy and result is arr:
         result = result.copy()
+
+    if issubclass(arr.dtype.type, np.str_):
+        # short-circuit, all elements are str
+        return result
 
     for i in range(n):
         val = arr[i]
@@ -1347,8 +1308,7 @@ cdef object _try_infer_map(object dtype):
 
 def infer_dtype(value: object, skipna: bool = True) -> str:
     """
-    Efficiently infer the type of a passed val, or list-like
-    array of values. Return a string describing the type.
+    Return a string label of the type of a scalar or list-like of values.
 
     Parameters
     ----------
@@ -2161,7 +2121,7 @@ cpdef bint is_interval_array(ndarray values):
     """
     cdef:
         Py_ssize_t i, n = len(values)
-        str inclusive = None
+        str closed = None
         bint numeric = False
         bint dt64 = False
         bint td64 = False
@@ -2174,15 +2134,15 @@ cpdef bint is_interval_array(ndarray values):
         val = values[i]
 
         if is_interval(val):
-            if inclusive is None:
-                inclusive = val.inclusive
+            if closed is None:
+                closed = val.closed
                 numeric = (
                     util.is_float_object(val.left)
                     or util.is_integer_object(val.left)
                 )
                 td64 = is_timedelta(val.left)
                 dt64 = PyDateTime_Check(val.left)
-            elif val.inclusive != inclusive:
+            elif val.closed != closed:
                 # mismatched closedness
                 return False
             elif numeric:
@@ -2205,7 +2165,7 @@ cpdef bint is_interval_array(ndarray values):
         else:
             return False
 
-    if inclusive is None:
+    if closed is None:
         # we saw all-NAs, no actual Intervals
         return False
     return True

@@ -159,6 +159,7 @@ def infer_freq(index, warn: bool = True) -> str | None:
         Float64Index,
         Index,
         Int64Index,
+        RangeIndex,
     )
 
     if isinstance(index, ABCSeries):
@@ -189,7 +190,7 @@ def infer_freq(index, warn: bool = True) -> str | None:
         return inferer.get_freq()
 
     if isinstance(index, Index) and not isinstance(index, DatetimeIndex):
-        if isinstance(index, (Int64Index, Float64Index)):
+        if isinstance(index, (Int64Index, Float64Index, RangeIndex)):
             raise TypeError(
                 f"cannot infer freq from a non-convertible index type {type(index)}"
             )
@@ -216,12 +217,12 @@ class _FrequencyInferer:
         if isinstance(index, ABCIndex):
             # error: Item "ndarray[Any, Any]" of "Union[ExtensionArray,
             # ndarray[Any, Any]]" has no attribute "_ndarray"
-            self._reso = get_unit_from_dtype(
+            self._creso = get_unit_from_dtype(
                 index._data._ndarray.dtype  # type: ignore[union-attr]
             )
         else:
             # otherwise we have DTA/TDA
-            self._reso = get_unit_from_dtype(index._ndarray.dtype)
+            self._creso = get_unit_from_dtype(index._ndarray.dtype)
 
         # This moves the values, which are implicitly in UTC, to the
         # the timezone so they are in local time
@@ -234,7 +235,7 @@ class _FrequencyInferer:
                 "warn is deprecated (and never implemented) and "
                 "will be removed in a future version.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
         self.warn = warn
 
@@ -276,7 +277,7 @@ class _FrequencyInferer:
             return None
 
         delta = self.deltas[0]
-        ppd = periods_per_day(self._reso)
+        ppd = periods_per_day(self._creso)
         if delta and _is_multiple(delta, ppd):
             return self._infer_daily_rule()
 
@@ -315,17 +316,17 @@ class _FrequencyInferer:
 
     @cache_readonly
     def day_deltas(self) -> list[int]:
-        ppd = periods_per_day(self._reso)
+        ppd = periods_per_day(self._creso)
         return [x / ppd for x in self.deltas]
 
     @cache_readonly
     def hour_deltas(self) -> list[int]:
-        pph = periods_per_day(self._reso) // 24
+        pph = periods_per_day(self._creso) // 24
         return [x / pph for x in self.deltas]
 
     @cache_readonly
     def fields(self) -> np.ndarray:  # structured array of fields
-        return build_field_sarray(self.i8values, reso=self._reso)
+        return build_field_sarray(self.i8values, reso=self._creso)
 
     @cache_readonly
     def rep_stamp(self) -> Timestamp:
@@ -376,7 +377,7 @@ class _FrequencyInferer:
         return None
 
     def _get_daily_rule(self) -> str | None:
-        ppd = periods_per_day(self._reso)
+        ppd = periods_per_day(self._creso)
         days = self.deltas[0] / ppd
         if days % 7 == 0:
             # Weekly
@@ -432,7 +433,7 @@ class _FrequencyInferer:
         # probably business daily, but need to confirm
         first_weekday = self.index[0].weekday()
         shifts = np.diff(self.index.asi8)
-        ppd = periods_per_day(self._reso)
+        ppd = periods_per_day(self._creso)
         shifts = np.floor_divide(shifts, ppd)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
 
@@ -641,7 +642,7 @@ def _is_quarterly(rule: str) -> bool:
 
 def _is_monthly(rule: str) -> bool:
     rule = rule.upper()
-    return rule == "M" or rule == "BM"
+    return rule in ("M", "BM")
 
 
 def _is_weekly(rule: str) -> bool:

@@ -23,9 +23,6 @@ def test_doc_string():
     df.expanding(2).sum()
 
 
-@pytest.mark.filterwarnings(
-    "ignore:The `center` argument on `expanding` will be removed in the future"
-)
 def test_constructor(frame_or_series):
     # GH 12669
 
@@ -33,14 +30,9 @@ def test_constructor(frame_or_series):
 
     # valid
     c(min_periods=1)
-    c(min_periods=1, center=True)
-    c(min_periods=1, center=False)
 
 
 @pytest.mark.parametrize("w", [2.0, "foo", np.array([2])])
-@pytest.mark.filterwarnings(
-    "ignore:The `center` argument on `expanding` will be removed in the future"
-)
 def test_constructor_invalid(frame_or_series, w):
     # not valid
 
@@ -49,22 +41,22 @@ def test_constructor_invalid(frame_or_series, w):
     with pytest.raises(ValueError, match=msg):
         c(min_periods=w)
 
-    msg = "center must be a boolean"
-    with pytest.raises(ValueError, match=msg):
-        c(min_periods=1, center=w)
-
 
 @pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
 def test_numpy_compat(method):
     # see gh-12811
     e = Expanding(Series([2, 4, 6]))
 
-    msg = "numpy operations are not valid with window objects"
+    error_msg = "numpy operations are not valid with window objects"
 
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(e, method)(1, 2, 3)
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(e, method)(dtype=np.float64)
+    warn_msg = f"Passing additional args to Expanding.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(e, method)(1, 2, 3)
+    warn_msg = f"Passing additional kwargs to Expanding.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(e, method)(dtype=np.float64)
 
 
 @pytest.mark.parametrize(
@@ -237,17 +229,11 @@ def test_iter_expanding_series(ser, expected, min_periods):
         tm.assert_series_equal(actual, expected)
 
 
-def test_center_deprecate_warning():
+def test_center_invalid():
     # GH 20647
     df = DataFrame()
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(TypeError, match=".* got an unexpected keyword"):
         df.expanding(center=True)
-
-    with tm.assert_produces_warning(FutureWarning):
-        df.expanding(center=False)
-
-    with tm.assert_produces_warning(None):
-        df.expanding()
 
 
 def test_expanding_sem(frame_or_series):

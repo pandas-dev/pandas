@@ -4,6 +4,8 @@ Methods that can be shared by many array-like classes or subclasses:
     Index
     ExtensionArray
 """
+from __future__ import annotations
+
 import operator
 from typing import Any
 import warnings
@@ -247,6 +249,10 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
     --------
     numpy.org/doc/stable/reference/arrays.classes.html#numpy.class.__array_ufunc__
     """
+    from pandas.core.frame import (
+        DataFrame,
+        Series,
+    )
     from pandas.core.generic import NDFrame
     from pandas.core.internals import BlockManager
 
@@ -292,8 +298,8 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         # At the moment, there aren't any ufuncs with more than two inputs
         # so this ends up just being x1.index | x2.index, but we write
         # it to handle *args.
-
-        if len(set(types)) > 1:
+        set_types = set(types)
+        if len(set_types) > 1 and {DataFrame, Series}.issubset(set_types):
             # We currently don't handle ufunc(DataFrame, Series)
             # well. Previously this raised an internal ValueError. We might
             # support it someday, so raise a NotImplementedError.

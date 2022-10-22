@@ -376,3 +376,22 @@ def test_cat_different_classes(klass):
     result = s.str.cat(klass(["x", "y", "z"]))
     expected = Series(["ax", "by", "cz"])
     tm.assert_series_equal(result, expected)
+
+
+def test_cat_on_series_dot_str():
+    # GH 28277
+    # Test future warning of `Series.str.__iter__`
+    ps = Series(["AbC", "de", "FGHI", "j", "kLLLm"])
+    with tm.assert_produces_warning(FutureWarning):
+        ps.str.cat(others=ps.str)
+    # TODO(2.0): The following code can be uncommented
+    # when `Series.str.__iter__` is removed.
+
+    # message = re.escape(
+    #     "others must be Series, Index, DataFrame, np.ndarray "
+    #     "or list-like (either containing only strings or "
+    #     "containing only objects of type Series/Index/"
+    #     "np.ndarray[1-dim])"
+    # )
+    # with pytest.raises(TypeError, match=message):
+    #     ps.str.cat(others=ps.str)

@@ -17,6 +17,7 @@ from pandas._typing import (
     DtypeObj,
     JSONSerializable,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
@@ -100,10 +101,14 @@ def set_default_names(data):
     if com.all_not_none(*data.index.names):
         nms = data.index.names
         if len(nms) == 1 and data.index.name == "index":
-            warnings.warn("Index name of 'index' is not round-trippable.")
+            warnings.warn(
+                "Index name of 'index' is not round-trippable.",
+                stacklevel=find_stack_level(),
+            )
         elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
             warnings.warn(
-                "Index names beginning with 'level_' are not round-trippable."
+                "Index names beginning with 'level_' are not round-trippable.",
+                stacklevel=find_stack_level(),
             )
         return data
 
@@ -197,6 +202,9 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     elif typ == "datetime":
         if field.get("tz"):
             return f"datetime64[ns, {field['tz']}]"
+        elif field.get("freq"):
+            # GH#47747 using datetime over period to minimize the change surface
+            return f"period[{field['freq']}]"
         else:
             return "datetime64[ns]"
     elif typ == "any":

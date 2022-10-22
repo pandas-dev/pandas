@@ -8,8 +8,10 @@ import copy
 from functools import partial
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
+    Generator,
     Hashable,
     Sequence,
     overload,
@@ -23,9 +25,9 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._typing import (
     Axis,
+    AxisInt,
     FilePath,
     IndexLabel,
-    IntervalInclusiveType,
     Level,
     QuantileInterpolation,
     Scalar,
@@ -69,6 +71,9 @@ from pandas.io.formats.style_render import (
     refactor_levels,
 )
 
+if TYPE_CHECKING:
+    from matplotlib.colors import Colormap
+
 try:
     import matplotlib as mpl
     import matplotlib.pyplot as plt
@@ -80,7 +85,7 @@ except ImportError:
 
 
 @contextmanager
-def _mpl(func: Callable):
+def _mpl(func: Callable) -> Generator[tuple[Any, Any], None, None]:
     if has_mpl:
         yield plt, mpl
     else:
@@ -99,7 +104,7 @@ props = """props : str, default None
            CSS properties to use for highlighting. If ``props`` is given, ``color``
            is not used."""
 
-color = """color : str, default 'yellow'
+color = """color : str, default '{default}'
            Background color to use for highlighting."""
 
 buf = """buf : str, path object, file-like object, optional
@@ -828,7 +833,7 @@ class Styler(StylerRenderer):
         ``display_value`` with the default structure:
         ``\<command><options> <display_value>``.
         Where there are multiple commands the latter is nested recursively, so that
-        the above example highlighed cell is rendered as
+        the above example highlighted cell is rendered as
         ``\cellcolor{red} \bfseries 4``.
 
         Occasionally this format does not suit the applied command, or
@@ -1479,8 +1484,7 @@ class Styler(StylerRenderer):
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
-        Set the DataFrame of strings added to the ``class`` attribute of ``<td>``
-        HTML elements.
+        Set the ``class`` attribute of ``<td>`` HTML elements.
 
         Parameters
         ----------
@@ -1582,7 +1586,7 @@ class Styler(StylerRenderer):
                 i = self.index.get_loc(rn)
                 self.ctx[(i, j)].extend(css_list)
 
-    def _update_ctx_header(self, attrs: DataFrame, axis: int) -> None:
+    def _update_ctx_header(self, attrs: DataFrame, axis: AxisInt) -> None:
         """
         Update the state of the ``Styler`` for header cells.
 
@@ -1854,7 +1858,7 @@ class Styler(StylerRenderer):
     def _apply_index(
         self,
         func: Callable,
-        axis: int | str = 0,
+        axis: Axis = 0,
         level: Level | list[Level] | None = None,
         method: str = "apply",
         **kwargs,
@@ -1888,7 +1892,7 @@ class Styler(StylerRenderer):
     def apply_index(
         self,
         func: Callable,
-        axis: int | str = 0,
+        axis: AxisInt | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
     ) -> Styler:
@@ -1973,7 +1977,7 @@ class Styler(StylerRenderer):
     def applymap_index(
         self,
         func: Callable,
-        axis: int | str = 0,
+        axis: AxisInt | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
     ) -> Styler:
@@ -2500,7 +2504,7 @@ class Styler(StylerRenderer):
     def set_table_styles(
         self,
         table_styles: dict[Any, CSSStyles] | CSSStyles | None = None,
-        axis: int = 0,
+        axis: AxisInt = 0,
         overwrite: bool = True,
         css_class_names: dict[str, str] | None = None,
     ) -> Styler:
@@ -2977,16 +2981,25 @@ class Styler(StylerRenderer):
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
 
+    def _get_numeric_subset_default(self):
+        # Returns a boolean mask indicating where `self.data` has numerical columns.
+        # Choosing a mask as opposed to the column names also works for
+        # boolean column labels (GH47838).
+        return self.data.columns.isin(self.data.select_dtypes(include=np.number))
+
     @doc(
         name="background",
         alt="text",
         image_prefix="bg",
-        text_threshold="",
+        text_threshold="""text_color_threshold : float or int\n
+            Luminance threshold for determining text color in [0, 1]. Facilitates text\n
+            visibility across varying background colors. All text is dark if 0, and\n
+            light if 1, defaults to 0.408.""",
     )
     @Substitution(subset=subset)
     def background_gradient(
         self,
-        cmap="PuBu",
+        cmap: str | Colormap = "PuBu",
         low: float = 0,
         high: float = 0,
         axis: Axis | None = 0,
@@ -3020,11 +3033,7 @@ class Styler(StylerRenderer):
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         %(subset)s
-        text_color_threshold : float or int
-            {text_threshold}
-            Luminance threshold for determining text color in [0, 1]. Facilitates text
-            visibility across varying background colors. All text is dark if 0, and
-            light if 1, defaults to 0.408.
+        {text_threshold}
         vmin : float, optional
             Minimum data value that corresponds to colormap minimum value.
             If not specified the minimum value of the data (or gmap) will be used.
@@ -3120,7 +3129,7 @@ class Styler(StylerRenderer):
         .. figure:: ../../_static/style/{image_prefix}_axNone_gmap.png
         """
         if subset is None and gmap is None:
-            subset = self.data.select_dtypes(include=np.number).columns
+            subset = self._get_numeric_subset_default()
 
         self.apply(
             _background_gradient,
@@ -3141,11 +3150,11 @@ class Styler(StylerRenderer):
         name="text",
         alt="background",
         image_prefix="tg",
-        text_threshold="This argument is ignored (only used in `background_gradient`).",
+        text_threshold="",
     )
     def text_gradient(
         self,
-        cmap="PuBu",
+        cmap: str | Colormap = "PuBu",
         low: float = 0,
         high: float = 0,
         axis: Axis | None = 0,
@@ -3155,7 +3164,7 @@ class Styler(StylerRenderer):
         gmap: Sequence | None = None,
     ) -> Styler:
         if subset is None and gmap is None:
-            subset = self.data.select_dtypes(include=np.number).columns
+            subset = self._get_numeric_subset_default()
 
         return self.apply(
             _background_gradient,
@@ -3173,8 +3182,7 @@ class Styler(StylerRenderer):
     @Substitution(subset=subset)
     def set_properties(self, subset: Subset | None = None, **kwargs) -> Styler:
         """
-        Set defined CSS-properties to each ``<td>`` HTML element within the given
-        subset.
+        Set defined CSS-properties to each ``<td>`` HTML element for the given subset.
 
         Parameters
         ----------
@@ -3213,7 +3221,7 @@ class Styler(StylerRenderer):
         cmap: Any | None = None,
         width: float = 100,
         height: float = 100,
-        align: str | float | int | Callable = "mid",
+        align: str | float | Callable = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
         props: str = "width: 10em;",
@@ -3308,7 +3316,7 @@ class Styler(StylerRenderer):
             raise ValueError(f"`height` must be a value in [0, 100], got {height}")
 
         if subset is None:
-            subset = self.data.select_dtypes(include=np.number).columns
+            subset = self._get_numeric_subset_default()
 
         self.apply(
             _bar,
@@ -3326,13 +3334,13 @@ class Styler(StylerRenderer):
 
         return self
 
-    @Substitution(subset=subset, props=props, color=color)
+    @Substitution(subset=subset, props=props, color=color.format(default="red"))
     def highlight_null(
         self,
         color: str | None = None,
         subset: Subset | None = None,
         props: str | None = None,
-        null_color=lib.no_default,
+        null_color: str | lib.NoDefault = lib.no_default,
     ) -> Styler:
         """
         Highlight missing values with a style.
@@ -3388,7 +3396,7 @@ class Styler(StylerRenderer):
             props = f"background-color: {color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_max(
         self,
         subset: Subset | None = None,
@@ -3432,7 +3440,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_min(
         self,
         subset: Subset | None = None,
@@ -3476,7 +3484,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_between(
         self,
         subset: Subset | None = None,
@@ -3484,7 +3492,7 @@ class Styler(StylerRenderer):
         axis: Axis | None = 0,
         left: Scalar | Sequence | None = None,
         right: Scalar | Sequence | None = None,
-        inclusive: IntervalInclusiveType = "both",
+        inclusive: str = "both",
         props: str | None = None,
     ) -> Styler:
         """
@@ -3580,7 +3588,7 @@ class Styler(StylerRenderer):
             inclusive=inclusive,
         )
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_quantile(
         self,
         subset: Subset | None = None,
@@ -3589,7 +3597,7 @@ class Styler(StylerRenderer):
         q_left: float = 0.0,
         q_right: float = 1.0,
         interpolation: QuantileInterpolation = "linear",
-        inclusive: IntervalInclusiveType = "both",
+        inclusive: str = "both",
         props: str | None = None,
     ) -> Styler:
         """
@@ -3902,7 +3910,7 @@ def _validate_apply_axis_arg(
 
 def _background_gradient(
     data,
-    cmap="PuBu",
+    cmap: str | Colormap = "PuBu",
     low: float = 0,
     high: float = 0,
     text_color_threshold: float = 0.408,
@@ -3925,7 +3933,15 @@ def _background_gradient(
         rng = smax - smin
         # extend lower / upper bounds, compresses color range
         norm = mpl.colors.Normalize(smin - (rng * low), smax + (rng * high))
-        rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+
+        if mpl_ge_3_6_0():
+            if cmap is None:
+                rgbas = mpl.colormaps[mpl.rcParams["image.cmap"]](norm(gmap))
+            else:
+                rgbas = mpl.colormaps[cmap](norm(gmap))
+        else:
+            rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
 
         def relative_luminance(rgba) -> float:
             """
@@ -3974,7 +3990,7 @@ def _highlight_between(
     props: str,
     left: Scalar | Sequence | np.ndarray | NDFrame | None = None,
     right: Scalar | Sequence | np.ndarray | NDFrame | None = None,
-    inclusive: bool | IntervalInclusiveType = True,
+    inclusive: bool | str = True,
 ) -> np.ndarray:
     """
     Return an array of css props based on condition of data values within given range.
@@ -4039,7 +4055,7 @@ def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarra
 
 def _bar(
     data: NDFrame,
-    align: str | float | int | Callable,
+    align: str | float | Callable,
     colors: str | list | tuple,
     cmap: Any,
     width: float,
@@ -4194,7 +4210,7 @@ def _bar(
         z, align = align(values), "zero"
     elif isinstance(align, (float, int)):
         z, align = float(align), "zero"
-    elif not (align == "left" or align == "right" or align == "zero"):
+    elif align not in ("left", "right", "zero"):
         raise ValueError(
             "`align` should be in {'left', 'right', 'mid', 'mean', 'zero'} or be a "
             "value defining the center line or a callable that returns a float"
@@ -4204,8 +4220,10 @@ def _bar(
     if cmap is not None:
         # use the matplotlib colormap input
         with _mpl(Styler.bar) as (plt, mpl):
+            from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+
             cmap = (
-                mpl.cm.get_cmap(cmap)
+                (mpl.colormaps[cmap] if mpl_ge_3_6_0() else mpl.cm.get_cmap(cmap))
                 if isinstance(cmap, str)
                 else cmap  # assumed to be a Colormap instance as documented
             )

@@ -158,12 +158,16 @@ def test_numpy_compat(method):
     # see gh-12811
     r = Rolling(Series([2, 4, 6]), window=2)
 
-    msg = "numpy operations are not valid with window objects"
+    error_msg = "numpy operations are not valid with window objects"
 
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(r, method)(1, 2, 3)
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(r, method)(dtype=np.float64)
+    warn_msg = f"Passing additional args to Rolling.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(r, method)(1, 2, 3)
+    warn_msg = f"Passing additional kwargs to Rolling.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(r, method)(dtype=np.float64)
 
 
 @pytest.mark.parametrize("closed", ["right", "left", "both", "neither"])
@@ -734,8 +738,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
     expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
 
     # GH 31302
-    with tm.assert_produces_warning(FutureWarning):
-        result = frame_or_series(values).rolling(3).count()
+    result = frame_or_series(values).rolling(3, min_periods=0).count()
     expected = frame_or_series(expected_counts)
     tm.assert_equal(result, expected)
 

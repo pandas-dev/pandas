@@ -3,10 +3,7 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -42,7 +39,10 @@ from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
 )
-from pandas.core.window.common import zsqrt
+from pandas.core.window.common import (
+    maybe_warn_args_and_kwargs,
+    zsqrt,
+)
 from pandas.core.window.doc import (
     _shared_docs,
     args_compat,
@@ -103,7 +103,7 @@ def get_center_of_mass(
 
 
 def _calculate_deltas(
-    times: str | np.ndarray | NDFrame | None,
+    times: np.ndarray | NDFrame,
     halflife: float | TimedeltaConvertibleTypes | None,
 ) -> np.ndarray:
     """
@@ -112,7 +112,7 @@ def _calculate_deltas(
 
     Parameters
     ----------
-    times : str, np.ndarray, Series, default None
+    times : np.ndarray, Series
         Times corresponding to the observations. Must be monotonically increasing
         and ``datetime64[ns]`` dtype.
     halflife : float, str, timedelta, optional
@@ -123,14 +123,9 @@ def _calculate_deltas(
     np.ndarray
         Diff of the times divided by the half-life
     """
-    # error: Item "str" of "Union[str, ndarray, NDFrameT, None]" has no
-    # attribute "view"
-    # error: Item "None" of "Union[str, ndarray, NDFrameT, None]" has no
-    # attribute "view"
-    _times = np.asarray(
-        times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
-    )
-    _halflife = float(Timedelta(halflife).value)
+    _times = np.asarray(times.view(np.int64), dtype=np.float64)
+    # TODO: generalize to non-nano?
+    _halflife = float(Timedelta(halflife)._as_unit("ns").value)
     return np.diff(_times) / _halflife
 
 
@@ -217,7 +212,7 @@ class ExponentialMovingWindow(BaseWindow):
 
         For `Series` this parameter is unused and defaults to 0.
 
-    times : str, np.ndarray, Series, default None
+    times : np.ndarray, Series, default None
 
         .. versionadded:: 1.1.0
 
@@ -227,9 +222,6 @@ class ExponentialMovingWindow(BaseWindow):
         ``datetime64[ns]`` dtype.
 
         If 1-D array like, a sequence with the same shape as the observations.
-
-        .. deprecated:: 1.4.0
-            If str, the name of the column in the DataFrame representing the times.
 
     method : str {'single', 'table'}, default 'single'
         .. versionadded:: 1.4.0
@@ -355,7 +347,7 @@ class ExponentialMovingWindow(BaseWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | NDFrame | None = None,
+        times: np.ndarray | NDFrame | None = None,
         method: str = "single",
         *,
         selection=None,
@@ -380,18 +372,6 @@ class ExponentialMovingWindow(BaseWindow):
         if self.times is not None:
             if not self.adjust:
                 raise NotImplementedError("times is not supported with adjust=False.")
-            if isinstance(self.times, str):
-                warnings.warn(
-                    (
-                        "Specifying times as a string column label is deprecated "
-                        "and will be removed in a future version. Pass the column "
-                        "into times instead."
-                    ),
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                # self.times cannot be str anymore
-                self.times = cast("Series", self._selected_obj[self.times])
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
             if len(self.times) != len(obj):
@@ -443,7 +423,7 @@ class ExponentialMovingWindow(BaseWindow):
         return ExponentialMovingWindowIndexer()
 
     def online(
-        self, engine="numba", engine_kwargs=None
+        self, engine: str = "numba", engine_kwargs=None
     ) -> OnlineExponentialMovingWindow:
         """
         Return an ``OnlineExponentialMovingWindow`` object to calculate
@@ -546,6 +526,7 @@ class ExponentialMovingWindow(BaseWindow):
         engine_kwargs=None,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "mean", args, kwargs)
         if maybe_use_numba(engine):
             if self.method == "single":
                 func = generate_numba_ewm_func
@@ -603,6 +584,7 @@ class ExponentialMovingWindow(BaseWindow):
         engine_kwargs=None,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "sum", args, kwargs)
         if not self.adjust:
             raise NotImplementedError("sum is not implemented with adjust=False")
         if maybe_use_numba(engine):
@@ -658,6 +640,7 @@ class ExponentialMovingWindow(BaseWindow):
         agg_method="std",
     )
     def std(self, bias: bool = False, numeric_only: bool = False, *args, **kwargs):
+        maybe_warn_args_and_kwargs(type(self), "std", args, kwargs)
         nv.validate_window_func("std", args, kwargs)
         if (
             numeric_only
@@ -702,6 +685,7 @@ class ExponentialMovingWindow(BaseWindow):
         agg_method="var",
     )
     def var(self, bias: bool = False, numeric_only: bool = False, *args, **kwargs):
+        maybe_warn_args_and_kwargs(type(self), "var", args, kwargs)
         nv.validate_window_func("var", args, kwargs)
         window_func = window_aggregations.ewmcov
         wfunc = partial(
@@ -756,6 +740,7 @@ class ExponentialMovingWindow(BaseWindow):
     ):
         from pandas import Series
 
+        maybe_warn_args_and_kwargs(type(self), "cov", None, kwargs)
         self._validate_numeric_only("cov", numeric_only)
 
         def cov_func(x, y):
@@ -829,6 +814,7 @@ class ExponentialMovingWindow(BaseWindow):
     ):
         from pandas import Series
 
+        maybe_warn_args_and_kwargs(type(self), "corr", None, kwargs)
         self._validate_numeric_only("corr", numeric_only)
 
         def cov_func(x, y):
@@ -887,7 +873,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             # sort the times and recalculate the deltas according to the groups
             groupby_order = np.concatenate(list(self._grouper.indices.values()))
             self._deltas = _calculate_deltas(
-                self.times.take(groupby_order),  # type: ignore[union-attr]
+                self.times.take(groupby_order),
                 self.halflife,
             )
 
@@ -918,7 +904,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | NDFrame | None = None,
+        times: np.ndarray | NDFrame | None = None,
         engine: str = "numba",
         engine_kwargs: dict[str, bool] | None = None,
         *,
@@ -957,10 +943,10 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         self._mean.reset()
 
     def aggregate(self, func, *args, **kwargs):
-        return NotImplementedError
+        raise NotImplementedError("aggregate is not implemented.")
 
     def std(self, bias: bool = False, *args, **kwargs):
-        return NotImplementedError
+        raise NotImplementedError("std is not implemented.")
 
     def corr(
         self,
@@ -969,7 +955,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NotImplementedError
+        raise NotImplementedError("corr is not implemented.")
 
     def cov(
         self,
@@ -979,10 +965,10 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NotImplementedError
+        raise NotImplementedError("cov is not implemented.")
 
     def var(self, bias: bool = False, *args, **kwargs):
-        return NotImplementedError
+        raise NotImplementedError("var is not implemented.")
 
     def mean(self, *args, update=None, update_times=None, **kwargs):
         """

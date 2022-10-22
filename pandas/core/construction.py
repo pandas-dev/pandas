@@ -44,10 +44,10 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
     maybe_upcast,
-    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
@@ -326,6 +326,14 @@ def array(
     # this returns None for not-found dtypes.
     if isinstance(dtype, str):
         dtype = registry.find(dtype) or dtype
+
+    if isinstance(data, ExtensionArray) and (
+        dtype is None or is_dtype_equal(dtype, data.dtype)
+    ):
+        # e.g. TimedeltaArray[s], avoid casting to PandasArray
+        if copy:
+            return data.copy()
+        return data
 
     if is_extension_array_dtype(dtype):
         cls = cast(ExtensionDtype, dtype).construct_array_type()
@@ -772,7 +780,9 @@ def _try_cast(
         if is_ndarray:
             arr = cast(np.ndarray, arr)
             if arr.dtype != object:
-                return sanitize_to_nanoseconds(arr, copy=copy)
+                if copy:
+                    return arr.copy()
+                return arr
 
             out = maybe_infer_to_datetimelike(arr)
             if out is arr and copy:

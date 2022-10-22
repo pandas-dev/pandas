@@ -598,6 +598,64 @@ def test_map_dict_na_key():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_action", [None, "ignore"])
+def test_map_defaultdict_na_key(na_action):
+    # GH 48813
+    s = Series([1, 2, np.nan])
+    default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", np.nan: "c"})
+    result = s.map(default_map, na_action=na_action)
+    expected = Series({0: "a", 1: "b", 2: "c" if na_action is None else np.nan})
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_action", [None, "ignore"])
+def test_map_defaultdict_missing_key(na_action):
+    # GH 48813
+    s = Series([1, 2, np.nan])
+    default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", 3: "c"})
+    result = s.map(default_map, na_action=na_action)
+    expected = Series({0: "a", 1: "b", 2: "missing" if na_action is None else np.nan})
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_action", [None, "ignore"])
+def test_map_defaultdict_unmutated(na_action):
+    # GH 48813
+    s = Series([1, 2, np.nan])
+    default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", np.nan: "c"})
+    expected_default_map = default_map.copy()
+    s.map(default_map, na_action=na_action)
+    assert default_map == expected_default_map
+
+
+@pytest.mark.parametrize("arg_func", [dict, Series])
+def test_map_dict_ignore_na(arg_func):
+    # GH#47527
+    mapping = arg_func({1: 10, np.nan: 42})
+    ser = Series([1, np.nan, 2])
+    result = ser.map(mapping, na_action="ignore")
+    expected = Series([10, np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_defaultdict_ignore_na():
+    # GH#47527
+    mapping = defaultdict(int, {1: 10, np.nan: 42})
+    ser = Series([1, np.nan, 2])
+    result = ser.map(mapping)
+    expected = Series([10, 42, 0])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_categorical_na_ignore():
+    # GH#47527
+    values = pd.Categorical([1, np.nan, 2], categories=[10, 1])
+    ser = Series(values)
+    result = ser.map({1: 10, np.nan: 42})
+    expected = Series([10, np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_dict_subclass_with_missing():
     """
     Test Series.map with a dictionary subclass that defines __missing__,
@@ -640,7 +698,7 @@ def test_map_abc_mapping_with_missing(non_dict_mapping_subclass):
     # https://github.com/pandas-dev/pandas/issues/29733
     # Check collections.abc.Mapping support as mapper for Series.map
     class NonDictMappingWithMissing(non_dict_mapping_subclass):
-        def __missing__(key):
+        def __missing__(self, key):
             return "missing"
 
     s = Series([1, 2, 3])

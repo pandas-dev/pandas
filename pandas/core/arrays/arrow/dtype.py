@@ -3,9 +3,9 @@ from __future__ import annotations
 import re
 
 import numpy as np
-import pyarrow as pa
 
 from pandas._typing import DtypeObj
+from pandas.compat import pa_version_under6p0
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import (
@@ -13,24 +13,70 @@ from pandas.core.dtypes.base import (
     register_extension_dtype,
 )
 
+if not pa_version_under6p0:
+    import pyarrow as pa
+
 
 @register_extension_dtype
 class ArrowDtype(StorageExtensionDtype):
     """
-    Base class for dtypes for ArrowExtensionArray.
-    Modeled after BaseMaskedDtype
-    """
+    An ExtensionDtype for PyArrow data types.
+
+    .. warning::
+
+       ArrowDtype is considered experimental. The implementation and
+       parts of the API may change without warning.
+
+    While most ``dtype`` arguments can accept the "string"
+    constructor, e.g. ``"int64[pyarrow]"``, ArrowDtype is useful
+    if the data type contains parameters like ``pyarrow.timestamp``.
+
+    Parameters
+    ----------
+    pyarrow_dtype : pa.DataType
+        An instance of a `pyarrow.DataType <https://arrow.apache.org/docs/python/api/datatypes.html#factory-functions>`__.
+
+    Attributes
+    ----------
+    pyarrow_dtype
+
+    Methods
+    -------
+    None
+
+    Returns
+    -------
+    ArrowDtype
+
+    Examples
+    --------
+    >>> import pyarrow as pa
+    >>> pd.ArrowDtype(pa.int64())
+    int64[pyarrow]
+
+    Types with parameters must be constructed with ArrowDtype.
+
+    >>> pd.ArrowDtype(pa.timestamp("s", tz="America/New_York"))
+    timestamp[s, tz=America/New_York][pyarrow]
+    >>> pd.ArrowDtype(pa.list_(pa.int64()))
+    list<item: int64>[pyarrow]
+    """  # noqa: E501
 
     _metadata = ("storage", "pyarrow_dtype")  # type: ignore[assignment]
 
     def __init__(self, pyarrow_dtype: pa.DataType) -> None:
         super().__init__("pyarrow")
+        if pa_version_under6p0:
+            raise ImportError("pyarrow>=6.0.0 is required for ArrowDtype")
         if not isinstance(pyarrow_dtype, pa.DataType):
             raise ValueError(
                 f"pyarrow_dtype ({pyarrow_dtype}) must be an instance "
                 f"of a pyarrow.DataType. Got {type(pyarrow_dtype)} instead."
             )
         self.pyarrow_dtype = pyarrow_dtype
+
+    def __repr__(self) -> str:
+        return self.name
 
     @property
     def type(self):
@@ -93,6 +139,9 @@ class ArrowDtype(StorageExtensionDtype):
             )
         if not string.endswith("[pyarrow]"):
             raise TypeError(f"'{string}' must end with '[pyarrow]'")
+        if string == "string[pyarrow]":
+            # Ensure Registry.find skips ArrowDtype to use StringDtype instead
+            raise TypeError("string[pyarrow] should be constructed by StringDtype")
         base_type = string.split("[pyarrow]")[0]
         try:
             pa_dtype = pa.type_for_alias(base_type)

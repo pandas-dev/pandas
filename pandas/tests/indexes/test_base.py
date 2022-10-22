@@ -8,8 +8,14 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-from pandas.errors import InvalidIndexError
+from pandas.compat import (
+    IS64,
+    pa_version_under7p0,
+)
+from pandas.errors import (
+    InvalidIndexError,
+    PerformanceWarning,
+)
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -61,6 +67,22 @@ class TestIndex(Base):
             new_index = index[None, :]
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
+
+    def test_argsort(self, index):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_argsort(index)
+
+    def test_numpy_argsort(self, index):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_numpy_argsort(index)
 
     def test_constructor_regular(self, index):
         tm.assert_contains_all(index, index)
@@ -222,8 +244,9 @@ class TestIndex(Base):
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        warn = None if tz_naive_fixture is None else FutureWarning
-        # astype dt64 -> dt64tz deprecated
+        # As of 2.0 astype raises on dt64.astype(dt64tz)
+        err = tz_naive_fixture is not None
+        msg = "Cannot use .astype to convert from timezone-naive dtype to"
 
         if attr == "asi8":
             result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
@@ -232,11 +255,15 @@ class TestIndex(Base):
         tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            with tm.assert_produces_warning(warn):
+            if err:
+                with pytest.raises(TypeError, match=msg):
+                    DatetimeIndex(arg).astype(dtype)
+            else:
                 result = DatetimeIndex(arg).astype(dtype)
+                tm.assert_index_equal(result, index)
         else:
             result = klass(arg, dtype=dtype)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
         if attr == "asi8":
             result = DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
@@ -245,11 +272,15 @@ class TestIndex(Base):
         tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            with tm.assert_produces_warning(warn):
+            if err:
+                with pytest.raises(TypeError, match=msg):
+                    DatetimeIndex(list(arg)).astype(dtype)
+            else:
                 result = DatetimeIndex(list(arg)).astype(dtype)
+                tm.assert_index_equal(result, index)
         else:
             result = klass(list(arg), dtype=dtype)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
@@ -1283,19 +1314,6 @@ class TestMixedIntIndex(Base):
         assert index.name == "MyName"
         assert index2.name == "NewName"
 
-        with tm.assert_produces_warning(FutureWarning):
-            index3 = index.copy(names=["NewName"])
-        tm.assert_index_equal(index, index3, check_names=False)
-        assert index.name == "MyName"
-        assert index.names == ["MyName"]
-        assert index3.name == "NewName"
-        assert index3.names == ["NewName"]
-
-    def test_copy_names_deprecated(self, simple_index):
-        # GH44916
-        with tm.assert_produces_warning(FutureWarning):
-            simple_index.copy(names=["a"])
-
     def test_unique_na(self):
         idx = Index([2, np.nan, 2, 1], name="my_index")
         expected = Index([2, np.nan, 1], name="my_index")
@@ -1432,10 +1450,10 @@ class TestIndexUtils:
     def test_ensure_index_mixed_closed_intervals(self):
         # GH27172
         intervals = [
-            pd.Interval(0, 1, inclusive="left"),
-            pd.Interval(1, 2, inclusive="right"),
-            pd.Interval(2, 3, inclusive="neither"),
-            pd.Interval(3, 4, inclusive="both"),
+            pd.Interval(0, 1, closed="left"),
+            pd.Interval(1, 2, closed="right"),
+            pd.Interval(2, 3, closed="neither"),
+            pd.Interval(3, 4, closed="both"),
         ]
         result = ensure_index(intervals)
         expected = Index(intervals, dtype=object)

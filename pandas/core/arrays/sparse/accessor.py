@@ -58,7 +58,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
             raise ValueError
 
     @classmethod
-    def from_coo(cls, A, dense_index=False) -> Series:
+    def from_coo(cls, A, dense_index: bool = False) -> Series:
         """
         Create a Series with sparse values from a scipy.sparse.coo_matrix.
 
@@ -66,9 +66,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         ----------
         A : scipy.sparse.coo_matrix
         dense_index : bool, default False
-            If False (default), the SparseSeries index consists of only the
+            If False (default), the index consists of only the
             coords of the non-null entries of the original coo_matrix.
-            If True, the SparseSeries index consists of the full sorted
+            If True, the index consists of the full sorted
             (row, col) coordinates of the coo_matrix.
 
         Returns
@@ -107,7 +107,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
         return result
 
-    def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels=False):
+    def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels: bool = False):
         """
         Create a scipy.sparse.coo_matrix from a Series with MultiIndex.
 

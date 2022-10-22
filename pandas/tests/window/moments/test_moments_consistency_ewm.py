@@ -220,9 +220,10 @@ def test_ewm_consistency_series_cov_corr(
 
     # check that corr(x, y) == cov(x, y) / (std(x) *
     # std(y))
-    corr_x_y = series_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).corr(series_data, bias=bias)
+    with tm.assert_produces_warning(FutureWarning, match="Passing additional kwargs"):
+        corr_x_y = series_data.ewm(
+            com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+        ).corr(series_data, bias=bias)
     std_x = series_data.ewm(
         com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
     ).std(bias=bias)

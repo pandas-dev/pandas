@@ -202,6 +202,7 @@ def test_engine_kwargs_not_cached():
 
 
 @td.skip_if_no("numba")
+@pytest.mark.filterwarnings("ignore")
 def test_multiindex_one_key(nogil, parallel, nopython):
     def numba_func(values, index):
         return 1

@@ -1,6 +1,8 @@
 """
 Functions to generate methods and pin them to the appropriate classes.
 """
+from __future__ import annotations
+
 import operator
 
 from pandas.core.dtypes.generic import (
@@ -117,6 +119,6 @@ def _create_methods(cls, arith_method, comp_method):
     return new_methods
 
 
-def _add_methods(cls, new_methods):
+def _add_methods(cls, new_methods) -> None:
     for name, method in new_methods.items():
         setattr(cls, name, method)

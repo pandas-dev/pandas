@@ -1,4 +1,5 @@
 from collections import deque
+import re
 import string
 
 import numpy as np
@@ -434,11 +435,11 @@ def test_object_dtype_ok():
 
 def test_outer():
     # https://github.com/pandas-dev/pandas/issues/27186
-    s = pd.Series([1, 2, 3])
-    o = np.array([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
+    obj = np.array([1, 2, 3])
 
     with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        np.subtract.outer(s, o)
+        np.subtract.outer(ser, obj)
 
 
 def test_np_matmul():
@@ -446,7 +447,32 @@ def test_np_matmul():
     df1 = pd.DataFrame(data=[[-1, 1, 10]])
     df2 = pd.DataFrame(data=[-1, 1, 10])
     expected_result = pd.DataFrame(data=[102])
+
+    with tm.assert_produces_warning(FutureWarning, match="on non-aligned"):
+        result = np.matmul(df1, df2)
     tm.assert_frame_equal(
         expected_result,
-        np.matmul(df1, df2),
+        result,
     )
+
+
+def test_array_ufuncs_for_many_arguments():
+    # GH39853
+    def add3(x, y, z):
+        return x + y + z
+
+    ufunc = np.frompyfunc(add3, 3, 1)
+    ser = pd.Series([1, 2])
+
+    result = ufunc(ser, ser, 1)
+    expected = pd.Series([3, 5], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+    df = pd.DataFrame([[1, 2]])
+
+    msg = (
+        "Cannot apply ufunc <ufunc 'add3 (vectorized)'> "
+        "to mixed DataFrame and Series inputs."
+    )
+    with pytest.raises(NotImplementedError, match=re.escape(msg)):
+        ufunc(ser, ser, df)

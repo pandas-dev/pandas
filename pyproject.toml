@@ -4,12 +4,36 @@
 requires = [
     "setuptools>=51.0.0",
     "wheel",
-    "Cython>=0.29.24,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython>=0.29.32,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=0.10"
 ]
 # uncomment to enable pep517 after versioneer problem is fixed.
 # https://github.com/python-versioneer/python-versioneer/issues/193
 # build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
+build-verbosity = "3"
+test-requires = "hypothesis==6.52.1 pytest>=6.2.5 pytest-xdist pytest-asyncio>=0.17"
+test-command = "python {project}/ci/test_wheels.py"
+
+[tool.cibuildwheel.macos]
+archs = "x86_64 universal2"
+test-skip = "*_arm64 *_universal2:arm64"
+
+[tool.cibuildwheel.windows]
+repair-wheel-command = "python ci/fix_wheels.py {wheel} {dest_dir}"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-win*"
+# We test separately for Windows, since we use
+# the base windows docker image to check if any dlls are
+# missing from the wheel
+test-command = ""
+
+[[tool.cibuildwheel.overrides]]
+select = "*-win32"
+environment = { IS_32_BIT="true" }
 
 [tool.black]
 target-version = ['py38', 'py39']
@@ -31,10 +55,157 @@ exclude = '''
 )
 '''
 
+[tool.pylint.messages_control]
+max-line-length = 88
+disable = [
+  "abstract-class-instantiated",
+  "access-member-before-definition",
+  "import-error",
+  "invalid-repr-returned",
+  "invalid-unary-operand-type",
+  "no-member",
+  "no-name-in-module",
+  "no-value-for-parameter",
+  "not-an-iterable",
+  "not-callable",
+  "redundant-keyword-arg",
+  "too-many-function-args",
+  "undefined-variable",
+  "unexpected-keyword-arg",
+  "unpacking-non-sequence",
+  "unsubscriptable-object",
+  "unsupported-assignment-operation",
+  "unsupported-membership-test",
+  "used-before-assignment",
+
+ # pylint type "C": convention, for programming standard violation
+  "consider-iterating-dictionary",
+  "consider-using-dict-items",
+  "consider-using-f-string",
+  "disallowed-name",
+  "import-outside-toplevel",
+  "invalid-name",
+  "line-too-long",
+  "missing-class-docstring",
+  "missing-function-docstring",
+  "missing-module-docstring",
+  "singleton-comparison",
+  "superfluous-parens",
+  "too-many-lines",
+  "typevar-name-incorrect-variance",
+  "ungrouped-imports",
+  "unidiomatic-typecheck",
+  "unnecessary-dunder-call",
+  "unnecessary-lambda-assignment",
+  "unneeded-not",
+  "use-implicit-booleaness-not-comparison",
+  "use-implicit-booleaness-not-len",
+  "use-maxsplit-arg",
+  "use-sequence-for-iteration",
+  "useless-import-alias",
+  "wrong-import-order",
+  "wrong-import-position",
+
+  # pylint type "R": refactor, for bad code smell
+  "chained-comparison",
+  "comparison-of-constants",
+  "comparison-with-itself",
+  "consider-merging-isinstance",
+  "consider-using-from-import",
+  "consider-using-get",
+  "consider-using-min-builtin",
+  "consider-using-sys-exit",
+  "consider-using-ternary",
+  "consider-using-with",
+  "cyclic-import",
+  "duplicate-code",
+  "inconsistent-return-statements",
+  "invalid-sequence-index",
+  "literal-comparison",
+  "no-else-continue",
+  "no-else-raise",
+  "no-else-return",
+  "no-self-use",
+  "redefined-argument-from-local",
+  "simplifiable-if-expression",
+  "simplifiable-if-statement",
+  "too-few-public-methods",
+  "too-many-ancestors",
+  "too-many-arguments",
+  "too-many-boolean-expressions",
+  "too-many-branches",
+  "too-many-instance-attributes",
+  "too-many-locals",
+  "too-many-locals",
+  "too-many-nested-blocks",
+  "too-many-public-methods",
+  "too-many-return-statements",
+  "too-many-statements",
+  "unnecessary-comprehension",
+  "unnecessary-list-index-lookup",
+  "use-a-generator",
+  "useless-option-value",
+  "useless-return",
+
+  # pylint type "W": warning, for python specific problems
+  "abstract-method",
+  "arguments-differ",
+  "arguments-out-of-order",
+  "arguments-renamed",
+  "attribute-defined-outside-init",
+  "broad-except",
+  "cell-var-from-loop",
+  "comparison-with-callable",
+  "confusing-with-statement",
+  "dangerous-default-value",
+  "deprecated-module",
+  "duplicate-value",
+  "eval-used",
+  "expression-not-assigned",
+  "fixme",
+  "global-statement",
+  "global-variable-not-assigned",
+  "import-self",
+  "invalid-envvar-default",
+  "invalid-overridden-method",
+  "keyword-arg-before-vararg",
+  "method-cache-max-size-none",
+  "nan-comparison",
+  "non-parent-init-called",
+  "overridden-final-method",
+  "pointless-statement",
+  "pointless-string-statement",
+  "possibly-unused-variable",
+  "protected-access",
+  "raise-missing-from",
+  "redefined-builtin",
+  "redefined-outer-name",
+  "reimported",
+  "self-assigning-variable",
+  "self-cls-assignment",
+  "signature-differs",
+  "subprocess-run-check",
+  "super-init-not-called",
+  "try-except-raise",
+  "undefined-loop-variable",
+  "unnecessary-lambda",
+  "unnecessary-pass",
+  "unspecified-encoding",
+  "unused-argument",
+  "unused-import",
+  "unused-variable",
+  "unused-wildcard-import",
+  "using-constant-test",
+  "useless-else-on-loop",
+  "useless-parent-delegation",
+  "wildcard-import"
+]
+
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
 minversion =  "6.0"
 addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
+empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
 testpaths = "pandas"
 doctest_optionflags = [
@@ -100,7 +271,6 @@ warn_no_return = true
 warn_return_any = false # TODO
 warn_unreachable = false # GH#27396
 # Suppressing errors
-show_none_errors = true
 ignore_errors = false
 enable_error_code = "ignore-without-code"
 # Miscellaneous strictness flags

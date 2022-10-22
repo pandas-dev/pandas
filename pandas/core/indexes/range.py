@@ -456,24 +456,9 @@ class RangeIndex(NumericIndex):
         return result
 
     @doc(Int64Index.copy)
-    def copy(
-        self,
-        name: Hashable = None,
-        deep: bool = False,
-        dtype: Dtype | None = None,
-        names=None,
-    ):
-        name = self._validate_names(name=name, names=names, deep=deep)[0]
+    def copy(self, name: Hashable = None, deep: bool = False):
+        name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
-
-        if dtype:
-            warnings.warn(
-                "parameter dtype is deprecated and will be removed in a future "
-                "version. Use the astype method instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            new_index = new_index.astype(dtype)
         return new_index
 
     def _minmax(self, meth: str):
@@ -553,8 +538,6 @@ class RangeIndex(NumericIndex):
         na_position: str = "last",
         key: Callable | None = None,
     ):
-        sorted_index = self
-        indexer = RangeIndex(range(len(self)))
         if key is not None:
             return super().sort_values(
                 return_indexer=return_indexer,
@@ -564,24 +547,29 @@ class RangeIndex(NumericIndex):
             )
         else:
             sorted_index = self
+            inverse_indexer = False
             if ascending:
                 if self.step < 0:
                     sorted_index = self[::-1]
-                    indexer = indexer[::-1]
+                    inverse_indexer = True
             else:
                 if self.step > 0:
                     sorted_index = self[::-1]
-                    indexer = indexer = indexer[::-1]
+                    inverse_indexer = True
 
         if return_indexer:
-            return sorted_index, indexer
+            if inverse_indexer:
+                rng = range(len(self) - 1, -1, -1)
+            else:
+                rng = range(len(self))
+            return sorted_index, RangeIndex(rng)
         else:
             return sorted_index
 
     # --------------------------------------------------------------------
     # Set Operations
 
-    def _intersection(self, other: Index, sort=False):
+    def _intersection(self, other: Index, sort: bool = False):
         # caller is responsible for checking self and other are both non-empty
 
         if not isinstance(other, RangeIndex):
@@ -845,11 +833,11 @@ class RangeIndex(NumericIndex):
         # In some cases we can retain RangeIndex, see also
         #  DatetimeTimedeltaMixin._get_delete_Freq
         if is_integer(loc):
-            if loc == 0 or loc == -len(self):
+            if loc in (0, -len(self)):
                 return self[1:]
-            if loc == -1 or loc == len(self) - 1:
+            if loc in (-1, len(self) - 1):
                 return self[:-1]
-            if len(self) == 3 and (loc == 1 or loc == -2):
+            if len(self) == 3 and loc in (1, -2):
                 return self[::2]
 
         elif lib.is_list_like(loc):

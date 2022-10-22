@@ -151,7 +151,8 @@ def test_frame_equal_index_mismatch(check_like, obj_fixture):
 
 {obj_fixture}\\.index values are different \\(33\\.33333 %\\)
 \\[left\\]:  Index\\(\\['a', 'b', 'c'\\], dtype='object'\\)
-\\[right\\]: Index\\(\\['a', 'b', 'd'\\], dtype='object'\\)"""
+\\[right\\]: Index\\(\\['a', 'b', 'd'\\], dtype='object'\\)
+At positional index 2, first diff: c != d"""
 
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "c"])
     df2 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "d"])
@@ -247,7 +248,7 @@ def test_assert_frame_equal_extension_dtype_mismatch():
 
 def test_assert_frame_equal_interval_dtype_mismatch():
     # https://github.com/pandas-dev/pandas/issues/32747
-    left = DataFrame({"a": [pd.Interval(0, 1, "right")]}, dtype="interval")
+    left = DataFrame({"a": [pd.Interval(0, 1)]}, dtype="interval")
     right = left.astype(object)
 
     msg = (
@@ -342,3 +343,26 @@ def test_assert_frame_equal_checking_allow_dups_flag():
 
     with pytest.raises(AssertionError, match="allows_duplicate_labels"):
         tm.assert_frame_equal(left, right, check_flags=True)
+
+
+def test_assert_frame_equal_check_like_categorical_midx():
+    # GH#48975
+    left = DataFrame(
+        [[1], [2], [3]],
+        index=pd.MultiIndex.from_arrays(
+            [
+                pd.Categorical(["a", "b", "c"]),
+                pd.Categorical(["a", "b", "c"]),
+            ]
+        ),
+    )
+    right = DataFrame(
+        [[3], [2], [1]],
+        index=pd.MultiIndex.from_arrays(
+            [
+                pd.Categorical(["c", "b", "a"]),
+                pd.Categorical(["c", "b", "a"]),
+            ]
+        ),
+    )
+    tm.assert_frame_equal(left, right, check_like=True)

@@ -31,6 +31,8 @@ from pandas._libs.tslibs import NaT
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
+    Axis,
+    AxisInt,
     Dtype,
     NpDtype,
     PositionalIndexer,
@@ -42,7 +44,10 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
-from pandas.util._validators import validate_insert_loc
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_insert_loc,
+)
 
 from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.cast import (
@@ -657,7 +662,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self.dtype.fill_value
 
     @fill_value.setter
-    def fill_value(self, value):
+    def fill_value(self, value) -> None:
         self._dtype = SparseDtype(self.dtype.subtype, value)
 
     @property
@@ -774,7 +779,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         elif method is not None:
             msg = "fillna with 'method' requires high memory usage."
-            warnings.warn(msg, PerformanceWarning)
+            warnings.warn(
+                msg,
+                PerformanceWarning,
+                stacklevel=find_stack_level(),
+            )
             new_values = np.asarray(self)
             # interpolate_2d modifies new_values inplace
             interpolate_2d(new_values, method=method, limit=limit)
@@ -821,7 +830,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def _first_fill_value_loc(self):
         """
-        Get the location of the first missing value.
+        Get the location of the first fill value.
 
         Returns
         -------
@@ -834,14 +843,24 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if not len(indices) or indices[0] > 0:
             return 0
 
-        diff = indices[1:] - indices[:-1]
-        return np.searchsorted(diff, 2) + 1
+        # a number larger than 1 should be appended to
+        # the last in case of fill value only appears
+        # in the tail of array
+        diff = np.r_[np.diff(indices), 2]
+        return indices[(diff > 1).argmax()] + 1
 
     def unique(self: SparseArrayT) -> SparseArrayT:
         uniques = algos.unique(self.sp_values)
-        fill_loc = self._first_fill_value_loc()
-        if fill_loc >= 0:
-            uniques = np.insert(uniques, fill_loc, self.fill_value)
+        if len(self.sp_values) != len(self):
+            fill_loc = self._first_fill_value_loc()
+            # Inorder to align the behavior of pd.unique or
+            # pd.Series.unique, we should keep the original
+            # order, here we use unique again to find the
+            # insertion place. Since the length of sp_values
+            # is not large, maybe minor performance hurt
+            # is worthwhile to the correctness.
+            insert_loc = len(algos.unique(self.sp_values[:fill_loc]))
+            uniques = np.insert(uniques, insert_loc, self.fill_value)
         return type(self)._from_sequence(uniques, dtype=self.dtype)
 
     def _values_for_factorize(self):
@@ -861,6 +880,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         codes, uniques = algos.factorize(
             np.asarray(self), na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
         )
+        if na_sentinel is lib.no_default:
+            na_sentinel = -1
+        if use_na_sentinel is lib.no_default or use_na_sentinel:
+            codes[codes == -1] = na_sentinel
         uniques_sp = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques_sp
 
@@ -1360,7 +1383,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Indices: array([1, 2], dtype=int32)
         """
         # this is used in apply.
-        # We get hit since we're an "is_extension_type" but regular extension
+        # We get hit since we're an "is_extension_array_dtype" but regular extension
         # types are not hit. This may be worth adding to the interface.
         if isinstance(mapper, ABCSeries):
             mapper = mapper.to_dict()
@@ -1400,8 +1423,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if isinstance(state, tuple):
             # Compat for pandas < 0.24.0
             nd_state, (fill_value, sp_index) = state
-            # error: Need type annotation for "sparse_values"
-            sparse_values = np.array([])  # type: ignore[var-annotated]
+            sparse_values = np.array([])
             sparse_values.__setstate__(nd_state)
 
             self._sparse_values = sparse_values
@@ -1454,7 +1476,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return values.all()
 
-    def any(self, axis=0, *args, **kwargs):
+    def any(self, axis: AxisInt = 0, *args, **kwargs):
         """
         Tests whether at least one of elements evaluate True
 
@@ -1476,7 +1498,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return values.any().item()
 
     def sum(
-        self, axis: int = 0, min_count: int = 0, skipna: bool = True, *args, **kwargs
+        self,
+        axis: AxisInt = 0,
+        min_count: int = 0,
+        skipna: bool = True,
+        *args,
+        **kwargs,
     ) -> Scalar:
         """
         Sum of non-NA/null values
@@ -1514,7 +1541,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum + self.fill_value * nsparse
 
-    def cumsum(self, axis: int = 0, *args, **kwargs) -> SparseArray:
+    def cumsum(self, axis: AxisInt = 0, *args, **kwargs) -> SparseArray:
         """
         Cumulative sum of non-NA/null values.
 
@@ -1546,7 +1573,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             fill_value=self.fill_value,
         )
 
-    def mean(self, axis=0, *args, **kwargs):
+    def mean(self, axis: Axis = 0, *args, **kwargs):
         """
         Mean of non-NA/null values
 
@@ -1565,7 +1592,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
-    def max(self, *, axis: int | None = None, skipna: bool = True):
+    def max(self, *, axis: AxisInt | None = None, skipna: bool = True):
         """
         Max of array values, ignoring NA values if specified.
 
@@ -1583,7 +1610,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         nv.validate_minmax_axis(axis, self.ndim)
         return self._min_max("max", skipna=skipna)
 
-    def min(self, *, axis: int | None = None, skipna: bool = True):
+    def min(self, *, axis: AxisInt | None = None, skipna: bool = True):
         """
         Min of array values, ignoring NA values if specified.
 
@@ -1635,6 +1662,45 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return self.fill_value
         else:
             return na_value_for_dtype(self.dtype.subtype, compat=False)
+
+    def _argmin_argmax(self, kind: Literal["argmin", "argmax"]) -> int:
+
+        values = self._sparse_values
+        index = self._sparse_index.indices
+        mask = np.asarray(isna(values))
+        func = np.argmax if kind == "argmax" else np.argmin
+
+        idx = np.arange(values.shape[0])
+        non_nans = values[~mask]
+        non_nan_idx = idx[~mask]
+
+        _candidate = non_nan_idx[func(non_nans)]
+        candidate = index[_candidate]
+
+        if isna(self.fill_value):
+            return candidate
+        if kind == "argmin" and self[candidate] < self.fill_value:
+            return candidate
+        if kind == "argmax" and self[candidate] > self.fill_value:
+            return candidate
+        _loc = self._first_fill_value_loc()
+        if _loc == -1:
+            # fill_value doesn't exist
+            return candidate
+        else:
+            return _loc
+
+    def argmax(self, skipna: bool = True) -> int:
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self._hasna:
+            raise NotImplementedError
+        return self._argmin_argmax("argmax")
+
+    def argmin(self, skipna: bool = True) -> int:
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self._hasna:
+            raise NotImplementedError
+        return self._argmin_argmax("argmin")
 
     # ------------------------------------------------------------------------
     # Ufuncs
@@ -1809,7 +1875,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         pp_index = printing.pprint_thing(self.sp_index)
         return f"{pp_str}\nFill: {pp_fill}\n{pp_index}"
 
-    def _formatter(self, boxed=False):
+    def _formatter(self, boxed: bool = False):
         # Defer to the formatter from the GenericArrayFormatter calling us.
         # This will infer the correct formatter from the dtype of the values.
         return None

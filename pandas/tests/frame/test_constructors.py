@@ -10,6 +10,7 @@ from datetime import (
 import functools
 import itertools
 import re
+from typing import Iterator
 import warnings
 
 import numpy as np
@@ -271,15 +272,22 @@ class TestDataFrameConstructors:
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
 
-    def test_constructor_dtype_nocast_view_dataframe(self):
+    def test_constructor_dtype_nocast_view_dataframe(self, using_copy_on_write):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
-        should_be_view[0][0] = 99
-        assert df.values[0, 0] == 99
+        if using_copy_on_write:
+            # INFO(CoW) doesn't mutate original
+            should_be_view.iloc[0, 0] = 99
+            assert df.values[0, 0] == 1
+        else:
+            should_be_view[0][0] = 99
+            assert df.values[0, 0] == 99
 
-    def test_constructor_dtype_nocast_view_2d_array(self, using_array_manager):
+    def test_constructor_dtype_nocast_view_2d_array(
+        self, using_array_manager, using_copy_on_write
+    ):
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
-        if not using_array_manager:
+        if not using_array_manager and not using_copy_on_write:
             should_be_view = DataFrame(df.values, dtype=df[0].dtype)
             should_be_view[0][0] = 97
             assert df.values[0, 0] == 97
@@ -848,16 +856,31 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result_datetime, expected)
         tm.assert_frame_equal(result_Timestamp, expected)
 
-    def test_constructor_dict_timedelta64_index(self):
+    @pytest.mark.parametrize(
+        "klass",
+        [
+            pytest.param(
+                np.timedelta64,
+                marks=pytest.mark.xfail(
+                    reason="hash mismatch (GH#44504) causes lib.fast_multiget "
+                    "to mess up on dict lookups with equal Timedeltas with "
+                    "mismatched resos"
+                ),
+            ),
+            timedelta,
+            Timedelta,
+        ],
+    )
+    def test_constructor_dict_timedelta64_index(self, klass):
         # GH 10160
         td_as_int = [1, 2, 3, 4]
 
-        def create_data(constructor):
-            return {i: {constructor(s): 2 * i} for i, s in enumerate(td_as_int)}
+        if klass is timedelta:
+            constructor = lambda x: timedelta(days=x)
+        else:
+            constructor = lambda x: klass(x, "D")
 
-        data_timedelta64 = create_data(lambda x: np.timedelta64(x, "D"))
-        data_timedelta = create_data(lambda x: timedelta(days=x))
-        data_Timedelta = create_data(lambda x: Timedelta(x, "D"))
+        data = {i: {constructor(s): 2 * i} for i, s in enumerate(td_as_int)}
 
         expected = DataFrame(
             [
@@ -869,12 +892,8 @@ class TestDataFrameConstructors:
             index=[Timedelta(td, "D") for td in td_as_int],
         )
 
-        result_timedelta64 = DataFrame(data_timedelta64)
-        result_timedelta = DataFrame(data_timedelta)
-        result_Timedelta = DataFrame(data_Timedelta)
-        tm.assert_frame_equal(result_timedelta64, expected)
-        tm.assert_frame_equal(result_timedelta, expected)
-        tm.assert_frame_equal(result_Timedelta, expected)
+        result = DataFrame(data)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_period_dict(self):
         # PeriodIndex
@@ -902,10 +921,7 @@ class TestDataFrameConstructors:
         "data,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (
-                Interval(left=0, right=5, inclusive="right"),
-                IntervalDtype("int64", "right"),
-            ),
+            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
@@ -1390,7 +1406,7 @@ class TestDataFrameConstructors:
             def __getitem__(self, n):
                 return self._lst.__getitem__(n)
 
-            def __len__(self, n):
+            def __len__(self) -> int:
                 return self._lst.__len__()
 
         lst_containers = [DummyContainer([1, "a"]), DummyContainer([2, "b"])]
@@ -1426,7 +1442,7 @@ class TestDataFrameConstructors:
     def test_constructor_iterable(self):
         # GH 21987
         class Iter:
-            def __iter__(self):
+            def __iter__(self) -> Iterator:
                 for i in range(10):
                     yield [1, 2, 3]
 
@@ -2059,18 +2075,19 @@ class TestDataFrameConstructors:
 
     @pytest.mark.parametrize("order", ["K", "A", "C", "F"])
     @pytest.mark.parametrize(
-        "dtype",
+        "unit",
         [
-            "timedelta64[D]",
-            "timedelta64[h]",
-            "timedelta64[m]",
-            "timedelta64[s]",
-            "timedelta64[ms]",
-            "timedelta64[us]",
-            "timedelta64[ns]",
+            "D",
+            "h",
+            "m",
+            "s",
+            "ms",
+            "us",
+            "ns",
         ],
     )
-    def test_constructor_timedelta_non_ns(self, order, dtype):
+    def test_constructor_timedelta_non_ns(self, order, unit):
+        dtype = f"timedelta64[{unit}]"
         na = np.array(
             [
                 [np.timedelta64(1, "D"), np.timedelta64(2, "D")],
@@ -2079,13 +2096,22 @@ class TestDataFrameConstructors:
             dtype=dtype,
             order=order,
         )
-        df = DataFrame(na).astype("timedelta64[ns]")
+        df = DataFrame(na)
+        if unit in ["D", "h", "m"]:
+            # we get the nearest supported unit, i.e. "s"
+            exp_unit = "s"
+        else:
+            exp_unit = unit
+        exp_dtype = np.dtype(f"m8[{exp_unit}]")
         expected = DataFrame(
             [
                 [Timedelta(1, "D"), Timedelta(2, "D")],
                 [Timedelta(4, "D"), Timedelta(5, "D")],
             ],
+            dtype=exp_dtype,
         )
+        # TODO(2.0): ideally we should get the same 'expected' without passing
+        #  dtype=exp_dtype.
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_for_list_with_dtypes(self):
@@ -2431,16 +2457,16 @@ class TestDataFrameConstructors:
         result = DataFrame({"1": ser1, "2": ser2})
         index = CategoricalIndex(
             [
-                Interval(-0.099, 9.9, inclusive="right"),
-                Interval(9.9, 19.8, inclusive="right"),
-                Interval(19.8, 29.7, inclusive="right"),
-                Interval(29.7, 39.6, inclusive="right"),
-                Interval(39.6, 49.5, inclusive="right"),
-                Interval(49.5, 59.4, inclusive="right"),
-                Interval(59.4, 69.3, inclusive="right"),
-                Interval(69.3, 79.2, inclusive="right"),
-                Interval(79.2, 89.1, inclusive="right"),
-                Interval(89.1, 99, inclusive="right"),
+                Interval(-0.099, 9.9, closed="right"),
+                Interval(9.9, 19.8, closed="right"),
+                Interval(19.8, 29.7, closed="right"),
+                Interval(29.7, 39.6, closed="right"),
+                Interval(39.6, 49.5, closed="right"),
+                Interval(49.5, 59.4, closed="right"),
+                Interval(59.4, 69.3, closed="right"),
+                Interval(69.3, 79.2, closed="right"),
+                Interval(79.2, 89.1, closed="right"),
+                Interval(89.1, 99, closed="right"),
             ],
             ordered=True,
         )
@@ -2523,7 +2549,13 @@ class TestDataFrameConstructors:
 
     @pytest.mark.parametrize("copy", [False, True])
     def test_dict_nocopy(
-        self, request, copy, any_numeric_ea_dtype, any_numpy_dtype, using_array_manager
+        self,
+        request,
+        copy,
+        any_numeric_ea_dtype,
+        any_numpy_dtype,
+        using_array_manager,
+        using_copy_on_write,
     ):
         if (
             using_array_manager
@@ -2597,7 +2629,7 @@ class TestDataFrameConstructors:
         with tm.assert_produces_warning(FutureWarning, match="will attempt to set"):
             df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
         assert df.dtypes.iloc[2] == c.dtype
-        if not copy:
+        if not copy and not using_copy_on_write:
             check_views(True)
 
         if copy:
@@ -2609,7 +2641,7 @@ class TestDataFrameConstructors:
                 assert b[0] == b.dtype.type(3)
             # FIXME(GH#35417): enable after GH#35417
             assert c[0] == c_orig[0]  # i.e. df.iloc[0, 2]=45 did *not* update c
-        else:
+        elif not using_copy_on_write:
             # TODO: we can call check_views if we stop consolidating
             #  in setitem_with_indexer
             assert c[0] == 45  # i.e. df.iloc[0, 2]=45 *did* update c
@@ -2816,37 +2848,32 @@ class TestDataFrameConstructorWithDatetimeTZ:
         ts = Timestamp("2019", tz=tz)
         if pydt:
             ts = ts.to_pydatetime()
-        ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame({0: [ts]}, dtype="datetime64[ns]")
+        msg = (
+            "Cannot convert timezone-aware data to timezone-naive dtype. "
+            r"Use pd.Series\(values\).dt.tz_localize\(None\) instead."
+        )
+        with pytest.raises(ValueError, match=msg):
+            DataFrame({0: [ts]}, dtype="datetime64[ns]")
 
-        expected = DataFrame({0: [ts_naive]})
-        tm.assert_frame_equal(result, expected)
+        msg2 = "Cannot unbox tzaware Timestamp to tznaive dtype"
+        with pytest.raises(TypeError, match=msg2):
+            DataFrame({0: ts}, index=[0], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame({0: ts}, index=[0], dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([ts], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame([ts], dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(np.array([ts], dtype=object), dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame(np.array([ts], dtype=object), dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match=msg2):
+            DataFrame(ts, index=[0], columns=[0], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame(ts, index=[0], columns=[0], dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([Series([ts])], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            df = DataFrame([Series([ts])], dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning):
-            df = DataFrame([[ts]], columns=[0], dtype="datetime64[ns]")
-        tm.assert_equal(df, expected)
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([[ts]], columns=[0], dtype="datetime64[ns]")
 
     def test_from_dict(self):
 
@@ -3001,6 +3028,14 @@ class TestDataFrameConstructorWithDatetimeTZ:
         with pytest.raises(ValueError, match=msg):
             DataFrame(arr2, columns=["foo", "bar"])
 
+    def test_columns_indexes_raise_on_sets(self):
+        # GH 47215
+        data = [[1, 2, 3], [4, 5, 6]]
+        with pytest.raises(ValueError, match="index cannot be a set"):
+            DataFrame(data, index={"a", "b"})
+        with pytest.raises(ValueError, match="columns cannot be a set"):
+            DataFrame(data, columns={"a", "b", "c"})
+
 
 def get1(obj):  # TODO: make a helper in tm?
     if isinstance(obj, Series):
@@ -3011,8 +3046,11 @@ def get1(obj):  # TODO: make a helper in tm?
 
 class TestFromScalar:
     @pytest.fixture(params=[list, dict, None])
-    def constructor(self, request, frame_or_series):
-        box = request.param
+    def box(self, request):
+        return request.param
+
+    @pytest.fixture
+    def constructor(self, frame_or_series, box):
 
         extra = {"index": range(2)}
         if frame_or_series is DataFrame:
@@ -3083,34 +3121,80 @@ class TestFromScalar:
         with pytest.raises(TypeError, match=msg):
             constructor(scalar, dtype=dtype)
 
+    @pytest.mark.xfail(
+        reason="Timestamp constructor has been updated to cast dt64 to non-nano, "
+        "but DatetimeArray._from_sequence has not"
+    )
     @pytest.mark.parametrize("cls", [datetime, np.datetime64])
-    def test_from_out_of_bounds_datetime(self, constructor, cls):
+    def test_from_out_of_ns_bounds_datetime(self, constructor, cls, request):
+        # scalar that won't fit in nanosecond dt64, but will fit in microsecond
         scalar = datetime(9999, 1, 1)
+        exp_dtype = "M8[us]"  # smallest reso that fits
         if cls is np.datetime64:
             scalar = np.datetime64(scalar, "D")
+            exp_dtype = "M8[s]"  # closest reso to input
         result = constructor(scalar)
 
-        assert type(get1(result)) is cls
+        item = get1(result)
+        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
 
+        assert type(item) is Timestamp
+        assert item.asm8.dtype == exp_dtype
+        assert dtype == exp_dtype
+
+    def test_out_of_s_bounds_datetime64(self, constructor):
+        scalar = np.datetime64(np.iinfo(np.int64).max, "D")
+        result = constructor(scalar)
+        item = get1(result)
+        assert type(item) is np.datetime64
+        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+        assert dtype == object
+
+    @pytest.mark.xfail(
+        reason="TimedeltaArray constructor has been updated to cast td64 to non-nano, "
+        "but TimedeltaArray._from_sequence has not"
+    )
     @pytest.mark.parametrize("cls", [timedelta, np.timedelta64])
-    def test_from_out_of_bounds_timedelta(self, constructor, cls):
+    def test_from_out_of_bounds_ns_timedelta(self, constructor, cls):
+        # scalar that won't fit in nanosecond td64, but will fit in microsecond
         scalar = datetime(9999, 1, 1) - datetime(1970, 1, 1)
+        exp_dtype = "m8[us]"  # smallest reso that fits
         if cls is np.timedelta64:
             scalar = np.timedelta64(scalar, "D")
+            exp_dtype = "m8[s]"  # closest reso to input
         result = constructor(scalar)
 
-        assert type(get1(result)) is cls
+        item = get1(result)
+        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
 
-    def test_tzaware_data_tznaive_dtype(self, constructor):
+        assert type(item) is Timedelta
+        assert item.asm8.dtype == exp_dtype
+        assert dtype == exp_dtype
+
+    def test_out_of_s_bounds_timedelta64(self, constructor):
+        scalar = np.timedelta64(np.iinfo(np.int64).max, "D")
+        result = constructor(scalar)
+        item = get1(result)
+        assert type(item) is np.timedelta64
+        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+        assert dtype == object
+
+    def test_tzaware_data_tznaive_dtype(self, constructor, box, frame_or_series):
         tz = "US/Eastern"
         ts = Timestamp("2019", tz=tz)
-        ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(FutureWarning, match="Data is timezone-aware"):
-            result = constructor(ts, dtype="M8[ns]")
+        if box is None or (frame_or_series is DataFrame and box is dict):
+            msg = "Cannot unbox tzaware Timestamp to tznaive dtype"
+            err = TypeError
+        else:
+            msg = (
+                "Cannot convert timezone-aware data to timezone-naive dtype. "
+                r"Use pd.Series\(values\).dt.tz_localize\(None\) instead."
+            )
+            err = ValueError
 
-        assert np.all(result.dtypes == "M8[ns]")
-        assert np.all(result == ts_naive)
+        with pytest.raises(err, match=msg):
+            constructor(ts, dtype="M8[ns]")
 
 
 # TODO: better location for this test?

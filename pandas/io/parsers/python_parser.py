@@ -10,6 +10,7 @@ import re
 import sys
 from typing import (
     IO,
+    TYPE_CHECKING,
     DefaultDict,
     Hashable,
     Iterator,
@@ -38,15 +39,16 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
 
-from pandas import (
-    Index,
-    MultiIndex,
-)
-
 from pandas.io.parsers.base_parser import (
     ParserBase,
     parser_defaults,
 )
+
+if TYPE_CHECKING:
+    from pandas import (
+        Index,
+        MultiIndex,
+    )
 
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness
@@ -702,7 +704,7 @@ class PythonParser(ParserBase):
                         self._is_line_empty(self.data[self.pos - 1]) or line
                     ):
                         break
-                    elif self.skip_blank_lines:
+                    if self.skip_blank_lines:
                         ret = self._remove_empty_lines([line])
                         if ret:
                             line = ret[0]
@@ -786,9 +788,9 @@ class PythonParser(ParserBase):
             assert isinstance(line, list)
             return line
         except csv.Error as e:
-            if (
-                self.on_bad_lines == self.BadLineHandleMethod.ERROR
-                or self.on_bad_lines == self.BadLineHandleMethod.WARN
+            if self.on_bad_lines in (
+                self.BadLineHandleMethod.ERROR,
+                self.BadLineHandleMethod.WARN,
             ):
                 msg = str(e)
 
@@ -1011,9 +1013,9 @@ class PythonParser(ParserBase):
                         new_l = self.on_bad_lines(l)
                         if new_l is not None:
                             content.append(new_l)
-                    elif (
-                        self.on_bad_lines == self.BadLineHandleMethod.ERROR
-                        or self.on_bad_lines == self.BadLineHandleMethod.WARN
+                    elif self.on_bad_lines in (
+                        self.BadLineHandleMethod.ERROR,
+                        self.BadLineHandleMethod.WARN,
                     ):
                         row_num = self.pos - (content_len - i + footers)
                         bad_lines.append((row_num, actual_len))
@@ -1269,7 +1271,7 @@ class FixedWidthReader(abc.Iterator):
         else:
             line = next(self.f)  # type: ignore[arg-type]
         # Note: 'colspecs' is a sequence of half-open intervals.
-        return [line[fromm:to].strip(self.delimiter) for (fromm, to) in self.colspecs]
+        return [line[from_:to].strip(self.delimiter) for (from_, to) in self.colspecs]
 
 
 class FixedWidthFieldParser(PythonParser):
