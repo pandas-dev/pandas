@@ -86,7 +86,7 @@ def _test_parse_iso8601(ts: str):
         _TSObject obj
         int out_local = 0, out_tzoffset = 0
         NPY_DATETIMEUNIT out_bestunit
-        char inferred_format
+        char inferred_format[1000]
         int inferred_format_len
 
     obj = _TSObject()
@@ -96,7 +96,7 @@ def _test_parse_iso8601(ts: str):
     elif ts == 'today':
         return Timestamp.now().normalize()
 
-    string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True, &inferred_format, &inferred_format_len)
+    string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True, inferred_format, &inferred_format_len)
     obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:
