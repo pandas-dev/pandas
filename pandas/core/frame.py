@@ -8939,7 +8939,11 @@ Parrot 2  Parrot       24.0
         3    4  1    e
         """
         if not self.columns.is_unique:
-            raise ValueError("columns must be unique")
+            duplicate_cols = self.columns[self.columns.duplicated()].tolist()
+            raise ValueError(
+                "data frame columns must be unique. "
+                + f"Duplicate columns: {duplicate_cols}"
+            )
 
         columns: list[Hashable]
         if is_scalar(column) or isinstance(column, tuple):
