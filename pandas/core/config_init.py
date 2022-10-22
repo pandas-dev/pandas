@@ -730,6 +730,20 @@ with cf.config_prefix("io.sql"):
         validator=is_one_of_factory(["auto", "sqlalchemy"]),
     )
 
+io_nullable_backend_doc = """
+: string
+    The nullable dtype implementation to return when ``use_nullable_dtypes=True``.
+    Available options: 'pandas', 'pyarrow', the default is 'pandas'.
+"""
+
+with cf.config_prefix("io.nullable_backend"):
+    cf.register_option(
+        "io_nullable_backend",
+        "pandas",
+        io_nullable_backend_doc,
+        validator=is_one_of_factory(["pandas", "pyarrow"]),
+    )
+
 # --------
 # Plotting
 # ---------
