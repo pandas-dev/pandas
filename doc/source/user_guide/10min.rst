@@ -192,7 +192,7 @@ Selecting via ``[]`` (``__getitem__``), which slices the rows:
 Selection by label
 ~~~~~~~~~~~~~~~~~~
 
-See more in :ref:`Selection by Label <indexing.label>` using :meth:`DataFrame.loc` or :meth:`DataFrame.at`.
+See more in :ref:`Selection by Label <indexing.label>` using :attr:`DataFrame.loc` or :attr:`DataFrame.at`.
 
 For getting a cross section using a label:
 
@@ -233,7 +233,7 @@ For getting fast access to a scalar (equivalent to the prior method):
 Selection by position
 ~~~~~~~~~~~~~~~~~~~~~
 
-See more in :ref:`Selection by Position <indexing.integer>` using :meth:`DataFrame.iloc` or :meth:`DataFrame.iat`.
+See more in :ref:`Selection by Position <indexing.integer>` using :attr:`DataFrame.iloc` or :attr:`DataFrame.iat`.
 
 Select via the position of the passed integers:
 
