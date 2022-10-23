@@ -13,6 +13,7 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 """
 from __future__ import annotations
 
+import configparser
 import pathlib
 import sys
 
@@ -21,6 +22,7 @@ CI_PATH = next(
     pathlib.Path("ci/deps").absolute().glob("actions-*-minimum_versions.yaml")
 )
 CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
+SETUP_PATH = pathlib.Path("setup.cfg").resolve()
 EXCLUDE_DEPS = {"tzdata"}
 # pandas package is not available
 # in pre-commit environment
@@ -69,15 +71,38 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
     return required_deps, optional_deps
 
 
+def get_versions_from_setup() -> dict[str, str]:
+    optional_dependencies = {}
+
+    parser = configparser.ConfigParser()
+    parser.read(SETUP_PATH)
+    setup_optional = parser["options.extras_require"]["all"]
+
+    dependencies = setup_optional[1:].split("\n")
+
+    for dependency in dependencies:
+        package, version = dependency.strip().split(">=")
+        optional_dependencies[package] = version
+
+    return optional_dependencies
+
+
 def main():
     with open(CI_PATH, encoding="utf-8") as f:
         _, ci_optional = get_versions_from_ci(f.readlines())
     code_optional = get_versions_from_code()
-    diff = set(ci_optional.items()).symmetric_difference(code_optional.items())
+    setup_optional = get_versions_from_setup()
+
+    diff = set(
+        (ci_optional.items() | code_optional.items() | setup_optional.items())
+        - (ci_optional.items() & code_optional.items() & setup_optional.items())
+    )
+
     if diff:
         sys.stdout.write(
             f"The follow minimum version differences were found between  "
-            f"{CI_PATH} and {CODE_PATH}. Please ensure these are aligned: "
+            f"{CI_PATH}, {CODE_PATH} AND {SETUP_PATH}. "
+            f"Please ensure these are aligned: "
             f"{diff}\n"
         )
         sys.exit(1)
