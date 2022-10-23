@@ -338,7 +338,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.sample` raises ``ValueError`` when the object is empty (:issue:`48459`)
 - Bug in :meth:`Series.groupby` raises ``ValueError`` when an entry of the index is equal to the name of the index (:issue:`48567`)
 - Bug in :meth:`DataFrameGroupBy.resample` produces inconsistent results when passing empty DataFrame (:issue:`47705`)
--
+- Bug in :meth:`.DataFrameGroupBy.nth` and :meth:`.SeriesGroupBy.nth` would treat operation as a aggregation whereas it is a filtration; in particular, the result index no longer contains the groupers but rather is filtered from the original index of the input (:issue:`13666`)
 
 Reshaping
 ^^^^^^^^^
