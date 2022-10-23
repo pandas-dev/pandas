@@ -78,8 +78,6 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.date_converters import generic_parser
-
 if TYPE_CHECKING:
     from pandas import DataFrame
 
@@ -1135,17 +1133,14 @@ def _make_date_converter(
                     raise Exception("scalar parser")
                 return result
             except Exception:
-                try:
-                    return tools.to_datetime(
-                        parsing.try_parse_dates(
-                            parsing.concat_date_cols(date_cols),
-                            parser=date_parser,
-                            dayfirst=dayfirst,
-                        ),
-                        errors="ignore",
-                    )
-                except Exception:
-                    return generic_parser(date_parser, *date_cols)
+                return tools.to_datetime(
+                    parsing.try_parse_dates(
+                        parsing.concat_date_cols(date_cols),
+                        parser=date_parser,
+                        dayfirst=dayfirst,
+                    ),
+                    errors="ignore",
+                )
 
     return converter
 

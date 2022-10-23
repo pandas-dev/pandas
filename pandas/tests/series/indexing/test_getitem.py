@@ -686,11 +686,6 @@ def test_getitem_categorical_str():
     expected = ser.iloc[[0, 3]]
     tm.assert_series_equal(result, expected)
 
-    # Check the intermediate steps work as expected
-    with tm.assert_produces_warning(FutureWarning):
-        result = ser.index.get_value(ser, "a")
-    tm.assert_series_equal(result, expected)
-
 
 def test_slice_can_reorder_not_uniquely_indexed():
     ser = Series(1, index=["a", "a", "b", "b", "c"])
