@@ -5140,7 +5140,6 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     # error: Signature of "set_axis" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     @Appender(
         """
         Examples
@@ -5182,9 +5181,9 @@ class DataFrame(NDFrame, OpsMixin):
     def set_axis(
         self,
         labels,
+        *,
         axis: Axis = 0,
         inplace: bool | lib.NoDefault = lib.no_default,
-        *,
         copy: bool | lib.NoDefault = lib.no_default,
     ):
         return super().set_axis(labels, axis=axis, inplace=inplace, copy=copy)
@@ -11908,13 +11907,11 @@ Parrot 2  Parrot       24.0
 
     # error: Signature of "where" incompatible with supertype "NDFrame"
     @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
     def where(  # type: ignore[override]
         self,
         cond,
         other=lib.no_default,
+        *,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,

@@ -750,13 +750,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def set_axis(
         self: NDFrameT,
         labels,
+        *,
         axis: Axis = 0,
         inplace: bool_t | lib.NoDefault = lib.no_default,
-        *,
         copy: bool_t | lib.NoDefault = lib.no_default,
     ) -> NDFrameT | None:
         """
@@ -9827,9 +9826,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
     @doc(
         klass=_shared_doc_kwargs["klass"],
         cond="True",
@@ -9841,6 +9837,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         cond,
         other=np.nan,
+        *,
         inplace: bool_t = False,
         axis: Axis | None = None,
         level: Level = None,
