@@ -8,10 +8,7 @@ from typing import Hashable
 
 import numpy as np
 
-from pandas._libs import (
-    index as libindex,
-    lib,
-)
+from pandas._libs import index as libindex
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -474,11 +471,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return key
 
     @doc(DatetimeIndexOpsMixin._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+    def _maybe_cast_slice_bound(self, label, side: str):
         if isinstance(label, datetime):
             label = self._cast_partial_indexing_scalar(label)
 
-        return super()._maybe_cast_slice_bound(label, side, kind=kind)
+        return super()._maybe_cast_slice_bound(label, side)
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         iv = Period(parsed, freq=reso.attr_abbrev)

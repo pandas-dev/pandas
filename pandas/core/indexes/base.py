@@ -6471,7 +6471,6 @@ class Index(IndexOpsMixin, PandasObject):
         start: Hashable | None = None,
         end: Hashable | None = None,
         step: int | None = None,
-        kind=no_default,
     ) -> slice:
         """
         Compute the slice indexer for input labels and step.
@@ -6485,9 +6484,6 @@ class Index(IndexOpsMixin, PandasObject):
         end : label, default None
             If None, defaults to the end.
         step : int, default None
-        kind : str, default None
-
-            .. deprecated:: 1.4.0
 
         Returns
         -------
@@ -6514,8 +6510,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.slice_indexer(start='b', end=('c', 'g'))
         slice(1, 3, None)
         """
-        self._deprecated_arg(kind, "kind", "slice_indexer")
-
         start_slice, end_slice = self.slice_locs(start, end, step=step)
 
         # return a slice
@@ -6550,7 +6544,7 @@ class Index(IndexOpsMixin, PandasObject):
         if key is not None and not is_integer(key):
             self._raise_invalid_indexer(form, key)
 
-    def _maybe_cast_slice_bound(self, label, side: str_t, kind=no_default):
+    def _maybe_cast_slice_bound(self, label, side: str_t):
         """
         This function should be overloaded in subclasses that allow non-trivial
         casting on label-slice bounds, e.g. datetime-like indices allowing
@@ -6560,9 +6554,6 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'loc', 'getitem'} or None
-
-            .. deprecated:: 1.3.0
 
         Returns
         -------
@@ -6572,8 +6563,6 @@ class Index(IndexOpsMixin, PandasObject):
         -----
         Value of `side` parameter should be validated in caller.
         """
-        assert kind in ["loc", "getitem", None, no_default]
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         # We are a plain index here (sub-class override this method if they
         # wish to have special treatment for floats/ints, e.g. Float64Index and
@@ -6598,9 +6587,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(
-        self, label, side: Literal["left", "right"], kind=no_default
-    ) -> int:
+    def get_slice_bound(self, label, side: Literal["left", "right"]) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
@@ -6611,17 +6598,12 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'loc', 'getitem'} or None
-
-            .. deprecated:: 1.4.0
 
         Returns
         -------
         int
             Index of label.
         """
-        assert kind in ["loc", "getitem", None, no_default]
-        self._deprecated_arg(kind, "kind", "get_slice_bound")
 
         if side not in ("left", "right"):
             raise ValueError(
@@ -6667,9 +6649,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return slc
 
-    def slice_locs(
-        self, start=None, end=None, step=None, kind=no_default
-    ) -> tuple[int, int]:
+    def slice_locs(self, start=None, end=None, step=None) -> tuple[int, int]:
         """
         Compute slice locations for input labels.
 
@@ -6681,9 +6661,6 @@ class Index(IndexOpsMixin, PandasObject):
             If None, defaults to the end.
         step : int, defaults None
             If None, defaults to 1.
-        kind : {'loc', 'getitem'} or None
-
-            .. deprecated:: 1.4.0
 
         Returns
         -------
@@ -6703,7 +6680,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.slice_locs(start='b', end='c')
         (1, 3)
         """
-        self._deprecated_arg(kind, "kind", "slice_locs")
         inc = step is None or step >= 0
 
         if not inc:
