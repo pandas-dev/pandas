@@ -117,7 +117,6 @@ _class_locations_map = {
     # 15477
     ("pandas.core.base", "FrozenNDArray"): ("numpy", "ndarray"),
     ("pandas.core.indexes.frozen", "FrozenNDArray"): ("numpy", "ndarray"),
-    ("pandas.core.base", "FrozenList"): ("pandas.core.indexes.frozen", "FrozenList"),
     # 10890
     ("pandas.core.series", "TimeSeries"): ("pandas.core.series", "Series"),
     ("pandas.sparse.series", "SparseTimeSeries"): (
