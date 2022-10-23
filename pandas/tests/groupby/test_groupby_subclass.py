@@ -20,7 +20,6 @@ from pandas.tests.groupby import get_groupby_method_args
         tm.SubclassedSeries(np.arange(0, 10), name="A"),
     ],
 )
-@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_groupby_preserves_subclass(obj, groupby_func):
     # GH28330 -- preserve subclass through groupby operations
 
@@ -28,7 +27,6 @@ def test_groupby_preserves_subclass(obj, groupby_func):
         pytest.skip(f"Not applicable for Series and {groupby_func}")
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
-    warn = FutureWarning if groupby_func in ("mad", "tshift") else None
 
     grouped = obj.groupby(np.arange(0, 10))
 
@@ -37,9 +35,8 @@ def test_groupby_preserves_subclass(obj, groupby_func):
 
     args = get_groupby_method_args(groupby_func, obj)
 
-    with tm.assert_produces_warning(warn, match="is deprecated"):
-        result1 = getattr(grouped, groupby_func)(*args)
-        result2 = grouped.agg(groupby_func, *args)
+    result1 = getattr(grouped, groupby_func)(*args)
+    result2 = grouped.agg(groupby_func, *args)
 
     # Reduction or transformation kernels should preserve type
     slices = {"ngroup", "cumcount", "size"}

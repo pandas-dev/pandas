@@ -35,7 +35,6 @@ method_blocklist = {
         "pct_change",
         "min",
         "var",
-        "mad",
         "describe",
         "std",
         "quantile",
@@ -52,7 +51,6 @@ method_blocklist = {
         "cummax",
         "pct_change",
         "var",
-        "mad",
         "describe",
         "std",
     },
@@ -437,7 +435,6 @@ class GroupByMethods:
             "first",
             "head",
             "last",
-            "mad",
             "max",
             "min",
             "median",
@@ -483,7 +480,7 @@ class GroupByMethods:
 
         if method == "describe":
             ngroups = 20
-        elif method in ["mad", "skew"]:
+        elif method == "skew":
             ngroups = 100
         else:
             ngroups = 1000

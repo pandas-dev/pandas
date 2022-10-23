@@ -374,8 +374,6 @@ class TestCategoricalOps:
             with pytest.raises(TypeError, match=msg):
                 getattr(s, op)(numeric_only=False)
 
-        # mad technically works because it takes always the numeric data
-
     def test_numeric_like_ops_series(self):
         # numpy ops
         s = Series(Categorical([1, 2, 3, 4]))

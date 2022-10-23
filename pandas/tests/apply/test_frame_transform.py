@@ -147,17 +147,14 @@ def test_transform_bad_dtype(op, frame_or_series, request):
     obj = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
     obj = tm.get_obj(obj, frame_or_series)
 
-    # tshift is deprecated
-    warn = None if op != "tshift" else FutureWarning
-    with tm.assert_produces_warning(warn):
-        with pytest.raises(TypeError, match="unsupported operand|not supported"):
-            obj.transform(op)
-        with pytest.raises(TypeError, match="Transform function failed"):
-            obj.transform([op])
-        with pytest.raises(TypeError, match="Transform function failed"):
-            obj.transform({"A": op})
-        with pytest.raises(TypeError, match="Transform function failed"):
-            obj.transform({"A": [op]})
+    with pytest.raises(TypeError, match="unsupported operand|not supported"):
+        obj.transform(op)
+    with pytest.raises(TypeError, match="Transform function failed"):
+        obj.transform([op])
+    with pytest.raises(TypeError, match="Transform function failed"):
+        obj.transform({"A": op})
+    with pytest.raises(TypeError, match="Transform function failed"):
+        obj.transform({"A": [op]})
 
 
 @pytest.mark.parametrize("op", frame_kernels_raise)

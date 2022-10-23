@@ -151,7 +151,6 @@ Computations / descriptive stats
    DataFrame.eval
    DataFrame.kurt
    DataFrame.kurtosis
-   DataFrame.mad
    DataFrame.max
    DataFrame.mean
    DataFrame.median
@@ -268,7 +267,6 @@ Time Series-related
    DataFrame.asof
    DataFrame.shift
    DataFrame.slice_shift
-   DataFrame.tshift
    DataFrame.first_valid_index
    DataFrame.last_valid_index
    DataFrame.resample

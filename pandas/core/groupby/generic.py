@@ -880,18 +880,6 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return result
 
-    @doc(Series.mad.__doc__)
-    def mad(
-        self, axis: Axis | None = None, skipna: bool = True, level: Level | None = None
-    ) -> Series:
-        result = self._op_via_apply("mad", axis=axis, skipna=skipna, level=level)
-        return result
-
-    @doc(Series.tshift.__doc__)
-    def tshift(self, periods: int = 1, freq=None) -> Series:
-        result = self._op_via_apply("tshift", periods=periods, freq=freq)
-        return result
-
     @property
     @doc(Series.plot.__doc__)
     def plot(self):
@@ -2273,18 +2261,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             numeric_only=numeric_only,
             **kwargs,
         )
-        return result
-
-    @doc(DataFrame.mad.__doc__)
-    def mad(
-        self, axis: Axis | None = None, skipna: bool = True, level: Level | None = None
-    ) -> DataFrame:
-        result = self._op_via_apply("mad", axis=axis, skipna=skipna, level=level)
-        return result
-
-    @doc(DataFrame.tshift.__doc__)
-    def tshift(self, periods: int = 1, freq=None, axis: Axis = 0) -> DataFrame:
-        result = self._op_via_apply("tshift", periods=periods, freq=freq, axis=axis)
         return result
 
     @property
