@@ -683,9 +683,7 @@ def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
     mi1 = MultiIndex(levels=levels1, codes=codes1, names=names)
     mi2 = MultiIndex(levels=levels2, codes=codes2, names=names)
     mi_int = mi1.intersection(mi2)
-
-    with tm.assert_produces_warning(FutureWarning, match="MultiIndex.lexsort_depth"):
-        assert mi_int.lexsort_depth == 2
+    assert mi_int._lexsort_depth == 2
 
 
 @pytest.mark.parametrize("val", [pd.NA, 100])
