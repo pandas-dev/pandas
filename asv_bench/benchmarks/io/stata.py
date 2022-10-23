@@ -54,7 +54,7 @@ class StataMissing(Stata):
             missing_data = np.random.randn(self.N)
             missing_data[missing_data < 0] = np.nan
             self.df[f"missing_{i}"] = missing_data
-        self.df.to_stata(self.fname, self.convert_dates)
+        self.df.to_stata(self.fname, convert_dates=self.convert_dates)
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip
