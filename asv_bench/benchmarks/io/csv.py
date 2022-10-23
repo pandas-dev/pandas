@@ -179,17 +179,17 @@ class ToCSVSparse(BaseIO):
     def setup(self):
         from scipy import sparse as sc
 
-        vals = np.random.randint(0, 10, size=(10000, 1000))
+        vals = np.random.randint(0, 10, size=(500, 1000))
         keep = vals > 3
         vals[keep] = 0
         sparse_mtx = sc.coo_matrix(vals)
         self.data = DataFrame.sparse.from_spmatrix(sparse_mtx)
 
     def time_sparse_to_csv(self):
-        self.data.to_csv("sparse_pd.csv")
+        self.data.to_csv(self.fname)
 
     def time_sparse_to_dense_to_csv(self):
-        self.data.sparse.to_dense().to_csv("sparse_pd.csv")
+        self.data.sparse.to_dense().to_csv(self.fname)
 
 
 class StringIORewind:
