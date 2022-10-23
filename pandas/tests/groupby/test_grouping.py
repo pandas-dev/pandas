@@ -851,6 +851,8 @@ class TestGetGroup:
         exp = DataFrame(index=Index(["a", "b", "s"], name="a"))
         tm.assert_frame_equal(df.groupby("a").count(), exp)
         tm.assert_frame_equal(df.groupby("a").sum(), exp)
+
+        exp = df.iloc[[3, 4, 5]]
         tm.assert_frame_equal(df.groupby("a").nth(1), exp)
 
     def test_gb_key_len_equal_axis_len(self):
