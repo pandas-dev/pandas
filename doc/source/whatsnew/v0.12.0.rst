@@ -434,7 +434,7 @@ Bug fixes
     ``Series`` or ``NaN``. For example,
 
     .. ipython:: python
-        :okwarning:
+        :okexcept:
 
         strs = "go", "bow", "joe", "slow"
         ds = pd.Series(strs)

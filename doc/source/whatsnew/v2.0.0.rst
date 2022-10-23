@@ -196,6 +196,7 @@ Removal of prior version deprecations/changes
 - Removed the ``center`` keyword in :meth:`DataFrame.expanding` (:issue:`20647`)
 - Removed the ``pandas.datetime`` submodule (:issue:`30489`)
 - Removed the ``pandas.np`` submodule (:issue:`30296`)
+- Removed :meth:`Series.str.__iter__` (:issue:`28277`)
 - Removed ``pandas.SparseArray`` in favor of :class:`arrays.SparseArray` (:issue:`30642`)
 - Removed ``pandas.SparseSeries`` and ``pandas.SparseDataFrame`` (:issue:`30642`)
 - Enforced disallowing a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
