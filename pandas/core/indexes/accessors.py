@@ -301,7 +301,30 @@ class DatetimeProperties(Properties):
         return week_series.astype("int64")
 
     week = weekofyear
+## -------------------------------------------------------------------------------------------------
+    @property
+    def yearandweek(self):
+        """
+        Year and the week ordinal of the year according to the ISO 8601 standard.
 
+        """
+
+        week_series = self.isocalendar().week
+        year_series = self.isocalendar().year
+        year_and_week_series = str(year_series) +"-"+str(week_series)
+
+        week_series.name = self.name
+        year_series.name = self.name
+
+        if week_series.hasnans:
+            return week_series.astype("float64")
+        if year_series.hasnans:
+            return year_series.astype("float64")
+
+        return year_and_week_series
+
+    yearweek = yearandweek
+## -------------------------------------------------------------------------------------------------
 
 @delegate_names(
     delegate=TimedeltaArray, accessors=TimedeltaArray._datetimelike_ops, typ="property"
