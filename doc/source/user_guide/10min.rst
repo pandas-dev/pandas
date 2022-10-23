@@ -167,8 +167,8 @@ Selection
 
    While standard Python / NumPy expressions for selecting and setting are
    intuitive and come in handy for interactive work, for production code, we
-   recommend the optimized pandas data access methods, :meth:`DataFrame.at`, :meth:`DataFrame.iat`,
-   :meth:`DataFrame.loc` and :meth:`DataFrame.iloc`.
+   recommend the optimized pandas data access methods, :attr:`DataFrame.at`, :attr:`DataFrame.iat`,
+   :attr:`DataFrame.loc` and :attr:`DataFrame.iloc`.
 
 See the indexing documentation :ref:`Indexing and Selecting Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`.
 
