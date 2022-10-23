@@ -154,7 +154,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("DataFrame.append", "The frame.append method is deprecated"),
         ("Series.append", "The series.append method is deprecated"),
         ("dtypes.common.is_categorical", "is_categorical is deprecated"),
-        ("MultiIndex._is_lexsorted", "MultiIndex.is_lexsorted is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         # Docstring demonstrates the call raises a warning
