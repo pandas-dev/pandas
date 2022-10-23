@@ -3523,10 +3523,9 @@ Keep all original rows and also all original values
     ) -> None:
         ...
 
-    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def sort_values(  # type: ignore[override]
+    def sort_values(
         self,
+        *,
         axis: Axis = 0,
         ascending: bool | int | Sequence[bool] | Sequence[int] = True,
         inplace: bool = False,
@@ -5313,9 +5312,6 @@ Keep all original rows and also all original values
         ...
 
     # error: Signature of "replace" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "to_replace", "value"]
-    )
     @doc(
         NDFrame.replace,
         klass=_shared_doc_kwargs["klass"],
@@ -5326,6 +5322,7 @@ Keep all original rows and also all original values
         self,
         to_replace=None,
         value=lib.no_default,
+        *,
         inplace: bool = False,
         limit: int | None = None,
         regex: bool = False,

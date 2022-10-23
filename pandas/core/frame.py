@@ -5717,14 +5717,12 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     # error: Signature of "replace" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "to_replace", "value"]
-    )
     @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(  # type: ignore[override]
         self,
         to_replace=None,
         value=lib.no_default,
+        *,
         inplace: bool = False,
         limit: int | None = None,
         regex: bool = False,
@@ -6866,12 +6864,12 @@ class DataFrame(NDFrame, OpsMixin):
 
     # TODO: Just move the sort_values doc here.
     # error: Signature of "sort_values" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "by"])
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
     def sort_values(  # type: ignore[override]
         self,
         by: IndexLabel,
+        *,
         axis: Axis = 0,
         ascending: bool | list[bool] | tuple[bool, ...] = True,
         inplace: bool = False,
