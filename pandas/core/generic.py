@@ -7006,10 +7006,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     @doc(klass=_shared_doc_kwargs["klass"])
     def ffill(
         self: NDFrameT,
+        *,
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
@@ -7062,10 +7062,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     @doc(klass=_shared_doc_kwargs["klass"])
     def bfill(
         self: NDFrameT,
+        *,
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,

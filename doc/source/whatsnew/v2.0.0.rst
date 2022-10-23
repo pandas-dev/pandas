@@ -189,6 +189,7 @@ Removal of prior version deprecations/changes
 - Disallow passing non-keyword arguments to :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` except for ``labels`` (:issue:`41491`)
 - Disallow passing non-keyword arguments to :meth:`Series.rename_axis` and :meth:`DataFrame.rename_axis` except for ``mapper`` (:issue:`47587`)
 - Disallow passing non-keyword arguments to :meth:`Series.clip` and :meth:`DataFrame.clip` (:issue:`41511`)
+- Disallow passing non-keyword arguments to :meth:`Series.bfill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill` and :meth:`DataFrame.ffill` (:issue:`41508`)
 - Removed :meth:`.Rolling.validate`, :meth:`.Expanding.validate`, and :meth:`.ExponentialMovingWindow.validate` (:issue:`43665`)
 - Removed :attr:`Rolling.win_type` returning ``"freq"`` (:issue:`38963`)
 - Removed :attr:`Rolling.is_datetimelike` (:issue:`38963`)

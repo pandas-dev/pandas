@@ -11774,10 +11774,9 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "ffill" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def ffill(  # type: ignore[override]
+    def ffill(
         self,
+        *,
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
@@ -11818,10 +11817,9 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "bfill" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def bfill(  # type: ignore[override]
+    def bfill(
         self,
+        *,
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
