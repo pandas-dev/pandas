@@ -922,13 +922,13 @@ class Window(BaseWindow):
 
     Parameters
     ----------
-    window : int, offset, or BaseIndexer subclass
+    window : int, timedelta, str, offset, or BaseIndexer subclass
         Size of the moving window.
 
         If an integer, the fixed number of observations used for
         each window.
 
-        If an offset, the time period of each window. Each
+        If a timedelta, str, or offset, the time period of each window. Each
         window will be a variable sized based on the observations included in
         the time-period. This is only valid for datetimelike indexes.
         To learn more about the offsets & frequency strings, please see `this link
@@ -1936,21 +1936,21 @@ class Rolling(RollingAndExpandingMixin):
             """
         >>> s = pd.Series([2, 3, np.nan, 10])
         >>> s.rolling(2).count()
-        0    1.0
+        0    NaN
         1    2.0
         2    1.0
         3    1.0
         dtype: float64
         >>> s.rolling(3).count()
-        0    1.0
-        1    2.0
+        0    NaN
+        1    NaN
         2    2.0
         3    2.0
         dtype: float64
         >>> s.rolling(4).count()
-        0    1.0
-        1    2.0
-        2    2.0
+        0    NaN
+        1    NaN
+        2    NaN
         3    3.0
         dtype: float64
         """
@@ -1960,22 +1960,7 @@ class Rolling(RollingAndExpandingMixin):
         agg_method="count",
     )
     def count(self, numeric_only: bool = False):
-        if self.min_periods is None:
-            warnings.warn(
-                (
-                    "min_periods=None will default to the size of window "
-                    "consistent with other methods in a future version. "
-                    "Specify min_periods=0 instead."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            self.min_periods = 0
-            result = super().count()
-            self.min_periods = None
-        else:
-            result = super().count(numeric_only)
-        return result
+        return super().count(numeric_only)
 
     @doc(
         template_header,

@@ -734,13 +734,14 @@ class MultiIndex(Index):
                 vals = cast("CategoricalIndex", vals)
                 vals = vals._data._internal_get_values()
 
-            if isinstance(vals, ABCDatetimeIndex):
+            is_dti = isinstance(vals, ABCDatetimeIndex)
+
+            if is_dti:
                 # TODO: this can be removed after Timestamp.freq is removed
                 # The astype(object) below does not remove the freq from
                 # the underlying Timestamps so we remove it here to match
                 # the behavior of self._get_level_values
-                vals = vals.copy()
-                vals.freq = None
+                vals = algos.take_nd(vals, codes, fill_value=index._na_value)
 
             if isinstance(vals.dtype, ExtensionDtype) or isinstance(
                 vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
@@ -748,7 +749,8 @@ class MultiIndex(Index):
                 vals = vals.astype(object)
 
             vals = np.array(vals, copy=False)
-            vals = algos.take_nd(vals, codes, fill_value=index._na_value)
+            if not is_dti:
+                vals = algos.take_nd(vals, codes, fill_value=index._na_value)
             values.append(vals)
 
         arr = lib.fast_zip(values)
@@ -1174,9 +1176,6 @@ class MultiIndex(Index):
     def copy(  # type: ignore[override]
         self,
         names=None,
-        dtype=None,
-        levels=None,
-        codes=None,
         deep: bool = False,
         name=None,
     ):
@@ -1187,15 +1186,6 @@ class MultiIndex(Index):
         Parameters
         ----------
         names : sequence, optional
-        dtype : numpy dtype or pandas type, optional
-
-            .. deprecated:: 1.2.0
-        levels : sequence, optional
-
-            .. deprecated:: 1.2.0
-        codes : sequence, optional
-
-            .. deprecated:: 1.2.0
         deep : bool, default False
         name : Label
             Kept for compatibility with 1-dimensional Index. Should not be used.
@@ -1212,30 +1202,13 @@ class MultiIndex(Index):
         """
         names = self._validate_names(name=name, names=names, deep=deep)
         keep_id = not deep
-        if levels is not None:
-            warnings.warn(
-                "parameter levels is deprecated and will be removed in a future "
-                "version. Use the set_levels method instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            keep_id = False
-        if codes is not None:
-            warnings.warn(
-                "parameter codes is deprecated and will be removed in a future "
-                "version. Use the set_codes method instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            keep_id = False
+        levels, codes = None, None
 
         if deep:
             from copy import deepcopy
 
-            if levels is None:
-                levels = deepcopy(self.levels)
-            if codes is None:
-                codes = deepcopy(self.codes)
+            levels = deepcopy(self.levels)
+            codes = deepcopy(self.codes)
 
         levels = levels if levels is not None else self.levels
         codes = codes if codes is not None else self.codes
@@ -1251,15 +1224,6 @@ class MultiIndex(Index):
         new_index._cache.pop("levels", None)  # GH32669
         if keep_id:
             new_index._id = self._id
-
-        if dtype:
-            warnings.warn(
-                "parameter dtype is deprecated and will be removed in a future "
-                "version. Use the astype method instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            new_index = new_index.astype(dtype)
         return new_index
 
     def __array__(self, dtype=None) -> np.ndarray:

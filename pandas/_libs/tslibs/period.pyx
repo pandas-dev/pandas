@@ -1693,7 +1693,7 @@ cdef class _Period(PeriodMixin):
             return NaT
 
         try:
-            inc = delta_to_nanoseconds(other, reso=self.freq._reso, round_ok=False)
+            inc = delta_to_nanoseconds(other, reso=self.freq._creso, round_ok=False)
         except ValueError as err:
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})") from err
@@ -2288,9 +2288,14 @@ cdef class _Period(PeriodMixin):
         return bool(is_leapyear(self.year))
 
     @classmethod
-    def now(cls, freq=None):
+    def now(cls, freq):
         """
         Return the period of now's date.
+
+        Parameters
+        ----------
+        freq : str, BaseOffset
+            Frequency to use for the returned period.
         """
         return Period(datetime.now(), freq=freq)
 
