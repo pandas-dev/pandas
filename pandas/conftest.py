@@ -155,7 +155,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("Series.append", "The series.append method is deprecated"),
         ("dtypes.common.is_categorical", "is_categorical is deprecated"),
         ("Categorical.replace", "Categorical.replace is deprecated"),
-        ("Index.is_mixed", "Index.is_mixed is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         # Docstring demonstrates the call raises a warning
