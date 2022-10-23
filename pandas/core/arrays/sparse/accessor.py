@@ -66,9 +66,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         ----------
         A : scipy.sparse.coo_matrix
         dense_index : bool, default False
-            If False (default), the SparseSeries index consists of only the
+            If False (default), the index consists of only the
             coords of the non-null entries of the original coo_matrix.
-            If True, the SparseSeries index consists of the full sorted
+            If True, the index consists of the full sorted
             (row, col) coordinates of the coo_matrix.
 
         Returns
