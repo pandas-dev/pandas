@@ -637,7 +637,6 @@ generated/pandas.Index.argmax,../reference/api/pandas.Index.argmax
 generated/pandas.Index.argmin,../reference/api/pandas.Index.argmin
 generated/pandas.Index.argsort,../reference/api/pandas.Index.argsort
 generated/pandas.Index.array,../reference/api/pandas.Index.array
-generated/pandas.Index.asi8,../reference/api/pandas.Index.asi8
 generated/pandas.Index.asof,../reference/api/pandas.Index.asof
 generated/pandas.Index.asof_locs,../reference/api/pandas.Index.asof_locs
 generated/pandas.Index.astype,../reference/api/pandas.Index.astype
@@ -662,7 +661,6 @@ generated/pandas.Index.get_indexer_non_unique,../reference/api/pandas.Index.get_
 generated/pandas.Index.get_level_values,../reference/api/pandas.Index.get_level_values
 generated/pandas.Index.get_loc,../reference/api/pandas.Index.get_loc
 generated/pandas.Index.get_slice_bound,../reference/api/pandas.Index.get_slice_bound
-generated/pandas.Index.get_value,../reference/api/pandas.Index.get_value
 generated/pandas.Index.groupby,../reference/api/pandas.Index.groupby
 generated/pandas.Index.has_duplicates,../reference/api/pandas.Index.has_duplicates
 generated/pandas.Index.hasnans,../reference/api/pandas.Index.hasnans
@@ -681,7 +679,6 @@ generated/pandas.Index.isin,../reference/api/pandas.Index.isin
 generated/pandas.Index.is_integer,../reference/api/pandas.Index.is_integer
 generated/pandas.Index.is_interval,../reference/api/pandas.Index.is_interval
 generated/pandas.Index.is_lexsorted_for_tuple,../reference/api/pandas.Index.is_lexsorted_for_tuple
-generated/pandas.Index.is_mixed,../reference/api/pandas.Index.is_mixed
 generated/pandas.Index.is_monotonic_decreasing,../reference/api/pandas.Index.is_monotonic_decreasing
 generated/pandas.Index.is_monotonic,../reference/api/pandas.Index.is_monotonic
 generated/pandas.Index.is_monotonic_increasing,../reference/api/pandas.Index.is_monotonic_increasing
@@ -689,7 +686,6 @@ generated/pandas.Index.isna,../reference/api/pandas.Index.isna
 generated/pandas.Index.isnull,../reference/api/pandas.Index.isnull
 generated/pandas.Index.is_numeric,../reference/api/pandas.Index.is_numeric
 generated/pandas.Index.is_object,../reference/api/pandas.Index.is_object
-generated/pandas.Index.is_type_compatible,../reference/api/pandas.Index.is_type_compatible
 generated/pandas.Index.is_unique,../reference/api/pandas.Index.is_unique
 generated/pandas.Index.item,../reference/api/pandas.Index.item
 generated/pandas.Index.join,../reference/api/pandas.Index.join

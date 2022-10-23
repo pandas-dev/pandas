@@ -242,7 +242,9 @@ cet = pytz.timezone("CET")
         ),
         (
             np.array([1, 2], dtype="M8[us]"),
-            DatetimeArray(np.array([1000, 2000], dtype="M8[ns]")),
+            DatetimeArray._simple_new(
+                np.array([1, 2], dtype="M8[us]"), dtype=np.dtype("M8[us]")
+            ),
         ),
         # datetimetz
         (

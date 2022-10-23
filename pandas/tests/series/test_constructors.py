@@ -937,15 +937,12 @@ class TestSeriesConstructors:
         assert ser.dtype == "M8[ns]"
 
         # GH3414 related
-        expected = Series(
-            pydates,
-            dtype="datetime64[ns]",
-        )
+        expected = Series(pydates, dtype="datetime64[ms]")
 
         result = Series(Series(dates).view(np.int64) / 1000000, dtype="M8[ms]")
         tm.assert_series_equal(result, expected)
 
-        result = Series(dates, dtype="datetime64[ns]")
+        result = Series(dates, dtype="datetime64[ms]")
         tm.assert_series_equal(result, expected)
 
         expected = Series(
@@ -996,10 +993,15 @@ class TestSeriesConstructors:
         values2 = dates.view(np.ndarray).astype("datetime64[ns]")
         expected = Series(values2, index=dates)
 
-        for dtype in ["s", "D", "ms", "us", "ns"]:
-            values1 = dates.view(np.ndarray).astype(f"M8[{dtype}]")
+        for unit in ["s", "D", "ms", "us", "ns"]:
+            dtype = np.dtype(f"M8[{unit}]")
+            values1 = dates.view(np.ndarray).astype(dtype)
             result = Series(values1, dates)
-            tm.assert_series_equal(result, expected)
+            if unit == "D":
+                # for unit="D" we cast to nearest-supported reso, i.e. "s"
+                dtype = np.dtype("M8[s]")
+            assert result.dtype == dtype
+            tm.assert_series_equal(result, expected.astype(dtype))
 
         # GH 13876
         # coerce to non-ns to object properly
@@ -1168,21 +1170,16 @@ class TestSeriesConstructors:
         arr = np.array([1, 2, 3], dtype=arr_dtype)
         ser = Series(arr)
         result = ser.astype(dtype)
+
         expected = Series(arr.astype(dtype))
 
-        if unit in ["ns", "us", "ms", "s"] and kind == "m":
-            # TODO(2.0): this should hold for M8 too
+        if unit in ["ns", "us", "ms", "s"]:
             assert result.dtype == dtype
             assert expected.dtype == dtype
-        elif kind == "m":
-            # We cast to nearest-supported unit, i.e. seconds
+        else:
+            # Otherwise we cast to nearest-supported unit, i.e. seconds
             assert result.dtype == f"{kind}8[s]"
             assert expected.dtype == f"{kind}8[s]"
-        else:
-            # TODO(2.0): cast to nearest-supported unit, not ns
-            # otherwise we get the nearest-supported unit, i.e. seconds
-            assert result.dtype == f"{kind}8[ns]"
-            assert expected.dtype == f"{kind}8[ns]"
 
         tm.assert_series_equal(result, expected)
 
@@ -1199,7 +1196,8 @@ class TestSeriesConstructors:
         arr = np.array([np.datetime64(1, "ms")], dtype=">M8[ms]")
 
         result = Series(arr)
-        expected = Series([Timestamp(ms)])
+        expected = Series([Timestamp(ms)]).astype("M8[ms]")
+        assert expected.dtype == "M8[ms]"
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("interval_constructor", [IntervalIndex, IntervalArray])
@@ -1595,7 +1593,8 @@ class TestSeriesConstructors:
             ["2013-01-01", "2013-01-02", "2013-01-03"], dtype="datetime64[D]"
         )
         ser = Series(arr)
-        expected = Series(date_range("20130101", periods=3, freq="D"))
+        expected = Series(date_range("20130101", periods=3, freq="D"), dtype="M8[s]")
+        assert expected.dtype == "M8[s]"
         tm.assert_series_equal(ser, expected)
 
         arr = np.array(
@@ -1603,7 +1602,10 @@ class TestSeriesConstructors:
             dtype="datetime64[s]",
         )
         ser = Series(arr)
-        expected = Series(date_range("20130101 00:00:01", periods=3, freq="s"))
+        expected = Series(
+            date_range("20130101 00:00:01", periods=3, freq="s"), dtype="M8[s]"
+        )
+        assert expected.dtype == "M8[s]"
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize(
@@ -1734,24 +1736,23 @@ class TestSeriesConstructors:
         ts = Timestamp("2019", tz=tz)
         if pydt:
             ts = ts.to_pydatetime()
-        ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = Series([ts], dtype="datetime64[ns]")
-        expected = Series([ts_naive])
-        tm.assert_series_equal(result, expected)
+        msg = (
+            "Cannot convert timezone-aware data to timezone-naive dtype. "
+            r"Use pd.Series\(values\).dt.tz_localize\(None\) instead."
+        )
+        with pytest.raises(ValueError, match=msg):
+            Series([ts], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = Series(np.array([ts], dtype=object), dtype="datetime64[ns]")
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            Series(np.array([ts], dtype=object), dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = Series({0: ts}, dtype="datetime64[ns]")
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            Series({0: ts}, dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = Series(ts, index=[0], dtype="datetime64[ns]")
-        tm.assert_series_equal(result, expected)
+        msg = "Cannot unbox tzaware Timestamp to tznaive dtype"
+        with pytest.raises(TypeError, match=msg):
+            Series(ts, index=[0], dtype="datetime64[ns]")
 
     def test_constructor_datetime64(self):
         rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
@@ -1984,7 +1985,9 @@ class TestSeriesConstructorIndexCoercion:
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
         with tm.assert_produces_warning(FutureWarning):
             assert ser.index.is_all_dates
-        assert isinstance(ser.index, DatetimeIndex)
+        # as of 2.0, we no longer silently cast the object-dtype index
+        #  to DatetimeIndex GH#39307, GH#23598
+        assert not isinstance(ser.index, DatetimeIndex)
 
     def test_series_constructor_infer_multiindex(self):
         index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]

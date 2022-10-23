@@ -102,7 +102,6 @@ if TYPE_CHECKING:
         Categorical,
         DataFrame,
         Index,
-        MultiIndex,
         Series,
     )
     from pandas.core.arrays import (
@@ -462,12 +461,14 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
-        if not is_signed_integer_dtype(comps):
+        orig_values = list(values)
+        values = _ensure_arraylike(orig_values)
+
+        if is_numeric_dtype(values) and not is_signed_integer_dtype(comps):
             # GH#46485 Use object to avoid upcast to float64 later
             # TODO: Share with _find_common_type_compat
-            values = construct_1d_object_array_from_listlike(list(values))
-        else:
-            values = _ensure_arraylike(list(values))
+            values = construct_1d_object_array_from_listlike(orig_values)
+
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
         values = np.array(values)
@@ -1766,7 +1767,7 @@ def safe_sort(
     na_sentinel: int | None = -1,
     assume_unique: bool = False,
     verify: bool = True,
-) -> np.ndarray | MultiIndex | tuple[np.ndarray | MultiIndex, np.ndarray]:
+) -> AnyArrayLike | tuple[AnyArrayLike, np.ndarray]:
     """
     Sort ``values`` and reorder corresponding ``codes``.
 
@@ -1795,7 +1796,7 @@ def safe_sort(
 
     Returns
     -------
-    ordered : ndarray or MultiIndex
+    ordered : AnyArrayLike
         Sorted ``values``
     new_codes : ndarray
         Reordered ``codes``; returned when ``codes`` is not None.
@@ -1814,7 +1815,7 @@ def safe_sort(
             "Only list-like objects are allowed to be passed to safe_sort as values"
         )
 
-    if not isinstance(values, (np.ndarray, ABCExtensionArray, ABCMultiIndex)):
+    if not is_array_like(values):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
         # error: Argument "dtype" to "asarray" has incompatible type "Union[dtype[Any],
@@ -1824,7 +1825,7 @@ def safe_sort(
         values = np.asarray(values, dtype=dtype)  # type: ignore[arg-type]
 
     sorter = None
-    ordered: np.ndarray | MultiIndex
+    ordered: AnyArrayLike
 
     if (
         not is_extension_array_dtype(values)
@@ -1892,15 +1893,19 @@ def safe_sort(
     return ordered, ensure_platform_int(new_codes)
 
 
-def _sort_mixed(values) -> np.ndarray:
+def _sort_mixed(values) -> AnyArrayLike:
     """order ints before strings before nulls in 1d arrays"""
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
     null_pos = np.array([isna(x) for x in values], dtype=bool)
-    nums = np.sort(values[~str_pos & ~null_pos])
-    strs = np.sort(values[str_pos])
-    return np.concatenate(
-        [nums, np.asarray(strs, dtype=object), np.array(values[null_pos])]
-    )
+    num_pos = ~str_pos & ~null_pos
+    str_argsort = np.argsort(values[str_pos])
+    num_argsort = np.argsort(values[num_pos])
+    # convert boolean arrays to positional indices, then order by underlying values
+    str_locs = str_pos.nonzero()[0].take(str_argsort)
+    num_locs = num_pos.nonzero()[0].take(num_argsort)
+    null_locs = null_pos.nonzero()[0]
+    locs = np.concatenate([num_locs, str_locs, null_locs])
+    return values.take(locs)
 
 
 def _sort_tuples(values: np.ndarray) -> np.ndarray:

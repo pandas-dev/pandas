@@ -201,8 +201,11 @@ if not pa_version_under6p0:
     SIGNED_INT_PYARROW_DTYPES = [pa.int8(), pa.int16(), pa.int32(), pa.int64()]
     ALL_INT_PYARROW_DTYPES = UNSIGNED_INT_PYARROW_DTYPES + SIGNED_INT_PYARROW_DTYPES
 
+    # pa.float16 doesn't seem supported
+    # https://github.com/apache/arrow/blob/master/python/pyarrow/src/arrow/python/helpers.cc#L86
     FLOAT_PYARROW_DTYPES = [pa.float32(), pa.float64()]
-    STRING_PYARROW_DTYPES = [pa.string(), pa.utf8()]
+    STRING_PYARROW_DTYPES = [pa.string()]
+    BINARY_PYARROW_DTYPES = [pa.binary()]
 
     TIME_PYARROW_DTYPES = [
         pa.time32("s"),
@@ -225,6 +228,8 @@ if not pa_version_under6p0:
     ALL_PYARROW_DTYPES = (
         ALL_INT_PYARROW_DTYPES
         + FLOAT_PYARROW_DTYPES
+        + STRING_PYARROW_DTYPES
+        + BINARY_PYARROW_DTYPES
         + TIME_PYARROW_DTYPES
         + DATE_PYARROW_DTYPES
         + DATETIME_PYARROW_DTYPES

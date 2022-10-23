@@ -16,6 +16,7 @@ from typing import (
     Hashable,
     Iterator,
     Sized,
+    cast,
 )
 import warnings
 
@@ -141,8 +142,7 @@ class BaseWindow(SelectionMixin):
         self.window = window
         self.min_periods = min_periods
         self.center = center
-        # TODO(2.0): Change this back to self.win_type once deprecation is enforced
-        self._win_type = win_type
+        self.win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.method = method
         self._win_freq_i8: int | None = None
@@ -164,35 +164,6 @@ class BaseWindow(SelectionMixin):
 
         self._selection = selection
         self._validate()
-
-    @property
-    def win_type(self):
-        if self._win_freq_i8 is not None:
-            warnings.warn(
-                "win_type will no longer return 'freq' in a future version. "
-                "Check the type of self.window instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return "freq"
-        return self._win_type
-
-    @property
-    def is_datetimelike(self) -> bool:
-        warnings.warn(
-            "is_datetimelike is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._win_freq_i8 is not None
-
-    def validate(self) -> None:
-        warnings.warn(
-            "validate is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._validate()
 
     def _validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
@@ -331,10 +302,7 @@ class BaseWindow(SelectionMixin):
 
         # we need to make a shallow copy of ourselves
         # with the same groupby
-        with warnings.catch_warnings():
-            # TODO(2.0): Remove once win_type deprecation is enforced
-            warnings.filterwarnings("ignore", "win_type", FutureWarning)
-            kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
 
         selection = None
         if subset.ndim == 2 and (
@@ -442,7 +410,8 @@ class BaseWindow(SelectionMixin):
     def _index_array(self):
         # TODO: why do we get here with e.g. MultiIndex?
         if needs_i8_conversion(self._on.dtype):
-            return self._on.asi8
+            idx = cast("PeriodIndex | DatetimeIndex | TimedeltaIndex", self._on)
+            return idx.asi8
         return None
 
     def _resolve_output(self, out: DataFrame, obj: DataFrame) -> DataFrame:
@@ -1936,21 +1905,21 @@ class Rolling(RollingAndExpandingMixin):
             """
         >>> s = pd.Series([2, 3, np.nan, 10])
         >>> s.rolling(2).count()
-        0    1.0
+        0    NaN
         1    2.0
         2    1.0
         3    1.0
         dtype: float64
         >>> s.rolling(3).count()
-        0    1.0
-        1    2.0
+        0    NaN
+        1    NaN
         2    2.0
         3    2.0
         dtype: float64
         >>> s.rolling(4).count()
-        0    1.0
-        1    2.0
-        2    2.0
+        0    NaN
+        1    NaN
+        2    NaN
         3    3.0
         dtype: float64
         """
@@ -1960,22 +1929,7 @@ class Rolling(RollingAndExpandingMixin):
         agg_method="count",
     )
     def count(self, numeric_only: bool = False):
-        if self.min_periods is None:
-            warnings.warn(
-                (
-                    "min_periods=None will default to the size of window "
-                    "consistent with other methods in a future version. "
-                    "Specify min_periods=0 instead."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            self.min_periods = 0
-            result = super().count()
-            self.min_periods = None
-        else:
-            result = super().count(numeric_only)
-        return result
+        return super().count(numeric_only)
 
     @doc(
         template_header,

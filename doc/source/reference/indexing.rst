@@ -68,7 +68,6 @@ Modifying and computations
    Index.is_floating
    Index.is_integer
    Index.is_interval
-   Index.is_mixed
    Index.is_numeric
    Index.is_object
    Index.min
@@ -157,7 +156,6 @@ Selecting
    Index.get_level_values
    Index.get_loc
    Index.get_slice_bound
-   Index.get_value
    Index.isin
    Index.slice_indexer
    Index.slice_locs
