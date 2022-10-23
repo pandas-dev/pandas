@@ -84,7 +84,6 @@ Function application
    DataFrameGroupBy.idxmax
    DataFrameGroupBy.idxmin
    DataFrameGroupBy.last
-   DataFrameGroupBy.mad
    DataFrameGroupBy.max
    DataFrameGroupBy.mean
    DataFrameGroupBy.median
@@ -108,7 +107,6 @@ Function application
    DataFrameGroupBy.var
    DataFrameGroupBy.tail
    DataFrameGroupBy.take
-   DataFrameGroupBy.tshift
    DataFrameGroupBy.value_counts
 
 ``SeriesGroupBy`` computations / descriptive stats
@@ -138,7 +136,6 @@ Function application
    SeriesGroupBy.idxmin
    SeriesGroupBy.is_monotonic_increasing
    SeriesGroupBy.is_monotonic_decreasing
-   SeriesGroupBy.mad
    SeriesGroupBy.max
    SeriesGroupBy.mean
    SeriesGroupBy.median
@@ -165,7 +162,6 @@ Function application
    SeriesGroupBy.var
    SeriesGroupBy.tail
    SeriesGroupBy.take
-   SeriesGroupBy.tshift
    SeriesGroupBy.value_counts
 
 Plotting and visualization

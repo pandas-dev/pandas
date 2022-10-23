@@ -200,7 +200,8 @@ Removal of prior version deprecations/changes
 - Removed ``pandas.SparseSeries`` and ``pandas.SparseDataFrame`` (:issue:`30642`)
 - Enforced disallowing a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
--
+- Removed the deprecated method ``mad`` from pandas classes (:issue:`11787`)
+- Removed the deprecated method ``tshift`` from pandas classes (:issue:`11631`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:
