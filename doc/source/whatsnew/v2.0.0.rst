@@ -702,7 +702,9 @@ Groupby/resample/rolling
 - Bug in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` would not include unobserved categories in result when grouping by categorical indexes (:issue:`49354`)
 - Bug in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` would change result order depending on the input index when grouping by categoricals (:issue:`49223`)
 - Bug in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` when grouping on categorical data would sort result values even when used with ``sort=False`` (:issue:`42482`)
--
+- Bug in :meth:`.DataFrameGroupBy.apply` and :class:`SeriesGroupBy.apply` with ``as_index=False`` would not attempt the computation without using the grouping keys when using them failed with a ``TypeError`` (:issue:`49256`)
+- Bug in :meth:`.DataFrameGroupBy.describe` would describe the group keys (:issue:`49256`)
+- Bug in :meth:`.SeriesGroupBy.describe` with ``as_index=False`` would have the incorrect shape (:issue:`49256`)
 
 Reshaping
 ^^^^^^^^^

@@ -333,13 +333,7 @@ class TestGroupByNonCythonPaths:
         result = gb.describe()
         tm.assert_frame_equal(result, expected)
 
-        expected = pd.concat(
-            [
-                df[df.A == 1].describe().unstack().to_frame().T,
-                df[df.A == 3].describe().unstack().to_frame().T,
-            ]
-        )
-        expected.index = Index([0, 1])
+        expected = expected.reset_index()
         result = gni.describe()
         tm.assert_frame_equal(result, expected)
 
@@ -1090,6 +1084,34 @@ def test_series_describe_single():
     tm.assert_series_equal(result, expected)
 
 
+def test_series_describe_as_index(as_index):
+    # GH#49256
+    df = DataFrame(
+        {
+            "foo1": ["one", "two", "two", "three", "two"],
+            "foo2": [1, 2, 4, 4, 6],
+        }
+    )
+    gb = df.groupby("foo1", as_index=as_index)["foo2"]
+    result = gb.describe()
+    expected = DataFrame(
+        {
+            "foo1": ["one", "three", "two"],
+            "count": [1.0, 1.0, 3.0],
+            "mean": [1.0, 4.0, 4.0],
+            "std": [np.nan, np.nan, 2.0],
+            "min": [1.0, 4.0, 2.0],
+            "25%": [1.0, 4.0, 3.0],
+            "50%": [1.0, 4.0, 4.0],
+            "75%": [1.0, 4.0, 5.0],
+            "max": [1.0, 4.0, 6.0],
+        }
+    )
+    if as_index:
+        expected = expected.set_index("foo1")
+    tm.assert_frame_equal(result, expected)
+
+
 def test_series_index_name(df):
     grouped = df.loc[:, ["C"]].groupby(df["A"])
     result = grouped.agg(lambda x: x.mean())
@@ -1189,14 +1211,6 @@ def test_describe_with_duplicate_output_column_names(as_index):
     expected = (
         DataFrame.from_records(
             [
-                ("a", "count", 3.0, 3.0),
-                ("a", "mean", 88.0, 99.0),
-                ("a", "std", 0.0, 0.0),
-                ("a", "min", 88.0, 99.0),
-                ("a", "25%", 88.0, 99.0),
-                ("a", "50%", 88.0, 99.0),
-                ("a", "75%", 88.0, 99.0),
-                ("a", "max", 88.0, 99.0),
                 ("b", "count", 3.0, 3.0),
                 ("b", "mean", 5.0, 2.0),
                 ("b", "std", 1.0, 1.0),
@@ -1221,10 +1235,8 @@ def test_describe_with_duplicate_output_column_names(as_index):
     expected.columns.names = [None, None]
     expected.index = Index([88, 99], name="a")
 
-    if as_index:
-        expected = expected.drop(columns=["a"], level=0)
-    else:
-        expected = expected.reset_index(drop=True)
+    if not as_index:
+        expected = expected.reset_index()
 
     result = df.groupby("a", as_index=as_index).describe()
 

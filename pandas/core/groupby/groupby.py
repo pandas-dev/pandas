@@ -1070,8 +1070,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # This is a no-op for SeriesGroupBy
         grp = self.grouper
         if not (
-            self.as_index
-            and grp.groupings is not None
+            grp.groupings is not None
             and self.obj.ndim > 1
             and self._group_selection is None
         ):
@@ -2646,7 +2645,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             if self.axis == 1:
                 return result.T
-            return result.unstack()
+
+            if self._selected_obj.ndim != 1 or self.as_index:
+                result = result.unstack()
+            if self._selected_obj.ndim != 1 and not self.as_index:
+                self._insert_inaxis_grouper_inplace(result)
+
+            return result
 
     @final
     def resample(self, rule, *args, **kwargs):
