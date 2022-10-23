@@ -11829,19 +11829,16 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | None:
         return super().bfill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "lower", "upper"]
-    )
     def clip(
         self: DataFrame,
         lower: float | None = None,
         upper: float | None = None,
+        *,
         axis: Axis | None = None,
         inplace: bool = False,
-        *args,
         **kwargs,
     ) -> DataFrame | None:
-        return super().clip(lower, upper, axis, inplace, *args, **kwargs)
+        return super().clip(lower, upper, axis=axis, inplace=inplace, **kwargs)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     def interpolate(

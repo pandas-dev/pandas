@@ -1153,10 +1153,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @rewrite_axis_style_signature("mapper", [("copy", True)])
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "mapper"])
     def rename_axis(
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
+        *,
         inplace: bool_t = False,
         **kwargs,
     ) -> NDFrameT | None:
@@ -7999,9 +7999,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         lower=None,
         upper=None,
+        *,
         axis: Axis | None = None,
         inplace: bool_t = False,
-        *args,
         **kwargs,
     ) -> NDFrameT | None:
         """
@@ -8104,7 +8104,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        axis = nv.validate_clip_with_axis(axis, args, kwargs)
+        axis = nv.validate_clip_with_axis(axis, (), kwargs)
         if axis is not None:
             axis = self._get_axis_number(axis)
 
