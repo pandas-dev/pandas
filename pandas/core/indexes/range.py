@@ -456,24 +456,9 @@ class RangeIndex(NumericIndex):
         return result
 
     @doc(Int64Index.copy)
-    def copy(
-        self,
-        name: Hashable = None,
-        deep: bool = False,
-        dtype: Dtype | None = None,
-        names=None,
-    ):
-        name = self._validate_names(name=name, names=names, deep=deep)[0]
+    def copy(self, name: Hashable = None, deep: bool = False):
+        name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
-
-        if dtype:
-            warnings.warn(
-                "parameter dtype is deprecated and will be removed in a future "
-                "version. Use the astype method instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            new_index = new_index.astype(dtype)
         return new_index
 
     def _minmax(self, meth: str):
@@ -848,11 +833,11 @@ class RangeIndex(NumericIndex):
         # In some cases we can retain RangeIndex, see also
         #  DatetimeTimedeltaMixin._get_delete_Freq
         if is_integer(loc):
-            if loc == 0 or loc == -len(self):
+            if loc in (0, -len(self)):
                 return self[1:]
-            if loc == -1 or loc == len(self) - 1:
+            if loc in (-1, len(self) - 1):
                 return self[:-1]
-            if len(self) == 3 and (loc == 1 or loc == -2):
+            if len(self) == 3 and loc in (1, -2):
                 return self[::2]
 
         elif lib.is_list_like(loc):

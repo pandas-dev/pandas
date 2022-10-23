@@ -15,8 +15,6 @@ from pandas._config import get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under2p0,
-    pa_version_under5p0,
     pa_version_under6p0,
     pa_version_under8p0,
 )
@@ -237,7 +235,7 @@ def check_partition_names(path, expected):
     expected: iterable of str
         Expected partition names.
     """
-    if pa_version_under5p0:
+    if pa_version_under6p0:
         import pyarrow.parquet as pq
 
         dataset = pq.ParquetDataset(path, validate_schema=False)
@@ -836,13 +834,8 @@ class TestParquetPyArrow(Base):
         expected_df = df_compat.copy()
 
         # GH #35791
-        # read_table uses the new Arrow Datasets API since pyarrow 1.0.0
-        # Previous behaviour was pyarrow partitioned columns become 'category' dtypes
-        # These are added to back of dataframe on read. In new API category dtype is
-        # only used if partition field is string, but this changed again to use
-        # category dtype for all types (not only strings) in pyarrow 2.0.0
         if partition_col:
-            partition_col_type = "int32" if pa_version_under2p0 else "category"
+            partition_col_type = "category"
 
             expected_df[partition_col] = expected_df[partition_col].astype(
                 partition_col_type
@@ -975,7 +968,7 @@ class TestParquetPyArrow(Base):
 
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
         if (
-            not pa_version_under2p0
+            not pa_version_under6p0
             and timezone_aware_date_list.tzinfo != datetime.timezone.utc
         ):
             request.node.add_marker(
@@ -1020,6 +1013,43 @@ class TestParquetPyArrow(Base):
             assert isinstance(result._mgr, pd.core.internals.ArrayManager)
         else:
             assert isinstance(result._mgr, pd.core.internals.BlockManager)
+
+    def test_read_use_nullable_types_pyarrow_config(self, pa, df_full):
+        import pyarrow
+
+        df = df_full
+
+        # additional supported types for pyarrow
+        dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
+        dti = dti._with_freq(None)  # freq doesn't round-trip
+        df["datetime_tz"] = dti
+        df["bool_with_none"] = [True, None, True]
+
+        pa_table = pyarrow.Table.from_pandas(df)
+        expected = pd.DataFrame(
+            {
+                col_name: pd.arrays.ArrowExtensionArray(pa_column)
+                for col_name, pa_column in zip(
+                    pa_table.column_names, pa_table.itercolumns()
+                )
+            }
+        )
+        # pyarrow infers datetimes as us instead of ns
+        expected["datetime"] = expected["datetime"].astype("timestamp[us][pyarrow]")
+        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
+            "timestamp[us][pyarrow]"
+        )
+        expected["datetime_tz"] = expected["datetime_tz"].astype(
+            pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
+        )
+
+        with pd.option_context("io.nullable_backend", "pyarrow"):
+            check_round_trip(
+                df,
+                engine=pa,
+                read_kwargs={"use_nullable_dtypes": True},
+                expected=expected,
+            )
 
 
 class TestParquetFastParquet(Base):

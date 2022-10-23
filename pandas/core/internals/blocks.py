@@ -1513,6 +1513,8 @@ class EABackedBlock(Block):
         See Block.putmask.__doc__
         """
         mask = extract_bool_array(mask)
+        if new is lib.no_default:
+            new = self.fill_value
 
         values = self.values
         if values.ndim == 2:

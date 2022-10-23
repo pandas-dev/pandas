@@ -1182,7 +1182,7 @@ class TestExcelWriter:
                 (pd.Period("2018"), pd.Period("2018Q2")),
             ]
         )
-        expected = DataFrame(np.ones((2, 2), dtype=np.int_), columns=mi)
+        expected = DataFrame(np.ones((2, 2), dtype="int64"), columns=mi)
         expected.to_excel(path)
         result = pd.read_excel(path, header=[0, 1], index_col=0)
         # need to convert PeriodIndexes to standard Indexes for assert equal

@@ -1342,7 +1342,7 @@ def test_size_as_str(how, axis):
     # Just a string attribute arg same as calling df.arg
     # on the columns
     result = getattr(df, how)("size", axis=axis)
-    if axis == 0 or axis == "index":
+    if axis in (0, "index"):
         expected = Series(df.shape[0], index=df.columns)
     else:
         expected = Series(df.shape[1], index=df.index)

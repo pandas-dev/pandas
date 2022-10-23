@@ -36,7 +36,6 @@ reduction_kernels = frozenset(
         "idxmax",
         "idxmin",
         "last",
-        "mad",
         "max",
         "mean",
         "median",
@@ -73,7 +72,6 @@ def maybe_normalize_deprecated_kernels(kernel) -> Literal["bfill", "ffill"]:
 
 transformation_kernels = frozenset(
     [
-        "backfill",
         "bfill",
         "cumcount",
         "cummax",
@@ -84,11 +82,9 @@ transformation_kernels = frozenset(
         "ffill",
         "fillna",
         "ngroup",
-        "pad",
         "pct_change",
         "rank",
         "shift",
-        "tshift",
     ]
 )
 
