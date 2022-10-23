@@ -28,12 +28,11 @@ AGG_FUNCTIONS = [
     "median",
     "mean",
     "skew",
-    "mad",
     "std",
     "var",
     "sem",
 ]
-AGG_FUNCTIONS_WITH_SKIPNA = ["skew", "mad"]
+AGG_FUNCTIONS_WITH_SKIPNA = ["skew"]
 
 
 @pytest.fixture
@@ -79,8 +78,6 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
     # GH6944
     # GH 17537
     # explicitly test the allowlist methods
-    warn = FutureWarning if op == "mad" else None
-
     if axis == 0:
         frame = raw_frame
     else:
@@ -88,20 +85,15 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
 
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
-        with tm.assert_produces_warning(
-            warn, match="The 'mad' method is deprecated", raise_on_extra_warnings=False
-        ):
-            result = getattr(grouped, op)(skipna=skipna)
-        with tm.assert_produces_warning(FutureWarning):
-            expected = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
+        result = getattr(grouped, op)(skipna=skipna)
+        expected = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
         if sort:
             expected = expected.sort_index(axis=axis, level=level)
         tm.assert_frame_equal(result, expected)
     else:
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
-        with tm.assert_produces_warning(FutureWarning):
-            result = getattr(grouped, op)()
-            expected = getattr(frame, op)(level=level, axis=axis)
+        result = getattr(grouped, op)()
+        expected = getattr(frame, op)(level=level, axis=axis)
         if sort:
             expected = expected.sort_index(axis=axis, level=level)
         tm.assert_frame_equal(result, expected)
@@ -203,10 +195,8 @@ def test_tab_completion(mframe):
         "shift",
         "skew",
         "take",
-        "tshift",
         "pct_change",
         "any",
-        "mad",
         "corr",
         "corrwith",
         "cov",
@@ -270,19 +260,6 @@ def test_groupby_selection_with_methods(df, method):
 
     # should always be frames!
     tm.assert_frame_equal(res, exp)
-
-
-@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
-def test_groupby_selection_tshift_raises(df):
-    rng = date_range("2014", periods=len(df))
-    df.index = rng
-
-    g = df.groupby(["A"])[["C"]]
-
-    # check that the index cache is cleared
-    with pytest.raises(ValueError, match="Freq was not set in the index"):
-        # GH#35937
-        g.tshift()
 
 
 def test_groupby_selection_other_methods(df):

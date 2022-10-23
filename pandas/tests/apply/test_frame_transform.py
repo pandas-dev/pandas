@@ -69,7 +69,7 @@ def test_transform_empty_listlike(float_frame, ops, frame_or_series):
 @pytest.mark.parametrize("box", [dict, Series])
 def test_transform_dictlike(axis, float_frame, box):
     # GH 35964
-    if axis == 0 or axis == "index":
+    if axis in (0, "index"):
         e = float_frame.columns[0]
         expected = float_frame[[e]].transform(np.abs)
     else:
@@ -147,17 +147,14 @@ def test_transform_bad_dtype(op, frame_or_series, request):
     obj = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
     obj = tm.get_obj(obj, frame_or_series)
 
-    # tshift is deprecated
-    warn = None if op != "tshift" else FutureWarning
-    with tm.assert_produces_warning(warn):
-        with pytest.raises(TypeError, match="unsupported operand|not supported"):
-            obj.transform(op)
-        with pytest.raises(TypeError, match="Transform function failed"):
-            obj.transform([op])
-        with pytest.raises(TypeError, match="Transform function failed"):
-            obj.transform({"A": op})
-        with pytest.raises(TypeError, match="Transform function failed"):
-            obj.transform({"A": [op]})
+    with pytest.raises(TypeError, match="unsupported operand|not supported"):
+        obj.transform(op)
+    with pytest.raises(TypeError, match="Transform function failed"):
+        obj.transform([op])
+    with pytest.raises(TypeError, match="Transform function failed"):
+        obj.transform({"A": op})
+    with pytest.raises(TypeError, match="Transform function failed"):
+        obj.transform({"A": [op]})
 
 
 @pytest.mark.parametrize("op", frame_kernels_raise)

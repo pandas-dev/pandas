@@ -680,23 +680,6 @@ class Index(IndexOpsMixin, PandasObject):
     See each method's docstring.
     """
 
-    @property
-    def asi8(self):
-        """
-        Integer representation of the values.
-
-        Returns
-        -------
-        ndarray
-            An ndarray with int64 dtype.
-        """
-        warnings.warn(
-            "Index.asi8 is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return None
-
     @classmethod
     def _simple_new(cls: type[_IndexT], values, name: Hashable = None) -> _IndexT:
         """
@@ -2451,7 +2434,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2487,7 +2469,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2527,7 +2508,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2567,7 +2547,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2611,7 +2590,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_numeric : Check if the Index only consists of numeric data.
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2653,7 +2631,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
         is_interval : Check if the Index holds Interval objects.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2697,7 +2674,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
-        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -2711,44 +2687,6 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
         return self.inferred_type in ["interval"]
-
-    @final
-    def is_mixed(self) -> bool:
-        """
-        Check if the Index holds data with mixed data types.
-
-        Returns
-        -------
-        bool
-            Whether or not the Index holds data with mixed data types.
-
-        See Also
-        --------
-        is_boolean : Check if the Index only consists of booleans.
-        is_integer : Check if the Index only consists of integers.
-        is_floating : Check if the Index is a floating type.
-        is_numeric : Check if the Index only consists of numeric data.
-        is_object : Check if the Index is of the object dtype.
-        is_categorical : Check if the Index holds categorical data.
-        is_interval : Check if the Index holds Interval objects.
-
-        Examples
-        --------
-        >>> idx = pd.Index(['a', np.nan, 'b'])
-        >>> idx.is_mixed()
-        True
-
-        >>> idx = pd.Index([1.0, 2.0, 3.0, 5.0])
-        >>> idx.is_mixed()
-        False
-        """
-        warnings.warn(
-            "Index.is_mixed is deprecated and will be removed in a future version. "
-            "Check index.inferred_type directly instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.inferred_type in ["mixed"]
 
     @final
     def holds_integer(self) -> bool:
@@ -4066,7 +4004,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "method='nearest' not implemented yet "
                     "for MultiIndex; see GitHub issue 9365"
                 )
-            elif method == "pad" or method == "backfill":
+            elif method in ("pad", "backfill"):
                 if tolerance is not None:
                     raise NotImplementedError(
                         "tolerance not implemented yet for MultiIndex"
@@ -5311,18 +5249,6 @@ class Index(IndexOpsMixin, PandasObject):
         Return a boolean if we need a qualified .info display.
         """
         return self.is_object()
-
-    def is_type_compatible(self, kind: str_t) -> bool:
-        """
-        Whether the index type is compatible with the provided type.
-        """
-        warnings.warn(
-            "Index.is_type_compatible is deprecated and will be removed in a "
-            "future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return kind == self.inferred_type
 
     def __contains__(self, key: Any) -> bool:
         """

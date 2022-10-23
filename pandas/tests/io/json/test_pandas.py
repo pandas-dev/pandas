@@ -24,7 +24,7 @@ import pandas._testing as tm
 
 
 def assert_json_roundtrip_equal(result, expected, orient):
-    if orient == "records" or orient == "values":
+    if orient in ("records", "values"):
         expected = expected.reset_index(drop=True)
     if orient == "values":
         expected.columns = range(len(expected.columns))

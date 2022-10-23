@@ -68,7 +68,6 @@ Modifying and computations
    Index.is_floating
    Index.is_integer
    Index.is_interval
-   Index.is_mixed
    Index.is_numeric
    Index.is_object
    Index.min

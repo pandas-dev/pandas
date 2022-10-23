@@ -581,7 +581,7 @@ class OpenpyxlReader(BaseExcelReader):
         self.raise_if_bad_sheet_by_index(index)
         return self.book.worksheets[index]
 
-    def _convert_cell(self, cell, convert_float: bool) -> Scalar:
+    def _convert_cell(self, cell) -> Scalar:
 
         from openpyxl.cell.cell import (
             TYPE_ERROR,
@@ -593,18 +593,15 @@ class OpenpyxlReader(BaseExcelReader):
         elif cell.data_type == TYPE_ERROR:
             return np.nan
         elif cell.data_type == TYPE_NUMERIC:
-            # GH5394, GH46988
-            if convert_float:
-                val = int(cell.value)
-                if val == cell.value:
-                    return val
-            else:
-                return float(cell.value)
+            val = int(cell.value)
+            if val == cell.value:
+                return val
+            return float(cell.value)
 
         return cell.value
 
     def get_sheet_data(
-        self, sheet, convert_float: bool, file_rows_needed: int | None = None
+        self, sheet, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
 
         if self.book.read_only:
@@ -613,7 +610,7 @@ class OpenpyxlReader(BaseExcelReader):
         data: list[list[Scalar]] = []
         last_row_with_data = -1
         for row_number, row in enumerate(sheet.rows):
-            converted_row = [self._convert_cell(cell, convert_float) for cell in row]
+            converted_row = [self._convert_cell(cell) for cell in row]
             while converted_row and converted_row[-1] == "":
                 # trim trailing empty elements
                 converted_row.pop()
