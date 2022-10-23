@@ -44,7 +44,7 @@ class Stata(BaseIO):
         read_stata(self.fname)
 
     def time_write_stata(self, convert_dates):
-        self.df.to_stata(self.fname, self.convert_dates)
+        self.df.to_stata(self.fname, convert_dates=self.convert_dates)
 
 
 class StataMissing(Stata):
