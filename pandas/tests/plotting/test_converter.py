@@ -18,6 +18,7 @@ from pandas import (
     PeriodIndex,
     Series,
     Timestamp,
+    _built_with_meson,
     arrays,
     date_range,
 )
@@ -45,8 +46,12 @@ pytest.importorskip("matplotlib.pyplot")
 dates = pytest.importorskip("matplotlib.dates")
 
 
-def test_registry_mpl_resets():
+def test_registry_mpl_resets(monkeypatch):
     # Check that Matplotlib converters are properly reset (see issue #27481)
+    # Can't import pandas from the test directory since its not
+    # built inplace with meson
+    if _built_with_meson:
+        monkeypatch.chdir("..")
     code = (
         "import matplotlib.units as units; "
         "import matplotlib.dates as mdates; "
@@ -65,7 +70,11 @@ def test_timtetonum_accepts_unicode():
 
 
 class TestRegistration:
-    def test_dont_register_by_default(self):
+    def test_dont_register_by_default(self, monkeypatch):
+        # Can't import pandas from the test directory since its not
+        # built inplace with meson
+        if _built_with_meson:
+            monkeypatch.chdir("..")
         # Run in subprocess to ensure a clean state
         code = (
             "import matplotlib.units; "
