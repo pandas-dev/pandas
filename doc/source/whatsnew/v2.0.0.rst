@@ -198,7 +198,7 @@ Removal of prior version deprecations/changes
 - Removed ``pandas.SparseArray`` in favor of :class:`arrays.SparseArray` (:issue:`30642`)
 - Removed ``pandas.SparseSeries`` and ``pandas.SparseDataFrame`` (:issue:`30642`)
 - Enforced disallowing a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
-- Removed setting Categorical._codes directly (:issues:`41429`)
+- Removed setting Categorical._codes directly (:issue:`41429`)
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
 -
 
