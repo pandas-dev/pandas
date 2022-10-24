@@ -153,7 +153,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         # Deprecations where the docstring will emit a warning
         ("DataFrame.append", "The frame.append method is deprecated"),
         ("Series.append", "The series.append method is deprecated"),
-        ("dtypes.common.is_categorical", "is_categorical is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         # Docstring demonstrates the call raises a warning
