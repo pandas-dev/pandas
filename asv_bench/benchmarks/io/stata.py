@@ -38,7 +38,7 @@ class Stata(BaseIO):
         )
         self.df["float32_"] = np.array(np.random.randn(N), dtype=np.float32)
         self.convert_dates = {"index": convert_dates}
-        self.df.to_stata(self.fname, self.convert_dates)
+        self.df.to_stata(self.fname, convert_dates=self.convert_dates)
 
     def time_read_stata(self, convert_dates):
         read_stata(self.fname)
