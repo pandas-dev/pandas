@@ -4,7 +4,6 @@ import datetime
 from functools import partial
 from textwrap import dedent
 from typing import TYPE_CHECKING
-import warnings
 
 import numpy as np
 
@@ -21,7 +20,6 @@ if TYPE_CHECKING:
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
