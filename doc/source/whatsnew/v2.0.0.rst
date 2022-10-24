@@ -149,7 +149,6 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 -
--
 
 .. ---------------------------------------------------------------------------
 
@@ -166,6 +165,12 @@ Removal of prior version deprecations/changes
 - Removed deprecated :meth:`Index.is_mixed`, check ``index.inferred_type`` directly instead (:issue:`32922`)
 - Removed deprecated :func:`pandas.api.types.is_categorical`; use :func:`pandas.api.types.is_categorical_dtype` instead  (:issue:`33385`)
 - Removed deprecated :meth:`Index.asi8` (:issue:`37877`)
+- Removed deprecated :meth:`DataFrame._AXIS_NUMBERS`, :meth:`DataFrame._AXIS_NAMES`, :meth:`Series._AXIS_NUMBERS`, :meth:`Series._AXIS_NAMES` (:issue:`33637`)
+- Removed deprecated :meth:`Index.to_native_types`, use ``obj.astype(str)`` instead (:issue:`36418`)
+- Removed deprecated :meth:`Series.iteritems`, :meth:`DataFrame.iteritems`, use ``obj.items`` instead (:issue:`45321`)
+- Removed deprecated :meth:`DatetimeIndex.union_many` (:issue:`45018`)
+- Removed deprecated :meth:`RangeIndex._start`, :meth:`RangeIndex._stop`, :meth:`RangeIndex._step`, use ``start``, ``stop``, ``step`` instead (:issue:`30482`)
+- Removed deprecated :meth:`DatetimeIndex.to_perioddelta`, Use ``dtindex - dtindex.to_period(freq).to_timestamp()`` instead (:issue:`34853`)
 - Enforced deprecation disallowing passing a timezone-aware :class:`Timestamp` and ``dtype="datetime64[ns]"`` to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
 - Enforced deprecation disallowing passing a sequence of timezone-aware values and ``dtype="datetime64[ns]"`` to to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
 - Enforced deprecation disallowing using ``.astype`` to convert a ``datetime64[ns]`` :class:`Series`, :class:`DataFrame`, or :class:`DatetimeIndex` to timezone-aware dtype, use ``obj.tz_localize`` or ``ser.dt.tz_localize`` instead (:issue:`39258`)
@@ -174,6 +179,7 @@ Removal of prior version deprecations/changes
   :func:`~pandas.io.date_converters.parse_date_fields`, :func:`~pandas.io.date_converters.parse_all_fields`
   and :func:`~pandas.io.date_converters.generic_parser` (:issue:`24518`)
 - Remove argument ``squeeze`` from :meth:`DataFrame.groupby` and :meth:`Series.groupby` (:issue:`32380`)
+- Removed deprecated ``apply``, ``apply_index``, ``__call__``, ``onOffset``, and ``isAnchored`` attributes from :class:`DateOffset` (:issue:`34171`)
 - Removed ``keep_tz`` argument in :meth:`DatetimeIndex.to_series` (:issue:`29731`)
 - Remove arguments ``names`` and ``dtype`` from :meth:`Index.copy` and ``levels`` and ``codes`` from :meth:`MultiIndex.copy` (:issue:`35853`, :issue:`36685`)
 - Remove argument ``inplace`` from :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` (:issue:`35626`)
@@ -181,11 +187,22 @@ Removal of prior version deprecations/changes
 - Removed :meth:`MultiIndex.is_lexsorted` and :meth:`MultiIndex.lexsort_depth` (:issue:`38701`)
 - Removed argument ``how`` from :meth:`PeriodIndex.astype`, use :meth:`PeriodIndex.to_timestamp` instead (:issue:`37982`)
 - Removed argument ``try_cast`` from :meth:`DataFrame.mask`, :meth:`DataFrame.where`, :meth:`Series.mask` and :meth:`Series.where` (:issue:`38836`)
+- Removed argument ``tz`` from :meth:`Period.to_timestamp`, use ``obj.to_timestamp(...).tz_localize(tz)`` instead (:issue:`34522`)
 - Removed argument ``is_copy`` from :meth:`DataFrame.take` and :meth:`Series.take` (:issue:`30615`)
 - Removed argument ``kind`` from :meth:`Index.get_slice_bound`, :meth:`Index.slice_indexer` and :meth:`Index.slice_locs` (:issue:`41378`)
 - Disallow passing non-round floats to :class:`Timestamp` with ``unit="M"`` or ``unit="Y"`` (:issue:`47266`)
 - Remove keywords ``convert_float`` and ``mangle_dupe_cols`` from :func:`read_excel` (:issue:`41176`)
 - Disallow passing non-keyword arguments to :func:`read_excel` except ``io`` and ``sheet_name`` (:issue:`34418`)
+- Disallow passing non-keyword arguments to :meth:`Series.mask` and :meth:`DataFrame.mask` except ``cond`` and ``other`` (:issue:`41580`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.to_stata` except for ``path`` (:issue:`48128`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.where` and :meth:`Series.where` except for ``cond`` and ``other`` (:issue:`41523`)
+- Disallow passing non-keyword arguments to :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` except for ``labels`` (:issue:`41491`)
+- Disallow passing non-keyword arguments to :meth:`Series.rename_axis` and :meth:`DataFrame.rename_axis` except for ``mapper`` (:issue:`47587`)
+- Disallow passing non-keyword arguments to :meth:`Series.clip` and :meth:`DataFrame.clip` (:issue:`41511`)
+- Disallow passing non-keyword arguments to :meth:`Series.bfill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill` and :meth:`DataFrame.ffill` (:issue:`41508`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.replace`, :meth:`Series.replace` except for ``to_replace`` and ``value`` (:issue:`47587`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.sort_values` except for ``by`` (:issue:`41505`)
+- Disallow passing non-keyword arguments to :meth:`Series.sort_values` (:issue:`41505`)
 - Removed :meth:`.Rolling.validate`, :meth:`.Expanding.validate`, and :meth:`.ExponentialMovingWindow.validate` (:issue:`43665`)
 - Removed :attr:`Rolling.win_type` returning ``"freq"`` (:issue:`38963`)
 - Removed :attr:`Rolling.is_datetimelike` (:issue:`38963`)
@@ -205,6 +222,7 @@ Removal of prior version deprecations/changes
 - Removed ``pandas.SparseArray`` in favor of :class:`arrays.SparseArray` (:issue:`30642`)
 - Removed ``pandas.SparseSeries`` and ``pandas.SparseDataFrame`` (:issue:`30642`)
 - Enforced disallowing a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
+- Removed setting Categorical._codes directly (:issue:`41429`)
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
 - Removed the deprecated method ``mad`` from pandas classes (:issue:`11787`)
 - Removed the deprecated method ``tshift`` from pandas classes (:issue:`11631`)

@@ -438,22 +438,6 @@ class TestNDFrame:
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
 
-    def test_axis_names_deprecated(self, frame_or_series):
-        # GH33637
-        box = frame_or_series
-        obj = box(dtype=object)
-        msg = "_AXIS_NAMES has been deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj._AXIS_NAMES
-
-    def test_axis_numbers_deprecated(self, frame_or_series):
-        # GH33637
-        box = frame_or_series
-        obj = box(dtype=object)
-        msg = "_AXIS_NUMBERS has been deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj._AXIS_NUMBERS
-
     def test_flags_identity(self, frame_or_series):
         obj = Series([1, 2])
         if frame_or_series is DataFrame:

@@ -780,25 +780,6 @@ class TestDatetimeArray(SharedTests):
         assert asobj.dtype == "O"
         assert list(asobj) == list(dti)
 
-    def test_to_perioddelta(self, datetime_index, freqstr):
-        # GH#23113
-        dti = datetime_index
-        arr = DatetimeArray(dti)
-
-        msg = "to_perioddelta is deprecated and will be removed"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # Deprecation GH#34853
-            expected = dti.to_perioddelta(freq=freqstr)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # stacklevel is chosen to be "correct" for DatetimeIndex, not
-            #  DatetimeArray
-            result = arr.to_perioddelta(freq=freqstr)
-        assert isinstance(result, TimedeltaArray)
-
-        # placeholder until these become actual EA subclasses and we can use
-        #  an EA-specific tm.assert_ function
-        tm.assert_index_equal(pd.Index(result), pd.Index(expected))
-
     def test_to_period(self, datetime_index, freqstr):
         dti = datetime_index
         arr = DatetimeArray(dti)
