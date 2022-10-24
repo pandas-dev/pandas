@@ -200,6 +200,11 @@ def test_basic_getitem_setitem_corner(datetime_series):
         # GH#31299
         datetime_series[[slice(None, 5)]]
 
+    # but we're OK with a single-element tuple
+    result = datetime_series[(slice(None, 5),)]
+    expected = datetime_series[:5]
+    tm.assert_series_equal(result, expected)
+
     # OK
     msg = r"unhashable type(: 'slice')?"
     with pytest.raises(TypeError, match=msg):

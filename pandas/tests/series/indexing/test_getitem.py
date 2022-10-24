@@ -281,7 +281,6 @@ class TestSeriesGetitemSlices:
         tm.assert_almost_equal(result, expected)
 
     # FutureWarning from NumPy.
-    @pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
     def test_getitem_median_slice_bug(self):
         index = date_range("20090415", "20090519", freq="2B")
         ser = Series(np.random.randn(13), index=index)
@@ -291,6 +290,10 @@ class TestSeriesGetitemSlices:
         with pytest.raises(ValueError, match=msg):
             # GH#31299
             ser[indexer]
+        # but we're OK with a single-element tuple
+        result = s[(indexer[0],)]
+        expected = s[indexer[0]]
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "slc, positions",
