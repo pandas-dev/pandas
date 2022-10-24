@@ -63,7 +63,6 @@ Indexing, iteration
    DataFrame.insert
    DataFrame.__iter__
    DataFrame.items
-   DataFrame.iteritems
    DataFrame.keys
    DataFrame.iterrows
    DataFrame.itertuples
@@ -266,7 +265,6 @@ Time Series-related
    DataFrame.asfreq
    DataFrame.asof
    DataFrame.shift
-   DataFrame.slice_shift
    DataFrame.first_valid_index
    DataFrame.last_valid_index
    DataFrame.resample

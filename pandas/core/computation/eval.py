@@ -7,8 +7,6 @@ import tokenize
 from typing import TYPE_CHECKING
 import warnings
 
-from pandas._libs.lib import no_default
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import ENGINES
@@ -171,7 +169,6 @@ def eval(
     expr: str | BinOp,  # we leave BinOp out of the docstr bc it isn't for users
     parser: str = "pandas",
     engine: str | None = None,
-    truediv=no_default,
     local_dict=None,
     global_dict=None,
     resolvers=(),
@@ -217,12 +214,6 @@ def eval(
           level python. This engine is generally not that useful.
 
         More backends may be available in the future.
-
-    truediv : bool, optional
-        Whether to use true division, like in Python >= 3.
-
-        .. deprecated:: 1.0.0
-
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
     global_dict : dict or None, optional
@@ -304,16 +295,6 @@ def eval(
     1    pig   20          40
     """
     inplace = validate_bool_kwarg(inplace, "inplace")
-
-    if truediv is not no_default:
-        warnings.warn(
-            (
-                "The `truediv` parameter in pd.eval is deprecated and "
-                "will be removed in a future version."
-            ),
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
 
     exprs: list[str | BinOp]
     if isinstance(expr, str):

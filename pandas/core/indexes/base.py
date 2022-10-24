@@ -1460,45 +1460,6 @@ class Index(IndexOpsMixin, PandasObject):
             result = trim_front(format_array(values, None, justify="left"))
         return header + result
 
-    @final
-    def to_native_types(self, slicer=None, **kwargs) -> np.ndarray:
-        """
-        Format specified values of `self` and return them.
-
-        .. deprecated:: 1.2.0
-
-        Parameters
-        ----------
-        slicer : int, array-like
-            An indexer into `self` that specifies which values
-            are used in the formatting process.
-        kwargs : dict
-            Options for specifying how the values should be formatted.
-            These options include the following:
-
-            1) na_rep : str
-                The value that serves as a placeholder for NULL values
-            2) quoting : bool or None
-                Whether or not there are quoted values in `self`
-            3) date_format : str
-                The format used to represent date-like values.
-
-        Returns
-        -------
-        numpy.ndarray
-            Formatted values.
-        """
-        warnings.warn(
-            "The 'to_native_types' method is deprecated and will be removed in "
-            "a future version. Use 'astype(str)' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        values = self
-        if slicer is not None:
-            values = values[slicer]
-        return values._format_native_types(**kwargs)
-
     def _format_native_types(
         self, *, na_rep: str_t = "", quoting=None, **kwargs
     ) -> npt.NDArray[np.object_]:
@@ -5905,30 +5866,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return series.iloc[loc]
 
-    @final
-    def set_value(self, arr, key, value) -> None:
-        """
-        Fast lookup of value from 1-dimensional ndarray.
-
-        .. deprecated:: 1.0
-
-        Notes
-        -----
-        Only use this if you know what you're doing.
-        """
-        warnings.warn(
-            (
-                "The 'set_value' method is deprecated, and "
-                "will be removed in a future version."
-            ),
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        loc = self._engine.get_loc(key)
-        if not can_hold_element(arr, value):
-            raise ValueError
-        arr[loc] = value
-
     _index_shared_docs[
         "get_indexer_non_unique"
     ] = """
@@ -6471,7 +6408,6 @@ class Index(IndexOpsMixin, PandasObject):
         start: Hashable | None = None,
         end: Hashable | None = None,
         step: int | None = None,
-        kind=no_default,
     ) -> slice:
         """
         Compute the slice indexer for input labels and step.
@@ -6485,9 +6421,6 @@ class Index(IndexOpsMixin, PandasObject):
         end : label, default None
             If None, defaults to the end.
         step : int, default None
-        kind : str, default None
-
-            .. deprecated:: 1.4.0
 
         Returns
         -------
@@ -6514,8 +6447,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.slice_indexer(start='b', end=('c', 'g'))
         slice(1, 3, None)
         """
-        self._deprecated_arg(kind, "kind", "slice_indexer")
-
         start_slice, end_slice = self.slice_locs(start, end, step=step)
 
         # return a slice
@@ -6550,7 +6481,7 @@ class Index(IndexOpsMixin, PandasObject):
         if key is not None and not is_integer(key):
             self._raise_invalid_indexer(form, key)
 
-    def _maybe_cast_slice_bound(self, label, side: str_t, kind=no_default):
+    def _maybe_cast_slice_bound(self, label, side: str_t):
         """
         This function should be overloaded in subclasses that allow non-trivial
         casting on label-slice bounds, e.g. datetime-like indices allowing
@@ -6560,9 +6491,6 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'loc', 'getitem'} or None
-
-            .. deprecated:: 1.3.0
 
         Returns
         -------
@@ -6572,8 +6500,6 @@ class Index(IndexOpsMixin, PandasObject):
         -----
         Value of `side` parameter should be validated in caller.
         """
-        assert kind in ["loc", "getitem", None, no_default]
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         # We are a plain index here (sub-class override this method if they
         # wish to have special treatment for floats/ints, e.g. Float64Index and
@@ -6598,9 +6524,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(
-        self, label, side: Literal["left", "right"], kind=no_default
-    ) -> int:
+    def get_slice_bound(self, label, side: Literal["left", "right"]) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
@@ -6611,17 +6535,12 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'loc', 'getitem'} or None
-
-            .. deprecated:: 1.4.0
 
         Returns
         -------
         int
             Index of label.
         """
-        assert kind in ["loc", "getitem", None, no_default]
-        self._deprecated_arg(kind, "kind", "get_slice_bound")
 
         if side not in ("left", "right"):
             raise ValueError(
@@ -6667,9 +6586,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return slc
 
-    def slice_locs(
-        self, start=None, end=None, step=None, kind=no_default
-    ) -> tuple[int, int]:
+    def slice_locs(self, start=None, end=None, step=None) -> tuple[int, int]:
         """
         Compute slice locations for input labels.
 
@@ -6681,9 +6598,6 @@ class Index(IndexOpsMixin, PandasObject):
             If None, defaults to the end.
         step : int, defaults None
             If None, defaults to 1.
-        kind : {'loc', 'getitem'} or None
-
-            .. deprecated:: 1.4.0
 
         Returns
         -------
@@ -6703,7 +6617,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.slice_locs(start='b', end='c')
         (1, 3)
         """
-        self._deprecated_arg(kind, "kind", "slice_locs")
         inc = step is None or step >= 0
 
         if not inc:

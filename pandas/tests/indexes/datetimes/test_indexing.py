@@ -712,10 +712,9 @@ class TestMaybeCastSliceBound:
 
 class TestGetSliceBounds:
     @pytest.mark.parametrize("box", [date, datetime, Timestamp])
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
     def test_get_slice_bounds_datetime_within(
-        self, box, kind, side, expected, tz_aware_fixture
+        self, box, side, expected, tz_aware_fixture
     ):
         # GH 35690
         tz = tz_aware_fixture
@@ -725,15 +724,14 @@ class TestGetSliceBounds:
         warn = None if tz is None else FutureWarning
         with tm.assert_produces_warning(warn):
             # GH#36148 will require tzawareness-compat
-            result = index.get_slice_bound(key, kind=kind, side=side)
+            result = index.get_slice_bound(key, side=side)
         assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side", ["left", "right"])
     @pytest.mark.parametrize("year, expected", [(1999, 0), (2020, 30)])
     def test_get_slice_bounds_datetime_outside(
-        self, box, kind, side, year, expected, tz_aware_fixture
+        self, box, side, year, expected, tz_aware_fixture
     ):
         # GH 35690
         tz = tz_aware_fixture
@@ -743,12 +741,11 @@ class TestGetSliceBounds:
         warn = None if tz is None else FutureWarning
         with tm.assert_produces_warning(warn):
             # GH#36148 will require tzawareness-compat
-            result = index.get_slice_bound(key, kind=kind, side=side)
+            result = index.get_slice_bound(key, side=side)
         assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
-    def test_slice_datetime_locs(self, box, kind, tz_aware_fixture):
+    def test_slice_datetime_locs(self, box, tz_aware_fixture):
         # GH 34077
         tz = tz_aware_fixture
         index = DatetimeIndex(["2010-01-01", "2010-01-03"]).tz_localize(tz)
