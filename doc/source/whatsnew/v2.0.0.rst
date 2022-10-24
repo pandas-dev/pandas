@@ -218,6 +218,7 @@ Removal of prior version deprecations/changes
 - Removed the ``truediv`` keyword from :func:`eval` (:issue:`29812`)
 - Removed the ``pandas.datetime`` submodule (:issue:`30489`)
 - Removed the ``pandas.np`` submodule (:issue:`30296`)
+- Removed ``pandas.util.testing`` in favor of ``pandas.testing`` (:issue:`30745`)
 - Removed :meth:`Series.str.__iter__` (:issue:`28277`)
 - Removed ``pandas.SparseArray`` in favor of :class:`arrays.SparseArray` (:issue:`30642`)
 - Removed ``pandas.SparseSeries`` and ``pandas.SparseDataFrame`` (:issue:`30642`)
