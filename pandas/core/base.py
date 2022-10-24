@@ -319,6 +319,17 @@ class IndexOpsMixin(OpsMixin):
     def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
+
+        Returns
+        --------
+        tuple
+            Shape of the Series.
+        
+        Examples
+        --------
+        >>> s = pd.Series(['Cat', 'Dog', 'Cow', 'Zebra', 'Monkey'])
+        5
+
         """
         return self._values.shape
 
