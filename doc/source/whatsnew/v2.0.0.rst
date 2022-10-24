@@ -99,6 +99,48 @@ notable_bug_fix2
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_200.api_breaking.unsupported_datetimelike_dtype_arg:
+
+Construction with datetime64 or timedelta64 dtype with unsupported resolution
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In past versions, when constructing a :class:`Series` or :class:`DataFrame` and
+passing a "datetime64" or "timedelta64" dtype with unsupported resolution
+(i.e. anything other than "ns"), pandas would silently replace the given dtype
+with its nanosecond analogue:
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [5]: pd.Series(["2016-01-01"], dtype="datetime64[s]")
+   Out[5]:
+   0   2016-01-01
+   dtype: datetime64[ns]
+
+   In [6]: pd.Series(["2016-01-01"], dtype="datetime64[D]")
+   Out[6]:
+   0   2016-01-01
+   dtype: datetime64[ns]
+
+In pandas 2.0 we support resolutions "s", "ms", "us", and "ns". When passing
+a supported dtype (e.g. "datetime64[s]"), the result now has exactly
+the requested dtype:
+
+*New behavior*:
+
+   In [5]: pd.Series(["2016-01-01"], dtype="datetime64[s]")
+   Out[5]:
+   0   2016-01-01
+   dtype: datetime64[s]
+
+With an un-supported dtype, pandas now raises instead of silently swapping in
+a supported dtype:
+
+*New behavior*:
+
+   In [6]: pd.Series(["2016-01-01"], dtype="datetime64[D]")
+   TypeError: dtype=datetime64[D] is not supported. Supported resolutions are 's', 'ms', 'us', and 'ns'
+
 .. _whatsnew_200.api_breaking.deps:
 
 Increased minimum versions for dependencies

@@ -31,10 +31,8 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
-    get_supported_reso,
     get_unit_from_dtype,
     is_supported_unit,
-    npy_unit_to_abbrev,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
@@ -1454,17 +1452,19 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     """
     Convert dtypes with granularity less than nanosecond to nanosecond
 
-    >>> _ensure_nanosecond_dtype(np.dtype("M8[D]"))
-    dtype('<M8[s]')
-
     >>> _ensure_nanosecond_dtype(np.dtype("M8[us]"))
     dtype('<M8[us]')
+
+    >>> _ensure_nanosecond_dtype(np.dtype("M8[D]"))
+    Traceback (most recent call last):
+        ...
+    TypeError: dtype=datetime64[D] is not supported. Supported resolutions are 's', 'ms', 'us', and 'ns'
 
     >>> _ensure_nanosecond_dtype(np.dtype("m8[ps]"))
     Traceback (most recent call last):
         ...
-    TypeError: cannot convert timedeltalike to dtype [timedelta64[ps]]
-    """
+    TypeError: dtype=timedelta64[ps] is not supported. Supported resolutions are 's', 'ms', 'us', and 'ns'
+    """  # noqa:E501
     msg = (
         f"The '{dtype.name}' dtype has no unit. "
         f"Please pass in '{dtype.name}[ns]' instead."
@@ -1477,29 +1477,19 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
         # i.e. datetime64tz
         pass
 
-    elif dtype.kind == "M" and not is_supported_unit(get_unit_from_dtype(dtype)):
-        # pandas supports dtype whose granularity is less than [ns]
-        # e.g., [ps], [fs], [as]
-        if dtype <= np.dtype("M8[ns]"):
-            if dtype.name == "datetime64":
+    elif dtype.kind in ["m", "M"]:
+        reso = get_unit_from_dtype(dtype)
+        if not is_supported_unit(reso):
+            # pre-2.0 we would silently swap in nanos for lower-resolutions,
+            #  raise for above-nano resolutions
+            if dtype.name == "datetime64" or dtype.name == "timedelta64":
                 raise ValueError(msg)
-            reso = get_supported_reso(get_unit_from_dtype(dtype))
-            unit = npy_unit_to_abbrev(reso)
-            dtype = np.dtype(f"M8[{unit}]")
-        else:
-            raise TypeError(f"cannot convert datetimelike to dtype [{dtype}]")
-
-    elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
-        # pandas supports dtype whose granularity is less than [ns]
-        # e.g., [ps], [fs], [as]
-        if dtype <= np.dtype("m8[ns]"):
-            if dtype.name == "timedelta64":
-                raise ValueError(msg)
-            reso = get_supported_reso(get_unit_from_dtype(dtype))
-            unit = npy_unit_to_abbrev(reso)
-            dtype = np.dtype(f"m8[{unit}]")
-        else:
-            raise TypeError(f"cannot convert timedeltalike to dtype [{dtype}]")
+            # TODO: ValueError or TypeError? existing test
+            #  test_constructor_generic_timestamp_bad_frequency expects TypeError
+            raise TypeError(
+                f"dtype={dtype} is not supported. Supported resolutions are 's', "
+                "'ms', 'us', and 'ns'"
+            )
     return dtype
 
 

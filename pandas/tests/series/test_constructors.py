@@ -1669,18 +1669,21 @@ class TestSeriesConstructors:
         with pytest.raises(ValueError, match=msg):
             Series([], dtype=dtype)
 
-    @pytest.mark.parametrize(
-        "dtype,msg",
-        [
-            ("m8[ps]", "cannot convert timedeltalike"),
-            ("M8[ps]", "cannot convert datetimelike"),
-        ],
-    )
-    def test_constructor_generic_timestamp_bad_frequency(self, dtype, msg):
+    @pytest.mark.parametrize("unit", ["ps", "as", "fs", "Y", "M", "W", "D", "h", "m"])
+    @pytest.mark.parametrize("kind", ["m", "M"])
+    def test_constructor_generic_timestamp_bad_frequency(self, kind, unit):
         # see gh-15524, gh-15987
+        # as of 2.0 we raise on any non-supported unit rather than silently
+        #  cast to nanos; previously we only raised for frequencies higher
+        #  than ns
+        dtype = f"{kind}8[{unit}]"
 
+        msg = "dtype=.* is not supported. Supported resolutions are"
         with pytest.raises(TypeError, match=msg):
             Series([], dtype=dtype)
+
+        with pytest.raises(TypeError, match=msg):
+            DataFrame([[0]], dtype=dtype)
 
     @pytest.mark.parametrize("dtype", [None, "uint8", "category"])
     def test_constructor_range_dtype(self, dtype):
