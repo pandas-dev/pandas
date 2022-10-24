@@ -11,7 +11,6 @@ from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas import Timestamp
 import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
-    Base,
     WeekDay,
     assert_is_on_offset,
     assert_offset_equal,
@@ -95,7 +94,7 @@ def test_get_offset():
         )
 
 
-class TestFY5253LastOfMonth(Base):
+class TestFY5253LastOfMonth:
     offset_lom_sat_aug = makeFY5253LastOfMonth(1, startingMonth=8, weekday=WeekDay.SAT)
     offset_lom_sat_sep = makeFY5253LastOfMonth(1, startingMonth=9, weekday=WeekDay.SAT)
 
@@ -180,7 +179,7 @@ class TestFY5253LastOfMonth(Base):
                 assert current == datum
 
 
-class TestFY5253NearestEndMonth(Base):
+class TestFY5253NearestEndMonth:
     def test_get_year_end(self):
         assert makeFY5253NearestEndMonth(
             startingMonth=8, weekday=WeekDay.SAT
@@ -338,7 +337,7 @@ class TestFY5253NearestEndMonth(Base):
                 assert current == datum
 
 
-class TestFY5253LastOfMonthQuarter(Base):
+class TestFY5253LastOfMonthQuarter:
     def test_is_anchored(self):
         assert makeFY5253LastOfMonthQuarter(
             startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4
@@ -554,7 +553,7 @@ class TestFY5253LastOfMonthQuarter(Base):
         assert sat_dec_1.get_weeks(datetime(2010, 12, 25)) == [13, 13, 13, 13]
 
 
-class TestFY5253NearestEndMonthQuarter(Base):
+class TestFY5253NearestEndMonthQuarter:
 
     offset_nem_sat_aug_4 = makeFY5253NearestEndMonthQuarter(
         1, startingMonth=8, weekday=WeekDay.SAT, qtr_with_extra_week=4

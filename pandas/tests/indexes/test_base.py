@@ -244,8 +244,9 @@ class TestIndex(Base):
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        warn = None if tz_naive_fixture is None else FutureWarning
-        # astype dt64 -> dt64tz deprecated
+        # As of 2.0 astype raises on dt64.astype(dt64tz)
+        err = tz_naive_fixture is not None
+        msg = "Cannot use .astype to convert from timezone-naive dtype to"
 
         if attr == "asi8":
             result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
@@ -254,11 +255,15 @@ class TestIndex(Base):
         tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            with tm.assert_produces_warning(warn):
+            if err:
+                with pytest.raises(TypeError, match=msg):
+                    DatetimeIndex(arg).astype(dtype)
+            else:
                 result = DatetimeIndex(arg).astype(dtype)
+                tm.assert_index_equal(result, index)
         else:
             result = klass(arg, dtype=dtype)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
         if attr == "asi8":
             result = DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
@@ -267,11 +272,15 @@ class TestIndex(Base):
         tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            with tm.assert_produces_warning(warn):
+            if err:
+                with pytest.raises(TypeError, match=msg):
+                    DatetimeIndex(list(arg)).astype(dtype)
+            else:
                 result = DatetimeIndex(list(arg)).astype(dtype)
+                tm.assert_index_equal(result, index)
         else:
             result = klass(list(arg), dtype=dtype)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
@@ -803,14 +812,6 @@ class TestIndex(Base):
     def test_is_monotonic_incomparable(self, attr):
         index = Index([5, datetime.now(), 7])
         assert not getattr(index, attr)
-
-    def test_set_value_deprecated(self, simple_index):
-        # GH 28621
-        idx = simple_index
-        arr = np.array([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            idx.set_value(arr, idx[1], 80)
-        assert arr[1] == 80
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(

@@ -101,7 +101,6 @@ generated/pandas.api.types.infer_dtype,../reference/api/pandas.api.types.infer_d
 generated/pandas.api.types.is_bool_dtype,../reference/api/pandas.api.types.is_bool_dtype
 generated/pandas.api.types.is_bool,../reference/api/pandas.api.types.is_bool
 generated/pandas.api.types.is_categorical_dtype,../reference/api/pandas.api.types.is_categorical_dtype
-generated/pandas.api.types.is_categorical,../reference/api/pandas.api.types.is_categorical
 generated/pandas.api.types.is_complex_dtype,../reference/api/pandas.api.types.is_complex_dtype
 generated/pandas.api.types.is_complex,../reference/api/pandas.api.types.is_complex
 generated/pandas.api.types.is_datetime64_any_dtype,../reference/api/pandas.api.types.is_datetime64_any_dtype
@@ -186,7 +185,6 @@ generated/pandas.core.groupby.DataFrameGroupBy.filter,../reference/api/pandas.co
 generated/pandas.core.groupby.DataFrameGroupBy.hist,../reference/api/pandas.core.groupby.DataFrameGroupBy.hist
 generated/pandas.core.groupby.DataFrameGroupBy.idxmax,../reference/api/pandas.core.groupby.DataFrameGroupBy.idxmax
 generated/pandas.core.groupby.DataFrameGroupBy.idxmin,../reference/api/pandas.core.groupby.DataFrameGroupBy.idxmin
-generated/pandas.core.groupby.DataFrameGroupBy.mad,../reference/api/pandas.core.groupby.DataFrameGroupBy.mad
 generated/pandas.core.groupby.DataFrameGroupBy.pct_change,../reference/api/pandas.core.groupby.DataFrameGroupBy.pct_change
 generated/pandas.core.groupby.DataFrameGroupBy.plot,../reference/api/pandas.core.groupby.DataFrameGroupBy.plot
 generated/pandas.core.groupby.DataFrameGroupBy.quantile,../reference/api/pandas.core.groupby.DataFrameGroupBy.quantile
@@ -196,7 +194,6 @@ generated/pandas.core.groupby.DataFrameGroupBy.shift,../reference/api/pandas.cor
 generated/pandas.core.groupby.DataFrameGroupBy.size,../reference/api/pandas.core.groupby.DataFrameGroupBy.size
 generated/pandas.core.groupby.DataFrameGroupBy.skew,../reference/api/pandas.core.groupby.DataFrameGroupBy.skew
 generated/pandas.core.groupby.DataFrameGroupBy.take,../reference/api/pandas.core.groupby.DataFrameGroupBy.take
-generated/pandas.core.groupby.DataFrameGroupBy.tshift,../reference/api/pandas.core.groupby.DataFrameGroupBy.tshift
 generated/pandas.core.groupby.GroupBy.agg,../reference/api/pandas.core.groupby.GroupBy.agg
 generated/pandas.core.groupby.GroupBy.aggregate,../reference/api/pandas.core.groupby.GroupBy.aggregate
 generated/pandas.core.groupby.GroupBy.all,../reference/api/pandas.core.groupby.GroupBy.all
@@ -415,7 +412,6 @@ generated/pandas.DataFrame.le,../reference/api/pandas.DataFrame.le
 generated/pandas.DataFrame.loc,../reference/api/pandas.DataFrame.loc
 generated/pandas.DataFrame.lookup,../reference/api/pandas.DataFrame.lookup
 generated/pandas.DataFrame.lt,../reference/api/pandas.DataFrame.lt
-generated/pandas.DataFrame.mad,../reference/api/pandas.DataFrame.mad
 generated/pandas.DataFrame.mask,../reference/api/pandas.DataFrame.mask
 generated/pandas.DataFrame.max,../reference/api/pandas.DataFrame.max
 generated/pandas.DataFrame.mean,../reference/api/pandas.DataFrame.mean
@@ -487,7 +483,6 @@ generated/pandas.DataFrame.shape,../reference/api/pandas.DataFrame.shape
 generated/pandas.DataFrame.shift,../reference/api/pandas.DataFrame.shift
 generated/pandas.DataFrame.size,../reference/api/pandas.DataFrame.size
 generated/pandas.DataFrame.skew,../reference/api/pandas.DataFrame.skew
-generated/pandas.DataFrame.slice_shift,../reference/api/pandas.DataFrame.slice_shift
 generated/pandas.DataFrame.sort_index,../reference/api/pandas.DataFrame.sort_index
 generated/pandas.DataFrame.sort_values,../reference/api/pandas.DataFrame.sort_values
 generated/pandas.DataFrame.squeeze,../reference/api/pandas.DataFrame.squeeze
@@ -528,7 +523,6 @@ generated/pandas.DataFrame.transform,../reference/api/pandas.DataFrame.transform
 generated/pandas.DataFrame.transpose,../reference/api/pandas.DataFrame.transpose
 generated/pandas.DataFrame.truediv,../reference/api/pandas.DataFrame.truediv
 generated/pandas.DataFrame.truncate,../reference/api/pandas.DataFrame.truncate
-generated/pandas.DataFrame.tshift,../reference/api/pandas.DataFrame.tshift
 generated/pandas.DataFrame.tz_convert,../reference/api/pandas.DataFrame.tz_convert
 generated/pandas.DataFrame.tz_localize,../reference/api/pandas.DataFrame.tz_localize
 generated/pandas.DataFrame.unstack,../reference/api/pandas.DataFrame.unstack
@@ -637,7 +631,6 @@ generated/pandas.Index.argmax,../reference/api/pandas.Index.argmax
 generated/pandas.Index.argmin,../reference/api/pandas.Index.argmin
 generated/pandas.Index.argsort,../reference/api/pandas.Index.argsort
 generated/pandas.Index.array,../reference/api/pandas.Index.array
-generated/pandas.Index.asi8,../reference/api/pandas.Index.asi8
 generated/pandas.Index.asof,../reference/api/pandas.Index.asof
 generated/pandas.Index.asof_locs,../reference/api/pandas.Index.asof_locs
 generated/pandas.Index.astype,../reference/api/pandas.Index.astype
@@ -662,7 +655,6 @@ generated/pandas.Index.get_indexer_non_unique,../reference/api/pandas.Index.get_
 generated/pandas.Index.get_level_values,../reference/api/pandas.Index.get_level_values
 generated/pandas.Index.get_loc,../reference/api/pandas.Index.get_loc
 generated/pandas.Index.get_slice_bound,../reference/api/pandas.Index.get_slice_bound
-generated/pandas.Index.get_value,../reference/api/pandas.Index.get_value
 generated/pandas.Index.groupby,../reference/api/pandas.Index.groupby
 generated/pandas.Index.has_duplicates,../reference/api/pandas.Index.has_duplicates
 generated/pandas.Index.hasnans,../reference/api/pandas.Index.hasnans
@@ -681,7 +673,6 @@ generated/pandas.Index.isin,../reference/api/pandas.Index.isin
 generated/pandas.Index.is_integer,../reference/api/pandas.Index.is_integer
 generated/pandas.Index.is_interval,../reference/api/pandas.Index.is_interval
 generated/pandas.Index.is_lexsorted_for_tuple,../reference/api/pandas.Index.is_lexsorted_for_tuple
-generated/pandas.Index.is_mixed,../reference/api/pandas.Index.is_mixed
 generated/pandas.Index.is_monotonic_decreasing,../reference/api/pandas.Index.is_monotonic_decreasing
 generated/pandas.Index.is_monotonic,../reference/api/pandas.Index.is_monotonic
 generated/pandas.Index.is_monotonic_increasing,../reference/api/pandas.Index.is_monotonic_increasing
@@ -689,7 +680,6 @@ generated/pandas.Index.isna,../reference/api/pandas.Index.isna
 generated/pandas.Index.isnull,../reference/api/pandas.Index.isnull
 generated/pandas.Index.is_numeric,../reference/api/pandas.Index.is_numeric
 generated/pandas.Index.is_object,../reference/api/pandas.Index.is_object
-generated/pandas.Index.is_type_compatible,../reference/api/pandas.Index.is_type_compatible
 generated/pandas.Index.is_unique,../reference/api/pandas.Index.is_unique
 generated/pandas.Index.item,../reference/api/pandas.Index.item
 generated/pandas.Index.join,../reference/api/pandas.Index.join
@@ -1101,7 +1091,6 @@ generated/pandas.Series.last_valid_index,../reference/api/pandas.Series.last_val
 generated/pandas.Series.le,../reference/api/pandas.Series.le
 generated/pandas.Series.loc,../reference/api/pandas.Series.loc
 generated/pandas.Series.lt,../reference/api/pandas.Series.lt
-generated/pandas.Series.mad,../reference/api/pandas.Series.mad
 generated/pandas.Series.map,../reference/api/pandas.Series.map
 generated/pandas.Series.mask,../reference/api/pandas.Series.mask
 generated/pandas.Series.max,../reference/api/pandas.Series.max
@@ -1175,7 +1164,6 @@ generated/pandas.Series.shape,../reference/api/pandas.Series.shape
 generated/pandas.Series.shift,../reference/api/pandas.Series.shift
 generated/pandas.Series.size,../reference/api/pandas.Series.size
 generated/pandas.Series.skew,../reference/api/pandas.Series.skew
-generated/pandas.Series.slice_shift,../reference/api/pandas.Series.slice_shift
 generated/pandas.Series.sort_index,../reference/api/pandas.Series.sort_index
 generated/pandas.Series.sort_values,../reference/api/pandas.Series.sort_values
 generated/pandas.Series.sparse.density,../reference/api/pandas.Series.sparse.density
@@ -1270,7 +1258,6 @@ generated/pandas.Series.transform,../reference/api/pandas.Series.transform
 generated/pandas.Series.transpose,../reference/api/pandas.Series.transpose
 generated/pandas.Series.truediv,../reference/api/pandas.Series.truediv
 generated/pandas.Series.truncate,../reference/api/pandas.Series.truncate
-generated/pandas.Series.tshift,../reference/api/pandas.Series.tshift
 generated/pandas.Series.tz_convert,../reference/api/pandas.Series.tz_convert
 generated/pandas.Series.tz_localize,../reference/api/pandas.Series.tz_localize
 generated/pandas.Series.unique,../reference/api/pandas.Series.unique

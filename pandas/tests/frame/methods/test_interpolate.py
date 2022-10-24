@@ -383,7 +383,7 @@ class TestDataFrameInterpolate:
     @pytest.mark.parametrize("method", ["ffill", "bfill", "pad"])
     def test_interp_fillna_methods(self, request, axis, method, using_array_manager):
         # GH 12918
-        if using_array_manager and (axis == 1 or axis == "columns"):
+        if using_array_manager and axis in (1, "columns"):
             # TODO(ArrayManager) support axis=1
             td.mark_array_manager_not_yet_implemented(request)
 

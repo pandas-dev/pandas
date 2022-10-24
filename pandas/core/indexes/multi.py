@@ -852,10 +852,7 @@ class MultiIndex(Index):
 
         self._reset_cache()
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "levels"])
-    def set_levels(
-        self, levels, level=None, inplace=None, verify_integrity: bool = True
-    ):
+    def set_levels(self, levels, *, level=None, verify_integrity: bool = True):
         """
         Set new levels on MultiIndex. Defaults to returning new index.
 
@@ -865,10 +862,6 @@ class MultiIndex(Index):
             New level(s) to apply.
         level : int, level name, or sequence of int/level names (default None)
             Level(s) to set (None for all levels).
-        inplace : bool
-            If True, mutates in place.
-
-            .. deprecated:: 1.2.0
         verify_integrity : bool, default True
             If True, checks that levels and codes are compatible.
 
@@ -940,30 +933,17 @@ class MultiIndex(Index):
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1]).levels
         FrozenList([['a', 'b', 'c'], [1, 2, 3, 4]])
         """
-        if inplace is not None:
-            warnings.warn(
-                "inplace is deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            inplace = False
 
         if is_list_like(levels) and not isinstance(levels, Index):
             levels = list(levels)
 
         level, levels = _require_listlike(level, levels, "Levels")
-
-        if inplace:
-            idx = self
-        else:
-            idx = self._view()
+        idx = self._view()
         idx._reset_identity()
         idx._set_levels(
             levels, level=level, validate=True, verify_integrity=verify_integrity
         )
-        if not inplace:
-            return idx
+        return idx
 
     @property
     def nlevels(self) -> int:
@@ -1041,8 +1021,7 @@ class MultiIndex(Index):
 
         self._reset_cache()
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "codes"])
-    def set_codes(self, codes, level=None, inplace=None, verify_integrity: bool = True):
+    def set_codes(self, codes, *, level=None, verify_integrity: bool = True):
         """
         Set new codes on MultiIndex. Defaults to returning new index.
 
@@ -1052,10 +1031,6 @@ class MultiIndex(Index):
             New codes to apply.
         level : int, level name, or sequence of int/level names (default None)
             Level(s) to set (None for all levels).
-        inplace : bool
-            If True, mutates in place.
-
-            .. deprecated:: 1.2.0
         verify_integrity : bool, default True
             If True, checks that levels and codes are compatible.
 
@@ -1101,25 +1076,12 @@ class MultiIndex(Index):
                     (1, 'two')],
                    names=['foo', 'bar'])
         """
-        if inplace is not None:
-            warnings.warn(
-                "inplace is deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            inplace = False
 
         level, codes = _require_listlike(level, codes, "Codes")
-
-        if inplace:
-            idx = self
-        else:
-            idx = self._view()
+        idx = self._view()
         idx._reset_identity()
         idx._set_codes(codes, level=level, verify_integrity=verify_integrity)
-        if not inplace:
-            return idx
+        return idx
 
     # --------------------------------------------------------------------
     # Index Internals
@@ -1848,15 +1810,6 @@ class MultiIndex(Index):
         """
         return Index(self._values, tupleize_cols=False)
 
-    def is_lexsorted(self) -> bool:
-        warnings.warn(
-            "MultiIndex.is_lexsorted is deprecated as a public function, "
-            "users should use MultiIndex.is_monotonic_increasing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._is_lexsorted()
-
     def _is_lexsorted(self) -> bool:
         """
         Return True if the codes are lexicographically sorted.
@@ -1870,36 +1823,28 @@ class MultiIndex(Index):
         In the below examples, the first level of the MultiIndex is sorted because
         a<b<c, so there is no need to look at the next level.
 
-        >>> pd.MultiIndex.from_arrays([['a', 'b', 'c'], ['d', 'e', 'f']]).is_lexsorted()
+        >>> pd.MultiIndex.from_arrays([['a', 'b', 'c'],
+        ...                            ['d', 'e', 'f']])._is_lexsorted()
         True
-        >>> pd.MultiIndex.from_arrays([['a', 'b', 'c'], ['d', 'f', 'e']]).is_lexsorted()
+        >>> pd.MultiIndex.from_arrays([['a', 'b', 'c'],
+        ...                            ['d', 'f', 'e']])._is_lexsorted()
         True
 
         In case there is a tie, the lexicographical sorting looks
         at the next level of the MultiIndex.
 
-        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ['a', 'b', 'c']]).is_lexsorted()
+        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ['a', 'b', 'c']])._is_lexsorted()
         True
-        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ['a', 'c', 'b']]).is_lexsorted()
+        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ['a', 'c', 'b']])._is_lexsorted()
         False
         >>> pd.MultiIndex.from_arrays([['a', 'a', 'b', 'b'],
-        ...                            ['aa', 'bb', 'aa', 'bb']]).is_lexsorted()
+        ...                            ['aa', 'bb', 'aa', 'bb']])._is_lexsorted()
         True
         >>> pd.MultiIndex.from_arrays([['a', 'a', 'b', 'b'],
-        ...                            ['bb', 'aa', 'aa', 'bb']]).is_lexsorted()
+        ...                            ['bb', 'aa', 'aa', 'bb']])._is_lexsorted()
         False
         """
         return self._lexsort_depth == self.nlevels
-
-    @property
-    def lexsort_depth(self) -> int:
-        warnings.warn(
-            "MultiIndex.lexsort_depth is deprecated as a public function, "
-            "users should use MultiIndex.is_monotonic_increasing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._lexsort_depth
 
     @cache_readonly
     def _lexsort_depth(self) -> int:

@@ -645,7 +645,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         "obj",
         "observed",
         "sort",
-        "squeeze",
     }
 
     axis: AxisInt
@@ -929,7 +928,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = True,
-        squeeze: bool = False,
         observed: bool = False,
         mutated: bool = False,
         dropna: bool = True,
@@ -951,7 +949,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.keys = keys
         self.sort = sort
         self.group_keys = group_keys
-        self.squeeze = squeeze
         self.observed = observed
         self.mutated = mutated
         self.dropna = dropna
@@ -2892,11 +2889,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 else:
                     out = type(values)._empty(values.shape, dtype=values.dtype)
 
-                for i in range(len(values)):
+                for i, value_element in enumerate(values):
                     # call group_fillna_indexer column-wise
                     indexer = np.empty(values.shape[1], dtype=np.intp)
                     col_func(out=indexer, mask=mask[i])
-                    out[i, :] = algorithms.take_nd(values[i], indexer)
+                    out[i, :] = algorithms.take_nd(value_element, indexer)
                 return out
 
         obj = self._obj_with_exclusions
@@ -3880,8 +3877,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         See Also
         --------
         Index.shift : Shift values of Index.
-        tshift : Shift the time index, using the index’s frequency
-            if available.
         """
         if freq is not None or axis != 0:
             f = lambda x: x.shift(periods, freq, axis, fill_value)
@@ -4328,7 +4323,6 @@ def get_groupby(
     as_index: bool = True,
     sort: bool = True,
     group_keys: bool | lib.NoDefault = True,
-    squeeze: bool = False,
     observed: bool = False,
     mutated: bool = False,
     dropna: bool = True,
@@ -4357,7 +4351,6 @@ def get_groupby(
         as_index=as_index,
         sort=sort,
         group_keys=group_keys,
-        squeeze=squeeze,
         observed=observed,
         mutated=mutated,
         dropna=dropna,
