@@ -714,7 +714,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return key
 
     @doc(DatetimeTimedeltaMixin._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+    def _maybe_cast_slice_bound(self, label, side: str):
 
         # GH#42855 handle date here instead of get_slice_bound
         if isinstance(label, date) and not isinstance(label, datetime):
@@ -722,11 +722,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # https://github.com/pandas-dev/pandas/issues/31501
             label = Timestamp(label).to_pydatetime()
 
-        label = super()._maybe_cast_slice_bound(label, side, kind=kind)
+        label = super()._maybe_cast_slice_bound(label, side)
         self._deprecate_mismatched_indexing(label)
         return self._maybe_cast_for_get_loc(label)
 
-    def slice_indexer(self, start=None, end=None, step=None, kind=lib.no_default):
+    def slice_indexer(self, start=None, end=None, step=None):
         """
         Return indexer for specified label slice.
         Index.slice_indexer, customized to handle time slicing.
@@ -740,8 +740,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           value-based selection in non-monotonic cases.
 
         """
-        self._deprecated_arg(kind, "kind", "slice_indexer")
-
         # For historical reasons DatetimeIndex supports slices between two
         # instances of datetime.time as if it were applying a slice mask to
         # an array of (self.hour, self.minute, self.seconds, self.microsecond).
@@ -764,7 +762,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             or check_str_or_none(end)
             or self.is_monotonic_increasing
         ):
-            return Index.slice_indexer(self, start, end, step, kind=kind)
+            return Index.slice_indexer(self, start, end, step)
 
         mask = np.array(True)
         deprecation_mask = np.array(True)
