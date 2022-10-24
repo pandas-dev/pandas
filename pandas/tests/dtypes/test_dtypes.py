@@ -9,7 +9,6 @@ from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
@@ -179,13 +178,6 @@ class TestCategoricalDtype(Base):
         assert is_categorical_dtype(s)
         assert not is_categorical_dtype(np.dtype("float64"))
 
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#33385 deprecated
-            assert is_categorical(s.dtype)
-            assert is_categorical(s)
-            assert not is_categorical(np.dtype("float64"))
-            assert not is_categorical(1.0)
-
     def test_tuple_categories(self):
         categories = [(1, "a"), (2, "b"), (3, "c")]
         result = CategoricalDtype(categories)
@@ -268,7 +260,7 @@ class TestDatetimeTZDtype(Base):
     def test_construction_non_nanosecond(self):
         res = DatetimeTZDtype("ms", "US/Eastern")
         assert res.unit == "ms"
-        assert res._reso == NpyDatetimeUnit.NPY_FR_ms.value
+        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
         assert res.str == "|M8[ms]"
         assert str(res) == "datetime64[ms, US/Eastern]"
 

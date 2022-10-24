@@ -20,6 +20,9 @@ cdef class _TSObject:
         int64_t value               # numpy dt64
         tzinfo tzinfo
         bint fold
+        NPY_DATETIMEUNIT creso
+
+    cdef void ensure_reso(self, NPY_DATETIMEUNIT creso)
 
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,

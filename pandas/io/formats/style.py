@@ -6,7 +6,6 @@ from __future__ import annotations
 from contextlib import contextmanager
 import copy
 from functools import partial
-import inspect
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -449,7 +448,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.to_html()`",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
@@ -1724,7 +1723,7 @@ class Styler(StylerRenderer):
                         f"Function {repr(func)} must return a DataFrame or ndarray "
                         f"when passed to `Styler.apply` with axis=None"
                     )
-                if not (data.shape == result.shape):
+                if data.shape != result.shape:
                     raise ValueError(
                         f"Function {repr(func)} returned ndarray with wrong shape.\n"
                         f"Result has shape: {result.shape}\n"
@@ -2129,7 +2128,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.applymap()`",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
         if other is None:
@@ -2161,7 +2160,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.format(precision=..)`",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         self.precision = precision
         return self.format(precision=precision, na_rep=self.na_rep)
@@ -2673,7 +2672,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.format(na_rep=..)`",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
@@ -2727,7 +2726,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             'this method is deprecated in favour of `Styler.hide(axis="index")`',
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.hide(axis="index", level=level, subset=subset, names=names)
 
@@ -2780,7 +2779,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             'this method is deprecated in favour of `Styler.hide(axis="columns")`',
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return self.hide(axis="columns", level=level, subset=subset, names=names)
 
@@ -3311,9 +3310,9 @@ class Styler(StylerRenderer):
                     "(eg: color=['#d65f5f', '#5fba7d'])"
                 )
 
-        if not (0 <= width <= 100):
+        if not 0 <= width <= 100:
             raise ValueError(f"`width` must be a value in [0, 100], got {width}")
-        elif not (0 <= height <= 100):
+        elif not 0 <= height <= 100:
             raise ValueError(f"`height` must be a value in [0, 100], got {height}")
 
         if subset is None:
@@ -3386,7 +3385,7 @@ class Styler(StylerRenderer):
             warnings.warn(
                 "`null_color` is deprecated: use `color` instead",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if color is None and null_color == lib.no_default:
@@ -4211,7 +4210,7 @@ def _bar(
         z, align = align(values), "zero"
     elif isinstance(align, (float, int)):
         z, align = float(align), "zero"
-    elif not (align == "left" or align == "right" or align == "zero"):
+    elif align not in ("left", "right", "zero"):
         raise ValueError(
             "`align` should be in {'left', 'right', 'mid', 'mean', 'zero'} or be a "
             "value defining the center line or a callable that returns a float"

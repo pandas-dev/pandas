@@ -62,7 +62,7 @@ class XlrdReader(BaseExcelReader):
         return self.book.sheet_by_index(index)
 
     def get_sheet_data(
-        self, sheet, convert_float: bool, file_rows_needed: int | None = None
+        self, sheet, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
         from xlrd import (
             XL_CELL_BOOLEAN,
@@ -104,7 +104,7 @@ class XlrdReader(BaseExcelReader):
                 cell_contents = np.nan
             elif cell_typ == XL_CELL_BOOLEAN:
                 cell_contents = bool(cell_contents)
-            elif convert_float and cell_typ == XL_CELL_NUMBER:
+            elif cell_typ == XL_CELL_NUMBER:
                 # GH5394 - Excel 'numbers' are always floats
                 # it's a minimal perf hit and less surprising
                 val = int(cell_contents)

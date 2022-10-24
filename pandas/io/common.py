@@ -5,12 +5,10 @@ from abc import (
     ABC,
     abstractmethod,
 )
-import bz2
 import codecs
 import dataclasses
 import functools
 import gzip
-import inspect
 from io import (
     BufferedIOBase,
     BytesIO,
@@ -57,6 +55,7 @@ from pandas._typing import (
     WriteBuffer,
 )
 from pandas.compat import get_lzma_file
+from pandas.compat._compressors import BZ2File as _BZ2File
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -324,7 +323,7 @@ def _get_filepath_or_buffer(
         warnings.warn(
             "compression has no effect when passing a non-binary object as input.",
             RuntimeWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         compression_method = None
 
@@ -340,7 +339,7 @@ def _get_filepath_or_buffer(
         warnings.warn(
             f"{compression} will not write the byte order mark for {encoding}",
             UnicodeWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     # Use binary mode when converting path-like objects to file-like objects (fsspec)
@@ -763,9 +762,9 @@ def get_handle(
 
         # BZ Compression
         elif compression == "bz2":
-            # No overload variant of "BZ2File" matches argument types
+            # Overload of "BZ2File" to handle pickle protocol 5
             # "Union[str, BaseBuffer]", "str", "Dict[str, Any]"
-            handle = bz2.BZ2File(  # type: ignore[call-overload]
+            handle = _BZ2File(  # type: ignore[call-overload]
                 handle,
                 mode=ioargs.mode,
                 **compression_args,
