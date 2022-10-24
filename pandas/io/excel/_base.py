@@ -865,7 +865,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
             except ValueError as err:
                 err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
-                raise err.with_traceback(err.__traceback__)
+                raise err
 
         if ret_dict:
             return output
