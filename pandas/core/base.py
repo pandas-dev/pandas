@@ -332,7 +332,7 @@ class IndexOpsMixin(OpsMixin):
         Examples
         --------
         >>> s = pd.Series(['Cat', 'Dog', 'Cow', 'Zebra', 'Monkey'])
-        >>> s.shape()
+        >>> s.shape
         (5,)
         """
         return self._values.shape
@@ -390,7 +390,7 @@ class IndexOpsMixin(OpsMixin):
         Examples
         --------
         >>> s = pd.Series(['Cat', 'Dog', 'Cow', 'Zebra', 'Monkey'])
-        >>> s.size()
+        >>> s.size
         5
         """
         return len(self._values)
