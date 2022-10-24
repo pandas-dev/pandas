@@ -1365,6 +1365,7 @@ def test_pickle_roundtrip(data):
     result_sliced = pickle.loads(sliced_pickled)
     tm.assert_series_equal(result_sliced, expected_sliced)
 
+
 def test_repr_from_arrow_array(data, frame_or_series):
     # GH 48238
     pa_array = pa.array([data[0], None])
