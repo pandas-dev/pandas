@@ -1853,8 +1853,8 @@ the string values returned are correct."""
             replacements[colname] = replacement
 
         if replacements:
-            for col in replacements:
-                data[col] = replacements[col]
+            for col, value in replacements.items():
+                data[col] = value
         return data
 
     def _insert_strls(self, data: DataFrame) -> DataFrame:

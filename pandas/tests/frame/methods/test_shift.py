@@ -447,64 +447,6 @@ class TestDataFrameShift:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
-    def test_tshift(self, datetime_frame, frame_or_series):
-        # TODO(2.0): remove this test when tshift deprecation is enforced
-
-        # PeriodIndex
-        ps = tm.makePeriodFrame()
-        ps = tm.get_obj(ps, frame_or_series)
-        shifted = ps.tshift(1)
-        unshifted = shifted.tshift(-1)
-
-        tm.assert_equal(unshifted, ps)
-
-        shifted2 = ps.tshift(freq="B")
-        tm.assert_equal(shifted, shifted2)
-
-        shifted3 = ps.tshift(freq=offsets.BDay())
-        tm.assert_equal(shifted, shifted3)
-
-        msg = "Given freq M does not match PeriodIndex freq B"
-        with pytest.raises(ValueError, match=msg):
-            ps.tshift(freq="M")
-
-        # DatetimeIndex
-        dtobj = tm.get_obj(datetime_frame, frame_or_series)
-        shifted = dtobj.tshift(1)
-        unshifted = shifted.tshift(-1)
-
-        tm.assert_equal(dtobj, unshifted)
-
-        shifted2 = dtobj.tshift(freq=dtobj.index.freq)
-        tm.assert_equal(shifted, shifted2)
-
-        inferred_ts = DataFrame(
-            datetime_frame.values,
-            Index(np.asarray(datetime_frame.index)),
-            columns=datetime_frame.columns,
-        )
-        inferred_ts = tm.get_obj(inferred_ts, frame_or_series)
-        shifted = inferred_ts.tshift(1)
-
-        expected = dtobj.tshift(1)
-        expected.index = expected.index._with_freq(None)
-        tm.assert_equal(shifted, expected)
-
-        unshifted = shifted.tshift(-1)
-        tm.assert_equal(unshifted, inferred_ts)
-
-        no_freq = dtobj.iloc[[0, 5, 7]]
-        msg = "Freq was not set in the index hence cannot be inferred"
-        with pytest.raises(ValueError, match=msg):
-            no_freq.tshift()
-
-    def test_tshift_deprecated(self, datetime_frame, frame_or_series):
-        # GH#11631
-        dtobj = tm.get_obj(datetime_frame, frame_or_series)
-        with tm.assert_produces_warning(FutureWarning):
-            dtobj.tshift()
-
     def test_period_index_frame_shift_with_freq(self, frame_or_series):
         ps = tm.makePeriodFrame()
         ps = tm.get_obj(ps, frame_or_series)
