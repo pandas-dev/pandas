@@ -66,7 +66,6 @@ Indexing, iteration
    Series.iloc
    Series.__iter__
    Series.items
-   Series.iteritems
    Series.keys
    Series.pop
    Series.item
@@ -268,7 +267,6 @@ Time Series-related
    Series.tz_localize
    Series.at_time
    Series.between_time
-   Series.slice_shift
 
 Accessors
 ---------
