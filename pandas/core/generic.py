@@ -750,13 +750,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def set_axis(
         self: NDFrameT,
         labels,
+        *,
         axis: Axis = 0,
         inplace: bool_t | lib.NoDefault = lib.no_default,
-        *,
         copy: bool_t | lib.NoDefault = lib.no_default,
     ) -> NDFrameT | None:
         """
@@ -1154,10 +1153,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @rewrite_axis_style_signature("mapper", [("copy", True)])
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "mapper"])
     def rename_axis(
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
+        *,
         inplace: bool_t = False,
         **kwargs,
     ) -> NDFrameT | None:
@@ -4813,9 +4812,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def sort_values(
         self: NDFrameT,
+        *,
         axis: Axis = 0,
         ascending: bool_t | Sequence[bool_t] = True,
         inplace: bool_t = False,
@@ -7007,10 +7006,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     @doc(klass=_shared_doc_kwargs["klass"])
     def ffill(
         self: NDFrameT,
+        *,
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
@@ -7063,10 +7062,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     @doc(klass=_shared_doc_kwargs["klass"])
     def bfill(
         self: NDFrameT,
+        *,
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
@@ -7125,9 +7124,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "to_replace", "value"]
-    )
     @doc(
         _shared_docs["replace"],
         klass=_shared_doc_kwargs["klass"],
@@ -7138,6 +7134,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         to_replace=None,
         value=lib.no_default,
+        *,
         inplace: bool_t = False,
         limit: int | None = None,
         regex: bool_t = False,
@@ -8000,9 +7997,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         lower=None,
         upper=None,
+        *,
         axis: Axis | None = None,
         inplace: bool_t = False,
-        *args,
         **kwargs,
     ) -> NDFrameT | None:
         """
@@ -8105,7 +8102,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        axis = nv.validate_clip_with_axis(axis, args, kwargs)
+        axis = nv.validate_clip_with_axis(axis, (), kwargs)
         if axis is not None:
             axis = self._get_axis_number(axis)
 
@@ -9827,9 +9824,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
     @doc(
         klass=_shared_doc_kwargs["klass"],
         cond="True",
@@ -9841,6 +9835,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         cond,
         other=np.nan,
+        *,
         inplace: bool_t = False,
         axis: Axis | None = None,
         level: Level = None,
@@ -10035,9 +10030,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
     @doc(
         where,
         klass=_shared_doc_kwargs["klass"],
@@ -10050,6 +10042,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         cond,
         other=lib.no_default,
+        *,
         inplace: bool_t = False,
         axis: Axis | None = None,
         level: Level = None,

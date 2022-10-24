@@ -3523,10 +3523,9 @@ Keep all original rows and also all original values
     ) -> None:
         ...
 
-    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def sort_values(  # type: ignore[override]
+    def sort_values(
         self,
+        *,
         axis: Axis = 0,
         ascending: bool | int | Sequence[bool] | Sequence[int] = True,
         inplace: bool = False,
@@ -4992,7 +4991,6 @@ Keep all original rows and also all original values
         ...
 
     # error: Signature of "set_axis" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     @Appender(
         """
         Examples
@@ -5021,6 +5019,7 @@ Keep all original rows and also all original values
     def set_axis(  # type: ignore[override]
         self,
         labels,
+        *,
         axis: Axis = 0,
         inplace: bool | lib.NoDefault = lib.no_default,
         copy: bool | lib.NoDefault = lib.no_default,
@@ -5313,9 +5312,6 @@ Keep all original rows and also all original values
         ...
 
     # error: Signature of "replace" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "to_replace", "value"]
-    )
     @doc(
         NDFrame.replace,
         klass=_shared_doc_kwargs["klass"],
@@ -5326,6 +5322,7 @@ Keep all original rows and also all original values
         self,
         to_replace=None,
         value=lib.no_default,
+        *,
         inplace: bool = False,
         limit: int | None = None,
         regex: bool = False,
@@ -5945,10 +5942,9 @@ Keep all original rows and also all original values
     ) -> Series | None:
         ...
 
-    # error: Signature of "ffill" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def ffill(  # type: ignore[override]
+    def ffill(
         self,
+        *,
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
@@ -5989,10 +5985,9 @@ Keep all original rows and also all original values
     ) -> Series | None:
         ...
 
-    # error: Signature of "bfill" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def bfill(  # type: ignore[override]
+    def bfill(
         self,
+        *,
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
@@ -6000,19 +5995,16 @@ Keep all original rows and also all original values
     ) -> Series | None:
         return super().bfill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "lower", "upper"]
-    )
     def clip(
         self: Series,
         lower=None,
         upper=None,
+        *,
         axis: Axis | None = None,
         inplace: bool = False,
-        *args,
         **kwargs,
     ) -> Series | None:
-        return super().clip(lower, upper, axis, inplace, *args, **kwargs)
+        return super().clip(lower, upper, axis=axis, inplace=inplace, **kwargs)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     def interpolate(
@@ -6078,13 +6070,11 @@ Keep all original rows and also all original values
 
     # error: Signature of "where" incompatible with supertype "NDFrame"
     @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
     def where(  # type: ignore[override]
         self,
         cond,
         other=lib.no_default,
+        *,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
@@ -6139,13 +6129,11 @@ Keep all original rows and also all original values
 
     # error: Signature of "mask" incompatible with supertype "NDFrame"
     @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
     def mask(  # type: ignore[override]
         self,
         cond,
         other=lib.no_default,
+        *,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
