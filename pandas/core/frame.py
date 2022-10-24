@@ -490,7 +490,8 @@ class DataFrame(NDFrame, OpsMixin):
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, dataclass or list-like objects. If
         data is a dict, column order follows insertion-order. If a dict contains Series
-        which have an index defined, it is aligned by its index.
+        which have an index defined, it is aligned by its index. This alignment also occurs
+        if data is a Series or a DataFrame itself. Alignment is done on Series/DataFrame inputs.
 
         .. versionchanged:: 0.25.0
            If data is a list of dicts, column order follows insertion-order.
@@ -592,6 +593,25 @@ class DataFrame(NDFrame, OpsMixin):
     0  0  0
     1  0  3
     2  2  3
+
+    Constructing DataFrame from Series/DataFrame:
+
+    >>> ser = pd.Series([1, 2, 3], index=["a", "b", "c"])
+    >>> df = pd.DataFrame(data=ser, index=["a", "c"])
+    >>> print(df)
+
+       0
+    a  1
+    c  3
+
+    >>> df1 = pd.DataFrame([1, 2, 3], index=["a", "b", "c"], columns=["x"])
+    >>> df2 = pd.DataFrame(data=df1, index=["a", "c"])
+    >>> print(df2)
+
+       x
+    a  1
+    c  3
+
     """
 
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set

@@ -121,6 +121,7 @@ doc/build/html/index.html
 # Windows specific leftover:
 doc/tmp.sv
 env/
+pandas-env
 doc/source/savefig/
 
 # Interactive terminal generated files #
