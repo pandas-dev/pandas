@@ -324,12 +324,16 @@ class IndexOpsMixin(OpsMixin):
         --------
         tuple
             Shape of the Series.
+
+        See Also
+        --------
+        Series.size : Returns the size of the Series as an int.
         
         Examples
         --------
         >>> s = pd.Series(['Cat', 'Dog', 'Cow', 'Zebra', 'Monkey'])
-        5
-
+        >>> s.shape()
+        (5,)
         """
         return self._values.shape
 
@@ -373,6 +377,21 @@ class IndexOpsMixin(OpsMixin):
     def size(self) -> int:
         """
         Return the number of elements in the underlying data.
+
+        Returns
+        --------
+        int
+            Size of the array.
+        
+        See Also
+        --------
+        Series.shape : Returns the shape of the Series as a tuple.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Cat', 'Dog', 'Cow', 'Zebra', 'Monkey'])
+        >>> s.size()
+        5
         """
         return len(self._values)
 
