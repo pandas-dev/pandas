@@ -624,6 +624,13 @@ class TestReaders:
         actual = pd.read_excel("blank_with_header" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
 
+    def test_exception_message_includes_sheet_name(self, read_ext):
+        # GH 48706
+        with pytest.raises(ValueError, match=r" \(sheet: Sheet1\)$"):
+            pd.read_excel("blank_with_header" + read_ext, header=[1], sheet_name=None)
+        with pytest.raises(ZeroDivisionError, match=r" \(sheet: Sheet1\)$"):
+            pd.read_excel("test1" + read_ext, usecols=lambda x: 1 / 0, sheet_name=None)
+
     @pytest.mark.filterwarnings("ignore:Cell A4 is marked:UserWarning:openpyxl")
     def test_date_conversion_overflow(self, request, engine, read_ext):
         # GH 10001 : pandas.ExcelFile ignore parse_dates=False

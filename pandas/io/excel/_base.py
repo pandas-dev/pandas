@@ -863,6 +863,10 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 # No Data, return an empty DataFrame
                 output[asheetname] = DataFrame()
 
+            except Exception as err:
+                err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
+                raise err
+
         if ret_dict:
             return output
         else:
