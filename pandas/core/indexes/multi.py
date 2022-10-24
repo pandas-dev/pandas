@@ -2610,7 +2610,6 @@ class MultiIndex(Index):
         self,
         label: Hashable | Sequence[Hashable],
         side: Literal["left", "right"],
-        kind=lib.no_default,
     ) -> int:
         """
         For an ordered MultiIndex, compute slice bound
@@ -2623,9 +2622,6 @@ class MultiIndex(Index):
         ----------
         label : object or tuple of objects
         side : {'left', 'right'}
-        kind : {'loc', 'getitem', None}
-
-            .. deprecated:: 1.4.0
 
         Returns
         -------
@@ -2658,15 +2654,11 @@ class MultiIndex(Index):
         MultiIndex.get_locs : Get location for a label/slice/list/mask or a
                               sequence of such.
         """
-        self._deprecated_arg(kind, "kind", "get_slice_bound")
-
         if not isinstance(label, tuple):
             label = (label,)
         return self._partial_tup_index(label, side=side)
 
-    def slice_locs(
-        self, start=None, end=None, step=None, kind=lib.no_default
-    ) -> tuple[int, int]:
+    def slice_locs(self, start=None, end=None, step=None) -> tuple[int, int]:
         """
         For an ordered MultiIndex, compute the slice locations for input
         labels.
@@ -2683,9 +2675,6 @@ class MultiIndex(Index):
             If None, defaults to the end
         step : int or None
             Slice step
-        kind : string, optional, defaults None
-
-            .. deprecated:: 1.4.0
 
         Returns
         -------
@@ -2720,7 +2709,6 @@ class MultiIndex(Index):
         MultiIndex.get_locs : Get location for a label/slice/list/mask or a
                               sequence of such.
         """
-        self._deprecated_arg(kind, "kind", "slice_locs")
         # This function adds nothing to its parent implementation (the magic
         # happens in get_slice_bound method), but it adds meaningful doc.
         return super().slice_locs(start, end, step)
