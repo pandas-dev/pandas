@@ -292,9 +292,9 @@ def test_all_methods_categorized(mframe):
     new_names -= transformation_kernels
     new_names -= groupby_other_methods
 
-    assert not (reduction_kernels & transformation_kernels)
-    assert not (reduction_kernels & groupby_other_methods)
-    assert not (transformation_kernels & groupby_other_methods)
+    assert not reduction_kernels & transformation_kernels
+    assert not reduction_kernels & groupby_other_methods
+    assert not transformation_kernels & groupby_other_methods
 
     # new public method?
     if new_names:
@@ -318,7 +318,7 @@ how to fix this test.
     all_categorized = reduction_kernels | transformation_kernels | groupby_other_methods
     print(names)
     print(all_categorized)
-    if not (names == all_categorized):
+    if names != all_categorized:
         msg = f"""
 Some methods which are supposed to be on the Grouper class
 are missing:

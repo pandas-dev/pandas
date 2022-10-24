@@ -1055,13 +1055,13 @@ class TestTimedeltaComparison:
 
         t = Timedelta("1s")
 
-        assert not (t == "string")
-        assert not (t == 1)
-        assert not (t == CustomClass())
-        assert not (t == CustomClass(cmp_result=False))
+        assert t != "string"
+        assert t != 1
+        assert t != CustomClass()
+        assert t != CustomClass(cmp_result=False)
 
         assert t < CustomClass(cmp_result=True)
-        assert not (t < CustomClass(cmp_result=False))
+        assert not t < CustomClass(cmp_result=False)
 
         assert t == CustomClass(cmp_result=True)
 

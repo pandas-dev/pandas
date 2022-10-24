@@ -326,7 +326,7 @@ def write_legacy_file():
     # force our cwd to be the first searched
     sys.path.insert(0, ".")
 
-    if not (3 <= len(sys.argv) <= 4):
+    if not 3 <= len(sys.argv) <= 4:
         exit(
             "Specify output directory and storage type: generate_legacy_"
             "storage_files.py <output_dir> <storage_type> "

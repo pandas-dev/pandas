@@ -374,7 +374,7 @@ class TestContains:
         # GH#13603
         td = to_timedelta(range(5), unit="d") + offsets.Hour(1)
         for v in [NaT, None, float("nan"), np.nan]:
-            assert not (v in td)
+            assert v not in td
 
         td = to_timedelta([NaT])
         for v in [NaT, None, float("nan"), np.nan]:

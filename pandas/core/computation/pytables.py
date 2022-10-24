@@ -470,7 +470,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
             # try to get the value to see if we are another expression
             try:
                 resolved = resolved.value
-            except (AttributeError):
+            except AttributeError:
                 pass
 
             try:
