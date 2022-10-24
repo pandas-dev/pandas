@@ -301,7 +301,7 @@ class TestAstype:
         d = {"A": list("abbc"), "B": list("bccd"), "C": list("cdde")}
         df = DataFrame(d)
         result = df.astype(dtype)
-        expected = DataFrame({k: Categorical(d[k], dtype=dtype) for k in d})
+        expected = DataFrame({k: Categorical(v, dtype=dtype) for k, v in d.items()})
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("cls", [CategoricalDtype, DatetimeTZDtype, IntervalDtype])

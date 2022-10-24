@@ -1827,11 +1827,11 @@ class TestDataFramePlots(TestPlotBase):
         # force a garbage collection
         gc.collect()
         msg = "weakly-referenced object no longer exists"
-        for key in results:
+        for result_value in results.values():
             # check that every plot was collected
             with pytest.raises(ReferenceError, match=msg):
                 # need to actually access something to get an error
-                results[key].lines
+                result_value.lines
 
     def test_df_gridspec_patterns(self):
         # GH 10819

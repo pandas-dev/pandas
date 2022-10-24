@@ -80,7 +80,6 @@ disable = [
 
  # pylint type "C": convention, for programming standard violation
   "consider-iterating-dictionary",
-  "consider-using-dict-items",
   "consider-using-f-string",
   "disallowed-name",
   "import-outside-toplevel",
