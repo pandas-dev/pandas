@@ -167,7 +167,6 @@ Removal of prior version deprecations/changes
 - Removed deprecated :meth:`Index.asi8` (:issue:`37877`)
 - Removed deprecated :meth:`DataFrame._AXIS_NUMBERS`, :meth:`DataFrame._AXIS_NAMES`, :meth:`Series._AXIS_NUMBERS`, :meth:`Series._AXIS_NAMES` (:issue:`33637`)
 - Removed deprecated :meth:`Index.to_native_types`, use ``obj.astype(str)`` instead (:issue:`36418`)
-- Removed deprecated :meth:`Index.set_value` (:issue:`28621`)
 - Removed deprecated :meth:`Series.iteritems`, :meth:`DataFrame.iteritems`, use ``obj.items`` instead (:issue:`45321`)
 - Removed deprecated :meth:`DatetimeIndex.union_many` (:issue:`45018`)
 - Removed deprecated :meth:`RangeIndex._start`, :meth:`RangeIndex._stop`, :meth:`RangeIndex._step`, use ``start``, ``stop``, ``step`` instead (:issue:`30482`)
