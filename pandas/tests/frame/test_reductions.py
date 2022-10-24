@@ -168,7 +168,14 @@ class TestDataFrameAnalytics:
         ],
     )
     def test_stat_op_api_float_string_frame(self, float_string_frame, axis, opname):
-        getattr(float_string_frame, opname)(axis=axis)
+        if opname in ["sum", "min", "max"] and axis == 0:
+            warn = None
+        elif opname not in ["count", "nunique"]:
+            warn = FutureWarning
+        else:
+            warn = None
+        with tm.assert_produces_warning(warn):
+            getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
             getattr(float_string_frame, opname)(axis=axis, numeric_only=True)
 
