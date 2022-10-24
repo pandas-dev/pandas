@@ -63,7 +63,6 @@ from pandas.core.arrays.datetimes import (
 import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
-    get_unanimous_names,
     maybe_extract_name,
 )
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
@@ -75,7 +74,6 @@ if TYPE_CHECKING:
         DataFrame,
         Float64Index,
         PeriodIndex,
-        TimedeltaIndex,
     )
 
 
@@ -229,7 +227,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     floor
     ceil
     to_period
-    to_perioddelta
     to_pydatetime
     to_series
     to_frame
@@ -294,13 +291,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         arr = self._data.to_period(freq)
         return PeriodIndex._simple_new(arr, name=self.name)
-
-    @doc(DatetimeArray.to_perioddelta)
-    def to_perioddelta(self, freq) -> TimedeltaIndex:
-        from pandas.core.indexes.api import TimedeltaIndex
-
-        arr = self._data.to_perioddelta(freq)
-        return TimedeltaIndex._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_julian_date)
     def to_julian_date(self) -> Float64Index:
@@ -438,43 +428,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ):
             return False
         return super()._can_range_setop(other)
-
-    def union_many(self, others):
-        """
-        A bit of a hack to accelerate unioning a collection of indexes.
-        """
-        warnings.warn(
-            "DatetimeIndex.union_many is deprecated and will be removed in "
-            "a future version. Use obj.union instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        this = self
-
-        for other in others:
-            if not isinstance(this, DatetimeIndex):
-                this = Index.union(this, other)
-                continue
-
-            if not isinstance(other, DatetimeIndex):
-                try:
-                    other = DatetimeIndex(other)
-                except TypeError:
-                    pass
-
-            this, other = this._maybe_utc_convert(other)
-
-            if len(self) and len(other) and this._can_fast_union(other):
-                # union already has fastpath handling for empty cases
-                this = this._fast_union(other)
-            else:
-                this = Index.union(this, other)
-
-        res_name = get_unanimous_names(self, *others)[0]
-        if this.name != res_name:
-            return this.rename(res_name)
-        return this
 
     def _maybe_utc_convert(self, other: Index) -> tuple[DatetimeIndex, Index]:
         this = self

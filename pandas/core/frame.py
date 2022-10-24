@@ -1328,44 +1328,6 @@ class DataFrame(NDFrame, OpsMixin):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
-    _shared_docs[
-        "iteritems"
-    ] = r"""
-        Iterate over (column name, Series) pairs.
-
-        .. deprecated:: 1.5.0
-            iteritems is deprecated and will be removed in a future version.
-            Use .items instead.
-
-        Iterates over the DataFrame columns, returning a tuple with
-        the column name and the content as a Series.
-
-        Yields
-        ------
-        label : object
-            The column names for the DataFrame being iterated over.
-        content : Series
-            The column entries belonging to each label, as a Series.
-
-        See Also
-        --------
-        DataFrame.iter : Recommended alternative.
-        DataFrame.iterrows : Iterate over DataFrame rows as
-            (index, Series) pairs.
-        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
-            of the values.
-        """
-
-    @Appender(_shared_docs["iteritems"])
-    def iteritems(self) -> Iterable[tuple[Hashable, Series]]:
-        warnings.warn(
-            "iteritems is deprecated and will be removed in a future version. "
-            "Use .items instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        yield from self.items()
-
     def iterrows(self) -> Iterable[tuple[Hashable, Series]]:
         """
         Iterate over DataFrame rows as (index, Series) pairs.
@@ -11623,18 +11585,6 @@ Parrot 2  Parrot       24.0
         axis=1, doc="The index (row labels) of the DataFrame."
     )
     columns = properties.AxisProperty(axis=0, doc="The column labels of the DataFrame.")
-
-    @property
-    def _AXIS_NUMBERS(self) -> dict[str, int]:
-        """.. deprecated:: 1.1.0"""
-        super()._AXIS_NUMBERS
-        return {"index": 0, "columns": 1}
-
-    @property
-    def _AXIS_NAMES(self) -> dict[int, str]:
-        """.. deprecated:: 1.1.0"""
-        super()._AXIS_NAMES
-        return {0: "index", 1: "columns"}
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
