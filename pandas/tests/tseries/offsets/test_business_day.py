@@ -96,11 +96,9 @@ class TestBusinessDay:
     def test_hash(self, offset2):
         assert hash(offset2) == hash(offset2)
 
-    def test_call(self, dt, offset2):
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#34171 DateOffset.__call__ is deprecated
-            assert offset2(dt) == datetime(2008, 1, 3)
-            assert offset2(np.datetime64("2008-01-01 00:00:00")) == datetime(2008, 1, 3)
+    def test_add_datetime(self, dt, offset2):
+        assert offset2 + dt == datetime(2008, 1, 3)
+        assert offset2 + np.datetime64("2008-01-01 00:00:00") == datetime(2008, 1, 3)
 
     def testRollback1(self, dt, _offset):
         assert _offset(10).rollback(dt) == dt

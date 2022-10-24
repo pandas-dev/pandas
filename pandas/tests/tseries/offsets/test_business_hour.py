@@ -213,29 +213,24 @@ class TestBusinessHour:
         offset = request.getfixturevalue(offset_name)
         assert offset == offset
 
-    def test_call(
+    def test_add_datetime(
         self,
         dt,
         offset1,
         offset2,
         offset3,
         offset4,
-        offset5,
-        offset6,
-        offset7,
         offset8,
         offset9,
         offset10,
     ):
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#34171 DateOffset.__call__ is deprecated
-            assert offset1(dt) == datetime(2014, 7, 1, 11)
-            assert offset2(dt) == datetime(2014, 7, 1, 13)
-            assert offset3(dt) == datetime(2014, 6, 30, 17)
-            assert offset4(dt) == datetime(2014, 6, 30, 14)
-            assert offset8(dt) == datetime(2014, 7, 1, 11)
-            assert offset9(dt) == datetime(2014, 7, 1, 22)
-            assert offset10(dt) == datetime(2014, 7, 1, 1)
+        assert offset1 + dt == datetime(2014, 7, 1, 11)
+        assert offset2 + dt == datetime(2014, 7, 1, 13)
+        assert offset3 + dt == datetime(2014, 6, 30, 17)
+        assert offset4 + dt == datetime(2014, 6, 30, 14)
+        assert offset8 + dt == datetime(2014, 7, 1, 11)
+        assert offset9 + dt == datetime(2014, 7, 1, 22)
+        assert offset10 + dt == datetime(2014, 7, 1, 1)
 
     def test_sub(self, dt, offset2, _offset):
         off = offset2

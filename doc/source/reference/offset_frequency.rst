@@ -34,14 +34,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    DateOffset.apply
-    DateOffset.apply_index
     DateOffset.copy
-    DateOffset.isAnchored
-    DateOffset.onOffset
     DateOffset.is_anchored
     DateOffset.is_on_offset
-    DateOffset.__call__
     DateOffset.is_month_start
     DateOffset.is_month_end
     DateOffset.is_quarter_start
@@ -86,14 +81,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    BusinessDay.apply
-    BusinessDay.apply_index
     BusinessDay.copy
-    BusinessDay.isAnchored
-    BusinessDay.onOffset
     BusinessDay.is_anchored
     BusinessDay.is_on_offset
-    BusinessDay.__call__
     BusinessDay.is_month_start
     BusinessDay.is_month_end
     BusinessDay.is_quarter_start
@@ -131,14 +121,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    BusinessHour.apply
-    BusinessHour.apply_index
     BusinessHour.copy
-    BusinessHour.isAnchored
-    BusinessHour.onOffset
     BusinessHour.is_anchored
     BusinessHour.is_on_offset
-    BusinessHour.__call__
     BusinessHour.is_month_start
     BusinessHour.is_month_end
     BusinessHour.is_quarter_start
@@ -183,14 +168,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    CustomBusinessDay.apply_index
-    CustomBusinessDay.apply
     CustomBusinessDay.copy
-    CustomBusinessDay.isAnchored
-    CustomBusinessDay.onOffset
     CustomBusinessDay.is_anchored
     CustomBusinessDay.is_on_offset
-    CustomBusinessDay.__call__
     CustomBusinessDay.is_month_start
     CustomBusinessDay.is_month_end
     CustomBusinessDay.is_quarter_start
@@ -228,14 +208,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    CustomBusinessHour.apply
-    CustomBusinessHour.apply_index
     CustomBusinessHour.copy
-    CustomBusinessHour.isAnchored
-    CustomBusinessHour.onOffset
     CustomBusinessHour.is_anchored
     CustomBusinessHour.is_on_offset
-    CustomBusinessHour.__call__
     CustomBusinessHour.is_month_start
     CustomBusinessHour.is_month_end
     CustomBusinessHour.is_quarter_start
@@ -268,14 +243,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    MonthEnd.apply
-    MonthEnd.apply_index
     MonthEnd.copy
-    MonthEnd.isAnchored
-    MonthEnd.onOffset
     MonthEnd.is_anchored
     MonthEnd.is_on_offset
-    MonthEnd.__call__
     MonthEnd.is_month_start
     MonthEnd.is_month_end
     MonthEnd.is_quarter_start
@@ -308,14 +278,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    MonthBegin.apply
-    MonthBegin.apply_index
     MonthBegin.copy
-    MonthBegin.isAnchored
-    MonthBegin.onOffset
     MonthBegin.is_anchored
     MonthBegin.is_on_offset
-    MonthBegin.__call__
     MonthBegin.is_month_start
     MonthBegin.is_month_end
     MonthBegin.is_quarter_start
@@ -357,14 +322,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    BusinessMonthEnd.apply
-    BusinessMonthEnd.apply_index
     BusinessMonthEnd.copy
-    BusinessMonthEnd.isAnchored
-    BusinessMonthEnd.onOffset
     BusinessMonthEnd.is_anchored
     BusinessMonthEnd.is_on_offset
-    BusinessMonthEnd.__call__
     BusinessMonthEnd.is_month_start
     BusinessMonthEnd.is_month_end
     BusinessMonthEnd.is_quarter_start
@@ -406,14 +366,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    BusinessMonthBegin.apply
-    BusinessMonthBegin.apply_index
     BusinessMonthBegin.copy
-    BusinessMonthBegin.isAnchored
-    BusinessMonthBegin.onOffset
     BusinessMonthBegin.is_anchored
     BusinessMonthBegin.is_on_offset
-    BusinessMonthBegin.__call__
     BusinessMonthBegin.is_month_start
     BusinessMonthBegin.is_month_end
     BusinessMonthBegin.is_quarter_start
@@ -459,14 +414,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    CustomBusinessMonthEnd.apply
-    CustomBusinessMonthEnd.apply_index
     CustomBusinessMonthEnd.copy
-    CustomBusinessMonthEnd.isAnchored
-    CustomBusinessMonthEnd.onOffset
     CustomBusinessMonthEnd.is_anchored
     CustomBusinessMonthEnd.is_on_offset
-    CustomBusinessMonthEnd.__call__
     CustomBusinessMonthEnd.is_month_start
     CustomBusinessMonthEnd.is_month_end
     CustomBusinessMonthEnd.is_quarter_start
@@ -512,14 +462,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    CustomBusinessMonthBegin.apply
-    CustomBusinessMonthBegin.apply_index
     CustomBusinessMonthBegin.copy
-    CustomBusinessMonthBegin.isAnchored
-    CustomBusinessMonthBegin.onOffset
     CustomBusinessMonthBegin.is_anchored
     CustomBusinessMonthBegin.is_on_offset
-    CustomBusinessMonthBegin.__call__
     CustomBusinessMonthBegin.is_month_start
     CustomBusinessMonthBegin.is_month_end
     CustomBusinessMonthBegin.is_quarter_start
@@ -553,14 +498,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    SemiMonthEnd.apply
-    SemiMonthEnd.apply_index
     SemiMonthEnd.copy
-    SemiMonthEnd.isAnchored
-    SemiMonthEnd.onOffset
     SemiMonthEnd.is_anchored
     SemiMonthEnd.is_on_offset
-    SemiMonthEnd.__call__
     SemiMonthEnd.is_month_start
     SemiMonthEnd.is_month_end
     SemiMonthEnd.is_quarter_start
@@ -594,14 +534,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    SemiMonthBegin.apply
-    SemiMonthBegin.apply_index
     SemiMonthBegin.copy
-    SemiMonthBegin.isAnchored
-    SemiMonthBegin.onOffset
     SemiMonthBegin.is_anchored
     SemiMonthBegin.is_on_offset
-    SemiMonthBegin.__call__
     SemiMonthBegin.is_month_start
     SemiMonthBegin.is_month_end
     SemiMonthBegin.is_quarter_start
@@ -635,14 +570,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    Week.apply
-    Week.apply_index
     Week.copy
-    Week.isAnchored
-    Week.onOffset
     Week.is_anchored
     Week.is_on_offset
-    Week.__call__
     Week.is_month_start
     Week.is_month_end
     Week.is_quarter_start
@@ -676,14 +606,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    WeekOfMonth.apply
-    WeekOfMonth.apply_index
     WeekOfMonth.copy
-    WeekOfMonth.isAnchored
-    WeekOfMonth.onOffset
     WeekOfMonth.is_anchored
     WeekOfMonth.is_on_offset
-    WeekOfMonth.__call__
     WeekOfMonth.weekday
     WeekOfMonth.is_month_start
     WeekOfMonth.is_month_end
@@ -719,14 +644,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    LastWeekOfMonth.apply
-    LastWeekOfMonth.apply_index
     LastWeekOfMonth.copy
-    LastWeekOfMonth.isAnchored
-    LastWeekOfMonth.onOffset
     LastWeekOfMonth.is_anchored
     LastWeekOfMonth.is_on_offset
-    LastWeekOfMonth.__call__
     LastWeekOfMonth.is_month_start
     LastWeekOfMonth.is_month_end
     LastWeekOfMonth.is_quarter_start
@@ -760,14 +680,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    BQuarterEnd.apply
-    BQuarterEnd.apply_index
     BQuarterEnd.copy
-    BQuarterEnd.isAnchored
-    BQuarterEnd.onOffset
     BQuarterEnd.is_anchored
     BQuarterEnd.is_on_offset
-    BQuarterEnd.__call__
     BQuarterEnd.is_month_start
     BQuarterEnd.is_month_end
     BQuarterEnd.is_quarter_start
@@ -801,14 +716,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    BQuarterBegin.apply
-    BQuarterBegin.apply_index
     BQuarterBegin.copy
-    BQuarterBegin.isAnchored
-    BQuarterBegin.onOffset
     BQuarterBegin.is_anchored
     BQuarterBegin.is_on_offset
-    BQuarterBegin.__call__
     BQuarterBegin.is_month_start
     BQuarterBegin.is_month_end
     BQuarterBegin.is_quarter_start
@@ -842,14 +752,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    QuarterEnd.apply
-    QuarterEnd.apply_index
     QuarterEnd.copy
-    QuarterEnd.isAnchored
-    QuarterEnd.onOffset
     QuarterEnd.is_anchored
     QuarterEnd.is_on_offset
-    QuarterEnd.__call__
     QuarterEnd.is_month_start
     QuarterEnd.is_month_end
     QuarterEnd.is_quarter_start
@@ -883,14 +788,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    QuarterBegin.apply
-    QuarterBegin.apply_index
     QuarterBegin.copy
-    QuarterBegin.isAnchored
-    QuarterBegin.onOffset
     QuarterBegin.is_anchored
     QuarterBegin.is_on_offset
-    QuarterBegin.__call__
     QuarterBegin.is_month_start
     QuarterBegin.is_month_end
     QuarterBegin.is_quarter_start
@@ -924,14 +824,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    BYearEnd.apply
-    BYearEnd.apply_index
     BYearEnd.copy
-    BYearEnd.isAnchored
-    BYearEnd.onOffset
     BYearEnd.is_anchored
     BYearEnd.is_on_offset
-    BYearEnd.__call__
     BYearEnd.is_month_start
     BYearEnd.is_month_end
     BYearEnd.is_quarter_start
@@ -965,14 +860,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    BYearBegin.apply
-    BYearBegin.apply_index
     BYearBegin.copy
-    BYearBegin.isAnchored
-    BYearBegin.onOffset
     BYearBegin.is_anchored
     BYearBegin.is_on_offset
-    BYearBegin.__call__
     BYearBegin.is_month_start
     BYearBegin.is_month_end
     BYearBegin.is_quarter_start
@@ -1006,14 +896,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    YearEnd.apply
-    YearEnd.apply_index
     YearEnd.copy
-    YearEnd.isAnchored
-    YearEnd.onOffset
     YearEnd.is_anchored
     YearEnd.is_on_offset
-    YearEnd.__call__
     YearEnd.is_month_start
     YearEnd.is_month_end
     YearEnd.is_quarter_start
@@ -1047,14 +932,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    YearBegin.apply
-    YearBegin.apply_index
     YearBegin.copy
-    YearBegin.isAnchored
-    YearBegin.onOffset
     YearBegin.is_anchored
     YearBegin.is_on_offset
-    YearBegin.__call__
     YearBegin.is_month_start
     YearBegin.is_month_end
     YearBegin.is_quarter_start
@@ -1090,16 +970,11 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    FY5253.apply
-    FY5253.apply_index
     FY5253.copy
     FY5253.get_rule_code_suffix
     FY5253.get_year_end
-    FY5253.isAnchored
-    FY5253.onOffset
     FY5253.is_anchored
     FY5253.is_on_offset
-    FY5253.__call__
     FY5253.is_month_start
     FY5253.is_month_end
     FY5253.is_quarter_start
@@ -1136,17 +1011,12 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    FY5253Quarter.apply
-    FY5253Quarter.apply_index
     FY5253Quarter.copy
     FY5253Quarter.get_rule_code_suffix
     FY5253Quarter.get_weeks
-    FY5253Quarter.isAnchored
-    FY5253Quarter.onOffset
     FY5253Quarter.is_anchored
     FY5253Quarter.is_on_offset
     FY5253Quarter.year_has_extra_week
-    FY5253Quarter.__call__
     FY5253Quarter.is_month_start
     FY5253Quarter.is_month_end
     FY5253Quarter.is_quarter_start
@@ -1179,14 +1049,9 @@ Methods
 .. autosummary::
    :toctree: api/
 
-    Easter.apply
-    Easter.apply_index
     Easter.copy
-    Easter.isAnchored
-    Easter.onOffset
     Easter.is_anchored
     Easter.is_on_offset
-    Easter.__call__
     Easter.is_month_start
     Easter.is_month_end
     Easter.is_quarter_start
@@ -1221,13 +1086,8 @@ Methods
    :toctree: api/
 
     Tick.copy
-    Tick.isAnchored
-    Tick.onOffset
     Tick.is_anchored
     Tick.is_on_offset
-    Tick.__call__
-    Tick.apply
-    Tick.apply_index
     Tick.is_month_start
     Tick.is_month_end
     Tick.is_quarter_start
@@ -1262,13 +1122,8 @@ Methods
    :toctree: api/
 
     Day.copy
-    Day.isAnchored
-    Day.onOffset
     Day.is_anchored
     Day.is_on_offset
-    Day.__call__
-    Day.apply
-    Day.apply_index
     Day.is_month_start
     Day.is_month_end
     Day.is_quarter_start
@@ -1303,13 +1158,8 @@ Methods
    :toctree: api/
 
     Hour.copy
-    Hour.isAnchored
-    Hour.onOffset
     Hour.is_anchored
     Hour.is_on_offset
-    Hour.__call__
-    Hour.apply
-    Hour.apply_index
     Hour.is_month_start
     Hour.is_month_end
     Hour.is_quarter_start
@@ -1344,13 +1194,8 @@ Methods
    :toctree: api/
 
     Minute.copy
-    Minute.isAnchored
-    Minute.onOffset
     Minute.is_anchored
     Minute.is_on_offset
-    Minute.__call__
-    Minute.apply
-    Minute.apply_index
     Minute.is_month_start
     Minute.is_month_end
     Minute.is_quarter_start
@@ -1385,13 +1230,8 @@ Methods
    :toctree: api/
 
     Second.copy
-    Second.isAnchored
-    Second.onOffset
     Second.is_anchored
     Second.is_on_offset
-    Second.__call__
-    Second.apply
-    Second.apply_index
     Second.is_month_start
     Second.is_month_end
     Second.is_quarter_start
@@ -1426,13 +1266,8 @@ Methods
    :toctree: api/
 
     Milli.copy
-    Milli.isAnchored
-    Milli.onOffset
     Milli.is_anchored
     Milli.is_on_offset
-    Milli.__call__
-    Milli.apply
-    Milli.apply_index
     Milli.is_month_start
     Milli.is_month_end
     Milli.is_quarter_start
@@ -1467,13 +1302,8 @@ Methods
    :toctree: api/
 
     Micro.copy
-    Micro.isAnchored
-    Micro.onOffset
     Micro.is_anchored
     Micro.is_on_offset
-    Micro.__call__
-    Micro.apply
-    Micro.apply_index
     Micro.is_month_start
     Micro.is_month_end
     Micro.is_quarter_start
@@ -1508,13 +1338,8 @@ Methods
    :toctree: api/
 
     Nano.copy
-    Nano.isAnchored
-    Nano.onOffset
     Nano.is_anchored
     Nano.is_on_offset
-    Nano.__call__
-    Nano.apply
-    Nano.apply_index
     Nano.is_month_start
     Nano.is_month_end
     Nano.is_quarter_start
