@@ -266,7 +266,6 @@ Time Series-related
    DataFrame.asfreq
    DataFrame.asof
    DataFrame.shift
-   DataFrame.slice_shift
    DataFrame.first_valid_index
    DataFrame.last_valid_index
    DataFrame.resample
