@@ -465,7 +465,7 @@ def test_no_sort_keep_na(request, sequence_index, dtype, test_series):
     if dtype == "category":
         index = pd.CategoricalIndex(
             [uniques[e] for e in summed],
-            list({uniques[k]: 0 for k in sequence if not pd.isnull(uniques[k])}),
+            df["key"].cat.categories,
             name="key",
         )
     elif isinstance(dtype, str) and dtype.startswith("Sparse"):

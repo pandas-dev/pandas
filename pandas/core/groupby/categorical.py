@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import numpy as np
 
 from pandas.core.algorithms import unique1d
@@ -10,9 +8,6 @@ from pandas.core.arrays.categorical import (
     CategoricalDtype,
     recode_for_categories,
 )
-
-if TYPE_CHECKING:
-    from pandas.core.indexes.api import CategoricalIndex
 
 
 def recode_for_groupby(
@@ -77,7 +72,7 @@ def recode_for_groupby(
     # sort=False should order groups in as-encountered order (GH-8868)
 
     # xref GH:46909: Re-ordering codes faster than using (set|add|reorder)_categories
-    all_codes = np.arange(c.categories.nunique(), dtype=np.int8)
+    all_codes = np.arange(c.categories.nunique())
     # GH 38140: exclude nan from indexer for categories
     unique_notnan_codes = unique1d(c.codes[c.codes != -1])
     if c.ordered:
@@ -90,32 +85,3 @@ def recode_for_groupby(
         take_codes = unique_notnan_codes
 
     return Categorical(c, c.unique().categories.take(take_codes)), None
-
-
-def recode_from_groupby(
-    c: Categorical, sort: bool, ci: CategoricalIndex
-) -> CategoricalIndex:
-    """
-    Reverse the codes_to_groupby to account for sort / observed.
-
-    Parameters
-    ----------
-    c : Categorical
-    sort : bool
-        The value of the sort parameter groupby was called with.
-    ci : CategoricalIndex
-        The codes / categories to recode
-
-    Returns
-    -------
-    CategoricalIndex
-    """
-    # we re-order to the original category orderings
-    if sort:
-        # error: "CategoricalIndex" has no attribute "set_categories"
-        return ci.set_categories(c.categories)  # type: ignore[attr-defined]
-
-    # we are not sorting, so add unobserved to the end
-    new_cats = c.categories[~c.categories.isin(ci.categories)]
-    # error: "CategoricalIndex" has no attribute "add_categories"
-    return ci.add_categories(new_cats)  # type: ignore[attr-defined]
