@@ -174,7 +174,8 @@ class TestDataFrameAnalytics:
             warn = FutureWarning
         else:
             warn = None
-        with tm.assert_produces_warning(warn):
+        msg = "nuisance columns|default value of numeric_only"
+        with tm.assert_produces_warning(warn, match=msg):
             getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
             getattr(float_string_frame, opname)(axis=axis, numeric_only=True)
