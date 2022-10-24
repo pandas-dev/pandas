@@ -81,7 +81,6 @@ disable = [
  # pylint type "C": convention, for programming standard violation
   "consider-iterating-dictionary",
   "consider-using-dict-items",
-  "consider-using-enumerate",
   "consider-using-f-string",
   "disallowed-name",
   "import-outside-toplevel",
@@ -114,7 +113,6 @@ disable = [
   "consider-merging-isinstance",
   "consider-using-from-import",
   "consider-using-get",
-  "consider-using-in",
   "consider-using-min-builtin",
   "consider-using-sys-exit",
   "consider-using-ternary",
@@ -124,7 +122,6 @@ disable = [
   "inconsistent-return-statements",
   "invalid-sequence-index",
   "literal-comparison",
-  "no-else-break",
   "no-else-continue",
   "no-else-raise",
   "no-else-return",

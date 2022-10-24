@@ -2889,11 +2889,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 else:
                     out = type(values)._empty(values.shape, dtype=values.dtype)
 
-                for i in range(len(values)):
+                for i, value_element in enumerate(values):
                     # call group_fillna_indexer column-wise
                     indexer = np.empty(values.shape[1], dtype=np.intp)
                     col_func(out=indexer, mask=mask[i])
-                    out[i, :] = algorithms.take_nd(values[i], indexer)
+                    out[i, :] = algorithms.take_nd(value_element, indexer)
                 return out
 
         obj = self._obj_with_exclusions
@@ -3877,8 +3877,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         See Also
         --------
         Index.shift : Shift values of Index.
-        tshift : Shift the time index, using the index’s frequency
-            if available.
         """
         if freq is not None or axis != 0:
             f = lambda x: x.shift(periods, freq, axis, fill_value)
