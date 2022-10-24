@@ -659,7 +659,6 @@ Scalar introspection
    :toctree: api/
 
     api.types.is_bool
-    api.types.is_categorical
     api.types.is_complex
     api.types.is_float
     api.types.is_hashable

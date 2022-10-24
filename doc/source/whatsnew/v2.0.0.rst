@@ -164,6 +164,7 @@ Removal of prior version deprecations/changes
 - Removed deprecated :meth:`CategoricalIndex.take_nd` (:issue:`30702`)
 - Removed deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
 - Removed deprecated :meth:`Index.is_mixed`, check ``index.inferred_type`` directly instead (:issue:`32922`)
+- Removed deprecated :func:`pandas.api.types.is_categorical`; use :func:`pandas.api.types.is_categorical_dtype` instead  (:issue:`33385`)
 - Removed deprecated :meth:`Index.asi8` (:issue:`37877`)
 - Enforced deprecation disallowing passing a timezone-aware :class:`Timestamp` and ``dtype="datetime64[ns]"`` to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
 - Enforced deprecation disallowing passing a sequence of timezone-aware values and ``dtype="datetime64[ns]"`` to to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)

@@ -101,7 +101,6 @@ generated/pandas.api.types.infer_dtype,../reference/api/pandas.api.types.infer_d
 generated/pandas.api.types.is_bool_dtype,../reference/api/pandas.api.types.is_bool_dtype
 generated/pandas.api.types.is_bool,../reference/api/pandas.api.types.is_bool
 generated/pandas.api.types.is_categorical_dtype,../reference/api/pandas.api.types.is_categorical_dtype
-generated/pandas.api.types.is_categorical,../reference/api/pandas.api.types.is_categorical
 generated/pandas.api.types.is_complex_dtype,../reference/api/pandas.api.types.is_complex_dtype
 generated/pandas.api.types.is_complex,../reference/api/pandas.api.types.is_complex
 generated/pandas.api.types.is_datetime64_any_dtype,../reference/api/pandas.api.types.is_datetime64_any_dtype

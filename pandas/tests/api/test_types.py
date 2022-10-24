@@ -10,7 +10,6 @@ class TestTypes(Base):
     allowed = [
         "is_bool",
         "is_bool_dtype",
-        "is_categorical",
         "is_categorical_dtype",
         "is_complex",
         "is_complex_dtype",

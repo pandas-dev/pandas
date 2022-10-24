@@ -9,7 +9,6 @@ from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
@@ -178,13 +177,6 @@ class TestCategoricalDtype(Base):
         assert is_categorical_dtype(s.dtype)
         assert is_categorical_dtype(s)
         assert not is_categorical_dtype(np.dtype("float64"))
-
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#33385 deprecated
-            assert is_categorical(s.dtype)
-            assert is_categorical(s)
-            assert not is_categorical(np.dtype("float64"))
-            assert not is_categorical(1.0)
 
     def test_tuple_categories(self):
         categories = [(1, "a"), (2, "b"), (3, "c")]
