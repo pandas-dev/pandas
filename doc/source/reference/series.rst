@@ -268,7 +268,6 @@ Time Series-related
    Series.tz_localize
    Series.at_time
    Series.between_time
-   Series.slice_shift
 
 Accessors
 ---------

@@ -462,11 +462,3 @@ class TestNDFrame:
         assert obj.flags is obj.flags
         obj2 = obj.copy()
         assert obj2.flags is not obj.flags
-
-    def test_slice_shift_deprecated(self, frame_or_series):
-        # GH 37601
-        obj = DataFrame({"A": [1, 2, 3, 4]})
-        obj = tm.get_obj(obj, frame_or_series)
-
-        with tm.assert_produces_warning(FutureWarning):
-            obj.slice_shift()

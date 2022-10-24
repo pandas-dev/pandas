@@ -484,7 +484,6 @@ generated/pandas.DataFrame.shape,../reference/api/pandas.DataFrame.shape
 generated/pandas.DataFrame.shift,../reference/api/pandas.DataFrame.shift
 generated/pandas.DataFrame.size,../reference/api/pandas.DataFrame.size
 generated/pandas.DataFrame.skew,../reference/api/pandas.DataFrame.skew
-generated/pandas.DataFrame.slice_shift,../reference/api/pandas.DataFrame.slice_shift
 generated/pandas.DataFrame.sort_index,../reference/api/pandas.DataFrame.sort_index
 generated/pandas.DataFrame.sort_values,../reference/api/pandas.DataFrame.sort_values
 generated/pandas.DataFrame.squeeze,../reference/api/pandas.DataFrame.squeeze
@@ -1166,7 +1165,6 @@ generated/pandas.Series.shape,../reference/api/pandas.Series.shape
 generated/pandas.Series.shift,../reference/api/pandas.Series.shift
 generated/pandas.Series.size,../reference/api/pandas.Series.size
 generated/pandas.Series.skew,../reference/api/pandas.Series.skew
-generated/pandas.Series.slice_shift,../reference/api/pandas.Series.slice_shift
 generated/pandas.Series.sort_index,../reference/api/pandas.Series.sort_index
 generated/pandas.Series.sort_values,../reference/api/pandas.Series.sort_values
 generated/pandas.Series.sparse.density,../reference/api/pandas.Series.sparse.density
