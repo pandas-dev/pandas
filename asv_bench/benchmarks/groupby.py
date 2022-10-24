@@ -14,6 +14,7 @@ from pandas import (
     Timestamp,
     date_range,
     period_range,
+    to_timedelta,
 )
 
 from .pandas_vb_common import tm
@@ -985,6 +986,28 @@ class Sample:
 
     def time_sample_weights(self):
         self.df.groupby(self.groups).sample(n=1, weights=self.weights)
+
+
+class Resample:
+    # GH 28635
+    def setup(self):
+        num_timedeltas = 100_000
+        num_groups = 5
+
+        index = MultiIndex.from_product(
+            [
+                np.arange(num_groups),
+                to_timedelta(np.arange(num_timedeltas), unit="s"),
+            ]
+        )
+
+        self.df = DataFrame(np.random.randint(0, 1000, size=(len(index))), index=index)
+
+    def time_resample(self):
+        self.df.reset_index(1).groupby(level=0).resample("10s", on="level_1").mean()
+
+    def time_resample_multiindex(self):
+        self.df.groupby(level=0).resample("10s", level=1).mean()
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
