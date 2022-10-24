@@ -991,23 +991,28 @@ class Sample:
 class Resample:
     # GH 28635
     def setup(self):
-        num_timedeltas = 100_000
-        num_groups = 5
+        num_timedeltas = 20_000
+        num_groups = 3
 
         index = MultiIndex.from_product(
             [
                 np.arange(num_groups),
                 to_timedelta(np.arange(num_timedeltas), unit="s"),
-            ]
+            ],
+            names=["groups", "timedeltas"],
         )
+        data = np.random.randint(0, 1000, size=(len(index)))
 
-        self.df = DataFrame(np.random.randint(0, 1000, size=(len(index))), index=index)
+        self.df = DataFrame(data, index=index).reset_index("timedeltas")
+        self.df_multiindex = DataFrame(data, index=index)
 
     def time_resample(self):
-        self.df.reset_index(1).groupby(level=0).resample("10s", on="level_1").mean()
+        self.df.groupby(level="groups").resample("10s", on="timedeltas").mean()
 
     def time_resample_multiindex(self):
-        self.df.groupby(level=0).resample("10s", level=1).mean()
+        self.df_multiindex.groupby(level="groups").resample(
+            "10s", level="timedeltas"
+        ).mean()
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
