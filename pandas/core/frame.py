@@ -2621,10 +2621,10 @@ class DataFrame(NDFrame, OpsMixin):
         compression_options=_shared_docs["compression_options"] % "path",
     )
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "path"])
     def to_stata(
         self,
         path: FilePath | WriteBuffer[bytes],
+        *,
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
         byteorder: str | None = None,
@@ -2635,7 +2635,6 @@ class DataFrame(NDFrame, OpsMixin):
         convert_strl: Sequence[Hashable] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
-        *,
         value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
         """
@@ -5141,7 +5140,6 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     # error: Signature of "set_axis" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     @Appender(
         """
         Examples
@@ -5183,9 +5181,9 @@ class DataFrame(NDFrame, OpsMixin):
     def set_axis(
         self,
         labels,
+        *,
         axis: Axis = 0,
         inplace: bool | lib.NoDefault = lib.no_default,
-        *,
         copy: bool | lib.NoDefault = lib.no_default,
     ):
         return super().set_axis(labels, axis=axis, inplace=inplace, copy=copy)
@@ -5719,14 +5717,12 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     # error: Signature of "replace" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "to_replace", "value"]
-    )
     @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(  # type: ignore[override]
         self,
         to_replace=None,
         value=lib.no_default,
+        *,
         inplace: bool = False,
         limit: int | None = None,
         regex: bool = False,
@@ -6868,12 +6864,12 @@ class DataFrame(NDFrame, OpsMixin):
 
     # TODO: Just move the sort_values doc here.
     # error: Signature of "sort_values" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "by"])
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
     def sort_values(  # type: ignore[override]
         self,
         by: IndexLabel,
+        *,
         axis: Axis = 0,
         ascending: bool | list[bool] | tuple[bool, ...] = True,
         inplace: bool = False,
@@ -11776,10 +11772,9 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "ffill" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def ffill(  # type: ignore[override]
+    def ffill(
         self,
+        *,
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
@@ -11820,10 +11815,9 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "bfill" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def bfill(  # type: ignore[override]
+    def bfill(
         self,
+        *,
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
@@ -11831,19 +11825,16 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | None:
         return super().bfill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "lower", "upper"]
-    )
     def clip(
         self: DataFrame,
         lower: float | None = None,
         upper: float | None = None,
+        *,
         axis: Axis | None = None,
         inplace: bool = False,
-        *args,
         **kwargs,
     ) -> DataFrame | None:
-        return super().clip(lower, upper, axis, inplace, *args, **kwargs)
+        return super().clip(lower, upper, axis=axis, inplace=inplace, **kwargs)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     def interpolate(
@@ -11909,13 +11900,11 @@ Parrot 2  Parrot       24.0
 
     # error: Signature of "where" incompatible with supertype "NDFrame"
     @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
     def where(  # type: ignore[override]
         self,
         cond,
         other=lib.no_default,
+        *,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
@@ -11970,13 +11959,11 @@ Parrot 2  Parrot       24.0
 
     # error: Signature of "mask" incompatible with supertype "NDFrame"
     @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
     def mask(  # type: ignore[override]
         self,
         cond,
         other=lib.no_default,
+        *,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
