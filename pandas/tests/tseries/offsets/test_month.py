@@ -223,10 +223,6 @@ class TestSemiMonthEnd:
             result = offset + shift
         tm.assert_index_equal(result, exp)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = offset.apply_index(shift)
-        tm.assert_index_equal(result, exp)
-
     on_offset_cases = [
         (datetime(2007, 12, 31), True),
         (datetime(2007, 12, 15), True),

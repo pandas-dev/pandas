@@ -863,20 +863,6 @@ def test_where_duplicate_axes_mixed_dtypes():
     tm.assert_frame_equal(c.astype("f8"), d.astype("f8"))
 
 
-def test_where_non_keyword_deprecation(frame_or_series):
-    # GH 41485
-    obj = frame_or_series(range(5))
-    msg = (
-        "In a future version of pandas all arguments of "
-        f"{frame_or_series.__name__}.where except for the arguments 'cond' "
-        "and 'other' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = obj.where(obj > 1, 10, False)
-    expected = frame_or_series([10, 10, 2, 3, 4])
-    tm.assert_equal(expected, result)
-
-
 def test_where_columns_casting():
     # GH 42295
 
