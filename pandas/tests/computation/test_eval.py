@@ -1105,12 +1105,6 @@ class TestOperations:
         df2 = self.eval("df", local_dict={"df": df})
         tm.assert_frame_equal(df, df2)
 
-    def test_truediv_removed(self):
-        s = np.array([1])  # noqa:F841
-        ex = "s / 1"
-        with pytest.raises(TypeError, match="got an unexpected keyword argument"):
-            self.eval(ex, truediv=False)
-
     def test_failing_subscript_with_name_error(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa:F841
         with pytest.raises(NameError, match="name 'x' is not defined"):
