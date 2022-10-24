@@ -1,7 +1,3 @@
-import warnings
-
-from pandas.util._exceptions import find_stack_level
-
 cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
@@ -1802,7 +1798,7 @@ cdef class _Period(PeriodMixin):
 
         return Period(ordinal=ordinal, freq=freq)
 
-    def to_timestamp(self, freq=None, how='start', tz=None) -> Timestamp:
+    def to_timestamp(self, freq=None, how="start") -> Timestamp:
         """
         Return the Timestamp representation of the Period.
 
@@ -1822,16 +1818,6 @@ cdef class _Period(PeriodMixin):
         -------
         Timestamp
         """
-        if tz is not None:
-            # GH#34522
-            warnings.warn(
-                "Period.to_timestamp `tz` argument is deprecated and will "
-                "be removed in a future version.  Use "
-                "`per.to_timestamp(...).tz_localize(tz)` instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
         how = validate_end_alias(how)
 
         end = how == 'E'
@@ -1853,7 +1839,7 @@ cdef class _Period(PeriodMixin):
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
-        return Timestamp(dt64, tz=tz)
+        return Timestamp(dt64)
 
     @property
     def year(self) -> int:
