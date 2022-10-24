@@ -5,6 +5,8 @@ from pandas import (
     Index,
     Interval,
     MultiIndex,
+    Series,
+    StringDtype,
 )
 import pandas._testing as tm
 
@@ -157,4 +159,50 @@ def test_join_overlapping_interval_level():
     )
     result = idx_1.join(idx_2, how="outer")
 
+    tm.assert_index_equal(result, expected)
+
+
+def test_join_midx_ea():
+    # GH#49277
+    midx = MultiIndex.from_arrays(
+        [Series([1, 1, 3], dtype="Int64"), Series([1, 2, 3], dtype="Int64")],
+        names=["a", "b"],
+    )
+    midx2 = MultiIndex.from_arrays(
+        [Series([1], dtype="Int64"), Series([3], dtype="Int64")], names=["a", "c"]
+    )
+    result = midx.join(midx2, how="inner")
+    expected = MultiIndex.from_arrays(
+        [
+            Series([1, 1], dtype="Int64"),
+            Series([1, 2], dtype="Int64"),
+            Series([3, 3], dtype="Int64"),
+        ],
+        names=["a", "b", "c"],
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_join_midx_string():
+    # GH#49277
+    midx = MultiIndex.from_arrays(
+        [
+            Series(["a", "a", "c"], dtype=StringDtype()),
+            Series(["a", "b", "c"], dtype=StringDtype()),
+        ],
+        names=["a", "b"],
+    )
+    midx2 = MultiIndex.from_arrays(
+        [Series(["a"], dtype=StringDtype()), Series(["c"], dtype=StringDtype())],
+        names=["a", "c"],
+    )
+    result = midx.join(midx2, how="inner")
+    expected = MultiIndex.from_arrays(
+        [
+            Series(["a", "a"], dtype=StringDtype()),
+            Series(["a", "b"], dtype=StringDtype()),
+            Series(["c", "c"], dtype=StringDtype()),
+        ],
+        names=["a", "b", "c"],
+    )
     tm.assert_index_equal(result, expected)

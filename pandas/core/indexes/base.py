@@ -4675,8 +4675,9 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_non_unique(other, how=how)
         elif not self.is_unique or not other.is_unique:
             if self.is_monotonic_increasing and other.is_monotonic_increasing:
-                if self._can_use_libjoin:
+                if not is_interval_dtype(self.dtype):
                     # otherwise we will fall through to _join_via_get_indexer
+                    # go through object dtype for ea till engine is supported properly
                     return self._join_monotonic(other, how=how)
             else:
                 return self._join_non_unique(other, how=how)
@@ -5051,7 +5052,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._constructor(joined, name=name)  # type: ignore[return-value]
         else:
             name = get_op_result_name(self, other)
-            return self._constructor._with_infer(joined, name=name)
+            return self._constructor._with_infer(joined, name=name, dtype=self.dtype)
 
     @cache_readonly
     def _can_use_libjoin(self) -> bool:

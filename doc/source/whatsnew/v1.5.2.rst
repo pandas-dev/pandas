@@ -13,7 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression in :meth:`MultiIndex.join` for extension array dtypes (:issue:`49277`)
 -
 
 .. ---------------------------------------------------------------------------
