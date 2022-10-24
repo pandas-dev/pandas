@@ -36,7 +36,6 @@ reduction_kernels = frozenset(
         "idxmax",
         "idxmin",
         "last",
-        "mad",
         "max",
         "mean",
         "median",
@@ -86,7 +85,6 @@ transformation_kernels = frozenset(
         "pct_change",
         "rank",
         "shift",
-        "tshift",
     ]
 )
 

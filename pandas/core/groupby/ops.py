@@ -789,7 +789,6 @@ class BaseGrouper:
             result_values.append(res)
         # getattr pattern for __name__ is needed for functools.partial objects
         if len(group_keys) == 0 and getattr(f, "__name__", None) in [
-            "mad",
             "skew",
             "sum",
             "prod",
