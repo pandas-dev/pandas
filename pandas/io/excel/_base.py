@@ -271,10 +271,10 @@ skipfooter : int, default 0
 
     .. versionadded:: 1.2.0
 
-use_nullable_dtypes : bool = False
+use_nullable_dtypes : bool, default False
     Whether or not to use nullable dtypes as default when reading data. If
     set to True, nullable dtypes are used for all dtypes that have a nullable
-    implementation, even if no nulls are present.
+    implementation, even if no nulls are present. Dtype takes precedence if given.
 
     .. versionadded:: 2.0
 
