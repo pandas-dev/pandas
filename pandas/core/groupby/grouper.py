@@ -502,6 +502,15 @@ class Grouping:
                 self._group_index,
             ) = index._get_grouper_for_level(mapper, level=ilevel, dropna=dropna)
 
+            if is_categorical_dtype(self.grouping_vector):
+                self._passed_categorical = True
+                self._orig_cats = self.grouping_vector.categories
+
+                # Should the sort arg be just `sort` or `sort or self.grouping_vector.ordered`?
+                self.grouping_vector, self._all_grouper = recode_for_groupby(
+                    self.grouping_vector, sort, observed
+                )
+
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
         elif isinstance(self.grouping_vector, Grouper):
@@ -529,6 +538,8 @@ class Grouping:
             self._passed_categorical = True
 
             self._orig_cats = self.grouping_vector.categories
+
+            # Should the sort arg be just `sort` or `sort or self.grouping_vector.ordered`?
             self.grouping_vector, self._all_grouper = recode_for_groupby(
                 self.grouping_vector, sort, observed
             )

@@ -53,7 +53,7 @@ def recode_for_groupby(
         unique_codes = unique1d(c.codes)
 
         take_codes = unique_codes[unique_codes != -1]
-        if c.ordered:
+        if sort:
             take_codes = np.sort(take_codes)
 
         # we recode according to the uniques
