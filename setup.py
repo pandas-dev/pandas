@@ -54,6 +54,8 @@ except ImportError:
     cythonize = lambda x, *args, **kwargs: x  # dummy func
 
 _pxifiles = [
+    "pandas/_libs/algos_common_helper.pxi.in",
+    "pandas/_libs/algos_take_helper.pxi.in",
     "pandas/_libs/hashtable_class_helper.pxi.in",
     "pandas/_libs/hashtable_func_helper.pxi.in",
     "pandas/_libs/khash_for_primitive_helper.pxi.in",
