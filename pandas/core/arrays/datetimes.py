@@ -1367,8 +1367,19 @@ default 'raise'
         values = self._local_timestamps()
         sarray = fields.build_isocalendar_sarray(values, reso=self._reso)
         iso_calendar_df = DataFrame(
-            sarray, columns=["year", "week", "day"], dtype="UInt32"
+            sarray, columns=["year", "week", "day", "yearandweek"], dtype="UInt32"
         )
+        print("I am ok ")
+
+        week_series = iso_calendar_df["week"]
+        year_series = iso_calendar_df["year"]
+        print("week_series is that !!!", week_series, "------end of week_series")
+
+        iso_calendar_df["yearandweek"] = year_series.map(str) + week_series.map(str)
+        iso_calendar_df["yearandweek"] = iso_calendar_df["yearandweek"].astype(str).astype(int)
+        print("df['yearandweek'] value is @@@@@@@@@@@@@@", iso_calendar_df["yearandweek"])
+
+        # print ("here is !!!!!!!",iso_calendar_df.yearandweek)
         if self._hasna:
             iso_calendar_df.iloc[self._isnan] = None
         return iso_calendar_df
