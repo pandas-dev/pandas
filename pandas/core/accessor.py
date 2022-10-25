@@ -291,7 +291,6 @@ def register_series_accessor(name):
     return _register_accessor(name, Series)
 
 
-@doc(_register_accessor, klass="Index")
 def register_index_accessor(name):
     """
     Register a custom accessor with an Index
@@ -313,7 +312,7 @@ def register_index_accessor(name):
 
     Notes
     -----
-    When accessed, your accessor will be initialiazed with the pandas_obj object
+    When accessed, your accessor will be initialized with the pandas_obj object
     the user is interacting with. The code signature must be::
 
         def __init__(self, pandas_obj):
