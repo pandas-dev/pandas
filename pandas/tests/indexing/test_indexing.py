@@ -1115,6 +1115,7 @@ def test_scalar_setitem_series_with_nested_value_length1(value, indexer_sli):
 
 
 def test_object_dtype_series_set_series_element():
+    # GH48933
     s1 = Series(dtype="O", index=["a", "b"])
 
     s1["a"] = Series()
