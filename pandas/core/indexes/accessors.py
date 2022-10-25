@@ -302,16 +302,22 @@ class DatetimeProperties(Properties):
 
     week = weekofyear
 ## -------------------------------------------------------------------------------------------------
-    @property
+
     def yearandweek(self):
         """
-        Year and the week ordinal of the year according to the ISO 8601 standard.
+        Year plus the week ordinal of the year according to the ISO 8601 standard.
 
         """
+
+        df = self.isocalendar()
+        df["yearweek"]
 
         week_series = self.isocalendar().week
         year_series = self.isocalendar().year
-        year_and_week_series = str(year_series) +"-"+str(week_series)
+        year_and_week_series = str(year_series) + "-" + str(week_series)
+
+        #df["yearweek"] = year_and_week_series
+
 
         week_series.name = self.name
         year_series.name = self.name

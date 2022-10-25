@@ -221,6 +221,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "minute",
         "second",
         "weekofyear",
+        # Rui --------------------------------------------------
+        "yearandweek",
+        # Rui --------------------------------------------------
         "week",
         "weekday",
         "dayofweek",
@@ -1366,8 +1369,9 @@ default 'raise'
 
         values = self._local_timestamps()
         sarray = fields.build_isocalendar_sarray(values, reso=self._reso)
+
         iso_calendar_df = DataFrame(
-            sarray, columns=["year", "week", "day"], dtype="UInt32"
+            sarray, columns=["year", "week", "day","yearandweek"], dtype="UInt32"
         )
         if self._hasna:
             iso_calendar_df.iloc[self._isnan] = None
@@ -1398,6 +1402,38 @@ default 'raise'
         return week_series.to_numpy(dtype="int64")
 
     week = weekofyear
+# Rui    ---------------------------------------------------------------------------------
+    @property
+    def yearandweek(self):
+        """
+        Year plus the week ordinal of the year.
+
+        .. deprecated:: 1.1.0
+
+        weekofyear and week have been deprecated.
+        Please use DatetimeIndex.isocalendar().week instead.
+        """
+        warnings.warn(
+            "weekofyear and week have been deprecated, please use "
+            "DatetimeIndex.isocalendar().week instead, which returns "
+            "a Series. To exactly reproduce the behavior of week and "
+            "weekofyear and return an Index, you may call "
+            "pd.Int64Index(idx.isocalendar().week)",
+            FutureWarning,
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
+        week_series = self.isocalendar().week
+        year_series = self.isoclaendar().year
+
+        yearandweek = int (str(year_series) + str(week_series))
+        if week_series.hasnans:
+            return week_series.to_numpy(dtype="float64", na_value=np.nan)
+        if year_series.hasnans:
+            return year_series.to_numpy(dtype="float64", na_value=np.nan)
+        return yearandweek.to_numpy(dtype="int64")
+
+    yearweek = yearandweek
+# Rui    ---------------------------------------------------------------------------------
 
     year = _field_accessor(
         "year",

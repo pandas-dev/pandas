@@ -421,6 +421,9 @@ class NaTType(_NaT):
     dayofyear = property(fget=lambda self: np.nan)
     day_of_year = property(fget=lambda self: np.nan)
     weekofyear = property(fget=lambda self: np.nan)
+    # Rui ------------
+    yearandweek = property(fget=lambda self: np.nan)
+    # Rui -------------
     days_in_month = property(fget=lambda self: np.nan)
     daysinmonth = property(fget=lambda self: np.nan)
     dayofweek = property(fget=lambda self: np.nan)
