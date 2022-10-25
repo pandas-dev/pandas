@@ -1264,7 +1264,9 @@ def maybe_infer_to_datetimelike(
         else:
             return td_values.reshape(shape)
 
-    inferred_type, seen_str = lib.infer_datetimelike_array(ensure_object(v))
+    # TODO: can we just do lib.maybe_convert_objects for this entire function?
+    inferred_type = lib.infer_datetimelike_array(ensure_object(v))
+
     if inferred_type in ["period", "interval"]:
         # Incompatible return value type (got "Union[ExtensionArray, ndarray]",
         # expected "Union[ndarray, DatetimeArray, TimedeltaArray, PeriodArray,
@@ -1280,6 +1282,7 @@ def maybe_infer_to_datetimelike(
     elif inferred_type == "timedelta":
         value = try_timedelta(v)
     elif inferred_type == "nat":
+        # only reached if we have at least 1 NaT and the rest (NaT or None or np.nan)
 
         # if all NaT, return as datetime
         if isna(v).all():
@@ -1287,7 +1290,6 @@ def maybe_infer_to_datetimelike(
             # "ExtensionArray", variable has type "Union[ndarray, List[Any]]")
             value = try_datetime(v)  # type: ignore[assignment]
         else:
-
             # We have at least a NaT and a string
             # try timedelta first to avoid spurious datetime conversions
             # e.g. '00:00:01' is a timedelta but technically is also a datetime
@@ -1300,15 +1302,6 @@ def maybe_infer_to_datetimelike(
                 # "ExtensionArray", variable has type "Union[ndarray, List[Any]]")
                 value = try_datetime(v)  # type: ignore[assignment]
 
-    if value.dtype.kind in ["m", "M"] and seen_str:
-        # TODO(2.0): enforcing this deprecation should close GH#40111
-        warnings.warn(
-            f"Inferring {value.dtype} from data containing strings is deprecated "
-            "and will be removed in a future version. To retain the old behavior "
-            f"explicitly pass Series(data, dtype={value.dtype})",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
     return value
 
 
