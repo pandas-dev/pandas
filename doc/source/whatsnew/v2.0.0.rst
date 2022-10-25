@@ -101,7 +101,7 @@ now treats them as filtrations (:issue:`13666`).
 
 .. ipython:: python
 
-    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    df = pd.DataFrame({"a": [1, 1, 2, 1, 2], "b": [np.nan, 2.0, 3.0, 4.0, 5.0]})
     gb = df.groupby("a")
 
 *Old Behavior*
@@ -110,9 +110,9 @@ now treats them as filtrations (:issue:`13666`).
 
     In [5]: gb.nth(n=1)
     Out[5]:
-       b
-    a
-    1  4
+       A    B
+    1  1  2.0
+    4  2  5.0
 
 *New Behavior*
 
@@ -121,7 +121,25 @@ now treats them as filtrations (:issue:`13666`).
     gb.nth(n=1)
 
 In particular, the index of the result is derived from the input by selecting
-the appropriate rows.
+the appropriate rows. Also, when ``n`` is larger than the group, no rows instead of
+``NaN`` is returned.
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [5]: gb.nth(n=3, dropna="any")
+    Out[5]:
+        B
+    A
+    1 NaN
+    2 NaN
+
+*New Behavior*
+
+.. ipython:: python
+
+    gb.nth(n=3, dropna="any")
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.api_breaking:
