@@ -1683,6 +1683,7 @@ class TestSeriesConstructors:
             Series([], dtype=dtype)
 
         with pytest.raises(TypeError, match=msg):
+            # pre-2.0 the DataFrame cast raised but the Series case did not
             DataFrame([[0]], dtype=dtype)
 
     @pytest.mark.parametrize("dtype", [None, "uint8", "category"])

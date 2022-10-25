@@ -1482,7 +1482,7 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
         if not is_supported_unit(reso):
             # pre-2.0 we would silently swap in nanos for lower-resolutions,
             #  raise for above-nano resolutions
-            if dtype.name == "datetime64" or dtype.name == "timedelta64":
+            if dtype.name in ["datetime64", "timedelta64"]:
                 raise ValueError(msg)
             # TODO: ValueError or TypeError? existing test
             #  test_constructor_generic_timestamp_bad_frequency expects TypeError
