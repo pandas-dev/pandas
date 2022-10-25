@@ -142,11 +142,9 @@ class TestDatetimeIndex:
             Timestamp("2016-05-01T01:00:00.000000"),
         ]
         arr = pd.arrays.SparseArray(values)
-        msg = "will store that array directly"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = Index(arr)
-        expected = DatetimeIndex(values)
-        tm.assert_index_equal(result, expected)
+        result = Index(arr)
+        assert type(result) is Index
+        assert result.dtype == arr.dtype
 
     def test_construction_caching(self):
 

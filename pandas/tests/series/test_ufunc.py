@@ -5,8 +5,6 @@ import string
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_dtype_equal
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
@@ -277,14 +275,10 @@ class TestNumpyReductions:
         box = box_with_array
         values = values_for_np_reduce
 
-        warn = None
-        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
-            warn = FutureWarning
-        msg = "passing a SparseArray to pd.Index"
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(None):
             obj = box(values)
 
-        if isinstance(values, pd.core.arrays.SparseArray) and box is not pd.Index:
+        if isinstance(values, pd.core.arrays.SparseArray):
             mark = pytest.mark.xfail(reason="SparseArray has no 'prod'")
             request.node.add_marker(mark)
 
@@ -316,11 +310,7 @@ class TestNumpyReductions:
         box = box_with_array
         values = values_for_np_reduce
 
-        warn = None
-        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
-            warn = FutureWarning
-        msg = "passing a SparseArray to pd.Index"
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(None):
             obj = box(values)
 
         if values.dtype.kind in "miuf":
@@ -355,11 +345,7 @@ class TestNumpyReductions:
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
 
-        warn = None
-        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
-            warn = FutureWarning
-        msg = "passing a SparseArray to pd.Index"
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(None):
             obj = box(values)
 
         result = np.maximum.reduce(obj)
@@ -383,11 +369,7 @@ class TestNumpyReductions:
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
 
-        warn = None
-        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
-            warn = FutureWarning
-        msg = "passing a SparseArray to pd.Index"
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(None):
             obj = box(values)
 
         result = np.minimum.reduce(obj)

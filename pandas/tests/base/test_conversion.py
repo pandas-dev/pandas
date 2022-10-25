@@ -334,10 +334,7 @@ def test_array_multiindex_raises():
 def test_to_numpy(arr, expected, index_or_series_or_array, request):
     box = index_or_series_or_array
 
-    warn = None
-    if index_or_series_or_array is pd.Index and isinstance(arr, SparseArray):
-        warn = FutureWarning
-    with tm.assert_produces_warning(warn):
+    with tm.assert_produces_warning(None):
         thing = box(arr)
 
     if arr.dtype.name == "int64" and box is pd.array:

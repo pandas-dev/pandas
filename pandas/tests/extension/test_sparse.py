@@ -211,17 +211,6 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
 
 
 class TestIndex(base.BaseIndexTests):
-    def test_index_from_array(self, data):
-        msg = "will store that array directly"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            idx = pd.Index(data)
-
-        if data.dtype.subtype == "f":
-            assert idx.dtype == np.float64
-        elif data.dtype.subtype == "i":
-            assert idx.dtype == np.int64
-        else:
-            assert idx.dtype == data.dtype.subtype
 
     # TODO(2.0): should pass once SparseArray is stored directly in Index.
     @pytest.mark.xfail(reason="Index cannot yet store sparse dtype")
