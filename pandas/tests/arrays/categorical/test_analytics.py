@@ -364,11 +364,6 @@ class TestCategoricalAnalytics:
                 cat.remove_categories(removals=["D", "E", "F"], inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # issue #37643 inplace kwarg deprecated
-                cat.remove_unused_categories(inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
             cat.sort_values(inplace=value)
 
     def test_quantile_empty(self):
