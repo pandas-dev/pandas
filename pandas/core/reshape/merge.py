@@ -690,8 +690,8 @@ class _MergeOperation:
                 cross_col,
             ) = self._create_cross_configuration(self.left, self.right)
             self.left_on = self.right_on = [cross_col]
-        elif self.how in ["anti_left", "anti_right", "anti_full"]:
-            self.left, self.right, self.how = self._anti_join_update()
+#        elif self.how in ["anti_left", "anti_right", "anti_full"]:
+#            self.left, self.right, self.how = self._anti_join_update()
         self._cross = cross_col
 
         # note this function has side effects
@@ -990,6 +990,29 @@ class _MergeOperation:
 
         left_ax = self.left.axes[self.axis]
         right_ax = self.right.axes[self.axis]
+
+        if self.how in ["anti_left", "anti_right", "anti_full"]:
+            how_dict: dict[str, str] = {
+                "anti_left": "left",
+                "anti_right": "right",
+                "anti_full": "outer",
+            }
+            self.how = how_dict[self.how]
+            if self.left_index and self.right_index:
+                # Merge using `right_index` and `left_index`
+                left_ax = self.left.index[~self.left.index.isin(self.right.index)]
+                right_ax = self.right.index[~self.right.index.isin(self.left.index)]
+                self.left = self.left.loc[left_ax]
+                self.right = self.right.loc[right_ax]
+            elif self.on is not None or (self.left_on is not None and self.right_on is not None):
+                # Merge using `on` or `left_on` and `right_on`
+                _left = [~np.isin(self.left_join_keys[x], self.right_join_keys[x]) for x in range(len(self.left_join_keys))]
+                _right = [~np.isin(self.right_join_keys[x], self.left_join_keys[x]) for x in range(len(self.left_join_keys))]
+                self.left = self.left[np.sum(np.stack(_left, axis=0), axis=0)>0]
+                self.right = self.right[np.sum(np.stack(_right, axis=0), axis=0)>0]
+
+                self.left_join_keys = [x[np.sum(np.stack(_left, axis=0), axis=0)>0] for x in self.left_join_keys]
+                self.right_join_keys = [x[np.sum(np.stack(_right, axis=0), axis=0)>0] for x in self.right_join_keys]
 
         if self.left_index and self.right_index and self.how != "asof":
             join_index, left_indexer, right_indexer = left_ax.join(

@@ -145,8 +145,7 @@ class Test_AntiJoin:
                         "B_y": [9],
                         "C_y": [7],
                         "D": ["d"],
-                    },
-                    index=[2],
+                    }
                 ),
                 "anti_right",
             ),
