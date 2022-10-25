@@ -170,14 +170,6 @@ def test_ewm_getitem_attributes_retained(arg, adjust, ignore_na):
     assert result == expected
 
 
-def test_ewm_vol_deprecated():
-    ser = Series(range(1))
-    with tm.assert_produces_warning(FutureWarning):
-        result = ser.ewm(com=0.1).vol()
-    expected = ser.ewm(com=0.1).std()
-    tm.assert_series_equal(result, expected)
-
-
 def test_ewma_times_adjust_false_raises():
     # GH 40098
     with pytest.raises(
