@@ -608,7 +608,7 @@ def set_clipboard(clipboard):
     }
 
     if clipboard not in clipboard_types:
-        allowed_clipboard_types = [repr(_) for _ in clipboard_types.keys()]
+        allowed_clipboard_types = [repr(_) for _ in clipboard_types]
         raise ValueError(
             f"Argument must be one of {', '.join(allowed_clipboard_types)}"
         )

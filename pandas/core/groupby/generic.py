@@ -332,7 +332,7 @@ class SeriesGroupBy(GroupBy[Series]):
             from pandas import concat
 
             res_df = concat(
-                results.values(), axis=1, keys=[key.label for key in results.keys()]
+                results.values(), axis=1, keys=[key.label for key in results]
             )
             return res_df
 

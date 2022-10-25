@@ -1699,7 +1699,7 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(pivot_values_keys, pivot_values_list)
 
-        agg_values_gen = (value for value in aggs.keys())
+        agg_values_gen = (value for value in aggs)
         pivot_values_gen = pivot_table(
             data, index=["A"], values=agg_values_gen, aggfunc=aggs
         )
