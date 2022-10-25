@@ -53,25 +53,14 @@ except ImportError:
     _CYTHON_INSTALLED = False
     cythonize = lambda x, *args, **kwargs: x  # dummy func
 
-
-_pxi_dep_template = {
-    "algos": ["_libs/algos_common_helper.pxi.in", "_libs/algos_take_helper.pxi.in"],
-    "hashtable": [
-        "_libs/hashtable_class_helper.pxi.in",
-        "_libs/hashtable_func_helper.pxi.in",
-        "_libs/khash_for_primitive_helper.pxi.in",
-    ],
-    "index": ["_libs/index_class_helper.pxi.in"],
-    "sparse": ["_libs/sparse_op_helper.pxi.in"],
-    "interval": ["_libs/intervaltree.pxi.in"],
-}
-
-_pxifiles = []
-_pxi_dep = {}
-for module, files in _pxi_dep_template.items():
-    pxi_files = [pjoin("pandas", x) for x in files]
-    _pxifiles.extend(pxi_files)
-    _pxi_dep[module] = pxi_files
+_pxifiles = [
+    "pandas/_libs/hashtable_class_helper.pxi.in",
+    "pandas/_libs/hashtable_func_helper.pxi.in",
+    "pandas/_libs/khash_for_primitive_helper.pxi.in",
+    "pandas/_libs/index_class_helper.pxi.in",
+    "pandas/_libs/sparse_op_helper.pxi.in",
+    "pandas/_libs/intervaltree.pxi.in",
+]
 
 
 class build_ext(_build_ext):
@@ -429,59 +418,40 @@ def srcpath(name=None, suffix=".pyx", subdir="src"):
     return pjoin("pandas", subdir, name + suffix)
 
 
-lib_depends = ["pandas/_libs/src/parse_helper.h"]
-
 klib_include = ["pandas/_libs/src/klib"]
-
-tseries_depends = [
-    "pandas/_libs/tslibs/src/datetime/np_datetime.h",
-    "pandas/_libs/tslibs/src/datetime/np_datetime_strings.h",
-]
 
 ext_data = {
     "_libs.algos": {
         "pyxfile": "_libs/algos",
         "include": klib_include,
-        "depends": _pxi_dep["algos"],
     },
     "_libs.arrays": {"pyxfile": "_libs/arrays"},
     "_libs.groupby": {"pyxfile": "_libs/groupby"},
-    "_libs.hashing": {"pyxfile": "_libs/hashing", "depends": []},
+    "_libs.hashing": {"pyxfile": "_libs/hashing"},
     "_libs.hashtable": {
         "pyxfile": "_libs/hashtable",
         "include": klib_include,
-        "depends": (
-            ["pandas/_libs/src/klib/khash_python.h", "pandas/_libs/src/klib/khash.h"]
-            + _pxi_dep["hashtable"]
-        ),
     },
     "_libs.index": {
         "pyxfile": "_libs/index",
         "include": klib_include,
-        "depends": _pxi_dep["index"],
     },
     "_libs.indexing": {"pyxfile": "_libs/indexing"},
     "_libs.internals": {"pyxfile": "_libs/internals"},
     "_libs.interval": {
         "pyxfile": "_libs/interval",
         "include": klib_include,
-        "depends": _pxi_dep["interval"],
     },
     "_libs.join": {"pyxfile": "_libs/join", "include": klib_include},
     "_libs.lib": {
         "pyxfile": "_libs/lib",
-        "depends": lib_depends + tseries_depends,
         "include": klib_include,  # due to tokenizer import
         "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
-    "_libs.missing": {"pyxfile": "_libs/missing", "depends": tseries_depends},
+    "_libs.missing": {"pyxfile": "_libs/missing"},
     "_libs.parsers": {
         "pyxfile": "_libs/parsers",
         "include": klib_include + ["pandas/_libs/src"],
-        "depends": [
-            "pandas/_libs/src/parser/tokenizer.h",
-            "pandas/_libs/src/parser/io.h",
-        ],
         "sources": [
             "pandas/_libs/src/parser/tokenizer.c",
             "pandas/_libs/src/parser/io.c",
@@ -491,11 +461,10 @@ ext_data = {
     "_libs.ops": {"pyxfile": "_libs/ops"},
     "_libs.ops_dispatch": {"pyxfile": "_libs/ops_dispatch"},
     "_libs.properties": {"pyxfile": "_libs/properties"},
-    "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
-    "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
+    "_libs.reshape": {"pyxfile": "_libs/reshape"},
+    "_libs.sparse": {"pyxfile": "_libs/sparse"},
     "_libs.tslib": {
         "pyxfile": "_libs/tslib",
-        "depends": tseries_depends,
         "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
@@ -503,18 +472,15 @@ ext_data = {
     "_libs.tslibs.dtypes": {"pyxfile": "_libs/tslibs/dtypes"},
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
-        "depends": tseries_depends,
         "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.fields": {
         "pyxfile": "_libs/tslibs/fields",
-        "depends": tseries_depends,
         "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype"},
     "_libs.tslibs.np_datetime": {
         "pyxfile": "_libs/tslibs/np_datetime",
-        "depends": tseries_depends,
         "sources": [
             "pandas/_libs/tslibs/src/datetime/np_datetime.c",
             "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
@@ -522,44 +488,36 @@ ext_data = {
     },
     "_libs.tslibs.offsets": {
         "pyxfile": "_libs/tslibs/offsets",
-        "depends": tseries_depends,
         "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.parsing": {
         "pyxfile": "_libs/tslibs/parsing",
         "include": klib_include,
-        "depends": ["pandas/_libs/src/parser/tokenizer.h"],
         "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
     "_libs.tslibs.period": {
         "pyxfile": "_libs/tslibs/period",
-        "depends": tseries_depends,
         "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.strptime": {
         "pyxfile": "_libs/tslibs/strptime",
-        "depends": tseries_depends,
         "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.timedeltas": {
         "pyxfile": "_libs/tslibs/timedeltas",
-        "depends": tseries_depends,
         "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.timestamps": {
         "pyxfile": "_libs/tslibs/timestamps",
-        "depends": tseries_depends,
         "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.timezones": {"pyxfile": "_libs/tslibs/timezones"},
     "_libs.tslibs.tzconversion": {
         "pyxfile": "_libs/tslibs/tzconversion",
-        "depends": tseries_depends,
         "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.vectorized": {
         "pyxfile": "_libs/tslibs/vectorized",
-        "depends": tseries_depends,
         "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.testing": {"pyxfile": "_libs/testing"},
@@ -567,7 +525,6 @@ ext_data = {
         "pyxfile": "_libs/window/aggregations",
         "language": "c++",
         "suffix": ".cpp",
-        "depends": ["pandas/_libs/src/skiplist.h"],
     },
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
@@ -601,7 +558,6 @@ for name, data in ext_data.items():
     obj = Extension(
         f"pandas.{name}",
         sources=sources,
-        depends=data.get("depends", []),
         include_dirs=include,
         language=data.get("language", "c"),
         define_macros=data.get("macros", macros),
@@ -624,10 +580,6 @@ if suffix == ".pyx":
 
 ujson_ext = Extension(
     "pandas._libs.json",
-    depends=[
-        "pandas/_libs/src/ujson/lib/ultrajson.h",
-        "pandas/_libs/src/ujson/python/date_conversions.h",
-    ],
     sources=(
         [
             "pandas/_libs/src/ujson/python/ujson.c",
