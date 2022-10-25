@@ -2263,12 +2263,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
             ``io.excel.xlsm.writer``.
 
-            .. deprecated:: 1.2.0
-
-                As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
-                maintained, the ``xlwt`` engine will be removed in a future version
-                of pandas.
-
         merge_cells : bool, default True
             Write MultiIndex and Hierarchical Rows as merged cells.
         encoding : str, optional

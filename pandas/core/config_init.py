@@ -651,26 +651,10 @@ writer_engine_doc = """
     auto, {others}.
 """
 
-_xls_options = ["xlwt"]
 _xlsm_options = ["openpyxl"]
 _xlsx_options = ["openpyxl", "xlsxwriter"]
 _ods_options = ["odf"]
 
-
-with cf.config_prefix("io.excel.xls"):
-    cf.register_option(
-        "writer",
-        "auto",
-        writer_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
-        validator=str,
-    )
-cf.deprecate_option(
-    "io.excel.xls.writer",
-    msg="As the xlwt package is no longer maintained, the xlwt engine will be "
-    "removed in a future version of pandas. This is the only engine in pandas that "
-    "supports writing in the xls format. Install openpyxl and write to an "
-    "xlsx file instead.",
-)
 
 with cf.config_prefix("io.excel.xlsm"):
     cf.register_option(

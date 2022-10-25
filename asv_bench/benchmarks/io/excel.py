@@ -33,7 +33,7 @@ def _generate_dataframe():
 
 class WriteExcel:
 
-    params = ["openpyxl", "xlsxwriter", "xlwt"]
+    params = ["openpyxl", "xlsxwriter"]
     param_names = ["engine"]
 
     def setup(self, engine):

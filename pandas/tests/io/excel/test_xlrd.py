@@ -11,12 +11,6 @@ from pandas.io.excel import ExcelFile
 from pandas.io.excel._base import inspect_excel_format
 
 xlrd = pytest.importorskip("xlrd")
-xlwt = pytest.importorskip("xlwt")
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:As the xlwt package is no longer maintained:FutureWarning"
-)
-
 
 exts = [".xls"]
 
