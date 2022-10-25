@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import subprocess
-import sys
-
 import pytest
 
 import pandas as pd
@@ -260,36 +257,6 @@ class TestTesting(Base):
 
         self.check(testing, self.funcs)
 
-    def test_util_testing_deprecated(self):
-        # avoid cache state affecting the test
-        sys.modules.pop("pandas.util.testing", None)
-
-        with tm.assert_produces_warning(FutureWarning) as m:
-            import pandas.util.testing  # noqa: F401
-
-        assert "pandas.util.testing is deprecated" in str(m[0].message)
-        assert "pandas.testing instead" in str(m[0].message)
-
-    def test_util_testing_deprecated_direct(self):
-        # avoid cache state affecting the test
-        sys.modules.pop("pandas.util.testing", None)
-        with tm.assert_produces_warning(FutureWarning) as m:
-            from pandas.util.testing import assert_series_equal  # noqa: F401
-
-        assert "pandas.util.testing is deprecated" in str(m[0].message)
-        assert "pandas.testing instead" in str(m[0].message)
-
     def test_util_in_top_level(self):
-        # in a subprocess to avoid import caching issues
-        out = subprocess.check_output(
-            [
-                sys.executable,
-                "-c",
-                "import pandas; pandas.util.testing.assert_series_equal",
-            ],
-            stderr=subprocess.STDOUT,
-        ).decode()
-        assert "pandas.util.testing is deprecated" in out
-
         with pytest.raises(AttributeError, match="foo"):
             pd.util.foo
