@@ -27,10 +27,7 @@ from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
-from pandas.util._decorators import (
-    deprecate_nonkeyword_arguments,
-    doc,
-)
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -853,13 +850,13 @@ def _parse(
     )
 
 
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["path_or_buffer"])
 @doc(
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
 )
 def read_xml(
     path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
+    *,
     xpath: str = "./*",
     namespaces: dict[str, str] | None = None,
     elems_only: bool = False,

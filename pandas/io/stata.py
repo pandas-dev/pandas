@@ -50,7 +50,6 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     Appender,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -2009,9 +2008,9 @@ The repeated labels are:
 
 
 @Appender(_read_stata_doc)
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 def read_stata(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    *,
     convert_dates: bool = True,
     convert_categoricals: bool = True,
     index_col: str | None = None,
