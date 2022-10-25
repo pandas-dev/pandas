@@ -2284,7 +2284,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
         if isinstance(value, str) and "--latex" in value:
             # return the style without conversion but drop '--latex'
             latex_styles.append((attribute, value.replace("--latex", "")))
-        if attribute in CONVERTED_ATTRIBUTES.keys():
+        if attribute in CONVERTED_ATTRIBUTES:
             arg = ""
             for x in ["--wrap", "--nowrap", "--lwrap", "--dwrap", "--rwrap"]:
                 if x in str(value):
