@@ -277,6 +277,7 @@ Categorical
 ^^^^^^^^^^^
 - Bug in :meth:`Categorical.set_categories` losing dtype information (:issue:`48812`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` would reorder categories when used as a grouper (:issue:`48749`)
+- Bug in :class:`GroupBy` when a categorical column was used as a grouper with a range index, ordering of the result would depend on the `sort` argument but if the index was categorical it would depend on the `order` attribute of the index (:issue:`49223`)
 
 Datetimelike
 ^^^^^^^^^^^^
