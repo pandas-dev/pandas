@@ -8941,7 +8941,7 @@ Parrot 2  Parrot       24.0
         if not self.columns.is_unique:
             duplicate_cols = self.columns[self.columns.duplicated()].tolist()
             raise ValueError(
-                "data frame columns must be unique. "
+                "DataFrame columns must be unique. "
                 + f"Duplicate columns: {duplicate_cols}"
             )
 
