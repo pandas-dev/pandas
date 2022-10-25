@@ -215,6 +215,7 @@ Removal of prior version deprecations/changes
 - Removed :meth:`Series.slice_shift` and :meth:`DataFrame.slice_shift` (:issue:`37601`)
 - Remove :meth:`DataFrameGroupBy.pad` and :meth:`DataFrameGroupBy.backfill` (:issue:`45076`)
 - Remove ``numpy`` argument from :func:`read_json` (:issue:`30636`)
+- Disallow passing abbreviations for ``orient`` in :meth:`DataFrame.to_dict` (:issue:`32516`)
 - Removed the ``center`` keyword in :meth:`DataFrame.expanding` (:issue:`20647`)
 - Removed the ``truediv`` keyword from :func:`eval` (:issue:`29812`)
 - Removed the ``pandas.datetime`` submodule (:issue:`30489`)
