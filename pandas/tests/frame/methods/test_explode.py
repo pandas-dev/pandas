@@ -22,7 +22,7 @@ def test_error():
     df.columns = list("AA")
     with pytest.raises(
         ValueError,
-        match=re.escape("data frame columns must be unique. Duplicate columns: ['A']"),
+        match=re.escape("DataFrame columns must be unique. Duplicate columns: ['A']"),
     ):
         df.explode("A")
 
