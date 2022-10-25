@@ -152,7 +152,6 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
 )
-from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.arrays.string_ import StringArray
 from pandas.core.base import (
     IndexOpsMixin,
@@ -586,17 +585,6 @@ class Index(IndexOpsMixin, PandasObject):
                 from pandas import PeriodIndex
 
                 return PeriodIndex
-
-            elif isinstance(dtype, SparseDtype):
-                warnings.warn(
-                    "In a future version, passing a SparseArray to pd.Index "
-                    "will store that array directly instead of converting to a "
-                    "dense numpy ndarray. To retain the old behavior, use "
-                    "pd.Index(arr.to_numpy()) instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return cls._dtype_to_subclass(dtype.subtype)
 
             return Index
 
