@@ -78,8 +78,6 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.date_converters import generic_parser
-
 if TYPE_CHECKING:
     from pandas import DataFrame
 
@@ -776,7 +774,10 @@ class ParserBase:
                     bool_mask = np.zeros(result.shape, dtype=np.bool_)
                 result = BooleanArray(result, bool_mask)
             elif result.dtype == np.object_ and use_nullable_dtypes:
-                result = StringDtype().construct_array_type()._from_sequence(values)
+                # read_excel sends array of datetime objects
+                inferred_type, _ = lib.infer_datetimelike_array(result)
+                if inferred_type != "datetime":
+                    result = StringDtype().construct_array_type()._from_sequence(values)
 
         return result, na_count
 
@@ -1135,17 +1136,14 @@ def _make_date_converter(
                     raise Exception("scalar parser")
                 return result
             except Exception:
-                try:
-                    return tools.to_datetime(
-                        parsing.try_parse_dates(
-                            parsing.concat_date_cols(date_cols),
-                            parser=date_parser,
-                            dayfirst=dayfirst,
-                        ),
-                        errors="ignore",
-                    )
-                except Exception:
-                    return generic_parser(date_parser, *date_cols)
+                return tools.to_datetime(
+                    parsing.try_parse_dates(
+                        parsing.concat_date_cols(date_cols),
+                        parser=date_parser,
+                        dayfirst=dayfirst,
+                    ),
+                    errors="ignore",
+                )
 
     return converter
 

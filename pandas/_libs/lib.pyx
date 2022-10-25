@@ -703,6 +703,10 @@ cpdef ndarray[object] ensure_string_array(
     if copy and result is arr:
         result = result.copy()
 
+    if issubclass(arr.dtype.type, np.str_):
+        # short-circuit, all elements are str
+        return result
+
     for i in range(n):
         val = arr[i]
 
@@ -2366,7 +2370,7 @@ def maybe_convert_numeric(
 
     # This occurs since we disabled float nulls showing as null in anticipation
     # of seeing ints that were never seen. So then, we return float
-    if allow_null_in_int and seen.null_ and not seen.int_:
+    if allow_null_in_int and seen.null_ and not seen.int_ and not seen.bool_:
         seen.float_ = True
 
     if seen.complex_:
@@ -2386,6 +2390,8 @@ def maybe_convert_numeric(
         else:
             return (ints, None)
     elif seen.bool_:
+        if allow_null_in_int:
+            return (bools.view(np.bool_), mask.view(np.bool_))
         return (bools.view(np.bool_), None)
     elif seen.uint_:
         return (uints, None)

@@ -1358,21 +1358,15 @@ def maybe_cast_to_datetime(
                         # didn't specify one
 
                         if dta.tz is not None:
-                            warnings.warn(
-                                "Data is timezone-aware. Converting "
-                                "timezone-aware data to timezone-naive by "
-                                "passing dtype='datetime64[ns]' to "
-                                "DataFrame or Series is deprecated and will "
-                                "raise in a future version. Use "
-                                "`pd.Series(values).dt.tz_localize(None)` "
-                                "instead.",
-                                FutureWarning,
-                                stacklevel=find_stack_level(),
+                            raise ValueError(
+                                "Cannot convert timezone-aware data to "
+                                "timezone-naive dtype. Use "
+                                "pd.Series(values).dt.tz_localize(None) instead."
                             )
-                            # equiv: dta.view(dtype)
-                            # Note: NOT equivalent to dta.astype(dtype)
-                            dta = dta.tz_localize(None)
 
+                        # TODO(2.0): Do this astype in sequence_to_datetimes to
+                        #  avoid potential extra copy?
+                        dta = dta.astype(dtype, copy=False)
                         value = dta
                     elif is_datetime64tz:
                         dtype = cast(DatetimeTZDtype, dtype)
@@ -1675,7 +1669,7 @@ def construct_2d_arraylike_from_scalar(
     shape = (length, width)
 
     if dtype.kind in ["m", "M"]:
-        value = _maybe_unbox_datetimelike_tz_deprecation(value, dtype)
+        value = _maybe_box_and_unbox_datetimelike(value, dtype)
     elif dtype == _dtype_obj:
         if isinstance(value, (np.timedelta64, np.datetime64)):
             # calling np.array below would cast to pytimedelta/pydatetime
@@ -1739,7 +1733,7 @@ def construct_1d_arraylike_from_scalar(
             if not isna(value):
                 value = ensure_str(value)
         elif dtype.kind in ["M", "m"]:
-            value = _maybe_unbox_datetimelike_tz_deprecation(value, dtype)
+            value = _maybe_box_and_unbox_datetimelike(value, dtype)
 
         subarr = np.empty(length, dtype=dtype)
         if length:
@@ -1749,42 +1743,14 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-def _maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
-    """
-    Wrap _maybe_unbox_datetimelike with a check for a timezone-aware Timestamp
-    along with a timezone-naive datetime64 dtype, which is deprecated.
-    """
+def _maybe_box_and_unbox_datetimelike(value: Scalar, dtype: DtypeObj):
     # Caller is responsible for checking dtype.kind in ["m", "M"]
 
     if isinstance(value, datetime):
         # we dont want to box dt64, in particular datetime64("NaT")
         value = maybe_box_datetimelike(value, dtype)
 
-    try:
-        value = _maybe_unbox_datetimelike(value, dtype)
-    except TypeError:
-        if (
-            isinstance(value, Timestamp)
-            and value.tzinfo is not None
-            and isinstance(dtype, np.dtype)
-            and dtype.kind == "M"
-        ):
-            warnings.warn(
-                "Data is timezone-aware. Converting "
-                "timezone-aware data to timezone-naive by "
-                "passing dtype='datetime64[ns]' to "
-                "DataFrame or Series is deprecated and will "
-                "raise in a future version. Use "
-                "`pd.Series(values).dt.tz_localize(None)` "
-                "instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            new_value = value.tz_localize(None)
-            return _maybe_unbox_datetimelike(new_value, dtype)
-        else:
-            raise
-    return value
+    return _maybe_unbox_datetimelike(value, dtype)
 
 
 def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:

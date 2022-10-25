@@ -429,21 +429,6 @@ class TestNDFrame:
         with pytest.raises(ValueError, match=msg):
             obj.take(indices, mode="clip")
 
-    @pytest.mark.parametrize("is_copy", [True, False])
-    def test_depr_take_kwarg_is_copy(self, is_copy, frame_or_series):
-        # GH 27357
-        obj = DataFrame({"A": [1, 2, 3]})
-        obj = tm.get_obj(obj, frame_or_series)
-
-        msg = (
-            "is_copy is deprecated and will be removed in a future version. "
-            "'take' always returns a copy, so there is no need to specify this."
-        )
-        with tm.assert_produces_warning(FutureWarning) as w:
-            obj.take([0, 1], is_copy=is_copy)
-
-        assert w[0].message.args[0] == msg
-
     def test_axis_classmethods(self, frame_or_series):
         box = frame_or_series
         obj = box(dtype=object)
@@ -453,22 +438,6 @@ class TestNDFrame:
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
 
-    def test_axis_names_deprecated(self, frame_or_series):
-        # GH33637
-        box = frame_or_series
-        obj = box(dtype=object)
-        msg = "_AXIS_NAMES has been deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj._AXIS_NAMES
-
-    def test_axis_numbers_deprecated(self, frame_or_series):
-        # GH33637
-        box = frame_or_series
-        obj = box(dtype=object)
-        msg = "_AXIS_NUMBERS has been deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj._AXIS_NUMBERS
-
     def test_flags_identity(self, frame_or_series):
         obj = Series([1, 2])
         if frame_or_series is DataFrame:
@@ -477,11 +446,3 @@ class TestNDFrame:
         assert obj.flags is obj.flags
         obj2 = obj.copy()
         assert obj2.flags is not obj.flags
-
-    def test_slice_shift_deprecated(self, frame_or_series):
-        # GH 37601
-        obj = DataFrame({"A": [1, 2, 3, 4]})
-        obj = tm.get_obj(obj, frame_or_series)
-
-        with tm.assert_produces_warning(FutureWarning):
-            obj.slice_shift()

@@ -90,11 +90,10 @@ def test_tick_equality(cls, n, m):
     left = cls(n)
     right = cls(m)
     assert left != right
-    assert not (left == right)
 
     right = cls(n)
     assert left == right
-    assert not (left != right)
+    assert not left != right
 
     if n != 0:
         assert cls(n) != cls(-n)

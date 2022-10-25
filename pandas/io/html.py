@@ -527,7 +527,7 @@ class _HtmlFrameParser:
 
                 # Append the text from this <td>, colspan times
                 text = _remove_whitespace(self._text_getter(td))
-                if self.extract_links == "all" or self.extract_links == section:
+                if self.extract_links in ("all", section):
                     href = self._href_getter(td)
                     text = (text, href)
                 rowspan = int(self._attr_getter(td, "rowspan") or 1)
