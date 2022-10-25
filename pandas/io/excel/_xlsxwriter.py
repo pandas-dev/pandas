@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import pandas._libs.json as json
 from pandas._typing import (
@@ -14,6 +17,9 @@ from pandas.io.excel._util import (
     combine_kwargs,
     validate_freeze_panes,
 )
+
+if TYPE_CHECKING:
+    from xlsxwriter import Workbook
 
 
 class _XlsxStyler:
@@ -165,12 +171,16 @@ class _XlsxStyler:
                 "doubleAccounting": 34,
             }[props["underline"]]
 
+        # GH 30107 - xlsxwriter uses different name
+        if props.get("valign") == "center":
+            props["valign"] = "vcenter"
+
         return props
 
 
 class XlsxWriter(ExcelWriter):
-    engine = "xlsxwriter"
-    supported_extensions = (".xlsx",)
+    _engine = "xlsxwriter"
+    _supported_extensions = (".xlsx",)
 
     def __init__(
         self,
@@ -183,7 +193,7 @@ class XlsxWriter(ExcelWriter):
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         # Use the xlsxwriter module as the Excel writer.
         from xlsxwriter import Workbook
 
@@ -203,15 +213,37 @@ class XlsxWriter(ExcelWriter):
             engine_kwargs=engine_kwargs,
         )
 
-        self.book = Workbook(self.handles.handle, **engine_kwargs)
+        self._book = Workbook(self._handles.handle, **engine_kwargs)
 
-    def save(self) -> None:
+    @property
+    def book(self):
+        """
+        Book instance of class xlsxwriter.Workbook.
+
+        This attribute can be used to access engine-specific features.
+        """
+        return self._book
+
+    @book.setter
+    def book(self, other: Workbook) -> None:
+        """
+        Set book instance. Class type will depend on the engine used.
+        """
+        self._deprecate_set_book()
+        self._book = other
+
+    @property
+    def sheets(self) -> dict[str, Any]:
+        result = self.book.sheetnames
+        return result
+
+    def _save(self) -> None:
         """
         Save workbook to disk.
         """
         self.book.close()
 
-    def write_cells(
+    def _write_cells(
         self,
         cells,
         sheet_name: str | None = None,
@@ -222,11 +254,9 @@ class XlsxWriter(ExcelWriter):
         # Write the frame cells using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
 
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
-        else:
+        wks = self.book.get_worksheet_by_name(sheet_name)
+        if wks is None:
             wks = self.book.add_worksheet(sheet_name)
-            self.sheets[sheet_name] = wks
 
         style_dict = {"null": None}
 

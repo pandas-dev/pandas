@@ -10,6 +10,7 @@ from warnings import (
 import numpy as np
 import pytest
 
+from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -21,16 +22,17 @@ from pandas import (
     Interval,
     NaT,
     Series,
+    Timestamp,
     array,
     concat,
     date_range,
     interval_range,
     isna,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
-from pandas.core.indexing import IndexingError
-from pandas.tests.indexing.common import Base
+from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 
 # We pass through the error message from numpy
 _slice_iloc_msg = re.escape(
@@ -39,13 +41,19 @@ _slice_iloc_msg = re.escape(
 )
 
 
-class TestiLoc(Base):
+class TestiLoc:
     @pytest.mark.parametrize("key", [2, -1, [0, 1, 2]])
-    def test_iloc_getitem_int_and_list_int(self, key):
-        self.check_result(
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    @pytest.mark.parametrize(
+        "col",
+        ["labels", "mixed", "ts", "floats", "empty"],
+    )
+    def test_iloc_getitem_int_and_list_int(self, key, kind, col, request):
+        obj = request.getfixturevalue(f"{kind}_{col}")
+        check_indexing_smoketest_or_raises(
+            obj,
             "iloc",
             key,
-            typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
         )
 
@@ -78,13 +86,16 @@ class TestiLocBaseIndependent:
 
         df = frame.copy()
         orig_vals = df.values
-        indexer(df)[key, 0] = cat
 
         overwrite = isinstance(key, slice) and key == slice(None)
+        warn = None
+        if overwrite:
+            warn = FutureWarning
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(warn, match=msg):
+            indexer(df)[key, 0] = cat
 
-        if overwrite or using_array_manager:
-            # TODO(ArrayManager) we always overwrite because ArrayManager takes
-            #  the "split" path, which still overwrites
+        if overwrite:
             # TODO: GH#39986 this probably shouldn't behave differently
             expected = DataFrame({0: cat})
             assert not np.shares_memory(df.values, orig_vals)
@@ -103,21 +114,22 @@ class TestiLocBaseIndependent:
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
         df = frame.copy()
         orig_vals = df.values
-        indexer(df)[key, 0] = cat
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            indexer(df)[key, 0] = cat
         expected = DataFrame({0: cat, 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("box", [array, Series])
-    def test_iloc_setitem_ea_inplace(self, frame_or_series, box, using_array_manager):
+    def test_iloc_setitem_ea_inplace(self, frame_or_series, box):
         # GH#38952 Case with not setting a full column
         #  IntegerArray without NAs
         arr = array([1, 2, 3, 4])
         obj = frame_or_series(arr.to_numpy("i8"))
 
-        if frame_or_series is Series or not using_array_manager:
+        if frame_or_series is Series:
             values = obj.values
         else:
-            values = obj[0].values
+            values = obj._mgr.arrays[0]
 
         if frame_or_series is Series:
             obj.iloc[:2] = box(arr[2:])
@@ -131,10 +143,7 @@ class TestiLocBaseIndependent:
         if frame_or_series is Series:
             assert obj.values is values
         else:
-            if using_array_manager:
-                assert obj[0].values is values
-            else:
-                assert obj.values.base is values.base and values.base is not None
+            assert np.shares_memory(obj[0].values, values)
 
     def test_is_scalar_access(self):
         # GH#32085 index with duplicates doesn't matter for _is_scalar_access
@@ -748,7 +757,7 @@ class TestiLocBaseIndependent:
 
         # the possibilities
         locs = np.arange(4)
-        nums = 2 ** locs
+        nums = 2**locs
         reps = [bin(num) for num in nums]
         df = DataFrame({"locs": locs, "nums": nums}, reps)
 
@@ -840,7 +849,9 @@ class TestiLocBaseIndependent:
             df.iloc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_array_manager, request):
+    def test_identity_slice_returns_new_object(
+        self, using_array_manager, using_copy_on_write, request
+    ):
         # GH13873
         if using_array_manager:
             mark = pytest.mark.xfail(
@@ -856,8 +867,12 @@ class TestiLocBaseIndependent:
         assert np.shares_memory(original_df["a"], sliced_df["a"])
 
         # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
+        # depending on CoW
         original_df.loc[:, "a"] = [4, 4, 4]
-        assert (sliced_df["a"] == 4).all()
+        if using_copy_on_write:
+            assert (sliced_df["a"] == [1, 2, 3]).all()
+        else:
+            assert (sliced_df["a"] == 4).all()
 
         original_series = Series([1, 2, 3, 4, 5, 6])
         sliced_series = original_series.iloc[:]
@@ -865,7 +880,11 @@ class TestiLocBaseIndependent:
 
         # should also be a shallow copy
         original_series[:3] = [7, 8, 9]
-        assert all(sliced_series[:3] == [7, 8, 9])
+        if using_copy_on_write:
+            # shallow copy not updated (CoW)
+            assert all(sliced_series[:3] == [1, 2, 3])
+        else:
+            assert all(sliced_series[:3] == [7, 8, 9])
 
     def test_indexing_zerodim_np_array(self):
         # GH24919
@@ -880,16 +899,26 @@ class TestiLocBaseIndependent:
         result = s.iloc[np.array(0)]
         assert result == 1
 
-    @pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/33457")
-    def test_iloc_setitem_categorical_updates_inplace(self):
+    @td.skip_array_manager_not_yet_implemented
+    def test_iloc_setitem_categorical_updates_inplace(self, using_copy_on_write):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
         cat = Categorical(["A", "B", "C"])
-        df = DataFrame({1: cat, 2: [1, 2, 3]})
+        cat_original = cat.copy()
+        df = DataFrame({1: cat, 2: [1, 2, 3]}, copy=False)
+
+        assert tm.shares_memory(df[1], cat)
 
         # This should modify our original values in-place
-        df.iloc[:, 0] = cat[::-1]
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[:, 0] = cat[::-1]
 
-        expected = Categorical(["C", "B", "A"])
+        if not using_copy_on_write:
+            assert tm.shares_memory(df[1], cat)
+            expected = Categorical(["C", "B", "A"], categories=["A", "B", "C"])
+        else:
+            expected = cat_original
+
         tm.assert_categorical_equal(cat, expected)
 
     def test_iloc_with_boolean_operation(self):
@@ -999,9 +1028,6 @@ class TestiLocBaseIndependent:
         expected = df["data"].loc[[1, 3, 6]]
         tm.assert_series_equal(result, expected)
 
-    # TODO(ArrayManager) setting single item with an iterable doesn't work yet
-    # in the "split" path
-    @td.skip_array_manager_not_yet_implemented
     def test_iloc_assign_series_to_df_cell(self):
         # GH 37593
         df = DataFrame(columns=["a"], index=[0])
@@ -1077,7 +1103,7 @@ class TestiLocBaseIndependent:
     def test_iloc_setitem_custom_object(self):
         # iloc with an object
         class TO:
-            def __init__(self, value):
+            def __init__(self, value) -> None:
                 self.value = value
 
             def __str__(self) -> str:
@@ -1185,13 +1211,30 @@ class TestiLocBaseIndependent:
         arr = interval_range(1, 10.0)._values
         df = DataFrame(arr)
 
-        # ser should be a *view* on the the DataFrame data
+        # ser should be a *view* on the DataFrame data
         ser = df.iloc[2]
 
         # if we have a view, then changing arr[2] should also change ser[0]
         assert arr[2] != arr[-1]  # otherwise the rest isn't meaningful
         arr[2] = arr[-1]
         assert ser[0] == arr[-1]
+
+    def test_iloc_setitem_multicolumn_to_datetime(self, using_array_manager):
+
+        # GH#20511
+        df = DataFrame({"A": ["2022-01-01", "2022-01-02"], "B": ["2021", "2022"]})
+
+        df.iloc[:, [0]] = DataFrame({"A": to_datetime(["2021", "2022"])})
+        expected = DataFrame(
+            {
+                "A": [
+                    Timestamp("2021-01-01 00:00:00"),
+                    Timestamp("2022-01-01 00:00:00"),
+                ],
+                "B": ["2021", "2022"],
+            }
+        )
+        tm.assert_frame_equal(df, expected, check_dtype=using_array_manager)
 
 
 class TestILocErrors:
@@ -1224,8 +1267,6 @@ class TestILocErrors:
             # GH#32257 we let numpy do validation, get their exception
             float_frame.iloc[:, :, :] = 1
 
-    # TODO(ArrayManager) "split" path doesn't properly implement DataFrame indexer
-    @td.skip_array_manager_not_yet_implemented
     def test_iloc_frame_indexer(self):
         # GH#39004
         df = DataFrame({"a": [1, 2, 3]})
@@ -1278,7 +1319,10 @@ class TestILocSetItemDuplicateColumns:
     ):
         # GH#22035
         df = DataFrame([[init_value, "str", "str2"]], columns=["a", "b", "b"])
-        df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
+
         expected_df = DataFrame(
             [[expected_value, "str", "str2"]], columns=["a", "b", "b"]
         )
@@ -1372,8 +1416,9 @@ class TestILocCallable:
 
 
 class TestILocSeries:
-    def test_iloc(self):
+    def test_iloc(self, using_copy_on_write):
         ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+        ser_original = ser.copy()
 
         for i in range(len(ser)):
             result = ser.iloc[i]
@@ -1386,8 +1431,13 @@ class TestILocSeries:
         tm.assert_series_equal(result, expected)
 
         # test slice is a view
-        result[:] = 0
-        assert (ser[1:3] == 0).all()
+        with tm.assert_produces_warning(None):
+            # GH#45324 make sure we aren't giving a spurious FutureWarning
+            result[:] = 0
+        if using_copy_on_write:
+            tm.assert_series_equal(ser, ser_original)
+        else:
+            assert (ser.iloc[1:3] == 0).all()
 
         # list of integers
         result = ser.iloc[[0, 2, 3, 4, 5]]

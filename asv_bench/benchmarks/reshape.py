@@ -78,7 +78,7 @@ class ReshapeExtensionDtype:
         self.df.stack()
 
     def time_unstack_fast(self, dtype):
-        # last level -> doesnt have to make copies
+        # last level -> doesn't have to make copies
         self.ser.unstack("bar")
 
     def time_unstack_slow(self, dtype):
@@ -259,7 +259,7 @@ class Cut:
     param_names = ["bins"]
 
     def setup(self, bins):
-        N = 10 ** 5
+        N = 10**5
         self.int_series = pd.Series(np.arange(N).repeat(5))
         self.float_series = pd.Series(np.random.randn(N).repeat(5))
         self.timedelta_series = pd.Series(

@@ -353,9 +353,9 @@ class TestGetIndexer:
             ]
         )
         # sanity check
-        assert mult_idx_1.is_monotonic
+        assert mult_idx_1.is_monotonic_increasing
         assert mult_idx_1.is_unique
-        assert mult_idx_2.is_monotonic
+        assert mult_idx_2.is_monotonic_increasing
         assert mult_idx_2.is_unique
 
         # show the relationships between the two
@@ -621,13 +621,22 @@ class TestGetLoc:
         idx = MultiIndex.from_product(levels)
         assert idx.get_loc(tuple(key)) == 3
 
-    def test_get_loc_cast_bool(self):
-        # GH 19086 : int is casted to bool, but not vice-versa
-        levels = [[False, True], np.arange(2, dtype="int64")]
+    @pytest.mark.parametrize("dtype", [bool, object])
+    def test_get_loc_cast_bool(self, dtype):
+        # GH 19086 : int is casted to bool, but not vice-versa (for object dtype)
+        #  With bool dtype, we don't cast in either direction.
+        levels = [Index([False, True], dtype=dtype), np.arange(2, dtype="int64")]
         idx = MultiIndex.from_product(levels)
 
-        assert idx.get_loc((0, 1)) == 1
-        assert idx.get_loc((1, 0)) == 2
+        if dtype is bool:
+            with pytest.raises(KeyError, match=r"^\(0, 1\)$"):
+                assert idx.get_loc((0, 1)) == 1
+            with pytest.raises(KeyError, match=r"^\(1, 0\)$"):
+                assert idx.get_loc((1, 0)) == 2
+        else:
+            # We use python object comparisons, which treat 0 == False and 1 == True
+            assert idx.get_loc((0, 1)) == 1
+            assert idx.get_loc((1, 0)) == 2
 
         with pytest.raises(KeyError, match=r"^\(False, True\)$"):
             idx.get_loc((False, True))
@@ -790,8 +799,8 @@ class TestContains:
     @pytest.mark.slow
     def test_large_mi_contains(self):
         # GH#10645
-        result = MultiIndex.from_arrays([range(10 ** 6), range(10 ** 6)])
-        assert not (10 ** 6, 0) in result
+        result = MultiIndex.from_arrays([range(10**6), range(10**6)])
+        assert not (10**6, 0) in result
 
 
 def test_timestamp_multiindex_indexer():
@@ -832,8 +841,7 @@ def test_timestamp_multiindex_indexer():
 def test_get_slice_bound_with_missing_value(index_arr, expected, target, algo):
     # issue 19132
     idx = MultiIndex.from_arrays(index_arr)
-    with tm.assert_produces_warning(FutureWarning, match="'kind' argument"):
-        result = idx.get_slice_bound(target, side=algo, kind="loc")
+    result = idx.get_slice_bound(target, side=algo)
     assert result == expected
 
 
@@ -875,9 +883,9 @@ def test_pyint_engine():
     # keys would collide; if truncating the last levels, the fifth and
     # sixth; if rotating bits rather than shifting, the third and fifth.
 
-    for idx in range(len(keys)):
+    for idx, key_value in enumerate(keys):
         index = MultiIndex.from_tuples(keys)
-        assert index.get_loc(keys[idx]) == idx
+        assert index.get_loc(key_value) == idx
 
         expected = np.arange(idx + 1, dtype=np.intp)
         result = index.get_indexer([keys[i] for i in expected])
@@ -888,4 +896,30 @@ def test_pyint_engine():
     expected = np.array([-1] + list(idces), dtype=np.intp)
     missing = tuple([0, 1] * 5 * N)
     result = index.get_indexer([missing] + [keys[i] for i in idces])
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "keys,expected",
+    [
+        ((slice(None), [5, 4]), [1, 0]),
+        ((slice(None), [4, 5]), [0, 1]),
+        (([True, False, True], [4, 6]), [0, 2]),
+        (([True, False, True], [6, 4]), [0, 2]),
+        ((2, [4, 5]), [0, 1]),
+        ((2, [5, 4]), [1, 0]),
+        (([2], [4, 5]), [0, 1]),
+        (([2], [5, 4]), [1, 0]),
+    ],
+)
+def test_get_locs_reordering(keys, expected):
+    # GH48384
+    idx = MultiIndex.from_arrays(
+        [
+            [2, 2, 1],
+            [4, 5, 6],
+        ]
+    )
+    result = idx.get_locs(keys)
+    expected = np.array(expected, dtype=np.intp)
     tm.assert_numpy_array_equal(result, expected)

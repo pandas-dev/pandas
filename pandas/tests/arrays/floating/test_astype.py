@@ -9,10 +9,10 @@ def test_astype():
     # with missing values
     arr = pd.array([0.1, 0.2, None], dtype="Float64")
 
-    with pytest.raises(ValueError, match="cannot convert to 'int64'-dtype NumPy"):
+    with pytest.raises(ValueError, match="cannot convert NA to integer"):
         arr.astype("int64")
 
-    with pytest.raises(ValueError, match="cannot convert to 'bool'-dtype NumPy"):
+    with pytest.raises(ValueError, match="cannot convert float NaN to bool"):
         arr.astype("bool")
 
     result = arr.astype("float64")
@@ -116,3 +116,13 @@ def test_astype_object(dtype):
     # check exact element types
     assert isinstance(result[0], float)
     assert result[1] is pd.NA
+
+
+def test_Float64_conversion():
+    # GH#40729
+    testseries = pd.Series(["1", "2", "3", "4"], dtype="object")
+    result = testseries.astype(pd.Float64Dtype())
+
+    expected = pd.Series([1.0, 2.0, 3.0, 4.0], dtype=pd.Float64Dtype())
+
+    tm.assert_series_equal(result, expected)

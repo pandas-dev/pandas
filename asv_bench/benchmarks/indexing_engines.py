@@ -36,7 +36,7 @@ class NumericEngineIndexing:
         _get_numeric_engines(),
         ["monotonic_incr", "monotonic_decr", "non_monotonic"],
         [True, False],
-        [10 ** 5, 2 * 10 ** 6],  # 2e6 is above SIZE_CUTOFF
+        [10**5, 2 * 10**6],  # 2e6 is above SIZE_CUTOFF
     ]
     param_names = ["engine_and_dtype", "index_type", "unique", "N"]
 
@@ -86,7 +86,7 @@ class ObjectEngineIndexing:
     param_names = ["index_type"]
 
     def setup(self, index_type):
-        N = 10 ** 5
+        N = 10**5
         values = list("a" * N + "b" * N + "c" * N)
         arr = {
             "monotonic_incr": np.array(values, dtype=object),

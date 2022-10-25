@@ -152,16 +152,28 @@ def test_converters_corner_with_nans(all_parsers):
     tm.assert_frame_equal(results[0], results[1])
 
 
-def test_converter_index_col_bug(all_parsers):
-    # see gh-1835
+@pytest.mark.parametrize("conv_f", [lambda x: x, str])
+def test_converter_index_col_bug(all_parsers, conv_f):
+    # see gh-1835 , GH#40589
     parser = all_parsers
     data = "A;B\n1;2\n3;4"
 
     rs = parser.read_csv(
-        StringIO(data), sep=";", index_col="A", converters={"A": lambda x: x}
+        StringIO(data), sep=";", index_col="A", converters={"A": conv_f}
     )
 
-    xp = DataFrame({"B": [2, 4]}, index=Index([1, 3], name="A"))
+    xp = DataFrame({"B": [2, 4]}, index=Index(["1", "3"], name="A", dtype="object"))
+    tm.assert_frame_equal(rs, xp)
+
+
+def test_converter_identity_object(all_parsers):
+    # GH#40589
+    parser = all_parsers
+    data = "A,B\n1,2\n3,4"
+
+    rs = parser.read_csv(StringIO(data), converters={"A": lambda x: x})
+
+    xp = DataFrame({"A": ["1", "3"], "B": [2, 4]})
     tm.assert_frame_equal(rs, xp)
 
 

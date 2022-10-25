@@ -45,17 +45,16 @@ def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
     tm.assert_series_equal(result, expected)
 
 
-def test_with_string_args(datetime_series):
-
-    for arg in ["sum", "mean", "min", "max", "std"]:
-        result = datetime_series.apply(arg)
-        expected = getattr(datetime_series, arg)()
-        assert result == expected
+@pytest.mark.parametrize("arg", ["sum", "mean", "min", "max", "std"])
+def test_with_string_args(datetime_series, arg):
+    result = datetime_series.apply(arg)
+    expected = getattr(datetime_series, arg)()
+    assert result == expected
 
 
 @pytest.mark.parametrize("op", ["mean", "median", "std", "var"])
 @pytest.mark.parametrize("how", ["agg", "apply"])
-def test_apply_np_reducer(float_frame, op, how):
+def test_apply_np_reducer(op, how):
     # GH 39116
     float_frame = DataFrame({"a": [1, 2], "b": [3, 4]})
     result = getattr(float_frame, how)(op)
@@ -81,7 +80,9 @@ def test_apply_np_transformer(float_frame, op, how):
     if op in ["log", "sqrt"]:
         warn = RuntimeWarning
 
-    with tm.assert_produces_warning(warn):
+    with tm.assert_produces_warning(warn, check_stacklevel=False):
+        # float_frame fixture is defined in conftest.py, so we don't check the
+        # stacklevel as otherwise the test would fail.
         result = getattr(float_frame, how)(op)
         expected = getattr(np, op)(float_frame)
     tm.assert_frame_equal(result, expected)
@@ -235,7 +236,7 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
     # GH 21224
     # test transforming functions in
     # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
-    if axis == "columns" or axis == 1:
+    if axis in ("columns", 1):
         # operating blockwise doesn't let us preserve dtypes
         expected = expected.astype("float64")
 
@@ -244,8 +245,12 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
 
 
 @pytest.mark.parametrize("op", series_transform_kernels)
-def test_transform_groupby_kernel_series(string_series, op):
+def test_transform_groupby_kernel_series(request, string_series, op):
     # GH 35964
+    if op == "ngroup":
+        request.node.add_marker(
+            pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
+        )
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     op = maybe_normalize_deprecated_kernels(op)
     args = [0.0] if op == "fillna" else []
@@ -256,22 +261,19 @@ def test_transform_groupby_kernel_series(string_series, op):
 
 
 @pytest.mark.parametrize("op", frame_transform_kernels)
-def test_transform_groupby_kernel_frame(
-    axis, float_frame, op, using_array_manager, request
-):
+def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     op = maybe_normalize_deprecated_kernels(op)
-    # GH 35964
-    if using_array_manager and op == "pct_change" and axis in (1, "columns"):
-        # TODO(ArrayManager) shift with axis=1
+
+    if op == "ngroup":
         request.node.add_marker(
-            pytest.mark.xfail(
-                reason="shift axis=1 not yet implemented for ArrayManager"
-            )
+            pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
         )
 
+    # GH 35964
+
     args = [0.0] if op == "fillna" else []
-    if axis == 0 or axis == "index":
+    if axis in (0, "index"):
         ones = np.ones(float_frame.shape[0])
     else:
         ones = np.ones(float_frame.shape[1])
@@ -284,7 +286,7 @@ def test_transform_groupby_kernel_frame(
     float_frame["E"] = float_frame["A"].copy()
     assert len(float_frame._mgr.arrays) > 1
 
-    if axis == 0 or axis == "index":
+    if axis in (0, "index"):
         ones = np.ones(float_frame.shape[0])
     else:
         ones = np.ones(float_frame.shape[1])

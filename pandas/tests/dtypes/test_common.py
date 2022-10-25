@@ -13,6 +13,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     CategoricalDtypeType,
     DatetimeTZDtype,
+    ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
 )
@@ -207,22 +208,6 @@ def test_is_scipy_sparse():
     assert not com.is_scipy_sparse(SparseArray([1, 2, 3]))
 
 
-def test_is_categorical():
-    cat = pd.Categorical([1, 2, 3])
-    with tm.assert_produces_warning(FutureWarning):
-        assert com.is_categorical(cat)
-        assert com.is_categorical(pd.Series(cat))
-        assert com.is_categorical(pd.CategoricalIndex([1, 2, 3]))
-
-        assert not com.is_categorical([1, 2, 3])
-
-
-def test_is_categorical_deprecation():
-    # GH#33385
-    with tm.assert_produces_warning(FutureWarning):
-        com.is_categorical([1, 2, 3])
-
-
 def test_is_datetime64_dtype():
     assert not com.is_datetime64_dtype(object)
     assert not com.is_datetime64_dtype([1, 2, 3])
@@ -237,6 +222,18 @@ def test_is_datetime64tz_dtype():
     assert not com.is_datetime64tz_dtype([1, 2, 3])
     assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
     assert com.is_datetime64tz_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+
+
+def test_custom_ea_kind_M_not_datetime64tz():
+    # GH 34986
+    class NotTZDtype(ExtensionDtype):
+        @property
+        def kind(self) -> str:
+            return "M"
+
+    not_tz_dtype = NotTZDtype()
+    assert not com.is_datetime64tz_dtype(not_tz_dtype)
+    assert not com.needs_i8_conversion(not_tz_dtype)
 
 
 def test_is_timedelta64_dtype():
@@ -474,6 +471,9 @@ def test_is_datetime64_ns_dtype():
         pd.DatetimeIndex([1, 2, 3], dtype=np.dtype("datetime64[ns]"))
     )
 
+    # non-nano dt64tz
+    assert not com.is_datetime64_ns_dtype(DatetimeTZDtype("us", "US/Eastern"))
+
 
 def test_is_timedelta64_ns_dtype():
     assert not com.is_timedelta64_ns_dtype(np.dtype("m8[ps]"))
@@ -562,12 +562,14 @@ def test_is_bool_dtype():
     assert not com.is_bool_dtype(int)
     assert not com.is_bool_dtype(str)
     assert not com.is_bool_dtype(pd.Series([1, 2]))
+    assert not com.is_bool_dtype(pd.Series(["a", "b"], dtype="category"))
     assert not com.is_bool_dtype(np.array(["a", "b"]))
     assert not com.is_bool_dtype(pd.Index(["a", "b"]))
     assert not com.is_bool_dtype("Int64")
 
     assert com.is_bool_dtype(bool)
     assert com.is_bool_dtype(np.bool_)
+    assert com.is_bool_dtype(pd.Series([True, False], dtype="category"))
     assert com.is_bool_dtype(np.array([True, False]))
     assert com.is_bool_dtype(pd.Index([True, False]))
 
@@ -579,36 +581,6 @@ def test_is_bool_dtype():
 def test_is_bool_dtype_numpy_error():
     # GH39010
     assert not com.is_bool_dtype("0 - Name")
-
-
-@pytest.mark.filterwarnings("ignore:'is_extension_type' is deprecated:FutureWarning")
-@pytest.mark.parametrize(
-    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
-)
-def test_is_extension_type(check_scipy):
-    assert not com.is_extension_type([1, 2, 3])
-    assert not com.is_extension_type(np.array([1, 2, 3]))
-    assert not com.is_extension_type(pd.DatetimeIndex([1, 2, 3]))
-
-    cat = pd.Categorical([1, 2, 3])
-    assert com.is_extension_type(cat)
-    assert com.is_extension_type(pd.Series(cat))
-    assert com.is_extension_type(SparseArray([1, 2, 3]))
-    assert com.is_extension_type(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
-
-    dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
-    assert com.is_extension_type(s)
-
-    if check_scipy:
-        import scipy.sparse
-
-        assert not com.is_extension_type(scipy.sparse.bsr_matrix([1, 2, 3]))
-
-
-def test_is_extension_type_deprecation():
-    with tm.assert_produces_warning(FutureWarning):
-        com.is_extension_type([1, 2, 3])
 
 
 @pytest.mark.parametrize(
@@ -743,9 +715,7 @@ def test_astype_nansafe(val, typ):
 
     msg = "Cannot convert NaT values to integer"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(FutureWarning):
-            # datetimelike astype(int64) deprecated
-            astype_nansafe(arr, dtype=typ)
+        astype_nansafe(arr, dtype=typ)
 
 
 def test_astype_nansafe_copy_false(any_int_numpy_dtype):

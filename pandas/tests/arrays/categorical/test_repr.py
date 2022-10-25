@@ -9,17 +9,16 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-from pandas.tests.arrays.categorical.common import TestCategorical
 
 
-class TestCategoricalReprWithFactor(TestCategorical):
-    def test_print(self):
+class TestCategoricalReprWithFactor:
+    def test_print(self, factor):
         expected = [
             "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
             "Categories (3, object): ['a' < 'b' < 'c']",
         ]
         expected = "\n".join(expected)
-        actual = repr(self.factor)
+        actual = repr(factor)
         assert actual == expected
 
 
@@ -320,7 +319,7 @@ Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
 
         c = Categorical(idx.append(idx), categories=idx)
         exp = """[1 days, 2 days, 3 days, 4 days, 5 days, 1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
+Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""  # noqa:E501
 
         assert repr(c) == exp
 
@@ -353,7 +352,7 @@ Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
 
         c = Categorical(idx.append(idx), categories=idx, ordered=True)
         exp = """[1 days, 2 days, 3 days, 4 days, 5 days, 1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
+Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""  # noqa:E501
 
         assert repr(c) == exp
 

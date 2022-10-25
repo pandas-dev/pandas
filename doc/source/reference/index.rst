@@ -37,8 +37,9 @@ public functions related to data types in pandas.
    resampling
    style
    plotting
-   general_utility_functions
+   options
    extensions
+   testing
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
 .. these methods.
@@ -46,20 +47,9 @@ public functions related to data types in pandas.
 ..
     .. toctree::
 
-        api/pandas.DataFrame.blocks
-        api/pandas.DataFrame.as_matrix
-        api/pandas.Index.asi8
-        api/pandas.Index.data
-        api/pandas.Index.flags
         api/pandas.Index.holds_integer
-        api/pandas.Index.is_type_compatible
         api/pandas.Index.nlevels
         api/pandas.Index.sort
-        api/pandas.Series.asobject
-        api/pandas.Series.blocks
-        api/pandas.Series.from_array
-        api/pandas.Series.imag
-        api/pandas.Series.real
 
 
 .. Can't convince sphinx to generate toctree for this class attribute.

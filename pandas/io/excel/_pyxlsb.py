@@ -8,16 +8,20 @@ from pandas._typing import (
     StorageOptions,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import doc
+
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
 
 
 class PyxlsbReader(BaseExcelReader):
+    @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
-    ):
+    ) -> None:
         """
         Reader using pyxlsb engine.
 
@@ -25,8 +29,7 @@ class PyxlsbReader(BaseExcelReader):
         ----------
         filepath_or_buffer : str, path object, or Workbook
             Object to be parsed.
-        storage_options : dict, optional
-            passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)
+        {storage_options}
         """
         import_optional_dependency("pyxlsb")
         # This will call load_workbook on the filepath or buffer
@@ -62,12 +65,12 @@ class PyxlsbReader(BaseExcelReader):
         # There's a fix for this in the source, but the pypi package doesn't have it
         return self.book.get_sheet(index + 1)
 
-    def _convert_cell(self, cell, convert_float: bool) -> Scalar:
+    def _convert_cell(self, cell) -> Scalar:
         # TODO: there is no way to distinguish between floats and datetimes in pyxlsb
         # This means that there is no way to read datetime types from an xlsb file yet
         if cell.v is None:
             return ""  # Prevents non-named columns from not showing up as Unnamed: i
-        if isinstance(cell.v, float) and convert_float:
+        if isinstance(cell.v, float):
             val = int(cell.v)
             if val == cell.v:
                 return val
@@ -76,14 +79,18 @@ class PyxlsbReader(BaseExcelReader):
 
         return cell.v
 
-    def get_sheet_data(self, sheet, convert_float: bool) -> list[list[Scalar]]:
+    def get_sheet_data(
+        self,
+        sheet,
+        file_rows_needed: int | None = None,
+    ) -> list[list[Scalar]]:
         data: list[list[Scalar]] = []
         prevous_row_number = -1
         # When sparse=True the rows can have different lengths and empty rows are
         # not returned. The cells are namedtuples of row, col, value (r, c, v).
         for row in sheet.rows(sparse=True):
             row_number = row[0].r
-            converted_row = [self._convert_cell(cell, convert_float) for cell in row]
+            converted_row = [self._convert_cell(cell) for cell in row]
             while converted_row and converted_row[-1] == "":
                 # trim trailing empty elements
                 converted_row.pop()
@@ -91,6 +98,8 @@ class PyxlsbReader(BaseExcelReader):
                 data.extend([[]] * (row_number - prevous_row_number - 1))
                 data.append(converted_row)
                 prevous_row_number = row_number
+            if file_rows_needed is not None and len(data) >= file_rows_needed:
+                break
         if data:
             # extend rows to max_width
             max_width = max(len(data_row) for data_row in data)

@@ -31,13 +31,15 @@ class Normalize:
         dti = pd.date_range("2016-01-01", periods=10, tz=tz).repeat(size // 10)
         self.i8data = dti.asi8
 
-        if size == 10 ** 6 and tz is tzlocal_obj:
+        if size == 10**6 and tz is tzlocal_obj:
             # tzlocal is cumbersomely slow, so skip to keep runtime in check
             raise NotImplementedError
 
     def time_normalize_i8_timestamps(self, size, tz):
-        normalize_i8_timestamps(self.i8data, tz)
+        # 10 i.e. NPY_FR_ns
+        normalize_i8_timestamps(self.i8data, tz, 10)
 
     def time_is_date_array_normalized(self, size, tz):
         # TODO: cases with different levels of short-circuiting
-        is_date_array_normalized(self.i8data, tz)
+        # 10 i.e. NPY_FR_ns
+        is_date_array_normalized(self.i8data, tz, 10)

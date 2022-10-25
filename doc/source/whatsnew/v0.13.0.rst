@@ -664,7 +664,7 @@ Enhancements
      other = pd.DataFrame({'A': [1, 3, 3, 7], 'B': ['e', 'f', 'f', 'e']})
      mask = dfi.isin(other)
      mask
-     dfi[mask.any(1)]
+     dfi[mask.any(axis=1)]
 
 - ``Series`` now supports a ``to_frame`` method to convert it to a single-column DataFrame (:issue:`5164`)
 

@@ -212,7 +212,7 @@ def uint64_frame():
     Columns are ['A', 'B']
     """
     return DataFrame(
-        {"A": np.arange(3), "B": [2 ** 63, 2 ** 63 + 5, 2 ** 63 + 10]}, dtype=np.uint64
+        {"A": np.arange(3), "B": [2**63, 2**63 + 5, 2**63 + 10]}, dtype=np.uint64
     )
 
 
@@ -277,7 +277,6 @@ def frame_of_index_cols():
         "sem",
         "var",
         "std",
-        "mad",
     ]
 )
 def reduction_functions(request):

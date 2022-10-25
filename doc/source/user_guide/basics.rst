@@ -556,7 +556,6 @@ optional ``level`` parameter which applies only if the object has a
     ``count``, Number of non-NA observations
     ``sum``, Sum of values
     ``mean``, Mean of values
-    ``mad``, Mean absolute deviation
     ``median``, Arithmetic median of values
     ``min``, Minimum
     ``max``, Maximum
@@ -848,8 +847,8 @@ have introduced the popular ``(%>%)`` (read pipe) operator for R_.
 The implementation of ``pipe`` here is quite clean and feels right at home in Python.
 We encourage you to view the source code of :meth:`~DataFrame.pipe`.
 
-.. _dplyr: https://github.com/hadley/dplyr
-.. _magrittr: https://github.com/smbache/magrittr
+.. _dplyr: https://github.com/tidyverse/dplyr
+.. _magrittr: https://github.com/tidyverse/magrittr
 .. _R: https://www.r-project.org
 
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Scalar,
@@ -75,6 +74,14 @@ def quantile_with_mask(
 
     Quantile is computed along axis=1.
     """
+    assert values.shape == mask.shape
+    if values.ndim == 1:
+        # unsqueeze, operate, re-squeeze
+        values = np.atleast_2d(values)
+        mask = np.atleast_2d(mask)
+        res_values = quantile_with_mask(values, mask, fill_value, qs, interpolation)
+        return res_values[0]
+
     assert values.ndim == 2
 
     is_empty = values.shape[1] == 0
@@ -104,7 +111,7 @@ def _nanpercentile_1d(
     mask: npt.NDArray[np.bool_],
     qs: npt.NDArray[np.float64],
     na_value: Scalar,
-    interpolation,
+    interpolation: str,
 ) -> Scalar | np.ndarray:
     """
     Wrapper for np.percentile that skips missing values, specialized to
@@ -128,9 +135,19 @@ def _nanpercentile_1d(
     values = values[~mask]
 
     if len(values) == 0:
-        return np.array([na_value] * len(qs), dtype=values.dtype)
+        # Can't pass dtype=values.dtype here bc we might have na_value=np.nan
+        #  with values.dtype=int64 see test_quantile_empty
+        # equiv: 'np.array([na_value] * len(qs))' but much faster
+        return np.full(len(qs), na_value)
 
-    return np.percentile(values, qs, **{np_percentile_argname: interpolation})
+    return np.percentile(
+        values,
+        qs,
+        # error: No overload variant of "percentile" matches argument
+        # types "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]"
+        # , "Dict[str, str]"  [call-overload]
+        **{np_percentile_argname: interpolation},  # type: ignore[call-overload]
+    )
 
 
 def _nanpercentile(
@@ -139,7 +156,7 @@ def _nanpercentile(
     *,
     na_value,
     mask: npt.NDArray[np.bool_],
-    interpolation,
+    interpolation: str,
 ):
     """
     Wrapper for np.percentile that skips missing values.
@@ -173,16 +190,33 @@ def _nanpercentile(
         #  have float result at this point, not i8
         return result.astype(values.dtype)
 
-    if not lib.is_scalar(mask) and mask.any():
+    if mask.any():
         # Caller is responsible for ensuring mask shape match
         assert mask.shape == values.shape
         result = [
             _nanpercentile_1d(val, m, qs, na_value, interpolation=interpolation)
             for (val, m) in zip(list(values), list(mask))
         ]
-        result = np.array(result, dtype=values.dtype, copy=False).T
+        if values.dtype.kind == "f":
+            # preserve itemsize
+            result = np.array(result, dtype=values.dtype, copy=False).T
+        else:
+            result = np.array(result, copy=False).T
+            if (
+                result.dtype != values.dtype
+                and (result == result.astype(values.dtype, copy=False)).all()
+            ):
+                # e.g. values id integer dtype and result is floating dtype,
+                #  only cast back to integer dtype if result values are all-integer.
+                result = result.astype(values.dtype, copy=False)
         return result
     else:
         return np.percentile(
-            values, qs, axis=1, **{np_percentile_argname: interpolation}
+            values,
+            qs,
+            axis=1,
+            # error: No overload variant of "percentile" matches argument types
+            # "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]",
+            # "int", "Dict[str, str]"  [call-overload]
+            **{np_percentile_argname: interpolation},  # type: ignore[call-overload]
         )

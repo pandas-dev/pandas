@@ -6,6 +6,7 @@ import time
 import pytest
 
 from pandas.compat import (
+    is_ci_environment,
     is_platform_arm,
     is_platform_mac,
     is_platform_windows,
@@ -42,7 +43,7 @@ def feather_file(datapath):
 
 @pytest.fixture
 def s3so(worker_id):
-    if os.environ.get("PANDAS_CI", "0") == "1":
+    if is_ci_environment():
         url = "http://localhost:5000/"
     else:
         worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
@@ -66,16 +67,16 @@ def s3_base(worker_id):
         # see https://github.com/spulec/moto/issues/1924 & 1952
         os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
         os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
-        if os.environ.get("PANDAS_CI", "0") == "1":
+        if is_ci_environment():
             if is_platform_arm() or is_platform_mac() or is_platform_windows():
-                # NOT RUN on Windows/MacOS/ARM, only Ubuntu
+                # NOT RUN on Windows/macOS/ARM, only Ubuntu
                 # - subprocess in CI can cause timeouts
-                # - Azure pipelines/Github Actions do not support
+                # - GitHub Actions do not support
                 #   container services for the above OSs
                 # - CircleCI will probably hit the Docker rate pull limit
                 pytest.skip(
                     "S3 tests do not have a corresponding service in "
-                    "Windows, MacOS or ARM platforms"
+                    "Windows, macOS or ARM platforms"
                 )
             else:
                 yield "http://localhost:5000"
@@ -114,7 +115,7 @@ def s3_base(worker_id):
                 proc.terminate()
 
 
-@pytest.fixture()
+@pytest.fixture
 def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     """
     Sets up S3 bucket with contents

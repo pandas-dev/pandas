@@ -30,6 +30,19 @@ import pandas._testing as tm
 
 
 class TestAstypeAPI:
+    def test_astype_unitless_dt64_deprecated(self):
+        # GH#47844
+        ser = Series(["1970-01-01", "1970-01-01", "1970-01-01"], dtype="datetime64[ns]")
+
+        msg = "Passing unit-less datetime64 dtype to .astype is deprecated and "
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.astype(np.datetime64)
+        tm.assert_series_equal(ser, res)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.astype("datetime64")
+        tm.assert_series_equal(ser, res)
+
     def test_arg_for_errors_in_astype(self):
         # see GH#14878
         ser = Series([1, 2, 3])
@@ -135,8 +148,8 @@ class TestAstype:
             request.node.add_marker(mark)
 
         msg = (
-            fr"The '{dtype.__name__}' dtype has no unit\. "
-            fr"Please pass in '{dtype.__name__}\[ns\]' instead."
+            rf"The '{dtype.__name__}' dtype has no unit\. "
+            rf"Please pass in '{dtype.__name__}\[ns\]' instead."
         )
         with pytest.raises(ValueError, match=msg):
             ser.astype(dtype)
@@ -198,15 +211,14 @@ class TestAstype:
         tm.assert_series_equal(result, expected)
 
         # astype - datetime64[ns, tz]
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "Cannot use .astype to convert from timezone-naive"
+        with pytest.raises(TypeError, match=msg):
             # dt64->dt64tz astype deprecated
-            result = Series(ser.values).astype("datetime64[ns, US/Eastern]")
-        tm.assert_series_equal(result, ser)
+            Series(ser.values).astype("datetime64[ns, US/Eastern]")
 
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match=msg):
             # dt64->dt64tz astype deprecated
-            result = Series(ser.values).astype(ser.dtype)
-        tm.assert_series_equal(result, ser)
+            Series(ser.values).astype(ser.dtype)
 
         result = ser.astype("datetime64[ns, CET]")
         expected = Series(date_range("20130101 06:00:00", periods=3, tz="CET"))
@@ -322,6 +334,17 @@ class TestAstype:
         with pytest.raises(ValueError, match=msg):
             arr.astype(dtype)
 
+    def test_astype_float_to_uint_negatives_raise(
+        self, float_numpy_dtype, any_unsigned_int_numpy_dtype
+    ):
+        # GH#45151
+        # TODO: same for EA float/uint dtypes
+        arr = np.arange(5).astype(float_numpy_dtype) - 3  # includes negatives
+        ser = Series(arr)
+
+        with pytest.raises(ValueError, match="losslessly"):
+            ser.astype(any_unsigned_int_numpy_dtype)
+
     def test_astype_cast_object_int(self):
         arr = Series(["1", "2", "3", "4"], dtype=object)
         result = arr.astype(int)
@@ -370,7 +393,12 @@ class TestAstype:
     )
     def test_astype_ea_to_datetimetzdtype(self, dtype):
         # GH37553
-        result = Series([4, 0, 9], dtype=dtype).astype(DatetimeTZDtype(tz="US/Pacific"))
+        ser = Series([4, 0, 9], dtype=dtype)
+        warn = FutureWarning if ser.dtype.kind == "f" else None
+        msg = "with a timezone-aware dtype and floating-dtype data"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = ser.astype(DatetimeTZDtype(tz="US/Pacific"))
+
         expected = Series(
             {
                 0: Timestamp("1969-12-31 16:00:00.000000004-08:00", tz="US/Pacific"),
@@ -430,7 +458,7 @@ class TestAstypeString:
         self, data, dtype, request, nullable_string_dtype
     ):
         if dtype == "boolean" or (
-            dtype in ("period[M]", "datetime64[ns]", "timedelta64[ns]") and NaT in data
+            dtype in ("datetime64[ns]", "timedelta64[ns]") and NaT in data
         ):
             mark = pytest.mark.xfail(
                 reason="TODO StringArray.astype() with missing values #GH40566"
@@ -584,3 +612,9 @@ class TestAstypeCategorical:
         exp = Series(Categorical(lst, categories=list("abcdef"), ordered=True))
         res = ser.astype(CategoricalDtype(list("abcdef"), ordered=True))
         tm.assert_series_equal(res, exp)
+
+    def test_astype_timedelta64_with_np_nan(self):
+        # GH45798
+        result = Series([Timedelta(1), np.nan], dtype="timedelta64[ns]")
+        expected = Series([Timedelta(1), NaT], dtype="timedelta64[ns]")
+        tm.assert_series_equal(result, expected)

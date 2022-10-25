@@ -265,7 +265,7 @@ SSH, FTP, dropbox and github. For docs and capabilities, see the `fsspec docs`_.
 The existing capability to interface with S3 and GCS will be unaffected by this
 change, as ``fsspec`` will still bring in the same packages as before.
 
-.. _Azure Datalake and Blob: https://github.com/dask/adlfs
+.. _Azure Datalake and Blob: https://github.com/fsspec/adlfs
 
 .. _fsspec docs: https://filesystem-spec.readthedocs.io/en/latest/
 
@@ -665,9 +665,9 @@ the previous index (:issue:`32240`).
    In [4]: result
    Out[4]:
         min_val
-    0 	x
-    1 	y
-    2 	z
+    0   x
+    1   y
+    2   z
 
 *New behavior*:
 
@@ -1126,16 +1126,16 @@ GroupBy/resample/rolling
 
 - Using a :class:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max``, ``median``, ``skew``,  ``cov``, ``corr`` will now return correct results for any monotonic :class:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
 - :meth:`DataFrameGroupby.mean` and :meth:`SeriesGroupby.mean` (and similarly for :meth:`~DataFrameGroupby.median`, :meth:`~DataFrameGroupby.std` and :meth:`~DataFrameGroupby.var`) now raise a ``TypeError`` if a non-accepted keyword argument is passed into it. Previously an ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median`) (:issue:`31485`)
-- Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted, has duplicates, and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
+- Bug in :meth:`.DataFrameGroupBy.apply` and :meth:`.SeriesGroupBy.apply` raising ``ValueError`` when the ``by`` axis is not sorted, has duplicates, and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
 - Bug in :meth:`DataFrameGroupBy.transform` produces an incorrect result with transformation functions (:issue:`30918`)
-- Bug in :meth:`Groupby.transform` was returning the wrong result when grouping by multiple keys of which some were categorical and others not (:issue:`32494`)
-- Bug in :meth:`GroupBy.count` causes segmentation fault when grouped-by columns contain NaNs (:issue:`32841`)
+- Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` were returning the wrong result when grouping by multiple keys of which some were categorical and others not (:issue:`32494`)
+- Bug in :meth:`.DataFrameGroupBy.count` and :meth:`.SeriesGroupBy.count` causing segmentation fault when grouped-by columns contain NaNs (:issue:`32841`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` produces inconsistent type when aggregating Boolean :class:`Series` (:issue:`32894`)
 - Bug in :meth:`DataFrameGroupBy.sum` and :meth:`SeriesGroupBy.sum` where a large negative number would be returned when the number of non-null values was below ``min_count`` for nullable integer dtypes (:issue:`32861`)
 - Bug in :meth:`SeriesGroupBy.quantile` was raising on nullable integers (:issue:`33136`)
 - Bug in :meth:`DataFrame.resample` where an ``AmbiguousTimeError`` would be raised when the resulting timezone aware :class:`DatetimeIndex` had a DST transition at midnight (:issue:`25758`)
 - Bug in :meth:`DataFrame.groupby` where a ``ValueError`` would be raised when grouping by a categorical column with read-only categories and ``sort=False`` (:issue:`33410`)
-- Bug in :meth:`GroupBy.agg`, :meth:`GroupBy.transform`, and :meth:`GroupBy.resample` where subclasses are not preserved (:issue:`28330`)
+- Bug in :meth:`.DataFrameGroupBy.agg`, :meth:`.SeriesGroupBy.agg`, :meth:`.DataFrameGroupBy.transform`, :meth:`.SeriesGroupBy.transform`, :meth:`.DataFrameGroupBy.resample`, and :meth:`.SeriesGroupBy.resample` where subclasses are not preserved (:issue:`28330`)
 - Bug in :meth:`SeriesGroupBy.agg` where any column name was accepted in the named aggregation of :class:`SeriesGroupBy` previously. The behaviour now allows only ``str`` and callables else would raise ``TypeError``. (:issue:`34422`)
 - Bug in :meth:`DataFrame.groupby` lost the name of the :class:`Index` when one of the ``agg`` keys referenced an empty list (:issue:`32580`)
 - Bug in :meth:`Rolling.apply` where ``center=True`` was ignored when ``engine='numba'`` was specified (:issue:`34784`)

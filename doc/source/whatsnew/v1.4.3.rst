@@ -1,0 +1,72 @@
+.. _whatsnew_143:
+
+What's new in 1.4.3 (June 23, 2022)
+-----------------------------------
+
+These are the changes in pandas 1.4.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_143.concat:
+
+Behavior of ``concat`` with empty or all-NA DataFrame columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The behavior change in version 1.4.0 to stop ignoring the data type
+of empty or all-NA columns with float or object dtype in :func:`concat`
+(:ref:`whatsnew_140.notable_bug_fixes.concat_with_empty_or_all_na`) has been
+reverted (:issue:`45637`).
+
+
+.. _whatsnew_143.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.replace` when the replacement value was explicitly ``None`` when passed in a dictionary to ``to_replace`` also casting other columns to object dtype even when there were no values to replace (:issue:`46634`)
+- Fixed regression in :meth:`DataFrame.to_csv` raising error when :class:`DataFrame` contains extension dtype categorical column (:issue:`46297`, :issue:`46812`)
+- Fixed regression in representation of ``dtypes`` attribute of :class:`MultiIndex` (:issue:`46900`)
+- Fixed regression when setting values with :meth:`DataFrame.loc` updating :class:`RangeIndex` when index was set as new column and column was updated afterwards (:issue:`47128`)
+- Fixed regression in :meth:`DataFrame.fillna` and :meth:`DataFrame.update` creating a copy when updating inplace (:issue:`47188`)
+- Fixed regression in :meth:`DataFrame.nsmallest` led to wrong results when the sorting column has ``np.nan`` values (:issue:`46589`)
+- Fixed regression in :func:`read_fwf` raising ``ValueError`` when ``widths`` was specified with ``usecols`` (:issue:`46580`)
+- Fixed regression in :func:`concat` not sorting columns for mixed column names (:issue:`47127`)
+- Fixed regression in :meth:`.Groupby.transform` and :meth:`.Groupby.agg` failing with ``engine="numba"`` when the index was a :class:`MultiIndex` (:issue:`46867`)
+- Fixed regression in ``NaN`` comparison for :class:`Index` operations where the same object was compared (:issue:`47105`)
+- Fixed regression is :meth:`.Styler.to_latex` and :meth:`.Styler.to_html` where ``buf`` failed in combination with ``encoding`` (:issue:`47053`)
+- Fixed regression in :func:`read_csv` with ``index_col=False`` identifying first row as index names when ``header=None`` (:issue:`46955`)
+- Fixed regression in :meth:`.DataFrameGroupBy.agg` when used with list-likes or dict-likes and ``axis=1`` that would give incorrect results; now raises ``NotImplementedError`` (:issue:`46995`)
+- Fixed regression in :meth:`DataFrame.resample` and :meth:`DataFrame.rolling` when used with list-likes or dict-likes and ``axis=1`` that would raise an unintuitive error message; now raises ``NotImplementedError`` (:issue:`46904`)
+- Fixed regression in :func:`testing.assert_index_equal` when ``check_order=False`` and :class:`Index` has extension or object dtype (:issue:`47207`)
+- Fixed regression in :func:`read_excel` returning ints as floats on certain input sheets (:issue:`46988`)
+- Fixed regression in :meth:`DataFrame.shift` when ``axis`` is ``columns`` and ``fill_value`` is absent, ``freq`` is ignored (:issue:`47039`)
+- Fixed regression in :meth:`DataFrame.to_json` causing a segmentation violation when :class:`DataFrame` is created with an ``index`` parameter of the type :class:`PeriodIndex` (:issue:`46683`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_143.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :func:`pandas.eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` where passing empty ``local_dict`` or ``global_dict`` was treated as passing ``None`` (:issue:`47084`)
+- Most I/O methods no longer suppress ``OSError`` and ``ValueError`` when closing file handles (:issue:`47136`)
+- Improving error message raised by :meth:`DataFrame.from_dict` when passing an invalid ``orient`` parameter (:issue:`47450`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_143.other:
+
+Other
+~~~~~
+- The minimum version of Cython needed to compile pandas is now ``0.29.30`` (:issue:`41935`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_143.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.4.2..v1.4.3

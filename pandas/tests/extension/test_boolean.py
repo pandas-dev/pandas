@@ -108,7 +108,11 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
         # overwriting to indicate ops don't raise an error
-        super().check_opname(s, op_name, other, exc=None)
+        exc = None
+        if op_name.strip("_").lstrip("r") in ["pow", "truediv", "floordiv"]:
+            # match behavior with non-masked bool dtype
+            exc = NotImplementedError
+        super().check_opname(s, op_name, other, exc=exc)
 
     def _check_op(self, obj, op, other, op_name, exc=NotImplementedError):
         if exc is None:
@@ -144,9 +148,19 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             with pytest.raises(exc):
                 op(obj, other)
 
-    def _check_divmod_op(self, s, op, other, exc=None):
-        # override to not raise an error
-        super()._check_divmod_op(s, op, other, None)
+    @pytest.mark.xfail(
+        reason="Inconsistency between floordiv and divmod; we raise for floordiv "
+        "but not for divmod. This matches what we do for non-masked bool dtype."
+    )
+    def test_divmod_series_array(self, data, data_for_twos):
+        super().test_divmod_series_array(data, data_for_twos)
+
+    @pytest.mark.xfail(
+        reason="Inconsistency between floordiv and divmod; we raise for floordiv "
+        "but not for divmod. This matches what we do for non-masked bool dtype."
+    )
+    def test_divmod(self, data):
+        super().test_divmod(data)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
@@ -163,7 +177,12 @@ class TestMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("na_sentinel", [-1, -2])
     def test_factorize(self, data_for_grouping, na_sentinel):
         # override because we only have 2 unique values
-        labels, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
+        if na_sentinel == -1:
+            msg = "Specifying `na_sentinel=-1` is deprecated"
+        else:
+            msg = "Specifying the specific value to use for `na_sentinel` is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            labels, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
         expected_labels = np.array(
             [0, 0, na_sentinel, na_sentinel, 1, 1, 0], dtype=np.intp
         )
@@ -211,14 +230,6 @@ class TestMethods(base.BaseMethodsTests):
         # sorter
         sorter = np.array([1, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
-
-    @pytest.mark.xfail(reason="uses nullable integer")
-    def test_value_counts(self, all_data, dropna):
-        return super().test_value_counts(all_data, dropna)
-
-    @pytest.mark.xfail(reason="uses nullable integer")
-    def test_value_counts_with_normalize(self, data):
-        super().test_value_counts_with_normalize(data)
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting):
         # override because there are only 2 unique values
@@ -308,10 +319,10 @@ class TestGroupby(base.BaseGroupbyTests):
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
-        df.groupby("B").apply(groupby_apply_op)
-        df.groupby("B").A.apply(groupby_apply_op)
-        df.groupby("A").apply(groupby_apply_op)
-        df.groupby("A").B.apply(groupby_apply_op)
+        df.groupby("B", group_keys=False).apply(groupby_apply_op)
+        df.groupby("B", group_keys=False).A.apply(groupby_apply_op)
+        df.groupby("A", group_keys=False).apply(groupby_apply_op)
+        df.groupby("A", group_keys=False).B.apply(groupby_apply_op)
 
     def test_groupby_apply_identity(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})

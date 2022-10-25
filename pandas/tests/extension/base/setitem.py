@@ -349,6 +349,20 @@ class BaseSetitemTests(BaseExtensionTests):
 
         self.assert_frame_equal(result, expected)
 
+    def test_setitem_with_expansion_row(self, data, na_value):
+        df = pd.DataFrame({"data": data[:1]})
+
+        df.loc[1, "data"] = data[1]
+        expected = pd.DataFrame({"data": data[:2]})
+        self.assert_frame_equal(df, expected)
+
+        # https://github.com/pandas-dev/pandas/issues/47284
+        df.loc[2, "data"] = na_value
+        expected = pd.DataFrame(
+            {"data": pd.Series([data[0], data[1], na_value], dtype=data.dtype)}
+        )
+        self.assert_frame_equal(df, expected)
+
     def test_setitem_series(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
         ser = pd.Series(data, name="data")
@@ -364,32 +378,47 @@ class BaseSetitemTests(BaseExtensionTests):
         )
         self.assert_series_equal(result, expected)
 
-    def test_setitem_frame_2d_values(self, data, request):
+    def test_setitem_frame_2d_values(self, data):
         # GH#44514
         df = pd.DataFrame({"A": data})
+
+        # These dtypes have non-broken implementations of _can_hold_element
+        has_can_hold_element = isinstance(
+            data.dtype, (PandasDtype, PeriodDtype, IntervalDtype, DatetimeTZDtype)
+        )
 
         # Avoiding using_array_manager fixture
         #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
         using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
-        if using_array_manager:
-            if not isinstance(
-                data.dtype, (PandasDtype, PeriodDtype, IntervalDtype, DatetimeTZDtype)
-            ):
-                # These dtypes have non-broken implementations of _can_hold_element
-                mark = pytest.mark.xfail(reason="Goes through split path, loses dtype")
-                request.node.add_marker(mark)
+        using_copy_on_write = pd.options.mode.copy_on_write
 
-        df = pd.DataFrame({"A": data})
+        blk_data = df._mgr.arrays[0]
+
         orig = df.copy()
 
-        df.iloc[:] = df
+        msg = "will attempt to set the values inplace instead"
+        warn = None
+        if has_can_hold_element and not isinstance(data.dtype, PandasDtype):
+            # PandasDtype excluded because it isn't *really* supported.
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match=msg):
+            df.iloc[:] = df
         self.assert_frame_equal(df, orig)
 
         df.iloc[:-1] = df.iloc[:-1]
         self.assert_frame_equal(df, orig)
 
-        df.iloc[:] = df.values
+        if isinstance(data.dtype, DatetimeTZDtype):
+            # no warning bc df.values casts to object dtype
+            warn = None
+        with tm.assert_produces_warning(warn, match=msg):
+            df.iloc[:] = df.values
         self.assert_frame_equal(df, orig)
+        if not using_array_manager and not using_copy_on_write:
+            # GH#33457 Check that this setting occurred in-place
+            # FIXME(ArrayManager): this should work there too
+            assert df._mgr.arrays[0] is blk_data
 
         df.iloc[:-1] = df.values[:-1]
         self.assert_frame_equal(df, orig)

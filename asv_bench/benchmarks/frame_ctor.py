@@ -2,8 +2,10 @@ import numpy as np
 
 import pandas as pd
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
+    Float64Dtype,
     MultiIndex,
     Series,
     Timestamp,
@@ -35,7 +37,7 @@ class FromDicts:
         self.dict_list = frame.to_dict(orient="records")
         self.data2 = {i: {j: float(j) for j in range(100)} for i in range(2000)}
 
-        # arrays which we wont consolidate
+        # arrays which we won't consolidate
         self.dict_of_categoricals = {i: Categorical(np.arange(N)) for i in range(K)}
 
     def time_list_of_dict(self):
@@ -58,7 +60,7 @@ class FromDicts:
         DataFrame(self.data2)
 
     def time_dict_of_categoricals(self):
-        # dict of arrays that we wont consolidate
+        # dict of arrays that we won't consolidate
         DataFrame(self.dict_of_categoricals)
 
 
@@ -77,7 +79,7 @@ class FromDictwithTimestamp:
     param_names = ["offset"]
 
     def setup(self, offset):
-        N = 10 ** 3
+        N = 10**3
         idx = date_range(Timestamp("1/1/1900"), freq=offset, periods=N)
         df = DataFrame(np.random.randn(N, 10), index=idx)
         self.d = df.to_dict()
@@ -136,6 +138,27 @@ class FromRange:
 
     def time_frame_from_range(self):
         self.df = DataFrame(self.data)
+
+
+class FromScalar:
+    def setup(self):
+        self.nrows = 100_000
+
+    def time_frame_from_scalar_ea_float64(self):
+        DataFrame(
+            1.0,
+            index=range(self.nrows),
+            columns=list("abc"),
+            dtype=Float64Dtype(),
+        )
+
+    def time_frame_from_scalar_ea_float64_na(self):
+        DataFrame(
+            NA,
+            index=range(self.nrows),
+            columns=list("abc"),
+            dtype=Float64Dtype(),
+        )
 
 
 class FromArrays:

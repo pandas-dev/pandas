@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Any
 
 import numpy as np
@@ -42,7 +40,7 @@ def groupsort_indexer(
     np.ndarray,  # ndarray[int64_t, ndim=1]
 ]: ...
 def kth_smallest(
-    a: np.ndarray,  # numeric[:]
+    arr: np.ndarray,  # numeric[:]
     k: int,
 ) -> Any: ...  # numeric
 
@@ -61,52 +59,39 @@ def nancorr_spearman(
 
 # ----------------------------------------------------------------------
 
-# ctypedef fused algos_t:
-#    float64_t
-#    float32_t
-#    object
-#    int64_t
-#    int32_t
-#    int16_t
-#    int8_t
-#    uint64_t
-#    uint32_t
-#    uint16_t
-#    uint8_t
-
 def validate_limit(nobs: int | None, limit=...) -> int: ...
 def pad(
-    old: np.ndarray,  # ndarray[algos_t]
-    new: np.ndarray,  # ndarray[algos_t]
+    old: np.ndarray,  # ndarray[numeric_object_t]
+    new: np.ndarray,  # ndarray[numeric_object_t]
     limit=...,
 ) -> npt.NDArray[np.intp]: ...  # np.ndarray[np.intp, ndim=1]
 def pad_inplace(
-    values: np.ndarray,  # algos_t[:]
+    values: np.ndarray,  # numeric_object_t[:]
     mask: np.ndarray,  # uint8_t[:]
     limit=...,
 ) -> None: ...
 def pad_2d_inplace(
-    values: np.ndarray,  # algos_t[:, :]
+    values: np.ndarray,  # numeric_object_t[:, :]
     mask: np.ndarray,  # const uint8_t[:, :]
     limit=...,
 ) -> None: ...
 def backfill(
-    old: np.ndarray,  # ndarray[algos_t]
-    new: np.ndarray,  # ndarray[algos_t]
+    old: np.ndarray,  # ndarray[numeric_object_t]
+    new: np.ndarray,  # ndarray[numeric_object_t]
     limit=...,
 ) -> npt.NDArray[np.intp]: ...  # np.ndarray[np.intp, ndim=1]
 def backfill_inplace(
-    values: np.ndarray,  # algos_t[:]
+    values: np.ndarray,  # numeric_object_t[:]
     mask: np.ndarray,  # uint8_t[:]
     limit=...,
 ) -> None: ...
 def backfill_2d_inplace(
-    values: np.ndarray,  # algos_t[:, :]
+    values: np.ndarray,  # numeric_object_t[:, :]
     mask: np.ndarray,  # const uint8_t[:, :]
     limit=...,
 ) -> None: ...
 def is_monotonic(
-    arr: np.ndarray,  # ndarray[algos_t, ndim=1]
+    arr: np.ndarray,  # ndarray[numeric_object_t, ndim=1]
     timelike: bool,
 ) -> tuple[bool, bool, bool]: ...
 
@@ -114,23 +99,18 @@ def is_monotonic(
 # rank_1d, rank_2d
 # ----------------------------------------------------------------------
 
-# ctypedef fused rank_t:
-#    object
-#    float64_t
-#    uint64_t
-#    int64_t
-
 def rank_1d(
-    values: np.ndarray,  # ndarray[rank_t, ndim=1]
+    values: np.ndarray,  # ndarray[numeric_object_t, ndim=1]
     labels: np.ndarray | None = ...,  # const int64_t[:]=None
     is_datetimelike: bool = ...,
     ties_method=...,
     ascending: bool = ...,
     pct: bool = ...,
     na_option=...,
+    mask: npt.NDArray[np.bool_] | None = ...,
 ) -> np.ndarray: ...  # np.ndarray[float64_t, ndim=1]
 def rank_2d(
-    in_arr: np.ndarray,  # ndarray[rank_t, ndim=2]
+    in_arr: np.ndarray,  # ndarray[numeric_object_t, ndim=2]
     axis: int = ...,
     is_datetimelike: bool = ...,
     ties_method=...,
@@ -147,17 +127,11 @@ def diff_2d(
 ) -> None: ...
 def ensure_platform_int(arr: object) -> npt.NDArray[np.intp]: ...
 def ensure_object(arr: object) -> npt.NDArray[np.object_]: ...
-def ensure_complex64(arr: object, copy=...) -> npt.NDArray[np.complex64]: ...
-def ensure_complex128(arr: object, copy=...) -> npt.NDArray[np.complex128]: ...
 def ensure_float64(arr: object, copy=...) -> npt.NDArray[np.float64]: ...
-def ensure_float32(arr: object, copy=...) -> npt.NDArray[np.float32]: ...
 def ensure_int8(arr: object, copy=...) -> npt.NDArray[np.int8]: ...
 def ensure_int16(arr: object, copy=...) -> npt.NDArray[np.int16]: ...
 def ensure_int32(arr: object, copy=...) -> npt.NDArray[np.int32]: ...
 def ensure_int64(arr: object, copy=...) -> npt.NDArray[np.int64]: ...
-def ensure_uint8(arr: object, copy=...) -> npt.NDArray[np.uint8]: ...
-def ensure_uint16(arr: object, copy=...) -> npt.NDArray[np.uint16]: ...
-def ensure_uint32(arr: object, copy=...) -> npt.NDArray[np.uint32]: ...
 def ensure_uint64(arr: object, copy=...) -> npt.NDArray[np.uint64]: ...
 def take_1d_int8_int8(
     values: np.ndarray, indexer: npt.NDArray[np.intp], out: np.ndarray, fill_value=...

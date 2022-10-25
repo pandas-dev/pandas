@@ -22,7 +22,7 @@ class IndexCache:
     param_names = ["index_type"]
 
     def setup(self, index_type):
-        N = 10 ** 5
+        N = 10**5
         if index_type == "MultiIndex":
             self.idx = pd.MultiIndex.from_product(
                 [pd.date_range("1/1/2000", freq="T", periods=N // 2), ["a", "b"]]
@@ -55,9 +55,6 @@ class IndexCache:
 
     def time_shape(self, index_type):
         self.idx.shape
-
-    def time_is_monotonic(self, index_type):
-        self.idx.is_monotonic
 
     def time_is_monotonic_decreasing(self, index_type):
         self.idx.is_monotonic_decreasing

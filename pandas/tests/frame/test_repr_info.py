@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
     MultiIndex,
@@ -62,10 +63,31 @@ class TestDataFrameReprInfoEtc:
         df.index = index
         repr(df)
 
-    def test_repr_with_mi_nat(self, float_string_frame):
+    def test_repr_with_mi_nat(self):
         df = DataFrame({"X": [1, 2]}, index=[[NaT, Timestamp("20130101")], ["a", "b"]])
         result = repr(df)
         expected = "              X\nNaT        a  1\n2013-01-01 b  2"
+        assert result == expected
+
+    def test_repr_with_different_nulls(self):
+        # GH45263
+        df = DataFrame([1, 2, 3, 4], [True, None, np.nan, NaT])
+        result = repr(df)
+        expected = """      0
+True  1
+None  2
+NaN   3
+NaT   4"""
+        assert result == expected
+
+    def test_repr_with_different_nulls_cols(self):
+        # GH45263
+        d = {np.nan: [1, 2], None: [3, 4], NaT: [6, 7], True: [8, 9]}
+        df = DataFrame(data=d)
+        result = repr(df)
+        expected = """   NaN  None  NaT  True
+0    1     3    6     8
+1    2     4    7     9"""
         assert result == expected
 
     def test_multiindex_na_repr(self):
@@ -198,7 +220,7 @@ class TestDataFrameReprInfoEtc:
         )
         repr(unsortable)
 
-        fmt.set_option("display.precision", 3, "display.column_space", 10)
+        fmt.set_option("display.precision", 3)
         repr(float_frame)
 
         fmt.set_option("display.max_rows", 10, "display.max_columns", 2)
@@ -320,6 +342,19 @@ class TestDataFrameReprInfoEtc:
 
         # it works!
         frame.to_string()
+
+    def test_to_string_ea_na_in_multiindex(self):
+        # GH#47986
+        df = DataFrame(
+            {"a": [1, 2]},
+            index=MultiIndex.from_arrays([Series([NA, 1], dtype="Int64")]),
+        )
+
+        result = df.to_string()
+        expected = """      a
+<NA>  1
+1     2"""
+        assert result == expected
 
     def test_datetime64tz_slice_non_truncate(self):
         # GH 30263

@@ -9,12 +9,14 @@ def format_array_from_datetime(
     tz: tzinfo | None = ...,
     format: str | None = ...,
     na_rep: object = ...,
+    reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.object_]: ...
 def array_with_unit_to_datetime(
     values: np.ndarray,
     unit: str,
     errors: str = ...,
 ) -> tuple[np.ndarray, tzinfo | None]: ...
+def first_non_null(values: np.ndarray) -> int: ...
 def array_to_datetime(
     values: npt.NDArray[np.object_],
     errors: str = ...,

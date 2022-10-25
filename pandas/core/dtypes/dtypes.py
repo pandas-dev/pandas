@@ -14,11 +14,13 @@ from typing import (
 import numpy as np
 import pytz
 
+from pandas._libs import missing as libmissing
 from pandas._libs.interval import Interval
 from pandas._libs.properties import cache_readonly
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
+    NaTType,
     Period,
     Timestamp,
     dtypes,
@@ -57,6 +59,7 @@ if TYPE_CHECKING:
         Index,
     )
     from pandas.core.arrays import (
+        BaseMaskedArray,
         DatetimeArray,
         IntervalArray,
         PandasArray,
@@ -179,7 +182,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     _metadata = ("categories", "ordered")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __init__(self, categories=None, ordered: Ordered = False):
+    def __init__(self, categories=None, ordered: Ordered = False) -> None:
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
@@ -662,15 +665,22 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     type: type[Timestamp] = Timestamp
     kind: str_type = "M"
-    str = "|M8[ns]"
     num = 101
-    base = np.dtype("M8[ns]")
-    na_value = NaT
+    base = np.dtype("M8[ns]")  # TODO: depend on reso?
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None):
+    @property
+    def na_value(self) -> NaTType:
+        return NaT
+
+    # error: Signature of "str" incompatible with supertype "PandasExtensionDtype"
+    @cache_readonly
+    def str(self) -> str:  # type: ignore[override]
+        return f"|M8[{self._unit}]"
+
+    def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None) -> None:
         if isinstance(unit, DatetimeTZDtype):
             # error: "str" has no attribute "tz"
             unit, tz = unit.unit, unit.tz  # type: ignore[attr-defined]
@@ -688,8 +698,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
                     "'DatetimeTZDtype.construct_from_string()' instead."
                 )
                 raise ValueError(msg)
-            else:
-                raise ValueError("DatetimeTZDtype only supports ns units")
+            if unit not in ["s", "ms", "us", "ns"]:
+                raise ValueError("DatetimeTZDtype only supports s, ms, us, ns units")
 
         if tz:
             tz = timezones.maybe_get_tz(tz)
@@ -701,6 +711,19 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         self._unit = unit
         self._tz = tz
+
+    @cache_readonly
+    def _creso(self) -> int:
+        """
+        The NPY_DATETIMEUNIT corresponding to this dtype's resolution.
+        """
+        reso = {
+            "s": dtypes.NpyDatetimeUnit.NPY_FR_s,
+            "ms": dtypes.NpyDatetimeUnit.NPY_FR_ms,
+            "us": dtypes.NpyDatetimeUnit.NPY_FR_us,
+            "ns": dtypes.NpyDatetimeUnit.NPY_FR_ns,
+        }[self._unit]
+        return reso.value
 
     @property
     def unit(self) -> str_type:
@@ -919,7 +942,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         return f"period[{self.freq.freqstr}]"
 
     @property
-    def na_value(self):
+    def na_value(self) -> NaTType:
         return NaT
 
     def __hash__(self) -> int:
@@ -946,7 +969,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         # for pickle compat. __getstate__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)
@@ -995,7 +1018,9 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         import pyarrow
 
         from pandas.core.arrays import PeriodArray
-        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
+        from pandas.core.arrays.arrow._arrow_utils import (
+            pyarrow_array_to_numpy_and_mask,
+        )
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -1004,9 +1029,11 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
 
         results = []
         for arr in chunks:
-            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype="int64")
+            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=np.dtype(np.int64))
             parr = PeriodArray(data.copy(), freq=self.freq, copy=False)
-            parr[~mask] = NaT
+            # error: Invalid index type "ndarray[Any, dtype[bool_]]" for "PeriodArray";
+            # expected type "Union[int, Sequence[int], Sequence[bool], slice]"
+            parr[~mask] = NaT  # type: ignore[index]
             results.append(parr)
 
         if not results:
@@ -1049,9 +1076,12 @@ class IntervalDtype(PandasExtensionDtype):
         "subtype",
         "closed",
     )
+
     _match = re.compile(
-        r"(I|i)nterval\[(?P<subtype>[^,]+)(, (?P<closed>(right|left|both|neither)))?\]"
+        r"(I|i)nterval\[(?P<subtype>[^,]+(\[.+\])?)"
+        r"(, (?P<closed>(right|left|both|neither)))?\]"
     )
+
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
     def __new__(cls, subtype=None, closed: str_type | None = None):
@@ -1117,6 +1147,18 @@ class IntervalDtype(PandasExtensionDtype):
             cls._cache_dtypes[key] = u
             return u
 
+    @cache_readonly
+    def _can_hold_na(self) -> bool:
+        subtype = self._subtype
+        if subtype is None:
+            # partially-initialized
+            raise NotImplementedError(
+                "_can_hold_na is not defined for partially-initialized IntervalDtype"
+            )
+        if subtype.kind in ["i", "u"]:
+            return False
+        return True
+
     @property
     def closed(self):
         return self._closed
@@ -1164,7 +1206,7 @@ class IntervalDtype(PandasExtensionDtype):
         raise TypeError(msg)
 
     @property
-    def type(self):
+    def type(self) -> type[Interval]:
         return Interval
 
     def __str__(self) -> str_type:
@@ -1194,7 +1236,7 @@ class IntervalDtype(PandasExtensionDtype):
 
             return is_dtype_equal(self.subtype, other.subtype)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)
@@ -1239,16 +1281,18 @@ class IntervalDtype(PandasExtensionDtype):
 
         results = []
         for arr in chunks:
-            left = np.asarray(arr.storage.field("left"), dtype=self.subtype)
-            right = np.asarray(arr.storage.field("right"), dtype=self.subtype)
-            iarr = IntervalArray.from_arrays(left, right, closed=array.type.closed)
+            if isinstance(arr, pyarrow.ExtensionArray):
+                arr = arr.storage
+            left = np.asarray(arr.field("left"), dtype=self.subtype)
+            right = np.asarray(arr.field("right"), dtype=self.subtype)
+            iarr = IntervalArray.from_arrays(left, right, closed=self.closed)
             results.append(iarr)
 
         if not results:
             return IntervalArray.from_arrays(
                 np.array([], dtype=self.subtype),
                 np.array([], dtype=self.subtype),
-                closed=array.type.closed,
+                closed=self.closed,
             )
         return IntervalArray._concat_same_type(results)
 
@@ -1287,7 +1331,7 @@ class PandasDtype(ExtensionDtype):
 
     _metadata = ("_dtype",)
 
-    def __init__(self, dtype: npt.DTypeLike | PandasDtype | None):
+    def __init__(self, dtype: npt.DTypeLike | PandasDtype | None) -> None:
         if isinstance(dtype, PandasDtype):
             # make constructor univalent
             dtype = dtype.numpy_dtype
@@ -1364,3 +1408,81 @@ class PandasDtype(ExtensionDtype):
         The element size of this data-type object.
         """
         return self._dtype.itemsize
+
+
+class BaseMaskedDtype(ExtensionDtype):
+    """
+    Base class for dtypes for BaseMaskedArray subclasses.
+    """
+
+    name: str
+    base = None
+    type: type
+
+    @property
+    def na_value(self) -> libmissing.NAType:
+        return libmissing.NA
+
+    @cache_readonly
+    def numpy_dtype(self) -> np.dtype:
+        """Return an instance of our numpy dtype"""
+        return np.dtype(self.type)
+
+    @cache_readonly
+    def kind(self) -> str:
+        return self.numpy_dtype.kind
+
+    @cache_readonly
+    def itemsize(self) -> int:
+        """Return the number of bytes in this dtype"""
+        return self.numpy_dtype.itemsize
+
+    @classmethod
+    def construct_array_type(cls) -> type_t[BaseMaskedArray]:
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def from_numpy_dtype(cls, dtype: np.dtype) -> BaseMaskedDtype:
+        """
+        Construct the MaskedDtype corresponding to the given numpy dtype.
+        """
+        if dtype.kind == "b":
+            from pandas.core.arrays.boolean import BooleanDtype
+
+            return BooleanDtype()
+        elif dtype.kind in ["i", "u"]:
+            from pandas.core.arrays.integer import INT_STR_TO_DTYPE
+
+            return INT_STR_TO_DTYPE[dtype.name]
+        elif dtype.kind == "f":
+            from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
+
+            return FLOAT_STR_TO_DTYPE[dtype.name]
+        else:
+            raise NotImplementedError(dtype)
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        # We unwrap any masked dtypes, find the common dtype we would use
+        #  for that, then re-mask the result.
+        from pandas.core.dtypes.cast import find_common_type
+
+        new_dtype = find_common_type(
+            [
+                dtype.numpy_dtype if isinstance(dtype, BaseMaskedDtype) else dtype
+                for dtype in dtypes
+            ]
+        )
+        if not isinstance(new_dtype, np.dtype):
+            # If we ever support e.g. Masked[DatetimeArray] then this will change
+            return None
+        try:
+            return type(self).from_numpy_dtype(new_dtype)
+        except (KeyError, NotImplementedError):
+            return None

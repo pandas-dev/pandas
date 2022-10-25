@@ -59,8 +59,10 @@ class TestSelection:
         tm.assert_series_equal(result, expected)
 
         df["mean"] = 1.5
-        result = df.groupby("A").mean()
-        expected = df.groupby("A").agg(np.mean)
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.groupby("A").mean()
+            expected = df.groupby("A").agg(np.mean)
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_list_of_columns(self):
@@ -148,24 +150,26 @@ class TestSelection:
 
 
 class TestGrouping:
-    def test_grouper_index_types(self):
-        # related GH5375
-        # groupby misbehaving when using a Floatlike index
-        df = DataFrame(np.arange(10).reshape(5, 2), columns=list("AB"))
-        for index in [
+    @pytest.mark.parametrize(
+        "index",
+        [
             tm.makeFloatIndex,
             tm.makeStringIndex,
-            tm.makeUnicodeIndex,
             tm.makeIntIndex,
             tm.makeDateIndex,
             tm.makePeriodIndex,
-        ]:
+        ],
+    )
+    def test_grouper_index_types(self, index):
+        # related GH5375
+        # groupby misbehaving when using a Floatlike index
+        df = DataFrame(np.arange(10).reshape(5, 2), columns=list("AB"))
 
-            df.index = index(len(df))
-            df.groupby(list("abcde")).apply(lambda x: x)
+        df.index = index(len(df))
+        df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
-            df.index = list(reversed(df.index.tolist()))
-            df.groupby(list("abcde")).apply(lambda x: x)
+        df.index = list(reversed(df.index.tolist()))
+        df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
     def test_grouper_multilevel_freq(self):
 
@@ -284,25 +288,30 @@ class TestGrouping:
             {"A": np.arange(6), "B": ["one", "one", "two", "two", "one", "one"]},
             index=idx,
         )
-        result = df_multi.groupby(["B", pd.Grouper(level="inner")]).mean()
-        expected = df_multi.reset_index().groupby(["B", "inner"]).mean()
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df_multi.groupby(["B", pd.Grouper(level="inner")]).mean()
+            expected = df_multi.reset_index().groupby(["B", "inner"]).mean()
         tm.assert_frame_equal(result, expected)
 
         # Test the reverse grouping order
-        result = df_multi.groupby([pd.Grouper(level="inner"), "B"]).mean()
-        expected = df_multi.reset_index().groupby(["inner", "B"]).mean()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df_multi.groupby([pd.Grouper(level="inner"), "B"]).mean()
+            expected = df_multi.reset_index().groupby(["inner", "B"]).mean()
         tm.assert_frame_equal(result, expected)
 
         # Grouping a single-index frame by a column and the index should
         # be equivalent to resetting the index and grouping by two columns
         df_single = df_multi.reset_index("outer")
-        result = df_single.groupby(["B", pd.Grouper(level="inner")]).mean()
-        expected = df_single.reset_index().groupby(["B", "inner"]).mean()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df_single.groupby(["B", pd.Grouper(level="inner")]).mean()
+            expected = df_single.reset_index().groupby(["B", "inner"]).mean()
         tm.assert_frame_equal(result, expected)
 
         # Test the reverse grouping order
-        result = df_single.groupby([pd.Grouper(level="inner"), "B"]).mean()
-        expected = df_single.reset_index().groupby(["inner", "B"]).mean()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df_single.groupby([pd.Grouper(level="inner"), "B"]).mean()
+            expected = df_single.reset_index().groupby(["inner", "B"]).mean()
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_levels_and_columns(self):
@@ -376,8 +385,10 @@ class TestGrouping:
     def test_groupby_grouper(self, df):
         grouped = df.groupby("A")
 
-        result = df.groupby(grouped.grouper).mean()
-        expected = grouped.mean()
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.groupby(grouped.grouper).mean()
+            expected = grouped.mean()
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_dict_mapping(self):
@@ -460,7 +471,7 @@ class TestGrouping:
         tm.assert_frame_equal(result, expected)
 
         result = mframe.groupby(level=[-2, -1]).sum()
-        expected = mframe
+        expected = mframe.sort_index()
         tm.assert_frame_equal(result, expected)
 
         result = mframe.groupby(level=[-1, "first"]).sum()
@@ -669,7 +680,7 @@ class TestGrouping:
         # (not testing other agg fns, because they return
         # different index objects.
         df = DataFrame({1: [], 2: []})
-        g = df.groupby(1)
+        g = df.groupby(1, group_keys=False)
         result = getattr(g[2], func)(lambda x: x)
         tm.assert_series_equal(result, expected)
 

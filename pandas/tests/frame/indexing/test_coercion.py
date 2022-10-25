@@ -20,7 +20,6 @@ import pandas._testing as tm
 
 
 class TestDataFrameSetitemCoercion:
-    @pytest.mark.xfail(reason="Unnecessary cast.")
     @pytest.mark.parametrize("consolidate", [True, False])
     def test_loc_setitem_multiindex_columns(self, consolidate):
         # GH#18415 Setting values in a single column preserves dtype,
@@ -37,6 +36,7 @@ class TestDataFrameSetitemCoercion:
         assert (A.dtypes == np.float32).all()
 
         A.loc[0:5, (1, slice(2, 3))] = np.ones((6, 2), dtype=np.float32)
+
         assert (A.dtypes == np.float32).all()
 
         A.loc[:, (1, slice(2, 3))] = np.ones((6, 2), dtype=np.float32)
@@ -116,7 +116,6 @@ def test_15231():
     tm.assert_series_equal(df.dtypes, exp_dtypes)
 
 
-@pytest.mark.xfail(reason="Unnecessarily upcasts to float64")
 def test_iloc_setitem_unnecesssary_float_upcasting():
     # GH#12255
     df = DataFrame(
@@ -158,7 +157,6 @@ def test_12499():
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.xfail(reason="Too many columns cast to float64")
 def test_20476():
     mi = MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
     df = DataFrame(-1, index=range(3), columns=mi)

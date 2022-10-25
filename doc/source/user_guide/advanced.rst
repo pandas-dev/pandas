@@ -1246,5 +1246,5 @@ This is because the (re)indexing operations above silently inserts ``NaNs`` and 
 changes accordingly.  This can cause some issues when using ``numpy`` ``ufuncs``
 such as ``numpy.logical_and``.
 
-See the `this old issue <https://github.com/pydata/pandas/issues/2388>`__ for a more
+See the :issue:`2388` for a more
 detailed discussion.

@@ -18,7 +18,7 @@ structure.
 
     url = (
         "https://raw.github.com/pandas-dev"
-        "/pandas/master/pandas/tests/io/data/csv/tips.csv"
+        "/pandas/main/pandas/tests/io/data/csv/tips.csv"
     )
     tips = pd.read_csv(url)
     tips

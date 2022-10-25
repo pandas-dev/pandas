@@ -5,7 +5,10 @@ from __future__ import annotations
 
 import codecs
 import io
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 from pandas._typing import (
     CompressionOptions,
@@ -20,7 +23,6 @@ from pandas.util._decorators import doc
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.frame import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
@@ -29,8 +31,14 @@ from pandas.io.xml import (
     preprocess_data,
 )
 
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
-@doc(compression_options=_shared_docs["compression_options"] % "path_or_buffer")
+
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    compression_options=_shared_docs["compression_options"] % "path_or_buffer",
+)
 class BaseXMLFormatter:
     """
     Subclass for formatting data in XML.
@@ -59,7 +67,7 @@ class BaseXMLFormatter:
     elem_cols : list
         List of columns to write as children in row element.
 
-    namespacess : dict
+    namespaces : dict
         The namespaces to define in XML document as dicts with key
         being namespace and value the URI.
 
@@ -82,9 +90,7 @@ class BaseXMLFormatter:
 
         .. versionchanged:: 1.4.0 Zstandard support.
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection,
-        e.g. host, port, username, password, etc.,
+    {storage_options}
 
     See also
     --------
@@ -484,9 +490,9 @@ class LxmlXMLFormatter(BaseXMLFormatter):
 
     def convert_empty_str_key(self) -> None:
         """
-        Replace zero-lengh string in `namespaces`.
+        Replace zero-length string in `namespaces`.
 
-        This method will replce '' with None to align to `lxml`
+        This method will replace '' with None to align to `lxml`
         requirement that empty string prefixes are not allowed.
         """
 

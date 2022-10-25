@@ -5,18 +5,25 @@ inherit from this class.
 from __future__ import annotations
 
 from typing import (
+    Literal,
     TypeVar,
     final,
 )
 
+import numpy as np
+
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     DtypeObj,
     Shape,
 )
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    np_can_hold_element,
+)
 
 from pandas.core.base import PandasObject
 from pandas.core.indexes.api import (
@@ -50,7 +57,7 @@ class DataManager(PandasObject):
         return tuple(len(ax) for ax in self.axes)
 
     @final
-    def _validate_set_axis(self, axis: int, new_labels: Index) -> None:
+    def _validate_set_axis(self, axis: AxisInt, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
         old_len = len(self.axes[axis])
         new_len = len(new_labels)
@@ -70,11 +77,10 @@ class DataManager(PandasObject):
         self: T,
         new_axis,
         indexer,
-        axis: int,
+        axis: AxisInt,
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
-        consolidate: bool = True,
         only_slice: bool = False,
     ) -> T:
         raise AbstractMethodError(self)
@@ -83,9 +89,8 @@ class DataManager(PandasObject):
     def reindex_axis(
         self: T,
         new_index: Index,
-        axis: int,
+        axis: AxisInt,
         fill_value=None,
-        consolidate: bool = True,
         only_slice: bool = False,
     ) -> T:
         """
@@ -99,7 +104,6 @@ class DataManager(PandasObject):
             axis=axis,
             fill_value=fill_value,
             copy=False,
-            consolidate=consolidate,
             only_slice=only_slice,
         )
 
@@ -153,7 +157,9 @@ class DataManager(PandasObject):
 
 
 class SingleDataManager(DataManager):
-    ndim = 1
+    @property
+    def ndim(self) -> Literal[1]:
+        return 1
 
     @final
     @property
@@ -174,7 +180,15 @@ class SingleDataManager(DataManager):
         in place, not returning a new Manager (and Block), and thus never changing
         the dtype.
         """
-        self.array[indexer] = value
+        arr = self.array
+
+        # EAs will do this validation in their own __setitem__ methods.
+        if isinstance(arr, np.ndarray):
+            # Note: checking for ndarray instead of np.dtype means we exclude
+            #  dt64/td64, which do their own validation.
+            value = np_can_hold_element(arr.dtype, value)
+
+        arr[indexer] = value
 
     def grouped_reduce(self, func, ignore_failures: bool = False):
         """

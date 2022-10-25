@@ -11,10 +11,14 @@ from .tslib import (
 
 try:
     old_sig = False
-    from pandas._libs.tslibs.tzconversion import tz_convert_from_utc
+    from pandas._libs.tslibs import tz_convert_from_utc
 except ImportError:
-    old_sig = True
-    from pandas._libs.tslibs.tzconversion import tz_convert as tz_convert_from_utc
+    try:
+        old_sig = False
+        from pandas._libs.tslibs.tzconversion import tz_convert_from_utc
+    except ImportError:
+        old_sig = True
+        from pandas._libs.tslibs.tzconversion import tz_convert as tz_convert_from_utc
 
 
 class TimeTZConvert:
@@ -25,7 +29,7 @@ class TimeTZConvert:
     param_names = ["size", "tz"]
 
     def setup(self, size, tz):
-        if size == 10 ** 6 and tz is tzlocal_obj:
+        if size == 10**6 and tz is tzlocal_obj:
             # tzlocal is cumbersomely slow, so skip to keep runtime in check
             raise NotImplementedError
 

@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     Categorical,
     CategoricalIndex,
     Index,
@@ -238,7 +239,56 @@ Index classes are different
         )
 
 
+def test_assert_index_equal_different_inferred_types():
+    # GH#31884
+    msg = """\
+Index are different
+
+Attribute "inferred_type" are different
+\\[left\\]:  mixed
+\\[right\\]: datetime"""
+
+    idx1 = Index([NA, np.datetime64("nat")])
+    idx2 = Index([NA, NaT])
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_index_equal(idx1, idx2)
+
+
+def test_assert_index_equal_different_names_check_order_false():
+    # GH#47328
+    idx1 = Index([1, 3], name="a")
+    idx2 = Index([3, 1], name="b")
+    with pytest.raises(AssertionError, match='"names" are different'):
+        tm.assert_index_equal(idx1, idx2, check_order=False, check_names=True)
+
+
 def test_assert_index_equal_mixed_dtype():
     # GH#39168
     idx = Index(["foo", "bar", 42])
     tm.assert_index_equal(idx, idx, check_order=False)
+
+
+def test_assert_index_equal_ea_dtype_order_false(any_numeric_ea_dtype):
+    # GH#47207
+    idx1 = Index([1, 3], dtype=any_numeric_ea_dtype)
+    idx2 = Index([3, 1], dtype=any_numeric_ea_dtype)
+    tm.assert_index_equal(idx1, idx2, check_order=False)
+
+
+def test_assert_index_equal_object_ints_order_false():
+    # GH#47207
+    idx1 = Index([1, 3], dtype="object")
+    idx2 = Index([3, 1], dtype="object")
+    tm.assert_index_equal(idx1, idx2, check_order=False)
+
+
+@pytest.mark.parametrize("check_categorical", [True, False])
+@pytest.mark.parametrize("check_names", [True, False])
+def test_assert_ea_index_equal_non_matching_na(check_names, check_categorical):
+    # GH#48608
+    idx1 = Index([1, 2], dtype="Int64")
+    idx2 = Index([1, NA], dtype="Int64")
+    with pytest.raises(AssertionError, match="50.0 %"):
+        tm.assert_index_equal(
+            idx1, idx2, check_names=check_names, check_categorical=check_categorical
+        )

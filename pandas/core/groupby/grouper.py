@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
+    Iterator,
     final,
 )
 import warnings
@@ -16,6 +17,7 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
+    Axis,
     NDFrameT,
     npt,
 )
@@ -23,7 +25,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import sanitize_to_nanoseconds
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_list_like,
@@ -38,10 +39,7 @@ from pandas.core.arrays import (
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
-from pandas.core.groupby.categorical import (
-    recode_for_groupby,
-    recode_from_groupby,
-)
+from pandas.core.groupby.categorical import recode_for_groupby
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
@@ -257,13 +255,12 @@ class Grouper:
     Freq: 17T, dtype: int64
     """
 
-    axis: int
     sort: bool
     dropna: bool
     _gpr_index: Index | None
     _grouper: Index | None
 
-    _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
+    _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort", "dropna")
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get("freq") is not None:
@@ -278,15 +275,16 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        axis: int = 0,
+        axis: Axis = 0,
         sort: bool = False,
         dropna: bool = True,
-    ):
+    ) -> None:
         self.key = key
         self.level = level
         self.freq = freq
         self.axis = axis
         self.sort = sort
+        self.dropna = dropna
 
         self.grouper = None
         self._gpr_index = None
@@ -295,7 +293,6 @@ class Grouper:
         self.binner = None
         self._grouper = None
         self._indexer = None
-        self.dropna = dropna
 
     @final
     @property
@@ -339,7 +336,7 @@ class Grouper:
         return self.binner, self.grouper, self.obj  # type: ignore[return-value]
 
     @final
-    def _set_grouper(self, obj: NDFrame, sort: bool = False):
+    def _set_grouper(self, obj: NDFrame, sort: bool = False) -> None:
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -400,7 +397,7 @@ class Grouper:
                         raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
-        if (self.sort or sort) and not ax.is_monotonic:
+        if (self.sort or sort) and not ax.is_monotonic_increasing:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
             indexer = self.indexer = ax.array.argsort(
@@ -413,7 +410,6 @@ class Grouper:
         # "NDFrameT", variable has type "None")
         self.obj = obj  # type: ignore[assignment]
         self._gpr_index = ax
-        return self._gpr_index
 
     @final
     @property
@@ -459,10 +455,11 @@ class Grouping:
       * groups : dict of {group -> label_list}
     """
 
-    _codes: np.ndarray | None = None
+    _codes: npt.NDArray[np.signedinteger] | None = None
     _group_index: Index | None = None
     _passed_categorical: bool
     _all_grouper: Categorical | None
+    _orig_cats: Index | None
     _index: Index
 
     def __init__(
@@ -475,11 +472,12 @@ class Grouping:
         observed: bool = False,
         in_axis: bool = False,
         dropna: bool = True,
-    ):
+    ) -> None:
         self.level = level
         self._orig_grouper = grouper
         self.grouping_vector = _convert_grouper(index, grouper)
         self._all_grouper = None
+        self._orig_cats = None
         self._index = index
         self._sort = sort
         self.obj = obj
@@ -502,7 +500,7 @@ class Grouping:
                 self.grouping_vector,  # Index
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(mapper, level=ilevel)
+            ) = index._get_grouper_for_level(mapper, level=ilevel, dropna=dropna)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -530,6 +528,7 @@ class Grouping:
             # a passed Categorical
             self._passed_categorical = True
 
+            self._orig_cats = self.grouping_vector.categories
             self.grouping_vector, self._all_grouper = recode_for_groupby(
                 self.grouping_vector, sort, observed
             )
@@ -557,14 +556,17 @@ class Grouping:
                 raise AssertionError(errmsg)
 
         if isinstance(self.grouping_vector, np.ndarray):
-            # if we have a date/time-like grouper, make sure that we have
-            # Timestamps like
-            self.grouping_vector = sanitize_to_nanoseconds(self.grouping_vector)
+            if self.grouping_vector.dtype.kind in ["m", "M"]:
+                # if we have a date/time-like grouper, make sure that we have
+                # Timestamps like
+                # TODO 2022-10-08 we only have one test that gets here and
+                #  values are already in nanoseconds in that case.
+                self.grouping_vector = Series(self.grouping_vector).to_numpy()
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return iter(self.indices)
 
     @cache_readonly
@@ -614,7 +616,7 @@ class Grouping:
         return values._reverse_indexer()
 
     @property
-    def codes(self) -> np.ndarray:
+    def codes(self) -> npt.NDArray[np.signedinteger]:
         if self._codes is not None:
             # _codes is set in __init__ for MultiIndex cases
             return self._codes
@@ -644,7 +646,9 @@ class Grouping:
         if self._all_grouper is not None:
             group_idx = self.group_index
             assert isinstance(group_idx, CategoricalIndex)
-            return recode_from_groupby(self._all_grouper, self._sort, group_idx)
+            categories = self._all_grouper.categories
+            # set_categories is dynamically added
+            return group_idx.set_categories(categories)  # type: ignore[attr-defined]
         return self.group_index
 
     @cache_readonly
@@ -657,10 +661,11 @@ class Grouping:
         return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
-    def _codes_and_uniques(self) -> tuple[np.ndarray, ArrayLike]:
+    def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
         if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
-            # preserving the categories / ordered attributes
+            # preserving the categories / ordered attributes;
+            # doesn't (yet - GH#46909) handle dropna=False
             cat = self.grouping_vector
             categories = cat.categories
 
@@ -675,20 +680,24 @@ class Grouping:
             uniques = Categorical.from_codes(
                 codes=ucodes, categories=categories, ordered=cat.ordered
             )
+            if not self._observed:
+                uniques = uniques.reorder_categories(self._orig_cats)
             return cat.codes, uniques
 
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            uniques = self.grouping_vector.result_arraylike
+            # error: Incompatible types in assignment (expression has type "Union
+            # [ExtensionArray, ndarray[Any, Any]]", variable has type "Categorical")
+            uniques = (
+                self.grouping_vector.result_index._values  # type: ignore[assignment]
+            )
         else:
-            # GH35667, replace dropna=False with na_sentinel=None
-            if not self._dropna:
-                na_sentinel = None
-            else:
-                na_sentinel = -1
-            codes, uniques = algorithms.factorize(
-                self.grouping_vector, sort=self._sort, na_sentinel=na_sentinel
+            # GH35667, replace dropna=False with use_na_sentinel=False
+            # error: Incompatible types in assignment (expression has type "Union[
+            # ndarray[Any, Any], Index]", variable has type "Categorical")
+            codes, uniques = algorithms.factorize(  # type: ignore[assignment]
+                self.grouping_vector, sort=self._sort, use_na_sentinel=self._dropna
             )
         return codes, uniques
 
@@ -700,7 +709,7 @@ class Grouping:
 def get_grouper(
     obj: NDFrameT,
     key=None,
-    axis: int = 0,
+    axis: Axis = 0,
     level=None,
     sort: bool = True,
     observed: bool = False,
@@ -836,7 +845,11 @@ def get_grouper(
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
+
         if not _is_label_like(key):
+            if obj.ndim == 1:
+                return False
+
             # items -> .columns for DataFrame, .index for Series
             items = obj.axes[-1]
             try:
@@ -867,7 +880,7 @@ def get_grouper(
             exclusions.add(gpr.name)
 
         elif is_in_axis(gpr):  # df.groupby('name')
-            if gpr in obj:
+            if obj.ndim != 1 and gpr in obj:
                 if validate:
                     obj._check_label_or_level_ambiguity(gpr, axis=axis)
                 in_axis, name, gpr = True, gpr, obj[gpr]
@@ -943,7 +956,7 @@ def _convert_grouper(axis: Index, grouper):
         return grouper
 
 
-def _check_deprecated_resample_kwargs(kwargs, origin):
+def _check_deprecated_resample_kwargs(kwargs, origin) -> None:
     """
     Check for use of deprecated parameters in ``resample`` and related functions.
 

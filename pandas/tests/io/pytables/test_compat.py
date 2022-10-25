@@ -2,13 +2,12 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import ensure_clean_path
 
 tables = pytest.importorskip("tables")
 
 
 @pytest.fixture
-def pytables_hdf5_file():
+def pytables_hdf5_file(tmp_path):
     """
     Use PyTables to create a simple HDF5 file.
     """
@@ -23,22 +22,21 @@ def pytables_hdf5_file():
     testsamples = [
         {"c0": t0, "c1": "aaaaa", "c2": 1},
         {"c0": t0 + 1, "c1": "bbbbb", "c2": 2},
-        {"c0": t0 + 2, "c1": "ccccc", "c2": 10 ** 5},
+        {"c0": t0 + 2, "c1": "ccccc", "c2": 10**5},
         {"c0": t0 + 3, "c1": "ddddd", "c2": 4_294_967_295},
     ]
 
     objname = "pandas_test_timeseries"
 
-    with ensure_clean_path("written_with_pytables.h5") as path:
-        # The `ensure_clean_path` context mgr removes the temp file upon exit.
-        with tables.open_file(path, mode="w") as f:
-            t = f.create_table("/", name=objname, description=table_schema)
-            for sample in testsamples:
-                for key, value in sample.items():
-                    t.row[key] = value
-                t.row.append()
+    path = tmp_path / "written_with_pytables.h5"
+    with tables.open_file(path, mode="w") as f:
+        t = f.create_table("/", name=objname, description=table_schema)
+        for sample in testsamples:
+            for key, value in sample.items():
+                t.row[key] = value
+            t.row.append()
 
-        yield path, objname, pd.DataFrame(testsamples)
+    yield path, objname, pd.DataFrame(testsamples)
 
 
 class TestReadPyTablesHDF5:

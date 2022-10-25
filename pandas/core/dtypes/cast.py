@@ -20,6 +20,7 @@ from typing import (
 )
 import warnings
 
+from dateutil.parser import ParserError
 import numpy as np
 
 from pandas._libs import lib
@@ -29,7 +30,11 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
-    conversion,
+    astype_overflowsafe,
+    get_supported_reso,
+    get_unit_from_dtype,
+    is_supported_unit,
+    npy_unit_to_abbrev,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
@@ -38,7 +43,10 @@ from pandas._typing import (
     DtypeObj,
     Scalar,
 )
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    LossySetitemError,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
@@ -57,7 +65,6 @@ from pandas.core.dtypes.common import (
     is_complex,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -81,10 +88,12 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
+    ABCIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
@@ -93,7 +102,9 @@ from pandas.core.dtypes.missing import (
 
 if TYPE_CHECKING:
 
+    from pandas import Index
     from pandas.core.arrays import (
+        Categorical,
         DatetimeArray,
         ExtensionArray,
         IntervalArray,
@@ -211,7 +222,7 @@ def _maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     """
     if is_valid_na_for_dtype(value, dtype):
         # GH#36541: can't fill array directly with pd.NaT
-        # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
+        # > np.empty(10, dtype="datetime64[ns]").fill(pd.NaT)
         # ValueError: cannot convert float NaN to integer
         value = dtype.type("NaT", "ns")
     elif isinstance(value, Timestamp):
@@ -241,6 +252,16 @@ def _disallow_mismatched_datetimelike(value, dtype: DtypeObj):
         raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
 
 
+@overload
+def maybe_downcast_to_dtype(result: np.ndarray, dtype: str | np.dtype) -> np.ndarray:
+    ...
+
+
+@overload
+def maybe_downcast_to_dtype(result: ExtensionArray, dtype: str | np.dtype) -> ArrayLike:
+    ...
+
+
 def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLike:
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
@@ -257,7 +278,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
                 dtype = "int64"
             elif inferred_type == "datetime64":
                 dtype = "datetime64[ns]"
-            elif inferred_type == "timedelta64":
+            elif inferred_type in ["timedelta", "timedelta64"]:
                 dtype = "timedelta64[ns]"
 
             # try to upcast here
@@ -285,7 +306,29 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
         result = result.astype(dtype)
 
+    elif dtype.kind == "m" and result.dtype == _dtype_obj:
+        # test_where_downcast_to_td64
+        result = cast(np.ndarray, result)
+        result = array_to_timedelta64(result)
+
+    elif dtype == np.dtype("M8[ns]") and result.dtype == _dtype_obj:
+        return np.asarray(maybe_cast_to_datetime(result, dtype=dtype))
+
     return result
+
+
+@overload
+def maybe_downcast_numeric(
+    result: np.ndarray, dtype: np.dtype, do_round: bool = False
+) -> np.ndarray:
+    ...
+
+
+@overload
+def maybe_downcast_numeric(
+    result: ExtensionArray, dtype: DtypeObj, do_round: bool = False
+) -> ArrayLike:
+    ...
 
 
 def maybe_downcast_numeric(
@@ -354,7 +397,24 @@ def maybe_downcast_numeric(
         and not is_bool_dtype(result.dtype)
         and not is_string_dtype(result.dtype)
     ):
-        return result.astype(dtype)
+        new_result = result.astype(dtype)
+
+        # Adjust tolerances based on floating point size
+        size_tols = {4: 5e-4, 8: 5e-8, 16: 5e-16}
+
+        atol = size_tols.get(new_result.dtype.itemsize, 0.0)
+
+        # Check downcast float values are still equal within 7 digits when
+        # converting from float64 to float32
+        if np.allclose(new_result, result, equal_nan=True, rtol=0.0, atol=atol):
+            return new_result
+
+    elif dtype.kind == result.dtype.kind == "c":
+        new_result = result.astype(dtype)
+
+        if array_equivalent(new_result, result):
+            # TODO: use tolerance like we do for float?
+            return new_result
 
     return result
 
@@ -456,8 +516,13 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
     If we have a dtype that cannot hold NA values, find the best match that can.
     """
     if isinstance(dtype, ExtensionDtype):
-        # TODO: ExtensionDtype.can_hold_na?
-        return dtype
+        if dtype._can_hold_na:
+            return dtype
+        elif isinstance(dtype, IntervalDtype):
+            # TODO(GH#45349): don't special-case IntervalDtype, allow
+            #  overriding instead of returning object below.
+            return IntervalDtype(np.float64, closed=dtype.closed)
+        return _dtype_obj
     elif dtype.kind == "b":
         return _dtype_obj
     elif dtype.kind in ["i", "u"]:
@@ -531,6 +596,12 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         fv = na_value_for_dtype(dtype)
         return dtype, fv
 
+    elif isinstance(dtype, CategoricalDtype):
+        if fill_value in dtype.categories or isna(fill_value):
+            return dtype, fill_value
+        else:
+            return object, ensure_object(fill_value)
+
     elif isna(fill_value):
         dtype = _dtype_obj
         if fill_value is None:
@@ -575,7 +646,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             except (ValueError, TypeError):
                 pass
             else:
-                if fv.tz is None:
+                if isna(fv) or fv.tz is None:
                     return dtype, fv.asm8
 
         return np.dtype("object"), fill_value
@@ -731,6 +802,8 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
         if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
             dtype = np.dtype("M8[ns]")
             val = val.to_datetime64()
+            # TODO(2.0): this should be dtype = val.dtype
+            #  to get the correct M8 resolution
         else:
             if pandas_dtype:
                 dtype = DatetimeTZDtype(unit="ns", tz=val.tz)
@@ -919,7 +992,7 @@ def maybe_upcast(
     return upcast_values, fill_value  # type: ignore[return-value]
 
 
-def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
+def invalidate_string_dtypes(dtype_set: set[DtypeObj]) -> None:
     """
     Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
@@ -936,7 +1009,7 @@ def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
         raise TypeError("string dtypes are not allowed, use 'object' instead")
 
 
-def coerce_indexer_dtype(indexer, categories):
+def coerce_indexer_dtype(indexer, categories) -> np.ndarray:
     """coerce the indexer input array to the smallest dtype possible"""
     length = len(categories)
     if length < _int8_max:
@@ -1014,6 +1087,7 @@ def convert_dtypes(
     convert_integer: bool = True,
     convert_boolean: bool = True,
     convert_floating: bool = True,
+    infer_objects: bool = False,
 ) -> DtypeObj:
     """
     Convert objects to best possible type, and optionally,
@@ -1032,6 +1106,9 @@ def convert_dtypes(
         Whether, if possible, conversion can be done to floating extension types.
         If `convert_integer` is also True, preference will be give to integer
         dtypes if the floats can be faithfully casted to integers.
+    infer_objects : bool, defaults False
+        Whether to also infer objects to float/int if possible. Is only hit if the
+        object array contains pd.NA.
 
     Returns
     -------
@@ -1070,6 +1147,12 @@ def convert_dtypes(
                     inferred_dtype = target_int_dtype
                 else:
                     inferred_dtype = input_array.dtype
+            elif (
+                infer_objects
+                and is_object_dtype(input_array.dtype)
+                and inferred_dtype == "integer"
+            ):
+                inferred_dtype = target_int_dtype
 
         if convert_floating:
             if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(
@@ -1091,6 +1174,12 @@ def convert_dtypes(
                         inferred_dtype = inferred_float_dtype
                 else:
                     inferred_dtype = inferred_float_dtype
+            elif (
+                infer_objects
+                and is_object_dtype(input_array.dtype)
+                and inferred_dtype == "mixed-integer-float"
+            ):
+                inferred_dtype = pandas_dtype("Float64")
 
         if convert_boolean:
             if is_bool_dtype(input_array.dtype):
@@ -1224,13 +1313,15 @@ def maybe_infer_to_datetimelike(
 
 
 def maybe_cast_to_datetime(
-    value: ExtensionArray | np.ndarray | list, dtype: DtypeObj | None
+    value: ExtensionArray | np.ndarray | list, dtype: np.dtype | None
 ) -> ExtensionArray | np.ndarray:
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
 
     We allow a list *only* when dtype is not None.
+
+    Caller is responsible for handling ExtensionDtype cases.
     """
     from pandas.core.arrays.datetimes import sequence_to_datetimes
     from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -1240,20 +1331,24 @@ def maybe_cast_to_datetime(
 
     if is_timedelta64_dtype(dtype):
         # TODO: _from_sequence would raise ValueError in cases where
-        #  ensure_nanosecond_dtype raises TypeError
+        #  _ensure_nanosecond_dtype raises TypeError
         dtype = cast(np.dtype, dtype)
-        dtype = ensure_nanosecond_dtype(dtype)
+        # Incompatible types in assignment (expression has type "Union[dtype[Any],
+        # ExtensionDtype]", variable has type "Optional[dtype[Any]]")
+        dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
 
     if dtype is not None:
         is_datetime64 = is_datetime64_dtype(dtype)
-        is_datetime64tz = is_datetime64tz_dtype(dtype)
 
         vdtype = getattr(value, "dtype", None)
 
-        if is_datetime64 or is_datetime64tz:
-            dtype = ensure_nanosecond_dtype(dtype)
+        if is_datetime64:
+            # Incompatible types in assignment (expression has type
+            # "Union[dtype[Any], ExtensionDtype]", variable has type
+            # "Optional[dtype[Any]]")
+            dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
 
             value = np.array(value, copy=False)
 
@@ -1262,70 +1357,26 @@ def maybe_cast_to_datetime(
                 _disallow_mismatched_datetimelike(value, dtype)
 
                 try:
-                    if is_datetime64:
-                        dta = sequence_to_datetimes(value)
-                        # GH 25843: Remove tz information since the dtype
-                        # didn't specify one
+                    dta = sequence_to_datetimes(value)
+                    # GH 25843: Remove tz information since the dtype
+                    # didn't specify one
 
-                        if dta.tz is not None:
-                            warnings.warn(
-                                "Data is timezone-aware. Converting "
-                                "timezone-aware data to timezone-naive by "
-                                "passing dtype='datetime64[ns]' to "
-                                "DataFrame or Series is deprecated and will "
-                                "raise in a future version. Use "
-                                "`pd.Series(values).dt.tz_localize(None)` "
-                                "instead.",
-                                FutureWarning,
-                                stacklevel=find_stack_level(),
-                            )
-                            # equiv: dta.view(dtype)
-                            # Note: NOT equivalent to dta.astype(dtype)
-                            dta = dta.tz_localize(None)
+                    if dta.tz is not None:
+                        raise ValueError(
+                            "Cannot convert timezone-aware data to "
+                            "timezone-naive dtype. Use "
+                            "pd.Series(values).dt.tz_localize(None) instead."
+                        )
 
-                        value = dta
-                    elif is_datetime64tz:
-                        dtype = cast(DatetimeTZDtype, dtype)
-                        # The string check can be removed once issue #13712
-                        # is solved. String data that is passed with a
-                        # datetime64tz is assumed to be naive which should
-                        # be localized to the timezone.
-                        is_dt_string = is_string_dtype(value.dtype)
-                        dta = sequence_to_datetimes(value)
-                        if dta.tz is not None:
-                            value = dta.astype(dtype, copy=False)
-                        elif is_dt_string:
-                            # Strings here are naive, so directly localize
-                            # equiv: dta.astype(dtype)  # though deprecated
+                    # TODO(2.0): Do this astype in sequence_to_datetimes to
+                    #  avoid potential extra copy?
+                    dta = dta.astype(dtype, copy=False)
+                    value = dta
 
-                            value = dta.tz_localize(dtype.tz)
-                        else:
-                            # Numeric values are UTC at this point,
-                            # so localize and convert
-                            # equiv: Series(dta).astype(dtype) # though deprecated
-                            if getattr(vdtype, "kind", None) == "M":
-                                # GH#24559, GH#33401 deprecate behavior inconsistent
-                                #  with DatetimeArray/DatetimeIndex
-                                warnings.warn(
-                                    "In a future version, constructing a Series "
-                                    "from datetime64[ns] data and a "
-                                    "DatetimeTZDtype will interpret the data "
-                                    "as wall-times instead of "
-                                    "UTC times, matching the behavior of "
-                                    "DatetimeIndex. To treat the data as UTC "
-                                    "times, use pd.Series(data).dt"
-                                    ".tz_localize('UTC').tz_convert(dtype.tz) "
-                                    "or pd.Series(data.view('int64'), dtype=dtype)",
-                                    FutureWarning,
-                                    stacklevel=find_stack_level(),
-                                )
-
-                            value = dta.tz_localize("UTC").tz_convert(dtype.tz)
                 except OutOfBoundsDatetime:
                     raise
-                except ValueError:
-                    # TODO(GH#40048): only catch dateutil's ParserError
-                    #  once we can reliably import it in all supported versions
+                except ParserError:
+                    # Note: this is dateutil's ParserError, not ours.
                     pass
 
         elif getattr(vdtype, "kind", None) in ["m", "M"]:
@@ -1337,12 +1388,7 @@ def maybe_cast_to_datetime(
             return astype_nansafe(value, dtype)  # type: ignore[arg-type]
 
     elif isinstance(value, np.ndarray):
-        if value.dtype.kind in ["M", "m"]:
-            # catch a datetime/timedelta that is not of ns variety
-            # and no coercion specified
-            value = sanitize_to_nanoseconds(value)
-
-        elif value.dtype == _dtype_obj:
+        if value.dtype == _dtype_obj:
             value = maybe_infer_to_datetimelike(value)
 
     elif isinstance(value, list):
@@ -1361,10 +1407,10 @@ def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarra
     """
     dtype = values.dtype
     if dtype.kind == "M" and dtype != DT64NS_DTYPE:
-        values = conversion.ensure_datetime64ns(values)
+        values = astype_overflowsafe(values, dtype=DT64NS_DTYPE)
 
     elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
-        values = conversion.ensure_timedelta64ns(values)
+        values = astype_overflowsafe(values, dtype=TD64NS_DTYPE)
 
     elif copy:
         values = values.copy()
@@ -1372,14 +1418,17 @@ def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarra
     return values
 
 
-def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
+def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     """
     Convert dtypes with granularity less than nanosecond to nanosecond
 
-    >>> ensure_nanosecond_dtype(np.dtype("M8[s]"))
-    dtype('<M8[ns]')
+    >>> _ensure_nanosecond_dtype(np.dtype("M8[D]"))
+    dtype('<M8[s]')
 
-    >>> ensure_nanosecond_dtype(np.dtype("m8[ps]"))
+    >>> _ensure_nanosecond_dtype(np.dtype("M8[us]"))
+    dtype('<M8[us]')
+
+    >>> _ensure_nanosecond_dtype(np.dtype("m8[ps]"))
     Traceback (most recent call last):
         ...
     TypeError: cannot convert timedeltalike to dtype [timedelta64[ps]]
@@ -1396,13 +1445,15 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
         # i.e. datetime64tz
         pass
 
-    elif dtype.kind == "M" and dtype != DT64NS_DTYPE:
+    elif dtype.kind == "M" and not is_supported_unit(get_unit_from_dtype(dtype)):
         # pandas supports dtype whose granularity is less than [ns]
         # e.g., [ps], [fs], [as]
         if dtype <= np.dtype("M8[ns]"):
             if dtype.name == "datetime64":
                 raise ValueError(msg)
-            dtype = DT64NS_DTYPE
+            reso = get_supported_reso(get_unit_from_dtype(dtype))
+            unit = npy_unit_to_abbrev(reso)
+            dtype = np.dtype(f"M8[{unit}]")
         else:
             raise TypeError(f"cannot convert datetimelike to dtype [{dtype}]")
 
@@ -1412,7 +1463,9 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
         if dtype <= np.dtype("m8[ns]"):
             if dtype.name == "timedelta64":
                 raise ValueError(msg)
-            dtype = TD64NS_DTYPE
+            reso = get_supported_reso(get_unit_from_dtype(dtype))
+            unit = npy_unit_to_abbrev(reso)
+            dtype = np.dtype(f"m8[{unit}]")
         else:
             raise TypeError(f"cannot convert timedeltalike to dtype [{dtype}]")
     return dtype
@@ -1444,8 +1497,10 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
     """
     new_dtype: DtypeObj
 
-    if left.dtype.kind in ["i", "u", "c"] and (
-        lib.is_integer(right) or lib.is_float(right)
+    if (
+        isinstance(left, np.ndarray)
+        and left.dtype.kind in ["i", "u", "c"]
+        and (lib.is_integer(right) or lib.is_float(right))
     ):
         # e.g. with int8 dtype and right=512, we want to end up with
         # np.int16, whereas infer_dtype_from(512) gives np.int64,
@@ -1453,14 +1508,11 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
         if lib.is_float(right) and right.is_integer() and left.dtype.kind != "f":
             right = int(right)
 
-        # Argument 1 to "result_type" has incompatible type "Union[ExtensionArray,
-        # ndarray[Any, Any]]"; expected "Union[Union[_SupportsArray[dtype[Any]],
-        # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float, complex,
-        # str, bytes, _NestedSequence[Union[bool, int, float, complex, str, bytes]]],
-        # Union[dtype[Any], None, Type[Any], _SupportsDType[dtype[Any]], str,
-        # Union[Tuple[Any, int], Tuple[Any, Union[SupportsIndex,
-        # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any, Any]]]]"
-        new_dtype = np.result_type(left, right)  # type:ignore[arg-type]
+        new_dtype = np.result_type(left, right)
+
+    elif is_valid_na_for_dtype(right, left.dtype):
+        # e.g. IntervalDtype[int] and None/np.nan
+        new_dtype = ensure_dtype_can_hold_na(left.dtype)
 
     else:
         dtype, _ = infer_dtype_from(right, pandas_dtype=True)
@@ -1468,6 +1520,44 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
         new_dtype = find_common_type([left.dtype, dtype])
 
     return new_dtype
+
+
+def common_dtype_categorical_compat(
+    objs: list[Index | ArrayLike], dtype: DtypeObj
+) -> DtypeObj:
+    """
+    Update the result of find_common_type to account for NAs in a Categorical.
+
+    Parameters
+    ----------
+    objs : list[np.ndarray | ExtensionArray | Index]
+    dtype : np.dtype or ExtensionDtype
+
+    Returns
+    -------
+    np.dtype or ExtensionDtype
+    """
+    # GH#38240
+
+    # TODO: more generally, could do `not can_hold_na(dtype)`
+    if isinstance(dtype, np.dtype) and dtype.kind in ["i", "u"]:
+
+        for obj in objs:
+            # We don't want to accientally allow e.g. "categorical" str here
+            obj_dtype = getattr(obj, "dtype", None)
+            if isinstance(obj_dtype, CategoricalDtype):
+                if isinstance(obj, ABCIndex):
+                    # This check may already be cached
+                    hasnas = obj.hasnans
+                else:
+                    # Categorical
+                    hasnas = cast("Categorical", obj)._hasna
+
+                if hasnas:
+                    # see test_union_int_categorical_with_nan
+                    dtype = np.dtype(np.float64)
+                    break
+    return dtype
 
 
 @overload
@@ -1547,7 +1637,7 @@ def construct_2d_arraylike_from_scalar(
     shape = (length, width)
 
     if dtype.kind in ["m", "M"]:
-        value = _maybe_unbox_datetimelike_tz_deprecation(value, dtype)
+        value = _maybe_box_and_unbox_datetimelike(value, dtype)
     elif dtype == _dtype_obj:
         if isinstance(value, (np.timedelta64, np.datetime64)):
             # calling np.array below would cast to pytimedelta/pydatetime
@@ -1596,7 +1686,8 @@ def construct_1d_arraylike_from_scalar(
 
     if isinstance(dtype, ExtensionDtype):
         cls = dtype.construct_array_type()
-        subarr = cls._from_sequence([value] * length, dtype=dtype)
+        seq = [] if length == 0 else [value]
+        subarr = cls._from_sequence(seq, dtype=dtype).repeat(length)
 
     else:
 
@@ -1610,50 +1701,24 @@ def construct_1d_arraylike_from_scalar(
             if not isna(value):
                 value = ensure_str(value)
         elif dtype.kind in ["M", "m"]:
-            value = _maybe_unbox_datetimelike_tz_deprecation(value, dtype)
+            value = _maybe_box_and_unbox_datetimelike(value, dtype)
 
         subarr = np.empty(length, dtype=dtype)
-        subarr.fill(value)
+        if length:
+            # GH 47391: numpy > 1.24 will raise filling np.nan into int dtypes
+            subarr.fill(value)
 
     return subarr
 
 
-def _maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
-    """
-    Wrap _maybe_unbox_datetimelike with a check for a timezone-aware Timestamp
-    along with a timezone-naive datetime64 dtype, which is deprecated.
-    """
+def _maybe_box_and_unbox_datetimelike(value: Scalar, dtype: DtypeObj):
     # Caller is responsible for checking dtype.kind in ["m", "M"]
 
     if isinstance(value, datetime):
         # we dont want to box dt64, in particular datetime64("NaT")
         value = maybe_box_datetimelike(value, dtype)
 
-    try:
-        value = _maybe_unbox_datetimelike(value, dtype)
-    except TypeError:
-        if (
-            isinstance(value, Timestamp)
-            and value.tzinfo is not None
-            and isinstance(dtype, np.dtype)
-            and dtype.kind == "M"
-        ):
-            warnings.warn(
-                "Data is timezone-aware. Converting "
-                "timezone-aware data to timezone-naive by "
-                "passing dtype='datetime64[ns]' to "
-                "DataFrame or Series is deprecated and will "
-                "raise in a future version. Use "
-                "`pd.Series(values).dt.tz_localize(None)` "
-                "instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            new_value = value.tz_localize(None)
-            return _maybe_unbox_datetimelike(new_value, dtype)
-        else:
-            raise
-    return value
+    return _maybe_unbox_datetimelike(value, dtype)
 
 
 def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
@@ -1736,8 +1801,10 @@ def maybe_cast_to_integer_array(
             f"casted to the dtype {dtype}"
         ) from err
 
-    if np.array_equal(arr, casted):
-        return casted
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        if np.array_equal(arr, casted):
+            return casted
 
     # We do this casting to allow for proper
     # data and dtype checking.
@@ -1745,6 +1812,11 @@ def maybe_cast_to_integer_array(
     # We didn't do this earlier because NumPy
     # doesn't handle `uint64` correctly.
     arr = np.asarray(arr)
+
+    if np.issubdtype(arr.dtype, str):
+        if (casted.astype(str) == arr).all():
+            return casted
+        raise ValueError(f"string values cannot be losslessly cast to {dtype}")
 
     if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
         raise OverflowError("Trying to coerce negative values to unsigned integers")
@@ -1784,65 +1856,6 @@ def maybe_cast_to_integer_array(
     raise ValueError(f"values cannot be losslessly cast to {dtype}")
 
 
-def convert_scalar_for_putitemlike(scalar: Scalar, dtype: np.dtype) -> Scalar:
-    """
-    Convert datetimelike scalar if we are setting into a datetime64
-    or timedelta64 ndarray.
-
-    Parameters
-    ----------
-    scalar : scalar
-    dtype : np.dtype
-
-    Returns
-    -------
-    scalar
-    """
-    if dtype.kind in ["m", "M"]:
-        scalar = maybe_box_datetimelike(scalar, dtype)
-        return _maybe_unbox_datetimelike(scalar, dtype)
-    else:
-        _validate_numeric_casting(dtype, scalar)
-    return scalar
-
-
-def _validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
-    """
-    Check that we can losslessly insert the given value into an array
-    with the given dtype.
-
-    Parameters
-    ----------
-    dtype : np.dtype
-    value : scalar
-
-    Raises
-    ------
-    ValueError
-    """
-    # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-    # "Union[Union[str, int, float, bool], Union[Any, Timestamp, Timedelta, Any]]";
-    # expected "Union[Union[int, float, complex, str, bytes, generic],
-    # Sequence[Union[int, float, complex, str, bytes, generic]],
-    # Sequence[Sequence[Any]], _SupportsArray]"
-    if (
-        issubclass(dtype.type, (np.integer, np.bool_))
-        and is_float(value)
-        and np.isnan(value)  # type: ignore[arg-type]
-    ):
-        raise ValueError("Cannot assign nan to integer series")
-
-    elif dtype.kind in ["i", "u", "f", "c"]:
-        if is_bool(value) or isinstance(value, np.timedelta64):
-            # numpy will cast td64 to integer if we're not careful
-            raise ValueError(
-                f"Cannot assign {type(value).__name__} to float/integer series"
-            )
-    elif dtype.kind == "b":
-        if is_scalar(value) and not is_bool(value):
-            raise ValueError(f"Cannot assign {type(value).__name__} to bool series")
-
-
 def can_hold_element(arr: ArrayLike, element: Any) -> bool:
     """
     Can we do an inplace setitem with this element in an array with this dtype?
@@ -1868,6 +1881,8 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
                 arr._validate_setitem_value(element)
                 return True
             except (ValueError, TypeError):
+                # TODO(2.0): stop catching ValueError for tzaware, see
+                #  _catch_deprecated_value_error
                 return False
 
         # This is technically incorrect, but maintains the behavior of
@@ -1877,7 +1892,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
     try:
         np_can_hold_element(dtype, element)
         return True
-    except (TypeError, ValueError):
+    except (TypeError, LossySetitemError):
         return False
 
 
@@ -1907,7 +1922,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         if isinstance(element, range):
             if _dtype_can_hold_range(element, dtype):
                 return element
-            raise ValueError
+            raise LossySetitemError
 
         elif is_integer(element) or (is_float(element) and element.is_integer()):
             # e.g. test_setitem_series_int8 if we have a python int 1
@@ -1915,25 +1930,27 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             #  in smaller int dtypes.
             info = np.iinfo(dtype)
             if info.min <= element <= info.max:
-                return element
-            raise ValueError
+                return dtype.type(element)
+            raise LossySetitemError
 
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
                 if isinstance(element, np.ndarray) and element.dtype.kind == "f":
                     # If all can be losslessly cast to integers, then we can hold them
-                    #  We do something similar in putmask_smart
-                    casted = element.astype(dtype)
+                    with np.errstate(invalid="ignore"):
+                        # We check afterwards if cast was losslessly, so no need to show
+                        # the warning
+                        casted = element.astype(dtype)
                     comp = casted == element
                     if comp.all():
                         # Return the casted values bc they can be passed to
                         #  np.putmask, whereas the raw values cannot.
                         #  see TestSetitemFloatNDarrayIntoIntegerSeries
                         return casted
-                    raise ValueError
+                    raise LossySetitemError
 
                 # Anything other than integer we cannot hold
-                raise ValueError
+                raise LossySetitemError
             elif (
                 dtype.kind == "u"
                 and isinstance(element, np.ndarray)
@@ -1945,59 +1962,83 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     # TODO: faster to check (element >=0).all()?  potential
                     #  itemsize issues there?
                     return casted
-                raise ValueError
+                raise LossySetitemError
             elif dtype.itemsize < tipo.itemsize:
-                raise ValueError
+                raise LossySetitemError
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
-                hasnas = element._mask.any()
-                # TODO: don't rely on implementation detail
-                if hasnas:
-                    raise ValueError
+                if element._hasna:
+                    raise LossySetitemError
                 return element
 
             return element
 
-        raise ValueError
+        raise LossySetitemError
 
     elif dtype.kind == "f":
+        if lib.is_integer(element) or lib.is_float(element):
+            casted = dtype.type(element)
+            if np.isnan(casted) or casted == element:
+                return casted
+            # otherwise e.g. overflow see TestCoercionFloat32
+            raise LossySetitemError
+
         if tipo is not None:
             # TODO: itemsize check?
             if tipo.kind not in ["f", "i", "u"]:
                 # Anything other than float/integer we cannot hold
-                raise ValueError
+                raise LossySetitemError
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
-                hasnas = element._mask.any()
-                # TODO: don't rely on implementation detail
-                if hasnas:
-                    raise ValueError
+                if element._hasna:
+                    raise LossySetitemError
                 return element
+            elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
+                if isinstance(element, np.ndarray):
+                    # e.g. TestDataFrameIndexingWhere::test_where_alignment
+                    casted = element.astype(dtype)
+                    # TODO(np>=1.20): we can just use np.array_equal with equal_nan
+                    if array_equivalent(casted, element):
+                        return casted
+                    raise LossySetitemError
+
             return element
 
-        if lib.is_integer(element) or lib.is_float(element):
-            return element
-        raise ValueError
+        raise LossySetitemError
 
     elif dtype.kind == "c":
+        if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
+            if np.isnan(element):
+                # see test_where_complex GH#6345
+                return dtype.type(element)
+
+            casted = dtype.type(element)
+            if casted == element:
+                return casted
+            # otherwise e.g. overflow see test_32878_complex_itemsize
+            raise LossySetitemError
+
         if tipo is not None:
             if tipo.kind in ["c", "f", "i", "u"]:
                 return element
-            raise ValueError
-        if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
-            return element
-        raise ValueError
+            raise LossySetitemError
+        raise LossySetitemError
 
     elif dtype.kind == "b":
         if tipo is not None:
-            if tipo.kind == "b":  # FIXME: wrong with BooleanArray?
+            if tipo.kind == "b":
+                if not isinstance(tipo, np.dtype):
+                    # i.e. we have a BooleanArray
+                    if element._hasna:
+                        # i.e. there are pd.NA elements
+                        raise LossySetitemError
                 return element
-            raise ValueError
+            raise LossySetitemError
         if lib.is_bool(element):
             return element
-        raise ValueError
+        raise LossySetitemError
 
     elif dtype.kind == "S":
         # TODO: test tests.frame.methods.test_replace tests get here,
@@ -2005,10 +2046,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         if tipo is not None:
             if tipo.kind == "S" and tipo.itemsize <= dtype.itemsize:
                 return element
-            raise ValueError
+            raise LossySetitemError
         if isinstance(element, bytes) and len(element) <= dtype.itemsize:
             return element
-        raise ValueError
+        raise LossySetitemError
 
     raise NotImplementedError(dtype)
 

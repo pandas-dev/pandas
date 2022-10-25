@@ -35,7 +35,7 @@ ExtensionArray values are different \\(50\\.0 %\\)
 
 @pytest.mark.parametrize("decimals", range(10))
 def test_assert_extension_array_equal_less_precise(decimals):
-    rtol = 0.5 * 10 ** -decimals
+    rtol = 0.5 * 10**-decimals
     arr1 = SparseArray([0.5, 0.123456])
     arr2 = SparseArray([0.5, 0.123457])
 

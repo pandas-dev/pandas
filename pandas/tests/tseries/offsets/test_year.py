@@ -3,12 +3,13 @@ Tests for the following offsets:
 - YearBegin
 - YearEnd
 """
+from __future__ import annotations
+
 from datetime import datetime
 
 import pytest
 
 from pandas.tests.tseries.offsets.common import (
-    Base,
     assert_is_on_offset,
     assert_offset_equal,
 )
@@ -19,9 +20,7 @@ from pandas.tseries.offsets import (
 )
 
 
-class TestYearBegin(Base):
-    _offset = YearBegin
-
+class TestYearBegin:
     def test_misspecified(self):
         with pytest.raises(ValueError, match="Month must go from 1 to 12"):
             YearBegin(month=13)
@@ -173,9 +172,7 @@ class TestYearBegin(Base):
         assert_is_on_offset(offset, dt, expected)
 
 
-class TestYearEnd(Base):
-    _offset = YearEnd
-
+class TestYearEnd:
     def test_misspecified(self):
         with pytest.raises(ValueError, match="Month must go from 1 to 12"):
             YearEnd(month=13)
@@ -250,7 +247,7 @@ class TestYearEnd(Base):
         assert_is_on_offset(offset, dt, expected)
 
 
-class TestYearEndDiffMonth(Base):
+class TestYearEndDiffMonth:
     offset_cases = []
     offset_cases.append(
         (

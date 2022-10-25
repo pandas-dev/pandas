@@ -2,13 +2,17 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     Categorical,
+    Float64Dtype,
     Index,
     MultiIndex,
     NaT,
     Period,
     PeriodIndex,
     Series,
+    Timedelta,
+    Timestamp,
     date_range,
     isna,
 )
@@ -51,7 +55,7 @@ def test_reindex(datetime_series, string_series):
 
     # return a copy the same index here
     result = datetime_series.reindex()
-    assert not (result is datetime_series)
+    assert result is not datetime_series
 
 
 def test_reindex_nan():
@@ -296,6 +300,24 @@ def test_reindex_fill_value():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+@pytest.mark.parametrize("fill_value", ["string", 0, Timedelta(0)])
+def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_manager):
+    # https://github.com/pandas-dev/pandas/issues/42921
+    if using_array_manager:
+        pytest.skip("Array manager does not promote dtype, hence we fail")
+
+    if dtype == "timedelta64[ns]" and fill_value == Timedelta(0):
+        # use the scalar that is not compatible with the dtype for this test
+        fill_value = Timestamp(0)
+
+    ser = Series([NaT], dtype=dtype)
+
+    result = ser.reindex([0, 1], fill_value=fill_value)
+    expected = Series([None, fill_value], index=[0, 1], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
 def test_reindex_datetimeindexes_tz_naive_and_aware():
     # GH 8306
     idx = date_range("20131101", tz="America/Chicago", periods=7)
@@ -388,3 +410,16 @@ def test_reindex_missing_category():
     msg = r"Cannot setitem on a Categorical with a new category \(-1\)"
     with pytest.raises(TypeError, match=msg):
         ser.reindex([1, 2, 3, 4, 5], fill_value=-1)
+
+
+def test_reindexing_with_float64_NA_log():
+    # GH 47055
+    s = Series([1.0, NA], dtype=Float64Dtype())
+    s_reindex = s.reindex(range(3))
+    result = s_reindex.values._data
+    expected = np.array([1, np.NaN, np.NaN])
+    tm.assert_numpy_array_equal(result, expected)
+    with tm.assert_produces_warning(None):
+        result_log = np.log(s_reindex)
+        expected_log = Series([0, np.NaN, np.NaN], dtype=Float64Dtype())
+        tm.assert_series_equal(result_log, expected_log)

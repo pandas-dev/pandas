@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -6,6 +7,7 @@ from pandas import (
     Categorical,
     CategoricalIndex,
     Index,
+    IntervalIndex,
     Series,
     Timestamp,
 )
@@ -13,13 +15,6 @@ import pandas._testing as tm
 
 
 class TestCategoricalDtypes:
-    def test_is_dtype_equal_deprecated(self):
-        # GH#37545
-        c1 = Categorical(list("aabca"), categories=list("abc"), ordered=False)
-
-        with tm.assert_produces_warning(FutureWarning):
-            c1.is_dtype_equal(c1)
-
     def test_categories_match_up_to_permutation(self):
 
         # test dtype comparisons between cats
@@ -134,3 +129,13 @@ class TestCategoricalDtypes:
         cat = Categorical([Timestamp("2017-01-01"), Timestamp("2017-01-02")])
         assert isinstance(list(cat)[0], Timestamp)
         assert isinstance(cat.tolist()[0], Timestamp)
+
+    def test_interval_index_category(self):
+        # GH 38316
+        index = IntervalIndex.from_breaks(np.arange(3, dtype="uint64"))
+
+        result = CategoricalIndex(index).dtype.categories
+        expected = IntervalIndex.from_arrays(
+            [0, 1], [1, 2], dtype="interval[uint64, right]"
+        )
+        tm.assert_index_equal(result, expected)

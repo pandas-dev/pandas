@@ -74,10 +74,11 @@ applies only to certain dtypes.
 Extension types
 ---------------
 
-.. warning::
+.. note::
 
-   The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs are new and
-   experimental. They may change between versions without warning.
+   The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs were
+   experimental prior to pandas 1.5. Starting with version 1.5, future changes will follow
+   the :ref:`pandas deprecation policy <policies.version>`.
 
 pandas defines an interface for implementing data types and arrays that *extend*
 NumPy's type system. pandas itself uses the extension system for some types
@@ -468,7 +469,7 @@ This would be more or less equivalent to:
 The backend module can then use other visualization tools (Bokeh, Altair,...)
 to generate the plots.
 
-Libraries implementing the plotting backend should use `entry points <https://setuptools.readthedocs.io/en/latest/setuptools.html#dynamic-discovery-of-services-and-plugins>`__
+Libraries implementing the plotting backend should use `entry points <https://setuptools.pypa.io/en/latest/userguide/entry_point.html>`__
 to make their backend discoverable to pandas. The key is ``"pandas_plotting_backends"``. For example, pandas
 registers the default "matplotlib" backend as follows.
 

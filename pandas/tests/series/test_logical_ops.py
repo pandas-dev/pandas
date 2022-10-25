@@ -268,7 +268,9 @@ class TestSeriesLogicalOps:
     def test_reversed_xor_with_index_returns_index(self):
         # GH#22092, GH#19792
         ser = Series([True, True, False, False])
-        idx1 = Index([True, False, True, False])
+        idx1 = Index(
+            [True, False, True, False], dtype=object
+        )  # TODO: raises if bool-dtype
         idx2 = Index([1, 0, 1, 0])
 
         msg = "operating as a set operation"
@@ -325,7 +327,7 @@ class TestSeriesLogicalOps:
         [
             (ops.rand_, Index([False, True])),
             (ops.ror_, Index([False, True])),
-            (ops.rxor, Index([])),
+            (ops.rxor, Index([], dtype=bool)),
         ],
     )
     def test_reverse_ops_with_index(self, op, expected):

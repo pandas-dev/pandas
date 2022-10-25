@@ -193,7 +193,7 @@ def test_outside_int64_uint64_range(all_parsers, val):
 
 
 @skip_pyarrow
-@pytest.mark.parametrize("exp_data", [[str(-1), str(2 ** 63)], [str(2 ** 63), str(-1)]])
+@pytest.mark.parametrize("exp_data", [[str(-1), str(2**63)], [str(2**63), str(-1)]])
 def test_numeric_range_too_wide(all_parsers, exp_data):
     # No numerical dtype can hold both negative and uint64
     # values, so they should be cast as string.

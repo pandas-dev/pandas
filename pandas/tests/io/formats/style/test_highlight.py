@@ -12,9 +12,12 @@ pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
 
 
-@pytest.fixture
-def df():
-    return DataFrame({"A": [0, np.nan, 10], "B": [1, None, 2]})
+@pytest.fixture(params=[(None, "float64"), (NA, "Int64")])
+def df(request):
+    # GH 45804
+    return DataFrame(
+        {"A": [0, np.nan, 10], "B": [1, request.param[0], 2]}, dtype=request.param[1]
+    )
 
 
 @pytest.fixture
@@ -34,8 +37,8 @@ def test_highlight_null(styler):
 def test_highlight_null_subset(styler):
     # GH 31345
     result = (
-        styler.highlight_null(null_color="red", subset=["A"])
-        .highlight_null(null_color="green", subset=["B"])
+        styler.highlight_null(color="red", subset=["A"])
+        .highlight_null(color="green", subset=["B"])
         ._compute()
         .ctx
     )
@@ -185,7 +188,6 @@ def test_highlight_quantile(styler, kwargs):
     assert result == expected
 
 
-@pytest.mark.skipif(np.__version__[:4] in ["1.16", "1.17"], reason="Numpy Issue #14831")
 @pytest.mark.parametrize(
     "f,kwargs",
     [

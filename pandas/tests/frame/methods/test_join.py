@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import MergeError
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -12,6 +14,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.reshape.concat import concat
 
 
 @pytest.fixture
@@ -31,6 +34,39 @@ def left():
 @pytest.fixture
 def right():
     return DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
+
+
+@pytest.fixture
+def left_no_dup():
+    return DataFrame(
+        {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
+        index=range(4),
+    )
+
+
+@pytest.fixture
+def right_no_dup():
+    return DataFrame(
+        {
+            "a": ["a", "b", "c", "d", "e"],
+            "c": ["meow", "bark", "um... weasel noise?", "nay", "chirp"],
+        },
+        index=range(5),
+    ).set_index("a")
+
+
+@pytest.fixture
+def left_w_dups(left_no_dup):
+    return concat(
+        [left_no_dup, DataFrame({"a": ["a"], "b": ["cow"]}, index=[3])], sort=True
+    )
+
+
+@pytest.fixture
+def right_w_dups(right_no_dup):
+    return concat(
+        [right_no_dup, DataFrame({"a": ["e"], "c": ["moo"]}, index=[3])]
+    ).set_index("a")
 
 
 @pytest.mark.parametrize(
@@ -78,8 +114,136 @@ def right():
 )
 def test_join(left, right, how, sort, expected):
 
-    result = left.join(right, how=how, sort=sort)
+    result = left.join(right, how=how, sort=sort, validate="1:1")
     tm.assert_frame_equal(result, expected)
+
+
+def test_suffix_on_list_join():
+    first = DataFrame({"key": [1, 2, 3, 4, 5]})
+    second = DataFrame({"key": [1, 8, 3, 2, 5], "v1": [1, 2, 3, 4, 5]})
+    third = DataFrame({"keys": [5, 2, 3, 4, 1], "v2": [1, 2, 3, 4, 5]})
+
+    # check proper errors are raised
+    msg = "Suffixes not supported when joining multiple DataFrames"
+    with pytest.raises(ValueError, match=msg):
+        first.join([second], lsuffix="y")
+    with pytest.raises(ValueError, match=msg):
+        first.join([second, third], rsuffix="x")
+    with pytest.raises(ValueError, match=msg):
+        first.join([second, third], lsuffix="y", rsuffix="x")
+    with pytest.raises(ValueError, match="Indexes have overlapping values"):
+        first.join([second, third])
+
+    # no errors should be raised
+    arr_joined = first.join([third])
+    norm_joined = first.join(third)
+    tm.assert_frame_equal(arr_joined, norm_joined)
+
+
+def test_join_invalid_validate(left_no_dup, right_no_dup):
+    # GH 46622
+    # Check invalid arguments
+    msg = "Not a valid argument for validate"
+    with pytest.raises(ValueError, match=msg):
+        left_no_dup.merge(right_no_dup, on="a", validate="invalid")
+
+
+def test_join_on_single_col_dup_on_right(left_no_dup, right_w_dups):
+    # GH 46622
+    # Dups on right allowed by one_to_many constraint
+    left_no_dup.join(
+        right_w_dups,
+        on="a",
+        validate="one_to_many",
+    )
+
+    # Dups on right not allowed by one_to_one constraint
+    msg = "Merge keys are not unique in right dataset; not a one-to-one merge"
+    with pytest.raises(MergeError, match=msg):
+        left_no_dup.join(
+            right_w_dups,
+            on="a",
+            validate="one_to_one",
+        )
+
+
+def test_join_on_single_col_dup_on_left(left_w_dups, right_no_dup):
+    # GH 46622
+    # Dups on left allowed by many_to_one constraint
+    left_w_dups.join(
+        right_no_dup,
+        on="a",
+        validate="many_to_one",
+    )
+
+    # Dups on left not allowed by one_to_one constraint
+    msg = "Merge keys are not unique in left dataset; not a one-to-one merge"
+    with pytest.raises(MergeError, match=msg):
+        left_w_dups.join(
+            right_no_dup,
+            on="a",
+            validate="one_to_one",
+        )
+
+
+def test_join_on_single_col_dup_on_both(left_w_dups, right_w_dups):
+    # GH 46622
+    # Dups on both allowed by many_to_many constraint
+    left_w_dups.join(right_w_dups, on="a", validate="many_to_many")
+
+    # Dups on both not allowed by many_to_one constraint
+    msg = "Merge keys are not unique in right dataset; not a many-to-one merge"
+    with pytest.raises(MergeError, match=msg):
+        left_w_dups.join(
+            right_w_dups,
+            on="a",
+            validate="many_to_one",
+        )
+
+    # Dups on both not allowed by one_to_many constraint
+    msg = "Merge keys are not unique in left dataset; not a one-to-many merge"
+    with pytest.raises(MergeError, match=msg):
+        left_w_dups.join(
+            right_w_dups,
+            on="a",
+            validate="one_to_many",
+        )
+
+
+def test_join_on_multi_col_check_dup():
+    # GH 46622
+    # Two column join, dups in both, but jointly no dups
+    left = DataFrame(
+        {
+            "a": ["a", "a", "b", "b"],
+            "b": [0, 1, 0, 1],
+            "c": ["cat", "dog", "weasel", "horse"],
+        },
+        index=range(4),
+    ).set_index(["a", "b"])
+
+    right = DataFrame(
+        {
+            "a": ["a", "a", "b"],
+            "b": [0, 1, 0],
+            "d": ["meow", "bark", "um... weasel noise?"],
+        },
+        index=range(3),
+    ).set_index(["a", "b"])
+
+    expected_multi = DataFrame(
+        {
+            "a": ["a", "a", "b"],
+            "b": [0, 1, 0],
+            "c": ["cat", "dog", "weasel"],
+            "d": ["meow", "bark", "um... weasel noise?"],
+        },
+        index=range(3),
+    ).set_index(["a", "b"])
+
+    # Jointly no dups allowed by one_to_one constraint
+    result = left.join(right, how="inner", validate="1:1")
+    tm.assert_frame_equal(result, expected_multi)
 
 
 def test_join_index(float_frame):
@@ -203,6 +367,15 @@ def test_join_left_sequence_non_unique_index():
     tm.assert_frame_equal(joined, expected)
 
 
+def test_join_list_series(float_frame):
+    # GH#46850
+    # Join a DataFrame with a list containing both a Series and a DataFrame
+    left = float_frame.A.to_frame()
+    right = [float_frame.B, float_frame[["C", "D"]]]
+    result = left.join(right)
+    tm.assert_frame_equal(result, float_frame)
+
+
 @pytest.mark.parametrize("sort_kw", [True, False])
 def test_suppress_future_warning_with_sort_kw(sort_kw):
     a = DataFrame({"col1": [1, 2]}, index=["c", "a"])
@@ -322,6 +495,26 @@ class TestDataFrameJoin:
 
         tm.assert_frame_equal(df1.join(df2, how="right"), exp)
         tm.assert_frame_equal(df2.join(df1, how="left"), exp[["value2", "value1"]])
+
+    def test_join_multiindex_dates(self):
+        # GH 33692
+        date = pd.Timestamp(2000, 1, 1).date()
+
+        df1_index = MultiIndex.from_tuples([(0, date)], names=["index_0", "date"])
+        df1 = DataFrame({"col1": [0]}, index=df1_index)
+        df2_index = MultiIndex.from_tuples([(0, date)], names=["index_0", "date"])
+        df2 = DataFrame({"col2": [0]}, index=df2_index)
+        df3_index = MultiIndex.from_tuples([(0, date)], names=["index_0", "date"])
+        df3 = DataFrame({"col3": [0]}, index=df3_index)
+
+        result = df1.join([df2, df3])
+
+        expected_index = MultiIndex.from_tuples([(0, date)], names=["index_0", "date"])
+        expected = DataFrame(
+            {"col1": [0], "col2": [0], "col3": [0]}, index=expected_index
+        )
+
+        tm.assert_equal(result, expected)
 
     def test_merge_join_different_levels(self):
         # GH#9455

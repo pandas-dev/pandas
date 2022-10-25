@@ -14,6 +14,7 @@ from pandas import (
     Index,
     MultiIndex,
     RangeIndex,
+    Timestamp,
 )
 import pandas._testing as tm
 from pandas.core.indexes.frozen import FrozenList
@@ -157,10 +158,9 @@ def test_reconstruct_sort():
 
     # starts off lexsorted & monotonic
     mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
-    assert mi.is_monotonic
-
+    assert mi.is_monotonic_increasing
     recons = mi._sort_levels_monotonic()
-    assert recons.is_monotonic
+    assert recons.is_monotonic_increasing
     assert mi is recons
 
     assert mi.equals(recons)
@@ -171,11 +171,9 @@ def test_reconstruct_sort():
         [("z", "a"), ("x", "a"), ("y", "b"), ("x", "b"), ("y", "a"), ("z", "b")],
         names=["one", "two"],
     )
-    assert not mi.is_monotonic
-
+    assert not mi.is_monotonic_increasing
     recons = mi._sort_levels_monotonic()
-    assert not recons.is_monotonic
-
+    assert not recons.is_monotonic_increasing
     assert mi.equals(recons)
     assert Index(mi.values).equals(Index(recons.values))
 
@@ -185,11 +183,9 @@ def test_reconstruct_sort():
         codes=[[0, 1, 0, 2], [2, 0, 0, 1]],
         names=["col1", "col2"],
     )
-    assert not mi.is_monotonic
-
+    assert not mi.is_monotonic_increasing
     recons = mi._sort_levels_monotonic()
-    assert not recons.is_monotonic
-
+    assert not recons.is_monotonic_increasing
     assert mi.equals(recons)
     assert Index(mi.values).equals(Index(recons.values))
 
@@ -285,3 +281,26 @@ def test_remove_unused_levels_with_nan():
     result = idx.levels
     expected = FrozenList([["a", np.nan], [4]])
     assert str(result) == str(expected)
+
+
+def test_sort_values_nan():
+    # GH48495, GH48626
+    midx = MultiIndex(levels=[["A", "B", "C"], ["D"]], codes=[[1, 0, 2], [-1, -1, 0]])
+    result = midx.sort_values()
+    expected = MultiIndex(
+        levels=[["A", "B", "C"], ["D"]], codes=[[0, 1, 2], [-1, -1, 0]]
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_sort_values_incomparable():
+    # GH48495
+    mi = MultiIndex.from_arrays(
+        [
+            [1, Timestamp("2000-01-01")],
+            [3, 4],
+        ]
+    )
+    match = "'<' not supported between instances of 'Timestamp' and 'int'"
+    with pytest.raises(TypeError, match=match):
+        mi.sort_values()

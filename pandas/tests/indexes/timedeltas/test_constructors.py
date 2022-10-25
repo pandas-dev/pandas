@@ -51,7 +51,7 @@ class TestTimedeltaIndex:
         # GH#23539
         # fast-path for inferring a frequency if the passed data already
         #  has one
-        tdi = timedelta_range("1 second", periods=10 ** 7, freq="1s")
+        tdi = timedelta_range("1 second", periods=10**7, freq="1s")
 
         result = TimedeltaIndex(tdi, freq="infer")
         assert result.freq == tdi.freq
@@ -248,9 +248,13 @@ class TestTimedeltaIndex:
             pd.Index(["2000"], dtype="timedelta64")
 
     def test_constructor_wrong_precision_raises(self):
-        msg = r"dtype timedelta64\[us\] cannot be converted to timedelta64\[ns\]"
+        msg = r"dtype timedelta64\[D\] cannot be converted to timedelta64\[ns\]"
         with pytest.raises(ValueError, match=msg):
-            TimedeltaIndex(["2000"], dtype="timedelta64[us]")
+            TimedeltaIndex(["2000"], dtype="timedelta64[D]")
+
+        # "timedelta64[us]" was unsupported pre-2.0, but now this works.
+        tdi = TimedeltaIndex(["2000"], dtype="timedelta64[us]")
+        assert tdi.dtype == "m8[us]"
 
     def test_explicit_none_freq(self):
         # Explicitly passing freq=None is respected
@@ -262,6 +266,9 @@ class TestTimedeltaIndex:
 
         result = TimedeltaIndex(tdi._data, freq=None)
         assert result.freq is None
+
+        tda = TimedeltaArray(tdi, freq=None)
+        assert tda.freq is None
 
     def test_from_categorical(self):
         tdi = timedelta_range(1, periods=5)

@@ -20,11 +20,10 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_path,
     ensure_clean_store,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 @pytest.mark.filterwarnings("ignore:object name:tables.exceptions.NaturalNameWarning")
@@ -77,10 +76,10 @@ def test_append(setup_path):
                         np.random.randint(0, high=65535, size=5), dtype=np.uint16
                     ),
                     "u32": Series(
-                        np.random.randint(0, high=2 ** 30, size=5), dtype=np.uint32
+                        np.random.randint(0, high=2**30, size=5), dtype=np.uint32
                     ),
                     "u64": Series(
-                        [2 ** 58, 2 ** 59, 2 ** 60, 2 ** 61, 2 ** 62],
+                        [2**58, 2**59, 2**60, 2**61, 2**62],
                         dtype=np.uint64,
                     ),
                 },
@@ -168,7 +167,7 @@ def test_append_some_nans(setup_path):
 
         # first column
         df1 = df.copy()
-        df1.loc[:, "A1"] = np.nan
+        df1["A1"] = np.nan
         _maybe_remove(store, "df1")
         store.append("df1", df1[:10])
         store.append("df1", df1[10:])
@@ -176,7 +175,7 @@ def test_append_some_nans(setup_path):
 
         # 2nd column
         df2 = df.copy()
-        df2.loc[:, "A2"] = np.nan
+        df2["A2"] = np.nan
         _maybe_remove(store, "df2")
         store.append("df2", df2[:10])
         store.append("df2", df2[10:])
@@ -184,7 +183,7 @@ def test_append_some_nans(setup_path):
 
         # datetimes
         df3 = df.copy()
-        df3.loc[:, "E"] = np.nan
+        df3["E"] = np.nan
         _maybe_remove(store, "df3")
         store.append("df3", df3[:10])
         store.append("df3", df3[10:])
@@ -214,66 +213,66 @@ def test_append_all_nans(setup_path):
         tm.assert_frame_equal(store["df2"], df)
 
         # tests the option io.hdf.dropna_table
-        pd.set_option("io.hdf.dropna_table", False)
-        _maybe_remove(store, "df3")
-        store.append("df3", df[:10])
-        store.append("df3", df[10:])
-        tm.assert_frame_equal(store["df3"], df)
+        with pd.option_context("io.hdf.dropna_table", False):
+            _maybe_remove(store, "df3")
+            store.append("df3", df[:10])
+            store.append("df3", df[10:])
+            tm.assert_frame_equal(store["df3"], df)
 
-        pd.set_option("io.hdf.dropna_table", True)
-        _maybe_remove(store, "df4")
-        store.append("df4", df[:10])
-        store.append("df4", df[10:])
-        tm.assert_frame_equal(store["df4"], df[-4:])
+        with pd.option_context("io.hdf.dropna_table", True):
+            _maybe_remove(store, "df4")
+            store.append("df4", df[:10])
+            store.append("df4", df[10:])
+            tm.assert_frame_equal(store["df4"], df[-4:])
 
-        # nan some entire rows (string are still written!)
-        df = DataFrame(
-            {
-                "A1": np.random.randn(20),
-                "A2": np.random.randn(20),
-                "B": "foo",
-                "C": "bar",
-            },
-            index=np.arange(20),
-        )
+            # nan some entire rows (string are still written!)
+            df = DataFrame(
+                {
+                    "A1": np.random.randn(20),
+                    "A2": np.random.randn(20),
+                    "B": "foo",
+                    "C": "bar",
+                },
+                index=np.arange(20),
+            )
 
-        df.loc[0:15, :] = np.nan
+            df.loc[0:15, :] = np.nan
 
-        _maybe_remove(store, "df")
-        store.append("df", df[:10], dropna=True)
-        store.append("df", df[10:], dropna=True)
-        tm.assert_frame_equal(store["df"], df)
+            _maybe_remove(store, "df")
+            store.append("df", df[:10], dropna=True)
+            store.append("df", df[10:], dropna=True)
+            tm.assert_frame_equal(store["df"], df)
 
-        _maybe_remove(store, "df2")
-        store.append("df2", df[:10], dropna=False)
-        store.append("df2", df[10:], dropna=False)
-        tm.assert_frame_equal(store["df2"], df)
+            _maybe_remove(store, "df2")
+            store.append("df2", df[:10], dropna=False)
+            store.append("df2", df[10:], dropna=False)
+            tm.assert_frame_equal(store["df2"], df)
 
-        # nan some entire rows (but since we have dates they are still
-        # written!)
-        df = DataFrame(
-            {
-                "A1": np.random.randn(20),
-                "A2": np.random.randn(20),
-                "B": "foo",
-                "C": "bar",
-                "D": Timestamp("20010101"),
-                "E": datetime.datetime(2001, 1, 2, 0, 0),
-            },
-            index=np.arange(20),
-        )
+            # nan some entire rows (but since we have dates they are still
+            # written!)
+            df = DataFrame(
+                {
+                    "A1": np.random.randn(20),
+                    "A2": np.random.randn(20),
+                    "B": "foo",
+                    "C": "bar",
+                    "D": Timestamp("20010101"),
+                    "E": datetime.datetime(2001, 1, 2, 0, 0),
+                },
+                index=np.arange(20),
+            )
 
-        df.loc[0:15, :] = np.nan
+            df.loc[0:15, :] = np.nan
 
-        _maybe_remove(store, "df")
-        store.append("df", df[:10], dropna=True)
-        store.append("df", df[10:], dropna=True)
-        tm.assert_frame_equal(store["df"], df)
+            _maybe_remove(store, "df")
+            store.append("df", df[:10], dropna=True)
+            store.append("df", df[10:], dropna=True)
+            tm.assert_frame_equal(store["df"], df)
 
-        _maybe_remove(store, "df2")
-        store.append("df2", df[:10], dropna=False)
-        store.append("df2", df[10:], dropna=False)
-        tm.assert_frame_equal(store["df2"], df)
+            _maybe_remove(store, "df2")
+            store.append("df2", df[:10], dropna=False)
+            store.append("df2", df[10:], dropna=False)
+            tm.assert_frame_equal(store["df2"], df)
 
 
 def test_append_frame_column_oriented(setup_path):
@@ -436,9 +435,6 @@ def test_append_with_strings(setup_path):
             tm.assert_frame_equal(result, df)
 
     with ensure_clean_store(setup_path) as store:
-
-        def check_col(key, name, size):
-            assert getattr(store.get_storer(key).table.description, name).itemsize, size
 
         df = DataFrame({"A": "foo", "B": "bar"}, index=range(10))
 
@@ -622,7 +618,7 @@ def test_append_with_data_columns(setup_path):
         df_dc["string"] = "foo"
         df_dc.loc[df_dc.index[4:6], "string"] = np.nan
         df_dc.loc[df_dc.index[7:9], "string"] = "bar"
-        df_dc.loc[:, ["B", "C"]] = df_dc.loc[:, ["B", "C"]].abs()
+        df_dc[["B", "C"]] = df_dc[["B", "C"]].abs()
         df_dc["string2"] = "cool"
 
         # on-disk operations
@@ -637,7 +633,7 @@ def test_append_with_data_columns(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_append_hierarchical(setup_path, multiindex_dataframe_random_data):
+def test_append_hierarchical(tmp_path, setup_path, multiindex_dataframe_random_data):
     df = multiindex_dataframe_random_data
     df.columns.name = None
 
@@ -651,11 +647,11 @@ def test_append_hierarchical(setup_path, multiindex_dataframe_random_data):
         expected = df.reindex(columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
-    with ensure_clean_path("test.hdf") as path:
-        df.to_hdf(path, "df", format="table")
-        result = read_hdf(path, "df", columns=["A", "B"])
-        expected = df.reindex(columns=["A", "B"])
-        tm.assert_frame_equal(result, expected)
+    path = tmp_path / "test.hdf"
+    df.to_hdf(path, "df", format="table")
+    result = read_hdf(path, "df", columns=["A", "B"])
+    expected = df.reindex(columns=["A", "B"])
+    tm.assert_frame_equal(result, expected)
 
 
 def test_append_misc(setup_path):
@@ -898,8 +894,9 @@ def test_append_to_multiple_dropna_false(setup_path):
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
     df = concat([df1, df2], axis=1)
 
-    with ensure_clean_store(setup_path) as store:
-
+    with ensure_clean_store(setup_path) as store, pd.option_context(
+        "io.hdf.dropna_table", True
+    ):
         # dropna=False shouldn't synchronize row indexes
         store.append_to_multiple(
             {"df1a": ["A", "B"], "df2a": None}, df, selector="df1a", dropna=False

@@ -1,5 +1,5 @@
 # This file helps to compute a version number in source trees obtained from
-# git-archive tarball (such as those provided by githubs download-from-tag
+# git-archive tarball (such as those provided by GitHub's download-from-tag
 # feature). Distribution tarballs (built by setup.py sdist) and build
 # directories (produced by setup.py build) will contain a much shorter file
 # that just contains the computed version number.
@@ -199,7 +199,7 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
         # refs/heads/ and refs/tags/ prefixes that would let us distinguish
         # between branches and tags. By ignoring refnames without digits, we
         # filter out many common branch names like "release" and
-        # "stabilization", as well as "HEAD" and "master".
+        # "stabilization", as well as "HEAD" and "main".
         tags = {r for r in refs if re.search(r"\d", r)}
         if verbose:
             print("discarding '%s', no digits" % ",".join(refs - tags))
@@ -334,7 +334,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
     return pieces
 
 
-def plus_or_dot(pieces):
+def plus_or_dot(pieces) -> str:
     """Return a + if we don't already have one, else return a ."""
     if "+" in pieces.get("closest-tag", ""):
         return "."

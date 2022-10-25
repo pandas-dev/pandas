@@ -18,9 +18,32 @@ def test_size(df, by):
         assert result[key] == len(group)
 
 
+@pytest.mark.parametrize(
+    "by",
+    [
+        [0, 0, 0, 0],
+        [0, 1, 1, 1],
+        [1, 0, 1, 1],
+        [0, None, None, None],
+        pytest.param([None, None, None, None], marks=pytest.mark.xfail),
+    ],
+)
+def test_size_axis_1(df, axis_1, by, sort, dropna):
+    # GH#45715
+    counts = {key: sum(value == key for value in by) for key in dict.fromkeys(by)}
+    if dropna:
+        counts = {key: value for key, value in counts.items() if key is not None}
+    expected = Series(counts, dtype="int64")
+    if sort:
+        expected = expected.sort_index()
+    grouped = df.groupby(by=by, axis=axis_1, sort=sort, dropna=dropna)
+    result = grouped.size()
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("by", ["A", "B", ["A", "B"]])
 @pytest.mark.parametrize("sort", [True, False])
-def test_size_sort(df, sort, by):
+def test_size_sort(sort, by):
     df = DataFrame(np.random.choice(20, (1000, 3)), columns=list("ABC"))
     left = df.groupby(by=by, sort=sort).size()
     right = df.groupby(by=by, sort=sort)["C"].apply(lambda a: a.shape[0])

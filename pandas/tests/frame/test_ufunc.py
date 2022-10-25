@@ -1,9 +1,10 @@
 from functools import partial
+import re
 
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_is1p22
+from pandas.compat.numpy import np_version_gte1p22
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -81,7 +82,7 @@ def test_binary_input_dispatch_binop(dtype):
         ),
     ],
 )
-def test_ufunc_passes_args(func, arg, expected, request):
+def test_ufunc_passes_args(func, arg, expected):
     # GH#40662
     arr = np.array([[1, 2], [3, 4]])
     df = pd.DataFrame(arr)
@@ -262,13 +263,7 @@ def test_alignment_deprecation_many_inputs(request):
         vectorize,
     )
 
-    if np_version_is1p22:
-        mark = pytest.mark.xfail(
-            reason="ufunc 'my_ufunc' did not contain a loop with signature matching "
-            "types",
-        )
-        request.node.add_marker(mark)
-
+    if np_version_gte1p22:
         mark = pytest.mark.filterwarnings(
             "ignore:`np.MachAr` is deprecated.*:DeprecationWarning"
         )
@@ -307,3 +302,24 @@ def test_alignment_deprecation_many_inputs(request):
         result = my_ufunc(df1.values, df2, df3)
     expected = expected.set_axis(["b", "c"], axis=1)
     tm.assert_frame_equal(result, expected)
+
+
+def test_array_ufuncs_for_many_arguments():
+    # GH39853
+    def add3(x, y, z):
+        return x + y + z
+
+    ufunc = np.frompyfunc(add3, 3, 1)
+    df = pd.DataFrame([[1, 2], [3, 4]])
+
+    result = ufunc(df, df, 1)
+    expected = pd.DataFrame([[3, 5], [7, 9]], dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+    ser = pd.Series([1, 2])
+    msg = (
+        "Cannot apply ufunc <ufunc 'add3 (vectorized)'> "
+        "to mixed DataFrame and Series inputs."
+    )
+    with pytest.raises(NotImplementedError, match=re.escape(msg)):
+        ufunc(df, df, ser)

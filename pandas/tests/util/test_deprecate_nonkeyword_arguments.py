@@ -2,6 +2,7 @@
 Tests for the `deprecate_nonkeyword_arguments` decorator
 """
 
+import inspect
 import warnings
 
 from pandas.util._decorators import deprecate_nonkeyword_arguments
@@ -9,9 +10,15 @@ from pandas.util._decorators import deprecate_nonkeyword_arguments
 import pandas._testing as tm
 
 
-@deprecate_nonkeyword_arguments(version="1.1", allowed_args=["a", "b"])
+@deprecate_nonkeyword_arguments(
+    version="1.1", allowed_args=["a", "b"], name="f_add_inputs"
+)
 def f(a, b=0, c=0, d=0):
     return a + b + c + d
+
+
+def test_f_signature():
+    assert str(inspect.signature(f)) == "(a, b=0, *, c=0, d=0)"
 
 
 def test_one_argument():
@@ -44,10 +51,27 @@ def test_four_arguments():
         assert f(1, 2, 3, 4) == 10
 
 
+def test_three_arguments_with_name_in_warning():
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        assert f(6, 3, 3) == 12
+        assert len(w) == 1
+        for actual_warning in w:
+            assert actual_warning.category == FutureWarning
+            assert str(actual_warning.message) == (
+                "Starting with pandas version 1.1 all arguments of f_add_inputs "
+                "except for the arguments 'a' and 'b' will be keyword-only."
+            )
+
+
 @deprecate_nonkeyword_arguments(version="1.1")
 def g(a, b=0, c=0, d=0):
     with tm.assert_produces_warning(None):
         return a + b + c + d
+
+
+def test_g_signature():
+    assert str(inspect.signature(g)) == "(a, *, b=0, c=0, d=0)"
 
 
 def test_one_and_three_arguments_default_allowed_args():
@@ -78,6 +102,10 @@ def h(a=0, b=0, c=0, d=0):
     return a + b + c + d
 
 
+def test_h_signature():
+    assert str(inspect.signature(h)) == "(*, a=0, b=0, c=0, d=0)"
+
+
 def test_all_keyword_arguments():
     with tm.assert_produces_warning(None):
         assert h(a=1, b=2) == 3
@@ -101,10 +129,23 @@ def test_one_positional_argument_with_warning_message_analysis():
             )
 
 
+@deprecate_nonkeyword_arguments(version="1.1")
+def i(a=0, /, b=0, *, c=0, d=0):
+    return a + b + c + d
+
+
+def test_i_signature():
+    assert str(inspect.signature(i)) == "(*, a=0, b=0, c=0, d=0)"
+
+
 class Foo:
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "bar"])
     def baz(self, bar=None, foobar=None):
         ...
+
+
+def test_foo_signature():
+    assert str(inspect.signature(Foo.baz)) == "(self, bar=None, *, foobar=None)"
 
 
 def test_class():

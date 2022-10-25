@@ -1,25 +1,28 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
+from base64 import decode
+from collections import defaultdict
 from csv import (
     QUOTE_MINIMAL,
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
 from errno import ENOENT
+import inspect
 import sys
 import time
 import warnings
 
-from libc.stdlib cimport free
-from libc.string cimport (
-    strcasecmp,
-    strlen,
-    strncpy,
+from pandas.util._exceptions import find_stack_level
+
+from pandas import StringDtype
+from pandas.core.arrays import (
+    BooleanArray,
+    FloatingArray,
+    IntegerArray,
 )
 
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.bytes cimport (
     PyBytes_AsString,
     PyBytes_FromString,
@@ -37,6 +40,13 @@ from cpython.unicode cimport (
     PyUnicode_AsUTF8String,
     PyUnicode_Decode,
     PyUnicode_DecodeUTF8,
+)
+from cython cimport Py_ssize_t
+from libc.stdlib cimport free
+from libc.string cimport (
+    strcasecmp,
+    strlen,
+    strncpy,
 )
 
 
@@ -332,6 +342,7 @@ cdef class TextReader:
         object index_col
         object skiprows
         object dtype
+        bint use_nullable_dtypes
         object usecols
         set unnamed_cols  # set[str]
 
@@ -370,7 +381,8 @@ cdef class TextReader:
                   bint mangle_dupe_cols=True,
                   float_precision=None,
                   bint skip_blank_lines=True,
-                  encoding_errors=b"strict"):
+                  encoding_errors=b"strict",
+                  use_nullable_dtypes=False):
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -495,6 +507,7 @@ cdef class TextReader:
         # - DtypeObj
         # - dict[Any, DtypeObj]
         self.dtype = dtype
+        self.use_nullable_dtypes = use_nullable_dtypes
 
         # XXX
         self.noconvert = set()
@@ -731,6 +744,8 @@ cdef class TextReader:
         elif self.names is not None:
             # Names passed
             if self.parser.lines < 1:
+                if not self.has_usecols:
+                    self.parser.expected_fields = len(self.names)
                 self._tokenize_rows(1)
 
             header = [self.names]
@@ -743,6 +758,7 @@ cdef class TextReader:
             # Enforce this unless usecols
             if not self.has_usecols:
                 self.parser.expected_fields = max(field_count, len(self.names))
+
         else:
             # No header passed nor to be found in the file
             if self.parser.lines < 1:
@@ -839,7 +855,9 @@ cdef class TextReader:
             status = tokenize_nrows(self.parser, nrows, self.encoding_errors)
 
         if self.parser.warn_msg != NULL:
-            print(self.parser.warn_msg, file=sys.stderr)
+            print(PyUnicode_DecodeUTF8(
+                self.parser.warn_msg, strlen(self.parser.warn_msg),
+                self.encoding_errors), file=sys.stderr)
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
 
@@ -868,7 +886,9 @@ cdef class TextReader:
                 status = tokenize_all_rows(self.parser, self.encoding_errors)
 
             if self.parser.warn_msg != NULL:
-                print(self.parser.warn_msg, file=sys.stderr)
+                print(PyUnicode_DecodeUTF8(
+                    self.parser.warn_msg, strlen(self.parser.warn_msg),
+                    self.encoding_errors), file=sys.stderr)
                 free(self.parser.warn_msg)
                 self.parser.warn_msg = NULL
 
@@ -919,6 +939,7 @@ cdef class TextReader:
             bint na_filter = 0
             int64_t num_cols
             dict result
+            bint use_nullable_dtypes
 
         start = self.parser_start
 
@@ -954,11 +975,13 @@ cdef class TextReader:
                     "Defining usecols with out of bounds indices is deprecated "
                     "and will raise a ParserError in a future version.",
                     FutureWarning,
-                    stacklevel=6,
+                    stacklevel=find_stack_level(),
                 )
 
         results = {}
         nused = 0
+        is_default_dict_dtype = isinstance(self.dtype, defaultdict)
+
         for i in range(self.table_width):
             if i < self.leading_cols:
                 # Pass through leading columns always
@@ -989,6 +1012,8 @@ cdef class TextReader:
                         col_dtype = self.dtype[name]
                     elif i in self.dtype:
                         col_dtype = self.dtype[i]
+                    elif is_default_dict_dtype:
+                        col_dtype = self.dtype[name]
                 else:
                     if self.dtype.names:
                         # structured array
@@ -1001,7 +1026,7 @@ cdef class TextReader:
                     warnings.warn((f"Both a converter and dtype were specified "
                                    f"for column {name} - only the converter will "
                                    f"be used."), ParserWarning,
-                                  stacklevel=5)
+                                  stacklevel=find_stack_level())
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
@@ -1035,8 +1060,14 @@ cdef class TextReader:
                     self._free_na_set(na_hashset)
 
             # don't try to upcast EAs
-            if na_count > 0 and not is_extension_array_dtype(col_dtype):
-                col_res = _maybe_upcast(col_res)
+            if (
+                na_count > 0 and not is_extension_array_dtype(col_dtype)
+                or self.use_nullable_dtypes
+            ):
+                use_nullable_dtypes = self.use_nullable_dtypes and col_dtype is None
+                col_res = _maybe_upcast(
+                    col_res, use_nullable_dtypes=use_nullable_dtypes
+                )
 
             if col_res is None:
                 raise ParserError(f'Unable to parse column {i}')
@@ -1296,8 +1327,10 @@ cdef class TextReader:
             if self.header is not None:
                 j = i - self.leading_cols
                 # generate extra (bogus) headers if there are more columns than headers
+                # These should be strings, not integers, because otherwise we might get
+                # issues with callables as usecols GH#46997
                 if j >= len(self.header[0]):
-                    return j
+                    return str(j)
                 elif self.has_mi_columns:
                     return tuple(header_row[j] for header_row in self.header)
                 else:
@@ -1308,7 +1341,7 @@ cdef class TextReader:
 
 # Factor out code common to TextReader.__dealloc__ and TextReader.close
 # It cannot be a class method, since calling self.close() in __dealloc__
-# which causes a class attribute lookup and violates best parctices
+# which causes a class attribute lookup and violates best practices
 # https://cython.readthedocs.io/en/latest/src/userguide/special_methods.html#finalization-method-dealloc
 cdef _close(TextReader reader):
     # also preemptively free all allocated memory
@@ -1365,18 +1398,56 @@ STR_NA_VALUES = {
 _NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
 
-def _maybe_upcast(arr):
-    """
+def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
+    """Sets nullable dtypes or upcasts if nans are present.
 
+    Upcast, if use_nullable_dtypes is false and nans are present so that the
+    current dtype can not hold the na value. We use nullable dtypes if the
+    flag is true for every array.
+
+    Parameters
+    ----------
+    arr: ndarray
+        Numpy array that is potentially being upcast.
+
+    use_nullable_dtypes: bool, default False
+        If true, we cast to the associated nullable dtypes.
+
+    Returns
+    -------
+    The casted array.
     """
+    if is_extension_array_dtype(arr.dtype):
+        return arr
+
+    na_value = na_values[arr.dtype]
+
     if issubclass(arr.dtype.type, np.integer):
-        na_value = na_values[arr.dtype]
-        arr = arr.astype(float)
-        np.putmask(arr, arr == na_value, np.nan)
+        mask = arr == na_value
+
+        if use_nullable_dtypes:
+            arr = IntegerArray(arr, mask)
+        else:
+            arr = arr.astype(float)
+            np.putmask(arr, mask, np.nan)
+
     elif arr.dtype == np.bool_:
-        mask = arr.view(np.uint8) == na_values[np.uint8]
-        arr = arr.astype(object)
-        np.putmask(arr, mask, np.nan)
+        mask = arr.view(np.uint8) == na_value
+
+        if use_nullable_dtypes:
+            arr = BooleanArray(arr, mask)
+        else:
+            arr = arr.astype(object)
+            np.putmask(arr, mask, np.nan)
+
+    elif issubclass(arr.dtype.type, float) or arr.dtype.type == np.float32:
+        if use_nullable_dtypes:
+            mask = np.isnan(arr)
+            arr = FloatingArray(arr, mask)
+
+    elif arr.dtype == np.object_:
+        if use_nullable_dtypes:
+            arr = StringDtype().construct_array_type()._from_sequence(arr)
 
     return arr
 
@@ -1452,7 +1523,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         const char *word = NULL
 
         int64_t NA = -1
-        int64_t[:] codes
+        int64_t[::1] codes
         int64_t current_category = 0
 
         char *errors = "strict"
@@ -1972,6 +2043,7 @@ def _compute_na_values():
     uint16info = np.iinfo(np.uint16)
     uint8info = np.iinfo(np.uint8)
     na_values = {
+        np.float32: np.nan,
         np.float64: np.nan,
         np.int64: int64info.min,
         np.int32: int32info.min,

@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import threading
+from typing import Iterator
 from urllib.error import URLError
 
 import numpy as np
@@ -30,8 +31,6 @@ import pandas._testing as tm
 from pandas.io.common import file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
-
-HERE = os.path.dirname(__file__)
 
 
 @pytest.fixture(
@@ -105,15 +104,16 @@ def test_same_ordering(datapath):
     scope="class",
 )
 class TestReadHtml:
-    @pytest.fixture(autouse=True)
-    def set_files(self, datapath):
-        self.spam_data = datapath("io", "data", "html", "spam.html")
-        self.spam_data_kwargs = {}
-        self.spam_data_kwargs["encoding"] = "UTF-8"
-        self.banklist_data = datapath("io", "data", "html", "banklist.html")
+    @pytest.fixture
+    def spam_data(self, datapath):
+        return datapath("io", "data", "html", "spam.html")
+
+    @pytest.fixture
+    def banklist_data(self, datapath):
+        return datapath("io", "data", "html", "banklist.html")
 
     @pytest.fixture(autouse=True, scope="function")
-    def set_defaults(self, flavor, request):
+    def set_defaults(self, flavor):
         self.read_html = partial(read_html, flavor=flavor)
         yield
 
@@ -133,9 +133,16 @@ class TestReadHtml:
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
-    @tm.network
+    @pytest.mark.network
+    @tm.network(
+        url=(
+            "https://www.fdic.gov/resources/resolutions/"
+            "bank-failures/failed-bank-list/index.html"
+        ),
+        check_before_test=True,
+    )
     def test_banklist_url_positional_match(self):
-        url = "http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
+        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
         # Passing match argument as positional should cause a FutureWarning.
         with tm.assert_produces_warning(FutureWarning):
             df1 = self.read_html(
@@ -152,9 +159,16 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    @tm.network
+    @pytest.mark.network
+    @tm.network(
+        url=(
+            "https://www.fdic.gov/resources/resolutions/"
+            "bank-failures/failed-bank-list/index.html"
+        ),
+        check_before_test=True,
+    )
     def test_banklist_url(self):
-        url = "http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
+        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
         df1 = self.read_html(
             # lxml cannot find attrs leave out for now
             url,
@@ -168,10 +182,17 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    @tm.network
+    @pytest.mark.network
+    @tm.network(
+        url=(
+            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
+            "pandas/tests/io/data/html/spam.html"
+        ),
+        check_before_test=True,
+    )
     def test_spam_url(self):
         url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
             "pandas/tests/io/data/html/spam.html"
         )
         df1 = self.read_html(url, match=".*Water.*")
@@ -180,126 +201,122 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     @pytest.mark.slow
-    def test_banklist(self):
-        df1 = self.read_html(
-            self.banklist_data, match=".*Florida.*", attrs={"id": "table"}
-        )
-        df2 = self.read_html(
-            self.banklist_data, match="Metcalf Bank", attrs={"id": "table"}
-        )
+    def test_banklist(self, banklist_data):
+        df1 = self.read_html(banklist_data, match=".*Florida.*", attrs={"id": "table"})
+        df2 = self.read_html(banklist_data, match="Metcalf Bank", attrs={"id": "table"})
 
         assert_framelist_equal(df1, df2)
 
-    def test_spam(self):
-        df1 = self.read_html(self.spam_data, match=".*Water.*")
-        df2 = self.read_html(self.spam_data, match="Unit")
+    def test_spam(self, spam_data):
+        df1 = self.read_html(spam_data, match=".*Water.*")
+        df2 = self.read_html(spam_data, match="Unit")
         assert_framelist_equal(df1, df2)
 
         assert df1[0].iloc[0, 0] == "Proximates"
         assert df1[0].columns[0] == "Nutrient"
 
-    def test_spam_no_match(self):
-        dfs = self.read_html(self.spam_data)
+    def test_spam_no_match(self, spam_data):
+        dfs = self.read_html(spam_data)
         for df in dfs:
             assert isinstance(df, DataFrame)
 
-    def test_banklist_no_match(self):
-        dfs = self.read_html(self.banklist_data, attrs={"id": "table"})
+    def test_banklist_no_match(self, banklist_data):
+        dfs = self.read_html(banklist_data, attrs={"id": "table"})
         for df in dfs:
             assert isinstance(df, DataFrame)
 
-    def test_spam_header(self):
-        df = self.read_html(self.spam_data, match=".*Water.*", header=2)[0]
+    def test_spam_header(self, spam_data):
+        df = self.read_html(spam_data, match=".*Water.*", header=2)[0]
         assert df.columns[0] == "Proximates"
         assert not df.empty
 
-    def test_skiprows_int(self):
-        df1 = self.read_html(self.spam_data, match=".*Water.*", skiprows=1)
-        df2 = self.read_html(self.spam_data, match="Unit", skiprows=1)
+    def test_skiprows_int(self, spam_data):
+        df1 = self.read_html(spam_data, match=".*Water.*", skiprows=1)
+        df2 = self.read_html(spam_data, match="Unit", skiprows=1)
 
         assert_framelist_equal(df1, df2)
 
-    def test_skiprows_range(self):
-        df1 = self.read_html(self.spam_data, match=".*Water.*", skiprows=range(2))
-        df2 = self.read_html(self.spam_data, match="Unit", skiprows=range(2))
+    def test_skiprows_range(self, spam_data):
+        df1 = self.read_html(spam_data, match=".*Water.*", skiprows=range(2))
+        df2 = self.read_html(spam_data, match="Unit", skiprows=range(2))
 
         assert_framelist_equal(df1, df2)
 
-    def test_skiprows_list(self):
-        df1 = self.read_html(self.spam_data, match=".*Water.*", skiprows=[1, 2])
-        df2 = self.read_html(self.spam_data, match="Unit", skiprows=[2, 1])
+    def test_skiprows_list(self, spam_data):
+        df1 = self.read_html(spam_data, match=".*Water.*", skiprows=[1, 2])
+        df2 = self.read_html(spam_data, match="Unit", skiprows=[2, 1])
 
         assert_framelist_equal(df1, df2)
 
-    def test_skiprows_set(self):
-        df1 = self.read_html(self.spam_data, match=".*Water.*", skiprows={1, 2})
-        df2 = self.read_html(self.spam_data, match="Unit", skiprows={2, 1})
+    def test_skiprows_set(self, spam_data):
+        df1 = self.read_html(spam_data, match=".*Water.*", skiprows={1, 2})
+        df2 = self.read_html(spam_data, match="Unit", skiprows={2, 1})
 
         assert_framelist_equal(df1, df2)
 
-    def test_skiprows_slice(self):
-        df1 = self.read_html(self.spam_data, match=".*Water.*", skiprows=1)
-        df2 = self.read_html(self.spam_data, match="Unit", skiprows=1)
+    def test_skiprows_slice(self, spam_data):
+        df1 = self.read_html(spam_data, match=".*Water.*", skiprows=1)
+        df2 = self.read_html(spam_data, match="Unit", skiprows=1)
 
         assert_framelist_equal(df1, df2)
 
-    def test_skiprows_slice_short(self):
-        df1 = self.read_html(self.spam_data, match=".*Water.*", skiprows=slice(2))
-        df2 = self.read_html(self.spam_data, match="Unit", skiprows=slice(2))
+    def test_skiprows_slice_short(self, spam_data):
+        df1 = self.read_html(spam_data, match=".*Water.*", skiprows=slice(2))
+        df2 = self.read_html(spam_data, match="Unit", skiprows=slice(2))
 
         assert_framelist_equal(df1, df2)
 
-    def test_skiprows_slice_long(self):
-        df1 = self.read_html(self.spam_data, match=".*Water.*", skiprows=slice(2, 5))
-        df2 = self.read_html(self.spam_data, match="Unit", skiprows=slice(4, 1, -1))
+    def test_skiprows_slice_long(self, spam_data):
+        df1 = self.read_html(spam_data, match=".*Water.*", skiprows=slice(2, 5))
+        df2 = self.read_html(spam_data, match="Unit", skiprows=slice(4, 1, -1))
 
         assert_framelist_equal(df1, df2)
 
-    def test_skiprows_ndarray(self):
-        df1 = self.read_html(self.spam_data, match=".*Water.*", skiprows=np.arange(2))
-        df2 = self.read_html(self.spam_data, match="Unit", skiprows=np.arange(2))
+    def test_skiprows_ndarray(self, spam_data):
+        df1 = self.read_html(spam_data, match=".*Water.*", skiprows=np.arange(2))
+        df2 = self.read_html(spam_data, match="Unit", skiprows=np.arange(2))
 
         assert_framelist_equal(df1, df2)
 
-    def test_skiprows_invalid(self):
+    def test_skiprows_invalid(self, spam_data):
         with pytest.raises(TypeError, match=("is not a valid type for skipping rows")):
-            self.read_html(self.spam_data, match=".*Water.*", skiprows="asdf")
+            self.read_html(spam_data, match=".*Water.*", skiprows="asdf")
 
-    def test_index(self):
-        df1 = self.read_html(self.spam_data, match=".*Water.*", index_col=0)
-        df2 = self.read_html(self.spam_data, match="Unit", index_col=0)
+    def test_index(self, spam_data):
+        df1 = self.read_html(spam_data, match=".*Water.*", index_col=0)
+        df2 = self.read_html(spam_data, match="Unit", index_col=0)
         assert_framelist_equal(df1, df2)
 
-    def test_header_and_index_no_types(self):
-        df1 = self.read_html(self.spam_data, match=".*Water.*", header=1, index_col=0)
-        df2 = self.read_html(self.spam_data, match="Unit", header=1, index_col=0)
+    def test_header_and_index_no_types(self, spam_data):
+        df1 = self.read_html(spam_data, match=".*Water.*", header=1, index_col=0)
+        df2 = self.read_html(spam_data, match="Unit", header=1, index_col=0)
         assert_framelist_equal(df1, df2)
 
-    def test_header_and_index_with_types(self):
-        df1 = self.read_html(self.spam_data, match=".*Water.*", header=1, index_col=0)
-        df2 = self.read_html(self.spam_data, match="Unit", header=1, index_col=0)
+    def test_header_and_index_with_types(self, spam_data):
+        df1 = self.read_html(spam_data, match=".*Water.*", header=1, index_col=0)
+        df2 = self.read_html(spam_data, match="Unit", header=1, index_col=0)
         assert_framelist_equal(df1, df2)
 
-    def test_infer_types(self):
+    def test_infer_types(self, spam_data):
 
         # 10892 infer_types removed
-        df1 = self.read_html(self.spam_data, match=".*Water.*", index_col=0)
-        df2 = self.read_html(self.spam_data, match="Unit", index_col=0)
+        df1 = self.read_html(spam_data, match=".*Water.*", index_col=0)
+        df2 = self.read_html(spam_data, match="Unit", index_col=0)
         assert_framelist_equal(df1, df2)
 
-    def test_string_io(self):
-        with open(self.spam_data, **self.spam_data_kwargs) as f:
+    def test_string_io(self, spam_data):
+        with open(spam_data, encoding="UTF-8") as f:
             data1 = StringIO(f.read())
 
-        with open(self.spam_data, **self.spam_data_kwargs) as f:
+        with open(spam_data, encoding="UTF-8") as f:
             data2 = StringIO(f.read())
 
         df1 = self.read_html(data1, match=".*Water.*")
         df2 = self.read_html(data2, match="Unit")
         assert_framelist_equal(df1, df2)
 
-    def test_string(self):
-        with open(self.spam_data, **self.spam_data_kwargs) as f:
+    def test_string(self, spam_data):
+        with open(spam_data, encoding="UTF-8") as f:
             data = f.read()
 
         df1 = self.read_html(data, match=".*Water.*")
@@ -307,22 +324,24 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    def test_file_like(self):
-        with open(self.spam_data, **self.spam_data_kwargs) as f:
+    def test_file_like(self, spam_data):
+        with open(spam_data, encoding="UTF-8") as f:
             df1 = self.read_html(f, match=".*Water.*")
 
-        with open(self.spam_data, **self.spam_data_kwargs) as f:
+        with open(spam_data, encoding="UTF-8") as f:
             df2 = self.read_html(f, match="Unit")
 
         assert_framelist_equal(df1, df2)
 
+    @pytest.mark.network
     @tm.network
     def test_bad_url_protocol(self):
         with pytest.raises(URLError, match="urlopen error unknown url type: git"):
             self.read_html("git://github.com", match=".*Water.*")
 
-    @tm.network
     @pytest.mark.slow
+    @pytest.mark.network
+    @tm.network
     def test_invalid_url(self):
         msg = (
             "Name or service not known|Temporary failure in name resolution|"
@@ -332,8 +351,8 @@ class TestReadHtml:
             self.read_html("http://www.a23950sdfa908sd.com", match=".*Water.*")
 
     @pytest.mark.slow
-    def test_file_url(self):
-        url = self.banklist_data
+    def test_file_url(self, banklist_data):
+        url = banklist_data
         dfs = self.read_html(
             file_path_to_url(os.path.abspath(url)), match="First", attrs={"id": "table"}
         )
@@ -342,53 +361,55 @@ class TestReadHtml:
             assert isinstance(df, DataFrame)
 
     @pytest.mark.slow
-    def test_invalid_table_attrs(self):
-        url = self.banklist_data
+    def test_invalid_table_attrs(self, banklist_data):
+        url = banklist_data
         with pytest.raises(ValueError, match="No tables found"):
             self.read_html(
                 url, match="First Federal Bank of Florida", attrs={"id": "tasdfable"}
             )
 
-    def _bank_data(self, *args, **kwargs):
+    def _bank_data(self, path, *args, **kwargs):
         return self.read_html(
-            self.banklist_data, match="Metcalf", attrs={"id": "table"}, *args, **kwargs
+            path, match="Metcalf", attrs={"id": "table"}, *args, **kwargs
         )
 
     @pytest.mark.slow
-    def test_multiindex_header(self):
-        df = self._bank_data(header=[0, 1])[0]
+    def test_multiindex_header(self, banklist_data):
+        df = self._bank_data(banklist_data, header=[0, 1])[0]
         assert isinstance(df.columns, MultiIndex)
 
     @pytest.mark.slow
-    def test_multiindex_index(self):
-        df = self._bank_data(index_col=[0, 1])[0]
+    def test_multiindex_index(self, banklist_data):
+        df = self._bank_data(banklist_data, index_col=[0, 1])[0]
         assert isinstance(df.index, MultiIndex)
 
     @pytest.mark.slow
-    def test_multiindex_header_index(self):
-        df = self._bank_data(header=[0, 1], index_col=[0, 1])[0]
+    def test_multiindex_header_index(self, banklist_data):
+        df = self._bank_data(banklist_data, header=[0, 1], index_col=[0, 1])[0]
         assert isinstance(df.columns, MultiIndex)
         assert isinstance(df.index, MultiIndex)
 
     @pytest.mark.slow
-    def test_multiindex_header_skiprows_tuples(self):
-        df = self._bank_data(header=[0, 1], skiprows=1)[0]
+    def test_multiindex_header_skiprows_tuples(self, banklist_data):
+        df = self._bank_data(banklist_data, header=[0, 1], skiprows=1)[0]
         assert isinstance(df.columns, MultiIndex)
 
     @pytest.mark.slow
-    def test_multiindex_header_skiprows(self):
-        df = self._bank_data(header=[0, 1], skiprows=1)[0]
+    def test_multiindex_header_skiprows(self, banklist_data):
+        df = self._bank_data(banklist_data, header=[0, 1], skiprows=1)[0]
         assert isinstance(df.columns, MultiIndex)
 
     @pytest.mark.slow
-    def test_multiindex_header_index_skiprows(self):
-        df = self._bank_data(header=[0, 1], index_col=[0, 1], skiprows=1)[0]
+    def test_multiindex_header_index_skiprows(self, banklist_data):
+        df = self._bank_data(
+            banklist_data, header=[0, 1], index_col=[0, 1], skiprows=1
+        )[0]
         assert isinstance(df.index, MultiIndex)
         assert isinstance(df.columns, MultiIndex)
 
     @pytest.mark.slow
-    def test_regex_idempotency(self):
-        url = self.banklist_data
+    def test_regex_idempotency(self, banklist_data):
+        url = banklist_data
         dfs = self.read_html(
             file_path_to_url(os.path.abspath(url)),
             match=re.compile(re.compile("Florida")),
@@ -398,18 +419,20 @@ class TestReadHtml:
         for df in dfs:
             assert isinstance(df, DataFrame)
 
-    def test_negative_skiprows(self):
+    def test_negative_skiprows(self, spam_data):
         msg = r"\(you passed a negative value\)"
         with pytest.raises(ValueError, match=msg):
-            self.read_html(self.spam_data, match="Water", skiprows=-1)
+            self.read_html(spam_data, match="Water", skiprows=-1)
 
-    @tm.network
+    @pytest.mark.network
+    @tm.network(url="https://docs.python.org/2/", check_before_test=True)
     def test_multiple_matches(self):
         url = "https://docs.python.org/2/"
         dfs = self.read_html(url, match="Python")
         assert len(dfs) > 1
 
-    @tm.network
+    @pytest.mark.network
+    @tm.network(url="https://docs.python.org/2/", check_before_test=True)
     def test_python_docs_table(self):
         url = "https://docs.python.org/2/"
         dfs = self.read_html(url, match="Python")
@@ -589,7 +612,7 @@ class TestReadHtml:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
-    def test_banklist_header(self, datapath):
+    def test_banklist_header(self, banklist_data, datapath):
         from pandas.io.html import _remove_whitespace
 
         def try_remove_ws(x):
@@ -598,26 +621,24 @@ class TestReadHtml:
             except AttributeError:
                 return x
 
-        df = self.read_html(self.banklist_data, match="Metcalf", attrs={"id": "table"})[
-            0
-        ]
+        df = self.read_html(banklist_data, match="Metcalf", attrs={"id": "table"})[0]
         ground_truth = read_csv(
             datapath("io", "data", "csv", "banklist.csv"),
             converters={"Updated Date": Timestamp, "Closing Date": Timestamp},
         )
         assert df.shape == ground_truth.shape
         old = [
-            "First Vietnamese American BankIn Vietnamese",
-            "Westernbank Puerto RicoEn Espanol",
-            "R-G Premier Bank of Puerto RicoEn Espanol",
-            "EurobankEn Espanol",
-            "Sanderson State BankEn Espanol",
-            "Washington Mutual Bank(Including its subsidiary Washington "
+            "First Vietnamese American Bank In Vietnamese",
+            "Westernbank Puerto Rico En Espanol",
+            "R-G Premier Bank of Puerto Rico En Espanol",
+            "Eurobank En Espanol",
+            "Sanderson State Bank En Espanol",
+            "Washington Mutual Bank (Including its subsidiary Washington "
             "Mutual Bank FSB)",
-            "Silver State BankEn Espanol",
-            "AmTrade International BankEn Espanol",
-            "Hamilton Bank, NAEn Espanol",
-            "The Citizens Savings BankPioneer Community Bank, Inc.",
+            "Silver State Bank En Espanol",
+            "AmTrade International Bank En Espanol",
+            "Hamilton Bank, NA En Espanol",
+            "The Citizens Savings Bank Pioneer Community Bank, Inc.",
         ]
         new = [
             "First Vietnamese American Bank",
@@ -639,15 +660,15 @@ class TestReadHtml:
         tm.assert_frame_equal(converted, gtnew)
 
     @pytest.mark.slow
-    def test_gold_canyon(self):
+    def test_gold_canyon(self, banklist_data):
         gc = "Gold Canyon"
-        with open(self.banklist_data) as f:
+        with open(banklist_data) as f:
             raw_text = f.read()
 
         assert gc in raw_text
-        df = self.read_html(
-            self.banklist_data, match="Gold Canyon", attrs={"id": "table"}
-        )[0]
+        df = self.read_html(banklist_data, match="Gold Canyon", attrs={"id": "table"})[
+            0
+        ]
         assert gc in df.to_string()
 
     def test_different_number_of_cols(self):
@@ -966,16 +987,16 @@ class TestReadHtml:
         assert result["Header"].dtype == np.dtype("float64")
         tm.assert_frame_equal(result, expected)
 
-    def test_bool_header_arg(self):
+    @pytest.mark.parametrize("arg", [True, False])
+    def test_bool_header_arg(self, spam_data, arg):
         # GH 6114
         msg = re.escape(
             "Passing a bool to header is invalid. Use header=None for no header or "
             "header=int or list-like of ints to specify the row(s) making up the "
             "column names"
         )
-        for arg in [True, False]:
-            with pytest.raises(TypeError, match=msg):
-                self.read_html(self.spam_data, header=arg)
+        with pytest.raises(TypeError, match=msg):
+            self.read_html(spam_data, header=arg)
 
     def test_converters(self):
         # GH 13461
@@ -1119,7 +1140,9 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_fallback_success(self, datapath):
         banklist_data = datapath("io", "data", "html", "banklist.html")
-        self.read_html(banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"])
+        self.read_html(
+            banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"]
+        )  # pylint: disable=redundant-keyword-arg
 
     def test_to_html_timestamp(self):
         rng = date_range("2000-01-01", periods=10)
@@ -1127,6 +1150,25 @@ class TestReadHtml:
 
         result = df.to_html()
         assert "2000-01-01" in result
+
+    def test_to_html_borderless(self):
+        df = DataFrame([{"A": 1, "B": 2}])
+        out_border_default = df.to_html()
+        out_border_true = df.to_html(border=True)
+        out_border_explicit_default = df.to_html(border=1)
+        out_border_nondefault = df.to_html(border=2)
+        out_border_zero = df.to_html(border=0)
+
+        out_border_false = df.to_html(border=False)
+
+        assert ' border="1"' in out_border_default
+        assert out_border_true == out_border_default
+        assert out_border_default == out_border_explicit_default
+        assert out_border_default != out_border_nondefault
+        assert ' border="2"' in out_border_nondefault
+        assert ' border="0"' not in out_border_zero
+        assert " border" not in out_border_false
+        assert out_border_zero == out_border_false
 
     @pytest.mark.parametrize(
         "displayed_only,exp0,exp1",
@@ -1223,7 +1265,7 @@ class TestReadHtml:
         # Issue #17975
 
         class MockFile:
-            def __init__(self, data):
+            def __init__(self, data) -> None:
                 self.data = data
                 self.at_end = False
 
@@ -1238,9 +1280,14 @@ class TestReadHtml:
             def seekable(self):
                 return True
 
-            def __iter__(self):
-                # to fool `is_file_like`, should never end up here
-                assert False
+            # GH 49036 pylint checks for presence of __next__ for iterators
+            def __next__(self):
+                ...
+
+            def __iter__(self) -> Iterator:
+                # `is_file_like` depends on the presence of
+                # the __iter__ attribute.
+                return self
 
         good = MockFile("<table><tr><td>spam<br />eggs</td></tr></table>")
         bad = MockFile("<table><tr><td>spam<foobr />eggs</td></tr></table>")
@@ -1282,3 +1329,113 @@ class TestReadHtml:
         df1 = self.read_html(file_path_string)[0]
         df2 = self.read_html(file_path)[0]
         tm.assert_frame_equal(df1, df2)
+
+    def test_parse_br_as_space(self):
+        # GH 29528: pd.read_html() convert <br> to space
+        result = self.read_html(
+            """
+            <table>
+                <tr>
+                    <th>A</th>
+                </tr>
+                <tr>
+                    <td>word1<br>word2</td>
+                </tr>
+            </table>
+        """
+        )[0]
+
+        expected = DataFrame(data=[["word1 word2"]], columns=["A"])
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("arg", ["all", "body", "header", "footer"])
+    def test_extract_links(self, arg):
+        gh_13141_data = """
+          <table>
+            <tr>
+              <th>HTTP</th>
+              <th>FTP</th>
+              <th><a href="https://en.wiktionary.org/wiki/linkless">Linkless</a></th>
+            </tr>
+            <tr>
+              <td><a href="https://en.wikipedia.org/">Wikipedia</a></td>
+              <td>SURROUNDING <a href="ftp://ftp.us.debian.org/">Debian</a> TEXT</td>
+              <td>Linkless</td>
+            </tr>
+            <tfoot>
+              <tr>
+                <td><a href="https://en.wikipedia.org/wiki/Page_footer">Footer</a></td>
+                <td>
+                  Multiple <a href="1">links:</a> <a href="2">Only first captured.</a>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+          """
+
+        gh_13141_expected = {
+            "head_ignore": ["HTTP", "FTP", "Linkless"],
+            "head_extract": [
+                ("HTTP", None),
+                ("FTP", None),
+                ("Linkless", "https://en.wiktionary.org/wiki/linkless"),
+            ],
+            "body_ignore": ["Wikipedia", "SURROUNDING Debian TEXT", "Linkless"],
+            "body_extract": [
+                ("Wikipedia", "https://en.wikipedia.org/"),
+                ("SURROUNDING Debian TEXT", "ftp://ftp.us.debian.org/"),
+                ("Linkless", None),
+            ],
+            "footer_ignore": [
+                "Footer",
+                "Multiple links: Only first captured.",
+                None,
+            ],
+            "footer_extract": [
+                ("Footer", "https://en.wikipedia.org/wiki/Page_footer"),
+                ("Multiple links: Only first captured.", "1"),
+                None,
+            ],
+        }
+
+        data_exp = gh_13141_expected["body_ignore"]
+        foot_exp = gh_13141_expected["footer_ignore"]
+        head_exp = gh_13141_expected["head_ignore"]
+        if arg == "all":
+            data_exp = gh_13141_expected["body_extract"]
+            foot_exp = gh_13141_expected["footer_extract"]
+            head_exp = gh_13141_expected["head_extract"]
+        elif arg == "body":
+            data_exp = gh_13141_expected["body_extract"]
+        elif arg == "footer":
+            foot_exp = gh_13141_expected["footer_extract"]
+        elif arg == "header":
+            head_exp = gh_13141_expected["head_extract"]
+
+        result = self.read_html(gh_13141_data, extract_links=arg)[0]
+        expected = DataFrame([data_exp, foot_exp], columns=head_exp)
+        tm.assert_frame_equal(result, expected)
+
+    def test_extract_links_bad(self, spam_data):
+        msg = (
+            "`extract_links` must be one of "
+            '{None, "header", "footer", "body", "all"}, got "incorrect"'
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_html(spam_data, extract_links="incorrect")
+
+    def test_extract_links_all_no_header(self):
+        # GH 48316
+        data = """
+        <table>
+          <tr>
+            <td>
+              <a href='https://google.com'>Google.com</a>
+            </td>
+          </tr>
+        </table>
+        """
+        result = self.read_html(data, extract_links="all")[0]
+        expected = DataFrame([[("Google.com", "https://google.com")]])
+        tm.assert_frame_equal(result, expected)

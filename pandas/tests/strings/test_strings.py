@@ -11,9 +11,19 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
-    isna,
 )
 import pandas._testing as tm
+
+
+@pytest.mark.parametrize("pattern", [0, True, Series(["foo", "bar"])])
+def test_startswith_endswith_non_str_patterns(pattern):
+    # GH3485
+    ser = Series(["foo", "bar"])
+    msg = f"expected a string or tuple, not {type(pattern).__name__}"
+    with pytest.raises(TypeError, match=msg):
+        ser.str.startswith(pattern)
+    with pytest.raises(TypeError, match=msg):
+        ser.str.endswith(pattern)
 
 
 def assert_series_or_index_equal(left, right):
@@ -21,74 +31,6 @@ def assert_series_or_index_equal(left, right):
         tm.assert_series_equal(left, right)
     else:  # Index
         tm.assert_index_equal(left, right)
-
-
-def test_iter():
-    # GH3638
-    strs = "google", "wikimedia", "wikipedia", "wikitravel"
-    ser = Series(strs)
-
-    with tm.assert_produces_warning(FutureWarning):
-        for s in ser.str:
-            # iter must yield a Series
-            assert isinstance(s, Series)
-
-            # indices of each yielded Series should be equal to the index of
-            # the original Series
-            tm.assert_index_equal(s.index, ser.index)
-
-            for el in s:
-                # each element of the series is either a basestring/str or nan
-                assert isinstance(el, str) or isna(el)
-
-    # desired behavior is to iterate until everything would be nan on the
-    # next iter so make sure the last element of the iterator was 'l' in
-    # this case since 'wikitravel' is the longest string
-    assert s.dropna().values.item() == "l"
-
-
-def test_iter_empty(any_string_dtype):
-    ser = Series([], dtype=any_string_dtype)
-
-    i, s = 100, 1
-
-    with tm.assert_produces_warning(FutureWarning):
-        for i, s in enumerate(ser.str):
-            pass
-
-    # nothing to iterate over so nothing defined values should remain
-    # unchanged
-    assert i == 100
-    assert s == 1
-
-
-def test_iter_single_element(any_string_dtype):
-    ser = Series(["a"], dtype=any_string_dtype)
-
-    with tm.assert_produces_warning(FutureWarning):
-        for i, s in enumerate(ser.str):
-            pass
-
-    assert not i
-    tm.assert_series_equal(ser, s)
-
-
-def test_iter_object_try_string():
-    ser = Series(
-        [
-            slice(None, np.random.randint(10), np.random.randint(10, 20))
-            for _ in range(4)
-        ]
-    )
-
-    i, s = 100, "h"
-
-    with tm.assert_produces_warning(FutureWarning):
-        for i, s in enumerate(ser.str):
-            pass
-
-    assert i == 100
-    assert s == "h"
 
 
 # test integer/float dtypes (inferred by constructor) and mixed
@@ -360,9 +302,7 @@ def test_len_mixed():
         ("rindex", "E", 0, 5, [4, 3, 1, 4]),
     ],
 )
-def test_index(
-    method, sub, start, end, index_or_series, any_string_dtype, expected, request
-):
+def test_index(method, sub, start, end, index_or_series, any_string_dtype, expected):
 
     obj = index_or_series(
         ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF"], dtype=any_string_dtype
@@ -725,4 +665,46 @@ def test_str_accessor_in_apply_func():
     df = DataFrame(zip("abc", "def"))
     expected = Series(["A/D", "B/E", "C/F"])
     result = df.apply(lambda f: "/".join(f.str.upper()), axis=1)
+    tm.assert_series_equal(result, expected)
+
+
+def test_zfill():
+    # https://github.com/pandas-dev/pandas/issues/20868
+    value = Series(["-1", "1", "1000", 10, np.nan])
+    expected = Series(["-01", "001", "1000", np.nan, np.nan])
+    tm.assert_series_equal(value.str.zfill(3), expected)
+
+    value = Series(["-2", "+5"])
+    expected = Series(["-0002", "+0005"])
+    tm.assert_series_equal(value.str.zfill(5), expected)
+
+
+def test_zfill_with_non_integer_argument():
+    value = Series(["-2", "+5"])
+    wid = "a"
+    msg = f"width must be of integer type, not {type(wid).__name__}"
+    with pytest.raises(TypeError, match=msg):
+        value.str.zfill(wid)
+
+
+def test_zfill_with_leading_sign():
+    value = Series(["-cat", "-1", "+dog"])
+    expected = Series(["-0cat", "-0001", "+0dog"])
+    tm.assert_series_equal(value.str.zfill(5), expected)
+
+
+def test_get_with_dict_label():
+    # GH47911
+    s = Series(
+        [
+            {"name": "Hello", "value": "World"},
+            {"name": "Goodbye", "value": "Planet"},
+            {"value": "Sea"},
+        ]
+    )
+    result = s.str.get("name")
+    expected = Series(["Hello", "Goodbye", None])
+    tm.assert_series_equal(result, expected)
+    result = s.str.get("value")
+    expected = Series(["World", "Planet", "Sea"])
     tm.assert_series_equal(result, expected)

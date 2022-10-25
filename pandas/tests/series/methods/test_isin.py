@@ -22,7 +22,7 @@ class TestSeriesIsIn:
         # This specific issue has to have a series over 1e6 in len, but the
         # comparison array (in_list) must be large enough so that numpy doesn't
         # do a manual masking trick that will avoid this issue altogether
-        s = Series(list("abcdefghijk" * 10 ** 5))
+        s = Series(list("abcdefghijk" * 10**5))
         # If numpy doesn't do the manual comparison/mask, these
         # unorderable mixed types are what cause the exception in numpy
         in_list = [-1, "a", "b", "G", "Y", "Z", "E", "K", "E", "S", "I", "R", "R"] * 6
@@ -43,6 +43,29 @@ class TestSeriesIsIn:
         with pytest.raises(TypeError, match=msg):
             s.isin("aaa")
 
+    def test_isin_datetimelike_mismatched_reso(self):
+        expected = Series([True, True, False, False, False])
+
+        ser = Series(date_range("jan-01-2013", "jan-05-2013"))
+
+        # fails on dtype conversion in the first place
+        day_values = np.asarray(ser[0:2].values).astype("datetime64[D]")
+        result = ser.isin(day_values)
+        tm.assert_series_equal(result, expected)
+
+        dta = ser[:2]._values.astype("M8[s]")
+        result = ser.isin(dta)
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_datetimelike_mismatched_reso_list(self):
+        expected = Series([True, True, False, False, False])
+
+        ser = Series(date_range("jan-01-2013", "jan-05-2013"))
+
+        dta = ser[:2]._values.astype("M8[s]")
+        result = ser.isin(list(dta))
+        tm.assert_series_equal(result, expected)
+
     def test_isin_with_i8(self):
         # GH#5021
 
@@ -56,10 +79,6 @@ class TestSeriesIsIn:
         tm.assert_series_equal(result, expected)
 
         result = s.isin(s[0:2].values)
-        tm.assert_series_equal(result, expected)
-
-        # fails on dtype conversion in the first place
-        result = s.isin(np.asarray(s[0:2].values).astype("datetime64[D]"))
         tm.assert_series_equal(result, expected)
 
         result = s.isin([s[1]])

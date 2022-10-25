@@ -6,8 +6,6 @@ from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.io.excel import xlrd_version
-from pandas.util.version import Version
 
 from pandas.io.excel import ExcelFile
 from pandas.io.excel._base import inspect_excel_format
@@ -20,11 +18,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-# error: Unsupported operand types for <= ("Version" and "None")
-if xlrd_version >= Version("2"):  # type: ignore[operator]
-    exts = [".xls"]
-else:
-    exts = [".xls", ".xlsx", ".xlsm"]
+exts = [".xls"]
 
 
 @pytest.fixture(params=exts)
@@ -45,13 +39,14 @@ def test_read_xlrd_book(read_ext_xlrd, frame):
 
     with tm.ensure_clean(read_ext_xlrd) as pth:
         df.to_excel(pth, sheet_name)
-        book = xlrd.open_workbook(pth)
+        with xlrd.open_workbook(pth) as book:
+            with ExcelFile(book, engine=engine) as xl:
+                result = pd.read_excel(xl, sheet_name=sheet_name, index_col=0)
+                tm.assert_frame_equal(df, result)
 
-        with ExcelFile(book, engine=engine) as xl:
-            result = pd.read_excel(xl, sheet_name=sheet_name, index_col=0)
-            tm.assert_frame_equal(df, result)
-
-        result = pd.read_excel(book, sheet_name=sheet_name, engine=engine, index_col=0)
+            result = pd.read_excel(
+                book, sheet_name=sheet_name, engine=engine, index_col=0
+            )
         tm.assert_frame_equal(df, result)
 
 
@@ -76,19 +71,11 @@ def test_read_excel_warning_with_xlsx_file(datapath):
     path = datapath("io", "data", "excel", "test1.xlsx")
     has_openpyxl = import_optional_dependency("openpyxl", errors="ignore") is not None
     if not has_openpyxl:
-        if xlrd_version >= Version("2"):
-            with pytest.raises(
-                ValueError,
-                match="Your version of xlrd is ",
-            ):
-                pd.read_excel(path, "Sheet1", engine=None)
-        else:
-            with tm.assert_produces_warning(
-                FutureWarning,
-                raise_on_extra_warnings=False,
-                match="The xlrd engine is no longer maintained",
-            ):
-                pd.read_excel(path, "Sheet1", engine=None)
+        with pytest.raises(
+            ValueError,
+            match="Your version of xlrd is ",
+        ):
+            pd.read_excel(path, "Sheet1", engine=None)
     else:
         with tm.assert_produces_warning(None):
             pd.read_excel(path, "Sheet1", engine=None)

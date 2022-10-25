@@ -8,6 +8,7 @@ from abc import (
     abstractmethod,
 )
 from typing import (
+    TYPE_CHECKING,
     Iterator,
     Sequence,
 )
@@ -16,7 +17,8 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas.io.formats.format import DataFrameFormatter
+if TYPE_CHECKING:
+    from pandas.io.formats.format import DataFrameFormatter
 
 
 def _split_into_full_short_caption(
@@ -74,7 +76,7 @@ class RowStringConverter(ABC):
         multicolumn: bool = False,
         multicolumn_format: str | None = None,
         multirow: bool = False,
-    ):
+    ) -> None:
         self.fmt = formatter
         self.frame = self.fmt.frame
         self.multicolumn = multicolumn
@@ -178,7 +180,7 @@ class RowStringConverter(ABC):
         return strcols
 
     @property
-    def _empty_info_line(self):
+    def _empty_info_line(self) -> str:
         return (
             f"Empty {type(self.frame).__name__}\n"
             f"Columns: {self.frame.columns}\n"
@@ -209,7 +211,7 @@ class RowStringConverter(ABC):
         ncol = 1
         coltext = ""
 
-        def append_col():
+        def append_col() -> None:
             # write multicolumn if needed
             if ncol > 1:
                 row2.append(
@@ -336,7 +338,7 @@ class TableBuilderAbstract(ABC):
         short_caption: str | None = None,
         label: str | None = None,
         position: str | None = None,
-    ):
+    ) -> None:
         self.fmt = formatter
         self.column_format = column_format
         self.multicolumn = multicolumn
@@ -697,7 +699,7 @@ class LatexFormatter:
         caption: str | tuple[str, str] | None = None,
         label: str | None = None,
         position: str | None = None,
-    ):
+    ) -> None:
         self.fmt = formatter
         self.frame = self.fmt.frame
         self.longtable = longtable
@@ -771,7 +773,7 @@ class LatexFormatter:
         Right alignment for numbers and left - for strings.
         """
 
-        def get_col_type(dtype):
+        def get_col_type(dtype) -> str:
             if issubclass(dtype.type, np.number):
                 return "r"
             return "l"
