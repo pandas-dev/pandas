@@ -599,7 +599,6 @@ class DataFrame(NDFrame, OpsMixin):
     >>> ser = pd.Series([1, 2, 3], index=["a", "b", "c"])
     >>> df = pd.DataFrame(data=ser, index=["a", "c"])
     >>> df
-
        0
     a  1
     c  3
@@ -607,11 +606,9 @@ class DataFrame(NDFrame, OpsMixin):
     >>> df1 = pd.DataFrame([1, 2, 3], index=["a", "b", "c"], columns=["x"])
     >>> df2 = pd.DataFrame(data=df1, index=["a", "c"])
     >>> df2
-
        x
     a  1
     c  3
-
     """
 
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
