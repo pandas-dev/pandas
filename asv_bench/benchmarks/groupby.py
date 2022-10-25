@@ -14,6 +14,7 @@ from pandas import (
     Timestamp,
     date_range,
     period_range,
+    to_timedelta,
 )
 
 from .pandas_vb_common import tm
@@ -35,7 +36,6 @@ method_blocklist = {
         "pct_change",
         "min",
         "var",
-        "mad",
         "describe",
         "std",
         "quantile",
@@ -52,7 +52,6 @@ method_blocklist = {
         "cummax",
         "pct_change",
         "var",
-        "mad",
         "describe",
         "std",
     },
@@ -437,7 +436,6 @@ class GroupByMethods:
             "first",
             "head",
             "last",
-            "mad",
             "max",
             "min",
             "median",
@@ -483,7 +481,7 @@ class GroupByMethods:
 
         if method == "describe":
             ngroups = 20
-        elif method in ["mad", "skew"]:
+        elif method == "skew":
             ngroups = 100
         else:
             ngroups = 1000
@@ -988,6 +986,33 @@ class Sample:
 
     def time_sample_weights(self):
         self.df.groupby(self.groups).sample(n=1, weights=self.weights)
+
+
+class Resample:
+    # GH 28635
+    def setup(self):
+        num_timedeltas = 20_000
+        num_groups = 3
+
+        index = MultiIndex.from_product(
+            [
+                np.arange(num_groups),
+                to_timedelta(np.arange(num_timedeltas), unit="s"),
+            ],
+            names=["groups", "timedeltas"],
+        )
+        data = np.random.randint(0, 1000, size=(len(index)))
+
+        self.df = DataFrame(data, index=index).reset_index("timedeltas")
+        self.df_multiindex = DataFrame(data, index=index)
+
+    def time_resample(self):
+        self.df.groupby(level="groups").resample("10s", on="timedeltas").mean()
+
+    def time_resample_multiindex(self):
+        self.df_multiindex.groupby(level="groups").resample(
+            "10s", level="timedeltas"
+        ).mean()
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

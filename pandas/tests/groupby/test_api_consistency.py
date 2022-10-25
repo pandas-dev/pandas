@@ -98,8 +98,6 @@ def test_series_consistency(request, groupby_func):
         exclude_expected = {"kwargs", "bool_only", "level", "axis"}
     elif groupby_func in ("count",):
         exclude_expected = {"level"}
-    elif groupby_func in ("tshift",):
-        exclude_expected = {"axis"}
     elif groupby_func in ("diff",):
         exclude_result = {"axis"}
     elif groupby_func in ("max", "min"):
