@@ -1112,3 +1112,18 @@ def test_scalar_setitem_series_with_nested_value_length1(value, indexer_sli):
         assert (ser.loc[0] == value).all()
     else:
         assert ser.loc[0] == value
+
+
+def test_object_dtype_series_set_series_element():
+    s1 = pd.Series(dtype="O", index=["a", "b"])
+
+    s1["a"] = pd.Series()
+    s1.loc["b"] = pd.Series()
+
+    tm.assert_series_equal(s1.loc["a"], pd.Series())
+    tm.assert_series_equal(s1.loc["b"], pd.Series())
+
+    s2 = pd.Series(dtype="O", index=["a", "b"])
+
+    s2.iloc[1] = pd.Series()
+    tm.assert_series_equal(s2.iloc[1], pd.Series())
