@@ -271,6 +271,13 @@ skipfooter : int, default 0
 
     .. versionadded:: 1.2.0
 
+use_nullable_dtypes : bool, default False
+    Whether or not to use nullable dtypes as default when reading data. If
+    set to True, nullable dtypes are used for all dtypes that have a nullable
+    implementation, even if no nulls are present. Dtype takes precedence if given.
+
+    .. versionadded:: 2.0
+
 Returns
 -------
 DataFrame or dict of DataFrames
@@ -375,6 +382,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -413,6 +421,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> dict[IntStrT, DataFrame]:
     ...
 
@@ -451,6 +460,7 @@ def read_excel(
     comment: str | None = None,
     skipfooter: int = 0,
     storage_options: StorageOptions = None,
+    use_nullable_dtypes: bool = False,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
 
     should_close = False
@@ -487,6 +497,7 @@ def read_excel(
             decimal=decimal,
             comment=comment,
             skipfooter=skipfooter,
+            use_nullable_dtypes=use_nullable_dtypes,
         )
     finally:
         # make sure to close opened file handles
@@ -690,6 +701,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         decimal: str = ".",
         comment: str | None = None,
         skipfooter: int = 0,
+        use_nullable_dtypes: bool = False,
         **kwds,
     ):
 
@@ -848,6 +860,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     comment=comment,
                     skipfooter=skipfooter,
                     usecols=usecols,
+                    use_nullable_dtypes=use_nullable_dtypes,
                     **kwds,
                 )
 
@@ -862,6 +875,10 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             except EmptyDataError:
                 # No Data, return an empty DataFrame
                 output[asheetname] = DataFrame()
+
+            except Exception as err:
+                err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
+                raise err
 
         if ret_dict:
             return output
@@ -1680,6 +1697,7 @@ class ExcelFile:
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,
+        use_nullable_dtypes: bool = False,
         **kwds,
     ) -> DataFrame | dict[str, DataFrame] | dict[int, DataFrame]:
         """
@@ -1711,6 +1729,7 @@ class ExcelFile:
             thousands=thousands,
             comment=comment,
             skipfooter=skipfooter,
+            use_nullable_dtypes=use_nullable_dtypes,
             **kwds,
         )
 
