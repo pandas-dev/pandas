@@ -3038,14 +3038,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  1 2.0
         2  2 3.0
 
-        Specifying `dropna` allows count ignoring ``NaN``
+        Specifying `dropna` allows ignoring ``NaN`` values
 
         >>> g.nth(0, dropna='any')
            A   B
         1  1 2.0
         2  2 3.0
 
-        NaNs denote group exhausted when using dropna
+        When the specified ``n`` is larger than any of the groups, an
+        empty DataFrame is returned
 
         >>> g.nth(3, dropna='any')
         Empty DataFrame
