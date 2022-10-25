@@ -201,7 +201,7 @@ Removal of prior version deprecations/changes
 - Disallow passing non-keyword arguments to :meth:`Index.join` except for ``other`` (:issue:`46518`)
 - Disallow passing non-keyword arguments to :func:`concat` except for ``objs`` (:issue:`41485`)
 - Disallow passing non-keyword arguments to :func:`pivot` except for ``data`` (:issue:`48301`)
-- Disallow passing non-keyword arguments to :meth:`DataFrame.pivot` (:issue:48301`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.pivot` (:issue:`48301`)
 - Disallow passing non-keyword arguments to :func:`read_json` except for ``path_or_buf`` (:issue:`27573`)
 - Disallow passing non-keyword arguments to :func:`read_sas` except for ``filepath_or_buffer`` (:issue:`47154`)
 - Disallow passing non-keyword arguments to :func:`read_stata` except for ``filepath_or_buffer`` (:issue:`48128`)
