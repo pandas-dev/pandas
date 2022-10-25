@@ -471,7 +471,14 @@ def test_file_handle_close(datapath, parser):
 def test_empty_string_lxml(val):
     from lxml.etree import XMLSyntaxError
 
-    with pytest.raises(XMLSyntaxError, match="Document is empty"):
+    msg = "|".join(
+        [
+            "Document is empty",
+            # Seen on Mac with lxml 4.91
+            r"None \(line 0\)",
+        ]
+    )
+    with pytest.raises(XMLSyntaxError, match=msg):
         read_xml(val, parser="lxml")
 
 

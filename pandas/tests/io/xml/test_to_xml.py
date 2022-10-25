@@ -1037,9 +1037,16 @@ def test_stylesheet_wrong_path():
 def test_empty_string_stylesheet(val):
     from lxml.etree import XMLSyntaxError
 
-    with pytest.raises(
-        XMLSyntaxError, match=("Document is empty|Start tag expected, '<' not found")
-    ):
+    msg = "|".join(
+        [
+            "Document is empty",
+            "Start tag expected, '<' not found",
+            # Seen on Mac with lxml 4.9.1
+            r"None \(line 0\)",
+        ]
+    )
+
+    with pytest.raises(XMLSyntaxError, match=msg):
         geom_df.to_xml(stylesheet=val)
 
 
