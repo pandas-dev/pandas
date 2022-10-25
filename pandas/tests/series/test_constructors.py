@@ -1241,14 +1241,14 @@ class TestSeriesConstructors:
         result = Series(ser.dt.tz_convert("UTC"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)
 
-        msg = "will interpret the data as wall-times"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # deprecate behavior inconsistent with DatetimeIndex GH#33401
-            result = Series(ser.values, dtype=ser.dtype)
-        tm.assert_series_equal(result, ser)
+        # Pre-2.0 dt64 values were treated as utc, which was inconsistent
+        #  with DatetimeIndex, which treats them as wall times, see GH#33401
+        result = Series(ser.values, dtype=ser.dtype)
+        expected = Series(ser.values).dt.tz_localize(ser.dtype.tz)
+        tm.assert_series_equal(result, expected)
 
         with tm.assert_produces_warning(None):
-            # one suggested alternative to the deprecated usage
+            # one suggested alternative to the deprecated (changed in 2.0) usage
             middle = Series(ser.values).dt.tz_localize("UTC")
             result = middle.dt.tz_convert(ser.dtype.tz)
         tm.assert_series_equal(result, ser)

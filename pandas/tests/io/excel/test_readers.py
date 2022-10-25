@@ -21,6 +21,10 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -531,6 +535,84 @@ class TestReaders:
 
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
+
+    def test_use_nullable_dtypes(self, read_ext):
+        # GH#36712
+        if read_ext == ".xlsb":
+            pytest.skip("No engine for filetype: 'xlsb'")
+
+        df = DataFrame(
+            {
+                "a": Series([1, 3], dtype="Int64"),
+                "b": Series([2.5, 4.5], dtype="Float64"),
+                "c": Series([True, False], dtype="boolean"),
+                "d": Series(["a", "b"], dtype="string"),
+                "e": Series([pd.NA, 6], dtype="Int64"),
+                "f": Series([pd.NA, 7.5], dtype="Float64"),
+                "g": Series([pd.NA, True], dtype="boolean"),
+                "h": Series([pd.NA, "a"], dtype="string"),
+                "i": Series([pd.Timestamp("2019-12-31")] * 2),
+                "j": Series([pd.NA, pd.NA], dtype="Int64"),
+            }
+        )
+        with tm.ensure_clean(read_ext) as file_path:
+            df.to_excel(file_path, "test", index=False)
+            result = pd.read_excel(
+                file_path, sheet_name="test", use_nullable_dtypes=True
+            )
+        tm.assert_frame_equal(result, df)
+
+    def test_use_nullabla_dtypes_and_dtype(self, read_ext):
+        # GH#36712
+        if read_ext == ".xlsb":
+            pytest.skip("No engine for filetype: 'xlsb'")
+
+        df = DataFrame({"a": [np.nan, 1.0], "b": [2.5, np.nan]})
+        with tm.ensure_clean(read_ext) as file_path:
+            df.to_excel(file_path, "test", index=False)
+            result = pd.read_excel(
+                file_path, sheet_name="test", use_nullable_dtypes=True, dtype="float64"
+            )
+        tm.assert_frame_equal(result, df)
+
+    @td.skip_if_no("pyarrow")
+    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
+    def test_use_nullabla_dtypes_string(self, read_ext, storage):
+        # GH#36712
+        if read_ext == ".xlsb":
+            pytest.skip("No engine for filetype: 'xlsb'")
+
+        import pyarrow as pa
+
+        with pd.option_context("mode.string_storage", storage):
+
+            df = DataFrame(
+                {
+                    "a": np.array(["a", "b"], dtype=np.object_),
+                    "b": np.array(["x", pd.NA], dtype=np.object_),
+                }
+            )
+            with tm.ensure_clean(read_ext) as file_path:
+                df.to_excel(file_path, "test", index=False)
+                result = pd.read_excel(
+                    file_path, sheet_name="test", use_nullable_dtypes=True
+                )
+
+            if storage == "python":
+                expected = DataFrame(
+                    {
+                        "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
+                        "b": StringArray(np.array(["x", pd.NA], dtype=np.object_)),
+                    }
+                )
+            else:
+                expected = DataFrame(
+                    {
+                        "a": ArrowStringArray(pa.array(["a", "b"])),
+                        "b": ArrowStringArray(pa.array(["x", None])),
+                    }
+                )
+            tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
     def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
