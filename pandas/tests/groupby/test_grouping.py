@@ -102,13 +102,13 @@ class TestSelection:
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
 
-        # per GH 23566 this should raise a FutureWarning
-        with tm.assert_produces_warning(FutureWarning):
+        # per GH 23566 enforced deprecation raises a ValueError
+        with pytest.raises(ValueError, match="Cannot subset columns with a tuple"):
             df.groupby(0)[2, 4].mean()
 
-    def test_getitem_single_list_of_columns(self, df):
-        # per GH 23566 this should raise a FutureWarning
-        with tm.assert_produces_warning(FutureWarning):
+    def test_getitem_single_tuple_of_columns_raises(self, df):
+        # per GH 23566 enforced deprecation raises a ValueError
+        with pytest.raises(ValueError, match="Cannot subset columns with a tuple"):
             df.groupby("A")["C", "D"].mean()
 
     def test_getitem_single_column(self):
