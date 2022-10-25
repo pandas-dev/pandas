@@ -1397,6 +1397,7 @@ default 'raise'
             stacklevel=find_stack_level(inspect.currentframe()),
         )
         week_series = self.isocalendar().week
+        print("-----test for weekandyear!")
         if week_series.hasnans:
             return week_series.to_numpy(dtype="float64", na_value=np.nan)
         return week_series.to_numpy(dtype="int64")
