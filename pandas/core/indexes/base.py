@@ -324,14 +324,6 @@ class Index(IndexOpsMixin, PandasObject):
     >>> pd.Index(list('abc'))
     Index(['a', 'b', 'c'], dtype='object')
     """
-
-    # tolist is not actually deprecated, just suppressed in the __dir__
-    _hidden_attrs: frozenset[str] = (
-        PandasObject._hidden_attrs
-        | IndexOpsMixin._hidden_attrs
-        | frozenset(["contains", "set_value"])
-    )
-
     # To hand over control to subclasses
     _join_precedence = 1
 
