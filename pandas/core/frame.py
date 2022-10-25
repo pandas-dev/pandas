@@ -2550,7 +2550,6 @@ class DataFrame(NDFrame, OpsMixin):
         storage_options=_shared_docs["storage_options"],
         compression_options=_shared_docs["compression_options"] % "path",
     )
-    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_stata(
         self,
         path: FilePath | WriteBuffer[bytes],
@@ -2710,7 +2709,6 @@ class DataFrame(NDFrame, OpsMixin):
         )
         writer.write_file()
 
-    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_feather(self, path: FilePath | WriteBuffer[bytes], **kwargs) -> None:
         """
         Write a DataFrame to the binary Feather format.
@@ -2820,7 +2818,6 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     @doc(storage_options=_shared_docs["storage_options"])
-    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
