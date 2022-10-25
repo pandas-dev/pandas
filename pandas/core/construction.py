@@ -55,10 +55,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_timedelta64_ns_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    PandasDtype,
-)
+from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
@@ -800,16 +797,6 @@ def _try_cast(
 
     elif isinstance(dtype, ExtensionDtype):
         # create an extension array from its dtype
-        if isinstance(dtype, DatetimeTZDtype):
-            # We can't go through _from_sequence because it handles dt64naive
-            #  data differently; _from_sequence treats naive as wall times,
-            #  while maybe_cast_to_datetime treats it as UTC
-            #  see test_maybe_promote_any_numpy_dtype_with_datetimetz
-            # TODO(2.0): with deprecations enforced, should be able to remove
-            #  special case.
-            return maybe_cast_to_datetime(arr, dtype)
-            # TODO: copy?
-
         array_type = dtype.construct_array_type()._from_sequence
         subarr = array_type(arr, dtype=dtype, copy=copy)
         return subarr
