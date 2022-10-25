@@ -189,6 +189,7 @@ Removal of prior version deprecations/changes
 - Removed argument ``how`` from :meth:`PeriodIndex.astype`, use :meth:`PeriodIndex.to_timestamp` instead (:issue:`37982`)
 - Removed argument ``try_cast`` from :meth:`DataFrame.mask`, :meth:`DataFrame.where`, :meth:`Series.mask` and :meth:`Series.where` (:issue:`38836`)
 - Removed argument ``tz`` from :meth:`Period.to_timestamp`, use ``obj.to_timestamp(...).tz_localize(tz)`` instead (:issue:`34522`)
+- Removed argument ``sort_columns`` in :meth:`DataFrame.plot` and :meth:`Series.plot` (:issue:`47563`)
 - Removed argument ``is_copy`` from :meth:`DataFrame.take` and :meth:`Series.take` (:issue:`30615`)
 - Removed argument ``kind`` from :meth:`Index.get_slice_bound`, :meth:`Index.slice_indexer` and :meth:`Index.slice_locs` (:issue:`41378`)
 - Removed argument ``inplace`` from :meth:`Categorical.remove_unused_categories` (:issue:`37918`)
