@@ -1337,7 +1337,7 @@ default 'raise'
         Returns
         -------
         DataFrame
-            With columns year, week and day.
+            With columns year, week, day and yearandweek.
 
         See Also
         --------
@@ -1350,16 +1350,22 @@ default 'raise'
         --------
         >>> idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
         >>> idx.isocalendar()
-                    year  week  day
-        2019-12-29  2019    52    7
-        2019-12-30  2020     1    1
-        2019-12-31  2020     1    2
-        2020-01-01  2020     1    3
+                    year  week  day   yearandweek
+        2019-12-29  2019    52    7     201952
+        2019-12-30  2020     1    1     202001
+        2019-12-31  2020     1    2     202001
+        2020-01-01  2020     1    3     202001
         >>> idx.isocalendar().week
         2019-12-29    52
         2019-12-30     1
         2019-12-31     1
         2020-01-01     1
+        Freq: D, Name: week, dtype: UInt32
+        >>> idx.isocalendar().yearandweek
+        2019-12-29    201952
+        2019-12-30    202001
+        2019-12-31    202001
+        2020-01-01    202001
         Freq: D, Name: week, dtype: UInt32
         """
         from pandas import DataFrame
@@ -1369,17 +1375,13 @@ default 'raise'
         iso_calendar_df = DataFrame(
             sarray, columns=["year", "week", "day", "yearandweek"], dtype="UInt32"
         )
-        print("I am ok ")
 
         week_series = iso_calendar_df["week"]
         year_series = iso_calendar_df["year"]
-        print("week_series is that !!!", week_series, "------end of week_series")
 
         iso_calendar_df["yearandweek"] = year_series.map(str) + week_series.map(str)
         iso_calendar_df["yearandweek"] = iso_calendar_df["yearandweek"].astype(str).astype(int)
-        print("df['yearandweek'] value is @@@@@@@@@@@@@@", iso_calendar_df["yearandweek"])
 
-        # print ("here is !!!!!!!",iso_calendar_df.yearandweek)
         if self._hasna:
             iso_calendar_df.iloc[self._isnan] = None
         return iso_calendar_df
