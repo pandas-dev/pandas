@@ -105,12 +105,12 @@ class TestCategoricalAnalytics:
         assert result is np.nan
 
     @pytest.mark.parametrize("method", ["min", "max"])
-    def test_deprecate_numeric_only_min_max(self, method):
+    def test_numeric_only_min_max_raises(self, method):
         # GH 25303
         cat = Categorical(
             [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True
         )
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
+        with pytest.raises(TypeError, match=".* got an unexpected keyword"):
             getattr(cat, method)(numeric_only=True)
 
     @pytest.mark.parametrize("method", ["min", "max"])
@@ -158,10 +158,8 @@ class TestCategoricalAnalytics:
         ],
     )
     def test_mode(self, values, categories, exp_mode):
-        s = Categorical(values, categories=categories, ordered=True)
-        msg = "Use Series.mode instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = s.mode()
+        cat = Categorical(values, categories=categories, ordered=True)
+        res = Series(cat).mode()._values
         exp = Categorical(exp_mode, categories=categories, ordered=True)
         tm.assert_categorical_equal(res, exp)
 

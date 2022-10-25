@@ -17,11 +17,6 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat import (
-    pa_version_under1p01,
-    pa_version_under2p0,
-    pa_version_under3p0,
-    pa_version_under4p0,
-    pa_version_under5p0,
     pa_version_under6p0,
     pa_version_under7p0,
 )
@@ -48,7 +43,7 @@ from pandas.core.indexers import (
     validate_indices,
 )
 
-if not pa_version_under1p01:
+if not pa_version_under6p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -65,16 +60,12 @@ if not pa_version_under1p01:
     }
 
     ARROW_LOGICAL_FUNCS = {
-        "and": NotImplemented if pa_version_under2p0 else pc.and_kleene,
-        "rand": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.and_kleene(y, x),
-        "or": NotImplemented if pa_version_under2p0 else pc.or_kleene,
-        "ror": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.or_kleene(y, x),
-        "xor": NotImplemented if pa_version_under2p0 else pc.xor,
-        "rxor": NotImplemented if pa_version_under2p0 else lambda x, y: pc.xor(y, x),
+        "and": pc.and_kleene,
+        "rand": lambda x, y: pc.and_kleene(y, x),
+        "or": pc.or_kleene,
+        "ror": lambda x, y: pc.or_kleene(y, x),
+        "xor": pc.xor,
+        "rxor": lambda x, y: pc.xor(y, x),
     }
 
     def cast_for_truediv(
@@ -100,38 +91,22 @@ if not pa_version_under1p01:
         return result
 
     ARROW_ARITHMETIC_FUNCS = {
-        "add": NotImplemented if pa_version_under2p0 else pc.add_checked,
-        "radd": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.add_checked(y, x),
-        "sub": NotImplemented if pa_version_under2p0 else pc.subtract_checked,
-        "rsub": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.subtract_checked(y, x),
-        "mul": NotImplemented if pa_version_under2p0 else pc.multiply_checked,
-        "rmul": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.multiply_checked(y, x),
-        "truediv": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.divide_checked(cast_for_truediv(x, y), y),
-        "rtruediv": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: pc.divide_checked(y, cast_for_truediv(x, y)),
-        "floordiv": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: floordiv_compat(x, y),
-        "rfloordiv": NotImplemented
-        if pa_version_under2p0
-        else lambda x, y: floordiv_compat(y, x),
+        "add": pc.add_checked,
+        "radd": lambda x, y: pc.add_checked(y, x),
+        "sub": pc.subtract_checked,
+        "rsub": lambda x, y: pc.subtract_checked(y, x),
+        "mul": pc.multiply_checked,
+        "rmul": lambda x, y: pc.multiply_checked(y, x),
+        "truediv": lambda x, y: pc.divide_checked(cast_for_truediv(x, y), y),
+        "rtruediv": lambda x, y: pc.divide_checked(y, cast_for_truediv(x, y)),
+        "floordiv": lambda x, y: floordiv_compat(x, y),
+        "rfloordiv": lambda x, y: floordiv_compat(y, x),
         "mod": NotImplemented,
         "rmod": NotImplemented,
         "divmod": NotImplemented,
         "rdivmod": NotImplemented,
-        "pow": NotImplemented if pa_version_under4p0 else pc.power_checked,
-        "rpow": NotImplemented
-        if pa_version_under4p0
-        else lambda x, y: pc.power_checked(y, x),
+        "pow": pc.power_checked,
+        "rpow": lambda x, y: pc.power_checked(y, x),
     }
 
 if TYPE_CHECKING:
@@ -206,8 +181,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
-        if pa_version_under1p01:
-            msg = "pyarrow>=1.0.0 is required for PyArrow backed ArrowExtensionArray."
+        if pa_version_under6p0:
+            msg = "pyarrow>=6.0.0 is required for PyArrow backed ArrowExtensionArray."
             raise ImportError(msg)
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
@@ -245,8 +220,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         Construct a new ExtensionArray from a sequence of strings.
         """
         pa_type = to_pyarrow_type(dtype)
-        if pa_type is None:
-            # Let pyarrow try to infer or raise
+        if (
+            pa_type is None
+            or pa.types.is_binary(pa_type)
+            or pa.types.is_string(pa_type)
+        ):
+            # pa_type is None: Let pa.array infer
+            # pa_type is string/binary: scalars already correct type
             scalars = strings
         elif pa.types.is_timestamp(pa_type):
             from pandas.core.tools.datetimes import to_datetime
@@ -360,8 +340,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         return self._data
 
     def __invert__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
-        if pa_version_under2p0:
-            raise NotImplementedError("__invert__ not implement for pyarrow < 2.0")
         return type(self)(pc.invert(self._data))
 
     def __neg__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
@@ -372,6 +350,17 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     def __abs__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
         return type(self)(pc.abs_checked(self._data))
+
+    # GH 42600: __getstate__/__setstate__ not necessary once
+    # https://issues.apache.org/jira/browse/ARROW-10739 is addressed
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_data"] = self._data.combine_chunks()
+        return state
+
+    def __setstate__(self, state) -> None:
+        state["_data"] = pa.chunked_array(state["_data"])
+        self.__dict__.update(state)
 
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
@@ -395,10 +384,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 f"{op.__name__} not implemented for {type(other)}"
             )
 
-        if pa_version_under2p0:
-            result = result.to_pandas().values
-        else:
-            result = result.to_numpy()
+        result = result.to_numpy()
         return BooleanArray._from_sequence(result)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
@@ -464,10 +450,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         This should return a 1-D array the same length as 'self'.
         """
-        if pa_version_under2p0:
-            return self._data.is_null().to_pandas().values
-        else:
-            return self._data.is_null().to_numpy()
+        return self._data.is_null().to_numpy()
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(
@@ -492,10 +475,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         result = pc.array_sort_indices(
             self._data, order=order, null_placement=null_placement
         )
-        if pa_version_under2p0:
-            np_result = result.to_pandas().values
-        else:
-            np_result = result.to_numpy()
+        np_result = result.to_numpy()
         return np_result.astype(np.intp, copy=False)
 
     def _argmin_max(self, skipna: bool, method: str) -> int:
@@ -548,24 +528,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return type(self)(pc.drop_null(self._data))
 
     def isin(self, values) -> npt.NDArray[np.bool_]:
-        if pa_version_under2p0:
-            fallback_performancewarning(version="2")
-            return super().isin(values)
-
-        # for an empty value_set pyarrow 3.0.0 segfaults and pyarrow 2.0.0 returns True
-        # for null values, so we short-circuit to return all False array.
+        # short-circuit to return all False array.
         if not len(values):
             return np.zeros(len(self), dtype=bool)
 
-        kwargs = {}
-        if pa_version_under3p0:
-            # in pyarrow 2.0.0 skip_null is ignored but is a required keyword and raises
-            # with unexpected keyword argument in pyarrow 3.0.0+
-            kwargs["skip_null"] = True
-
-        result = pc.is_in(
-            self._data, value_set=pa.array(values, from_pandas=True), **kwargs
-        )
+        result = pc.is_in(self._data, value_set=pa.array(values, from_pandas=True))
         # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
@@ -584,10 +551,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         The values returned by this method are also used in
         :func:`pandas.util.hash_pandas_object`.
         """
-        if pa_version_under2p0:
-            values = self._data.to_pandas().values
-        else:
-            values = self._data.to_numpy()
+        values = self._data.to_numpy()
         return values, self.dtype.na_value
 
     @doc(ExtensionArray.factorize)
@@ -597,36 +561,23 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         use_na_sentinel: bool | lib.NoDefault = lib.no_default,
     ) -> tuple[np.ndarray, ExtensionArray]:
         resolved_na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
-        if pa_version_under4p0:
-            encoded = self._data.dictionary_encode()
+        null_encoding = "mask" if resolved_na_sentinel is not None else "encode"
+        encoded = self._data.dictionary_encode(null_encoding=null_encoding)
+        if encoded.length() == 0:
+            indices = np.array([], dtype=np.intp)
+            uniques = type(self)(pa.chunked_array([], type=encoded.type.value_type))
         else:
-            null_encoding = "mask" if resolved_na_sentinel is not None else "encode"
-            encoded = self._data.dictionary_encode(null_encoding=null_encoding)
-        indices = pa.chunked_array(
-            [c.indices for c in encoded.chunks], type=encoded.type.index_type
-        ).to_pandas()
-        if indices.dtype.kind == "f":
-            indices[np.isnan(indices)] = (
-                resolved_na_sentinel if resolved_na_sentinel is not None else -1
+            pa_indices = encoded.combine_chunks().indices
+            if pa_indices.null_count > 0:
+                fill_value = (
+                    resolved_na_sentinel if resolved_na_sentinel is not None else -1
+                )
+                pa_indices = pc.fill_null(pa_indices, fill_value)
+            indices = pa_indices.to_numpy(zero_copy_only=False, writable=True).astype(
+                np.intp, copy=False
             )
-        indices = indices.astype(np.int64, copy=False)
-
-        if encoded.num_chunks:
             uniques = type(self)(encoded.chunk(0).dictionary)
-            if resolved_na_sentinel is None and pa_version_under4p0:
-                # TODO: share logic with BaseMaskedArray.factorize
-                # Insert na with the proper code
-                na_mask = indices.values == -1
-                na_index = na_mask.argmax()
-                if na_mask[na_index]:
-                    na_code = 0 if na_index == 0 else indices[:na_index].max() + 1
-                    uniques = uniques.insert(na_code, self.dtype.na_value)
-                    indices[indices >= na_code] += 1
-                    indices[indices == -1] = na_code
-        else:
-            uniques = type(self)(pa.array([], type=encoded.type.value_type))
-
-        return indices.values, uniques
+        return indices, uniques
 
     def reshape(self, *args, **kwargs):
         raise NotImplementedError(
@@ -740,11 +691,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         ArrowExtensionArray
         """
-        if pa_version_under2p0:
-            fallback_performancewarning(version="2")
-            return super().unique()
-        else:
-            return type(self)(pc.unique(self._data))
+        return type(self)(pc.unique(self._data))
 
     def value_counts(self, dropna: bool = True) -> Series:
         """
@@ -957,10 +904,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         same type as self
         """
-        if pa_version_under4p0:
-            raise NotImplementedError(
-                "quantile only supported for pyarrow version >= 4.0"
-            )
         result = pc.quantile(self._data, q=qs, interpolation=interpolation)
         return type(self)(result)
 
@@ -1076,7 +1019,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         mask = np.zeros(len(chunk), dtype=np.bool_)
         mask[indices] = True
 
-        if pa_version_under5p0:
+        if pa_version_under6p0:
             arr = chunk.to_numpy(zero_copy_only=False)
             arr[mask] = value
             return pa.array(arr, type=chunk.type)

@@ -152,9 +152,7 @@ def _to_ordinalf(tm: pydt.time) -> float:
 
 def time2num(d):
     if isinstance(d, str):
-        parsed = tools.to_datetime(d)
-        if not isinstance(parsed, datetime):
-            raise ValueError(f"Could not parse time {d}")
+        parsed = Timestamp(d)
         return _to_ordinalf(parsed.time())
     if isinstance(d, pydt.time):
         return _to_ordinalf(d)
@@ -406,9 +404,8 @@ class MilliSecondLocator(dates.DateLocator):
             if num <= interval * (max_millis_ticks - 1):
                 self._interval = interval
                 break
-            else:
-                # We went through the whole loop without breaking, default to 1
-                self._interval = 1000.0
+            # We went through the whole loop without breaking, default to 1
+            self._interval = 1000.0
 
         estimate = (nmax - nmin) / (self._get_unit() * self._get_interval())
 

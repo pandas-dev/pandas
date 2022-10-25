@@ -312,46 +312,6 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(ndarray left, ndarray right) -> list:
-    """
-    Generate a list indices we have to add to the left to get the union
-    of both arrays.
-
-    Parameters
-    ----------
-    left : np.ndarray
-        Left array that is used as base.
-    right : np.ndarray
-        right array that is checked for values that are not in left.
-        right can not have duplicates.
-
-    Returns
-    -------
-    list of indices that we have to add to the left array.
-    """
-    cdef:
-        Py_ssize_t j, n
-        list indices = []
-        set table = set()
-        object val, stub = 0
-
-    n = len(left)
-    for j in range(n):
-        val = left[j]
-        if val not in table:
-            table.add(val)
-
-    n = len(right)
-    for j in range(n):
-        val = right[j]
-        if val not in table:
-            indices.append(j)
-
-    return indices
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def fast_unique_multiple_list(lists: list, sort: bool | None = True) -> list:
     cdef:
         list buf
@@ -742,6 +702,10 @@ cpdef ndarray[object] ensure_string_array(
 
     if copy and result is arr:
         result = result.copy()
+
+    if issubclass(arr.dtype.type, np.str_):
+        # short-circuit, all elements are str
+        return result
 
     for i in range(n):
         val = arr[i]
@@ -2406,7 +2370,7 @@ def maybe_convert_numeric(
 
     # This occurs since we disabled float nulls showing as null in anticipation
     # of seeing ints that were never seen. So then, we return float
-    if allow_null_in_int and seen.null_ and not seen.int_:
+    if allow_null_in_int and seen.null_ and not seen.int_ and not seen.bool_:
         seen.float_ = True
 
     if seen.complex_:
@@ -2426,6 +2390,8 @@ def maybe_convert_numeric(
         else:
             return (ints, None)
     elif seen.bool_:
+        if allow_null_in_int:
+            return (bools.view(np.bool_), mask.view(np.bool_))
         return (bools.view(np.bool_), None)
     elif seen.uint_:
         return (uints, None)

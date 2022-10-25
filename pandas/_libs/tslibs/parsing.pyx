@@ -1,7 +1,6 @@
 """
 Parsing functions for datetime and datetime-like strings.
 """
-import inspect
 import re
 import time
 import warnings
@@ -218,7 +217,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
                     format='MM/DD/YYYY',
                     dayfirst='True',
                 ),
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         elif not dayfirst and swapped_day_and_month:
             warnings.warn(
@@ -226,7 +225,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
                     format='DD/MM/YYYY',
                     dayfirst='False (the default)',
                 ),
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         # In Python <= 3.6.0 there is no range checking for invalid dates
         # in C api, thus we call faster C version for 3.6.1 or newer
@@ -742,49 +741,6 @@ def try_parse_dates(
     return result.base  # .base to access underlying ndarray
 
 
-def try_parse_date_and_time(
-    object[:] dates,
-    object[:] times,
-    date_parser=None,
-    time_parser=None,
-    bint dayfirst=False,
-    default=None,
-) -> np.ndarray:
-    cdef:
-        Py_ssize_t i, n
-        object[::1] result
-
-    n = len(dates)
-    # TODO(cython3): Use len instead of `shape[0]`
-    if times.shape[0] != n:
-        raise ValueError('Length of dates and times must be equal')
-    result = np.empty(n, dtype='O')
-
-    if date_parser is None:
-        if default is None:  # GH2618
-            date = datetime.now()
-            default = datetime(date.year, date.month, 1)
-
-        parse_date = lambda x: du_parse(x, dayfirst=dayfirst, default=default)
-
-    else:
-        parse_date = date_parser
-
-    if time_parser is None:
-        parse_time = lambda x: du_parse(x)
-
-    else:
-        parse_time = time_parser
-
-    for i in range(n):
-        d = parse_date(str(dates[i]))
-        t = parse_time(str(times[i]))
-        result[i] = datetime(d.year, d.month, d.day,
-                             t.hour, t.minute, t.second)
-
-    return result.base  # .base to access underlying ndarray
-
-
 def try_parse_year_month_day(
     object[:] years, object[:] months, object[:] days
 ) -> np.ndarray:
@@ -976,7 +932,6 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         (('hour',), '%H', 2),
         (('minute',), '%M', 2),
         (('second',), '%S', 2),
-        (('microsecond',), '%f', 6),
         (('second', 'microsecond'), '%S.%f', 0),
         (('tzinfo',), '%z', 0),
         (('tzinfo',), '%Z', 0),
@@ -1048,15 +1003,19 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
         parsed_formatted = parsed_datetime.strftime(attr_format)
         for i, token_format in enumerate(format_guess):
-            token_filled = tokens[i].zfill(padding)
+            token_filled = _fill_token(tokens[i], padding)
             if token_format is None and token_filled == parsed_formatted:
                 format_guess[i] = attr_format
                 tokens[i] = token_filled
                 found_attrs.update(attrs)
                 break
 
-    # Only consider it a valid guess if we have a year, month and day
-    if len({'year', 'month', 'day'} & found_attrs) != 3:
+    # Only consider it a valid guess if we have a year, month and day,
+    # unless it's %Y which is both common and unambiguous.
+    if (
+        len({'year', 'month', 'day'} & found_attrs) != 3
+        and format_guess != ['%Y']
+    ):
         return None
 
     output_format = []
@@ -1090,6 +1049,19 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     else:
         return None
 
+cdef str _fill_token(token: str, padding: int):
+    cdef str token_filled
+    if '.' not in token:
+        token_filled = token.zfill(padding)
+    else:
+        seconds, nanoseconds = token.split('.')
+        seconds = f'{int(seconds):02d}'
+        # right-pad so we get nanoseconds, then only take
+        # first 6 digits (microseconds) as stdlib datetime
+        # doesn't support nanoseconds
+        nanoseconds = nanoseconds.ljust(9, '0')[:6]
+        token_filled = f'{seconds}.{nanoseconds}'
+    return token_filled
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

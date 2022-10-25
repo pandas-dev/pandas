@@ -7,7 +7,6 @@ from functools import (
     lru_cache,
     reduce,
 )
-import inspect
 import itertools
 import re
 from typing import (
@@ -278,7 +277,7 @@ class CSSToExcelConverter:
             # Return "none" will keep "border" in style dictionary
             return "none"
 
-        if style == "none" or style == "hidden":
+        if style in ("none", "hidden"):
             return "none"
 
         width_name = self._get_width_name(width)
@@ -432,7 +431,7 @@ class CSSToExcelConverter:
             warnings.warn(
                 f"Unhandled color format: {repr(val)}",
                 CSSWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         return None
 

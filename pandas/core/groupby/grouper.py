@@ -4,7 +4,6 @@ split-apply-combine paradigm.
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -26,7 +25,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import sanitize_to_nanoseconds
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_list_like,
@@ -41,10 +39,7 @@ from pandas.core.arrays import (
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
-from pandas.core.groupby.categorical import (
-    recode_for_groupby,
-    recode_from_groupby,
-)
+from pandas.core.groupby.categorical import recode_for_groupby
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
@@ -464,6 +459,7 @@ class Grouping:
     _group_index: Index | None = None
     _passed_categorical: bool
     _all_grouper: Categorical | None
+    _orig_cats: Index | None
     _index: Index
 
     def __init__(
@@ -481,6 +477,7 @@ class Grouping:
         self._orig_grouper = grouper
         self.grouping_vector = _convert_grouper(index, grouper)
         self._all_grouper = None
+        self._orig_cats = None
         self._index = index
         self._sort = sort
         self.obj = obj
@@ -531,6 +528,7 @@ class Grouping:
             # a passed Categorical
             self._passed_categorical = True
 
+            self._orig_cats = self.grouping_vector.categories
             self.grouping_vector, self._all_grouper = recode_for_groupby(
                 self.grouping_vector, sort, observed
             )
@@ -558,9 +556,12 @@ class Grouping:
                 raise AssertionError(errmsg)
 
         if isinstance(self.grouping_vector, np.ndarray):
-            # if we have a date/time-like grouper, make sure that we have
-            # Timestamps like
-            self.grouping_vector = sanitize_to_nanoseconds(self.grouping_vector)
+            if self.grouping_vector.dtype.kind in ["m", "M"]:
+                # if we have a date/time-like grouper, make sure that we have
+                # Timestamps like
+                # TODO 2022-10-08 we only have one test that gets here and
+                #  values are already in nanoseconds in that case.
+                self.grouping_vector = Series(self.grouping_vector).to_numpy()
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
@@ -645,7 +646,9 @@ class Grouping:
         if self._all_grouper is not None:
             group_idx = self.group_index
             assert isinstance(group_idx, CategoricalIndex)
-            return recode_from_groupby(self._all_grouper, self._sort, group_idx)
+            categories = self._all_grouper.categories
+            # set_categories is dynamically added
+            return group_idx.set_categories(categories)  # type: ignore[attr-defined]
         return self.group_index
 
     @cache_readonly
@@ -677,6 +680,8 @@ class Grouping:
             uniques = Categorical.from_codes(
                 codes=ucodes, categories=categories, ordered=cat.ordered
             )
+            if not self._observed:
+                uniques = uniques.reorder_categories(self._orig_cats)
             return cat.codes, uniques
 
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
@@ -984,7 +989,7 @@ def _check_deprecated_resample_kwargs(kwargs, origin) -> None:
             "\nbecomes:\n"
             '\n>>> df.resample(freq="3s", offset="2s")\n',
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
     if kwargs.get("loffset", None) is not None:
         warnings.warn(
@@ -995,5 +1000,5 @@ def _check_deprecated_resample_kwargs(kwargs, origin) -> None:
             '\n>>> df = df.resample(freq="3s").mean()'
             '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )

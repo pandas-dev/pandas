@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import inspect
 import sys
 import types
 import warnings
@@ -10,7 +9,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.util.version import Version
 
-# Update install.rst when updating versions!
+# Update install.rst & setup.cfg when updating versions!
 
 VERSIONS = {
     "bs4": "4.9.3",
@@ -32,7 +31,7 @@ VERSIONS = {
     "pandas_gbq": "0.15.0",
     "psycopg2": "2.8.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.0.2",
-    "pyarrow": "1.0.1",
+    "pyarrow": "6.0.0",
     "pyreadstat": "1.1.2",
     "pytest": "6.0",
     "pyxlsb": "1.0.8",
@@ -165,7 +164,7 @@ def import_optional_dependency(
                 warnings.warn(
                     msg,
                     UserWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 return None
             elif errors == "raise":
