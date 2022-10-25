@@ -1855,9 +1855,6 @@ class DataFrame(NDFrame, OpsMixin):
               [{column -> value}, ... , {column -> value}]
             - 'index' : dict like {index -> {column -> value}}
 
-            Abbreviations are allowed. `s` indicates `series` and `sp`
-            indicates `split`.
-
             .. versionadded:: 1.4.0
                 'tight' as an allowed value for the ``orient`` argument
 
@@ -1948,36 +1945,6 @@ class DataFrame(NDFrame, OpsMixin):
         # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',
         # 'records', 'index']")
         orient = orient.lower()  # type: ignore[assignment]
-        # GH32515
-        if orient.startswith(("d", "l", "s", "r", "i")) and orient not in {
-            "dict",
-            "list",
-            "series",
-            "split",
-            "records",
-            "index",
-        }:
-            warnings.warn(
-                "Using short name for 'orient' is deprecated. Only the "
-                "options: ('dict', list, 'series', 'split', 'records', 'index') "
-                "will be used in a future version. Use one of the above "
-                "to silence this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-            if orient.startswith("d"):
-                orient = "dict"
-            elif orient.startswith("l"):
-                orient = "list"
-            elif orient.startswith("sp"):
-                orient = "split"
-            elif orient.startswith("s"):
-                orient = "series"
-            elif orient.startswith("r"):
-                orient = "records"
-            elif orient.startswith("i"):
-                orient = "index"
 
         if not index and orient not in ["split", "tight"]:
             raise ValueError(
