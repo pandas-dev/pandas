@@ -1,4 +1,4 @@
-from __future__ import annotations
+-from __future__ import annotations
 
 import abc
 import datetime
@@ -93,6 +93,10 @@ io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
     By file-like object, we refer to objects with a ``read()`` method,
     such as a file handle (e.g. via builtin ``open`` function)
     or ``StringIO``.
+    
+    When calling this function within an ``open`` function,a required 
+    'read_mode=x' of the appropriate type is required (e.g. open
+    (excel, mode='rb')).
 sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
     sheet positions (chart sheets do not count as a sheet position).
