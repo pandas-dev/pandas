@@ -42,7 +42,7 @@ class TestDataFrameSubclassing:
             custom plotting functions.
             """
 
-            def __init__(self, *args, **kw):
+            def __init__(self, *args, **kw) -> None:
                 super().__init__(*args, **kw)
 
             @property
@@ -723,6 +723,13 @@ class TestDataFrameSubclassing:
         result = gpd_style_subclass_df.convert_dtypes()
         assert isinstance(result, type(gpd_style_subclass_df))
 
+    def test_astype_preserves_subclass(self):
+        # GH#40810
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+
+        result = df.astype({"A": np.int64, "B": np.int32, "C": np.float64})
+        assert isinstance(result, tm.SubclassedDataFrame)
+
     def test_equals_subclass(self):
         # https://github.com/pandas-dev/pandas/pull/34402
         # allow subclass in both directions
@@ -730,3 +737,11 @@ class TestDataFrameSubclassing:
         df2 = tm.SubclassedDataFrame({"a": [1, 2, 3]})
         assert df1.equals(df2)
         assert df2.equals(df1)
+
+    def test_replace_list_method(self):
+        # https://github.com/pandas-dev/pandas/pull/46018
+        df = tm.SubclassedDataFrame({"A": [0, 1, 2]})
+        result = df.replace([1, 2], method="ffill")
+        expected = tm.SubclassedDataFrame({"A": [0, 0, 0]})
+        assert isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result, expected)

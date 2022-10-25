@@ -37,20 +37,20 @@ if TYPE_CHECKING:
     )
 
 
-def do_adjust_figure(fig: Figure):
+def do_adjust_figure(fig: Figure) -> bool:
     """Whether fig has constrained_layout enabled."""
     if not hasattr(fig, "get_constrained_layout"):
         return False
     return not fig.get_constrained_layout()
 
 
-def maybe_adjust_figure(fig: Figure, *args, **kwargs):
+def maybe_adjust_figure(fig: Figure, *args, **kwargs) -> None:
     """Call fig.subplots_adjust unless fig has constrained_layout enabled."""
     if do_adjust_figure(fig):
         fig.subplots_adjust(*args, **kwargs)
 
 
-def format_date_labels(ax: Axes, rot):
+def format_date_labels(ax: Axes, rot) -> None:
     # mini version of autofmt_xdate
     for label in ax.get_xticklabels():
         label.set_ha("right")
@@ -83,7 +83,11 @@ def table(
     return table
 
 
-def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> tuple[int, int]:
+def _get_layout(
+    nplots: int,
+    layout: tuple[int, int] | None = None,
+    layout_type: str = "box",
+) -> tuple[int, int]:
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
             raise ValueError("Layout must be a tuple of (rows, columns)")
@@ -117,7 +121,7 @@ def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> tuple[int
         return layouts[nplots]
     except KeyError:
         k = 1
-        while k ** 2 < nplots:
+        while k**2 < nplots:
             k += 1
 
         if (k - 1) * k >= nplots:
@@ -229,6 +233,7 @@ def create_subplots(
                 warnings.warn(
                     "When passing multiple axes, layout keyword is ignored.",
                     UserWarning,
+                    stacklevel=find_stack_level(),
                 )
             if sharex or sharey:
                 warnings.warn(
@@ -312,7 +317,7 @@ def create_subplots(
     return fig, axes
 
 
-def _remove_labels_from_axis(axis: Axis):
+def _remove_labels_from_axis(axis: Axis) -> None:
     for t in axis.get_majorticklabels():
         t.set_visible(False)
 
@@ -328,13 +333,13 @@ def _remove_labels_from_axis(axis: Axis):
     axis.get_label().set_visible(False)
 
 
-def _has_externally_shared_axis(ax1: matplotlib.axes, compare_axis: str) -> bool:
+def _has_externally_shared_axis(ax1: Axes, compare_axis: str) -> bool:
     """
     Return whether an axis is externally shared.
 
     Parameters
     ----------
-    ax1 : matplotlib.axes
+    ax1 : matplotlib.axes.Axes
         Axis to query.
     compare_axis : str
         `"x"` or `"y"` according to whether the X-axis or Y-axis is being
@@ -386,14 +391,10 @@ def handle_shared_axes(
     ncols: int,
     sharex: bool,
     sharey: bool,
-):
+) -> None:
     if nplots > 1:
-        if compat.mpl_ge_3_2_0():
-            row_num = lambda x: x.get_subplotspec().rowspan.start
-            col_num = lambda x: x.get_subplotspec().colspan.start
-        else:
-            row_num = lambda x: x.rowNum
-            col_num = lambda x: x.colNum
+        row_num = lambda x: x.get_subplotspec().rowspan.start
+        col_num = lambda x: x.get_subplotspec().colspan.start
 
         if compat.mpl_ge_3_4_0():
             is_first_col = lambda x: x.get_subplotspec().is_first_col()

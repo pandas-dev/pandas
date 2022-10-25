@@ -10,7 +10,7 @@ import pandas._testing as tm
 
 
 @td.skip_if_no("numba")
-@pytest.mark.filterwarnings("ignore:\n")
+@pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEngine:
     def test_cython_vs_numba_frame(
@@ -25,7 +25,7 @@ class TestEngine:
         )
         expected = getattr(gb, func)(**kwargs)
         # check_dtype can be removed if GH 44952 is addressed
-        check_dtype = func != "sum"
+        check_dtype = func not in ("sum", "min", "max")
         tm.assert_frame_equal(result, expected, check_dtype=check_dtype)
 
     def test_cython_vs_numba_getitem(
@@ -40,7 +40,7 @@ class TestEngine:
         )
         expected = getattr(gb, func)(**kwargs)
         # check_dtype can be removed if GH 44952 is addressed
-        check_dtype = func != "sum"
+        check_dtype = func not in ("sum", "min", "max")
         tm.assert_series_equal(result, expected, check_dtype=check_dtype)
 
     def test_cython_vs_numba_series(
@@ -55,7 +55,7 @@ class TestEngine:
         )
         expected = getattr(gb, func)(**kwargs)
         # check_dtype can be removed if GH 44952 is addressed
-        check_dtype = func != "sum"
+        check_dtype = func not in ("sum", "min", "max")
         tm.assert_series_equal(result, expected, check_dtype=check_dtype)
 
     def test_as_index_false_unsupported(self, numba_supported_reductions):

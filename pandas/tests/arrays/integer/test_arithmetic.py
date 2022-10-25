@@ -3,8 +3,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p20
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
@@ -77,6 +75,21 @@ def test_floordiv(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_floordiv_by_int_zero_no_mask(any_int_ea_dtype):
+    # GH 48223: Aligns with non-masked floordiv
+    # but differs from numpy
+    # https://github.com/pandas-dev/pandas/issues/30188#issuecomment-564452740
+    ser = pd.Series([0, 1], dtype=any_int_ea_dtype)
+    result = 1 // ser
+    expected = pd.Series([np.inf, 1.0], dtype="Float64")
+    tm.assert_series_equal(result, expected)
+
+    ser_non_nullable = ser.astype(ser.dtype.numpy_dtype)
+    result = 1 // ser_non_nullable
+    expected = expected.astype(np.float64)
+    tm.assert_series_equal(result, expected)
+
+
 def test_mod(dtype):
     a = pd.array([1, 2, 3, None, 5], dtype=dtype)
     b = pd.array([0, 1, None, 3, 4], dtype=dtype)
@@ -88,19 +101,19 @@ def test_mod(dtype):
 
 def test_pow_scalar():
     a = pd.array([-1, 0, 1, None, 2], dtype="Int64")
-    result = a ** 0
+    result = a**0
     expected = pd.array([1, 1, 1, 1, 1], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    result = a ** 1
+    result = a**1
     expected = pd.array([-1, 0, 1, None, 2], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    result = a ** pd.NA
+    result = a**pd.NA
     expected = pd.array([None, None, 1, None, None], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    result = a ** np.nan
+    result = a**np.nan
     expected = FloatingArray(
         np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64"),
         np.array([False, False, False, True, False]),
@@ -110,19 +123,19 @@ def test_pow_scalar():
     # reversed
     a = a[1:]  # Can't raise integers to negative powers.
 
-    result = 0 ** a
+    result = 0**a
     expected = pd.array([1, 0, None, 0], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    result = 1 ** a
+    result = 1**a
     expected = pd.array([1, 1, 1, 1], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    result = pd.NA ** a
+    result = pd.NA**a
     expected = pd.array([1, None, None, None], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    result = np.nan ** a
+    result = np.nan**a
     expected = FloatingArray(
         np.array([1, np.nan, np.nan, np.nan], dtype="float64"),
         np.array([False, False, True, False]),
@@ -133,7 +146,7 @@ def test_pow_scalar():
 def test_pow_array():
     a = pd.array([0, 0, 0, 1, 1, 1, None, None, None])
     b = pd.array([0, 1, None, 0, 1, None, 0, 1, None])
-    result = a ** b
+    result = a**b
     expected = pd.array([1, 0, None, 1, 1, 1, 1, None, None])
     tm.assert_extension_array_equal(result, expected)
 
@@ -166,9 +179,17 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     ops = getattr(s, op)
 
     # invalid scalars
-    msg = (
-        r"(:?can only perform ops with numeric values)"
-        r"|(:?IntegerArray cannot perform the operation mod)"
+    msg = "|".join(
+        [
+            r"can only perform ops with numeric values",
+            r"IntegerArray cannot perform the operation mod",
+            r"unsupported operand type",
+            r"can only concatenate str \(not \"int\"\) to str",
+            "not all arguments converted during string",
+            "ufunc '.*' not supported for the input types, and the inputs could not",
+            "ufunc '.*' did not contain a loop with signature matching types",
+            "Addition/subtraction of integers and integer-arrays with Timestamp",
+        ]
     )
     with pytest.raises(TypeError, match=msg):
         ops("foo")
@@ -176,8 +197,18 @@ def test_error_invalid_values(data, all_arithmetic_operators):
         ops(pd.Timestamp("20180101"))
 
     # invalid array-likes
-    with pytest.raises(TypeError, match=msg):
-        ops(pd.Series("foo", index=s.index))
+    str_ser = pd.Series("foo", index=s.index)
+    # with pytest.raises(TypeError, match=msg):
+    if all_arithmetic_operators in [
+        "__mul__",
+        "__rmul__",
+    ]:  # (data[~data.isna()] >= 0).all():
+        res = ops(str_ser)
+        expected = pd.Series(["foo" * x for x in data], index=s.index)
+        tm.assert_series_equal(res, expected)
+    else:
+        with pytest.raises(TypeError, match=msg):
+            ops(str_ser)
 
     msg = "|".join(
         [
@@ -185,6 +216,10 @@ def test_error_invalid_values(data, all_arithmetic_operators):
             "cannot perform .* with this index type: DatetimeArray",
             "Addition/subtraction of integers and integer-arrays "
             "with DatetimeArray is no longer supported. *",
+            "unsupported operand type",
+            r"can only concatenate str \(not \"int\"\) to str",
+            "not all arguments converted during string",
+            "cannot subtract DatetimeArray from ndarray",
         ]
     )
     with pytest.raises(TypeError, match=msg):
@@ -206,16 +241,9 @@ def test_arith_coerce_scalar(data, all_arithmetic_operators):
     result = op(s, other)
     expected = op(s.astype(float), other)
     expected = expected.astype("Float64")
-    # rfloordiv results in nan instead of inf
-    if all_arithmetic_operators == "__rfloordiv__" and np_version_under1p20:
-        # for numpy 1.20 https://github.com/numpy/numpy/pull/16161
-        #  updated floordiv, now matches our behavior defined in core.ops
-        mask = (
-            ((expected == np.inf) | (expected == -np.inf)).fillna(False).to_numpy(bool)
-        )
-        expected.array._data[mask] = np.nan
+
     # rmod results in NaN that wasn't NA in original nullable Series -> unmask it
-    elif all_arithmetic_operators == "__rmod__":
+    if all_arithmetic_operators == "__rmod__":
         mask = (s == 0).fillna(False).to_numpy(bool)
         expected.array._mask[mask] = False
 
@@ -301,3 +329,39 @@ def test_unary_int_operators(any_signed_int_ea_dtype, source, neg_target, abs_ta
     tm.assert_extension_array_equal(pos_result, arr)
     assert not tm.shares_memory(pos_result, arr)
     tm.assert_extension_array_equal(abs_result, abs_target)
+
+
+def test_values_multiplying_large_series_by_NA():
+    # GH#33701
+
+    result = pd.NA * pd.Series(np.zeros(10001))
+    expected = pd.Series([pd.NA] * 10001)
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_bitwise(dtype):
+    left = pd.array([1, None, 3, 4], dtype=dtype)
+    right = pd.array([None, 3, 5, 4], dtype=dtype)
+
+    result = left | right
+    expected = pd.array([None, None, 3 | 5, 4 | 4], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+    result = left & right
+    expected = pd.array([None, None, 3 & 5, 4 & 4], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+    result = left ^ right
+    expected = pd.array([None, None, 3 ^ 5, 4 ^ 4], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+    # TODO: desired behavior when operating with boolean?  defer?
+
+    floats = right.astype("Float64")
+    with pytest.raises(TypeError, match="unsupported operand type"):
+        left | floats
+    with pytest.raises(TypeError, match="unsupported operand type"):
+        left & floats
+    with pytest.raises(TypeError, match="unsupported operand type"):
+        left ^ floats

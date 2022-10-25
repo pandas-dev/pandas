@@ -23,8 +23,10 @@ Data manipulations
    merge_asof
    concat
    get_dummies
+   from_dummies
    factorize
    unique
+   lreshape
    wide_to_long
 
 Top-level missing data
@@ -79,9 +81,9 @@ Hashing
    util.hash_array
    util.hash_pandas_object
 
-Testing
-~~~~~~~
+Importing from other DataFrame libraries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
 
-   test
+   api.interchange.from_dataframe

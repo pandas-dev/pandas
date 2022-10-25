@@ -12,6 +12,7 @@ from io import (
 import mmap
 import os
 from pathlib import Path
+import pickle
 import tempfile
 
 import pytest
@@ -28,7 +29,7 @@ import pandas.io.common as icom
 class CustomFSPath:
     """For testing fspath on unknown objects"""
 
-    def __init__(self, path):
+    def __init__(self, path) -> None:
         self.path = path
 
     def __fspath__(self):
@@ -117,11 +118,11 @@ bar2,12,13,14,15
                 assert os.path.expanduser(filename) == handles.handle.name
 
     def test_get_handle_with_buffer(self):
-        input_buffer = StringIO()
-        with icom.get_handle(input_buffer, "r") as handles:
-            assert handles.handle == input_buffer
-        assert not input_buffer.closed
-        input_buffer.close()
+        with StringIO() as input_buffer:
+            with icom.get_handle(input_buffer, "r") as handles:
+                assert handles.handle == input_buffer
+            assert not input_buffer.closed
+        assert input_buffer.closed
 
     # Test that BytesIOWrapper(get_handle) returns correct amount of bytes every time
     def test_bytesiowrapper_returns_correct_bytes(self):
@@ -187,7 +188,7 @@ Look,a snake,🐍"""
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
-            (pd.read_json, "os", ValueError, "json"),
+            (pd.read_json, "os", FileNotFoundError, "json"),
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
@@ -195,23 +196,23 @@ Look,a snake,🐍"""
         pytest.importorskip(module)
 
         path = os.path.join(HERE, "data", "does_not_exist." + fn_ext)
-        msg1 = fr"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
-        msg2 = fr"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
+        msg1 = rf"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
+        msg2 = rf"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
         msg3 = "Expected object or value"
         msg4 = "path_or_buf needs to be a string file path or file-like"
         msg5 = (
-            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
-            fr"'.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
+            rf"'.+does_not_exist\.{fn_ext}'"
         )
-        msg6 = fr"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
+        msg6 = rf"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
         msg7 = (
-            fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
-        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}"
+        msg8 = rf"Failed to open local file.+does_not_exist\.{fn_ext}"
 
         with pytest.raises(
             error_class,
-            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
         ):
             reader(path)
 
@@ -253,7 +254,7 @@ Look,a snake,🐍"""
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
-            (pd.read_json, "os", ValueError, "json"),
+            (pd.read_json, "os", FileNotFoundError, "json"),
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
@@ -265,23 +266,23 @@ Look,a snake,🐍"""
         path = os.path.join("~", "does_not_exist." + fn_ext)
         monkeypatch.setattr(icom, "_expand_user", lambda x: os.path.join("foo", x))
 
-        msg1 = fr"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
-        msg2 = fr"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
+        msg1 = rf"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
+        msg2 = rf"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
         msg3 = "Unexpected character found when decoding 'false'"
         msg4 = "path_or_buf needs to be a string file path or file-like"
         msg5 = (
-            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
-            fr"'.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
+            rf"'.+does_not_exist\.{fn_ext}'"
         )
-        msg6 = fr"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
+        msg6 = rf"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
         msg7 = (
-            fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
-        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}"
+        msg8 = rf"Failed to open local file.+does_not_exist\.{fn_ext}"
 
         with pytest.raises(
             error_class,
-            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
         ):
             reader(path)
 
@@ -413,39 +414,31 @@ class TestMMapWrapper:
             err = mmap.error
 
         with pytest.raises(err, match=msg):
-            icom._MMapWrapper(non_file)
+            icom._maybe_memory_map(non_file, True)
 
-        target = open(mmap_file)
-        target.close()
+        with open(mmap_file) as target:
+            pass
 
         msg = "I/O operation on closed file"
         with pytest.raises(ValueError, match=msg):
-            icom._MMapWrapper(target)
-
-    def test_get_attr(self, mmap_file):
-        with open(mmap_file) as target:
-            wrapper = icom._MMapWrapper(target)
-
-        attrs = dir(wrapper.mmap)
-        attrs = [attr for attr in attrs if not attr.startswith("__")]
-        attrs.append("__next__")
-
-        for attr in attrs:
-            assert hasattr(wrapper, attr)
-
-        assert not hasattr(wrapper, "foo")
+            icom._maybe_memory_map(target, True)
 
     def test_next(self, mmap_file):
         with open(mmap_file) as target:
-            wrapper = icom._MMapWrapper(target)
             lines = target.readlines()
 
-        for line in lines:
-            next_line = next(wrapper)
-            assert next_line.strip() == line.strip()
+            with icom.get_handle(
+                target, "r", is_text=True, memory_map=True
+            ) as wrappers:
+                wrapper = wrappers.handle
+                assert isinstance(wrapper.buffer.buffer, mmap.mmap)
 
-        with pytest.raises(StopIteration, match=r"^$"):
-            next(wrapper)
+                for line in lines:
+                    next_line = next(wrapper)
+                    assert next_line.strip() == line.strip()
+
+                with pytest.raises(StopIteration, match=r"^$"):
+                    next(wrapper)
 
     def test_unknown_engine(self):
         with tm.ensure_clean() as path:
@@ -600,3 +593,35 @@ def test_fail_mmap():
     with pytest.raises(UnsupportedOperation, match="fileno"):
         with BytesIO() as buffer:
             icom.get_handle(buffer, "rb", memory_map=True)
+
+
+def test_close_on_error():
+    # GH 47136
+    class TestError:
+        def close(self):
+            raise OSError("test")
+
+    with pytest.raises(OSError, match="test"):
+        with BytesIO() as buffer:
+            with icom.get_handle(buffer, "rb") as handles:
+                handles.created_handles.append(TestError())
+
+
+@pytest.mark.parametrize(
+    "reader",
+    [
+        pd.read_csv,
+        pd.read_fwf,
+        pd.read_excel,
+        pd.read_feather,
+        pd.read_hdf,
+        pd.read_stata,
+        pd.read_sas,
+        pd.read_json,
+        pd.read_pickle,
+    ],
+)
+def test_pickle_reader(reader):
+    # GH 22265
+    with BytesIO() as buffer:
+        pickle.dump(reader, buffer)

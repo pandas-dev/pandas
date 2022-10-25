@@ -52,6 +52,9 @@ def calculate_variable_window_bounds(
         int64_t start_bound, end_bound, index_growth_sign = 1
         Py_ssize_t i, j
 
+    if num_values <= 0:
+        return np.empty(0, dtype='int64'), np.empty(0, dtype='int64')
+
     # default is 'right'
     if closed is None:
         closed = 'right'

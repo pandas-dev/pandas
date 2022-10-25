@@ -151,7 +151,8 @@ def test_frame_equal_index_mismatch(check_like, obj_fixture):
 
 {obj_fixture}\\.index values are different \\(33\\.33333 %\\)
 \\[left\\]:  Index\\(\\['a', 'b', 'c'\\], dtype='object'\\)
-\\[right\\]: Index\\(\\['a', 'b', 'd'\\], dtype='object'\\)"""
+\\[right\\]: Index\\(\\['a', 'b', 'd'\\], dtype='object'\\)
+At positional index 2, first diff: c != d"""
 
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "c"])
     df2 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "d"])
@@ -323,9 +324,45 @@ def test_frame_equal_mixed_dtypes(frame_or_series, any_numeric_ea_dtype, indexer
         tm.assert_equal(obj1, obj2, check_exact=True, check_dtype=False)
 
 
-def test_assert_series_equal_check_like_different_indexes():
+def test_assert_frame_equal_check_like_different_indexes():
     # GH#39739
     df1 = DataFrame(index=pd.Index([], dtype="object"))
     df2 = DataFrame(index=pd.RangeIndex(start=0, stop=0, step=1))
     with pytest.raises(AssertionError, match="DataFrame.index are different"):
         tm.assert_frame_equal(df1, df2, check_like=True)
+
+
+def test_assert_frame_equal_checking_allow_dups_flag():
+    # GH#45554
+    left = DataFrame([[1, 2], [3, 4]])
+    left.flags.allows_duplicate_labels = False
+
+    right = DataFrame([[1, 2], [3, 4]])
+    right.flags.allows_duplicate_labels = True
+    tm.assert_frame_equal(left, right, check_flags=False)
+
+    with pytest.raises(AssertionError, match="allows_duplicate_labels"):
+        tm.assert_frame_equal(left, right, check_flags=True)
+
+
+def test_assert_frame_equal_check_like_categorical_midx():
+    # GH#48975
+    left = DataFrame(
+        [[1], [2], [3]],
+        index=pd.MultiIndex.from_arrays(
+            [
+                pd.Categorical(["a", "b", "c"]),
+                pd.Categorical(["a", "b", "c"]),
+            ]
+        ),
+    )
+    right = DataFrame(
+        [[3], [2], [1]],
+        index=pd.MultiIndex.from_arrays(
+            [
+                pd.Categorical(["c", "b", "a"]),
+                pd.Categorical(["c", "b", "a"]),
+            ]
+        ),
+    )
+    tm.assert_frame_equal(left, right, check_like=True)

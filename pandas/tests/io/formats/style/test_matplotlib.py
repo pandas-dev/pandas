@@ -13,6 +13,7 @@ pytest.importorskip("jinja2")
 import matplotlib as mpl
 
 from pandas.io.formats.style import Styler
+from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
 
 
 @pytest.fixture
@@ -216,7 +217,7 @@ def test_background_gradient_gmap_array_raises(gmap, axis):
     ],
 )
 def test_background_gradient_gmap_dataframe_align(styler_blank, gmap, subset, exp_gmap):
-    # test gmap given as DataFrame that it aligns to the the data including subset
+    # test gmap given as DataFrame that it aligns to the data including subset
     expected = styler_blank.background_gradient(axis=None, gmap=exp_gmap, subset=subset)
     result = styler_blank.background_gradient(axis=None, gmap=gmap, subset=subset)
     assert expected._compute().ctx == result._compute().ctx
@@ -232,7 +233,7 @@ def test_background_gradient_gmap_dataframe_align(styler_blank, gmap, subset, ex
     ],
 )
 def test_background_gradient_gmap_series_align(styler_blank, gmap, axis, exp_gmap):
-    # test gmap given as Series that it aligns to the the data including subset
+    # test gmap given as Series that it aligns to the data including subset
     expected = styler_blank.background_gradient(axis=None, gmap=exp_gmap)._compute()
     result = styler_blank.background_gradient(axis=axis, gmap=gmap)._compute()
     assert expected.ctx == result.ctx
@@ -260,7 +261,10 @@ def test_background_gradient_gmap_wrong_series(styler_blank):
         styler_blank.background_gradient(gmap=gmap, axis=None)._compute()
 
 
-@pytest.mark.parametrize("cmap", ["PuBu", mpl.cm.get_cmap("PuBu")])
+@pytest.mark.parametrize(
+    "cmap",
+    ["PuBu", mpl.colormaps["PuBu"] if mpl_ge_3_6_0() else mpl.cm.get_cmap("PuBu")],
+)
 def test_bar_colormap(cmap):
     data = DataFrame([[1, 2], [3, 4]])
     ctx = data.style.bar(cmap=cmap, axis=None)._compute().ctx

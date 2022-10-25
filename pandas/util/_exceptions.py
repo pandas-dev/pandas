@@ -3,10 +3,11 @@ from __future__ import annotations
 import contextlib
 import inspect
 import os
+from typing import Generator
 
 
 @contextlib.contextmanager
-def rewrite_exception(old_name: str, new_name: str):
+def rewrite_exception(old_name: str, new_name: str) -> Generator[None, None, None]:
     """
     Rewrite the message of an exception.
     """

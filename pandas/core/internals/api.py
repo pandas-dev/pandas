@@ -24,6 +24,7 @@ from pandas.core.construction import extract_array
 from pandas.core.internals.blocks import (
     Block,
     DatetimeTZBlock,
+    ExtensionBlock,
     check_ndim,
     ensure_block_shape,
     extract_pandas_array,
@@ -51,6 +52,12 @@ def make_block(
 
     values, dtype = extract_pandas_array(values, dtype, ndim)
 
+    if klass is ExtensionBlock and is_period_dtype(values.dtype):
+        # GH-44681 changed PeriodArray to be stored in the 2D
+        # NDArrayBackedExtensionBlock instead of ExtensionBlock
+        # -> still allow ExtensionBlock to be passed in this case for back compat
+        klass = None
+
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(dtype)
@@ -76,7 +83,7 @@ def make_block(
 
 def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:
     """
-    If `ndim` is not provided, infer it from placment and values.
+    If `ndim` is not provided, infer it from placement and values.
     """
     if ndim is None:
         # GH#38134 Block constructor now assumes ndim is not None

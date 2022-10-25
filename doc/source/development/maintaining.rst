@@ -121,6 +121,49 @@ Here's a typical workflow for triaging a newly opened issue.
    unless it's know that this issue should be addressed in a specific release (say
    because it's a large regression).
 
+.. _maintaining.regressions:
+
+Investigating regressions
+-------------------------
+
+Regressions are bugs that unintentionally break previously working code. The common way
+to  investigate regressions is by using
+`git bisect <https://git-scm.com/docs/git-bisect>`_,
+which finds the first commit that introduced the bug.
+
+For example: a user reports that ``pd.Series([1, 1]).sum()`` returns ``3``
+in pandas version ``1.5.0`` while in version ``1.4.0`` it returned ``2``. To begin,
+create a file ``t.py`` in your pandas directory, which contains
+
+.. code-block:: python
+
+    import pandas as pd
+    assert pd.Series([1, 1]).sum() == 2
+
+and then run::
+
+    git bisect start
+    git bisect good v1.4.0
+    git bisect bad v1.5.0
+    git bisect run bash -c "python setup.py build_ext -j 4; python t.py"
+
+This finds the first commit that changed the behavior. The C extensions have to be
+rebuilt at every step, so the search can take a while.
+
+Exit bisect and rebuild the current version::
+
+    git bisect reset
+    python setup.py build_ext -j 4
+
+Report your findings under the corresponding issue and ping the commit author to get
+their input.
+
+.. note::
+    In the ``bisect run`` command above, commits are considered good if ``t.py`` exits
+    with ``0`` and bad otherwise. When raising an exception is the desired behavior,
+    wrap the code in an appropriate ``try/except`` statement. See :issue:`35685` for
+    more examples.
+
 .. _maintaining.closing:
 
 Closing issues
@@ -138,7 +181,7 @@ Reviewing pull requests
 -----------------------
 
 Anybody can review a pull request: regular contributors, triagers, or core-team
-members. But only core-team members can merge pull requets when they're ready.
+members. But only core-team members can merge pull requests when they're ready.
 
 Here are some things to check when reviewing a pull request.
 
@@ -151,16 +194,37 @@ Here are some things to check when reviewing a pull request.
   for regression fixes and small bug fixes, the next minor milestone otherwise)
 * Changes should comply with our :ref:`policies.version`.
 
+
+.. _maintaining.backporting:
+
 Backporting
 -----------
 
-In the case you want to apply changes to a stable branch from a newer branch then you
-can comment::
+pandas supports point releases (e.g. ``1.4.3``) that aim to:
+
+1. Fix bugs in new features introduced in the first minor version release.
+
+  * e.g. If a new feature was added in ``1.4`` and contains a bug, a fix can be applied in ``1.4.3``
+
+2. Fix bugs that used to work in a few minor releases prior. There should be agreement between core team members that a backport is appropriate.
+
+  * e.g. If a feature worked in ``1.2`` and stopped working since ``1.3``, a fix can be applied in ``1.4.3``.
+
+Since pandas minor releases are based on GitHub branches (e.g. point release of ``1.4`` are based off the ``1.4.x`` branch),
+"backporting" means merging a pull request fix to the ``main`` branch and correct minor branch associated with the next point release.
+
+By default, if a pull request is assigned to the next point release milestone within the GitHub interface,
+the backporting process should happen automatically by the ``@meeseeksdev`` bot once the pull request is merged.
+A new pull request will be made backporting the pull request to the correct version branch.
+Sometimes due to merge conflicts, a manual pull request will need to be made addressing the code conflict.
+
+If the bot does not automatically start the backporting process, you can also write a GitHub comment in the merged pull request
+to trigger the backport::
 
     @meeseeksdev backport version-branch
 
 This will trigger a workflow which will backport a given change to a branch
-(e.g. @meeseeksdev backport 1.2.x)
+(e.g. @meeseeksdev backport 1.4.x)
 
 Cleaning up old issues
 ----------------------
@@ -204,6 +268,18 @@ The full process is outlined in our `governance documents`_. In summary,
 we're happy to give triage permissions to anyone who shows interest by
 being helpful on the issue tracker.
 
+The required steps for adding a maintainer are:
+
+1. Contact the contributor and ask their interest to join.
+2. Add the contributor to the appropriate `GitHub Team <https://github.com/orgs/pandas-dev/teams>`_ if accepted the invitation.
+
+  * ``pandas-core`` is for core team members
+  * ``pandas-triage`` is for pandas triage members
+
+3. Add the contributor to the pandas Google group.
+4. Create a pull request to add the contributor's GitHub handle to ``pandas-dev/pandas/web/pandas/config.yml``.
+5. Create a pull request to add the contributor's name/GitHub handle to the `governance document <https://github.com/pandas-dev/pandas-governance/blob/master/people.md>`_.
+
 The current list of core-team members is at
 https://github.com/pandas-dev/pandas-governance/blob/master/people.md
 
@@ -236,5 +312,40 @@ a milestone before tagging, you can request the bot to backport it with:
    @Meeseeksdev backport <branch>
 
 
+.. _maintaining.asv-machine:
+
+Benchmark machine
+-----------------
+
+The team currently owns dedicated hardware for hosting a website for pandas' ASV performance benchmark. The results
+are published to http://pandas.pydata.org/speed/pandas/
+
+Configuration
+`````````````
+
+The machine can be configured with the `Ansible <http://docs.ansible.com/ansible/latest/index.html>`_ playbook in https://github.com/tomaugspurger/asv-runner.
+
+Publishing
+``````````
+
+The results are published to another GitHub repository, https://github.com/tomaugspurger/asv-collection.
+Finally, we have a cron job on our docs server to pull from https://github.com/tomaugspurger/asv-collection, to serve them from ``/speed``.
+Ask Tom or Joris for access to the webserver.
+
+Debugging
+`````````
+
+The benchmarks are scheduled by Airflow. It has a dashboard for viewing and debugging the results. You'll need to setup an SSH tunnel to view them
+
+    ssh -L 8080:localhost:8080 pandas@panda.likescandy.com
+
+
+.. _maintaining.release:
+
+Release process
+---------------
+
+The process for releasing a new version of pandas can be found at https://github.com/pandas-dev/pandas-release
+
 .. _governance documents: https://github.com/pandas-dev/pandas-governance
-.. _list of permissions: https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/repository-permission-levels-for-an-organization
+.. _list of permissions: https://docs.github.com/en/organizations/managing-access-to-your-organizations-repositories/repository-roles-for-an-organization

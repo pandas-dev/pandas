@@ -1,13 +1,13 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     date_range,
 )
 from pandas.tests.plotting.common import TestPlotBase
-
-pytestmark = pytest.mark.slow
 
 
 class TestFrameLegend(TestPlotBase):
@@ -45,6 +45,7 @@ class TestFrameLegend(TestPlotBase):
         expected = ["blue", "green", "red"]
         assert result == expected
 
+    @td.skip_if_no_scipy
     def test_df_legend_labels(self):
         kinds = ["line", "bar", "barh", "kde", "area", "hist"]
         df = DataFrame(np.random.rand(3, 3), columns=["a", "b", "c"])
@@ -158,13 +159,21 @@ class TestFrameLegend(TestPlotBase):
         leg_title = ax.legend_.get_title()
         self._check_text_labels(leg_title, "new")
 
-    def test_no_legend(self):
-        kinds = ["line", "bar", "barh", "kde", "area", "hist"]
+    @pytest.mark.parametrize(
+        "kind",
+        [
+            "line",
+            "bar",
+            "barh",
+            pytest.param("kde", marks=td.skip_if_no_scipy),
+            "area",
+            "hist",
+        ],
+    )
+    def test_no_legend(self, kind):
         df = DataFrame(np.random.rand(3, 3), columns=["a", "b", "c"])
-
-        for kind in kinds:
-            ax = df.plot(kind=kind, legend=False)
-            self._check_legend_labels(ax, visible=False)
+        ax = df.plot(kind=kind, legend=False)
+        self._check_legend_labels(ax, visible=False)
 
     def test_missing_markers_legend(self):
         # 14958

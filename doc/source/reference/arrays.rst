@@ -6,6 +6,10 @@
 pandas arrays, scalars, and data types
 ======================================
 
+*******
+Objects
+*******
+
 .. currentmodule:: pandas
 
 For most data types, pandas uses NumPy arrays as the concrete
@@ -15,19 +19,21 @@ objects contained with a :class:`Index`, :class:`Series`, or
 For some data types, pandas extends NumPy's type system. String aliases for these types
 can be found at :ref:`basics.dtypes`.
 
-=================== ========================= ================== =============================
-Kind of Data        pandas Data Type          Scalar             Array
-=================== ========================= ================== =============================
-TZ-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp` :ref:`api.arrays.datetime`
-Timedeltas          (none)                    :class:`Timedelta` :ref:`api.arrays.timedelta`
-Period (time spans) :class:`PeriodDtype`      :class:`Period`    :ref:`api.arrays.period`
-Intervals           :class:`IntervalDtype`    :class:`Interval`  :ref:`api.arrays.interval`
-Nullable Integer    :class:`Int64Dtype`, ...  (none)             :ref:`api.arrays.integer_na`
-Categorical         :class:`CategoricalDtype` (none)             :ref:`api.arrays.categorical`
-Sparse              :class:`SparseDtype`      (none)             :ref:`api.arrays.sparse`
-Strings             :class:`StringDtype`      :class:`str`       :ref:`api.arrays.string`
-Boolean (with NA)   :class:`BooleanDtype`     :class:`bool`      :ref:`api.arrays.bool`
-=================== ========================= ================== =============================
+=================== ========================== ============================= =============================
+Kind of Data        pandas Data Type           Scalar                        Array
+=================== ========================== ============================= =============================
+TZ-aware datetime   :class:`DatetimeTZDtype`   :class:`Timestamp`            :ref:`api.arrays.datetime`
+Timedeltas          (none)                     :class:`Timedelta`            :ref:`api.arrays.timedelta`
+Period (time spans) :class:`PeriodDtype`       :class:`Period`               :ref:`api.arrays.period`
+Intervals           :class:`IntervalDtype`     :class:`Interval`             :ref:`api.arrays.interval`
+Nullable Integer    :class:`Int64Dtype`, ...   (none)                        :ref:`api.arrays.integer_na`
+Nullable Float      :class:`Float64Dtype`, ... (none)                        :ref:`api.arrays.float_na`
+Categorical         :class:`CategoricalDtype`  (none)                        :ref:`api.arrays.categorical`
+Sparse              :class:`SparseDtype`       (none)                        :ref:`api.arrays.sparse`
+Strings             :class:`StringDtype`       :class:`str`                  :ref:`api.arrays.string`
+Nullable Boolean    :class:`BooleanDtype`      :class:`bool`                 :ref:`api.arrays.bool`
+PyArrow             :class:`ArrowDtype`        Python Scalars or :class:`NA` :ref:`api.arrays.arrow`
+=================== ========================== ============================= =============================
 
 pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
 The top-level :meth:`array` method can be used to create a new array, which may be
@@ -38,22 +44,67 @@ stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFra
 
    array
 
+.. _api.arrays.arrow:
+
+PyArrow
+-------
+
+.. warning::
+
+    This feature is experimental, and the API can change in a future release without warning.
+
+The :class:`arrays.ArrowExtensionArray` is backed by a :external+pyarrow:py:class:`pyarrow.ChunkedArray` with a
+:external+pyarrow:py:class:`pyarrow.DataType` instead of a NumPy array and data type. The ``.dtype`` of a :class:`arrays.ArrowExtensionArray`
+is an :class:`ArrowDtype`.
+
+`Pyarrow <https://arrow.apache.org/docs/python/index.html>`__ provides similar array and `data type <https://arrow.apache.org/docs/python/api/datatypes.html>`__
+support as NumPy including first-class nullability support for all data types, immutability and more.
+
+.. note::
+
+    For string types (``pyarrow.string()``, ``string[pyarrow]``), PyArrow support is still facilitated
+    by :class:`arrays.ArrowStringArray` and ``StringDtype("pyarrow")``. See the :ref:`string section <api.arrays.string>`
+    below.
+
+While individual values in an :class:`arrays.ArrowExtensionArray` are stored as a PyArrow objects, scalars are **returned**
+as Python scalars corresponding to the data type, e.g. a PyArrow int64 will be returned as Python int, or :class:`NA` for missing
+values.
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   arrays.ArrowExtensionArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   ArrowDtype
+
 .. _api.arrays.datetime:
 
-Datetime data
--------------
+Datetimes
+---------
 
 NumPy cannot natively represent timezone-aware datetimes. pandas supports this
 with the :class:`arrays.DatetimeArray` extension array, which can hold timezone-naive
 or timezone-aware values.
 
 :class:`Timestamp`, a subclass of :class:`datetime.datetime`, is pandas'
-scalar type for timezone-naive or timezone-aware datetime data.
+scalar type for timezone-naive or timezone-aware datetime data. :class:`NaT`
+is the missing value for datetime data.
 
 .. autosummary::
    :toctree: api/
 
    Timestamp
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   NaT
 
 Properties
 ~~~~~~~~~~
@@ -161,16 +212,23 @@ If the data are timezone-aware, then every value in the array must have the same
 
 .. _api.arrays.timedelta:
 
-Timedelta data
---------------
+Timedeltas
+----------
 
 NumPy can natively represent timedeltas. pandas provides :class:`Timedelta`
-for symmetry with :class:`Timestamp`.
+for symmetry with :class:`Timestamp`. :class:`NaT`
+is the missing value for timedelta data.
 
 .. autosummary::
    :toctree: api/
 
    Timedelta
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   NaT
 
 Properties
 ~~~~~~~~~~
@@ -180,9 +238,6 @@ Properties
    Timedelta.asm8
    Timedelta.components
    Timedelta.days
-   Timedelta.delta
-   Timedelta.freq
-   Timedelta.is_populated
    Timedelta.max
    Timedelta.microseconds
    Timedelta.min
@@ -216,8 +271,8 @@ A collection of :class:`Timedelta` may be stored in a :class:`TimedeltaArray`.
 
 .. _api.arrays.period:
 
-Timespan data
--------------
+Periods
+-------
 
 pandas represents spans of times as :class:`Period` objects.
 
@@ -284,8 +339,8 @@ Every period in a :class:`arrays.PeriodArray` must have the same ``freq``.
 
 .. _api.arrays.interval:
 
-Interval data
--------------
+Intervals
+---------
 
 Arbitrary intervals can be represented as :class:`Interval` objects.
 
@@ -376,11 +431,31 @@ pandas provides this through :class:`arrays.IntegerArray`.
    UInt16Dtype
    UInt32Dtype
    UInt64Dtype
+   NA
+
+.. _api.arrays.float_na:
+
+Nullable float
+--------------
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   arrays.FloatingArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   Float32Dtype
+   Float64Dtype
+   NA
 
 .. _api.arrays.categorical:
 
-Categorical data
-----------------
+Categoricals
+------------
 
 pandas defines a custom data type for representing data that can take only a
 limited, fixed set of values. The dtype of a :class:`Categorical` can be described by
@@ -444,8 +519,8 @@ data. See :ref:`api.series.cat` for more.
 
 .. _api.arrays.sparse:
 
-Sparse data
------------
+Sparse
+------
 
 Data where a single value is repeated many times (e.g. ``0`` or ``NaN``) may
 be stored efficiently as a :class:`arrays.SparseArray`.
@@ -464,13 +539,13 @@ be stored efficiently as a :class:`arrays.SparseArray`.
 
 The ``Series.sparse`` accessor may be used to access sparse-specific attributes
 and methods if the :class:`Series` contains sparse values. See
-:ref:`api.series.sparse` for more.
+:ref:`api.series.sparse` and :ref:`the user guide <sparse>` for more.
 
 
 .. _api.arrays.string:
 
-Text data
----------
+Strings
+-------
 
 When working with text data, where each valid element is a string or missing,
 we recommend using :class:`StringDtype` (with the alias ``"string"``).
@@ -494,8 +569,8 @@ See :ref:`api.series.str` for more.
 
 .. _api.arrays.bool:
 
-Boolean data with missing values
---------------------------------
+Nullable Boolean
+----------------
 
 The boolean dtype (with the alias ``"boolean"``) provides support for storing
 boolean data (``True``, ``False``) with missing values, which is not possible
@@ -512,6 +587,7 @@ with a bool :class:`numpy.ndarray`.
    :template: autosummary/class_without_autosummary.rst
 
    BooleanDtype
+   NA
 
 
 .. Dtype attributes which are manually listed in their docstrings: including
@@ -525,3 +601,70 @@ with a bool :class:`numpy.ndarray`.
       DatetimeTZDtype.tz
       PeriodDtype.freq
       IntervalDtype.subtype
+
+*********
+Utilities
+*********
+
+Constructors
+------------
+.. autosummary::
+   :toctree: api/
+
+   api.types.union_categoricals
+   api.types.infer_dtype
+   api.types.pandas_dtype
+
+Data type introspection
+~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    api.types.is_bool_dtype
+    api.types.is_categorical_dtype
+    api.types.is_complex_dtype
+    api.types.is_datetime64_any_dtype
+    api.types.is_datetime64_dtype
+    api.types.is_datetime64_ns_dtype
+    api.types.is_datetime64tz_dtype
+    api.types.is_extension_array_dtype
+    api.types.is_float_dtype
+    api.types.is_int64_dtype
+    api.types.is_integer_dtype
+    api.types.is_interval_dtype
+    api.types.is_numeric_dtype
+    api.types.is_object_dtype
+    api.types.is_period_dtype
+    api.types.is_signed_integer_dtype
+    api.types.is_string_dtype
+    api.types.is_timedelta64_dtype
+    api.types.is_timedelta64_ns_dtype
+    api.types.is_unsigned_integer_dtype
+    api.types.is_sparse
+
+Iterable introspection
+~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    api.types.is_dict_like
+    api.types.is_file_like
+    api.types.is_list_like
+    api.types.is_named_tuple
+    api.types.is_iterator
+
+Scalar introspection
+~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    api.types.is_bool
+    api.types.is_complex
+    api.types.is_float
+    api.types.is_hashable
+    api.types.is_integer
+    api.types.is_interval
+    api.types.is_number
+    api.types.is_re
+    api.types.is_re_compilable
+    api.types.is_scalar

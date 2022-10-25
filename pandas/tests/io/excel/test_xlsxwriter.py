@@ -1,3 +1,4 @@
+import contextlib
 import re
 import warnings
 
@@ -34,12 +35,12 @@ def test_column_format(ext):
             col_format = write_workbook.add_format({"num_format": num_format})
             write_worksheet.set_column("B:B", None, col_format)
 
-        read_workbook = openpyxl.load_workbook(path)
-        try:
-            read_worksheet = read_workbook["Sheet1"]
-        except TypeError:
-            # compat
-            read_worksheet = read_workbook.get_sheet_by_name(name="Sheet1")
+        with contextlib.closing(openpyxl.load_workbook(path)) as read_workbook:
+            try:
+                read_worksheet = read_workbook["Sheet1"]
+            except TypeError:
+                # compat
+                read_worksheet = read_workbook.get_sheet_by_name(name="Sheet1")
 
         # Get the number format from the cell.
         try:
@@ -82,3 +83,12 @@ def test_engine_kwargs(ext, nan_inf_to_errors):
     with tm.ensure_clean(ext) as f:
         with ExcelWriter(f, engine="xlsxwriter", engine_kwargs=engine_kwargs) as writer:
             assert writer.book.nan_inf_to_errors == nan_inf_to_errors
+
+
+def test_book_and_sheets_consistent(ext):
+    # GH#45687 - Ensure sheets is updated if user modifies book
+    with tm.ensure_clean(ext) as f:
+        with ExcelWriter(f, engine="xlsxwriter") as writer:
+            assert writer.sheets == {}
+            sheet = writer.book.add_worksheet("test_name")
+            assert writer.sheets == {"test_name": sheet}

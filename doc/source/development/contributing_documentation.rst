@@ -12,7 +12,11 @@ you don't have to be an expert on pandas to do so! In fact,
 there are sections of the docs that are worse off after being written by
 experts. If something in the docs doesn't make sense to you, updating the
 relevant section after you figure it out is a great way to ensure it will help
-the next person.
+the next person. Please visit the `issues page <https://github.com/pandas-dev/pandas/issues?page=1&q=is%3Aopen+sort%3Aupdated-desc+label%3ADocs>`__
+for a full list of issues that are currently open regarding the
+Pandas documentation.
+
+
 
 .. contents:: Documentation:
    :local:
@@ -88,16 +92,6 @@ Some other important things to know about the docs:
   Every method should be included in a ``toctree`` in one of the documentation files in
   ``doc/source/reference``, else Sphinx
   will emit a warning.
-
-.. note::
-
-    The ``.rst`` files are used to automatically generate Markdown and HTML versions
-    of the docs. For this reason, please do not edit ``CONTRIBUTING.md`` directly,
-    but instead make any changes to ``doc/source/development/contributing.rst``. Then, to
-    generate ``CONTRIBUTING.md``, use `pandoc <https://johnmacfarlane.net/pandoc/>`_
-    with the following command::
-
-      pandoc doc/source/development/contributing.rst -t markdown_github > CONTRIBUTING.md
 
 The utility script ``scripts/validate_docstrings.py`` can be used to get a csv
 summary of the API documentation. And also validate common errors in the docstring

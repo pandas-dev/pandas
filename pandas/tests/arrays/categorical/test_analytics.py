@@ -105,12 +105,12 @@ class TestCategoricalAnalytics:
         assert result is np.nan
 
     @pytest.mark.parametrize("method", ["min", "max"])
-    def test_deprecate_numeric_only_min_max(self, method):
+    def test_numeric_only_min_max_raises(self, method):
         # GH 25303
         cat = Categorical(
             [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True
         )
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
+        with pytest.raises(TypeError, match=".* got an unexpected keyword"):
             getattr(cat, method)(numeric_only=True)
 
     @pytest.mark.parametrize("method", ["min", "max"])
@@ -158,10 +158,8 @@ class TestCategoricalAnalytics:
         ],
     )
     def test_mode(self, values, categories, exp_mode):
-        s = Categorical(values, categories=categories, ordered=True)
-        msg = "Use Series.mode instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = s.mode()
+        cat = Categorical(values, categories=categories, ordered=True)
+        res = Series(cat).mode()._values
         exp = Categorical(exp_mode, categories=categories, ordered=True)
         tm.assert_categorical_equal(res, exp)
 
@@ -323,13 +321,22 @@ class TestCategoricalAnalytics:
             f"received type {type(value).__name__}"
         )
         with pytest.raises(ValueError, match=msg):
-            cat.set_ordered(value=True, inplace=value)
+            with tm.assert_produces_warning(
+                FutureWarning, match="Use rename_categories"
+            ):
+                cat.set_ordered(value=True, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            cat.as_ordered(inplace=value)
+            with tm.assert_produces_warning(
+                FutureWarning, match="Use rename_categories"
+            ):
+                cat.as_ordered(inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            cat.as_unordered(inplace=value)
+            with tm.assert_produces_warning(
+                FutureWarning, match="Use rename_categories"
+            ):
+                cat.as_unordered(inplace=value)
 
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning):
@@ -357,9 +364,14 @@ class TestCategoricalAnalytics:
                 cat.remove_categories(removals=["D", "E", "F"], inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # issue #37643 inplace kwarg deprecated
-                cat.remove_unused_categories(inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
             cat.sort_values(inplace=value)
+
+    def test_quantile_empty(self):
+        # make sure we have correct itemsize on resulting codes
+        cat = Categorical(["A", "B"])
+        idx = Index([0.0, 0.5])
+        result = cat[:0]._quantile(idx, interpolation="linear")
+        assert result._codes.dtype == np.int8
+
+        expected = cat.take([-1, -1], allow_fill=True)
+        tm.assert_extension_array_equal(result, expected)

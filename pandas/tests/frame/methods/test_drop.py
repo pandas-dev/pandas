@@ -422,17 +422,16 @@ class TestDataFrameDrop:
         expected = df.loc[idx != 4]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("box", [Series, DataFrame])
-    def test_drop_tz_aware_timestamp_across_dst(self, box):
+    def test_drop_tz_aware_timestamp_across_dst(self, frame_or_series):
         # GH#21761
         start = Timestamp("2017-10-29", tz="Europe/Berlin")
         end = Timestamp("2017-10-29 04:00:00", tz="Europe/Berlin")
         index = pd.date_range(start, end, freq="15min")
-        data = box(data=[1] * len(index), index=index)
+        data = frame_or_series(data=[1] * len(index), index=index)
         result = data.drop(start)
         expected_start = Timestamp("2017-10-29 00:15:00", tz="Europe/Berlin")
         expected_idx = pd.date_range(expected_start, end, freq="15min")
-        expected = box(data=[1] * len(expected_idx), index=expected_idx)
+        expected = frame_or_series(data=[1] * len(expected_idx), index=expected_idx)
         tm.assert_equal(result, expected)
 
     def test_drop_preserve_names(self):
@@ -537,3 +536,15 @@ class TestDataFrameDrop:
         df = DataFrame(index=MultiIndex.from_product([range(3), range(3)]))
         with pytest.raises(KeyError, match="labels \\[5\\] not found in level"):
             df.drop(5, level=0)
+
+    @pytest.mark.parametrize("idx, level", [(["a", "b"], 0), (["a"], None)])
+    def test_drop_index_ea_dtype(self, any_numeric_ea_dtype, idx, level):
+        # GH#45860
+        df = DataFrame(
+            {"a": [1, 2, 2, pd.NA], "b": 100}, dtype=any_numeric_ea_dtype
+        ).set_index(idx)
+        result = df.drop(Index([2, pd.NA]), level=level)
+        expected = DataFrame(
+            {"a": [1], "b": 100}, dtype=any_numeric_ea_dtype
+        ).set_index(idx)
+        tm.assert_frame_equal(result, expected)

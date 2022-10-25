@@ -66,7 +66,6 @@ Indexing, iteration
    Series.iloc
    Series.__iter__
    Series.items
-   Series.iteritems
    Series.keys
    Series.pop
    Series.item
@@ -148,7 +147,6 @@ Computations / descriptive stats
    Series.diff
    Series.factorize
    Series.kurt
-   Series.mad
    Series.max
    Series.mean
    Series.median
@@ -269,8 +267,6 @@ Time Series-related
    Series.tz_localize
    Series.at_time
    Series.between_time
-   Series.tshift
-   Series.slice_shift
 
 Accessors
 ---------
@@ -342,6 +338,7 @@ Datetime methods
    :toctree: api/
    :template: autosummary/accessor_method.rst
 
+   Series.dt.isocalendar
    Series.dt.to_period
    Series.dt.to_pydatetime
    Series.dt.tz_localize

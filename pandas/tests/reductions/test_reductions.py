@@ -38,7 +38,6 @@ def get_objs():
         tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern"),
         tm.makePeriodIndex(10, name="a"),
         tm.makeStringIndex(10, name="a"),
-        tm.makeUnicodeIndex(10, name="a"),
     ]
 
     arr = np.random.randn(10)
@@ -199,6 +198,18 @@ class TestReductions:
         result = getattr(np, func)(expected, expected)
         tm.assert_series_equal(result, expected)
 
+    def test_nan_int_timedelta_sum(self):
+        # GH 27185
+        df = DataFrame(
+            {
+                "A": Series([1, 2, NaT], dtype="timedelta64[ns]"),
+                "B": Series([1, 2, np.nan], dtype="Int64"),
+            }
+        )
+        expected = Series({"A": Timedelta(3), "B": 3})
+        result = df.sum()
+        tm.assert_series_equal(result, expected)
+
 
 class TestIndexReductions:
     # Note: the name TestIndexReductions indicates these tests
@@ -210,8 +221,8 @@ class TestIndexReductions:
         [
             (0, 400, 3),
             (500, 0, -6),
-            (-(10 ** 6), 10 ** 6, 4),
-            (10 ** 6, -(10 ** 6), -4),
+            (-(10**6), 10**6, 4),
+            (10**6, -(10**6), -4),
             (0, 10, 20),
         ],
     )
@@ -243,11 +254,11 @@ class TestIndexReductions:
 
         # monotonic
         idx1 = TimedeltaIndex(["1 days", "2 days", "3 days"])
-        assert idx1.is_monotonic
+        assert idx1.is_monotonic_increasing
 
         # non-monotonic
         idx2 = TimedeltaIndex(["1 days", np.nan, "3 days", "NaT"])
-        assert not idx2.is_monotonic
+        assert not idx2.is_monotonic_increasing
 
         for idx in [idx1, idx2]:
             assert idx.min() == Timedelta("1 days")
@@ -366,13 +377,13 @@ class TestIndexReductions:
         tz = tz_naive_fixture
         # monotonic
         idx1 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz=tz)
-        assert idx1.is_monotonic
+        assert idx1.is_monotonic_increasing
 
         # non-monotonic
         idx2 = DatetimeIndex(
             ["2011-01-01", NaT, "2011-01-03", "2011-01-02", NaT], tz=tz
         )
-        assert not idx2.is_monotonic
+        assert not idx2.is_monotonic_increasing
 
         for idx in [idx1, idx2]:
             assert idx.min() == Timestamp("2011-01-01", tz=tz)
@@ -470,14 +481,14 @@ class TestIndexReductions:
 
         # monotonic
         idx1 = PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        assert not idx1.is_monotonic
-        assert idx1[1:].is_monotonic
+        assert not idx1.is_monotonic_increasing
+        assert idx1[1:].is_monotonic_increasing
 
         # non-monotonic
         idx2 = PeriodIndex(
             ["2011-01-01", NaT, "2011-01-03", "2011-01-02", NaT], freq="D"
         )
-        assert not idx2.is_monotonic
+        assert not idx2.is_monotonic_increasing
 
         for idx in [idx1, idx2]:
             assert idx.min() == Period("2011-01-01", freq="D")
@@ -685,7 +696,7 @@ class TestSeriesReductions:
         expected = Series([1, np.nan], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("method", ["mean"])
+    @pytest.mark.parametrize("method", ["mean", "var"])
     @pytest.mark.parametrize("dtype", ["Float64", "Int64", "boolean"])
     def test_ops_consistency_on_empty_nullable(self, method, dtype):
 
@@ -763,6 +774,28 @@ class TestSeriesReductions:
             assert np.allclose(float(result), 0.0)
             result = s.max(skipna=False)
             assert np.allclose(float(result), v[-1])
+
+    def test_mean_masked_overflow(self):
+        # GH#48378
+        val = 100_000_000_000_000_000
+        n_elements = 100
+        na = np.array([val] * n_elements)
+        ser = Series([val] * n_elements, dtype="Int64")
+
+        result_numpy = np.mean(na)
+        result_masked = ser.mean()
+        assert result_masked - result_numpy == 0
+        assert result_masked == 1e17
+
+    @pytest.mark.parametrize("ddof, exp", [(1, 2.5), (0, 2.0)])
+    def test_var_masked_array(self, ddof, exp):
+        # GH#48379
+        ser = Series([1, 2, 3, 4, 5], dtype="Int64")
+        ser_numpy_dtype = Series([1, 2, 3, 4, 5], dtype="int64")
+        result = ser.var(ddof=ddof)
+        result_numpy_dtype = ser_numpy_dtype.var(ddof=ddof)
+        assert result == result_numpy_dtype
+        assert result == exp
 
     @pytest.mark.parametrize("dtype", ("m8[ns]", "m8[ns]", "M8[ns]", "M8[ns, UTC]"))
     @pytest.mark.parametrize("skipna", [True, False])
@@ -891,10 +924,9 @@ class TestSeriesReductions:
         s = Series(["abc", True])
         assert s.any()
 
-    @pytest.mark.parametrize("klass", [Index, Series])
-    def test_numpy_all_any(self, klass):
+    def test_numpy_all_any(self, index_or_series):
         # GH#40180
-        idx = klass([0, 1, 2])
+        idx = index_or_series([0, 1, 2])
         assert not np.all(idx)
         assert np.any(idx)
         idx = Index([1, 2, 3])
@@ -924,13 +956,9 @@ class TestSeriesReductions:
             with tm.assert_produces_warning(FutureWarning):
                 s.all(bool_only=True, level=0)
 
-        # GH#38810 bool_only is not implemented alone.
-        msg = "Series.any does not implement bool_only"
-        with pytest.raises(NotImplementedError, match=msg):
-            s.any(bool_only=True)
-        msg = "Series.all does not implement bool_only."
-        with pytest.raises(NotImplementedError, match=msg):
-            s.all(bool_only=True)
+        # GH#47500 - test bool_only works
+        assert s.any(bool_only=True)
+        assert not s.all(bool_only=True)
 
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize("skipna", [True, False])
@@ -1447,16 +1475,16 @@ class TestSeriesMode:
 
     @pytest.mark.parametrize(
         "dropna, expected1, expected2",
-        [(True, [2 ** 63], [1, 2 ** 63]), (False, [2 ** 63], [1, 2 ** 63])],
+        [(True, [2**63], [1, 2**63]), (False, [2**63], [1, 2**63])],
     )
     def test_mode_intoverflow(self, dropna, expected1, expected2):
         # Test for uint64 overflow.
-        s = Series([1, 2 ** 63, 2 ** 63], dtype=np.uint64)
+        s = Series([1, 2**63, 2**63], dtype=np.uint64)
         result = s.mode(dropna)
         expected1 = Series(expected1, dtype=np.uint64)
         tm.assert_series_equal(result, expected1)
 
-        s = Series([1, 2 ** 63], dtype=np.uint64)
+        s = Series([1, 2**63], dtype=np.uint64)
         result = s.mode(dropna)
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)

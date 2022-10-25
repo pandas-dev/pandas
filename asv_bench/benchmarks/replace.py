@@ -9,7 +9,7 @@ class FillNa:
     param_names = ["inplace"]
 
     def setup(self, inplace):
-        N = 10 ** 6
+        N = 10**6
         rng = pd.date_range("1/1/2000", periods=N, freq="min")
         data = np.random.randn(N)
         data[::2] = np.nan
@@ -28,10 +28,10 @@ class ReplaceDict:
     param_names = ["inplace"]
 
     def setup(self, inplace):
-        N = 10 ** 5
-        start_value = 10 ** 5
+        N = 10**5
+        start_value = 10**5
         self.to_rep = dict(enumerate(np.arange(N) + start_value))
-        self.s = pd.Series(np.random.randint(N, size=10 ** 3))
+        self.s = pd.Series(np.random.randint(N, size=10**3))
 
     def time_replace_series(self, inplace):
         self.s.replace(self.to_rep, inplace=inplace)
@@ -44,13 +44,13 @@ class ReplaceList:
     param_names = ["inplace"]
 
     def setup(self, inplace):
-        self.df = pd.DataFrame({"A": 0, "B": 0}, index=range(4 * 10 ** 7))
+        self.df = pd.DataFrame({"A": 0, "B": 0}, index=range(4 * 10**7))
 
     def time_replace_list(self, inplace):
         self.df.replace([np.inf, -np.inf], np.nan, inplace=inplace)
 
     def time_replace_list_one_match(self, inplace):
-        # the 1 can be held in self._df.blocks[0], while the inf and -inf cant
+        # the 1 can be held in self._df.blocks[0], while the inf and -inf can't
         self.df.replace([np.inf, -np.inf, 1], np.nan, inplace=inplace)
 
 
@@ -60,7 +60,7 @@ class Convert:
     param_names = ["constructor", "replace_data"]
 
     def setup(self, constructor, replace_data):
-        N = 10 ** 3
+        N = 10**3
         data = {
             "Series": pd.Series(np.random.randint(N, size=N)),
             "DataFrame": pd.DataFrame(

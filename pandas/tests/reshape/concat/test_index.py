@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -306,3 +308,149 @@ class TestMultiIndexConcat:
             result_df = concat((df1, df2), axis=1)
 
         tm.assert_frame_equal(expected_df, result_df)
+
+    def test_concat_multiindex_(self):
+        # GitHub #44786
+        df = DataFrame({"col": ["a", "b", "c"]}, index=["1", "2", "2"])
+        df = concat([df], keys=["X"])
+
+        iterables = [["X"], ["1", "2", "2"]]
+        result_index = df.index
+        expected_index = MultiIndex.from_product(iterables)
+
+        tm.assert_index_equal(result_index, expected_index)
+
+        result_df = df
+        expected_df = DataFrame(
+            {"col": ["a", "b", "c"]}, index=MultiIndex.from_product(iterables)
+        )
+        tm.assert_frame_equal(result_df, expected_df)
+
+    def test_concat_with_key_not_unique(self):
+        # GitHub #46519
+        df1 = DataFrame({"name": [1]})
+        df2 = DataFrame({"name": [2]})
+        df3 = DataFrame({"name": [3]})
+        df_a = concat([df1, df2, df3], keys=["x", "y", "x"])
+        # the warning is caused by indexing unsorted multi-index
+        with tm.assert_produces_warning(
+            PerformanceWarning, match="indexing past lexsort depth"
+        ):
+            out_a = df_a.loc[("x", 0), :]
+
+        df_b = DataFrame(
+            {"name": [1, 2, 3]}, index=Index([("x", 0), ("y", 0), ("x", 0)])
+        )
+        with tm.assert_produces_warning(
+            PerformanceWarning, match="indexing past lexsort depth"
+        ):
+            out_b = df_b.loc[("x", 0)]
+
+        tm.assert_frame_equal(out_a, out_b)
+
+        df1 = DataFrame({"name": ["a", "a", "b"]})
+        df2 = DataFrame({"name": ["a", "b"]})
+        df3 = DataFrame({"name": ["c", "d"]})
+        df_a = concat([df1, df2, df3], keys=["x", "y", "x"])
+        with tm.assert_produces_warning(
+            PerformanceWarning, match="indexing past lexsort depth"
+        ):
+            out_a = df_a.loc[("x", 0), :]
+
+        df_b = DataFrame(
+            {
+                "a": ["x", "x", "x", "y", "y", "x", "x"],
+                "b": [0, 1, 2, 0, 1, 0, 1],
+                "name": list("aababcd"),
+            }
+        ).set_index(["a", "b"])
+        df_b.index.names = [None, None]
+        with tm.assert_produces_warning(
+            PerformanceWarning, match="indexing past lexsort depth"
+        ):
+            out_b = df_b.loc[("x", 0), :]
+
+        tm.assert_frame_equal(out_a, out_b)
+
+    def test_concat_with_duplicated_levels(self):
+        # keyword levels should be unique
+        df1 = DataFrame({"A": [1]}, index=["x"])
+        df2 = DataFrame({"A": [1]}, index=["y"])
+        msg = r"Level values not unique: \['x', 'y', 'y'\]"
+        with pytest.raises(ValueError, match=msg):
+            concat([df1, df2], keys=["x", "y"], levels=[["x", "y", "y"]])
+
+    @pytest.mark.parametrize("levels", [[["x", "y"]], [["x", "y", "y"]]])
+    def test_concat_with_levels_with_none_keys(self, levels):
+        df1 = DataFrame({"A": [1]}, index=["x"])
+        df2 = DataFrame({"A": [1]}, index=["y"])
+        msg = "levels supported only when keys is not None"
+        with pytest.raises(ValueError, match=msg):
+            concat([df1, df2], levels=levels)
+
+    def test_concat_range_index_result(self):
+        # GH#47501
+        df1 = DataFrame({"a": [1, 2]})
+        df2 = DataFrame({"b": [1, 2]})
+
+        result = concat([df1, df2], sort=True, axis=1)
+        expected = DataFrame({"a": [1, 2], "b": [1, 2]})
+        tm.assert_frame_equal(result, expected)
+        expected_index = pd.RangeIndex(0, 2)
+        tm.assert_index_equal(result.index, expected_index, exact=True)
+
+    def test_concat_index_keep_dtype(self):
+        # GH#47329
+        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype="object"))
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype="object"))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]], columns=Index([1, 2, 3], dtype="object")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_index_keep_dtype_ea_numeric(self, any_numeric_ea_dtype):
+        # GH#47329
+        df1 = DataFrame(
+            [[0, 1, 1]], columns=Index([1, 2, 3], dtype=any_numeric_ea_dtype)
+        )
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype=any_numeric_ea_dtype))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]],
+            columns=Index([1, 2, 3], dtype=any_numeric_ea_dtype),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["Int8", "Int16", "Int32"])
+    def test_concat_index_find_common(self, dtype):
+        # GH#47329
+        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype=dtype))
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype="Int32"))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]], columns=Index([1, 2, 3], dtype="Int32")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_axis_1_sort_false_rangeindex(self):
+        # GH 46675
+        s1 = Series(["a", "b", "c"])
+        s2 = Series(["a", "b"])
+        s3 = Series(["a", "b", "c", "d"])
+        s4 = Series([], dtype=object)
+        result = concat(
+            [s1, s2, s3, s4], sort=False, join="outer", ignore_index=False, axis=1
+        )
+        expected = DataFrame(
+            [
+                ["a"] * 3 + [np.nan],
+                ["b"] * 3 + [np.nan],
+                ["c", np.nan] * 2,
+                [np.nan] * 2 + ["d"] + [np.nan],
+            ],
+            dtype=object,
+        )
+        tm.assert_frame_equal(
+            result, expected, check_index_type=True, check_column_type=True
+        )

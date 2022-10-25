@@ -1,4 +1,5 @@
 import contextlib
+from typing import Generator
 
 import pytest
 
@@ -14,7 +15,7 @@ def test_dirname_mixin():
         x = 1
         y: int
 
-        def __init__(self):
+        def __init__(self) -> None:
             self.z = 3
 
     result = [attr_name for attr_name in dir(X()) if not attr_name.startswith("_")]
@@ -23,7 +24,7 @@ def test_dirname_mixin():
 
 
 @contextlib.contextmanager
-def ensure_removed(obj, attr):
+def ensure_removed(obj, attr) -> Generator[None, None, None]:
     """Ensure that an attribute added to 'obj' during the test is
     removed when we're done
     """
@@ -38,7 +39,7 @@ def ensure_removed(obj, attr):
 
 
 class MyAccessor:
-    def __init__(self, obj):
+    def __init__(self, obj) -> None:
         self.obj = obj
         self.item = "item"
 
@@ -102,7 +103,7 @@ def test_raises_attribute_error():
 
         @pd.api.extensions.register_series_accessor("bad")
         class Bad:
-            def __init__(self, data):
+            def __init__(self, data) -> None:
                 raise AttributeError("whoops")
 
         with pytest.raises(AttributeError, match="whoops"):

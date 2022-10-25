@@ -52,7 +52,7 @@ def test_numeric_interval_add_timedelta_raises(interval, delta):
 
 
 @pytest.mark.parametrize("klass", [timedelta, np.timedelta64, Timedelta])
-def test_timdelta_add_timestamp_interval(klass):
+def test_timedelta_add_timestamp_interval(klass):
     delta = klass(0)
     expected = Interval(Timestamp("2020-01-01"), Timestamp("2020-02-01"))
 

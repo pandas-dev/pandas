@@ -15,18 +15,13 @@ from libc.stdlib cimport (
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    float64_t,
-    ndarray,
-    uint8_t,
-    uint32_t,
-)
-from numpy.math cimport NAN
+from numpy cimport ndarray
 
 cnp.import_array()
 
 
 from pandas._libs cimport util
+from pandas._libs.dtypes cimport numeric_object_t
 from pandas._libs.khash cimport (
     KHASH_TRACE_DOMAIN,
     are_equivalent_float32_t,
@@ -36,9 +31,6 @@ from pandas._libs.khash cimport (
     kh_needed_n_buckets,
     kh_python_hash_equal,
     kh_python_hash_func,
-    kh_str_t,
-    khcomplex64_t,
-    khcomplex128_t,
     khiter_t,
 )
 from pandas._libs.missing cimport checknull

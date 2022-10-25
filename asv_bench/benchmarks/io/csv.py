@@ -266,8 +266,8 @@ class ReadCSVSkipRows(BaseIO):
 
 class ReadUint64Integers(StringIORewind):
     def setup(self):
-        self.na_values = [2 ** 63 + 500]
-        arr = np.arange(10000).astype("uint64") + 2 ** 63
+        self.na_values = [2**63 + 500]
+        arr = np.arange(10000).astype("uint64") + 2**63
         self.data1 = StringIO("\n".join(arr.astype(str).tolist()))
         arr = arr.astype(object)
         arr[500] = -1

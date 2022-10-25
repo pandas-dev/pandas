@@ -16,44 +16,8 @@ locally before pushing your changes.
    :local:
 
 
-Creating an environment using Docker
---------------------------------------
-
-Instead of manually setting up a development environment, you can use `Docker
-<https://docs.docker.com/get-docker/>`_ to automatically create the environment with just several
-commands. pandas provides a ``DockerFile`` in the root directory to build a Docker image
-with a full pandas development environment.
-
-**Docker Commands**
-
-Pass your GitHub username in the ``DockerFile`` to use your own fork::
-
-    # Build the image pandas-yourname-env
-    docker build --tag pandas-yourname-env .
-    # Run a container and bind your local forked repo, pandas-yourname, to the container
-    docker run -it --rm -v path-to-pandas-yourname:/home/pandas-yourname pandas-yourname-env
-
-Even easier, you can integrate Docker with the following IDEs:
-
-**Visual Studio Code**
-
-You can use the DockerFile to launch a remote session with Visual Studio Code,
-a popular free IDE, using the ``.devcontainer.json`` file.
-See https://code.visualstudio.com/docs/remote/containers for details.
-
-**PyCharm (Professional)**
-
-Enable Docker support and use the Services tool window to build and manage images as well as
-run and interact with containers.
-See https://www.jetbrains.com/help/pycharm/docker.html for details.
-
-Note that you might need to rebuild the C extensions if/when you merge with upstream/main using::
-
-    python setup.py build_ext -j 4
-
-
-Creating an environment without Docker
----------------------------------------
+Option 1: creating an environment without Docker
+------------------------------------------------
 
 Installing a C compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -63,9 +27,9 @@ operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
 platform you're using.
 
-If you have setup your environment using ``conda``, the packages ``c-compiler``
+If you have setup your environment using :ref:`mamba <contributing.mamba>`, the packages ``c-compiler``
 and ``cxx-compiler`` will install a fitting compiler for your platform that is
-compatible with the remaining conda packages. On Windows and macOS, you will
+compatible with the remaining mamba packages. On Windows and macOS, you will
 also need to install the SDKs as they have to be distributed separately.
 These packages will automatically be installed by using the ``pandas``
 ``environment.yml`` file.
@@ -76,13 +40,13 @@ You will need `Build Tools for Visual Studio 2019
 <https://visualstudio.microsoft.com/downloads/>`_.
 
 .. warning::
-	You DO NOT need to install Visual Studio 2019.
-	You only need "Build Tools for Visual Studio 2019" found by
-	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
-	In the installer, select the "C++ build tools" workload.
+        You DO NOT need to install Visual Studio 2019.
+        You only need "Build Tools for Visual Studio 2019" found by
+        scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
+        In the installer, select the "C++ build tools" workload.
 
 You can install the necessary components on the commandline using
-`vs_buildtools.exe <https://aka.ms/vs/16/release/vs_buildtools.exe>`_:
+`vs_buildtools.exe <https://download.visualstudio.microsoft.com/download/pr/9a26f37e-6001-429b-a5db-c5455b93953c/460d80ab276046de2455a4115cc4e2f1e6529c9e6cb99501844ecafd16c619c4/vs_BuildTools.exe>`_:
 
 .. code::
 
@@ -98,16 +62,16 @@ To setup the right paths on the commandline, call
 
 **macOS**
 
-To use the ``conda``-based compilers, you will need to install the
+To use the :ref:`mamba <contributing.mamba>`-based compilers, you will need to install the
 Developer Tools using ``xcode-select --install``. Otherwise
 information about compiler installation can be found here:
 https://devguide.python.org/setup/#macos
 
 **Linux**
 
-For Linux-based ``conda`` installations, you won't have to install any
-additional components outside of the conda environment. The instructions
-below are only needed if your setup isn't based on conda environments.
+For Linux-based :ref:`mamba <contributing.mamba>` installations, you won't have to install any
+additional components outside of the mamba environment. The instructions
+below are only needed if your setup isn't based on mamba environments.
 
 Some Linux distributions will come with a pre-installed C compiler. To find out
 which compilers (and versions) are installed on your system::
@@ -131,16 +95,18 @@ installed (or you wish to install a newer version) you can install a compiler
 For other Linux distributions, consult your favorite search engine for
 compiler installation instructions.
 
-Let us know if you have any difficulties by opening an issue or reaching out on `Gitter <https://gitter.im/pydata/pandas/>`_.
+Let us know if you have any difficulties by opening an issue or reaching out on our contributor
+community :ref:`Slack <community.slack>`.
 
-Creating a Python environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _contributing.mamba:
+
+Option 1a: using mamba (recommended)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now create an isolated pandas development environment:
 
-* Install either `Anaconda <https://www.anaconda.com/download/>`_, `miniconda
-  <https://conda.io/miniconda.html>`_, or `miniforge <https://github.com/conda-forge/miniforge>`_
-* Make sure your conda is up to date (``conda update conda``)
+* Install `mamba <https://mamba.readthedocs.io/en/latest/installation.html>`_
+* Make sure your mamba is up to date (``mamba update mamba``)
 * Make sure that you have :any:`cloned the repository <contributing.forking>`
 * ``cd`` to the pandas source directory
 
@@ -153,11 +119,8 @@ We'll now kick off a three-step process:
 .. code-block:: none
 
    # Create and activate the build environment
-   conda env create -f environment.yml
-   conda activate pandas-dev
-
-   # or with older versions of Anaconda:
-   source activate pandas-dev
+   mamba env create
+   mamba activate pandas-dev
 
    # Build and install pandas
    python setup.py build_ext -j 4
@@ -167,27 +130,20 @@ At this point you should be able to import pandas from your locally built versio
 
    $ python
    >>> import pandas
-   >>> print(pandas.__version__)
-   0.22.0.dev0+29.g4ad6d4d74
+   >>> print(pandas.__version__)  # note: the exact output may differ
+   1.5.0.dev0+1355.ge65a30e3eb.dirty
 
 This will create the new environment, and not touch any of your existing environments,
 nor any existing Python installation.
 
-To view your environments::
-
-      conda info -e
-
 To return to your root environment::
 
-      conda deactivate
+      mamba deactivate
 
-See the full conda docs `here <https://conda.pydata.org/docs>`__.
+Option 1b: using pip
+~~~~~~~~~~~~~~~~~~~~
 
-
-Creating a Python environment (pip)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you aren't using conda for your development environment, follow these instructions.
+If you aren't using mamba for your development environment, follow these instructions.
 You'll need to have at least the :ref:`minimum Python version <install.version>` that pandas supports.
 You also need to have ``setuptools`` 51.0.0 or later to build pandas.
 
@@ -222,7 +178,7 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
    pyenv virtualenv <version> <name-to-give-it>
 
    # For instance:
-   pyenv virtualenv 3.7.6 pandas-dev
+   pyenv virtualenv 3.9.10 pandas-dev
 
    # Activate the virtualenv
    pyenv activate pandas-dev
@@ -238,7 +194,7 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
 
 Below is a brief overview on how to set-up a virtual environment with Powershell
 under Windows. For details please refer to the
-`official virtualenv user guide <https://virtualenv.pypa.io/en/stable/userguide/#activate-script>`__
+`official virtualenv user guide <https://virtualenv.pypa.io/en/latest/user_guide.html#activators>`__.
 
 Use an ENV_DIR of your choice. We'll use ~\\virtualenvs\\pandas-dev where
 '~' is the folder pointed to by either $env:USERPROFILE (Powershell) or
@@ -259,3 +215,58 @@ should already exist.
    # Build and install pandas
    python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
+
+Option 2: creating an environment using Docker
+----------------------------------------------
+
+Instead of manually setting up a development environment, you can use `Docker
+<https://docs.docker.com/get-docker/>`_ to automatically create the environment with just several
+commands. pandas provides a ``DockerFile`` in the root directory to build a Docker image
+with a full pandas development environment.
+
+**Docker Commands**
+
+Build the Docker image::
+
+    # Build the image pandas-yourname-env
+    docker build --tag pandas-yourname-env .
+    # Or build the image by passing your GitHub username to use your own fork
+    docker build --build-arg gh_username=yourname --tag pandas-yourname-env .
+
+Run Container::
+
+    # Run a container and bind your local repo to the container
+    docker run -it -w /home/pandas --rm -v path-to-local-pandas-repo:/home/pandas pandas-yourname-env
+
+Then a ``pandas-dev`` virtual environment will be available with all the development dependencies.
+
+.. code-block:: shell
+
+    root@... :/home/pandas# conda env list
+    # conda environments:
+    #
+    base                  *  /opt/conda
+    pandas-dev               /opt/conda/envs/pandas-dev
+
+.. note::
+    If you bind your local repo for the first time, you have to build the C extensions afterwards.
+    Run the following command inside the container::
+
+        python setup.py build_ext -j 4
+
+    You need to rebuild the C extensions anytime the Cython code in ``pandas/_libs`` changes.
+    This most frequently occurs when changing or merging branches.
+
+*Even easier, you can integrate Docker with the following IDEs:*
+
+**Visual Studio Code**
+
+You can use the DockerFile to launch a remote session with Visual Studio Code,
+a popular free IDE, using the ``.devcontainer.json`` file.
+See https://code.visualstudio.com/docs/remote/containers for details.
+
+**PyCharm (Professional)**
+
+Enable Docker support and use the Services tool window to build and manage images as well as
+run and interact with containers.
+See https://www.jetbrains.com/help/pycharm/docker.html for details.

@@ -6,11 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
-
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -450,7 +445,7 @@ class TestCategoricalConstructors:
             Categorical([1, 2], dtype="foo")
 
     def test_constructor_np_strs(self):
-        # GH#31499 Hastable.map_locations needs to work on np.str_ objects
+        # GH#31499 Hashtable.map_locations needs to work on np.str_ objects
         cat = Categorical(["1", "0", "1"], [np.str_("0"), np.str_("1")])
         assert all(isinstance(x, np.str_) for x in cat.categories)
 
@@ -676,7 +671,6 @@ class TestCategoricalConstructors:
         cat = Categorical([0, 1, 2], ordered=ordered)
         assert cat.ordered == bool(ordered)
 
-    @pytest.mark.xfail(reason="Imaginary values not supported in Categorical")
     def test_constructor_imaginary(self):
         values = [1, 2, 3 + 1j]
         c1 = Categorical(values)
@@ -750,13 +744,20 @@ class TestCategoricalConstructors:
 
         assert not tm.shares_memory(result, cat)
 
-    @pytest.mark.xfail(
-        not IS64 or is_platform_windows(),
-        reason="Incorrectly raising in ensure_datetime64ns",
-    )
     def test_constructor_datetime64_non_nano(self):
         categories = np.arange(10).view("M8[D]")
         values = categories[::2].copy()
 
         cat = Categorical(values, categories=categories)
         assert (cat == values).all()
+
+    def test_constructor_preserves_freq(self):
+        # GH33830 freq retention in categorical
+        dti = date_range("2016-01-01", periods=5)
+
+        expected = dti.freq
+
+        cat = Categorical(dti)
+        result = cat.categories.freq
+
+        assert expected == result

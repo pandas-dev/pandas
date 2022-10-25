@@ -25,7 +25,7 @@ class TestDataFrameSortIndex:
             ),
         )
         assert df.index._is_lexsorted()
-        assert not df.index.is_monotonic
+        assert not df.index.is_monotonic_increasing
 
         # sort it
         expected = DataFrame(
@@ -35,23 +35,24 @@ class TestDataFrameSortIndex:
             ),
         )
         result = df.sort_index()
-        assert result.index.is_monotonic
-
+        assert result.index.is_monotonic_increasing
         tm.assert_frame_equal(result, expected)
 
         # reconstruct
         result = df.sort_index().copy()
         result.index = result.index._sort_levels_monotonic()
-        assert result.index.is_monotonic
-
+        assert result.index.is_monotonic_increasing
         tm.assert_frame_equal(result, expected)
 
+    # FIXME: the FutureWarning is issued on a setitem-with-expansion
+    #  which will *not* change behavior, so should not get a warning.
+    @pytest.mark.filterwarnings("ignore:.*will attempt to set.*:FutureWarning")
     def test_sort_index_non_existent_label_multiindex(self):
         # GH#12261
         df = DataFrame(0, columns=[], index=MultiIndex.from_product([[], []]))
         df.loc["b", "2"] = 1
         df.loc["a", "3"] = 1
-        result = df.sort_index().index.is_monotonic
+        result = df.sort_index().index.is_monotonic_increasing
         assert result is True
 
     def test_sort_index_reorder_on_ops(self):
@@ -549,7 +550,7 @@ class TestDataFrameSortIndex:
             index=MultiIndex.from_product([[0.5, 0.8], list("ab")]),
         )
         result = result.sort_index()
-        assert result.index.is_monotonic
+        assert result.index.is_monotonic_increasing
 
         tm.assert_frame_equal(result, expected)
 
@@ -567,7 +568,7 @@ class TestDataFrameSortIndex:
         concatted = pd.concat([df, df], keys=[0.8, 0.5])
         result = concatted.sort_index()
 
-        assert result.index.is_monotonic
+        assert result.index.is_monotonic_increasing
 
         tm.assert_frame_equal(result, expected)
 
@@ -583,11 +584,11 @@ class TestDataFrameSortIndex:
         df.columns = df.columns.set_levels(
             pd.to_datetime(df.columns.levels[1]), level=1
         )
-        assert not df.columns.is_monotonic
+        assert not df.columns.is_monotonic_increasing
         result = df.sort_index(axis=1)
-        assert result.columns.is_monotonic
+        assert result.columns.is_monotonic_increasing
         result = df.sort_index(axis=1, level=1)
-        assert result.columns.is_monotonic
+        assert result.columns.is_monotonic_increasing
 
     # TODO: better name, de-duplicate with test_sort_index_level above
     def test_sort_index_level2(self, multiindex_dataframe_random_data):

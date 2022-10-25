@@ -12,7 +12,6 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 
 @td.skip_if_no("numba")
@@ -33,8 +32,8 @@ def test_correct_function_signature():
 
 @td.skip_if_no("numba")
 def test_check_nopython_kwargs():
-    def incorrect_function(x, **kwargs):
-        return sum(x) * 2.7
+    def incorrect_function(values, index):
+        return sum(values) * 2.7
 
     data = DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
@@ -48,7 +47,7 @@ def test_check_nopython_kwargs():
 
 
 @td.skip_if_no("numba")
-@pytest.mark.filterwarnings("ignore:\n")
+@pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("pandas_obj", ["Series", "DataFrame"])
@@ -77,7 +76,7 @@ def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython):
 
 
 @td.skip_if_no("numba")
-@pytest.mark.filterwarnings("ignore:\n")
+@pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("pandas_obj", ["Series", "DataFrame"])
@@ -106,14 +105,11 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
     result = grouped.agg(func_1, engine="numba", engine_kwargs=engine_kwargs)
     expected = grouped.agg(lambda x: np.mean(x) - 3.4, engine="cython")
     tm.assert_equal(result, expected)
-    # func_1 should be in the cache now
-    assert (func_1, "groupby_agg") in NUMBA_FUNC_CACHE
 
     # Add func_2 to the cache
     result = grouped.agg(func_2, engine="numba", engine_kwargs=engine_kwargs)
     expected = grouped.agg(lambda x: np.mean(x) * 2.7, engine="cython")
     tm.assert_equal(result, expected)
-    assert (func_2, "groupby_agg") in NUMBA_FUNC_CACHE
 
     # Retest func_1 which should use the cache
     result = grouped.agg(func_1, engine="numba", engine_kwargs=engine_kwargs)
@@ -187,3 +183,59 @@ def test_index_data_correctly_passed():
         [-1.5, -3.0], columns=["v"], index=Index(["A", "B"], name="group")
     )
     tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+def test_engine_kwargs_not_cached():
+    # If the user passes a different set of engine_kwargs don't return the same
+    # jitted function
+    nogil = True
+    parallel = False
+    nopython = True
+
+    def func_kwargs(values, index):
+        return nogil + parallel + nopython
+
+    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+    df = DataFrame({"value": [0, 0, 0]})
+    result = df.groupby(level=0).aggregate(
+        func_kwargs, engine="numba", engine_kwargs=engine_kwargs
+    )
+    expected = DataFrame({"value": [2.0, 2.0, 2.0]})
+    tm.assert_frame_equal(result, expected)
+
+    nogil = False
+    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+    result = df.groupby(level=0).aggregate(
+        func_kwargs, engine="numba", engine_kwargs=engine_kwargs
+    )
+    expected = DataFrame({"value": [1.0, 1.0, 1.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+@pytest.mark.filterwarnings("ignore")
+def test_multiindex_one_key(nogil, parallel, nopython):
+    def numba_func(values, index):
+        return 1
+
+    df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
+    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+    result = df.groupby("A").agg(
+        numba_func, engine="numba", engine_kwargs=engine_kwargs
+    )
+    expected = DataFrame([1.0], index=Index([1], name="A"), columns=["C"])
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+def test_multiindex_multi_key_not_supported(nogil, parallel, nopython):
+    def numba_func(values, index):
+        return 1
+
+    df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
+    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+    with pytest.raises(NotImplementedError, match="More than 1 grouping labels"):
+        df.groupby(["A", "B"]).agg(
+            numba_func, engine="numba", engine_kwargs=engine_kwargs
+        )

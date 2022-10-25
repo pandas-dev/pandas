@@ -6,9 +6,11 @@ from pytz import UTC
 
 from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
+    astype_overflowsafe,
     conversion,
     iNaT,
     timezones,
+    tz_convert_from_utc,
     tzconversion,
 )
 
@@ -23,7 +25,7 @@ def _compare_utc_to_local(tz_didx):
     def f(x):
         return tzconversion.tz_convert_from_utc_single(x, tz_didx.tz)
 
-    result = tzconversion.tz_convert_from_utc(tz_didx.asi8, tz_didx.tz)
+    result = tz_convert_from_utc(tz_didx.asi8, tz_didx.tz)
     expected = np.vectorize(f)(tz_didx.asi8)
 
     tm.assert_numpy_array_equal(result, expected)
@@ -48,6 +50,18 @@ def _compare_local_to_utc(tz_didx, naive_didx):
     else:
         assert err2 is None
         tm.assert_numpy_array_equal(result, expected)
+
+
+def test_tz_localize_to_utc_copies():
+    # GH#46460
+    arr = np.arange(5, dtype="i8")
+    result = tz_convert_from_utc(arr, tz=UTC)
+    tm.assert_numpy_array_equal(result, arr)
+    assert not np.shares_memory(arr, result)
+
+    result = tz_convert_from_utc(arr, tz=None)
+    tm.assert_numpy_array_equal(result, arr)
+    assert not np.shares_memory(arr, result)
 
 
 def test_tz_convert_single_matches_tz_convert_hourly(tz_aware_fixture):
@@ -77,7 +91,7 @@ def test_tz_convert_single_matches_tz_convert(tz_aware_fixture, freq):
     ],
 )
 def test_tz_convert_corner(arr):
-    result = tzconversion.tz_convert_from_utc(arr, timezones.maybe_get_tz("Asia/Tokyo"))
+    result = tz_convert_from_utc(arr, timezones.maybe_get_tz("Asia/Tokyo"))
     tm.assert_numpy_array_equal(result, arr)
 
 
@@ -85,7 +99,7 @@ def test_tz_convert_readonly():
     # GH#35530
     arr = np.array([0], dtype=np.int64)
     arr.setflags(write=False)
-    result = tzconversion.tz_convert_from_utc(arr, UTC)
+    result = tz_convert_from_utc(arr, UTC)
     tm.assert_numpy_array_equal(result, arr)
 
 
@@ -93,14 +107,20 @@ def test_tz_convert_readonly():
 @pytest.mark.parametrize("dtype", ["M8[ns]", "M8[s]"])
 def test_length_zero_copy(dtype, copy):
     arr = np.array([], dtype=dtype)
-    result = conversion.ensure_datetime64ns(arr, copy=copy)
-    assert result.base is (None if copy else arr)
+    result = astype_overflowsafe(arr, copy=copy, dtype=np.dtype("M8[ns]"))
+    if copy:
+        assert not np.shares_memory(result, arr)
+    else:
+        if arr.dtype == result.dtype:
+            assert result is arr
+        else:
+            assert not np.shares_memory(result, arr)
 
 
 def test_ensure_datetime64ns_bigendian():
     # GH#29684
     arr = np.array([np.datetime64(1, "ms")], dtype=">M8[ms]")
-    result = conversion.ensure_datetime64ns(arr)
+    result = astype_overflowsafe(arr, dtype=np.dtype("M8[ns]"))
 
     expected = np.array([np.datetime64(1, "ms")], dtype="M8[ns]")
     tm.assert_numpy_array_equal(result, expected)
@@ -108,9 +128,9 @@ def test_ensure_datetime64ns_bigendian():
 
 def test_ensure_timedelta64ns_overflows():
     arr = np.arange(10).astype("m8[Y]") * 100
-    msg = r"Out of bounds for nanosecond timedelta64\[Y\] 900"
+    msg = r"Cannot convert 300 years to timedelta64\[ns\] without overflow"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        conversion.ensure_timedelta64ns(arr)
+        astype_overflowsafe(arr, dtype=np.dtype("m8[ns]"))
 
 
 class SubDatetime(datetime):

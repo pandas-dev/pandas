@@ -1,0 +1,36 @@
+name: Set up Conda environment
+inputs:
+  environment-file:
+    description: Conda environment file to use.
+    default: environment.yml
+  environment-name:
+    description: Name to use for the Conda environment
+    default: test
+  extra-specs:
+    description: Extra packages to install
+    required: false
+  pyarrow-version:
+    description: If set, overrides the PyArrow version in the Conda environment to the given string.
+    required: false
+runs:
+  using: composite
+  steps:
+    - name: Set Arrow version in ${{ inputs.environment-file }} to ${{ inputs.pyarrow-version }}
+      run: |
+        grep -q '  - pyarrow' ${{ inputs.environment-file }}
+        sed -i"" -e "s/  - pyarrow/  - pyarrow=${{ inputs.pyarrow-version }}/" ${{ inputs.environment-file }}
+        cat ${{ inputs.environment-file }}
+      shell: bash
+      if: ${{ inputs.pyarrow-version }}
+
+    - name: Install ${{ inputs.environment-file }}
+      uses: mamba-org/provision-with-micromamba@v12
+      with:
+        environment-file: ${{ inputs.environment-file }}
+        environment-name: ${{ inputs.environment-name }}
+        extra-specs: ${{ inputs.extra-specs }}
+        channels: conda-forge
+        channel-priority: ${{ runner.os == 'macOS' && 'flexible' || 'strict' }}
+        condarc-file: ci/condarc.yml
+        cache-env: true
+        cache-downloads: true

@@ -4,6 +4,8 @@ Tests for the following offsets:
 - WeekOfMonth
 - LastWeekOfMonth
 """
+from __future__ import annotations
+
 from datetime import (
     datetime,
     timedelta,
@@ -20,19 +22,13 @@ from pandas._libs.tslibs.offsets import (
 )
 
 from pandas.tests.tseries.offsets.common import (
-    Base,
     WeekDay,
     assert_is_on_offset,
     assert_offset_equal,
 )
 
 
-class TestWeek(Base):
-    _offset = Week
-    d = Timestamp(datetime(2008, 1, 2))
-    offset1 = _offset()
-    offset2 = _offset(2)
-
+class TestWeek:
     def test_repr(self):
         assert repr(Week(weekday=0)) == "<Week: weekday=0>"
         assert repr(Week(n=-1, weekday=0)) == "<-1 * Week: weekday=0>"
@@ -150,11 +146,7 @@ class TestWeek(Base):
             offset + other
 
 
-class TestWeekOfMonth(Base):
-    _offset = WeekOfMonth
-    offset1 = _offset()
-    offset2 = _offset(2)
-
+class TestWeekOfMonth:
     def test_constructor(self):
         with pytest.raises(ValueError, match="^Week"):
             WeekOfMonth(n=1, week=4, weekday=0)
@@ -266,11 +258,7 @@ class TestWeekOfMonth(Base):
         assert fast == slow
 
 
-class TestLastWeekOfMonth(Base):
-    _offset = LastWeekOfMonth
-    offset1 = _offset()
-    offset2 = _offset(2)
-
+class TestLastWeekOfMonth:
     def test_constructor(self):
         with pytest.raises(ValueError, match="^N cannot be 0"):
             LastWeekOfMonth(n=0, weekday=1)

@@ -111,4 +111,15 @@ def test_get_level_values_when_periods():
     idx2 = MultiIndex.from_arrays(
         [idx._get_level_values(level) for level in range(idx.nlevels)]
     )
-    assert all(x.is_monotonic for x in idx2.levels)
+    assert all(x.is_monotonic_increasing for x in idx2.levels)
+
+
+def test_values_loses_freq_of_underlying_index():
+    # GH#49054
+    idx = pd.DatetimeIndex(date_range("20200101", periods=3, freq="BM"))
+    expected = idx.copy(deep=True)
+    idx2 = Index([1, 2, 3])
+    midx = MultiIndex(levels=[idx, idx2], codes=[[0, 1, 2], [0, 1, 2]])
+    midx.values
+    assert idx.freq is not None
+    tm.assert_index_equal(idx, expected)

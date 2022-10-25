@@ -2,7 +2,7 @@ import numpy as np
 
 import pandas as pd
 
-ops = ["mean", "sum", "median", "std", "skew", "kurt", "mad", "prod", "sem", "var"]
+ops = ["mean", "sum", "median", "std", "skew", "kurt", "prod", "sem", "var"]
 
 
 class FrameOps:
@@ -11,9 +11,6 @@ class FrameOps:
     param_names = ["op", "dtype", "axis"]
 
     def setup(self, op, dtype, axis):
-        if op == "mad" and dtype == "Int64":
-            # GH-33036, GH#33600
-            raise NotImplementedError
         values = np.random.randn(100000, 4)
         if dtype == "Int64":
             values = values.astype(int)
@@ -83,7 +80,7 @@ class Rank:
     param_names = ["constructor", "pct"]
 
     def setup(self, constructor, pct):
-        values = np.random.randn(10 ** 5)
+        values = np.random.randn(10**5)
         self.data = getattr(pd, constructor)(values)
 
     def time_rank(self, constructor, pct):

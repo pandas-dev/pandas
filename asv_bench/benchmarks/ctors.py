@@ -6,6 +6,7 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    date_range,
 )
 
 from .pandas_vb_common import tm
@@ -76,7 +77,7 @@ class SeriesConstructors:
             raise NotImplementedError(
                 "Series constructors do not support using generators with indexes"
             )
-        N = 10 ** 4
+        N = 10**4
         if dtype == "float":
             arr = np.random.randn(N)
         else:
@@ -90,7 +91,7 @@ class SeriesConstructors:
 
 class SeriesDtypesConstructors:
     def setup(self):
-        N = 10 ** 4
+        N = 10**4
         self.arr = np.random.randn(N)
         self.arr_str = np.array(["foo", "bar", "baz"], dtype=object)
         self.s = Series(
@@ -114,11 +115,35 @@ class SeriesDtypesConstructors:
 
 class MultiIndexConstructor:
     def setup(self):
-        N = 10 ** 4
+        N = 10**4
         self.iterables = [tm.makeStringIndex(N), range(20)]
 
     def time_multiindex_from_iterables(self):
         MultiIndex.from_product(self.iterables)
+
+
+class DatetimeIndexConstructor:
+    def setup(self):
+
+        N = 20_000
+        dti = date_range("1900-01-01", periods=N)
+
+        self.list_of_timestamps = dti.tolist()
+        self.list_of_dates = dti.date.tolist()
+        self.list_of_datetimes = dti.to_pydatetime().tolist()
+        self.list_of_str = dti.strftime("%Y-%m-%d").tolist()
+
+    def time_from_list_of_timestamps(self):
+        DatetimeIndex(self.list_of_timestamps)
+
+    def time_from_list_of_dates(self):
+        DatetimeIndex(self.list_of_dates)
+
+    def time_from_list_of_datetimes(self):
+        DatetimeIndex(self.list_of_datetimes)
+
+    def time_from_list_of_str(self):
+        DatetimeIndex(self.list_of_str)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

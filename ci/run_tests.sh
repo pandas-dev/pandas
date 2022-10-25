@@ -24,18 +24,25 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
-PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
+PYTEST_CMD="${XVFB}pytest -r fEs -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
 
-if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
-    PYTEST_CMD="$PYTEST_CMD --ignore=pandas/tests/plotting/"
+if [[ "$PATTERN" ]]; then
+  PYTEST_CMD="$PYTEST_CMD -m \"$PATTERN\""
 fi
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
 
-if [[ "$PANDAS_DATA_MANAGER" != "array" ]]; then
+if [[ "$PANDAS_DATA_MANAGER" != "array" && "$PYTEST_TARGET" == "pandas" ]]; then
     # The ArrayManager tests should have already been run by PYTEST_CMD if PANDAS_DATA_MANAGER was already set to array
-    PYTEST_AM_CMD="PANDAS_DATA_MANAGER=array pytest -m \"$PATTERN and arraymanager\" -n $PYTEST_WORKERS  --dist=loadfile $TEST_ARGS $COVERAGE pandas"
+    # If we're targeting specific files, e.g. test_downstream.py, don't run.
+    PYTEST_AM_CMD="PANDAS_DATA_MANAGER=array pytest -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE pandas"
+
+    if [[ "$PATTERN" ]]; then
+      PYTEST_AM_CMD="$PYTEST_AM_CMD -m \"$PATTERN and arraymanager\""
+    else
+      PYTEST_AM_CMD="$PYTEST_AM_CMD -m \"arraymanager\""
+    fi
 
     echo $PYTEST_AM_CMD
     sh -c "$PYTEST_AM_CMD"

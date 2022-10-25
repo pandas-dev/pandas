@@ -125,3 +125,22 @@ def test_engine_kwargs(ext, style_compression):
             assert writer.book._Workbook__styles.style_compression == style_compression
             # xlwt won't allow us to close without writing something
             DataFrame().to_excel(writer)
+
+
+def test_book_and_sheets_consistent(ext):
+    # GH#45687 - Ensure sheets is updated if user modifies book
+    with tm.ensure_clean(ext) as f:
+        with ExcelWriter(f) as writer:
+            assert writer.sheets == {}
+            sheet = writer.book.add_sheet("test_name")
+            assert writer.sheets == {"test_name": sheet}
+
+
+@pytest.mark.parametrize("attr", ["fm_date", "fm_datetime"])
+def test_deprecated_attr(ext, attr):
+    # GH#45572
+    with tm.ensure_clean(ext) as path:
+        with ExcelWriter(path, engine="xlwt") as writer:
+            msg = f"{attr} is not part of the public API"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                getattr(writer, attr)

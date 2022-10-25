@@ -44,7 +44,7 @@ class ListArray(ExtensionArray):
     dtype = ListDtype()
     __array_priority__ = 1000
 
-    def __init__(self, values, dtype=None, copy=False):
+    def __init__(self, values, dtype=None, copy=False) -> None:
         if not isinstance(values, np.ndarray):
             raise TypeError("Need to pass a numpy array as values")
         for val in values:

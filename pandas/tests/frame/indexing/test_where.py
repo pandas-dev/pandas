@@ -1,13 +1,8 @@
 from datetime import datetime
 
-from hypothesis import (
-    given,
-    settings,
-)
+from hypothesis import given
 import numpy as np
 import pytest
-
-from pandas.compat import np_version_under1p19
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -15,6 +10,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    Index,
     Series,
     StringDtype,
     Timestamp,
@@ -98,7 +94,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
-    def test_where_alignment(self, where_frame, float_string_frame, mixed_int_frame):
+    def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
             rs = df.where(cond, other)
@@ -141,11 +137,7 @@ class TestDataFrameIndexingWhere:
 
         # check other is ndarray
         cond = df > 0
-        warn = None
-        if df is mixed_int_frame:
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
-            _check_align(df, cond, (_safe_add(df).values))
+        _check_align(df, cond, (_safe_add(df).values))
 
         # integers are upcast, so don't check the dtypes
         cond = df > 0
@@ -371,7 +363,7 @@ class TestDataFrameIndexingWhere:
         result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
 
-    def test_where_datetime(self):
+    def test_where_datetime(self, using_array_manager):
 
         # GH 3311
         df = DataFrame(
@@ -391,7 +383,11 @@ class TestDataFrameIndexingWhere:
 
         expected = df.copy()
         expected.loc[[0, 1], "A"] = np.nan
-        expected.loc[:, "C"] = np.nan
+
+        warn = FutureWarning if using_array_manager else None
+        msg = "will attempt to set the values inplace"
+        with tm.assert_produces_warning(warn, match=msg):
+            expected.loc[:, "C"] = np.nan
         tm.assert_frame_equal(result, expected)
 
     def test_where_none(self):
@@ -469,44 +465,43 @@ class TestDataFrameIndexingWhere:
         # GH 9736
         df = DataFrame(np.random.randn(2, 2))
         mask = DataFrame([[False, False], [False, False]])
-        s = Series([0, 1])
+        ser = Series([0, 1])
 
         expected = DataFrame([[0, 0], [1, 1]], dtype="float64")
-        result = df.where(mask, s, axis="index")
+        result = df.where(mask, ser, axis="index")
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        return_value = result.where(mask, s, axis="index", inplace=True)
+        return_value = result.where(mask, ser, axis="index", inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame([[0, 1], [0, 1]], dtype="float64")
-        result = df.where(mask, s, axis="columns")
+        result = df.where(mask, ser, axis="columns")
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        return_value = result.where(mask, s, axis="columns", inplace=True)
+        return_value = result.where(mask, ser, axis="columns", inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
+    def test_where_axis_with_upcast(self):
         # Upcast needed
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
         mask = DataFrame([[False, False], [False, False]])
-        s = Series([0, np.nan])
+        ser = Series([0, np.nan])
 
         expected = DataFrame([[0, 0], [np.nan, np.nan]], dtype="float64")
-        result = df.where(mask, s, axis="index")
+        result = df.where(mask, ser, axis="index")
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        return_value = result.where(mask, s, axis="index", inplace=True)
+        return_value = result.where(mask, ser, axis="index", inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
-        warn = FutureWarning if using_array_manager else None
         expected = DataFrame([[0, np.nan], [0, np.nan]])
-        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
-            result = df.where(mask, s, axis="columns")
+        result = df.where(mask, ser, axis="columns")
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
@@ -516,11 +511,11 @@ class TestDataFrameIndexingWhere:
             }
         )
         result = df.copy()
-        return_value = result.where(mask, s, axis="columns", inplace=True)
+        return_value = result.where(mask, ser, axis="columns", inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
-    def test_where_axis_multiple_dtypes(self):
+    def test_where_axis_multiple_dtypes(self, using_array_manager):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [
@@ -576,7 +571,10 @@ class TestDataFrameIndexingWhere:
 
         d2 = df.copy().drop(1, axis=1)
         expected = df.copy()
-        expected.loc[:, 1] = np.nan
+        warn = FutureWarning if using_array_manager else None
+        msg = "will attempt to set the values inplace"
+        with tm.assert_produces_warning(warn, match=msg):
+            expected.loc[:, 1] = np.nan
 
         result = df.where(mask, d2)
         tm.assert_frame_equal(result, expected)
@@ -711,6 +709,20 @@ class TestDataFrameIndexingWhere:
         res = ser.where(ser.notna())
         tm.assert_series_equal(res, ser)
 
+    def test_where_interval_fullop_downcast(self, frame_or_series):
+        # GH#45768
+        obj = frame_or_series([pd.Interval(0, 0)] * 2)
+        other = frame_or_series([1.0, 2.0])
+        res = obj.where(~obj.notna(), other)
+
+        # since all entries are being changed, we will downcast result
+        #  from object to ints (not floats)
+        tm.assert_equal(res, other.astype(np.int64))
+
+        # unlike where, Block.putmask does not downcast
+        obj.mask(obj.notna(), other, inplace=True)
+        tm.assert_equal(obj, other.astype(object))
+
     @pytest.mark.parametrize(
         "dtype",
         [
@@ -724,7 +736,7 @@ class TestDataFrameIndexingWhere:
         # GH#45135, analogue to GH#44181 for Period don't raise on no-op
         # For td64/dt64/dt64tz we already don't raise, but also are
         #  checking that we don't unnecessarily upcast to object.
-        ser = Series(np.arange(3) * 10 ** 9, dtype=np.int64).view(dtype)
+        ser = Series(np.arange(3) * 10**9, dtype=np.int64).view(dtype)
         df = ser.to_frame()
         mask = np.array([False, False, False])
 
@@ -741,39 +753,28 @@ class TestDataFrameIndexingWhere:
         res4 = df.mask(mask2, "foo")
         tm.assert_frame_equal(res4, df)
 
+        # opposite case where we are replacing *all* values -> we downcast
+        #  from object dtype # GH#45768
+        res5 = df.where(mask2, 4)
+        expected = DataFrame(4, index=df.index, columns=df.columns)
+        tm.assert_frame_equal(res5, expected)
 
-def test_where_try_cast_deprecated(frame_or_series):
-    obj = DataFrame(np.random.randn(4, 3))
-    obj = tm.get_obj(obj, frame_or_series)
-
-    mask = obj > 0
-
-    with tm.assert_produces_warning(FutureWarning):
-        # try_cast keyword deprecated
-        obj.where(mask, -1, try_cast=False)
+        # unlike where, Block.putmask does not downcast
+        df.mask(~mask2, 4, inplace=True)
+        tm.assert_frame_equal(df, expected.astype(object))
 
 
-def test_where_int_downcasting_deprecated(using_array_manager, request):
+def test_where_int_downcasting_deprecated():
     # GH#44597
-    if not using_array_manager:
-        mark = pytest.mark.xfail(
-            reason="After fixing a bug in can_hold_element, we don't go through "
-            "the deprecated path, and also up-cast both columns to int32 "
-            "instead of just 1."
-        )
-        request.node.add_marker(mark)
     arr = np.arange(6).astype(np.int16).reshape(3, 2)
     df = DataFrame(arr)
 
     mask = np.zeros(arr.shape, dtype=bool)
     mask[:, 0] = True
 
-    msg = "Downcasting integer-dtype"
-    warn = FutureWarning if not using_array_manager else None
-    with tm.assert_produces_warning(warn, match=msg):
-        res = df.where(mask, 2 ** 17)
+    res = df.where(mask, 2**17)
 
-    expected = DataFrame({0: arr[:, 0], 1: np.array([2 ** 17] * 3, dtype=np.int32)})
+    expected = DataFrame({0: arr[:, 0], 1: np.array([2**17] * 3, dtype=np.int32)})
     tm.assert_frame_equal(res, expected)
 
 
@@ -812,6 +813,12 @@ def test_where_string_dtype(frame_or_series):
     )
     tm.assert_equal(result, expected)
 
+    result = obj.mask(~filter_ser, filtered_obj)
+    tm.assert_equal(result, expected)
+
+    obj.mask(~filter_ser, filtered_obj, inplace=True)
+    tm.assert_equal(result, expected)
+
 
 def test_where_bool_comparison():
     # GH 10336
@@ -841,18 +848,19 @@ def test_where_none_nan_coerce():
     tm.assert_frame_equal(result, expected)
 
 
-def test_where_non_keyword_deprecation(frame_or_series):
-    # GH 41485
-    obj = frame_or_series(range(5))
-    msg = (
-        "In a future version of pandas all arguments of "
-        f"{frame_or_series.__name__}.where except for the arguments 'cond' "
-        "and 'other' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = obj.where(obj > 1, 10, False)
-    expected = frame_or_series([10, 10, 2, 3, 4])
-    tm.assert_equal(expected, result)
+def test_where_duplicate_axes_mixed_dtypes():
+    # GH 25399, verify manually masking is not affected anymore by dtype of column for
+    # duplicate axes.
+    result = DataFrame(data=[[0, np.nan]], columns=Index(["A", "A"]))
+    index, columns = result.axes
+    mask = DataFrame(data=[[True, True]], columns=columns, index=index)
+    a = result.astype(object).where(mask)
+    b = result.astype("f8").where(mask)
+    c = result.T.where(mask.T).T
+    d = result.where(mask)  # used to fail with "cannot reindex from a duplicate axis"
+    tm.assert_frame_equal(a.astype("f8"), b.astype("f8"))
+    tm.assert_frame_equal(b.astype("f8"), c.astype("f8"))
+    tm.assert_frame_equal(c.astype("f8"), d.astype("f8"))
 
 
 def test_where_columns_casting():
@@ -883,21 +891,32 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
             r"Cannot setitem on a Categorical with a new category \(NaT\), "
             "set the categories first"
         )
-        if np_version_under1p19:
-            mark = pytest.mark.xfail(
-                reason="When evaluating the f-string to generate the exception "
-                "message, numpy somehow ends up trying to cast None to int, so "
-                "ends up raising TypeError but with an unrelated message."
-            )
-            request.node.add_marker(mark)
     else:
         msg = "value should be a 'Period'"
 
-    with pytest.raises(TypeError, match=msg):
-        obj.where(mask, tdnat)
+    if as_cat:
+        with pytest.raises(TypeError, match=msg):
+            obj.where(mask, tdnat)
 
-    with pytest.raises(TypeError, match=msg):
-        obj.mask(mask, tdnat)
+        with pytest.raises(TypeError, match=msg):
+            obj.mask(mask, tdnat)
+
+        with pytest.raises(TypeError, match=msg):
+            obj.mask(mask, tdnat, inplace=True)
+
+    else:
+        # With PeriodDtype, ser[i] = tdnat coerces instead of raising,
+        #  so for consistency, ser[mask] = tdnat must as well
+        expected = obj.astype(object).where(mask, tdnat)
+        result = obj.where(mask, tdnat)
+        tm.assert_equal(result, expected)
+
+        expected = obj.astype(object).mask(mask, tdnat)
+        result = obj.mask(mask, tdnat)
+        tm.assert_equal(result, expected)
+
+        obj.mask(mask, tdnat, inplace=True)
+        tm.assert_equal(obj, expected)
 
 
 def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
@@ -907,16 +926,7 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
 
     mask = np.array([True, True, False], ndmin=obj.ndim).T
 
-    msg = "|".join(
-        [
-            r"datetime64\[.{1,2}\] cannot be converted to an? (Integer|Floating)Dtype",
-            r"timedelta64\[.{1,2}\] cannot be converted to an? (Integer|Floating)Dtype",
-            r"int\(\) argument must be a string, a bytes-like object or a number, "
-            "not 'NaTType'",
-            "object cannot be converted to a FloatingDtype",
-            "'values' contains non-numeric NA",
-        ]
-    )
+    msg = r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}"
 
     for null in tm.NP_NAT_OBJECTS + [pd.NaT]:
         # NaT is an NA value that we should *not* cast to pd.NA dtype
@@ -928,10 +938,96 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
 
 
 @given(data=OPTIONAL_ONE_OF_ALL)
-@settings(deadline=None)  # GH 44969
 def test_where_inplace_casting(data):
     # GH 22051
     df = DataFrame({"a": data})
     df_copy = df.where(pd.notnull(df), None).copy()
     df.where(pd.notnull(df), None, inplace=True)
     tm.assert_equal(df, df_copy)
+
+
+def test_where_downcast_to_td64():
+    ser = Series([1, 2, 3])
+
+    mask = np.array([False, False, False])
+
+    td = pd.Timedelta(days=1)
+
+    res = ser.where(mask, td)
+    expected = Series([td, td, td], dtype="m8[ns]")
+    tm.assert_series_equal(res, expected)
+
+
+def _check_where_equivalences(df, mask, other, expected):
+    # similar to tests.series.indexing.test_setitem.SetitemCastingEquivalences
+    #  but with DataFrame in mind and less fleshed-out
+    res = df.where(mask, other)
+    tm.assert_frame_equal(res, expected)
+
+    res = df.mask(~mask, other)
+    tm.assert_frame_equal(res, expected)
+
+    # Note: frame.mask(~mask, other, inplace=True) takes some more work bc
+    #  Block.putmask does *not* downcast.  The change to 'expected' here
+    #  is specific to the cases in test_where_dt64_2d.
+    df = df.copy()
+    df.mask(~mask, other, inplace=True)
+    if not mask.all():
+        # with mask.all(), Block.putmask is a no-op, so does not downcast
+        expected = expected.copy()
+        expected["A"] = expected["A"].astype(object)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_where_dt64_2d():
+    dti = date_range("2016-01-01", periods=6)
+    dta = dti._data.reshape(3, 2)
+    other = dta - dta[0, 0]
+
+    df = DataFrame(dta, columns=["A", "B"])
+
+    mask = np.asarray(df.isna())
+    mask[:, 1] = True
+
+    # setting all of one column, none of the other
+    expected = DataFrame({"A": other[:, 0], "B": dta[:, 1]})
+    _check_where_equivalences(df, mask, other, expected)
+
+    # setting part of one column, none of the other
+    mask[1, 0] = True
+    expected = DataFrame(
+        {
+            "A": np.array([other[0, 0], dta[1, 0], other[2, 0]], dtype=object),
+            "B": dta[:, 1],
+        }
+    )
+    _check_where_equivalences(df, mask, other, expected)
+
+    # setting nothing in either column
+    mask[:] = True
+    expected = df
+    _check_where_equivalences(df, mask, other, expected)
+
+
+def test_where_mask_deprecated(frame_or_series):
+    # GH 47728
+    obj = DataFrame(np.random.randn(4, 3))
+    obj = tm.get_obj(obj, frame_or_series)
+
+    mask = obj > 0
+
+    with tm.assert_produces_warning(FutureWarning):
+        obj.where(mask, -1, errors="raise")
+
+    with tm.assert_produces_warning(FutureWarning):
+        obj.mask(mask, -1, errors="raise")
+
+
+def test_where_producing_ea_cond_for_np_dtype():
+    # GH#44014
+    df = DataFrame({"a": Series([1, pd.NA, 2], dtype="Int64"), "b": [1, 2, 3]})
+    result = df.where(lambda x: x.apply(lambda y: y > 1, axis=1))
+    expected = DataFrame(
+        {"a": Series([pd.NA, pd.NA, 2], dtype="Int64"), "b": [np.nan, 2, 3]}
+    )
+    tm.assert_frame_equal(result, expected)

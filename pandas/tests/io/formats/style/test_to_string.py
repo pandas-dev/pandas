@@ -40,3 +40,16 @@ def test_string_delimiter(styler):
     """
     )
     assert result == expected
+
+
+def test_concat(styler):
+    result = styler.concat(styler.data.agg(["sum"]).style).to_string()
+    expected = dedent(
+        """\
+     A B C
+    0 0 -0.61 ab
+    1 1 -1.22 cd
+    sum 1 -1.830000 abcd
+    """
+    )
+    assert result == expected

@@ -1,37 +1,34 @@
-from typing import (
-    TYPE_CHECKING,
-    Dict,
-    Optional,
-)
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.util.numba_ import (
-    NUMBA_FUNC_CACHE,
-    get_jit_arguments,
-)
 
-
-def generate_online_numba_ewma_func(engine_kwargs: Optional[Dict[str, bool]]):
+def generate_online_numba_ewma_func(
+    nopython: bool,
+    nogil: bool,
+    parallel: bool,
+):
     """
     Generate a numba jitted groupby ewma function specified by values
     from engine_kwargs.
+
     Parameters
     ----------
-    engine_kwargs : dict
-        dictionary of arguments to be passed into numba.jit
+    nopython : bool
+        nopython to be passed into numba.jit
+    nogil : bool
+        nogil to be passed into numba.jit
+    parallel : bool
+        parallel to be passed into numba.jit
+
     Returns
     -------
     Numba function
     """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
-
-    cache_key = (lambda x: x, "online_ewma")
-    if cache_key in NUMBA_FUNC_CACHE:
-        return NUMBA_FUNC_CACHE[cache_key]
-
     if TYPE_CHECKING:
         import numba
     else:
@@ -91,7 +88,7 @@ def generate_online_numba_ewma_func(engine_kwargs: Optional[Dict[str, bool]]):
 
 
 class EWMMeanState:
-    def __init__(self, com, adjust, ignore_na, axis, shape):
+    def __init__(self, com, adjust, ignore_na, axis, shape) -> None:
         alpha = 1.0 / (1.0 + com)
         self.axis = axis
         self.shape = shape
@@ -117,6 +114,6 @@ class EWMMeanState:
         self.last_ewm = result[-1]
         return result
 
-    def reset(self):
+    def reset(self) -> None:
         self.old_wt = np.ones(self.shape[self.axis - 1])
         self.last_ewm = None

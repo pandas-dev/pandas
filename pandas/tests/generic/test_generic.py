@@ -309,23 +309,31 @@ class Generic:
 class TestNDFrame:
     # tests that don't fit elsewhere
 
-    def test_squeeze(self):
+    @pytest.mark.parametrize(
+        "ser", [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]
+    )
+    def test_squeeze_series_noop(self, ser):
         # noop
-        for s in [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]:
-            tm.assert_series_equal(s.squeeze(), s)
-        for df in [tm.makeTimeDataFrame()]:
-            tm.assert_frame_equal(df.squeeze(), df)
+        tm.assert_series_equal(ser.squeeze(), ser)
 
+    def test_squeeze_frame_noop(self):
+        # noop
+        df = tm.makeTimeDataFrame()
+        tm.assert_frame_equal(df.squeeze(), df)
+
+    def test_squeeze_frame_reindex(self):
         # squeezing
         df = tm.makeTimeDataFrame().reindex(columns=["A"])
         tm.assert_series_equal(df.squeeze(), df["A"])
 
+    def test_squeeze_0_len_dim(self):
         # don't fail with 0 length dimensions GH11229 & GH8999
         empty_series = Series([], name="five", dtype=np.float64)
         empty_frame = DataFrame([empty_series])
         tm.assert_series_equal(empty_series, empty_series.squeeze())
         tm.assert_series_equal(empty_series, empty_frame.squeeze())
 
+    def test_squeeze_axis(self):
         # axis argument
         df = tm.makeTimeDataFrame(nper=1).iloc[:, :1]
         assert df.shape == (1, 1)
@@ -341,6 +349,7 @@ class TestNDFrame:
         with pytest.raises(ValueError, match=msg):
             df.squeeze(axis="x")
 
+    def test_squeeze_axis_len_3(self):
         df = tm.makeTimeDataFrame(3)
         tm.assert_frame_equal(df.squeeze(axis=0), df)
 
@@ -351,12 +360,16 @@ class TestNDFrame:
         df = tm.makeTimeDataFrame().reindex(columns=["A"])
         tm.assert_series_equal(np.squeeze(df), df["A"])
 
-    def test_transpose(self):
-        for s in [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]:
-            # calls implementation in pandas/core/base.py
-            tm.assert_series_equal(s.transpose(), s)
-        for df in [tm.makeTimeDataFrame()]:
-            tm.assert_frame_equal(df.transpose().transpose(), df)
+    @pytest.mark.parametrize(
+        "ser", [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]
+    )
+    def test_transpose_series(self, ser):
+        # calls implementation in pandas/core/base.py
+        tm.assert_series_equal(ser.transpose(), ser)
+
+    def test_transpose_frame(self):
+        df = tm.makeTimeDataFrame()
+        tm.assert_frame_equal(df.transpose().transpose(), df)
 
     def test_numpy_transpose(self, frame_or_series):
 
@@ -374,22 +387,29 @@ class TestNDFrame:
         with pytest.raises(ValueError, match=msg):
             np.transpose(obj, axes=1)
 
-    def test_take(self):
+    @pytest.mark.parametrize(
+        "ser", [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]
+    )
+    def test_take_series(self, ser):
         indices = [1, 5, -2, 6, 3, -1]
-        for s in [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]:
-            out = s.take(indices)
-            expected = Series(
-                data=s.values.take(indices), index=s.index.take(indices), dtype=s.dtype
-            )
-            tm.assert_series_equal(out, expected)
-        for df in [tm.makeTimeDataFrame()]:
-            out = df.take(indices)
-            expected = DataFrame(
-                data=df.values.take(indices, axis=0),
-                index=df.index.take(indices),
-                columns=df.columns,
-            )
-            tm.assert_frame_equal(out, expected)
+        out = ser.take(indices)
+        expected = Series(
+            data=ser.values.take(indices),
+            index=ser.index.take(indices),
+            dtype=ser.dtype,
+        )
+        tm.assert_series_equal(out, expected)
+
+    def test_take_frame(self):
+        indices = [1, 5, -2, 6, 3, -1]
+        df = tm.makeTimeDataFrame()
+        out = df.take(indices)
+        expected = DataFrame(
+            data=df.values.take(indices, axis=0),
+            index=df.index.take(indices),
+            columns=df.columns,
+        )
+        tm.assert_frame_equal(out, expected)
 
     def test_take_invalid_kwargs(self, frame_or_series):
         indices = [-3, 2, 0, 1]
@@ -409,21 +429,6 @@ class TestNDFrame:
         with pytest.raises(ValueError, match=msg):
             obj.take(indices, mode="clip")
 
-    @pytest.mark.parametrize("is_copy", [True, False])
-    def test_depr_take_kwarg_is_copy(self, is_copy, frame_or_series):
-        # GH 27357
-        obj = DataFrame({"A": [1, 2, 3]})
-        obj = tm.get_obj(obj, frame_or_series)
-
-        msg = (
-            "is_copy is deprecated and will be removed in a future version. "
-            "'take' always returns a copy, so there is no need to specify this."
-        )
-        with tm.assert_produces_warning(FutureWarning) as w:
-            obj.take([0, 1], is_copy=is_copy)
-
-        assert w[0].message.args[0] == msg
-
     def test_axis_classmethods(self, frame_or_series):
         box = frame_or_series
         obj = box(dtype=object)
@@ -433,22 +438,6 @@ class TestNDFrame:
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
 
-    def test_axis_names_deprecated(self, frame_or_series):
-        # GH33637
-        box = frame_or_series
-        obj = box(dtype=object)
-        msg = "_AXIS_NAMES has been deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj._AXIS_NAMES
-
-    def test_axis_numbers_deprecated(self, frame_or_series):
-        # GH33637
-        box = frame_or_series
-        obj = box(dtype=object)
-        msg = "_AXIS_NUMBERS has been deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj._AXIS_NUMBERS
-
     def test_flags_identity(self, frame_or_series):
         obj = Series([1, 2])
         if frame_or_series is DataFrame:
@@ -457,11 +446,3 @@ class TestNDFrame:
         assert obj.flags is obj.flags
         obj2 = obj.copy()
         assert obj2.flags is not obj.flags
-
-    def test_slice_shift_deprecated(self, frame_or_series):
-        # GH 37601
-        obj = DataFrame({"A": [1, 2, 3, 4]})
-        obj = tm.get_obj(obj, frame_or_series)
-
-        with tm.assert_produces_warning(FutureWarning):
-            obj.slice_shift()

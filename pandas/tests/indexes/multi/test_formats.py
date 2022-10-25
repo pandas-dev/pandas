@@ -8,7 +8,6 @@ from pandas import (
     Index,
     MultiIndex,
 )
-import pandas._testing as tm
 
 
 def test_format(idx):
@@ -27,12 +26,9 @@ def test_format_sparse_config(idx):
     warn_filters = warnings.filters
     warnings.filterwarnings("ignore", category=FutureWarning, module=".*format")
     # GH1538
-    pd.set_option("display.multi_sparse", False)
-
-    result = idx.format()
+    with pd.option_context("display.multi_sparse", False):
+        result = idx.format()
     assert result[1] == "foo  two"
-
-    tm.reset_display_options()
 
     warnings.filters = warn_filters
 
@@ -188,7 +184,7 @@ MultiIndex([(  'a',  9, '2000-01-01 00:00:00'),
         mi = wide_multi_index
         result = mi[:1].__repr__()
         expected = """MultiIndex([('a', 9, '2000-01-01 00:00:00', '2000-01-01 00:00:00', ...)],
-           names=['a', 'b', 'dti_1', 'dti_2', 'dti_3'])"""
+           names=['a', 'b', 'dti_1', 'dti_2', 'dti_3'])"""  # noqa:E501
         assert result == expected
 
         result = mi[:10].__repr__()

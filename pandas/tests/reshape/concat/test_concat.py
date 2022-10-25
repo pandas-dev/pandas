@@ -3,6 +3,7 @@ from collections import (
     deque,
 )
 from decimal import Decimal
+from typing import Iterator
 from warnings import (
     catch_warnings,
     simplefilter,
@@ -11,7 +12,11 @@ from warnings import (
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    InvalidIndexError,
+    PerformanceWarning,
+)
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -459,19 +464,19 @@ class TestConcatenate:
         tm.assert_frame_equal(concat(CustomIterator1(), ignore_index=True), expected)
 
         class CustomIterator2(abc.Iterable):
-            def __iter__(self):
+            def __iter__(self) -> Iterator:
                 yield df1
                 yield df2
 
         tm.assert_frame_equal(concat(CustomIterator2(), ignore_index=True), expected)
 
     def test_concat_order(self):
-        # GH 17344
+        # GH 17344, GH#47331
         dfs = [DataFrame(index=range(3), columns=["a", 1, None])]
-        dfs += [DataFrame(index=range(3), columns=[None, 1, "a"]) for i in range(100)]
+        dfs += [DataFrame(index=range(3), columns=[None, 1, "a"]) for _ in range(100)]
 
         result = concat(dfs, sort=True).columns
-        expected = dfs[0].columns
+        expected = Index([1, "a", None])
         tm.assert_index_equal(result, expected)
 
     def test_concat_different_extension_dtypes_upcasts(self):
@@ -490,17 +495,25 @@ class TestConcatenate:
         result = concat({"First": Series(range(3)), "Another": Series(range(4))})
         tm.assert_series_equal(result, expected)
 
+    def test_concat_duplicate_indices_raise(self):
+        # GH 45888: test raise for concat DataFrames with duplicate indices
+        # https://github.com/pandas-dev/pandas/issues/36263
+        df1 = DataFrame(np.random.randn(5), index=[0, 1, 2, 3, 3], columns=["a"])
+        df2 = DataFrame(np.random.randn(5), index=[0, 1, 2, 2, 4], columns=["b"])
+        msg = "Reindexing only valid with uniquely valued Index objects"
+        with pytest.raises(InvalidIndexError, match=msg):
+            concat([df1, df2], axis=1)
 
-@pytest.mark.parametrize("pdt", [Series, DataFrame])
+
 @pytest.mark.parametrize("dt", np.sctypes["float"])
-def test_concat_no_unnecessary_upcast(dt, pdt):
+def test_concat_no_unnecessary_upcast(dt, frame_or_series):
     # GH 13247
-    dims = pdt(dtype=object).ndim
+    dims = frame_or_series(dtype=object).ndim
 
     dfs = [
-        pdt(np.array([1], dtype=dt, ndmin=dims)),
-        pdt(np.array([np.nan], dtype=dt, ndmin=dims)),
-        pdt(np.array([5], dtype=dt, ndmin=dims)),
+        frame_or_series(np.array([1], dtype=dt, ndmin=dims)),
+        frame_or_series(np.array([np.nan], dtype=dt, ndmin=dims)),
+        frame_or_series(np.array([5], dtype=dt, ndmin=dims)),
     ]
     x = concat(dfs)
     assert x.values.dtype == dt
@@ -541,11 +554,10 @@ def test_concat_sparse():
 
 def test_concat_dense_sparse():
     # GH 30668
-    a = Series(pd.arrays.SparseArray([1, None]), dtype=float)
+    dtype = pd.SparseDtype(np.float64, None)
+    a = Series(pd.arrays.SparseArray([1, None]), dtype=dtype)
     b = Series([1], dtype=float)
-    expected = Series(data=[1, None, 1], index=[0, 1, 0]).astype(
-        pd.SparseDtype(np.float64, None)
-    )
+    expected = Series(data=[1, None, 1], index=[0, 1, 0]).astype(dtype)
     result = concat([a, b], axis=0)
     tm.assert_series_equal(result, expected)
 
@@ -744,3 +756,50 @@ def test_concat_retain_attrs(data):
     df2.attrs = {1: 1}
     df = concat([df1, df2])
     assert df.attrs[1] == 1
+
+
+@td.skip_array_manager_invalid_test
+@pytest.mark.parametrize("df_dtype", ["float64", "int64", "datetime64[ns]"])
+@pytest.mark.parametrize("empty_dtype", [None, "float64", "object"])
+def test_concat_ignore_emtpy_object_float(empty_dtype, df_dtype):
+    # https://github.com/pandas-dev/pandas/issues/45637
+    df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
+    empty = DataFrame(columns=["foo", "bar"], dtype=empty_dtype)
+    result = concat([empty, df])
+    expected = df
+    if df_dtype == "int64":
+        # TODO what exact behaviour do we want for integer eventually?
+        if empty_dtype == "float64":
+            expected = df.astype("float64")
+        else:
+            expected = df.astype("object")
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_array_manager_invalid_test
+@pytest.mark.parametrize("df_dtype", ["float64", "int64", "datetime64[ns]"])
+@pytest.mark.parametrize("empty_dtype", [None, "float64", "object"])
+def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
+    df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
+    empty = DataFrame({"foo": [np.nan], "bar": [np.nan]}, dtype=empty_dtype)
+    result = concat([empty, df], ignore_index=True)
+
+    if df_dtype == "int64":
+        # TODO what exact behaviour do we want for integer eventually?
+        if empty_dtype == "object":
+            df_dtype = "object"
+        else:
+            df_dtype = "float64"
+    expected = DataFrame({"foo": [None, 1, 2], "bar": [None, 1, 2]}, dtype=df_dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_array_manager_invalid_test
+def test_concat_ignore_empty_from_reindex():
+    # https://github.com/pandas-dev/pandas/pull/43507#issuecomment-920375856
+    df1 = DataFrame({"a": [1], "b": [pd.Timestamp("2012-01-01")]})
+    df2 = DataFrame({"a": [2]})
+
+    result = concat([df1, df2.reindex(columns=df1.columns)], ignore_index=True)
+    expected = df1 = DataFrame({"a": [1, 2], "b": [pd.Timestamp("2012-01-01"), pd.NaT]})
+    tm.assert_frame_equal(result, expected)

@@ -17,7 +17,10 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat import (
+    IS64,
+    is_ci_environment,
+)
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -56,15 +59,17 @@ def test_buffer_rd_bytes(c_parser_only):
     )
     parser = c_parser_only
 
-    with tm.assert_produces_warning(RuntimeWarning):
-        # compression has no effect when passing a non-binary object as input
-        for _ in range(100):
-            try:
-                parser.read_csv(
-                    StringIO(data), compression="gzip", delim_whitespace=True
-                )
-            except Exception:
-                pass
+    for _ in range(100):
+        try:
+            parser.read_csv_check_warnings(
+                RuntimeWarning,
+                "compression has no effect when passing a non-binary object as input",
+                StringIO(data),
+                compression="gzip",
+                delim_whitespace=True,
+            )
+        except Exception:
+            pass
 
 
 def test_delim_whitespace_custom_terminator(c_parser_only):
@@ -141,9 +146,12 @@ nan 2
             "the dtype timedelta64 is not supported for parsing",
             {"dtype": {"A": "timedelta64", "B": "float64"}},
         ),
-        ("the dtype <U8 is not supported for parsing", {"dtype": {"A": "U8"}}),
+        (
+            f"the dtype {tm.ENDIAN}U8 is not supported for parsing",
+            {"dtype": {"A": "U8"}},
+        ),
     ],
-    ids=["dt64-0", "dt64-1", "td64", "<U8"],
+    ids=["dt64-0", "dt64-1", "td64", f"{tm.ENDIAN}U8"],
 )
 def test_unsupported_dtype(c_parser_only, match, kwargs):
     parser = c_parser_only
@@ -555,7 +563,8 @@ def test_read_tarfile(c_parser_only, csv_dir_path, tar_suffix):
         tm.assert_frame_equal(out, expected)
 
 
-@pytest.mark.high_memory
+@pytest.mark.single_cpu
+@pytest.mark.skipif(is_ci_environment(), reason="Too memory intensive for CI.")
 def test_bytes_exceed_2gb(c_parser_only):
     # see gh-16798
     #
@@ -563,7 +572,7 @@ def test_bytes_exceed_2gb(c_parser_only):
     parser = c_parser_only
 
     if parser.low_memory:
-        pytest.skip("not a high_memory test")
+        pytest.skip("not a low_memory test")
 
     csv = StringIO("strings\n" + "\n".join(["x" * (1 << 20) for _ in range(2100)]))
     df = parser.read_csv(csv)
@@ -592,11 +601,9 @@ def test_file_handles_mmap(c_parser_only, csv1):
     parser = c_parser_only
 
     with open(csv1) as f:
-        m = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
-        parser.read_csv(m)
-
-        assert not m.closed
-        m.close()
+        with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as m:
+            parser.read_csv(m)
+            assert not m.closed
 
 
 def test_file_binary_mode(c_parser_only):

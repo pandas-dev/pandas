@@ -93,7 +93,7 @@ class TestMergeMulti:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("sort", [False, True])
-    def test_left_join_multi_index(self, left, right, sort):
+    def test_left_join_multi_index(self, sort):
         icols = ["1st", "2nd", "3rd"]
 
         def bind_cols(df):

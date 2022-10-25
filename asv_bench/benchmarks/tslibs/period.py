@@ -1,6 +1,6 @@
 """
-Period benchmarks that rely only on tslibs.  See benchmarks.period for
-Period benchmarks that rely on other parts fo pandas.
+Period benchmarks that rely only on tslibs. See benchmarks.period for
+Period benchmarks that rely on other parts of pandas.
 """
 
 import numpy as np
@@ -130,7 +130,7 @@ class TimeDT64ArrToPeriodArr:
     param_names = ["size", "freq", "tz"]
 
     def setup(self, size, freq, tz):
-        if size == 10 ** 6 and tz is tzlocal_obj:
+        if size == 10**6 and tz is tzlocal_obj:
             # tzlocal is cumbersomely slow, so skip to keep runtime in check
             raise NotImplementedError
 

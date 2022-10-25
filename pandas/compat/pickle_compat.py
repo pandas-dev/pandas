@@ -7,7 +7,10 @@ import contextlib
 import copy
 import io
 import pickle as pkl
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Generator,
+)
 import warnings
 
 import numpy as np
@@ -207,7 +210,7 @@ Unpickler.dispatch = copy.copy(Unpickler.dispatch)
 Unpickler.dispatch[pkl.REDUCE[0]] = load_reduce
 
 
-def load_newobj(self):
+def load_newobj(self) -> None:
     args = self.stack.pop()
     cls = self.stack[-1]
 
@@ -221,7 +224,7 @@ def load_newobj(self):
         arr = np.array([], dtype="m8[ns]")
         obj = cls.__new__(cls, arr, arr.dtype)
     elif cls is BlockManager and not args:
-        obj = cls.__new__(cls, (), [], False)
+        obj = cls.__new__(cls, (), [], None, False)
     else:
         obj = cls.__new__(cls, *args)
 
@@ -231,7 +234,7 @@ def load_newobj(self):
 Unpickler.dispatch[pkl.NEWOBJ[0]] = load_newobj
 
 
-def load_newobj_ex(self):
+def load_newobj_ex(self) -> None:
     kwargs = self.stack.pop()
     args = self.stack.pop()
     cls = self.stack.pop()
@@ -291,7 +294,7 @@ def loads(
 
 
 @contextlib.contextmanager
-def patch_pickle():
+def patch_pickle() -> Generator[None, None, None]:
     """
     Temporarily patch pickle to use our unpickler.
     """

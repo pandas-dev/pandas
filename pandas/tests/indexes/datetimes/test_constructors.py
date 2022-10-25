@@ -13,8 +13,9 @@ import pytz
 
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
-    conversion,
+    astype_overflowsafe,
 )
+from pandas.compat import PY39
 
 import pandas as pd
 from pandas import (
@@ -31,8 +32,26 @@ from pandas.core.arrays import (
     period_array,
 )
 
+if PY39:
+    import zoneinfo
+
 
 class TestDatetimeIndex:
+    def test_explicit_tz_none(self):
+        # GH#48659
+        dti = date_range("2016-01-01", periods=10, tz="UTC")
+
+        msg = "Passed data is timezone-aware, incompatible with 'tz=None'"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, tz=None)
+
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(np.array(dti), tz=None)
+
+        msg = "Cannot pass both a timezone-aware dtype and tz=None"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex([], dtype="M8[ns, UTC]", tz=None)
+
     @pytest.mark.parametrize(
         "dt_cls", [DatetimeIndex, DatetimeArray._from_sequence_not_strict]
     )
@@ -123,11 +142,9 @@ class TestDatetimeIndex:
             Timestamp("2016-05-01T01:00:00.000000"),
         ]
         arr = pd.arrays.SparseArray(values)
-        msg = "will store that array directly"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = Index(arr)
-        expected = DatetimeIndex(values)
-        tm.assert_index_equal(result, expected)
+        result = Index(arr)
+        assert type(result) is Index
+        assert result.dtype == arr.dtype
 
     def test_construction_caching(self):
 
@@ -517,7 +534,7 @@ class TestDatetimeIndex:
         # coerces to object
         tm.assert_index_equal(Index(dates), exp)
 
-        msg = "Out of bounds nanosecond timestamp"
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
@@ -677,6 +694,7 @@ class TestDatetimeIndex:
         idx = DatetimeIndex(["2013-01-01", "2013-01-02"], tz="US/Eastern")
         tm.assert_index_equal(idx, expected)
 
+    def test_constructor_dtype_tz_mismatch_raises(self):
         # if we already have a tz and its not the same, then raise
         idx = DatetimeIndex(
             ["2013-01-01", "2013-01-02"], dtype="datetime64[ns, US/Eastern]"
@@ -893,9 +911,9 @@ class TestDatetimeIndex:
             Index(["2000"], dtype="datetime64")
 
     def test_constructor_wrong_precision_raises(self):
-        msg = "Unexpected value for 'dtype': 'datetime64\\[us\\]'"
-        with pytest.raises(ValueError, match=msg):
-            DatetimeIndex(["2000"], dtype="datetime64[us]")
+        dti = DatetimeIndex(["2000"], dtype="datetime64[us]")
+        assert dti.dtype == "M8[us]"
+        assert dti[0] == Timestamp(2000, 1, 1)
 
     def test_index_constructor_with_numpy_object_array_and_timestamp_tz_with_nan(self):
         # GH 27011
@@ -920,6 +938,9 @@ class TestTimeSeries:
 
         result = DatetimeIndex(rng._data, freq=None)
         assert result.freq is None
+
+        dta = DatetimeArray(rng, freq=None)
+        assert dta.freq is None
 
     def test_dti_constructor_years_only(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -971,7 +992,7 @@ class TestTimeSeries:
         arr = np.arange(0, 100, 10, dtype=np.int64).view("M8[D]")
         idx = Index(arr)
 
-        assert (idx.values == conversion.ensure_datetime64ns(arr)).all()
+        assert (idx.values == astype_overflowsafe(arr, dtype=np.dtype("M8[ns]"))).all()
 
     def test_constructor_int64_nocopy(self):
         # GH#1624
@@ -1128,7 +1149,15 @@ def test_timestamp_constructor_retain_fold(tz, fold):
     assert result == expected
 
 
-@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
+_tzs = ["dateutil/Europe/London"]
+if PY39:
+    try:
+        _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
+    except zoneinfo.ZoneInfoNotFoundError:
+        pass
+
+
+@pytest.mark.parametrize("tz", _tzs)
 @pytest.mark.parametrize(
     "ts_input,fold_out",
     [
@@ -1148,6 +1177,7 @@ def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
     result = ts.fold
     expected = fold_out
     assert result == expected
+    # TODO: belongs in Timestamp tests?
 
 
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London"])

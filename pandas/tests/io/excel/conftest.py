@@ -1,5 +1,6 @@
 import pytest
 
+from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
@@ -43,7 +44,8 @@ def read_ext(request):
     return request.param
 
 
-@pytest.fixture(autouse=True)
+# Checking for file leaks can hang on Windows CI
+@pytest.fixture(autouse=not is_platform_windows())
 def check_for_file_leaks():
     """
     Fixture to run around every test to ensure that we are not leaking files.

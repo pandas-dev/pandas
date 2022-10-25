@@ -6,9 +6,12 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import IndexingError
+
 from pandas.core.dtypes.common import is_list_like
 
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
     DatetimeIndex,
@@ -17,16 +20,18 @@ from pandas import (
     IntervalIndex,
     MultiIndex,
     NaT,
+    Period,
     Series,
     Timedelta,
     Timestamp,
+    array,
     concat,
     date_range,
+    interval_range,
     period_range,
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
 
@@ -215,9 +220,15 @@ class TestSetitemSlices:
     def test_setitem_slice_integers(self):
         ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
 
-        ser[:4] = 0
-        assert (ser[:4] == 0).all()
-        assert not (ser[4:] == 0).any()
+        msg = r"In a future version, this will be treated as \*label-based\* indexing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser[:4] = 0
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            assert (ser[:4] == 0).all()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert not (ser[4:] == 0).any()
 
     def test_setitem_slicestep(self):
         # caught this bug when writing tests
@@ -355,6 +366,48 @@ class TestSetitemBooleanMask:
         expected = Series([np.nan, False, True], dtype=object)
         tm.assert_series_equal(result, expected)
 
+    def test_setitem_mask_smallint_upcast(self):
+        orig = Series([1, 2, 3], dtype="int8")
+        alt = np.array([999, 1000, 1001], dtype=np.int64)
+
+        mask = np.array([True, False, True])
+
+        ser = orig.copy()
+        ser[mask] = Series(alt)
+        expected = Series([999, 2, 1001])
+        tm.assert_series_equal(ser, expected)
+
+        ser2 = orig.copy()
+        ser2.mask(mask, alt, inplace=True)
+        tm.assert_series_equal(ser2, expected)
+
+        ser3 = orig.copy()
+        res = ser3.where(~mask, Series(alt))
+        tm.assert_series_equal(res, expected)
+
+    def test_setitem_mask_smallint_no_upcast(self):
+        # like test_setitem_mask_smallint_upcast, but while we can't hold 'alt',
+        #  we *can* hold alt[mask] without casting
+        orig = Series([1, 2, 3], dtype="uint8")
+        alt = Series([245, 1000, 246], dtype=np.int64)
+
+        mask = np.array([True, False, True])
+
+        ser = orig.copy()
+        ser[mask] = alt
+        expected = Series([245, 2, 246], dtype="uint8")
+        tm.assert_series_equal(ser, expected)
+
+        ser2 = orig.copy()
+        ser2.mask(mask, alt, inplace=True)
+        tm.assert_series_equal(ser2, expected)
+
+        # FIXME: don't leave commented-out
+        # FIXME: ser.where(~mask, alt) unnecessarily upcasts to int64
+        # ser3 = orig.copy()
+        # res = ser3.where(~mask, alt)
+        # tm.assert_series_equal(res, expected)
+
 
 class TestSetitemViewCopySemantics:
     def test_setitem_invalidates_datetime_index_freq(self):
@@ -482,6 +535,41 @@ class TestSetitemWithExpansion:
         expected = concat([string_series, app])
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_keep_precision(self, any_numeric_ea_dtype):
+        # GH#32346
+        ser = Series([1, 2], dtype=any_numeric_ea_dtype)
+        ser[2] = 10
+        expected = Series([1, 2, 10], dtype=any_numeric_ea_dtype)
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("indexer", [1, 2])
+    @pytest.mark.parametrize(
+        "na, target_na, dtype, target_dtype",
+        [
+            (NA, NA, "Int64", "Int64"),
+            (NA, np.nan, "int64", "float64"),
+            (NaT, NaT, "int64", "object"),
+            (np.nan, NA, "Int64", "Int64"),
+            (np.nan, NA, "Float64", "Float64"),
+            (np.nan, np.nan, "int64", "float64"),
+        ],
+    )
+    def test_setitem_enlarge_with_na(self, na, target_na, dtype, target_dtype, indexer):
+        # GH#32346
+        ser = Series([1, 2], dtype=dtype)
+        ser[indexer] = na
+        expected_values = [1, target_na] if indexer == 1 else [1, 2, target_na]
+        expected = Series(expected_values, dtype=target_dtype)
+        tm.assert_series_equal(ser, expected)
+
+    def test_setitem_enlargement_object_none(self, nulls_fixture):
+        # GH#48665
+        ser = Series(["a", "b"])
+        ser[3] = nulls_fixture
+        expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3])
+        tm.assert_series_equal(ser, expected)
+        assert ser[3] is nulls_fixture
+
 
 def test_setitem_scalar_into_readonly_backing_data():
     # GH#14359: test that you cannot mutate a read only buffer
@@ -490,7 +578,7 @@ def test_setitem_scalar_into_readonly_backing_data():
     array.flags.writeable = False  # make the array immutable
     series = Series(array)
 
-    for n in range(len(series)):
+    for n in series.index:
         msg = "assignment destination is read-only"
         with pytest.raises(ValueError, match=msg):
             series[n] = 1
@@ -564,6 +652,19 @@ class TestSetitemCasting:
         expected = Series([True, val], dtype=object, index=ser.index)
         if not unique and indexer_sli is not tm.iloc:
             expected = Series([val, val], dtype=object, index=[1, 1])
+        tm.assert_series_equal(ser, expected)
+
+    def test_setitem_boolean_array_into_npbool(self):
+        # GH#45462
+        ser = Series([True, False, True])
+        values = ser._values
+        arr = array([True, False, None])
+
+        ser[:2] = arr[:2]  # no NAs -> can set inplace
+        assert ser._values is values
+
+        ser[1:] = arr[1:]  # has an NA -> cast to boolean dtype
+        expected = Series(arr)
         tm.assert_series_equal(ser, expected)
 
 
@@ -693,32 +794,35 @@ class SetitemCastingEquivalents:
 
         self._check_inplace(is_inplace, orig, arr, obj)
 
-    def test_index_where(self, obj, key, expected, val, request):
-        if obj.dtype == bool or obj.dtype.kind == "c" or expected.dtype.kind == "c":
-            # TODO(GH#45061): Should become unreachable (at least the bool part)
-            pytest.skip("test not applicable for this dtype")
-
+    def test_index_where(self, obj, key, expected, val):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
         res = Index(obj).where(~mask, val)
-        tm.assert_index_equal(res, Index(expected))
+        tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
 
     def test_index_putmask(self, obj, key, expected, val):
-        if obj.dtype == bool or obj.dtype.kind == "c" or expected.dtype.kind == "c":
-            # TODO(GH#45061): Should become unreachable (at least the bool part)
-            pytest.skip("test not applicable for this dtype")
-
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
         res = Index(obj).putmask(mask, val)
-        tm.assert_index_equal(res, Index(expected))
+        tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
 
 
 @pytest.mark.parametrize(
     "obj,expected,key",
     [
+        pytest.param(
+            # GH#45568 setting a valid NA value into IntervalDtype[int] should
+            #  cast to IntervalDtype[float]
+            Series(interval_range(1, 5)),
+            Series(
+                [Interval(1, 2), np.nan, Interval(3, 4), Interval(4, 5)],
+                dtype="interval[float64]",
+            ),
+            1,
+            id="interval_int_na_value",
+        ),
         pytest.param(
             # these induce dtype changes
             Series([2, 3, 4, 5, 6, 7, 8, 9, 10]),
@@ -764,11 +868,13 @@ class SetitemCastingEquivalents:
     ],
 )
 class TestSetitemCastingEquivalents(SetitemCastingEquivalents):
-    @pytest.fixture(params=[np.nan, np.float64("NaN")])
+    @pytest.fixture(params=[np.nan, np.float64("NaN"), None, NA])
     def val(self, request):
         """
-        One python float NaN, one np.float64.  Only np.float64 has a `dtype`
-        attribute.
+        NA values that should generally be valid_na for *all* dtypes.
+
+        Include both python float NaN and np.float64; only np.float64 has a
+        `dtype` attribute.
         """
         return request.param
 
@@ -1039,7 +1145,7 @@ class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
     [
         np.array([2.0, 3.0]),
         np.array([2.5, 3.5]),
-        np.array([2 ** 65, 2 ** 65 + 1], dtype=np.float64),  # all ints, but can't cast
+        np.array([2**65, 2**65 + 1], dtype=np.float64),  # all ints, but can't cast
     ],
 )
 class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
@@ -1054,7 +1160,7 @@ class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
     @pytest.fixture
     def expected(self, val):
         if val[0] == 2:
-            # NB: this condition is based on currently-harcoded "val" cases
+            # NB: this condition is based on currently-hardcoded "val" cases
             dtype = np.int64
         else:
             dtype = np.float64
@@ -1078,7 +1184,7 @@ class TestSetitemIntoIntegerSeriesNeedsUpcast(SetitemCastingEquivalents):
         return Series([1, 512, 3], dtype=np.int16)
 
 
-@pytest.mark.parametrize("val", [2 ** 33 + 1.0, 2 ** 33 + 1.1, 2 ** 62])
+@pytest.mark.parametrize("val", [2**33 + 1.0, 2**33 + 1.1, 2**62])
 class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
     # https://github.com/pandas-dev/pandas/issues/39584#issuecomment-941212124
     @pytest.fixture
@@ -1113,7 +1219,7 @@ class CoercionTest(SetitemCastingEquivalents):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2 ** 9), np.int16)]
+    "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2**9), np.int16)]
 )
 class TestCoercionInt8(CoercionTest):
     # previously test_setitem_series_int8 in tests.indexing.test_coercion
@@ -1184,6 +1290,43 @@ class TestCoercionFloat64(CoercionTest):
 
 @pytest.mark.parametrize(
     "val,exp_dtype",
+    [
+        (1, np.float32),
+        pytest.param(
+            1.1,
+            np.float32,
+            marks=pytest.mark.xfail(
+                reason="np.float32(1.1) ends up as 1.100000023841858, so "
+                "np_can_hold_element raises and we cast to float64",
+            ),
+        ),
+        (1 + 1j, np.complex128),
+        (True, object),
+        (np.uint8(2), np.float32),
+        (np.uint32(2), np.float32),
+        # float32 cannot hold np.iinfo(np.uint32).max exactly
+        # (closest it can hold is 4294967300.0 which off by 5.0), so
+        # we cast to float64
+        (np.uint32(np.iinfo(np.uint32).max), np.float64),
+        (np.uint64(2), np.float32),
+        (np.int64(2), np.float32),
+    ],
+)
+class TestCoercionFloat32(CoercionTest):
+    @pytest.fixture
+    def obj(self):
+        return Series([1.1, 2.2, 3.3, 4.4], dtype=np.float32)
+
+    def test_slice_key(self, obj, key, expected, val, indexer_sli, is_inplace):
+        super().test_slice_key(obj, key, expected, val, indexer_sli, is_inplace)
+
+        if type(val) is float:
+            # the xfail would xpass bc test_slice_key short-circuits
+            raise AssertionError("xfail not relevant for this test.")
+
+
+@pytest.mark.parametrize(
+    "val,exp_dtype",
     [(Timestamp("2012-01-01"), "datetime64[ns]"), (1, object), ("x", object)],
 )
 class TestCoercionDatetime64(CoercionTest):
@@ -1238,6 +1381,22 @@ class TestCoercionTimedelta64(CoercionTest):
     @pytest.fixture
     def obj(self):
         return Series(timedelta_range("1 day", periods=4))
+
+
+@pytest.mark.parametrize(
+    "val", ["foo", Period("2016", freq="Y"), Interval(1, 2, closed="both")]
+)
+@pytest.mark.parametrize("exp_dtype", [object])
+class TestPeriodIntervalCoercion(CoercionTest):
+    # GH#45768
+    @pytest.fixture(
+        params=[
+            period_range("2016-01-01", periods=3, freq="D"),
+            interval_range(1, 5),
+        ]
+    )
+    def obj(self, request):
+        return Series(request.param)
 
 
 def test_20643():
@@ -1340,6 +1499,19 @@ def test_32878_int_itemsize():
     tm.assert_series_equal(ser, expected)
 
 
+def test_32878_complex_itemsize():
+    arr = np.arange(5).astype("c8")
+    ser = Series(arr)
+    val = np.finfo(np.float64).max
+    val = val.astype("c16")
+
+    # GH#32878 used to coerce val to inf+0.000000e+00j
+    ser[0] = val
+    assert ser[0] == val
+    expected = Series([val, 1, 2, 3, 4], dtype="c16")
+    tm.assert_series_equal(ser, expected)
+
+
 def test_37692(indexer_al):
     # GH#37692
     ser = Series([1, 2, 3], index=["a", "b", "c"])
@@ -1388,21 +1560,6 @@ def test_setitem_positional_float_into_int_coerces():
     ser = Series([1, 2, 3], index=["a", "b", "c"])
     ser[0] = 1.5
     expected = Series([1.5, 2, 3], index=["a", "b", "c"])
-    tm.assert_series_equal(ser, expected)
-
-
-@pytest.mark.xfail(reason="Fails to upcast")
-def test_32878_complex_itemsize():
-    # TODO: when fixed, put adjacent to test_32878_int_itemsize
-    arr = np.arange(5).astype("c8")
-    ser = Series(arr)
-    val = np.finfo(np.float64).max
-    val = val.astype("c16")
-
-    # GH#32878 used to coerce val to inf+0.000000e+00j
-    ser[0] = val
-    assert ser[0] == val
-    expected = Series([val, 1, 2, 3, 4], dtype="c16")
     tm.assert_series_equal(ser, expected)
 
 
@@ -1496,3 +1653,18 @@ def test_setitem_bool_indexer_dont_broadcast_length1_values(size, mask, item, bo
         expected = Series(np.arange(size, dtype=float))
         expected[selection] = item
         tm.assert_series_equal(ser, expected)
+
+
+def test_setitem_empty_mask_dont_upcast_dt64():
+    dti = date_range("2016-01-01", periods=3)
+    ser = Series(dti)
+    orig = ser.copy()
+    mask = np.zeros(3, dtype=bool)
+
+    ser[mask] = "foo"
+    assert ser.dtype == dti.dtype  # no-op -> dont upcast
+    tm.assert_series_equal(ser, orig)
+
+    ser.mask(mask, "foo", inplace=True)
+    assert ser.dtype == dti.dtype  # no-op -> dont upcast
+    tm.assert_series_equal(ser, orig)

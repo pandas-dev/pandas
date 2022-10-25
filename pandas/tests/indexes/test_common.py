@@ -8,12 +8,13 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-
-from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    needs_i8_conversion,
+from pandas.compat import (
+    IS64,
+    pa_version_under7p0,
 )
+from pandas.errors import PerformanceWarning
+
+from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import (
@@ -22,7 +23,6 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
     RangeIndex,
-    TimedeltaIndex,
 )
 import pandas._testing as tm
 from pandas.core.api import NumericIndex
@@ -91,7 +91,9 @@ class TestCommon:
 
     def test_constructor_unwraps_index(self, index_flat):
         a = index_flat
-        b = type(a)(a)
+        # Passing dtype is necessary for Index([True, False], dtype=object)
+        #  case.
+        b = type(a)(a, dtype=a.dtype)
         tm.assert_equal(a._data, b._data)
 
     def test_to_flat_index(self, index_flat):
@@ -167,7 +169,12 @@ class TestCommon:
         s1 = pd.Series(2, index=first)
         s2 = pd.Series(3, index=second[:-1])
         # See GH#13365
-        s3 = s1 * s2
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            s3 = s1 * s2
         assert s3.index.name == "mario"
 
     def test_copy_name2(self, index_flat):
@@ -198,8 +205,8 @@ class TestCommon:
             index.unique(level=3)
 
         msg = (
-            fr"Requested level \(wrong\) does not match index name "
-            fr"\({re.escape(index.name.__repr__())}\)"
+            rf"Requested level \(wrong\) does not match index name "
+            rf"\({re.escape(index.name.__repr__())}\)"
         )
         with pytest.raises(KeyError, match=msg):
             index.unique(level="wrong")
@@ -240,7 +247,7 @@ class TestCommon:
         assert idx_unique_nan.dtype == index.dtype
 
         expected = idx_unique_nan
-        for i in [idx_nan, idx_unique_nan]:
+        for pos, i in enumerate([idx_nan, idx_unique_nan]):
             result = i.unique()
             tm.assert_index_equal(result, expected)
 
@@ -383,19 +390,29 @@ class TestCommon:
             index.name = "idx"
 
         warn = None
-        if dtype in ["int64", "uint64"]:
-            if needs_i8_conversion(index.dtype):
-                warn = FutureWarning
-        elif (
+        if (
             isinstance(index, DatetimeIndex)
             and index.tz is not None
             and dtype == "datetime64[ns]"
         ):
             # This astype is deprecated in favor of tz_localize
             warn = FutureWarning
+        elif index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
+            # imaginary components discarded
+            warn = np.ComplexWarning
+
+        is_pyarrow_str = (
+            str(index.dtype) == "string[pyarrow]"
+            and pa_version_under7p0
+            and dtype == "category"
+        )
         try:
             # Some of these conversions cannot succeed so we use a try / except
-            with tm.assert_produces_warning(warn):
+            with tm.assert_produces_warning(
+                warn,
+                raise_on_extra_warnings=is_pyarrow_str,
+                check_stacklevel=False,
+            ):
                 result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
             return
@@ -404,16 +421,6 @@ class TestCommon:
             assert result.names == index.names
         else:
             assert result.name == index.name
-
-    def test_asi8_deprecation(self, index):
-        # GH#37877
-        if isinstance(index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
-            warn = None
-        else:
-            warn = FutureWarning
-
-        with tm.assert_produces_warning(warn):
-            index.asi8
 
     def test_hasnans_isnans(self, index_flat):
         # GH#11343, added tests for hasnans / isnans
@@ -432,6 +439,9 @@ class TestCommon:
             return
         elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
             return
+        elif index.dtype == bool:
+            # values[1] = np.nan below casts to True!
+            return
 
         values[1] = np.nan
 
@@ -445,18 +455,26 @@ class TestCommon:
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
-
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-        index_with_missing.sort_values(na_position=na_position)
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            index_with_missing.sort_values(na_position=na_position)
 
 
 @pytest.mark.parametrize("na_position", ["first", "last"])
-def test_sort_values_with_missing(index_with_missing, na_position):
+def test_sort_values_with_missing(index_with_missing, na_position, request):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
     if isinstance(index_with_missing, CategoricalIndex):
-        pytest.skip("missing value sorting order not well-defined")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="missing value sorting order not well-defined", strict=False
+            )
+        )
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values
@@ -469,7 +487,13 @@ def test_sort_values_with_missing(index_with_missing, na_position):
     # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
     expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
 
-    result = index_with_missing.sort_values(na_position=na_position)
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        pa_version_under7p0
+        and getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
+        check_stacklevel=False,
+    ):
+        result = index_with_missing.sort_values(na_position=na_position)
     tm.assert_index_equal(result, expected)
 
 

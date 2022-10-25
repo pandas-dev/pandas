@@ -201,6 +201,12 @@ class TestSeriesGetitemScalars:
         with pytest.raises(KeyError, match=msg):
             ser["50 days"]
 
+    def test_getitem_bool_index_positional(self):
+        # GH#48653
+        ser = Series({True: 1, False: 0})
+        result = ser[0]
+        assert result == 1
+
 
 class TestSeriesGetitemSlices:
     def test_getitem_partial_str_slice_with_datetimeindex(self):
@@ -332,7 +338,8 @@ class TestSeriesGetitemSlices:
     def test_getitem_slice_integers(self):
         ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
 
-        result = ser[:4]
+        with tm.assert_produces_warning(FutureWarning, match="label-based"):
+            result = ser[:4]
         expected = Series(ser.values[:4], index=[2, 4, 6, 8])
         tm.assert_series_equal(result, expected)
 
@@ -677,11 +684,6 @@ def test_getitem_categorical_str():
     ser = Series(range(5), index=Categorical(["a", "b", "c", "a", "b"]))
     result = ser["a"]
     expected = ser.iloc[[0, 3]]
-    tm.assert_series_equal(result, expected)
-
-    # Check the intermediate steps work as expected
-    with tm.assert_produces_warning(FutureWarning):
-        result = ser.index.get_value(ser, "a")
     tm.assert_series_equal(result, expected)
 
 

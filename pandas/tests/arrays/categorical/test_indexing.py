@@ -1,12 +1,16 @@
+import math
+
 import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     Categorical,
     CategoricalIndex,
     Index,
     Interval,
     IntervalIndex,
+    NaT,
     PeriodIndex,
     Series,
     Timedelta,
@@ -14,31 +18,30 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.common as com
-from pandas.tests.arrays.categorical.common import TestCategorical
 
 
-class TestCategoricalIndexingWithFactor(TestCategorical):
-    def test_getitem(self):
-        assert self.factor[0] == "a"
-        assert self.factor[-1] == "c"
+class TestCategoricalIndexingWithFactor:
+    def test_getitem(self, factor):
+        assert factor[0] == "a"
+        assert factor[-1] == "c"
 
-        subf = self.factor[[0, 1, 2]]
+        subf = factor[[0, 1, 2]]
         tm.assert_numpy_array_equal(subf._codes, np.array([0, 1, 1], dtype=np.int8))
 
-        subf = self.factor[np.asarray(self.factor) == "c"]
+        subf = factor[np.asarray(factor) == "c"]
         tm.assert_numpy_array_equal(subf._codes, np.array([2, 2, 2], dtype=np.int8))
 
-    def test_setitem(self):
+    def test_setitem(self, factor):
 
         # int/positional
-        c = self.factor.copy()
+        c = factor.copy()
         c[0] = "b"
         assert c[0] == "b"
         c[-1] = "a"
         assert c[-1] == "a"
 
         # boolean
-        c = self.factor.copy()
+        c = factor.copy()
         indexer = np.zeros(len(c), dtype="bool")
         indexer[0] = True
         indexer[-1] = True
@@ -191,9 +194,21 @@ class TestCategoricalIndexing:
     def test_categories_assignments(self):
         cat = Categorical(["a", "b", "c", "a"])
         exp = np.array([1, 2, 3, 1], dtype=np.int64)
-        cat.categories = [1, 2, 3]
+        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
+            cat.categories = [1, 2, 3]
         tm.assert_numpy_array_equal(cat.__array__(), exp)
         tm.assert_index_equal(cat.categories, Index([1, 2, 3]))
+
+    @pytest.mark.parametrize(
+        "null_val",
+        [None, np.nan, NaT, NA, math.nan, "NaT", "nat", "NAT", "nan", "NaN", "NAN"],
+    )
+    def test_periodindex_on_null_types(self, null_val):
+        # GH 46673
+        result = PeriodIndex(["2022-04-06", "2022-04-07", null_val], freq="D")
+        expected = PeriodIndex(["2022-04-06", "2022-04-07", "NaT"], dtype="period[D]")
+        assert result[2] is NaT
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("new_categories", [[1, 2, 3, 4], [1, 2]])
     def test_categories_assignments_wrong_length_raises(self, new_categories):
@@ -202,8 +217,9 @@ class TestCategoricalIndexing:
             "new categories need to have the same number of items "
             "as the old categories!"
         )
-        with pytest.raises(ValueError, match=msg):
-            cat.categories = new_categories
+        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
+            with pytest.raises(ValueError, match=msg):
+                cat.categories = new_categories
 
     # Combinations of sorted/unique:
     @pytest.mark.parametrize(
@@ -370,7 +386,7 @@ def non_coercible_categorical(monkeypatch):
         yield
 
 
-def test_series_at(non_coercible_categorical):
+def test_series_at():
     arr = Categorical(["a", "b", "c"])
     ser = Series(arr)
     result = ser.at[0]

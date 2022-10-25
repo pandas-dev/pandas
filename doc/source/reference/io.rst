@@ -53,7 +53,6 @@ Excel
 
 .. autosummary::
    :toctree: api/
-   :template: autosummary/class_without_autosummary.rst
 
    ExcelWriter
 
@@ -160,6 +159,7 @@ ORC
    :toctree: api/
 
    read_orc
+   DataFrame.to_orc
 
 SAS
 ~~~

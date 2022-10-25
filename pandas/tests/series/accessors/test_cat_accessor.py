@@ -78,17 +78,6 @@ class TestCatAccessor:
         with pytest.raises(AttributeError, match="You cannot add any new attribute"):
             cat.cat.xlabel = "a"
 
-    def test_cat_accessor_updates_on_inplace(self):
-        ser = Series(list("abc")).astype("category")
-        return_value = ser.drop(0, inplace=True)
-        assert return_value is None
-
-        with tm.assert_produces_warning(FutureWarning):
-            return_value = ser.cat.remove_unused_categories(inplace=True)
-
-        assert return_value is None
-        assert len(ser.cat.categories) == 2
-
     def test_categorical_delegations(self):
 
         # invalid accessor
@@ -110,7 +99,8 @@ class TestCatAccessor:
         ser = Series(Categorical(["a", "b", "c", "a"], ordered=True))
         exp_categories = Index(["a", "b", "c"])
         tm.assert_index_equal(ser.cat.categories, exp_categories)
-        ser.cat.categories = [1, 2, 3]
+        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
+            ser.cat.categories = [1, 2, 3]
         exp_categories = Index([1, 2, 3])
         tm.assert_index_equal(ser.cat.categories, exp_categories)
 
@@ -120,7 +110,8 @@ class TestCatAccessor:
         assert ser.cat.ordered
         ser = ser.cat.as_unordered()
         assert not ser.cat.ordered
-        return_value = ser.cat.as_ordered(inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="The `inplace`"):
+            return_value = ser.cat.as_ordered(inplace=True)
         assert return_value is None
         assert ser.cat.ordered
 
@@ -267,8 +258,10 @@ class TestCatAccessor:
         df = DataFrame({"Survived": [1, 0, 1], "Sex": [0, 1, 1]}, dtype="category")
 
         # change the dtype in-place
-        df["Survived"].cat.categories = ["No", "Yes"]
-        df["Sex"].cat.categories = ["female", "male"]
+        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
+            df["Survived"].cat.categories = ["No", "Yes"]
+        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
+            df["Sex"].cat.categories = ["female", "male"]
 
         # values should not be coerced to NaN
         assert list(df["Sex"]) == ["female", "male", "male"]
@@ -282,3 +275,12 @@ class TestCatAccessor:
         # values should not be coerced to NaN
         assert list(df["Sex"]) == ["female", "male", "male"]
         assert list(df["Survived"]) == ["Yes", "No", "Yes"]
+
+    def test_categorical_of_booleans_is_boolean(self):
+        # https://github.com/pandas-dev/pandas/issues/46313
+        df = DataFrame(
+            {"int_cat": [1, 2, 3], "bool_cat": [True, False, False]}, dtype="category"
+        )
+        value = df["bool_cat"].cat.categories.dtype
+        expected = np.dtype(np.bool_)
+        assert value is expected

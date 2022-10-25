@@ -27,14 +27,6 @@ def try_parse_dates(
     dayfirst: bool = ...,
     default: datetime | None = ...,
 ) -> npt.NDArray[np.object_]: ...
-def try_parse_date_and_time(
-    dates: npt.NDArray[np.object_],  # object[:]
-    times: npt.NDArray[np.object_],  # object[:]
-    date_parser=...,
-    time_parser=...,
-    dayfirst: bool = ...,
-    default: datetime | None = ...,
-) -> npt.NDArray[np.object_]: ...
 def try_parse_year_month_day(
     years: npt.NDArray[np.object_],  # object[:]
     months: npt.NDArray[np.object_],  # object[:]
@@ -51,9 +43,7 @@ def try_parse_datetime_components(
 def format_is_iso(f: str) -> bool: ...
 def guess_datetime_format(
     dt_str,
-    dayfirst: bool = ...,
-    dt_str_parse=...,
-    dt_str_split=...,
+    dayfirst: bool | None = ...,
 ) -> str | None: ...
 def concat_date_cols(
     date_cols: tuple,

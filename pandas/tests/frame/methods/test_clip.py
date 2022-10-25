@@ -136,7 +136,7 @@ class TestDataFrameClip:
         tm.assert_frame_equal(result_lower, expected_lower)
         tm.assert_frame_equal(result_lower_upper, expected_lower_upper)
 
-    def test_clip_with_na_args(self, float_frame, using_array_manager):
+    def test_clip_with_na_args(self, float_frame):
         """Should process np.nan argument as None"""
         # GH#17276
         tm.assert_frame_equal(float_frame.clip(np.nan), float_frame)
@@ -151,9 +151,7 @@ class TestDataFrameClip:
         )
         tm.assert_frame_equal(result, expected)
 
-        warn = FutureWarning if using_array_manager else None
-        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
-            result = df.clip(lower=[4, 5, np.nan], axis=1)
+        result = df.clip(lower=[4, 5, np.nan], axis=1)
         expected = DataFrame(
             {"col_0": [4, 4, 4], "col_1": [5, 5, 6], "col_2": [7, 8, 9]}
         )
@@ -165,16 +163,4 @@ class TestDataFrameClip:
         t = Series([2, -4, np.NaN, 6, 3])
         result = df.clip(lower=t, axis=0)
         expected = DataFrame({"col_0": [9, -3, 0, 6, 5], "col_1": [2, -4, 6, 8, 3]})
-        tm.assert_frame_equal(result, expected)
-
-    def test_clip_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame.clip except "
-            r"for the arguments 'lower' and 'upper' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.clip(0, 1, 0)
-        expected = DataFrame({"a": [1, 1, 1]})
         tm.assert_frame_equal(result, expected)

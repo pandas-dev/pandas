@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 import functools
 from typing import (
     TYPE_CHECKING,
@@ -92,7 +93,7 @@ def _is_sup(f1: str, f2: str) -> bool:
     )
 
 
-def _upsample_others(ax: Axes, freq, kwargs):
+def _upsample_others(ax: Axes, freq, kwargs) -> None:
     legend = ax.get_legend()
     lines, labels = _replot_ax(ax, freq, kwargs)
     _replot_ax(ax, freq, kwargs)
@@ -145,7 +146,7 @@ def _replot_ax(ax: Axes, freq, kwargs):
     return lines, labels
 
 
-def decorate_axes(ax: Axes, freq, kwargs):
+def decorate_axes(ax: Axes, freq, kwargs) -> None:
     """Initialize axes for time-series plotting"""
     if not hasattr(ax, "_plot_data"):
         ax._plot_data = []
@@ -185,11 +186,10 @@ def _get_ax_freq(ax: Axes):
     return ax_freq
 
 
-def _get_period_alias(freq) -> str | None:
+def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
     freqstr = to_offset(freq).rule_code
 
-    freq = get_period_alias(freqstr)
-    return freq
+    return get_period_alias(freqstr)
 
 
 def _get_freq(ax: Axes, series: Series):
@@ -223,18 +223,21 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
     if freq is None:
         return False
 
-    freq = _get_period_alias(freq)
+    freq_str = _get_period_alias(freq)
 
-    if freq is None:
+    if freq_str is None:
         return False
 
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
-        base = to_offset(freq)._period_dtype_code
+        # error: "BaseOffset" has no attribute "_period_dtype_code"
+        base = to_offset(freq_str)._period_dtype_code  # type: ignore[attr-defined]
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
-        return Period(x[0], freq).to_timestamp().tz_localize(x.tz) == x[0]
+        period = Period(x[0], freq_str)
+        assert isinstance(period, Period)
+        return period.to_timestamp().tz_localize(x.tz) == x[0]
     return True
 
 
@@ -256,7 +259,7 @@ def maybe_convert_index(ax: Axes, data):
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
-        freq = data.index.freq
+        freq: str | BaseOffset | None = data.index.freq
 
         if freq is None:
             # We only get here for DatetimeIndex
@@ -270,12 +273,12 @@ def maybe_convert_index(ax: Axes, data):
         if freq is None:
             raise ValueError("Could not get frequency alias for plotting")
 
-        freq = _get_period_alias(freq)
+        freq_str = _get_period_alias(freq)
 
         if isinstance(data.index, ABCDatetimeIndex):
-            data = data.tz_localize(None).to_period(freq=freq)
+            data = data.tz_localize(None).to_period(freq=freq_str)
         elif isinstance(data.index, ABCPeriodIndex):
-            data.index = data.index.asfreq(freq=freq)
+            data.index = data.index.asfreq(freq=freq_str)
     return data
 
 
@@ -288,7 +291,7 @@ def _format_coord(freq, t, y) -> str:
     return f"t = {time_period}  y = {y:8f}"
 
 
-def format_dateaxis(subplot, freq, index):
+def format_dateaxis(subplot, freq, index) -> None:
     """
     Pretty-formats the date axis (x-axis).
 

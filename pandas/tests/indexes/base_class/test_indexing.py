@@ -10,23 +10,19 @@ import pandas._testing as tm
 
 
 class TestGetSliceBounds:
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
-    def test_get_slice_bounds_within(self, kind, side, expected):
+    def test_get_slice_bounds_within(self, side, expected):
         index = Index(list("abcdef"))
-        with tm.assert_produces_warning(FutureWarning, match="'kind' argument"):
-            result = index.get_slice_bound("e", kind=kind, side=side)
+        result = index.get_slice_bound("e", side=side)
         assert result == expected
 
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side", ["left", "right"])
     @pytest.mark.parametrize(
         "data, bound, expected", [(list("abcdef"), "x", 6), (list("bcdefg"), "a", 0)]
     )
-    def test_get_slice_bounds_outside(self, kind, side, expected, data, bound):
+    def test_get_slice_bounds_outside(self, side, expected, data, bound):
         index = Index(data)
-        with tm.assert_produces_warning(FutureWarning, match="'kind' argument"):
-            result = index.get_slice_bound(bound, kind=kind, side=side)
+        result = index.get_slice_bound(bound, side=side)
         assert result == expected
 
     def test_get_slice_bounds_invalid_side(self):
@@ -51,7 +47,7 @@ class TestGetLoc:
         lev = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
         dti = pd.date_range("2016-01-01", periods=100)
 
-        mi = pd.MultiIndex.from_product([lev, range(10 ** 3), dti])
+        mi = pd.MultiIndex.from_product([lev, range(10**3), dti])
         oidx = mi.to_flat_index()
 
         loc = len(oidx) // 2
@@ -76,3 +72,11 @@ class TestGetLoc:
         # we don't match at all on mismatched NA
         with pytest.raises(KeyError, match="NaT"):
             idx.get_loc(NaT)
+
+
+def test_getitem_boolean_ea_indexer():
+    # GH#45806
+    ser = pd.Series([True, False, pd.NA], dtype="boolean")
+    result = ser.index[ser]
+    expected = Index([0])
+    tm.assert_index_equal(result, expected)

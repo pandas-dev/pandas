@@ -18,10 +18,14 @@ from pytz import (
     utc,
 )
 
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
     dateutil_gettz as gettz,
     get_timezone,
+    maybe_get_tz,
+    tz_compare,
 )
+from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -149,7 +153,7 @@ class TestTimestampProperties:
     )
     # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
-        "time_locale", [None] + (tm.get_locales() or [])  # type: ignore[operator]
+        "time_locale", [None] + tm.get_locales()  # type: ignore[operator]
     )
     def test_names(self, data, time_locale):
         # GH 17354
@@ -692,3 +696,451 @@ def test_dt_subclass_add_timedelta(lh, rh):
     result = lh + rh
     expected = SubDatetime(2000, 1, 1, 1)
     assert result == expected
+
+
+class TestNonNano:
+    @pytest.fixture(params=["s", "ms", "us"])
+    def reso(self, request):
+        return request.param
+
+    @pytest.fixture
+    def dt64(self, reso):
+        # cases that are in-bounds for nanosecond, so we can compare against
+        #  the existing implementation.
+        return np.datetime64("2016-01-01", reso)
+
+    @pytest.fixture
+    def ts(self, dt64):
+        return Timestamp._from_dt64(dt64)
+
+    @pytest.fixture
+    def ts_tz(self, ts, tz_aware_fixture):
+        tz = maybe_get_tz(tz_aware_fixture)
+        return Timestamp._from_value_and_reso(ts.value, ts._creso, tz)
+
+    def test_non_nano_construction(self, dt64, ts, reso):
+        assert ts.value == dt64.view("i8")
+
+        if reso == "s":
+            assert ts._creso == NpyDatetimeUnit.NPY_FR_s.value
+        elif reso == "ms":
+            assert ts._creso == NpyDatetimeUnit.NPY_FR_ms.value
+        elif reso == "us":
+            assert ts._creso == NpyDatetimeUnit.NPY_FR_us.value
+
+    def test_non_nano_fields(self, dt64, ts):
+        alt = Timestamp(dt64)
+
+        assert ts.year == alt.year
+        assert ts.month == alt.month
+        assert ts.day == alt.day
+        assert ts.hour == ts.minute == ts.second == ts.microsecond == 0
+        assert ts.nanosecond == 0
+
+        assert ts.to_julian_date() == alt.to_julian_date()
+        assert ts.weekday() == alt.weekday()
+        assert ts.isoweekday() == alt.isoweekday()
+
+    def test_start_end_fields(self, ts):
+        assert ts.is_year_start
+        assert ts.is_quarter_start
+        assert ts.is_month_start
+        assert not ts.is_year_end
+        assert not ts.is_month_end
+        assert not ts.is_month_end
+
+        freq = offsets.BDay()
+        ts._set_freq(freq)
+
+        # 2016-01-01 is a Friday, so is year/quarter/month start with this freq
+        msg = "Timestamp.freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert ts.is_year_start
+            assert ts.is_quarter_start
+            assert ts.is_month_start
+            assert not ts.is_year_end
+            assert not ts.is_month_end
+            assert not ts.is_month_end
+
+    def test_day_name(self, dt64, ts):
+        alt = Timestamp(dt64)
+        assert ts.day_name() == alt.day_name()
+
+    def test_month_name(self, dt64, ts):
+        alt = Timestamp(dt64)
+        assert ts.month_name() == alt.month_name()
+
+    def test_tz_convert(self, ts):
+        ts = Timestamp._from_value_and_reso(ts.value, ts._creso, utc)
+
+        tz = pytz.timezone("US/Pacific")
+        result = ts.tz_convert(tz)
+
+        assert isinstance(result, Timestamp)
+        assert result._creso == ts._creso
+        assert tz_compare(result.tz, tz)
+
+    def test_repr(self, dt64, ts):
+        alt = Timestamp(dt64)
+
+        assert str(ts) == str(alt)
+        assert repr(ts) == repr(alt)
+
+    def test_comparison(self, dt64, ts):
+        alt = Timestamp(dt64)
+
+        assert ts == dt64
+        assert dt64 == ts
+        assert ts == alt
+        assert alt == ts
+
+        assert not ts != dt64
+        assert not dt64 != ts
+        assert not ts != alt
+        assert not alt != ts
+
+        assert not ts < dt64
+        assert not dt64 < ts
+        assert not ts < alt
+        assert not alt < ts
+
+        assert not ts > dt64
+        assert not dt64 > ts
+        assert not ts > alt
+        assert not alt > ts
+
+        assert ts >= dt64
+        assert dt64 >= ts
+        assert ts >= alt
+        assert alt >= ts
+
+        assert ts <= dt64
+        assert dt64 <= ts
+        assert ts <= alt
+        assert alt <= ts
+
+    def test_cmp_cross_reso(self):
+        # numpy gets this wrong because of silent overflow
+        dt64 = np.datetime64(9223372800, "s")  # won't fit in M8[ns]
+        ts = Timestamp._from_dt64(dt64)
+
+        # subtracting 3600*24 gives a datetime64 that _can_ fit inside the
+        #  nanosecond implementation bounds.
+        other = Timestamp(dt64 - 3600 * 24)._as_unit("ns")
+        assert other < ts
+        assert other.asm8 > ts.asm8  # <- numpy gets this wrong
+        assert ts > other
+        assert ts.asm8 < other.asm8  # <- numpy gets this wrong
+        assert not other == ts
+        assert ts != other
+
+    @pytest.mark.xfail(reason="Dispatches to np.datetime64 which is wrong")
+    def test_cmp_cross_reso_reversed_dt64(self):
+        dt64 = np.datetime64(106752, "D")  # won't fit in M8[ns]
+        ts = Timestamp._from_dt64(dt64)
+        other = Timestamp(dt64 - 1)
+
+        assert other.asm8 < ts
+
+    def test_pickle(self, ts, tz_aware_fixture):
+        tz = tz_aware_fixture
+        tz = maybe_get_tz(tz)
+        ts = Timestamp._from_value_and_reso(ts.value, ts._creso, tz)
+        rt = tm.round_trip_pickle(ts)
+        assert rt._creso == ts._creso
+        assert rt == ts
+
+    def test_normalize(self, dt64, ts):
+        alt = Timestamp(dt64)
+        result = ts.normalize()
+        assert result._creso == ts._creso
+        assert result == alt.normalize()
+
+    def test_asm8(self, dt64, ts):
+        rt = ts.asm8
+        assert rt == dt64
+        assert rt.dtype == dt64.dtype
+
+    def test_to_numpy(self, dt64, ts):
+        res = ts.to_numpy()
+        assert res == dt64
+        assert res.dtype == dt64.dtype
+
+    def test_to_datetime64(self, dt64, ts):
+        res = ts.to_datetime64()
+        assert res == dt64
+        assert res.dtype == dt64.dtype
+
+    def test_timestamp(self, dt64, ts):
+        alt = Timestamp(dt64)
+        assert ts.timestamp() == alt.timestamp()
+
+    def test_to_period(self, dt64, ts):
+        alt = Timestamp(dt64)
+        assert ts.to_period("D") == alt.to_period("D")
+
+    @pytest.mark.parametrize(
+        "td", [timedelta(days=4), Timedelta(days=4), np.timedelta64(4, "D")]
+    )
+    def test_addsub_timedeltalike_non_nano(self, dt64, ts, td):
+
+        exp_reso = max(ts._creso, Timedelta(td)._creso)
+
+        result = ts - td
+        expected = Timestamp(dt64) - td
+        assert isinstance(result, Timestamp)
+        assert result._creso == exp_reso
+        assert result == expected
+
+        result = ts + td
+        expected = Timestamp(dt64) + td
+        assert isinstance(result, Timestamp)
+        assert result._creso == exp_reso
+        assert result == expected
+
+        result = td + ts
+        expected = td + Timestamp(dt64)
+        assert isinstance(result, Timestamp)
+        assert result._creso == exp_reso
+        assert result == expected
+
+    def test_addsub_offset(self, ts_tz):
+        # specifically non-Tick offset
+        off = offsets.YearEnd(1)
+        result = ts_tz + off
+
+        assert isinstance(result, Timestamp)
+        assert result._creso == ts_tz._creso
+        if ts_tz.month == 12 and ts_tz.day == 31:
+            assert result.year == ts_tz.year + 1
+        else:
+            assert result.year == ts_tz.year
+        assert result.day == 31
+        assert result.month == 12
+        assert tz_compare(result.tz, ts_tz.tz)
+
+        result = ts_tz - off
+
+        assert isinstance(result, Timestamp)
+        assert result._creso == ts_tz._creso
+        assert result.year == ts_tz.year - 1
+        assert result.day == 31
+        assert result.month == 12
+        assert tz_compare(result.tz, ts_tz.tz)
+
+    def test_sub_datetimelike_mismatched_reso(self, ts_tz):
+        # case with non-lossy rounding
+        ts = ts_tz
+
+        # choose a unit for `other` that doesn't match ts_tz's;
+        #  this construction ensures we get cases with other._creso < ts._creso
+        #  and cases with other._creso > ts._creso
+        unit = {
+            NpyDatetimeUnit.NPY_FR_us.value: "ms",
+            NpyDatetimeUnit.NPY_FR_ms.value: "s",
+            NpyDatetimeUnit.NPY_FR_s.value: "us",
+        }[ts._creso]
+        other = ts._as_unit(unit)
+        assert other._creso != ts._creso
+
+        result = ts - other
+        assert isinstance(result, Timedelta)
+        assert result.value == 0
+        assert result._creso == max(ts._creso, other._creso)
+
+        result = other - ts
+        assert isinstance(result, Timedelta)
+        assert result.value == 0
+        assert result._creso == max(ts._creso, other._creso)
+
+        if ts._creso < other._creso:
+            # Case where rounding is lossy
+            other2 = other + Timedelta._from_value_and_reso(1, other._creso)
+            exp = ts._as_unit(other._unit) - other2
+
+            res = ts - other2
+            assert res == exp
+            assert res._creso == max(ts._creso, other._creso)
+
+            res = other2 - ts
+            assert res == -exp
+            assert res._creso == max(ts._creso, other._creso)
+        else:
+            ts2 = ts + Timedelta._from_value_and_reso(1, ts._creso)
+            exp = ts2 - other._as_unit(ts2._unit)
+
+            res = ts2 - other
+            assert res == exp
+            assert res._creso == max(ts._creso, other._creso)
+            res = other - ts2
+            assert res == -exp
+            assert res._creso == max(ts._creso, other._creso)
+
+    def test_sub_timedeltalike_mismatched_reso(self, ts_tz):
+        # case with non-lossy rounding
+        ts = ts_tz
+
+        # choose a unit for `other` that doesn't match ts_tz's;
+        #  this construction ensures we get cases with other._creso < ts._creso
+        #  and cases with other._creso > ts._creso
+        unit = {
+            NpyDatetimeUnit.NPY_FR_us.value: "ms",
+            NpyDatetimeUnit.NPY_FR_ms.value: "s",
+            NpyDatetimeUnit.NPY_FR_s.value: "us",
+        }[ts._creso]
+        other = Timedelta(0)._as_unit(unit)
+        assert other._creso != ts._creso
+
+        result = ts + other
+        assert isinstance(result, Timestamp)
+        assert result == ts
+        assert result._creso == max(ts._creso, other._creso)
+
+        result = other + ts
+        assert isinstance(result, Timestamp)
+        assert result == ts
+        assert result._creso == max(ts._creso, other._creso)
+
+        if ts._creso < other._creso:
+            # Case where rounding is lossy
+            other2 = other + Timedelta._from_value_and_reso(1, other._creso)
+            exp = ts._as_unit(other._unit) + other2
+            res = ts + other2
+            assert res == exp
+            assert res._creso == max(ts._creso, other._creso)
+            res = other2 + ts
+            assert res == exp
+            assert res._creso == max(ts._creso, other._creso)
+        else:
+            ts2 = ts + Timedelta._from_value_and_reso(1, ts._creso)
+            exp = ts2 + other._as_unit(ts2._unit)
+
+            res = ts2 + other
+            assert res == exp
+            assert res._creso == max(ts._creso, other._creso)
+            res = other + ts2
+            assert res == exp
+            assert res._creso == max(ts._creso, other._creso)
+
+    def test_addition_doesnt_downcast_reso(self):
+        # https://github.com/pandas-dev/pandas/pull/48748#pullrequestreview-1122635413
+        ts = Timestamp(year=2022, month=1, day=1, microsecond=999999)._as_unit("us")
+        td = Timedelta(microseconds=1)._as_unit("us")
+        res = ts + td
+        assert res._creso == ts._creso
+
+    def test_sub_timedelta64_mismatched_reso(self, ts_tz):
+        ts = ts_tz
+
+        res = ts + np.timedelta64(1, "ns")
+        exp = ts._as_unit("ns") + np.timedelta64(1, "ns")
+        assert exp == res
+        assert exp._creso == NpyDatetimeUnit.NPY_FR_ns.value
+
+    def test_min(self, ts):
+        assert ts.min <= ts
+        assert ts.min._creso == ts._creso
+        assert ts.min.value == NaT.value + 1
+
+    def test_max(self, ts):
+        assert ts.max >= ts
+        assert ts.max._creso == ts._creso
+        assert ts.max.value == np.iinfo(np.int64).max
+
+    def test_resolution(self, ts):
+        expected = Timedelta._from_value_and_reso(1, ts._creso)
+        result = ts.resolution
+        assert result == expected
+        assert result._creso == expected._creso
+
+
+def test_timestamp_class_min_max_resolution():
+    # when accessed on the class (as opposed to an instance), we default
+    #  to nanoseconds
+    assert Timestamp.min == Timestamp(NaT.value + 1)
+    assert Timestamp.min._creso == NpyDatetimeUnit.NPY_FR_ns.value
+
+    assert Timestamp.max == Timestamp(np.iinfo(np.int64).max)
+    assert Timestamp.max._creso == NpyDatetimeUnit.NPY_FR_ns.value
+
+    assert Timestamp.resolution == Timedelta(1)
+    assert Timestamp.resolution._creso == NpyDatetimeUnit.NPY_FR_ns.value
+
+
+class TestAsUnit:
+    def test_as_unit(self):
+        ts = Timestamp("1970-01-01")
+
+        assert ts._as_unit("ns") is ts
+
+        res = ts._as_unit("us")
+        assert res.value == ts.value // 1000
+        assert res._creso == NpyDatetimeUnit.NPY_FR_us.value
+
+        rt = res._as_unit("ns")
+        assert rt.value == ts.value
+        assert rt._creso == ts._creso
+
+        res = ts._as_unit("ms")
+        assert res.value == ts.value // 1_000_000
+        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
+
+        rt = res._as_unit("ns")
+        assert rt.value == ts.value
+        assert rt._creso == ts._creso
+
+        res = ts._as_unit("s")
+        assert res.value == ts.value // 1_000_000_000
+        assert res._creso == NpyDatetimeUnit.NPY_FR_s.value
+
+        rt = res._as_unit("ns")
+        assert rt.value == ts.value
+        assert rt._creso == ts._creso
+
+    def test_as_unit_overflows(self):
+        # microsecond that would be just out of bounds for nano
+        us = 9223372800000000
+        ts = Timestamp._from_value_and_reso(us, NpyDatetimeUnit.NPY_FR_us.value, None)
+
+        msg = "Cannot cast 2262-04-12 00:00:00 to unit='ns' without overflow"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts._as_unit("ns")
+
+        res = ts._as_unit("ms")
+        assert res.value == us // 1000
+        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
+
+    def test_as_unit_rounding(self):
+        ts = Timestamp(1_500_000)  # i.e. 1500 microseconds
+        res = ts._as_unit("ms")
+
+        expected = Timestamp(1_000_000)  # i.e. 1 millisecond
+        assert res == expected
+
+        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
+        assert res.value == 1
+
+        with pytest.raises(ValueError, match="Cannot losslessly convert units"):
+            ts._as_unit("ms", round_ok=False)
+
+    def test_as_unit_non_nano(self):
+        # case where we are going neither to nor from nano
+        ts = Timestamp("1970-01-02")._as_unit("ms")
+        assert ts.year == 1970
+        assert ts.month == 1
+        assert ts.day == 2
+        assert ts.hour == ts.minute == ts.second == ts.microsecond == ts.nanosecond == 0
+
+        res = ts._as_unit("s")
+        assert res.value == 24 * 3600
+        assert res.year == 1970
+        assert res.month == 1
+        assert res.day == 2
+        assert (
+            res.hour
+            == res.minute
+            == res.second
+            == res.microsecond
+            == res.nanosecond
+            == 0
+        )

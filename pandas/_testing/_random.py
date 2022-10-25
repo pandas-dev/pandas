@@ -2,6 +2,8 @@ import string
 
 import numpy as np
 
+from pandas._typing import NpDtype
+
 
 def randbool(size=(), p: float = 0.5):
     return np.random.rand(*size) <= p
@@ -14,31 +16,19 @@ RANDU_CHARS = np.array(
 )
 
 
-def rands_array(nchars, size, dtype="O"):
+def rands_array(nchars, size, dtype: NpDtype = "O", replace: bool = True) -> np.ndarray:
     """
     Generate an array of byte strings.
     """
     retval = (
-        np.random.choice(RANDS_CHARS, size=nchars * np.prod(size))
+        np.random.choice(RANDS_CHARS, size=nchars * np.prod(size), replace=replace)
         .view((np.str_, nchars))
         .reshape(size)
     )
     return retval.astype(dtype)
 
 
-def randu_array(nchars, size, dtype="O"):
-    """
-    Generate an array of unicode strings.
-    """
-    retval = (
-        np.random.choice(RANDU_CHARS, size=nchars * np.prod(size))
-        .view((np.unicode_, nchars))
-        .reshape(size)
-    )
-    return retval.astype(dtype)
-
-
-def rands(nchars):
+def rands(nchars) -> str:
     """
     Generate one random byte string.
 

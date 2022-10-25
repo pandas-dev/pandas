@@ -42,6 +42,16 @@ class BaseParser:
         kwargs = self.update_kwargs(kwargs)
         return read_table(*args, **kwargs)
 
+    def read_table_check_warnings(
+        self, warn_type: type[Warning], warn_msg: str, *args, **kwargs
+    ):
+        # We need to check the stacklevel here instead of in the tests
+        # since this is where read_table is called and where the warning
+        # should point to.
+        kwargs = self.update_kwargs(kwargs)
+        with tm.assert_produces_warning(warn_type, match=warn_msg):
+            return read_table(*args, **kwargs)
+
 
 class CParser(BaseParser):
     engine = "c"
@@ -89,7 +99,7 @@ _pyarrowParser = PyArrowParser
 
 _py_parsers_only = [_pythonParser]
 _c_parsers_only = [_cParserHighMemory, _cParserLowMemory]
-_pyarrow_parsers_only = [_pyarrowParser]
+_pyarrow_parsers_only = [pytest.param(_pyarrowParser, marks=pytest.mark.single_cpu)]
 
 _all_parsers = [*_c_parsers_only, *_py_parsers_only, *_pyarrow_parsers_only]
 
@@ -108,7 +118,8 @@ def all_parsers(request):
     parser = request.param()
     if parser.engine == "pyarrow":
         pytest.importorskip("pyarrow", VERSIONS["pyarrow"])
-        # Try setting num cpus to 1 to avoid hangs?
+        # Try finding a way to disable threads all together
+        # for more stable CI runs
         import pyarrow
 
         pyarrow.set_cpu_count(1)
@@ -147,8 +158,14 @@ def _get_all_parser_float_precision_combinations():
     params = []
     ids = []
     for parser, parser_id in zip(_all_parsers, _all_parser_ids):
+        if hasattr(parser, "values"):
+            # Wrapped in pytest.param, get the actual parser back
+            parser = parser.values[0]
         for precision in parser.float_precision_choices:
-            params.append((parser(), precision))
+            # Re-wrap in pytest.param for pyarrow
+            mark = pytest.mark.single_cpu if parser.engine == "pyarrow" else ()
+            param = pytest.param((parser(), precision), marks=mark)
+            params.append(param)
             ids.append(f"{parser_id}-{precision}")
 
     return {"params": params, "ids": ids}

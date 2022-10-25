@@ -30,8 +30,8 @@
     </ul>
     </div>
 
-How to create new columns derived from existing columns?
---------------------------------------------------------
+How to create new columns derived from existing columns
+-------------------------------------------------------
 
 .. image:: ../../_static/schemas/05_newcolumn_1.svg
    :align: center
@@ -41,7 +41,7 @@ How to create new columns derived from existing columns?
     <ul class="task-bullet">
         <li>
 
-I want to express the :math:`NO_2` concentration of the station in London in mg/m\ :math:`^3`
+I want to express the :math:`NO_2` concentration of the station in London in mg/m\ :math:`^3`.
 
 (*If we assume temperature of 25 degrees Celsius and pressure of 1013
 hPa, the conversion factor is 1.882*)
@@ -60,7 +60,7 @@ at the left side of the assignment.
     </ul>
 
 .. note::
-    The calculation of the values is done **element_wise**. This
+    The calculation of the values is done **element-wise**. This
     means all values in the given column are multiplied by the value 1.882
     at once. You do not need to use a loop to iterate each of the rows!
 
@@ -72,7 +72,7 @@ at the left side of the assignment.
     <ul class="task-bullet">
         <li>
 
-I want to check the ratio of the values in Paris versus Antwerp and save the result in a new column
+I want to check the ratio of the values in Paris versus Antwerp and save the result in a new column.
 
 .. ipython:: python
 
@@ -89,8 +89,8 @@ values in each row*.
         </li>
     </ul>
 
-Also other mathematical operators (``+``, ``-``, ``\*``, ``/``) or
-logical operators (``<``, ``>``, ``=``,…) work element wise. The latter was already
+Also other mathematical operators (``+``, ``-``, ``*``, ``/``,…) or
+logical operators (``<``, ``>``, ``==``,…) work element-wise. The latter was already
 used in the :ref:`subset data tutorial <10min_tut_03_subset>` to filter
 rows of a table using a conditional expression.
 
@@ -101,7 +101,7 @@ If you need more advanced logic, you can use arbitrary Python code via :meth:`~D
     <ul class="task-bullet">
         <li>
 
-I want to rename the data columns to the corresponding station identifiers used by openAQ
+I want to rename the data columns to the corresponding station identifiers used by `OpenAQ <https://openaq.org/>`__.
 
 .. ipython:: python
 

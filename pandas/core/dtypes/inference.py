@@ -1,14 +1,18 @@
 """ basic inference routines """
 
+from __future__ import annotations
+
 from collections import abc
 from numbers import Number
 import re
 from typing import Pattern
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
 from pandas._typing import ArrayLike
+from pandas.util._exceptions import find_stack_level
 
 is_bool = lib.is_bool
 
@@ -447,5 +451,16 @@ def is_inferred_bool_dtype(arr: ArrayLike) -> bool:
     if dtype == np.dtype(bool):
         return True
     elif dtype == np.dtype("object"):
-        return lib.is_bool_array(arr)
+        result = lib.is_bool_array(arr)
+        if result:
+            # GH#46188
+            warnings.warn(
+                "In a future version, object-dtype columns with all-bool values "
+                "will not be included in reductions with bool_only=True. "
+                "Explicitly cast to bool dtype instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        return result
+
     return False

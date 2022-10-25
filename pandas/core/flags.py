@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import weakref
 
 
@@ -44,7 +46,7 @@ class Flags:
 
     _keys = {"allows_duplicate_labels"}
 
-    def __init__(self, obj, *, allows_duplicate_labels):
+    def __init__(self, obj, *, allows_duplicate_labels) -> None:
         self._allows_duplicate_labels = allows_duplicate_labels
         self._obj = weakref.ref(obj)
 
@@ -81,7 +83,7 @@ class Flags:
         return self._allows_duplicate_labels
 
     @allows_duplicate_labels.setter
-    def allows_duplicate_labels(self, value: bool):
+    def allows_duplicate_labels(self, value: bool) -> None:
         value = bool(value)
         obj = self._obj()
         if obj is None:
@@ -99,12 +101,12 @@ class Flags:
 
         return getattr(self, key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if key not in self._keys:
             raise ValueError(f"Unknown flag {key}. Must be one of {self._keys}")
         setattr(self, key, value)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Flags(allows_duplicate_labels={self.allows_duplicate_labels})>"
 
     def __eq__(self, other):

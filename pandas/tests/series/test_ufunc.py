@@ -1,20 +1,17 @@
 from collections import deque
+import re
 import string
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_dtype_equal
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
 
-UNARY_UFUNCS = [np.positive, np.floor, np.exp]
 BINARY_UFUNCS = [np.add, np.logaddexp]  # dunder op
 SPARSE = [True, False]
 SPARSE_IDS = ["sparse", "dense"]
-SHUFFLE = [True, False]
 
 
 @pytest.fixture
@@ -29,7 +26,7 @@ def arrays_for_binary_ufunc():
     return a1, a2
 
 
-@pytest.mark.parametrize("ufunc", UNARY_UFUNCS)
+@pytest.mark.parametrize("ufunc", [np.positive, np.floor, np.exp])
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 def test_unary_ufunc(ufunc, sparse):
     # Test that ufunc(pd.Series) == pd.Series(ufunc)
@@ -174,11 +171,9 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
 
 @pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: np.modf, np.frexp
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
-@pytest.mark.parametrize("shuffle", SHUFFLE)
+@pytest.mark.parametrize("shuffle", [True, False])
 @pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
-def test_multiple_output_binary_ufuncs(
-    ufunc, sparse, shuffle, arrays_for_binary_ufunc, request
-):
+def test_multiple_output_binary_ufuncs(ufunc, sparse, shuffle, arrays_for_binary_ufunc):
     # Test that
     #  the same conditions from binary_ufunc_scalar apply to
     #  ufuncs with multiple outputs.
@@ -242,7 +237,7 @@ def test_binary_ufunc_drops_series_name(ufunc, sparse, arrays_for_binary_ufunc):
 
 def test_object_series_ok():
     class Dummy:
-        def __init__(self, value):
+        def __init__(self, value) -> None:
             self.value = value
 
         def __add__(self, other):
@@ -280,15 +275,11 @@ class TestNumpyReductions:
         box = box_with_array
         values = values_for_np_reduce
 
-        warn = None
-        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
-            warn = FutureWarning
-        msg = "passing a SparseArray to pd.Index"
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(None):
             obj = box(values)
 
-        if isinstance(values, pd.core.arrays.SparseArray) and box is not pd.Index:
-            mark = pytest.mark.xfail(reason="SparseArray has no 'mul'")
+        if isinstance(values, pd.core.arrays.SparseArray):
+            mark = pytest.mark.xfail(reason="SparseArray has no 'prod'")
             request.node.add_marker(mark)
 
         if values.dtype.kind in "iuf":
@@ -319,11 +310,7 @@ class TestNumpyReductions:
         box = box_with_array
         values = values_for_np_reduce
 
-        warn = None
-        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
-            warn = FutureWarning
-        msg = "passing a SparseArray to pd.Index"
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(None):
             obj = box(values)
 
         if values.dtype.kind in "miuf":
@@ -358,11 +345,7 @@ class TestNumpyReductions:
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
 
-        warn = None
-        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
-            warn = FutureWarning
-        msg = "passing a SparseArray to pd.Index"
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(None):
             obj = box(values)
 
         result = np.maximum.reduce(obj)
@@ -386,11 +369,7 @@ class TestNumpyReductions:
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
 
-        warn = None
-        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
-            warn = FutureWarning
-        msg = "passing a SparseArray to pd.Index"
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(None):
             obj = box(values)
 
         result = np.minimum.reduce(obj)
@@ -417,7 +396,7 @@ def test_binary_ufunc_other_types(type_):
 
 def test_object_dtype_ok():
     class Thing:
-        def __init__(self, value):
+        def __init__(self, value) -> None:
             self.value = value
 
         def __add__(self, other):
@@ -438,8 +417,44 @@ def test_object_dtype_ok():
 
 def test_outer():
     # https://github.com/pandas-dev/pandas/issues/27186
-    s = pd.Series([1, 2, 3])
-    o = np.array([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
+    obj = np.array([1, 2, 3])
 
     with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        np.subtract.outer(s, o)
+        np.subtract.outer(ser, obj)
+
+
+def test_np_matmul():
+    # GH26650
+    df1 = pd.DataFrame(data=[[-1, 1, 10]])
+    df2 = pd.DataFrame(data=[-1, 1, 10])
+    expected_result = pd.DataFrame(data=[102])
+
+    with tm.assert_produces_warning(FutureWarning, match="on non-aligned"):
+        result = np.matmul(df1, df2)
+    tm.assert_frame_equal(
+        expected_result,
+        result,
+    )
+
+
+def test_array_ufuncs_for_many_arguments():
+    # GH39853
+    def add3(x, y, z):
+        return x + y + z
+
+    ufunc = np.frompyfunc(add3, 3, 1)
+    ser = pd.Series([1, 2])
+
+    result = ufunc(ser, ser, 1)
+    expected = pd.Series([3, 5], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+    df = pd.DataFrame([[1, 2]])
+
+    msg = (
+        "Cannot apply ufunc <ufunc 'add3 (vectorized)'> "
+        "to mixed DataFrame and Series inputs."
+    )
+    with pytest.raises(NotImplementedError, match=re.escape(msg)):
+        ufunc(ser, ser, df)

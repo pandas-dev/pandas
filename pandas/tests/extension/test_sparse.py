@@ -17,7 +17,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p20
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_object_dtype
@@ -54,7 +53,7 @@ def data(request):
 
 
 @pytest.fixture
-def data_for_twos(request):
+def data_for_twos():
     return SparseArray(np.ones(100) * 2)
 
 
@@ -150,6 +149,21 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         )
         self.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            ["A", "B"],
+            pd.MultiIndex.from_tuples(
+                [("A", "a"), ("A", "b")], names=["outer", "inner"]
+            ),
+        ],
+    )
+    def test_stack(self, data, columns):
+        with tm.assert_produces_warning(
+            FutureWarning, check_stacklevel=False, match="astype from Sparse"
+        ):
+            super().test_stack(data, columns)
+
     def test_concat_columns(self, data, na_value):
         self._check_unsupported(data)
         super().test_concat_columns(data, na_value)
@@ -197,17 +211,6 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
 
 
 class TestIndex(base.BaseIndexTests):
-    def test_index_from_array(self, data):
-        msg = "will store that array directly"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            idx = pd.Index(data)
-
-        if data.dtype.subtype == "f":
-            assert idx.dtype == np.float64
-        elif data.dtype.subtype == "i":
-            assert idx.dtype == np.int64
-        else:
-            assert idx.dtype == data.dtype.subtype
 
     # TODO(2.0): should pass once SparseArray is stored directly in Index.
     @pytest.mark.xfail(reason="Index cannot yet store sparse dtype")
@@ -232,11 +235,11 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         self.assert_equal(sarr.isna(), expected)
 
     def test_fillna_limit_pad(self, data_missing):
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
             super().test_fillna_limit_pad(data_missing)
 
     def test_fillna_limit_backfill(self, data_missing):
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
             super().test_fillna_limit_backfill(data_missing)
 
     def test_fillna_no_op_returns_copy(self, data, request):
@@ -244,17 +247,17 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
             request.node.add_marker(
                 pytest.mark.xfail(reason="returns array with different fill value")
             )
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
             super().test_fillna_no_op_returns_copy(data)
 
     def test_fillna_series_method(self, data_missing):
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
             super().test_fillna_limit_backfill(data_missing)
 
-    @pytest.mark.skip(reason="Unsupported")
+    @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self):
         # this one looks doable.
-        pass
+        super().test_fillna_series()
 
     def test_fillna_frame(self, data_missing):
         # Have to override to specify that fill_value will change.
@@ -278,14 +281,6 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
-    @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_frame(self, data_for_sorting, ascending):
-        msg = "will store that array directly"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
-            super().test_sort_values_frame(data_for_sorting, ascending)
-
     def test_combine_le(self, data_repeated):
         # We return a Series[SparseArray].__le__ returns a
         # Series[Sparse[bool]]
@@ -330,9 +325,9 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         assert ser._values is not result._values
         assert ser._values.to_dense() is arr.to_dense()
 
-    @pytest.mark.skip(reason="Not Applicable")
+    @pytest.mark.xfail(reason="Not Applicable")
     def test_fillna_length_mismatch(self, data_missing):
-        pass
+        super().test_fillna_length_mismatch(data_missing)
 
     def test_where_series(self, data, na_value):
         assert data[0] != data[1]
@@ -367,7 +362,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         super().test_combine_first(data)
 
     def test_searchsorted(self, data_for_sorting, as_series):
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
             super().test_searchsorted(data_for_sorting, as_series)
 
     def test_shift_0_periods(self, data):
@@ -394,7 +389,8 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         # Unlike the base class, we do not expect the resulting Block
         #  to be ObjectBlock / resulting array to be np.dtype("object")
         ser = pd.Series(all_data, name="A")
-        result = ser.astype(object)
+        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
+            result = ser.astype(object)
         assert is_object_dtype(result.dtype)
         assert is_object_dtype(result._mgr.array.dtype)
 
@@ -403,18 +399,17 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         #  to be ObjectBlock / resulting array to be np.dtype("object")
         df = pd.DataFrame({"A": all_data})
 
-        result = df.astype(object)
+        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
+            result = df.astype(object)
         assert is_object_dtype(result._mgr.arrays[0].dtype)
 
-        # earlier numpy raises TypeError on e.g. np.dtype(np.int64) == "Int64"
-        #  instead of returning False
-        if not np_version_under1p20:
-            # check that we can compare the dtypes
-            comp = result.dtypes == df.dtypes
-            assert not comp.any()
+        # check that we can compare the dtypes
+        comp = result.dtypes == df.dtypes
+        assert not comp.any()
 
     def test_astype_str(self, data):
-        result = pd.Series(data[:5]).astype(str)
+        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
+            result = pd.Series(data[:5]).astype(str)
         expected_dtype = SparseDtype(str, str(data.fill_value))
         expected = pd.Series([str(x) for x in data[:5]], dtype=expected_dtype)
         self.assert_series_equal(result, expected)
@@ -435,7 +430,7 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             # arith ops call on dtype.fill_value so that the sparsity
             # is maintained. Combine can't be called on a dtype in
             # general, so we can't make the expected. This is tested elsewhere
-            raise pytest.skip("Incorrected expected from Series.combine")
+            pytest.skip("Incorrected expected from Series.combine and tested elsewhere")
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
@@ -518,4 +513,5 @@ class TestParsing(BaseSparseTests, base.BaseParsingTests):
     def test_EA_types(self, engine, data):
         expected_msg = r".*must implement _from_sequence_of_strings.*"
         with pytest.raises(NotImplementedError, match=expected_msg):
-            super().test_EA_types(engine, data)
+            with tm.assert_produces_warning(FutureWarning, match="astype from"):
+                super().test_EA_types(engine, data)

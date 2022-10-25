@@ -14,7 +14,6 @@ cdef extern from *:
 cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
     # functions, whereas `from cpython cimport` does not.
-    bint PyUnicode_Check(object obj) nogil
     bint PyBool_Check(object obj) nogil
     bint PyFloat_Check(object obj) nogil
     bint PyComplex_Check(object obj) nogil
@@ -26,6 +25,10 @@ cdef extern from "Python.h":
     # unicode object was stored as non-utf8 and utf8 wasn't requested before.
     const char* PyUnicode_AsUTF8AndSize(object obj,
                                         Py_ssize_t* length) except NULL
+
+    object PyUnicode_EncodeLocale(object obj, const char *errors) nogil
+    object PyUnicode_DecodeLocale(const char *str, const char *errors) nogil
+
 
 from numpy cimport (
     float64_t,
@@ -220,3 +223,13 @@ cdef inline const char* get_c_string_buf_and_size(str py_string,
 
 cdef inline const char* get_c_string(str py_string) except NULL:
     return get_c_string_buf_and_size(py_string, NULL)
+
+
+cdef inline bytes string_encode_locale(str py_string):
+    """As opposed to PyUnicode_Encode, use current system locale to encode."""
+    return PyUnicode_EncodeLocale(py_string, NULL)
+
+
+cdef inline object char_to_string_locale(const char* data):
+    """As opposed to PyUnicode_FromString, use current system locale to decode."""
+    return PyUnicode_DecodeLocale(data, NULL)
