@@ -293,12 +293,12 @@ def register_series_accessor(name):
 
 def register_index_accessor(name):
     """
-    Register a custom accessor with an Index
+    Register a custom accessor with an Index.
 
     Parameters
     ----------
     name : str
-        name used when calling the accessor after its registered
+        Name used when calling the accessor after its registered.
 
     Returns
     -------
@@ -307,8 +307,8 @@ def register_index_accessor(name):
 
     See Also
     --------
-    register_dataframe_accessor: Register a custom accessor on DataFrame objects
-    register_series_accessor: Register a custom accessor on Series objects
+    register_dataframe_accessor: Register a custom accessor on DataFrame objects.
+    register_series_accessor: Register a custom accessor on Series objects.
 
     Notes
     -----
@@ -349,9 +349,7 @@ def register_index_accessor(name):
                ...:                    "latitude": np.linspace(0, 20)}})
             In [2]: ds.index.foo.bar
             Out[2]: 'baz'
-
     """
-
     from pandas import Index
 
     return _register_accessor(name, Index)
