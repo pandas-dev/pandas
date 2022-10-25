@@ -712,10 +712,7 @@ def get_data_from_filepath(
             storage_options=storage_options,
         ) as handle_obj:
             filepath_or_buffer = (
-                # error: Incompatible types in assignment (expression has type
-                # "Union[str, IO[str]]", variable has type "Union[Union[str,
-                # PathLike[str]], bytes, ReadBuffer[bytes], ReadBuffer[str]]")
-                handle_obj.handle.read()  # type: ignore[assignment]
+                handle_obj.handle.read()
                 if hasattr(handle_obj.handle, "read")
                 else handle_obj.handle
             )
