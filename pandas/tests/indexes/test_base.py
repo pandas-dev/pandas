@@ -813,14 +813,6 @@ class TestIndex(Base):
         index = Index([5, datetime.now(), 7])
         assert not getattr(index, attr)
 
-    def test_set_value_deprecated(self, simple_index):
-        # GH 28621
-        idx = simple_index
-        arr = np.array([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            idx.set_value(arr, idx[1], 80)
-        assert arr[1] == 80
-
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(
         "index,expected",
