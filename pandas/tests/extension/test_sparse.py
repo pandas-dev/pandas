@@ -19,8 +19,6 @@ import pytest
 
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.common import is_object_dtype
-
 import pandas as pd
 from pandas import SparseDtype
 import pandas._testing as tm
@@ -382,27 +380,6 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
-    def _test_astype_object_series(self, all_data):
-        # Unlike the base class, we do not expect the resulting Block
-        #  to be ObjectBlock / resulting array to be np.dtype("object")
-        ser = pd.Series(all_data, name="A")
-        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
-            result = ser.astype(object)
-        assert is_object_dtype(result.dtype)
-        assert is_object_dtype(result._mgr.array.dtype)
-
-    def _test_astype_object_frame(self, all_data):
-        # Unlike the base class, we do not expect the resulting Block
-        #  to be ObjectBlock / resulting array to be np.dtype("object")
-        df = pd.DataFrame({"A": all_data})
-
-        result = df.astype(object)
-        assert is_object_dtype(result._mgr.arrays[0].dtype)
-
-        # check that we can compare the dtypes
-        comp = result.dtypes == df.dtypes
-        assert not comp.any()
-
     def test_astype_str(self, data):
         # pre-2.0 this would give a SparseDtype even if the user asked
         #  for a non-sparse dtype.
