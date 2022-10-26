@@ -490,8 +490,9 @@ class DataFrame(NDFrame, OpsMixin):
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, dataclass or list-like objects. If
         data is a dict, column order follows insertion-order. If a dict contains Series
-        which have an index defined, it is aligned by its index. This alignment also occurs
-        if data is a Series or a DataFrame itself. Alignment is done on Series/DataFrame inputs.
+        which have an index defined, it is aligned by its index. This alignment also
+        occurs if data is a Series or a DataFrame itself. Alignment is done on
+        Series/DataFrame inputs.
 
         .. versionchanged:: 0.25.0
            If data is a list of dicts, column order follows insertion-order.
