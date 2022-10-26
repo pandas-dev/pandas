@@ -1028,15 +1028,29 @@ class _MergeOperation:
                 right_ax = self.right.index[~self.right.index.isin(self.left.index)]
                 self.left = self.left.loc[left_ax]
                 self.right = self.right.loc[right_ax]
-            elif self.on is not None or (self.left_on is not None and self.right_on is not None):
+            elif self.on is not None or (
+                self.left_on is not None and self.right_on is not None
+            ):
                 # Merge using `on` or `left_on` and `right_on`
-                _left = [~Index(self.left_join_keys[x]).isin(Index(self.right_join_keys[x])) for x in range(len(self.left_join_keys))]
-                _right = [~Index(self.right_join_keys[x]).isin(Index(self.left_join_keys[x]))for x in range(len(self.left_join_keys))]
-                self.left = self.left[np.sum(np.stack(_left, axis=0), axis=0)>0]
-                self.right = self.right[np.sum(np.stack(_right, axis=0), axis=0)>0]
+                _left = [
+                    ~Index(self.left_join_keys[x]).isin(Index(self.right_join_keys[x]))
+                    for x in range(len(self.left_join_keys))
+                ]
+                _right = [
+                    ~Index(self.right_join_keys[x]).isin(Index(self.left_join_keys[x]))
+                    for x in range(len(self.left_join_keys))
+                ]
+                self.left = self.left[np.sum(np.stack(_left, axis=0), axis=0) > 0]
+                self.right = self.right[np.sum(np.stack(_right, axis=0), axis=0) > 0]
 
-                self.left_join_keys = [x[np.sum(np.stack(_left, axis=0), axis=0)>0] for x in self.left_join_keys]
-                self.right_join_keys = [x[np.sum(np.stack(_right, axis=0), axis=0)>0] for x in self.right_join_keys]
+                self.left_join_keys = [
+                    x[np.sum(np.stack(_left, axis=0), axis=0) > 0]
+                    for x in self.left_join_keys
+                ]
+                self.right_join_keys = [
+                    x[np.sum(np.stack(_right, axis=0), axis=0) > 0]
+                    for x in self.right_join_keys
+                ]
 
         if self.left_index and self.right_index and self.how != "asof":
             join_index, left_indexer, right_indexer = left_ax.join(
@@ -1594,6 +1608,7 @@ class _MergeOperation:
 
         else:
             raise ValueError("Not a valid argument for validate")
+
 
 def get_join_indexers(
     left_keys, right_keys, sort: bool = False, how: str = "inner", **kwargs
