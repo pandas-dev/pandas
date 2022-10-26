@@ -500,7 +500,7 @@ class DataFrameInfo(BaseInfo):
 
     @property
     def memory_usage_bytes(self) -> int:
-        deep = bool(self.memory_usage == "deep")
+        deep = self.memory_usage == "deep"
         return self.data.memory_usage(index=True, deep=deep).sum()
 
     def render(
@@ -576,7 +576,7 @@ class SeriesInfo(BaseInfo):
         memory_usage_bytes : int
             Object's total memory usage in bytes.
         """
-        deep = bool(self.memory_usage == "deep")
+        deep = self.memory_usage == "deep"
         return self.data.memory_usage(index=True, deep=deep)
 
 
