@@ -245,6 +245,7 @@ Removal of prior version deprecations/changes
 - Removed ``pandas.SparseSeries`` and ``pandas.SparseDataFrame``, including pickle support. (:issue:`30642`)
 - Enforced disallowing a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
 - Enforced disallowing a tuple of column labels into :meth:`.DataFrameGroupBy.__getitem__` (:issue:`30546`)
+- Enforced disallowing setting values with ``.loc`` using a positional slice. Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
 - Removed setting Categorical._codes directly (:issue:`41429`)
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
 - Renamed ``fname`` to ``path`` in :meth:`DataFrame.to_parquet`, :meth:`DataFrame.to_stata` and :meth:`DataFrame.to_feather` (:issue:`30338`)
