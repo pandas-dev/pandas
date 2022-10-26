@@ -1241,14 +1241,14 @@ class TestSeriesConstructors:
         result = Series(ser.dt.tz_convert("UTC"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)
 
-        msg = "will interpret the data as wall-times"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # deprecate behavior inconsistent with DatetimeIndex GH#33401
-            result = Series(ser.values, dtype=ser.dtype)
-        tm.assert_series_equal(result, ser)
+        # Pre-2.0 dt64 values were treated as utc, which was inconsistent
+        #  with DatetimeIndex, which treats them as wall times, see GH#33401
+        result = Series(ser.values, dtype=ser.dtype)
+        expected = Series(ser.values).dt.tz_localize(ser.dtype.tz)
+        tm.assert_series_equal(result, expected)
 
         with tm.assert_produces_warning(None):
-            # one suggested alternative to the deprecated usage
+            # one suggested alternative to the deprecated (changed in 2.0) usage
             middle = Series(ser.values).dt.tz_localize("UTC")
             result = middle.dt.tz_convert(ser.dtype.tz)
         tm.assert_series_equal(result, ser)
@@ -1736,24 +1736,23 @@ class TestSeriesConstructors:
         ts = Timestamp("2019", tz=tz)
         if pydt:
             ts = ts.to_pydatetime()
-        ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = Series([ts], dtype="datetime64[ns]")
-        expected = Series([ts_naive])
-        tm.assert_series_equal(result, expected)
+        msg = (
+            "Cannot convert timezone-aware data to timezone-naive dtype. "
+            r"Use pd.Series\(values\).dt.tz_localize\(None\) instead."
+        )
+        with pytest.raises(ValueError, match=msg):
+            Series([ts], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = Series(np.array([ts], dtype=object), dtype="datetime64[ns]")
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            Series(np.array([ts], dtype=object), dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = Series({0: ts}, dtype="datetime64[ns]")
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            Series({0: ts}, dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = Series(ts, index=[0], dtype="datetime64[ns]")
-        tm.assert_series_equal(result, expected)
+        msg = "Cannot unbox tzaware Timestamp to tznaive dtype"
+        with pytest.raises(TypeError, match=msg):
+            Series(ts, index=[0], dtype="datetime64[ns]")
 
     def test_constructor_datetime64(self):
         rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
@@ -1986,7 +1985,9 @@ class TestSeriesConstructorIndexCoercion:
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
         with tm.assert_produces_warning(FutureWarning):
             assert ser.index.is_all_dates
-        assert isinstance(ser.index, DatetimeIndex)
+        # as of 2.0, we no longer silently cast the object-dtype index
+        #  to DatetimeIndex GH#39307, GH#23598
+        assert not isinstance(ser.index, DatetimeIndex)
 
     def test_series_constructor_infer_multiindex(self):
         index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]

@@ -56,14 +56,12 @@ from pandas.errors import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
-from pandas.core.dtypes.astype import astype_dt64_to_dt64tz
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     INT64_DTYPE,
     is_bool_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
-    is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -91,10 +89,7 @@ from pandas.tseries.offsets import (
 if TYPE_CHECKING:
 
     from pandas import DataFrame
-    from pandas.core.arrays import (
-        PeriodArray,
-        TimedeltaArray,
-    )
+    from pandas.core.arrays import PeriodArray
 
 _midnight = time(0, 0)
 
@@ -660,15 +655,29 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             return type(self)._simple_new(res_values, dtype=res_values.dtype)
             # TODO: preserve freq?
 
-        elif is_datetime64_ns_dtype(dtype):
-            return astype_dt64_to_dt64tz(self, dtype, copy, via_utc=False)
-
         elif self.tz is not None and isinstance(dtype, DatetimeTZDtype):
             # tzaware unit conversion e.g. datetime64[s, UTC]
             np_dtype = np.dtype(dtype.str)
             res_values = astype_overflowsafe(self._ndarray, np_dtype, copy=copy)
-            return type(self)._simple_new(res_values, dtype=dtype)
-            # TODO: preserve freq?
+            return type(self)._simple_new(res_values, dtype=dtype, freq=self.freq)
+
+        elif self.tz is None and isinstance(dtype, DatetimeTZDtype):
+            # pre-2.0 this did self.tz_localize(dtype.tz), which did not match
+            #  the Series behavior
+            raise TypeError(
+                "Cannot use .astype to convert from timezone-naive dtype to "
+                "timezone-aware dtype. Use obj.tz_localize instead."
+            )
+
+        elif self.tz is not None and is_datetime64_dtype(dtype):
+            # pre-2.0 behavior for DTA/DTI was
+            #  values.tz_convert("UTC").tz_localize(None), which did not match
+            #  the Series behavior
+            raise TypeError(
+                "Cannot use .astype to convert from timezone-aware dtype to "
+                "timezone-naive dtype. Use obj.tz_localize(None) or "
+                "obj.tz_convert('UTC').tz_localize(None) instead."
+            )
 
         elif (
             self.tz is None
@@ -1181,38 +1190,6 @@ default 'raise'
             freq = res
 
         return PeriodArray._from_datetime64(self._ndarray, freq, tz=self.tz)
-
-    def to_perioddelta(self, freq) -> TimedeltaArray:
-        """
-        Calculate deltas between self values and self converted to Periods at a freq.
-
-        Used for vectorized offsets.
-
-        Parameters
-        ----------
-        freq : Period frequency
-
-        Returns
-        -------
-        TimedeltaArray/Index
-        """
-        # Deprecaation GH#34853
-        warnings.warn(
-            "to_perioddelta is deprecated and will be removed in a "
-            "future version. "
-            "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead.",
-            FutureWarning,
-            # stacklevel chosen to be correct for when called from DatetimeIndex
-            stacklevel=find_stack_level(),
-        )
-        from pandas.core.arrays.timedeltas import TimedeltaArray
-
-        if self._ndarray.dtype != "M8[ns]":
-            raise NotImplementedError("Only supported for nanosecond resolution.")
-
-        i8delta = self.asi8 - self.to_period(freq).to_timestamp().asi8
-        m8delta = i8delta.view("m8[ns]")
-        return TimedeltaArray(m8delta)
 
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods
@@ -2146,10 +2123,15 @@ def _sequence_to_dt64ns(
             # Convert tz-naive to UTC
             # TODO: if tz is UTC, are there situations where we *don't* want a
             #  copy?  tz_localize_to_utc always makes one.
+            shape = data.shape
+            if data.ndim > 1:
+                data = data.ravel()
+
             data = tzconversion.tz_localize_to_utc(
                 data.view("i8"), tz, ambiguous=ambiguous, creso=data_unit
             )
             data = data.view(new_dtype)
+            data = data.reshape(shape)
 
         assert data.dtype == new_dtype, data.dtype
         result = data

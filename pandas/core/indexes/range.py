@@ -12,7 +12,6 @@ from typing import (
     List,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -31,7 +30,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -238,11 +236,6 @@ class RangeIndex(NumericIndex):
         return header + [f"{x:<{max_length}}" for x in self._range]
 
     # --------------------------------------------------------------------
-    _deprecation_message = (
-        "RangeIndex.{} is deprecated and will be "
-        "removed in a future version. Use RangeIndex.{} "
-        "instead"
-    )
 
     @property
     def start(self) -> int:
@@ -253,42 +246,11 @@ class RangeIndex(NumericIndex):
         return self._range.start
 
     @property
-    def _start(self) -> int:
-        """
-        The value of the `start` parameter (``0`` if this was not supplied).
-
-         .. deprecated:: 0.25.0
-            Use ``start`` instead.
-        """
-        warnings.warn(
-            self._deprecation_message.format("_start", "start"),
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.start
-
-    @property
     def stop(self) -> int:
         """
         The value of the `stop` parameter.
         """
         return self._range.stop
-
-    @property
-    def _stop(self) -> int:
-        """
-        The value of the `stop` parameter.
-
-         .. deprecated:: 0.25.0
-            Use ``stop`` instead.
-        """
-        # GH 25710
-        warnings.warn(
-            self._deprecation_message.format("_stop", "stop"),
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.stop
 
     @property
     def step(self) -> int:
@@ -297,22 +259,6 @@ class RangeIndex(NumericIndex):
         """
         # GH 25710
         return self._range.step
-
-    @property
-    def _step(self) -> int:
-        """
-        The value of the `step` parameter (``1`` if this was not supplied).
-
-         .. deprecated:: 0.25.0
-            Use ``step`` instead.
-        """
-        # GH 25710
-        warnings.warn(
-            self._deprecation_message.format("_step", "step"),
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.step
 
     @cache_readonly
     def nbytes(self) -> int:
@@ -456,24 +402,9 @@ class RangeIndex(NumericIndex):
         return result
 
     @doc(Int64Index.copy)
-    def copy(
-        self,
-        name: Hashable = None,
-        deep: bool = False,
-        dtype: Dtype | None = None,
-        names=None,
-    ):
-        name = self._validate_names(name=name, names=names, deep=deep)[0]
+    def copy(self, name: Hashable = None, deep: bool = False):
+        name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
-
-        if dtype:
-            warnings.warn(
-                "parameter dtype is deprecated and will be removed in a future "
-                "version. Use the astype method instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            new_index = new_index.astype(dtype)
         return new_index
 
     def _minmax(self, meth: str):
@@ -848,11 +779,11 @@ class RangeIndex(NumericIndex):
         # In some cases we can retain RangeIndex, see also
         #  DatetimeTimedeltaMixin._get_delete_Freq
         if is_integer(loc):
-            if loc == 0 or loc == -len(self):
+            if loc in (0, -len(self)):
                 return self[1:]
-            if loc == -1 or loc == len(self) - 1:
+            if loc in (-1, len(self) - 1):
                 return self[:-1]
-            if len(self) == 3 and (loc == 1 or loc == -2):
+            if len(self) == 3 and loc in (1, -2):
                 return self[::2]
 
         elif lib.is_list_like(loc):

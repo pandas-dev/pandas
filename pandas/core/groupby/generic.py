@@ -333,7 +333,7 @@ class SeriesGroupBy(GroupBy[Series]):
             from pandas import concat
 
             res_df = concat(
-                results.values(), axis=1, keys=[key.label for key in results.keys()]
+                results.values(), axis=1, keys=[key.label for key in results]
             )
             return res_df
 
@@ -858,12 +858,9 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         indices: TakeIndexer,
         axis: Axis = 0,
-        is_copy: bool | None = None,
         **kwargs,
     ) -> Series:
-        result = self._op_via_apply(
-            "take", indices=indices, axis=axis, is_copy=is_copy, **kwargs
-        )
+        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
     @doc(Series.skew.__doc__)
@@ -883,18 +880,6 @@ class SeriesGroupBy(GroupBy[Series]):
             numeric_only=numeric_only,
             **kwargs,
         )
-        return result
-
-    @doc(Series.mad.__doc__)
-    def mad(
-        self, axis: Axis | None = None, skipna: bool = True, level: Level | None = None
-    ) -> Series:
-        result = self._op_via_apply("mad", axis=axis, skipna=skipna, level=level)
-        return result
-
-    @doc(Series.tshift.__doc__)
-    def tshift(self, periods: int = 1, freq=None) -> Series:
-        result = self._op_via_apply("tshift", periods=periods, freq=freq)
         return result
 
     @property
@@ -1319,33 +1304,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         all_indexed_same = all_indexes_same(x.index for x in values)
 
-        # GH3596
-        # provide a reduction (Frame -> Series) if groups are
-        # unique
-        if self.squeeze:
-            applied_index = self._selected_obj._get_axis(self.axis)
-            singular_series = len(values) == 1 and applied_index.nlevels == 1
-
-            if singular_series:
-                # GH2893
-                # we have series in the values array, we want to
-                # produce a series:
-                # if any of the sub-series are not indexed the same
-                # OR we don't have a multi-index and we have only a
-                # single values
-                return self._concat_objects(
-                    values,
-                    not_indexed_same=not_indexed_same,
-                    override_group_keys=override_group_keys,
-                )
-
-            # still a series
-            # path added as of GH 5545
-            elif all_indexed_same:
-                from pandas.core.reshape.concat import concat
-
-                return concat(values)
-
         if not all_indexed_same:
             # GH 8467
             return self._concat_objects(
@@ -1639,12 +1597,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # per GH 23566
         if isinstance(key, tuple) and len(key) > 1:
             # if len == 1, then it becomes a SeriesGroupBy and this is actually
-            # valid syntax, so don't raise warning
-            warnings.warn(
-                "Indexing with multiple keys (implicitly converted to a tuple "
-                "of keys) will be deprecated, use a list instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            # valid syntax, so don't raise
+            raise ValueError(
+                "Cannot subset columns with a tuple with more than one element. "
+                "Use a list instead."
             )
         return super().__getitem__(key)
 
@@ -1675,7 +1631,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 as_index=self.as_index,
                 sort=self.sort,
                 group_keys=self.group_keys,
-                squeeze=self.squeeze,
                 observed=self.observed,
                 mutated=self.mutated,
                 dropna=self.dropna,
@@ -1690,7 +1645,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 selection=key,
                 sort=self.sort,
                 group_keys=self.group_keys,
-                squeeze=self.squeeze,
                 observed=self.observed,
                 dropna=self.dropna,
             )
@@ -2286,12 +2240,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         indices: TakeIndexer,
         axis: Axis | None = 0,
-        is_copy: bool | None = None,
         **kwargs,
     ) -> DataFrame:
-        result = self._op_via_apply(
-            "take", indices=indices, axis=axis, is_copy=is_copy, **kwargs
-        )
+        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
     @doc(DataFrame.skew.__doc__)
@@ -2311,18 +2262,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             numeric_only=numeric_only,
             **kwargs,
         )
-        return result
-
-    @doc(DataFrame.mad.__doc__)
-    def mad(
-        self, axis: Axis | None = None, skipna: bool = True, level: Level | None = None
-    ) -> DataFrame:
-        result = self._op_via_apply("mad", axis=axis, skipna=skipna, level=level)
-        return result
-
-    @doc(DataFrame.tshift.__doc__)
-    def tshift(self, periods: int = 1, freq=None, axis: Axis = 0) -> DataFrame:
-        result = self._op_via_apply("tshift", periods=periods, freq=freq, axis=axis)
         return result
 
     @property
