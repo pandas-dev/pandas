@@ -910,7 +910,10 @@ class _MergeOperation:
 
         assert all(is_array_like(x) for x in self.left_join_keys)
 
-        keys = zip(self.join_names, self.left_on, self.right_on)
+        _left = self.left.index.names if self.left_index else self.left_on
+        _right = self.right.index.names if self.right_index else self.right_on
+
+        keys = zip(self.join_names, _left, _right)
         for i, (name, lname, rname) in enumerate(keys):
             if not _should_fill(lname, rname):
                 continue
@@ -982,6 +985,11 @@ class _MergeOperation:
                     key_col = Index(lvals).where(~mask_left, rvals)
                     result_dtype = find_common_type([lvals.dtype, rvals.dtype])
 
+                if (self.left_index and not self.right_index) or \
+                        (self.right_index and not self.left_index):
+                    if key_col.equals(result.index):
+                        continue
+
                 if result._is_label_reference(name):
                     result[name] = Series(
                         key_col, dtype=result_dtype, index=result.index
@@ -1035,10 +1043,10 @@ class _MergeOperation:
             if self.right_index:
                 if len(self.left) > 0:
                     join_index = self._create_join_index(
-                        self.left.index,
                         self.right.index,
-                        left_indexer,
-                        how="right",
+                        self.left.index,
+                        right_indexer,
+                        how="left",
                     )
                 else:
                     join_index = self.right.index.take(right_indexer)
@@ -1054,10 +1062,10 @@ class _MergeOperation:
 
                 elif len(self.right) > 0:
                     join_index = self._create_join_index(
-                        self.right.index,
                         self.left.index,
-                        right_indexer,
-                        how="left",
+                        self.right.index,
+                        left_indexer,
+                        how="right",
                     )
                 else:
                     join_index = self.left.index.take(left_indexer)

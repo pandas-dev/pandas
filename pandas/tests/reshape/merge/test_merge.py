@@ -2713,3 +2713,11 @@ def test_merge_different_index_names():
     result = merge(left, right, left_on="c", right_on="d")
     expected = DataFrame({"a_x": [1], "a_y": 1})
     tm.assert_frame_equal(result, expected)
+
+def test_join_leftindex_righton():
+    # GH 28243
+    left = DataFrame(index=["a","b"])
+    right = DataFrame({"x": ["a", "c"]})
+    result = merge(left, right, how="left", left_index=True, right_on="x")
+    expected = DataFrame(index=["a", "b"], columns=["x"], data=["a", np.nan])
+    tm.assert_frame_equal(result, expected)
