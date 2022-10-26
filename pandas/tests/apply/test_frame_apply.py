@@ -1606,28 +1606,6 @@ def test_unique_agg_type_is_series(test, constant):
     tm.assert_series_equal(result, expected)
 
 
-def test_any_non_keyword_deprecation():
-    df = DataFrame({"A": [1, 2], "B": [0, 2], "C": [0, 0]})
-    msg = (
-        "In a future version of pandas all arguments of "
-        "DataFrame.any and Series.any will be keyword-only."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.any("index", None)
-    expected = Series({"A": True, "B": True, "C": False})
-    tm.assert_series_equal(result, expected)
-
-    s = Series([False, False, False])
-    msg = (
-        "In a future version of pandas all arguments of "
-        "DataFrame.any and Series.any will be keyword-only."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.any("index")
-    expected = False
-    tm.assert_equal(result, expected)
-
-
 def test_any_apply_keyword_non_zero_axis_regression():
     # https://github.com/pandas-dev/pandas/issues/48656
     df = DataFrame({"A": [1, 2, 0], "B": [0, 2, 0], "C": [0, 0, 0]})
