@@ -2289,34 +2289,40 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
 
-        # build a dict of (to replace -> value) pairs
-        if is_list_like(to_replace):
-            # if to_replace is list-like and value is scalar
-            replace_dict = {replace_value: value for replace_value in to_replace}
-        else:
-            # if both to_replace and value are scalar
-            replace_dict = {to_replace: value}
-
         # other cases, like if both to_replace and value are list-like or if
         # to_replace is a dict, are handled separately in NDFrame
-        for replace_value, new_value in replace_dict.items():
-            if new_value == replace_value:
+        if not is_list_like(to_replace):
+            to_replace = [to_replace]
+
+        categories = cat.categories.tolist()
+        removals = set()
+        for replace_value in to_replace:
+            if value == replace_value:
                 continue
-            if replace_value in cat.categories:
-                if isna(new_value):
-                    cat = cat.remove_categories(replace_value)
-                    continue
+            if replace_value not in cat.categories:
+                continue
+            if isna(value):
+                removals.add(replace_value)
+                continue
 
-                categories = cat.categories.tolist()
-                index = categories.index(replace_value)
+            index = categories.index(replace_value)
 
-                if new_value in cat.categories:
-                    value_index = categories.index(new_value)
-                    cat._codes[cat._codes == index] = value_index
-                    cat = cat.remove_categories(replace_value)
-                else:
-                    categories[index] = new_value
-                    cat = cat.rename_categories(categories)
+            if value in cat.categories:
+                value_index = categories.index(value)
+                cat._codes[cat._codes == index] = value_index
+                removals.add(replace_value)
+            else:
+                categories[index] = value
+                cat._set_categories(categories)
+
+        if len(removals):
+            new_categories = [c for c in categories if c not in removals]
+            new_dtype = CategoricalDtype(new_categories, ordered=self.dtype.ordered)
+            codes = recode_for_categories(
+                cat.codes, cat.categories, new_dtype.categories
+            )
+            NDArrayBacked.__init__(cat, codes, new_dtype)
+
         if not inplace:
             return cat
         NDArrayBacked.__init__(self, cat._ndarray, cat.dtype)
