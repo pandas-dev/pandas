@@ -50,6 +50,7 @@ from pandas.errors import SpecificationError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -101,7 +102,6 @@ from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.util.numba_ import maybe_use_numba
-from pandas.utils._decorators import deprecate_nonkeyword_arguments
 
 from pandas.plotting import boxplot_frame_groupby
 
