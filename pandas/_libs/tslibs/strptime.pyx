@@ -1,9 +1,13 @@
 """Strptime-related classes and functions.
 """
 from cpython.datetime cimport (
+    PyDateTime_Check,
     date,
+    import_datetime,
     tzinfo,
 )
+
+import_datetime()
 
 from _thread import allocate_lock as _thread_allocate_lock
 
@@ -25,7 +29,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
+    pydatetime_to_dt64,
 )
+from pandas._libs.tslibs.timestamps cimport _Timestamp
 
 
 cdef dict _parse_code_table = {'y': 0,
@@ -121,6 +127,7 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
     result_timezone = np.empty(n, dtype='object')
 
     dts.us = dts.ps = dts.as = 0
+    expect_tz_aware = "%z" in fmt or "%Z" in fmt
 
     for i in range(n):
         val = values[i]
@@ -128,12 +135,23 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
             if val in nat_strings:
                 iresult[i] = NPY_NAT
                 continue
-        else:
-            if checknull_with_nat_and_na(val):
-                iresult[i] = NPY_NAT
-                continue
+        elif checknull_with_nat_and_na(val):
+            iresult[i] = NPY_NAT
+            continue
+        elif PyDateTime_Check(val):
+            if isinstance(val, _Timestamp):
+                iresult[i] = val.tz_localize(None)._as_unit("ns").value
             else:
-                val = str(val)
+                iresult[i] = pydatetime_to_dt64(val, &dts)
+                check_dts_bounds(&dts)
+            if val.tzinfo is None and expect_tz_aware:
+                raise ValueError("Cannot mix tz-aware with tz-naive values")
+            elif val.tzinfo is not None and not expect_tz_aware:
+                raise ValueError("Cannot mix tz-aware with tz-naive values")
+            result_timezone[i] = val.tzinfo
+            continue
+        else:
+            val = str(val)
 
         # exact matching
         if exact:
