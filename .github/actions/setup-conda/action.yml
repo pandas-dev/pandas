@@ -32,5 +32,5 @@ runs:
         channels: conda-forge
         channel-priority: ${{ runner.os == 'macOS' && 'flexible' || 'strict' }}
         condarc-file: ci/condarc.yml
-        cache-env: true
-        cache-downloads: true
+        cache-env: false
+        cache-downloads: false
