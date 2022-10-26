@@ -1072,8 +1072,8 @@ class _MergeOperation:
                 self.right = self.right.loc[right_ax]
             elif self.on is not None or (self.left_on is not None and self.right_on is not None):
                 # Merge using `on` or `left_on` and `right_on`
-                _left = [~np.isin(self.left_join_keys[x], self.right_join_keys[x]) for x in range(len(self.left_join_keys))]
-                _right = [~np.isin(self.right_join_keys[x], self.left_join_keys[x]) for x in range(len(self.left_join_keys))]
+                _left = [~Index(self.left_join_keys[x]).isin(Index(self.right_join_keys[x])) for x in range(len(self.left_join_keys))]
+                _right = [~Index(self.right_join_keys[x]).isin(Index(self.left_join_keys[x]))for x in range(len(self.left_join_keys))]
                 self.left = self.left[np.sum(np.stack(_left, axis=0), axis=0)>0]
                 self.right = self.right[np.sum(np.stack(_right, axis=0), axis=0)>0]
 

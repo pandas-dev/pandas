@@ -396,7 +396,7 @@ class Test_AntiJoin:
                 "anti_left",
                 DataFrame(
                     {"vals_x": [20, 17], "vals_y": [np.nan] * 2},
-                    index=pd.date_range("1/2/2010", periods=2, freq="2d"),
+                    index=pd.date_range(start="1/2/2010", end="1/4/2010", periods=2),
                 ),
             ),
             (
