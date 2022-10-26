@@ -71,7 +71,6 @@ from pandas.core.algorithms import (
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import (
-    create_series_with_explicit_dtype,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
@@ -842,9 +841,10 @@ class IndexOpsMixin(OpsMixin):
                 # expected to be pd.Series(np.nan, ...). As np.nan is
                 # of dtype float64 the return value of this method should
                 # be float64 as well
-                mapper = create_series_with_explicit_dtype(
-                    mapper, dtype_if_empty=np.float64
-                )
+                if len(mapper) == 0:
+                    mapper = Series(mapper, dtype=np.float64)
+                else:
+                    mapper = Series(mapper)
 
         if isinstance(mapper, ABCSeries):
             if na_action not in (None, "ignore"):

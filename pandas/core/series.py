@@ -119,9 +119,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.construction import (
-    create_series_with_explicit_dtype,
     extract_array,
-    is_empty_data,
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
@@ -210,6 +208,26 @@ def _coerce_method(converter):
 
     wrapper.__name__ = f"__{converter.__name__}__"
     return wrapper
+
+
+def is_empty_data(data: Any) -> bool:
+    """
+    Utility to check if a Series is instantiated with empty data,
+    which does not contain dtype information.
+
+    Parameters
+    ----------
+    data : array-like, Iterable, dict, or scalar value
+        Contains data stored in Series.
+
+    Returns
+    -------
+    bool
+    """
+    is_none = data is None
+    is_list_like_without_dtype = is_list_like(data) and not hasattr(data, "dtype")
+    is_simple_empty = is_list_like_without_dtype and not data
+    return is_none or is_simple_empty
 
 
 # ----------------------------------------------------------------------
@@ -391,15 +409,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             if is_empty_data(data) and dtype is None:
                 # gh-17261
-                warnings.warn(
-                    "The default dtype for empty Series will be 'object' instead "
-                    "of 'float64' in a future version. Specify a dtype explicitly "
-                    "to silence this warning.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                # uncomment the line below when removing the FutureWarning
-                # dtype = np.dtype(object)
+                # GH 29405: Pre-2.0, this defaulted to float.
+                dtype = np.dtype(object)
 
             if index is not None:
                 index = ensure_index(index)
@@ -531,15 +542,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Input is now list-like, so rely on "standard" construction:
 
-        # TODO: passing np.float64 to not break anything yet. See GH-17261
-        s = create_series_with_explicit_dtype(
-            # error: Argument "index" to "create_series_with_explicit_dtype" has
-            # incompatible type "Tuple[Any, ...]"; expected "Union[ExtensionArray,
-            # ndarray, Index, None]"
+        s = self._constructor(
             values,
-            index=keys,  # type: ignore[arg-type]
+            index=keys,
             dtype=dtype,
-            dtype_if_empty=np.float64,
         )
 
         # Now we just make sure the order is respected, if any

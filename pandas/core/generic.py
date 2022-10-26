@@ -145,10 +145,7 @@ from pandas.core import (
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
-from pandas.core.construction import (
-    create_series_with_explicit_dtype,
-    extract_array,
-)
+from pandas.core.construction import extract_array
 from pandas.core.describe import describe_ndframe
 from pandas.core.flags import Flags
 from pandas.core.indexes.api import (
@@ -6849,9 +6846,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         if inplace:
                             return None
                         return self.copy()
-                    value = create_series_with_explicit_dtype(
-                        value, dtype_if_empty=object
-                    )
+                    value = Series(value)
                     value = value.reindex(self.index, copy=False)
                     value = value._values
                 elif not is_list_like(value):
