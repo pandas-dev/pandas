@@ -124,7 +124,6 @@ disable = [
   "no-else-return",
   "no-self-use",
   "redefined-argument-from-local",
-  "simplifiable-if-expression",
   "too-few-public-methods",
   "too-many-ancestors",
   "too-many-arguments",
