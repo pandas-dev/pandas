@@ -994,7 +994,7 @@ class Window(BaseWindow):
 
     step : int, default None
 
-        ..versionadded:: 1.5.0
+        .. versionadded:: 1.5.0
 
         Evaluate the window at every ``step`` result, equivalent to slicing as
         ``[::step]``. ``window`` must be an integer. Using a step argument other
