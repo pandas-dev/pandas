@@ -339,10 +339,9 @@ def test_subset_set_column_with_loc(using_copy_on_write, using_array_manager, dt
         with pd.option_context("chained_assignment", "warn"):
             # The (i)loc[:, col] inplace deprecation gets triggered here, ignore those
             # warnings and only assert the SettingWithCopyWarning
-            raise_on_extra_warnings = False if using_array_manager else True
             with tm.assert_produces_warning(
                 SettingWithCopyWarning,
-                raise_on_extra_warnings=raise_on_extra_warnings,
+                raise_on_extra_warnings=not using_array_manager,
             ):
                 subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
 
@@ -376,10 +375,9 @@ def test_subset_set_column_with_loc2(using_copy_on_write, using_array_manager):
         with pd.option_context("chained_assignment", "warn"):
             # The (i)loc[:, col] inplace deprecation gets triggered here, ignore those
             # warnings and only assert the SettingWithCopyWarning
-            raise_on_extra_warnings = False if using_array_manager else True
             with tm.assert_produces_warning(
                 SettingWithCopyWarning,
-                raise_on_extra_warnings=raise_on_extra_warnings,
+                raise_on_extra_warnings=not using_array_manager,
             ):
                 subset.loc[:, "a"] = 0
 
