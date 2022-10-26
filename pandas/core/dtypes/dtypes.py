@@ -986,10 +986,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
             # but doesn't regard freq str like "U" as dtype.
             if dtype.startswith("period[") or dtype.startswith("Period["):
                 try:
-                    if cls._parse_dtype_strict(dtype) is not None:
-                        return True
-                    else:
-                        return False
+                    return cls._parse_dtype_strict(dtype) is not None
                 except ValueError:
                     return False
             else:
@@ -1254,10 +1251,7 @@ class IntervalDtype(PandasExtensionDtype):
         if isinstance(dtype, str):
             if dtype.lower().startswith("interval"):
                 try:
-                    if cls.construct_from_string(dtype) is not None:
-                        return True
-                    else:
-                        return False
+                    return cls.construct_from_string(dtype) is not None
                 except (ValueError, TypeError):
                     return False
             else:
