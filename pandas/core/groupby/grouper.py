@@ -503,6 +503,8 @@ class Grouping:
             ) = index._get_grouper_for_level(mapper, level=ilevel, dropna=dropna)
 
             if is_categorical_dtype(self.grouping_vector):
+                self.grouping_vector: Categorical
+
                 self._passed_categorical = True
                 self._orig_cats = self.grouping_vector.categories
 

@@ -2054,19 +2054,19 @@ def test_categorical_vs_range_index_sorting():
         df_ordered = DataFrame(
             {
                 "a": Categorical([2, 1, 2, 3], categories=categories, ordered=True),
-                "b": range(4)
+                "b": range(4),
             }
         )
         df_unordered = DataFrame(
             {
                 "a": Categorical([2, 1, 2, 3], categories=categories, ordered=False),
-                "b": range(4)
+                "b": range(4),
             }
         )
 
         if not range_index:
-            df_ordered = df_ordered.set_index('a')
-            df_unordered = df_unordered.set_index('a')
+            df_ordered = df_ordered.set_index("a")
+            df_unordered = df_unordered.set_index("a")
 
         gb_ordered_sort = df_ordered.groupby("a", sort=True, observed=True)
         gb_ordered_nosort = df_ordered.groupby("a", sort=False, observed=True)
