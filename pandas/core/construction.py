@@ -6,7 +6,6 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -56,10 +55,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_timedelta64_ns_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    PandasDtype,
-)
+from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
@@ -577,7 +573,7 @@ def sanitize_array(
                     "passed dtype. To retain the old behavior, call Series(arr) or "
                     "DataFrame(arr) without passing a dtype.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 subarr = np.array(data, copy=copy)
             except ValueError:
@@ -589,7 +585,7 @@ def sanitize_array(
                         "if they cannot be cast losslessly (matching Series behavior). "
                         "To retain the old behavior, use DataFrame(data).astype(dtype)",
                         FutureWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
                     # GH#40110 until the deprecation is enforced, we _dont_
                     #  ignore the dtype for DataFrame, and _do_ cast even though
@@ -801,16 +797,6 @@ def _try_cast(
 
     elif isinstance(dtype, ExtensionDtype):
         # create an extension array from its dtype
-        if isinstance(dtype, DatetimeTZDtype):
-            # We can't go through _from_sequence because it handles dt64naive
-            #  data differently; _from_sequence treats naive as wall times,
-            #  while maybe_cast_to_datetime treats it as UTC
-            #  see test_maybe_promote_any_numpy_dtype_with_datetimetz
-            # TODO(2.0): with deprecations enforced, should be able to remove
-            #  special case.
-            return maybe_cast_to_datetime(arr, dtype)
-            # TODO: copy?
-
         array_type = dtype.construct_array_type()._from_sequence
         subarr = array_type(arr, dtype=dtype, copy=copy)
         return subarr
@@ -863,7 +849,7 @@ def _try_cast(
                 "passed to 'DataFrame', either all columns will be cast to that "
                 "dtype, or a TypeError will be raised.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             subarr = np.array(arr, dtype=object, copy=copy)
     return subarr

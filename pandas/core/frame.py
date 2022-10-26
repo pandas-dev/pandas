@@ -14,7 +14,6 @@ import collections
 from collections import abc
 import datetime
 import functools
-import inspect
 from io import StringIO
 import itertools
 from textwrap import dedent
@@ -92,6 +91,7 @@ from pandas.compat.numpy import (
     function as nv,
     np_percentile_argname,
 )
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -684,7 +684,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "removed in a future version.  Pass "
                     "{name: data[name] for name in data.dtype.names} instead.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
             # a masked array
@@ -1329,44 +1329,6 @@ class DataFrame(NDFrame, OpsMixin):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
-    _shared_docs[
-        "iteritems"
-    ] = r"""
-        Iterate over (column name, Series) pairs.
-
-        .. deprecated:: 1.5.0
-            iteritems is deprecated and will be removed in a future version.
-            Use .items instead.
-
-        Iterates over the DataFrame columns, returning a tuple with
-        the column name and the content as a Series.
-
-        Yields
-        ------
-        label : object
-            The column names for the DataFrame being iterated over.
-        content : Series
-            The column entries belonging to each label, as a Series.
-
-        See Also
-        --------
-        DataFrame.iter : Recommended alternative.
-        DataFrame.iterrows : Iterate over DataFrame rows as
-            (index, Series) pairs.
-        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
-            of the values.
-        """
-
-    @Appender(_shared_docs["iteritems"])
-    def iteritems(self) -> Iterable[tuple[Hashable, Series]]:
-        warnings.warn(
-            "iteritems is deprecated and will be removed in a future version. "
-            "Use .items instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        yield from self.items()
-
     def iterrows(self) -> Iterable[tuple[Hashable, Series]]:
         """
         Iterate over DataFrame rows as (index, Series) pairs.
@@ -1755,7 +1717,7 @@ class DataFrame(NDFrame, OpsMixin):
                     # error: Incompatible types in assignment (expression has type
                     # "List[Any]", variable has type "Dict[Any, Any]")
                     data = list(data.values())  # type: ignore[assignment]
-        elif orient == "columns" or orient == "tight":
+        elif orient in ("columns", "tight"):
             if columns is not None:
                 raise ValueError(f"cannot use columns parameter with orient='{orient}'")
         else:  # pragma: no cover
@@ -1893,9 +1855,6 @@ class DataFrame(NDFrame, OpsMixin):
               [{column -> value}, ... , {column -> value}]
             - 'index' : dict like {index -> {column -> value}}
 
-            Abbreviations are allowed. `s` indicates `series` and `sp`
-            indicates `split`.
-
             .. versionadded:: 1.4.0
                 'tight' as an allowed value for the ``orient`` argument
 
@@ -1977,7 +1936,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "DataFrame columns are not unique, some columns will be omitted.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         # GH16122
         into_c = com.standardize_mapping(into)
@@ -1986,36 +1945,6 @@ class DataFrame(NDFrame, OpsMixin):
         # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',
         # 'records', 'index']")
         orient = orient.lower()  # type: ignore[assignment]
-        # GH32515
-        if orient.startswith(("d", "l", "s", "r", "i")) and orient not in {
-            "dict",
-            "list",
-            "series",
-            "split",
-            "records",
-            "index",
-        }:
-            warnings.warn(
-                "Using short name for 'orient' is deprecated. Only the "
-                "options: ('dict', list, 'series', 'split', 'records', 'index') "
-                "will be used in a future version. Use one of the above "
-                "to silence this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-
-            if orient.startswith("d"):
-                orient = "dict"
-            elif orient.startswith("l"):
-                orient = "list"
-            elif orient.startswith("sp"):
-                orient = "split"
-            elif orient.startswith("s"):
-                orient = "series"
-            elif orient.startswith("r"):
-                orient = "records"
-            elif orient.startswith("i"):
-                orient = "index"
 
         if not index and orient not in ["split", "tight"]:
             raise ValueError(
@@ -2621,11 +2550,10 @@ class DataFrame(NDFrame, OpsMixin):
         storage_options=_shared_docs["storage_options"],
         compression_options=_shared_docs["compression_options"] % "path",
     )
-    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "path"])
     def to_stata(
         self,
         path: FilePath | WriteBuffer[bytes],
+        *,
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
         byteorder: str | None = None,
@@ -2636,7 +2564,6 @@ class DataFrame(NDFrame, OpsMixin):
         convert_strl: Sequence[Hashable] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
-        *,
         value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
         """
@@ -2782,7 +2709,6 @@ class DataFrame(NDFrame, OpsMixin):
         )
         writer.write_file()
 
-    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_feather(self, path: FilePath | WriteBuffer[bytes], **kwargs) -> None:
         """
         Write a DataFrame to the binary Feather format.
@@ -2850,7 +2776,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "'showindex' is deprecated. Only 'index' will be used "
                 "in a future version. Use 'index' to silence this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         kwargs.setdefault("headers", "keys")
@@ -2892,7 +2818,6 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     @doc(storage_options=_shared_docs["storage_options"])
-    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
@@ -3464,7 +3389,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "null_counts is deprecated. Use show_counts instead",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             show_counts = null_counts
         info = DataFrameInfo(
@@ -3855,7 +3780,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "Boolean Series key will be reindexed to match DataFrame index.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         elif len(key) != len(self.index):
             raise ValueError(
@@ -4111,7 +4036,7 @@ class DataFrame(NDFrame, OpsMixin):
         if key in self.columns:
             loc = self.columns.get_loc(key)
             cols = self.columns[loc]
-            len_cols = 1 if is_scalar(cols) else len(cols)
+            len_cols = 1 if is_scalar(cols) or isinstance(cols, tuple) else len(cols)
             if len_cols != len(value.columns):
                 raise ValueError("Columns must be same length as key")
 
@@ -4238,6 +4163,13 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 self.loc[index, col] = value
             self._item_cache.pop(col, None)
+
+        except InvalidIndexError as ii_err:
+            # GH48729: Seems like you are trying to assign a value to a
+            # row when only scalar options are permitted
+            raise InvalidIndexError(
+                f"You can only assign a scalar value not a {type(value)}"
+            ) from ii_err
 
     def _ensure_valid_index(self, value) -> None:
         """
@@ -4965,9 +4897,7 @@ class DataFrame(NDFrame, OpsMixin):
             "You can use DataFrame.melt and DataFrame.loc "
             "as a substitute."
         )
-        warnings.warn(
-            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         n = len(row_labels)
         if n != len(col_labels):
@@ -5144,7 +5074,6 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     # error: Signature of "set_axis" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     @Appender(
         """
         Examples
@@ -5186,9 +5115,9 @@ class DataFrame(NDFrame, OpsMixin):
     def set_axis(
         self,
         labels,
+        *,
         axis: Axis = 0,
         inplace: bool | lib.NoDefault = lib.no_default,
-        *,
         copy: bool | lib.NoDefault = lib.no_default,
     ):
         return super().set_axis(labels, axis=axis, inplace=inplace, copy=copy)
@@ -5722,14 +5651,12 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     # error: Signature of "replace" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "to_replace", "value"]
-    )
     @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(  # type: ignore[override]
         self,
         to_replace=None,
         value=lib.no_default,
+        *,
         inplace: bool = False,
         limit: int | None = None,
         regex: bool = False,
@@ -5765,11 +5692,11 @@ class DataFrame(NDFrame, OpsMixin):
         res = self if inplace else self.copy()
         ax = self.columns
 
-        for i in range(len(ax)):
-            if ax[i] in mapping:
+        for i, ax_value in enumerate(ax):
+            if ax_value in mapping:
                 ser = self.iloc[:, i]
 
-                target, value = mapping[ax[i]]
+                target, value = mapping[ax_value]
                 newobj = ser.replace(target, value, regex=regex)
 
                 res._iset_item(i, newobj)
@@ -6871,12 +6798,12 @@ class DataFrame(NDFrame, OpsMixin):
 
     # TODO: Just move the sort_values doc here.
     # error: Signature of "sort_values" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "by"])
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
     def sort_values(  # type: ignore[override]
         self,
         by: IndexLabel,
+        *,
         axis: Axis = 0,
         ascending: bool | list[bool] | tuple[bool, ...] = True,
         inplace: bool = False,
@@ -8387,23 +8314,10 @@ Parrot 2  Parrot       24.0
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = no_default,
-        squeeze: bool | lib.NoDefault = no_default,
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
-
-        if squeeze is not no_default:
-            warnings.warn(
-                (
-                    "The `squeeze` parameter is deprecated and "
-                    "will be removed in a future version."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-        else:
-            squeeze = False
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -8417,7 +8331,6 @@ Parrot 2  Parrot       24.0
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )
@@ -9783,7 +9696,7 @@ Parrot 2  Parrot       24.0
             "and will be removed from pandas in a future version. "
             "Use pandas.concat instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
         return self._append(other, ignore_index, verify_integrity, sort)
@@ -10580,40 +10493,8 @@ Parrot 2  Parrot       24.0
         if numeric_only is lib.no_default and len(this.columns) < len(self.columns):
             com.deprecate_numeric_only_default(type(self), "corrwith")
 
-        # GH46174: when other is a Series object and axis=0, we achieve a speedup over
-        # passing .corr() to .apply() by taking the columns as ndarrays and iterating
-        # over the transposition row-wise. Then we delegate the correlation coefficient
-        # computation and null-masking to np.corrcoef and np.isnan respectively,
-        # which are much faster. We exploit the fact that the Spearman correlation
-        # of two vectors is equal to the Pearson correlation of their ranks to use
-        # substantially the same method for Pearson and Spearman,
-        # just with intermediate argsorts on the latter.
         if isinstance(other, Series):
-            if axis == 0 and method in ["pearson", "spearman"]:
-                corrs = {}
-                if numeric_only:
-                    cols = self.select_dtypes(include=np.number).columns
-                    ndf = self[cols].values.transpose()
-                else:
-                    cols = self.columns
-                    ndf = self.values.transpose()
-                k = other.values
-                if method == "pearson":
-                    for i, r in enumerate(ndf):
-                        nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[cols[i]] = np.corrcoef(r[nonnull_mask], k[nonnull_mask])[
-                            0, 1
-                        ]
-                else:
-                    for i, r in enumerate(ndf):
-                        nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[cols[i]] = np.corrcoef(
-                            r[nonnull_mask].argsort().argsort(),
-                            k[nonnull_mask].argsort().argsort(),
-                        )[0, 1]
-                return Series(corrs)
-            else:
-                return this.apply(lambda x: other.corr(x, method=method), axis=axis)
+            return this.apply(lambda x: other.corr(x, method=method), axis=axis)
 
         if numeric_only_bool:
             other = other._get_numeric_data()
@@ -10749,7 +10630,7 @@ Parrot 2  Parrot       24.0
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.count(level=1) should use df.groupby(level=1).count().",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             res = self._count_level(level, axis=axis, numeric_only=numeric_only)
             return res.__finalize__(self, method="count")
@@ -10851,7 +10732,7 @@ Parrot 2  Parrot       24.0
                     "will include datetime64 and datetime64tz columns in a "
                     "future version.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 # Non-copy equivalent to
                 #  dt64_cols = self.dtypes.apply(is_datetime64_any_dtype)
@@ -10952,7 +10833,7 @@ Parrot 2  Parrot       24.0
                 "version this will raise TypeError.  Select only valid "
                 "columns before calling the reduction.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if hasattr(result, "dtype"):
@@ -11677,18 +11558,6 @@ Parrot 2  Parrot       24.0
     )
     columns = properties.AxisProperty(axis=0, doc="The column labels of the DataFrame.")
 
-    @property
-    def _AXIS_NUMBERS(self) -> dict[str, int]:
-        """.. deprecated:: 1.1.0"""
-        super()._AXIS_NUMBERS
-        return {"index": 0, "columns": 1}
-
-    @property
-    def _AXIS_NAMES(self) -> dict[int, str]:
-        """.. deprecated:: 1.1.0"""
-        super()._AXIS_NAMES
-        return {0: "index", 1: "columns"}
-
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
     plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
@@ -11825,10 +11694,9 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "ffill" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def ffill(  # type: ignore[override]
+    def ffill(
         self,
+        *,
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
@@ -11869,10 +11737,9 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "bfill" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def bfill(  # type: ignore[override]
+    def bfill(
         self,
+        *,
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
@@ -11880,19 +11747,16 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | None:
         return super().bfill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "lower", "upper"]
-    )
     def clip(
         self: DataFrame,
         lower: float | None = None,
         upper: float | None = None,
+        *,
         axis: Axis | None = None,
         inplace: bool = False,
-        *args,
         **kwargs,
     ) -> DataFrame | None:
-        return super().clip(lower, upper, axis, inplace, *args, **kwargs)
+        return super().clip(lower, upper, axis=axis, inplace=inplace, **kwargs)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     def interpolate(
@@ -11927,7 +11791,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -11941,7 +11804,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -11955,24 +11817,20 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
     # error: Signature of "where" incompatible with supertype "NDFrame"
     @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
     def where(  # type: ignore[override]
         self,
         cond,
         other=lib.no_default,
+        *,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         return super().where(
             cond,
@@ -11980,7 +11838,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
     @overload
@@ -11993,7 +11850,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -12007,7 +11863,6 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -12021,24 +11876,20 @@ Parrot 2  Parrot       24.0
         axis: Axis | None = ...,
         level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
     # error: Signature of "mask" incompatible with supertype "NDFrame"
     @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
     def mask(  # type: ignore[override]
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
+        *,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         return super().mask(
             cond,
@@ -12046,7 +11897,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
         )
 
 

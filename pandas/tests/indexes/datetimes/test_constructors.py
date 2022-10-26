@@ -142,11 +142,9 @@ class TestDatetimeIndex:
             Timestamp("2016-05-01T01:00:00.000000"),
         ]
         arr = pd.arrays.SparseArray(values)
-        msg = "will store that array directly"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = Index(arr)
-        expected = DatetimeIndex(values)
-        tm.assert_index_equal(result, expected)
+        result = Index(arr)
+        assert type(result) is Index
+        assert result.dtype == arr.dtype
 
     def test_construction_caching(self):
 
@@ -913,9 +911,9 @@ class TestDatetimeIndex:
             Index(["2000"], dtype="datetime64")
 
     def test_constructor_wrong_precision_raises(self):
-        msg = "Unexpected value for 'dtype': 'datetime64\\[us\\]'"
-        with pytest.raises(ValueError, match=msg):
-            DatetimeIndex(["2000"], dtype="datetime64[us]")
+        dti = DatetimeIndex(["2000"], dtype="datetime64[us]")
+        assert dti.dtype == "M8[us]"
+        assert dti[0] == Timestamp(2000, 1, 1)
 
     def test_index_constructor_with_numpy_object_array_and_timestamp_tz_with_nan(self):
         # GH 27011

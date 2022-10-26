@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from collections import abc
 import csv
-import inspect
 import sys
 from textwrap import fill
 from types import TracebackType
@@ -1636,7 +1635,7 @@ class TextFileReader(abc.Iterator):
                     "engine='python'."
                 ),
                 ParserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         index_col = options["index_col"]
@@ -1647,19 +1646,14 @@ class TextFileReader(abc.Iterator):
 
         validate_header_arg(options["header"])
 
-        for arg in _deprecated_defaults.keys():
+        for arg, depr_default in _deprecated_defaults.items():
             parser_default = _c_parser_defaults.get(arg, parser_defaults[arg])
-            depr_default = _deprecated_defaults[arg]
             if result.get(arg, depr_default) != depr_default.default_value:
                 msg = (
                     f"The {arg} argument has been deprecated and will be "
                     f"removed in a future version. {depr_default.msg}\n\n"
                 )
-                warnings.warn(
-                    msg,
-                    FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
-                )
+                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
             else:
                 result[arg] = parser_default
 
@@ -2234,7 +2228,7 @@ def _merge_with_dialect_properties(
 
         # Don't warn if the default parameter was passed in,
         # even if it conflicts with the dialect (gh-23761).
-        if provided != parser_default and provided != dialect_val:
+        if provided not in (parser_default, dialect_val):
             msg = (
                 f"Conflicting values for '{param}': '{provided}' was "
                 f"provided, but the dialect specifies '{dialect_val}'. "
@@ -2249,9 +2243,7 @@ def _merge_with_dialect_properties(
 
         if conflict_msgs:
             warnings.warn(
-                "\n\n".join(conflict_msgs),
-                ParserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                "\n\n".join(conflict_msgs), ParserWarning, stacklevel=find_stack_level()
             )
         kwds[param] = dialect_val
     return kwds

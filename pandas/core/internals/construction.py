@@ -5,7 +5,6 @@ constructors before passing them to a BlockManager.
 from __future__ import annotations
 
 from collections import abc
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -44,6 +43,7 @@ from pandas.core.dtypes.common import (
     is_named_tuple,
     is_object_dtype,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -845,7 +845,7 @@ def to_arrays(
             "To retain the old behavior, pass as a dictionary "
             "DataFrame({col: categorical, ..})",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         if columns is None:
             columns = default_index(len(data))
@@ -1055,7 +1055,15 @@ def _convert_object_array(
     def convert(arr):
         if dtype != np.dtype("O"):
             arr = lib.maybe_convert_objects(arr)
-            arr = maybe_cast_to_datetime(arr, dtype)
+
+            if isinstance(dtype, ExtensionDtype):
+                # TODO: test(s) that get here
+                # TODO: try to de-duplicate this convert function with
+                #  core.construction functions
+                cls = dtype.construct_array_type()
+                arr = cls._from_sequence(arr, dtype=dtype, copy=False)
+            else:
+                arr = maybe_cast_to_datetime(arr, dtype)
         return arr
 
     arrays = [convert(arr) for arr in content]
