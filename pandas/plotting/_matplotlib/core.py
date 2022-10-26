@@ -138,7 +138,6 @@ class MPLPlot(ABC):
         yticks=None,
         xlabel: Hashable | None = None,
         ylabel: Hashable | None = None,
-        sort_columns: bool = False,
         fontsize=None,
         secondary_y: bool | tuple | list | np.ndarray = False,
         colormap=None,
@@ -184,7 +183,6 @@ class MPLPlot(ABC):
 
         self.kind = kind
 
-        self.sort_columns = sort_columns
         self.subplots = self._validate_subplots_kwarg(subplots)
 
         if sharex is None:
