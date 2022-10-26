@@ -481,11 +481,9 @@ class TestPivotTable:
             }
         )
         if method:
-            with tm.assert_produces_warning(FutureWarning):
-                result = df.pivot("a", columns="b", values="c")
+            result = df.pivot(index="a", columns="b", values="c")
         else:
-            with tm.assert_produces_warning(FutureWarning):
-                result = pd.pivot(df, "a", columns="b", values="c")
+            result = pd.pivot(df, index="a", columns="b", values="c")
         expected = DataFrame(
             [
                 [nan, nan, 17, nan],
@@ -1699,7 +1697,7 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(pivot_values_keys, pivot_values_list)
 
-        agg_values_gen = (value for value in aggs.keys())
+        agg_values_gen = (value for value in aggs)
         pivot_values_gen = pivot_table(
             data, index=["A"], values=agg_values_gen, aggfunc=aggs
         )

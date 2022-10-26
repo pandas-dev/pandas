@@ -1009,24 +1009,20 @@ class TestSeriesConstructors:
         assert series1.dtype == object
 
     def test_constructor_dtype_datetime64_6(self):
-        # these will correctly infer a datetime
-        msg = "containing strings is deprecated"
+        # as of 2.0, these no longer infer datetime64 based on the strings,
+        #  matching the Index behavior
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([None, NaT, "2013-08-05 15:30:00.000001"])
-        assert ser.dtype == "datetime64[ns]"
+        ser = Series([None, NaT, "2013-08-05 15:30:00.000001"])
+        assert ser.dtype == object
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([np.nan, NaT, "2013-08-05 15:30:00.000001"])
-        assert ser.dtype == "datetime64[ns]"
+        ser = Series([np.nan, NaT, "2013-08-05 15:30:00.000001"])
+        assert ser.dtype == object
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([NaT, None, "2013-08-05 15:30:00.000001"])
-        assert ser.dtype == "datetime64[ns]"
+        ser = Series([NaT, None, "2013-08-05 15:30:00.000001"])
+        assert ser.dtype == object
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([NaT, np.nan, "2013-08-05 15:30:00.000001"])
-        assert ser.dtype == "datetime64[ns]"
+        ser = Series([NaT, np.nan, "2013-08-05 15:30:00.000001"])
+        assert ser.dtype == object
 
     def test_constructor_dtype_datetime64_5(self):
         # tz-aware (UTC and other tz's)
@@ -1508,23 +1504,19 @@ class TestSeriesConstructors:
         td = Series([timedelta(days=i) for i in range(3)] + ["foo"])
         assert td.dtype == "object"
 
-        # these will correctly infer a timedelta
-        msg = "containing strings is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([None, NaT, "1 Day"])
-        assert ser.dtype == "timedelta64[ns]"
+        # as of 2.0, these no longer infer timedelta64 based on the strings,
+        #  matching Index behavior
+        ser = Series([None, NaT, "1 Day"])
+        assert ser.dtype == object
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([np.nan, NaT, "1 Day"])
-        assert ser.dtype == "timedelta64[ns]"
+        ser = Series([np.nan, NaT, "1 Day"])
+        assert ser.dtype == object
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([NaT, None, "1 Day"])
-        assert ser.dtype == "timedelta64[ns]"
+        ser = Series([NaT, None, "1 Day"])
+        assert ser.dtype == object
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([NaT, np.nan, "1 Day"])
-        assert ser.dtype == "timedelta64[ns]"
+        ser = Series([NaT, np.nan, "1 Day"])
+        assert ser.dtype == object
 
     # GH 16406
     def test_constructor_mixed_tz(self):
