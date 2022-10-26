@@ -609,6 +609,56 @@ class TestToDatetime:
         result = to_datetime(arr)
         assert result is arr
 
+    @pytest.mark.parametrize(
+        "init_constructor, end_constructor",
+        [
+            (Index, DatetimeIndex),
+            (list, DatetimeIndex),
+            (np.array, DatetimeIndex),
+            (Series, Series),
+        ],
+    )
+    def test_to_datetime_arraylike_contains_pydatetime(
+        self, init_constructor, end_constructor
+    ):
+        # GH 49298
+        data = ["01/02/01 12:00", datetime(2001, 2, 2, 12, 30)]
+        expected_data = [
+            Timestamp("2001-02-01 12:00:00"),
+            Timestamp("2001-02-02 12:30:00"),
+        ]
+        result = to_datetime(init_constructor(data), format="%d/%m/%y %H:%M")
+        expected = end_constructor(expected_data)
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "init_constructor, end_constructor",
+        [
+            (Index, DatetimeIndex),
+            (list, DatetimeIndex),
+            (np.array, DatetimeIndex),
+            (Series, Series),
+        ],
+    )
+    def test_to_datetime_arraylike_contains_pydatetime_utc(
+        self, cache, init_constructor, end_constructor
+    ):
+        # GH 49298
+        dt = datetime(2010, 1, 2, 12, 13, 16)
+        dt = dt.replace(tzinfo=timezone.utc)
+        data = ["20100102 121314", "20100102 121315", dt]
+        expected_data = [
+            Timestamp("2010-01-02 12:13:14", tz="utc"),
+            Timestamp("2010-01-02 12:13:15", tz="utc"),
+            Timestamp("2010-01-02 12:13:16", tz="utc"),
+        ]
+
+        result = to_datetime(
+            init_constructor(data), format="%Y%m%d %H%M%S", utc=True, cache=cache
+        )
+        expected = end_constructor(expected_data)
+        tm.assert_equal(result, expected)
+
     def test_to_datetime_pydatetime(self):
         actual = to_datetime(datetime(2008, 1, 15))
         assert actual == datetime(2008, 1, 15)
