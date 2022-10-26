@@ -241,12 +241,7 @@ class TestDataFrameAppend:
     def test_other_dtypes(self, data, dtype, using_array_manager):
         df = DataFrame(data, dtype=dtype)
 
-        warn = None
-        if using_array_manager and isinstance(dtype, pd.SparseDtype):
-            warn = FutureWarning
-
-        with tm.assert_produces_warning(warn, match="astype from SparseDtype"):
-            result = df._append(df.iloc[0]).iloc[-1]
+        result = df._append(df.iloc[0]).iloc[-1]
 
         expected = Series(data, name=0, dtype=dtype)
         tm.assert_series_equal(result, expected)
