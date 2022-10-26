@@ -1262,7 +1262,7 @@ def maybe_infer_to_datetimelike(
         else:
             return td_values.reshape(shape)
 
-    # TODO: this is _almost_equivalent to lib.maybe_convert_objects,
+    # TODO: this is _almost_ equivalent to lib.maybe_convert_objects,
     #  the main differences are described in GH#49340 and GH#49341
     #  and maybe_convert_objects doesn't catch OutOfBoundsDatetime
     inferred_type = lib.infer_datetimelike_array(ensure_object(v))
