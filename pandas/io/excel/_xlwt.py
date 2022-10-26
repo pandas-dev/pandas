@@ -7,7 +7,7 @@ from typing import (
     cast,
 )
 
-import pandas._libs.json as json
+from pandas._libs import json
 from pandas._typing import (
     FilePath,
     StorageOptions,
