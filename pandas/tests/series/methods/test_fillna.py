@@ -365,10 +365,7 @@ class TestSeriesFillNA:
     def test_datetime64_fillna_backfill(self):
         # GH#6587
         # make sure that we are treating as integer when filling
-        msg = "containing strings is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # this also tests inference of a datetime-like with NaT's
-            ser = Series([NaT, NaT, "2013-08-05 15:30:00.000001"])
+        ser = Series([NaT, NaT, "2013-08-05 15:30:00.000001"], dtype="M8[ns]")
 
         expected = Series(
             [

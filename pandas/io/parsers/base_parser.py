@@ -775,7 +775,7 @@ class ParserBase:
                 result = BooleanArray(result, bool_mask)
             elif result.dtype == np.object_ and use_nullable_dtypes:
                 # read_excel sends array of datetime objects
-                inferred_type, _ = lib.infer_datetimelike_array(result)
+                inferred_type = lib.infer_datetimelike_array(result)
                 if inferred_type != "datetime":
                     result = StringDtype().construct_array_type()._from_sequence(values)
 

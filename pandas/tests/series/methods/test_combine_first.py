@@ -79,9 +79,7 @@ class TestCombineFirst:
         s1 = Series([np.NaN, "2011"])
         rs = s0.combine_first(s1)
 
-        msg = "containing strings is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            xp = Series([datetime(2010, 1, 1), "2011"])
+        xp = Series([datetime(2010, 1, 1), "2011"], dtype="datetime64[ns]")
 
         tm.assert_series_equal(rs, xp)
 
