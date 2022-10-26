@@ -1644,7 +1644,7 @@ class DataFrame(NDFrame, OpsMixin):
                'tight' as an allowed value for the ``orient`` argument
 
         dtype : dtype, default None
-            Data type to force, otherwise infer.
+            Data type to force after DataFrame construction, otherwise infer.
         columns : list, default None
             Column labels to use when ``orient='index'``. Raises a ValueError
             if used with ``orient='columns'`` or ``orient='tight'``.
