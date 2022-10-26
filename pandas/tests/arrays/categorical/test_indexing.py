@@ -202,6 +202,16 @@ class TestCategoricalIndexing:
         assert result[2] is NaT
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("new_categories", [[1, 2, 3, 4], [1, 2]])
+    def test_categories_assignments_wrong_length_raises(self, new_categories):
+        cat = Categorical(["a", "b", "c", "a"])
+        msg = (
+            "new categories need to have the same number of items "
+            "as the old categories!"
+        )
+        with pytest.raises(ValueError, match=msg):
+            cat.rename_categories(new_categories)
+
     # Combinations of sorted/unique:
     @pytest.mark.parametrize(
         "idx_values", [[1, 2, 3, 4], [1, 3, 2, 4], [1, 3, 3, 4], [1, 2, 2, 4]]
