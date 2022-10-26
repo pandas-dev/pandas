@@ -159,10 +159,7 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         ],
     )
     def test_stack(self, data, columns):
-        with tm.assert_produces_warning(
-            FutureWarning, check_stacklevel=False, match="astype from Sparse"
-        ):
-            super().test_stack(data, columns)
+        super().test_stack(data, columns)
 
     def test_concat_columns(self, data, na_value):
         self._check_unsupported(data)
@@ -385,7 +382,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
-    def test_astype_object_series(self, all_data):
+    def _test_astype_object_series(self, all_data):
         # Unlike the base class, we do not expect the resulting Block
         #  to be ObjectBlock / resulting array to be np.dtype("object")
         ser = pd.Series(all_data, name="A")
@@ -394,13 +391,12 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         assert is_object_dtype(result.dtype)
         assert is_object_dtype(result._mgr.array.dtype)
 
-    def test_astype_object_frame(self, all_data):
+    def _test_astype_object_frame(self, all_data):
         # Unlike the base class, we do not expect the resulting Block
         #  to be ObjectBlock / resulting array to be np.dtype("object")
         df = pd.DataFrame({"A": all_data})
 
-        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
-            result = df.astype(object)
+        result = df.astype(object)
         assert is_object_dtype(result._mgr.arrays[0].dtype)
 
         # check that we can compare the dtypes
@@ -408,10 +404,10 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         assert not comp.any()
 
     def test_astype_str(self, data):
-        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
-            result = pd.Series(data[:5]).astype(str)
-        expected_dtype = SparseDtype(str, str(data.fill_value))
-        expected = pd.Series([str(x) for x in data[:5]], dtype=expected_dtype)
+        # pre-2.0 this would give a SparseDtype even if the user asked
+        #  for a non-sparse dtype.
+        result = pd.Series(data[:5]).astype(str)
+        expected = pd.Series([str(x) for x in data[:5]], dtype=object)
         self.assert_series_equal(result, expected)
 
     @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")
