@@ -24,7 +24,6 @@ def array_to_datetime(
     yearfirst: bool = ...,
     utc: bool = ...,
     require_iso8601: bool = ...,
-    allow_mixed: bool = ...,
 ) -> tuple[np.ndarray, tzinfo | None]: ...
 
 # returned ndarray may be object dtype or datetime64[ns]

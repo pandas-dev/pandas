@@ -65,7 +65,6 @@ from pandas.core.dtypes.common import (
     is_complex,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -1316,7 +1315,7 @@ def maybe_cast_to_datetime(
 
     Caller is responsible for handling ExtensionDtype cases.
     """
-    from pandas.core.arrays.datetimes import sequence_to_datetimes
+    from pandas.core.arrays.datetimes import DatetimeArray
     from pandas.core.arrays.timedeltas import TimedeltaArray
 
     if not is_list_like(value):
@@ -1332,47 +1331,34 @@ def maybe_cast_to_datetime(
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
 
+    elif is_datetime64_dtype(dtype):
+        # Incompatible types in assignment (expression has type
+        # "Union[dtype[Any], ExtensionDtype]", variable has type
+        # "Optional[dtype[Any]]")
+        dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
+
+        try:
+            dta = DatetimeArray._from_sequence(value, dtype=dtype)
+        except ParserError:
+            # Note: this is dateutil's ParserError, not ours.
+            pass
+        except ValueError as err:
+            # We can give a Series-specific exception message.
+            if "cannot supply both a tz and a timezone-naive dtype" in str(err):
+                raise ValueError(
+                    "Cannot convert timezone-aware data to "
+                    "timezone-naive dtype. Use "
+                    "pd.Series(values).dt.tz_localize(None) instead."
+                ) from err
+            raise
+
+        return dta
+
     if dtype is not None:
-        is_datetime64 = is_datetime64_dtype(dtype)
 
         vdtype = getattr(value, "dtype", None)
 
-        if is_datetime64:
-            # Incompatible types in assignment (expression has type
-            # "Union[dtype[Any], ExtensionDtype]", variable has type
-            # "Optional[dtype[Any]]")
-            dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
-
-            value = np.array(value, copy=False)
-
-            # we have an array of datetime or timedeltas & nulls
-            if value.size or not is_dtype_equal(value.dtype, dtype):
-                _disallow_mismatched_datetimelike(value, dtype)
-
-                try:
-                    dta = sequence_to_datetimes(value)
-                    # GH 25843: Remove tz information since the dtype
-                    # didn't specify one
-
-                    if dta.tz is not None:
-                        raise ValueError(
-                            "Cannot convert timezone-aware data to "
-                            "timezone-naive dtype. Use "
-                            "pd.Series(values).dt.tz_localize(None) instead."
-                        )
-
-                    # TODO(2.0): Do this astype in sequence_to_datetimes to
-                    #  avoid potential extra copy?
-                    dta = dta.astype(dtype, copy=False)
-                    value = dta
-
-                except OutOfBoundsDatetime:
-                    raise
-                except ParserError:
-                    # Note: this is dateutil's ParserError, not ours.
-                    pass
-
-        elif getattr(vdtype, "kind", None) in ["m", "M"]:
+        if getattr(vdtype, "kind", None) in ["m", "M"]:
             # we are already datetimelike and want to coerce to non-datetimelike;
             #  astype_nansafe will raise for anything other than object, then upcast.
             #  see test_datetimelike_values_with_object_dtype

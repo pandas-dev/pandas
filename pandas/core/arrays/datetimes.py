@@ -1991,7 +1991,6 @@ def sequence_to_datetimes(data, require_iso8601: bool = False) -> DatetimeArray:
     """
     result, tz, freq = _sequence_to_dt64ns(
         data,
-        allow_mixed=True,
         require_iso8601=require_iso8601,
     )
 
@@ -2009,7 +2008,6 @@ def _sequence_to_dt64ns(
     dayfirst: bool = False,
     yearfirst: bool = False,
     ambiguous: TimeAmbiguous = "raise",
-    allow_mixed: bool = False,
     require_iso8601: bool = False,
 ):
     """
@@ -2022,8 +2020,6 @@ def _sequence_to_dt64ns(
     yearfirst : bool, default False
     ambiguous : str, bool, or arraylike, default 'raise'
         See pandas._libs.tslibs.tzconversion.tz_localize_to_utc.
-    allow_mixed : bool, default False
-        Interpret integers as timestamps when datetime objects are also present.
     require_iso8601 : bool, default False
         Only consider ISO-8601 formats when parsing strings.
 
@@ -2071,7 +2067,6 @@ def _sequence_to_dt64ns(
                 dayfirst=dayfirst,
                 yearfirst=yearfirst,
                 allow_object=False,
-                allow_mixed=allow_mixed,
                 require_iso8601=require_iso8601,
             )
             if tz and inferred_tz:
@@ -2161,7 +2156,6 @@ def objects_to_datetime64ns(
     errors: DateTimeErrorChoices = "raise",
     require_iso8601: bool = False,
     allow_object: bool = False,
-    allow_mixed: bool = False,
 ):
     """
     Convert data to array of timestamps.
@@ -2178,8 +2172,6 @@ def objects_to_datetime64ns(
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the
         data contains more than one timezone.
-    allow_mixed : bool, default False
-        Interpret integers as timestamps when datetime objects are also present.
 
     Returns
     -------
@@ -2208,7 +2200,7 @@ def objects_to_datetime64ns(
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             require_iso8601=require_iso8601,
-            allow_mixed=allow_mixed,
+            allow_mixed=True,
         )
         result = result.reshape(data.shape, order=order)
     except OverflowError as err:
