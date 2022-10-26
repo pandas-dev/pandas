@@ -141,6 +141,7 @@ a supported dtype:
 *New behavior*:
 
 .. ipython:: python
+   :okexcept:
 
    In [6]: pd.Series(["2016-01-01"], dtype="datetime64[D]")
    TypeError: dtype=datetime64[D] is not supported. Supported resolutions are 's', 'ms', 'us', and 'ns'
