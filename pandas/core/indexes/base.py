@@ -324,6 +324,7 @@ class Index(IndexOpsMixin, PandasObject):
     >>> pd.Index(list('abc'))
     Index(['a', 'b', 'c'], dtype='object')
     """
+
     # To hand over control to subclasses
     _join_precedence = 1
 
