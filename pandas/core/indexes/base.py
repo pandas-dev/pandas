@@ -218,7 +218,8 @@ def _maybe_return_indexers(meth: F) -> F:
     @functools.wraps(meth)
     def join(
         self,
-        other,
+        other: Index,
+        *,
         how: str_t = "left",
         level=None,
         return_indexers: bool = False,
@@ -1760,9 +1761,8 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> _IndexT | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "names"])
     def set_names(
-        self: _IndexT, names, level=None, inplace: bool = False
+        self: _IndexT, names, *, level=None, inplace: bool = False
     ) -> _IndexT | None:
         """
         Set Index or MultiIndex name.
@@ -4494,11 +4494,11 @@ class Index(IndexOpsMixin, PandasObject):
         ...
 
     @final
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "other"])
     @_maybe_return_indexers
     def join(
         self,
         other: Index,
+        *,
         how: str_t = "left",
         level: Level = None,
         return_indexers: bool = False,

@@ -5000,6 +5000,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def sort_index(
         self: NDFrameT,
+        *,
         axis: Axis = 0,
         level: IndexLabel = None,
         ascending: bool_t | Sequence[bool_t] = True,
@@ -7312,6 +7313,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def interpolate(
         self: NDFrameT,
         method: str = "linear",
+        *,
         axis: Axis = 0,
         limit: int | None = None,
         inplace: bool_t = False,
@@ -11429,11 +11431,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         axis_descr, name1, name2 = _doc_params(cls)
 
-        @deprecate_nonkeyword_arguments(
-            version=None,
-            allowed_args=["self"],
-            name="DataFrame.any and Series.any",
-        )
         @doc(
             _bool_doc,
             desc=_any_desc,
@@ -11446,13 +11443,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def any(
             self,
+            *,
             axis: Axis = 0,
             bool_only=None,
             skipna: bool_t = True,
             level=None,
             **kwargs,
         ):
-            return NDFrame.any(self, axis, bool_only, skipna, level, **kwargs)
+            return NDFrame.any(
+                self,
+                axis=axis,
+                bool_only=bool_only,
+                skipna=skipna,
+                level=level,
+                **kwargs,
+            )
 
         setattr(cls, "any", any)
 
