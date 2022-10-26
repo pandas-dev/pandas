@@ -698,8 +698,6 @@ class _MergeOperation:
                 cross_col,
             ) = self._create_cross_configuration(self.left, self.right)
             self.left_on = self.right_on = [cross_col]
-#        elif self.how in ["anti_left", "anti_right", "anti_full"]:
-#            self.left, self.right, self.how = self._anti_join_update()
         self._cross = cross_col
 
         # note this function has side effects
@@ -794,46 +792,6 @@ class _MergeOperation:
         self._maybe_drop_cross_column(result, self._cross)
 
         return result.__finalize__(self, method="merge")
-
-    def _anti_join_update(self):
-        """
-        Converts `anti_left`, `anti_right` and `anti_full` configurations into `left`,
-        `right` and `outer` join configurations.
-        Calls `_anti_helper` with the indices or columns to be merged on.
-        """
-        if self.left_index and self.right_index:
-            # Merge using `right_index` and `left_index`
-            join_index_l, join_index_r, self.how = _anti_helper(
-                self.left.index, self.right.index, self.how
-            )
-        elif self.on is not None or (
-            None not in self.left_on and None not in self.right_on
-        ):
-            # Merge using `on` or `left_on` and `right_on`
-            if self.on is not None:
-                left_on = right_on = self.on
-            else:
-                left_on = self.left_on
-                right_on = self.right_on
-            join_index_l, join_index_r, self.how = _anti_helper(
-                self.left[left_on], self.right[right_on], self.how
-            )
-        elif self.left_index and self.right_on is not None:
-            # Merge using `left_index` and `right_on`
-            join_index_l, join_index_r, self.how = _anti_helper(
-                self.left.index, self.right[self.right_on], self.how
-            )
-        elif self.right_index and self.left_on is not None:
-            # Merge using `left_on` and `right_index`
-            join_index_l, join_index_r, self.how = _anti_helper(
-                self.left[self.left_on], self.right.index, self.how
-            )
-        self.left = self.left.loc[join_index_l]
-        self.right = self.right.loc[join_index_r]
-
-        # sanity check to ensure correct `how`
-        assert self.how in ["left", "right", "inner", "outer"]
-        return (self.left, self.right, self.how)
 
     def _maybe_drop_cross_column(
         self, result: DataFrame, cross_col: str | None
@@ -1636,60 +1594,6 @@ class _MergeOperation:
 
         else:
             raise ValueError("Not a valid argument for validate")
-
-
-def _anti_helper(
-    _left: Index | DataFrame,
-    _right: Index | DataFrame,
-    _how: str,
-) -> tuple[npt.NDArray, npt.NDArray, str]:
-    """
-    Converts `anti_left`, `anti_right` and `anti_full` configurations into `left`,
-    `right` and `outer` join configurations
-
-    Parameters
-    ----------
-    _left : DataFrame, Index
-        left frame with columns if merged with `on` or `left/right_on`, else Index
-    _right : DataFrame, Index
-        right frame with columns if merged with `on` or `left/right_on`, else Index
-    _how : {'anti_left', 'anti_right', 'anti_full'}
-
-    Returns
-    -------
-    np.ndarray[bool]
-        Indexer of left_keys
-    np.ndarray[bool]
-        Indexer of right_keys
-    {"left", "right", "outer"}
-        Native join configurations
-
-    """
-
-    # If not Index. Convert the columns into Index or
-    # MultiIndex as required
-    if not isinstance(_left, Index):
-        if len(_left.columns) == 1:
-            _left = Index(_left.values.flatten(), dtype=_left.dtypes[0])
-        else:
-            _left = MultiIndex.from_frame(_left)
-    if not isinstance(_right, Index):
-        if len(_right.columns) == 1:
-            _right = Index(_right.values.flatten(), dtype=_right.dtypes[0])
-        else:
-            _right = MultiIndex.from_frame(_right)
-
-    how_dict: dict[str, str] = {
-        "anti_left": "left",
-        "anti_right": "right",
-        "anti_full": "outer",
-    }
-    _how = how_dict[_how]
-
-    join_index_l = ~_left.isin(_right)
-    join_index_r = ~_right.isin(_left)
-    return (join_index_l, join_index_r, _how)
-
 
 def get_join_indexers(
     left_keys, right_keys, sort: bool = False, how: str = "inner", **kwargs
