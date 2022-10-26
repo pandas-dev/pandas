@@ -426,16 +426,17 @@ def _convert_listlike_datetimes(
         format_is_iso8601 = format_is_iso(format)
         if format_is_iso8601:
             require_iso8601 = not infer_datetime_format
-            format = None
 
-    if format is not None:
+    if format is not None and not require_iso8601:
         res = _to_datetime_with_format(
             arg, orig_arg, name, tz, format, exact, errors, infer_datetime_format
         )
         if res is not None:
             return res
+    elif format is None:
+        format = ""
+        exact = False
 
-    assert format is None or infer_datetime_format
     utc = tz == "utc"
     result, tz_parsed = objects_to_datetime64ns(
         arg,
@@ -445,6 +446,8 @@ def _convert_listlike_datetimes(
         errors=errors,
         require_iso8601=require_iso8601,
         allow_object=True,
+        format=format,
+        exact=exact,
     )
 
     if tz_parsed is not None:

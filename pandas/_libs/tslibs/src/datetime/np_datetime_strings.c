@@ -66,10 +66,29 @@ This file implements string parsing and creation for NumPy datetime.
  *
  * Returns 0 on success, -1 on failure.
  */
+
+#define FORMAT_STARTSWITH(ch) \
+  if (exact) { \
+    if (!format_len || *format != ch) { \
+        goto parse_error; \
+    } \
+    ++format; \
+    --format_len; \
+  } else { \
+    if (format_len > 0) { \
+        if (*format != ch) { \
+            goto parse_error;  \
+        } \
+        ++format; \
+        --format_len; \
+    } \
+  } \
+
 int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                             npy_datetimestruct *out,
                             NPY_DATETIMEUNIT *out_bestunit,
-                            int *out_local, int *out_tzoffset) {
+                            int *out_local, int *out_tzoffset,
+                            const char* format, int format_len, int exact) {
     int year_leap = 0;
     int i, numdigits;
     const char *substr;
@@ -104,13 +123,18 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
+        FORMAT_STARTSWITH(' ');
     }
 
     /* Leading '-' sign for negative year */
     if (*substr == '-') {
         ++substr;
         --sublen;
+        FORMAT_STARTSWITH('-');
     }
+
+    FORMAT_STARTSWITH('%');
+    FORMAT_STARTSWITH('Y');
 
     if (sublen == 0) {
         goto parse_error;
@@ -139,6 +163,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         if (out_local != NULL) {
             *out_local = 0;
         }
+        if (format_len) {
+          goto parse_error;
+        }
         bestunit = NPY_FR_Y;
         goto finish;
     }
@@ -156,6 +183,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         ymd_sep = valid_ymd_sep[i];
         ++substr;
         --sublen;
+        FORMAT_STARTSWITH(ymd_sep);
         /* Cannot have trailing separator */
         if (sublen == 0 || !isdigit(*substr)) {
             goto parse_error;
@@ -167,6 +195,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     out->month = (*substr - '0');
     ++substr;
     --sublen;
+    FORMAT_STARTSWITH('%');
+    FORMAT_STARTSWITH('m');
     /* Second digit optional if there was a separator */
     if (isdigit(*substr)) {
         out->month = 10 * out->month + (*substr - '0');
@@ -190,6 +220,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         if (!has_ymd_sep) {
             goto parse_error;
         }
+        if (format_len) {
+          goto parse_error;
+        }
         if (out_local != NULL) {
             *out_local = 0;
         }
@@ -203,6 +236,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         }
         ++substr;
         --sublen;
+        FORMAT_STARTSWITH(ymd_sep);
     }
 
     /* PARSE THE DAY */
@@ -213,6 +247,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     out->day = (*substr - '0');
     ++substr;
     --sublen;
+    FORMAT_STARTSWITH('%');
+    FORMAT_STARTSWITH('d');
     /* Second digit optional if there was a separator */
     if (isdigit(*substr)) {
         out->day = 10 * out->day + (*substr - '0');
@@ -235,6 +271,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         if (out_local != NULL) {
             *out_local = 0;
         }
+        if (format_len) {
+          goto parse_error;
+        }
         bestunit = NPY_FR_D;
         goto finish;
     }
@@ -242,6 +281,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     if ((*substr != 'T' && *substr != ' ') || sublen == 1) {
         goto parse_error;
     }
+    FORMAT_STARTSWITH(*substr);
     ++substr;
     --sublen;
 
@@ -250,6 +290,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     if (!isdigit(*substr)) {
         goto parse_error;
     }
+    FORMAT_STARTSWITH('%');
+    FORMAT_STARTSWITH('H');
     out->hour = (*substr - '0');
     ++substr;
     --sublen;
@@ -274,6 +316,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         if (!hour_was_2_digits) {
             goto parse_error;
         }
+        if (format_len) {
+          goto parse_error;
+        }
         bestunit = NPY_FR_h;
         goto finish;
     }
@@ -286,6 +331,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         if (sublen == 0 || !isdigit(*substr)) {
             goto parse_error;
         }
+        FORMAT_STARTSWITH(':');
     } else if (!isdigit(*substr)) {
         if (!hour_was_2_digits) {
             goto parse_error;
@@ -298,6 +344,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     out->min = (*substr - '0');
     ++substr;
     --sublen;
+    FORMAT_STARTSWITH('%');
+    FORMAT_STARTSWITH('M');
     /* Second digit optional if there was a separator */
     if (isdigit(*substr)) {
         out->min = 10 * out->min + (*substr - '0');
@@ -317,12 +365,16 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
 
     if (sublen == 0) {
         bestunit = NPY_FR_m;
+        if (format_len) {
+          goto parse_error;
+        }
         goto finish;
     }
 
     /* If we make it through this condition block, then the next
      * character is a digit. */
     if (has_hms_sep && *substr == ':') {
+        FORMAT_STARTSWITH(':');
         ++substr;
         --sublen;
         /* Cannot have a trailing ':' */
@@ -339,6 +391,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     out->sec = (*substr - '0');
     ++substr;
     --sublen;
+    FORMAT_STARTSWITH('%');
+    FORMAT_STARTSWITH('S');
     /* Second digit optional if there was a separator */
     if (isdigit(*substr)) {
         out->sec = 10 * out->sec + (*substr - '0');
@@ -360,12 +414,15 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     if (sublen > 0 && *substr == '.') {
         ++substr;
         --sublen;
+        FORMAT_STARTSWITH('.');
     } else {
         bestunit = NPY_FR_s;
         goto parse_timezone;
     }
 
     /* PARSE THE MICROSECONDS (0 to 6 digits) */
+    FORMAT_STARTSWITH('%');
+    FORMAT_STARTSWITH('f');
     numdigits = 0;
     for (i = 0; i < 6; ++i) {
         out->us *= 10;
@@ -430,15 +487,22 @@ parse_timezone:
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
+        FORMAT_STARTSWITH(' ');
     }
 
     if (sublen == 0) {
         // Unlike NumPy, treating no time zone as naive
+        if (format_len > 0) {
+            goto parse_error;
+        }
         goto finish;
     }
 
     /* UTC specifier */
     if (*substr == 'Z') {
+        FORMAT_STARTSWITH('%');
+        FORMAT_STARTSWITH('Z');
+
         /* "Z" should be equivalent to tz offset "+00:00" */
         if (out_local != NULL) {
             *out_local = 1;
@@ -449,12 +513,17 @@ parse_timezone:
         }
 
         if (sublen == 1) {
+            if (format_len > 0) {
+                goto parse_error;
+            }
             goto finish;
         } else {
             ++substr;
             --sublen;
         }
     } else if (*substr == '-' || *substr == '+') {
+        FORMAT_STARTSWITH('%');
+        FORMAT_STARTSWITH('z');
         /* Time zone offset */
         int offset_neg = 0, offset_hour = 0, offset_minute = 0;
 
@@ -538,9 +607,10 @@ parse_timezone:
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
+        FORMAT_STARTSWITH(' ');
     }
 
-    if (sublen != 0) {
+    if ((sublen != 0) || (format_len != 0)) {
         goto parse_error;
     }
 

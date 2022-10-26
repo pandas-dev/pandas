@@ -89,7 +89,7 @@ def _test_parse_iso8601(ts: str):
     elif ts == 'today':
         return Timestamp.now().normalize()
 
-    string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True)
+    string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True, "", False)
     obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:
@@ -445,6 +445,8 @@ cpdef array_to_datetime(
     bint utc=False,
     bint require_iso8601=False,
     bint allow_mixed=False,
+    str format="",
+    bint exact=False,
 ):
     """
     Converts a 1D array of date-like values to a numpy array of either:
@@ -564,6 +566,15 @@ cpdef array_to_datetime(
                     iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
 
                 elif is_integer_object(val) or is_float_object(val):
+                    if require_iso8601:
+                        if is_coerce:
+                            iresult[i] = NPY_NAT
+                            continue
+                        elif is_raise:
+                            raise ValueError(
+                                f"time data \"{val}\" at position {i} doesn't match format \"{format}\""
+                            )
+                        return values, tz_out
                     # these must be ns unit by-definition
                     seen_integer = True
 
@@ -594,7 +605,7 @@ cpdef array_to_datetime(
 
                     string_to_dts_failed = string_to_dts(
                         val, &dts, &out_bestunit, &out_local,
-                        &out_tzoffset, False
+                        &out_tzoffset, False, format, exact
                     )
                     if string_to_dts_failed:
                         # An error at this point is a _parsing_ error
@@ -609,7 +620,7 @@ cpdef array_to_datetime(
                                 continue
                             elif is_raise:
                                 raise ValueError(
-                                    f"time data \"{val}\" at position {i} doesn't match format specified"
+                                    f"time data \"{val}\" at position {i} doesn't match format \"{format}\""
                                 )
                             return values, tz_out
 

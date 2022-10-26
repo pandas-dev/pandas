@@ -409,7 +409,7 @@ cdef parse_datetime_string_with_reso(
     # TODO: does this render some/all of parse_delimited_date redundant?
     string_to_dts_failed = string_to_dts(
         date_string, &dts, &out_bestunit, &out_local,
-        &out_tzoffset, False
+        &out_tzoffset, False, "", False
     )
     if not string_to_dts_failed:
         if dts.ps != 0 or out_local:

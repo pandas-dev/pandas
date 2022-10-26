@@ -95,6 +95,8 @@ cdef int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
+    str format,
+    bint exact
 ) except? -1
 
 cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype)
