@@ -803,6 +803,17 @@ class IndexOpsMixin(OpsMixin):
         Return True if there are any NaNs.
 
         Enables various performance speedups.
+
+        Returns
+        --------
+        bool
+            Whether the Series contains a NaN.
+        
+        Examples
+        --------
+        >> s = pd.Series([0, 1, np.nan, 3, 4])
+        >> s.hasnans
+        True
         """
         # error: Item "bool" of "Union[bool, ndarray[Any, dtype[bool_]], NDFrame]"
         # has no attribute "any"
