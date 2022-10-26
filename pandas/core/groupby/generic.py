@@ -101,6 +101,7 @@ from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.util.numba_ import maybe_use_numba
+from pandas.utils._decorators import deprecate_nonkeyword_arguments
 
 from pandas.plotting import boxplot_frame_groupby
 
@@ -745,6 +746,7 @@ class SeriesGroupBy(GroupBy[Series]):
             out = ensure_int64(out)
         return self.obj._constructor(out, index=mi, name=self.obj.name)
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
     def fillna(
         self,
         value: object | ArrayLike | None = None,
@@ -840,12 +842,6 @@ class SeriesGroupBy(GroupBy[Series]):
         5    NaN
         dtype: float64
         """
-        warnings.warn(
-            'In a future version of pandas, all the parameters except "value" '
-            "of SeriesGroupBy.fillna have to be keyword-only.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
         result = self._op_via_apply(
             "fillna",
             value=value,
@@ -2153,6 +2149,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = result_frame
             return result.__finalize__(self.obj, method="value_counts")
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
     def fillna(
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
@@ -2273,12 +2270,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  3.0  NaN  2.0
         4  3.0  NaN  NaN
         """
-        warnings.warn(
-            'In a future version of pandas, all the parameters except "value" '
-            "of DataFrameGroupBy.fillna have to be keyword-only.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
         result = self._op_via_apply(
             "fillna",
             value=value,
