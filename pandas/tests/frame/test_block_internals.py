@@ -259,11 +259,10 @@ class TestDataFrameBlockInternals:
         with pytest.raises(NotImplementedError, match=msg):
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
-        # these work (though results may be unexpected)
-        depr_msg = "either all columns will be cast to that dtype, or a TypeError will"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        # pre-2.0 these used to work (though results may be unexpected)
+        with pytest.raises(TypeError, match="argument must be"):
             f("int64")
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        with pytest.raises(TypeError, match="argument must be"):
             f("float64")
 
         # 10822

@@ -331,14 +331,11 @@ def ndarray_to_mgr(
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
         # GH#40110 see similar check inside sanitize_array
-        rcf = not (is_integer_dtype(dtype) and values.dtype.kind == "f")
-
         values = sanitize_array(
             values,
             None,
             dtype=dtype,
             copy=copy_on_sanitize,
-            raise_cast_failure=rcf,
             allow_2d=True,
         )
 
@@ -615,9 +612,7 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
                     val = dict(val)
                 val = lib.fast_multiget(val, oindex._values, default=np.nan)
 
-            val = sanitize_array(
-                val, index, dtype=dtype, copy=False, raise_cast_failure=False
-            )
+            val = sanitize_array(val, index, dtype=dtype, copy=False)
             com.require_length_match(val, index)
 
         homogenized.append(val)

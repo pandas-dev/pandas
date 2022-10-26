@@ -500,7 +500,6 @@ def sanitize_array(
     index: Index | None,
     dtype: DtypeObj | None = None,
     copy: bool = False,
-    raise_cast_failure: bool = True,
     *,
     allow_2d: bool = False,
 ) -> ArrayLike:
@@ -514,19 +513,12 @@ def sanitize_array(
     index : Index or None, default None
     dtype : np.dtype, ExtensionDtype, or None, default None
     copy : bool, default False
-    raise_cast_failure : bool, default True
     allow_2d : bool, default False
         If False, raise if we have a 2D Arraylike.
 
     Returns
     -------
     np.ndarray or ExtensionArray
-
-    Notes
-    -----
-    raise_cast_failure=False is only intended to be True when called from the
-    DataFrame constructor, as the dtype keyword there may be interpreted as only
-    applying to a subset of columns, see GH#24435.
     """
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
@@ -564,7 +556,7 @@ def sanitize_array(
                 # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
                 # casting aligning with IntCastingNaNError below
                 with np.errstate(invalid="ignore"):
-                    subarr = _try_cast(data, dtype, copy, True)
+                    subarr = _try_cast(data, dtype, copy)
             except IntCastingNaNError:
                 warnings.warn(
                     "In a future version, passing float-dtype values containing NaN "
@@ -577,21 +569,10 @@ def sanitize_array(
                 )
                 subarr = np.array(data, copy=copy)
             except ValueError:
-                if not raise_cast_failure:
-                    # i.e. called via DataFrame constructor
-                    warnings.warn(
-                        "In a future version, passing float-dtype values and an "
-                        "integer dtype to DataFrame will retain floating dtype "
-                        "if they cannot be cast losslessly (matching Series behavior). "
-                        "To retain the old behavior, use DataFrame(data).astype(dtype)",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    # GH#40110 until the deprecation is enforced, we _dont_
-                    #  ignore the dtype for DataFrame, and _do_ cast even though
-                    #  it is lossy.
-                    dtype = cast(np.dtype, dtype)
-                    return np.array(data, dtype=dtype, copy=copy)
+                # Pre-2.0, we would have different behavior for Series vs DataFrame.
+                #  DataFrame would call np.array(data, dtype=dtype, copy=copy),
+                #  which would cast to the integer dtype even if the cast is lossy.
+                #  See GH#40110.
 
                 # We ignore the dtype arg and return floating values,
                 #  e.g. test_constructor_floating_data_int_dtype
@@ -599,7 +580,7 @@ def sanitize_array(
                 subarr = np.array(data, copy=copy)
         else:
             # we will try to copy by-definition here
-            subarr = _try_cast(data, dtype, copy, raise_cast_failure)
+            subarr = _try_cast(data, dtype, copy)
 
     elif isinstance(data, ABCExtensionArray):
         # it is already ensured above this is not a PandasArray
@@ -624,7 +605,7 @@ def sanitize_array(
 
         if dtype is not None or len(data) == 0:
             try:
-                subarr = _try_cast(data, dtype, copy, raise_cast_failure)
+                subarr = _try_cast(data, dtype, copy)
             except ValueError:
                 if is_integer_dtype(dtype):
                     casted = np.array(data, copy=False)
@@ -636,7 +617,6 @@ def sanitize_array(
                             index,
                             dtype,
                             copy=False,
-                            raise_cast_failure=raise_cast_failure,
                             allow_2d=allow_2d,
                         )
                     else:
@@ -750,7 +730,6 @@ def _try_cast(
     arr: list | np.ndarray,
     dtype: DtypeObj | None,
     copy: bool,
-    raise_cast_failure: bool,
 ) -> ArrayLike:
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
@@ -762,9 +741,6 @@ def _try_cast(
     dtype : np.dtype, ExtensionDtype or None
     copy : bool
         If False, don't copy the data if not needed.
-    raise_cast_failure : bool
-        If True, and if a dtype is specified, raise errors during casting.
-        Otherwise an object array is returned.
 
     Returns
     -------
@@ -823,35 +799,15 @@ def _try_cast(
     elif dtype.kind in ["m", "M"]:
         return maybe_cast_to_datetime(arr, dtype)
 
-    try:
-        # GH#15832: Check if we are requesting a numeric dtype and
-        # that we can convert the data to the requested dtype.
-        if is_integer_dtype(dtype):
-            # this will raise if we have e.g. floats
+    # GH#15832: Check if we are requesting a numeric dtype and
+    # that we can convert the data to the requested dtype.
+    elif is_integer_dtype(dtype):
+        # this will raise if we have e.g. floats
 
-            subarr = maybe_cast_to_integer_array(arr, dtype)
-        else:
-            # 4 tests fail if we move this to a try/except/else; see
-            #  test_constructor_compound_dtypes, test_constructor_cast_failure
-            #  test_constructor_dict_cast2, test_loc_setitem_dtype
-            subarr = np.array(arr, dtype=dtype, copy=copy)
+        subarr = maybe_cast_to_integer_array(arr, dtype)
+    else:
+        subarr = np.array(arr, dtype=dtype, copy=copy)
 
-    except (ValueError, TypeError):
-        if raise_cast_failure:
-            raise
-        else:
-            # we only get here with raise_cast_failure False, which means
-            #  called via the DataFrame constructor
-            # GH#24435
-            warnings.warn(
-                f"Could not cast to {dtype}, falling back to object. This "
-                "behavior is deprecated. In a future version, when a dtype is "
-                "passed to 'DataFrame', either all columns will be cast to that "
-                "dtype, or a TypeError will be raised.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            subarr = np.array(arr, dtype=object, copy=copy)
     return subarr
 
 
