@@ -368,12 +368,6 @@ class TestInsertIndexCoercion(CoercionBase):
                 expected = obj.astype(object).insert(0, str(insert))
                 tm.assert_index_equal(result, expected)
 
-            msg = r"Unexpected keyword arguments {'freq'}"
-            with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(FutureWarning):
-                    # passing keywords to pd.Index
-                    pd.Index(data, freq="M")
-
     @pytest.mark.xfail(reason="Test not implemented")
     def test_insert_index_complex128(self):
         raise NotImplementedError

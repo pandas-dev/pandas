@@ -250,9 +250,13 @@ class TestIndex(Base):
 
         if attr == "asi8":
             result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
+            tm.assert_index_equal(result, index)
+        elif klass is Index:
+            with pytest.raises(TypeError, match="unexpected keyword"):
+                klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(arg, tz=tz_naive_fixture)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
         if attr == "asi8":
             if err:
@@ -267,9 +271,13 @@ class TestIndex(Base):
 
         if attr == "asi8":
             result = DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
+            tm.assert_index_equal(result, index)
+        elif klass is Index:
+            with pytest.raises(TypeError, match="unexpected keyword"):
+                klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(list(arg), tz=tz_naive_fixture)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
         if attr == "asi8":
             if err:
