@@ -1322,16 +1322,17 @@ def maybe_cast_to_datetime(
         return res
 
     elif is_datetime64_dtype(dtype):
-        # Incompatible types in assignment (expression has type
-        # "Union[dtype[Any], ExtensionDtype]", variable has type
-        # "Optional[dtype[Any]]")
-        dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
+        # Argument 1 to "_ensure_nanosecond_dtype" has incompatible type
+        # "Optional[dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"
+        # error: Incompatible types in assignment (expression has type
+        # "Union[dtype[Any], ExtensionDtype]", variable has type "Optional[dtype[Any]]")
+        dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[arg-type,assignment]
 
         try:
             dta = DatetimeArray._from_sequence(value, dtype=dtype)
         except ParserError:
             # Note: this is dateutil's ParserError, not ours.
-            return value
+            return np.asarray(value)
         except ValueError as err:
             # We can give a Series-specific exception message.
             if "cannot supply both a tz and a timezone-naive dtype" in str(err):
