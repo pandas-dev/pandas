@@ -802,7 +802,7 @@ def test_rendered_links(type, text, exp, found):
         df = DataFrame([0], index=[text])
         styler = df.style.format_index(hyperlinks="html")
 
-    rendered = '<a href="{0}" target="_blank">{0}</a>'.format(found)
+    rendered = f'<a href="{found}" target="_blank">{found}</a>'
     result = styler.to_html()
     assert (rendered in result) is exp
     assert (text in result) is not exp  # test conversion done when expected and not
