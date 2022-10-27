@@ -855,7 +855,9 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
             iresult[0] = Timestamp.utcnow().value
         else:
             # GH#18705 make sure to_datetime("now") matches Timestamp("now")
-            iresult[0] = Timestamp("now").value
+            # Note using np.datetime64 here is equivalent to Timestamp("now")
+            #  and Timestamp.now(), but about 2x faster
+            iresult[0] = np.datetime64("now", "ns").view("i8")
         return True
     elif val == "today":
         iresult[0] = Timestamp.today().value
