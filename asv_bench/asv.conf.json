@@ -54,7 +54,6 @@
         "openpyxl": [],
         "xlsxwriter": [],
         "xlrd": [],
-        "xlwt": [],
         "odfpy": [],
         "jinja2": [],
     },

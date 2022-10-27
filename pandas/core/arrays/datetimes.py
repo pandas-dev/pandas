@@ -1985,14 +1985,11 @@ default 'raise'
 # Constructor Helpers
 
 
-def sequence_to_datetimes(data, require_iso8601: bool = False) -> DatetimeArray:
+def sequence_to_datetimes(data) -> DatetimeArray:
     """
     Parse/convert the passed data to either DatetimeArray or np.ndarray[object].
     """
-    result, tz, freq = _sequence_to_dt64ns(
-        data,
-        require_iso8601=require_iso8601,
-    )
+    result, tz, freq = _sequence_to_dt64ns(data)
 
     unit = np.datetime_data(result.dtype)[0]
     dtype = tz_to_dtype(tz, unit)
