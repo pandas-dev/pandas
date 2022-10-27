@@ -4,6 +4,7 @@ Check pandas required and optional dependencies are synced across:
 
 ci/deps/actions-.*-minimum_versions.yaml
 pandas/compat/_optional.py
+setup.cfg
 
 TODO: doc/source/getting_started/install.rst
 
@@ -72,17 +73,27 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
 
 
 def get_versions_from_setup() -> dict[str, str]:
+    install_map = _optional.INSTALL_MAPPING
     optional_dependencies = {}
 
     parser = configparser.ConfigParser()
     parser.read(SETUP_PATH)
     setup_optional = parser["options.extras_require"]["all"]
-
     dependencies = setup_optional[1:].split("\n")
+
+    # remove test dependencies
+    test = parser["options.extras_require"]["test"]
+    test_dependencies = set(test[1:].split("\n"))
+    dependencies = [
+        package for package in dependencies if package not in test_dependencies
+    ]
 
     for dependency in dependencies:
         package, version = dependency.strip().split(">=")
-        optional_dependencies[package] = version
+        optional_dependencies[install_map.get(package, package).casefold()] = version
+
+    for item in EXCLUDE_DEPS:
+        optional_dependencies.pop(item)
 
     return optional_dependencies
 
@@ -93,18 +104,26 @@ def main():
     code_optional = get_versions_from_code()
     setup_optional = get_versions_from_setup()
 
-    diff = set(
-        (ci_optional.items() | code_optional.items() | setup_optional.items())
-        - (ci_optional.items() & code_optional.items() & setup_optional.items())
+    diff = (ci_optional.items() | code_optional.items() | setup_optional.items()) - (
+        ci_optional.items() & code_optional.items() & setup_optional.items()
     )
 
     if diff:
-        sys.stdout.write(
+        packages = {package for package, _ in diff}
+        out = sys.stdout
+        out.write(
             f"The follow minimum version differences were found between  "
             f"{CI_PATH}, {CODE_PATH} AND {SETUP_PATH}. "
-            f"Please ensure these are aligned: "
-            f"{diff}\n"
+            f"Please ensure these are aligned: \n\n"
         )
+
+        for package in packages:
+            out.write(
+                f"{package}\n"
+                f"{CI_PATH}: {ci_optional.get(package, 'Not specified')}\n"
+                f"{CODE_PATH}: {code_optional.get(package, 'Not specified')}\n"
+                f"{SETUP_PATH}: {setup_optional.get(package, 'Not specified')}\n\n"
+            )
         sys.exit(1)
     sys.exit(0)
 
