@@ -782,7 +782,7 @@ def to_datetime(
         `strftime documentation
         <https://docs.python.org/3/library/datetime.html
         #strftime-and-strptime-behavior>`_ for more information on choices, though
-        note that :const:`"%f"` will parse all the way up to nanoseconds. 
+        note that `"%f"` will parse all the way up to nanoseconds. 
 
     exact : bool, default True
         Control how `format` is used:
