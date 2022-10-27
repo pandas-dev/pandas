@@ -11,12 +11,6 @@ from pandas.io.excel import ExcelFile
 from pandas.io.excel._base import inspect_excel_format
 
 xlrd = pytest.importorskip("xlrd")
-xlwt = pytest.importorskip("xlwt")
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:As the xlwt package is no longer maintained:FutureWarning"
-)
-
 
 exts = [".xls"]
 
@@ -31,23 +25,18 @@ def read_ext_xlrd(request):
     return request.param
 
 
-def test_read_xlrd_book(read_ext_xlrd, frame):
-    df = frame
-
+def test_read_xlrd_book(read_ext_xlrd, datapath):
     engine = "xlrd"
-    sheet_name = "SheetA"
+    sheet_name = "Sheet1"
+    pth = datapath("io", "data", "excel", "test1.xls")
+    with xlrd.open_workbook(pth) as book:
+        with ExcelFile(book, engine=engine) as xl:
+            result = pd.read_excel(xl, sheet_name=sheet_name, index_col=0)
 
-    with tm.ensure_clean(read_ext_xlrd) as pth:
-        df.to_excel(pth, sheet_name)
-        with xlrd.open_workbook(pth) as book:
-            with ExcelFile(book, engine=engine) as xl:
-                result = pd.read_excel(xl, sheet_name=sheet_name, index_col=0)
-                tm.assert_frame_equal(df, result)
-
-            result = pd.read_excel(
-                book, sheet_name=sheet_name, engine=engine, index_col=0
-            )
-        tm.assert_frame_equal(df, result)
+        expected = pd.read_excel(
+            book, sheet_name=sheet_name, engine=engine, index_col=0
+        )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_excel_file_warning_with_xlsx_file(datapath):
