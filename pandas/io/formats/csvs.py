@@ -69,10 +69,7 @@ class CSVFormatter:
     ) -> None:
         self.fmt = formatter
 
-        if hasattr(self.fmt.frame, "sparse"):
-            self.obj = self.fmt.frame.sparse.to_dense()
-        else:
-            self.obj = self.fmt.frame
+        self.obj = self.fmt.frame
 
         self.filepath_or_buffer = path_or_buf
         self.encoding = encoding
@@ -310,6 +307,11 @@ class CSVFormatter:
         # create the data for a chunk
         slicer = slice(start_i, end_i)
         df = self.obj.iloc[slicer]
+
+        # cast sparse columns to dense to reduce calls
+        # to df._mgr.to_native_types #41023
+        if hasattr(df, "sparse"):
+            df = df.sparse.to_dense()
 
         res = df._mgr.to_native_types(**self._number_format)
         data = [res.iget_values(i) for i in range(len(res.items))]
