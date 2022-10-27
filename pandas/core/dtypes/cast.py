@@ -1232,22 +1232,20 @@ def maybe_infer_to_datetimelike(
     if not len(v):
         return value
 
-    def try_datetime(v: np.ndarray) -> ArrayLike:
+    def try_datetime(v: np.ndarray) -> np.ndarray | DatetimeArray:
         # Coerce to datetime64, datetime64tz, or in corner cases
         #  object[datetimes]
         from pandas.core.arrays.datetimes import sequence_to_datetimes
 
         try:
-            # GH#19671 we pass require_iso8601 to be relatively strict
-            #  when parsing strings.
-            dta = sequence_to_datetimes(v, require_iso8601=True)
-        except (ValueError, TypeError):
-            # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
-            return v.reshape(shape)
-        else:
+            dta = sequence_to_datetimes(v)
+        except (ValueError, OutOfBoundsDatetime):
+            # ValueError for e.g. mixed tzs
             # GH#19761 we may have mixed timezones, in which cast 'dta' is
             #  an ndarray[object].  Only 1 test
             #  relies on this behavior, see GH#40111
+            return v.reshape(shape)
+        else:
             return dta.reshape(shape)
 
     def try_timedelta(v: np.ndarray) -> np.ndarray:
@@ -1259,12 +1257,14 @@ def maybe_infer_to_datetimelike(
             #  `np.asarray(to_timedelta(v))`, but using a lower-level API that
             #  does not require a circular import.
             td_values = array_to_timedelta64(v).view("m8[ns]")
-        except (ValueError, OverflowError):
+        except OutOfBoundsTimedelta:
             return v.reshape(shape)
         else:
             return td_values.reshape(shape)
 
-    # TODO: can we just do lib.maybe_convert_objects for this entire function?
+    # TODO: this is _almost_ equivalent to lib.maybe_convert_objects,
+    #  the main differences are described in GH#49340 and GH#49341
+    #  and maybe_convert_objects doesn't catch OutOfBoundsDatetime
     inferred_type = lib.infer_datetimelike_array(ensure_object(v))
 
     if inferred_type in ["period", "interval"]:
@@ -1276,31 +1276,21 @@ def maybe_infer_to_datetimelike(
         )
 
     if inferred_type == "datetime":
-        # error: Incompatible types in assignment (expression has type "ExtensionArray",
-        # variable has type "Union[ndarray, List[Any]]")
+        # Incompatible types in assignment (expression has type
+        # "Union[ndarray[Any, Any], DatetimeArray]", variable has type
+        # "ndarray[Any, Any]")
         value = try_datetime(v)  # type: ignore[assignment]
     elif inferred_type == "timedelta":
         value = try_timedelta(v)
     elif inferred_type == "nat":
+        # if all NaT, return as datetime
         # only reached if we have at least 1 NaT and the rest (NaT or None or np.nan)
 
-        # if all NaT, return as datetime
-        if isna(v).all():
-            # error: Incompatible types in assignment (expression has type
-            # "ExtensionArray", variable has type "Union[ndarray, List[Any]]")
-            value = try_datetime(v)  # type: ignore[assignment]
-        else:
-            # We have at least a NaT and a string
-            # try timedelta first to avoid spurious datetime conversions
-            # e.g. '00:00:01' is a timedelta but technically is also a datetime
-            value = try_timedelta(v)
-            if lib.infer_dtype(value, skipna=False) in ["mixed"]:
-                # cannot skip missing values, as NaT implies that the string
-                # is actually a datetime
-
-                # error: Incompatible types in assignment (expression has type
-                # "ExtensionArray", variable has type "Union[ndarray, List[Any]]")
-                value = try_datetime(v)  # type: ignore[assignment]
+        # Incompatible types in assignment (expression has type
+        # "Union[ndarray[Any, Any], DatetimeArray]", variable has type
+        # "ndarray[Any, Any]")
+        value = try_datetime(v)  # type: ignore[assignment]
+        assert value.dtype == "M8[ns]"
 
     return value
 
