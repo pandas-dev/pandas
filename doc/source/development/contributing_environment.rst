@@ -216,7 +216,7 @@ should already exist.
    python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
-Be sure to also install the `pre-commit hooks <https://pandas.pydata.org/pandas-docs/stable/development/contributing_codebase.html#pre-commit>`__.
+Be sure to also install the :ref:`pre-commit hooks <contributing.pre-commit>`
 
 Option 2: creating an environment using Docker
 ----------------------------------------------
