@@ -213,12 +213,14 @@ class TestMerge:
 
         # inner join
         result = merge(left, right, left_on="key", right_index=True, how="inner")
-        expected = left.join(right, on="key").loc[result.index]
+        expected = left.join(right, on="key").dropna().sort_values("key")
+        expected.index = expected.key.values
         tm.assert_frame_equal(result, expected)
 
         result = merge(right, left, right_on="key", left_index=True, how="inner")
-        expected = left.join(right, on="key").loc[result.index]
-        tm.assert_frame_equal(result, expected.loc[:, result.columns])
+        expected = left.join(right, on="key").dropna().loc[[3,1,2,0,6]]
+        expected.index = expected.key.values
+        tm.assert_frame_equal(result, expected.loc[:, result.columns], )
 
     def test_merge_misspecified(self, df, df2, left, right):
         msg = "Must pass right_on or right_index=True"
@@ -388,6 +390,7 @@ class TestMerge:
 
         key = np.array([0, 1, 1, 2, 2, 3], dtype=np.int64)
         merged = merge(left, right, left_index=True, right_on=key, how="outer")
+        merged.index = merged.rvalue.values
         tm.assert_series_equal(merged["key_0"], Series(key, name="key_0"))
 
     def test_no_overlap_more_informative_error(self):
@@ -470,7 +473,7 @@ class TestMerge:
         result = merge(left, right, how=join_type, **kwarg)
         tm.assert_frame_equal(result, exp_in)
 
-    def test_merge_left_empty_right_notempty(self):
+    def test_merge_left_empty_right_notempty(self, kwarg=None):
         # GH 10824
         left = DataFrame(columns=["a", "b", "c"])
         right = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["x", "y", "z"])
@@ -496,28 +499,32 @@ class TestMerge:
             result = merge(left, right, how="left", **kwarg)
             tm.assert_frame_equal(result, exp)
 
-        def check2(exp, kwarg):
+        def check2(exp1, exp2, kwarg):
             result = merge(left, right, how="right", **kwarg)
-            tm.assert_frame_equal(result, exp)
+            tm.assert_frame_equal(result, exp1)
             result = merge(left, right, how="outer", **kwarg)
-            tm.assert_frame_equal(result, exp)
+            tm.assert_frame_equal(result, exp2)
 
         for kwarg in [
             {"left_index": True, "right_index": True},
             {"left_index": True, "right_on": "x"},
         ]:
             check1(exp_in, kwarg)
-            check2(exp_out, kwarg)
+            if kwarg.get("right_on", False)=="x":
+                exp2 = exp_out.copy()
+                exp2.index = exp2.a.values
+                check2(exp_out, exp2, kwarg)
+            else:
+                check2(exp_out, exp_out, kwarg)
 
         kwarg = {"left_on": "a", "right_index": True}
         check1(exp_in, kwarg)
-        exp_out["a"] = [0, 1, 2]
-        check2(exp_out, kwarg)
+        check2(exp_out, exp_out, kwarg)
 
         kwarg = {"left_on": "a", "right_on": "x"}
         check1(exp_in, kwarg)
         exp_out["a"] = np.array([np.nan] * 3, dtype=object)
-        check2(exp_out, kwarg)
+        check2(exp_out, exp_out, kwarg)
 
     def test_merge_left_notempty_right_empty(self):
         # GH 10824
@@ -751,6 +758,7 @@ class TestMerge:
                 "days": days,
             },
             columns=["entity_id", "days"],
+            index=[101, 102]
         )
         assert exp["days"].dtype == exp_dtype
         tm.assert_frame_equal(result, exp)
@@ -774,6 +782,7 @@ class TestMerge:
         exp = DataFrame(
             {"entity_id": [101, 102], "days": np.array(["nat", "nat"], dtype=dtype)},
             columns=["entity_id", "days"],
+            index=[101,102]
         )
         tm.assert_frame_equal(result, exp)
 
@@ -1351,13 +1360,12 @@ class TestMerge:
                 [0, 0, 0],
                 [1, 1, 1],
                 [2, 2, 2],
-                [np.nan, 3, 3],
-                [np.nan, 4, 4],
-                [np.nan, 5, 5],
+                [np.nan, np.nan, 3],
+                [np.nan, np.nan, 4],
+                [np.nan, np.nan, 5],
             ],
             columns=["a", "key", "b"],
         )
-        expected.set_index(expected_index, inplace=True)
         tm.assert_frame_equal(result, expected)
 
     def test_merge_right_index_right(self):
