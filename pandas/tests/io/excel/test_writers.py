@@ -27,7 +27,6 @@ from pandas.io.excel import (
     ExcelWriter,
     _OpenpyxlWriter,
     _XlsxWriter,
-    _XlwtWriter,
     register_writer,
 )
 
@@ -61,7 +60,6 @@ def set_engine(engine, ext):
     [
         pytest.param(".xlsx", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
         pytest.param(".xlsm", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
-        pytest.param(".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]),
         pytest.param(
             ".xlsx", marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")]
         ),
@@ -318,9 +316,6 @@ class TestRoundTrip:
             "openpyxl",
             ".xlsm",
             marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")],
-        ),
-        pytest.param(
-            "xlwt", ".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]
         ),
         pytest.param(
             "xlsxwriter",
@@ -1283,7 +1278,6 @@ class TestExcelWriterEngineTests:
         [
             pytest.param(_XlsxWriter, ".xlsx", marks=td.skip_if_no("xlsxwriter")),
             pytest.param(_OpenpyxlWriter, ".xlsx", marks=td.skip_if_no("openpyxl")),
-            pytest.param(_XlwtWriter, ".xls", marks=td.skip_if_no("xlwt")),
         ],
     )
     def test_ExcelWriter_dispatch(self, klass, ext):

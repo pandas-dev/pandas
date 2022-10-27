@@ -44,7 +44,6 @@ tzdata>=2022.1
 xarray
 xlrd
 xlsxwriter
-xlwt
 zstandard
 aiobotocore<2.0.0
 botocore

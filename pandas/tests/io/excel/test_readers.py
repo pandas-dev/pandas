@@ -538,8 +538,8 @@ class TestReaders:
 
     def test_use_nullable_dtypes(self, read_ext):
         # GH#36712
-        if read_ext == ".xlsb":
-            pytest.skip("No engine for filetype: 'xlsb'")
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
 
         df = DataFrame(
             {
@@ -564,8 +564,8 @@ class TestReaders:
 
     def test_use_nullabla_dtypes_and_dtype(self, read_ext):
         # GH#36712
-        if read_ext == ".xlsb":
-            pytest.skip("No engine for filetype: 'xlsb'")
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
 
         df = DataFrame({"a": [np.nan, 1.0], "b": [2.5, np.nan]})
         with tm.ensure_clean(read_ext) as file_path:
@@ -579,8 +579,8 @@ class TestReaders:
     @pytest.mark.parametrize("storage", ["pyarrow", "python"])
     def test_use_nullabla_dtypes_string(self, read_ext, storage):
         # GH#36712
-        if read_ext == ".xlsb":
-            pytest.skip("No engine for filetype: 'xlsb'")
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
 
         import pyarrow as pa
 

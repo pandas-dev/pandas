@@ -74,13 +74,9 @@ def test_to_csv(cleared_fs, df1):
     tm.assert_frame_equal(df1, df2)
 
 
-@pytest.mark.parametrize("ext", ["xls", "xlsx"])
-def test_to_excel(cleared_fs, ext, df1):
-    if ext == "xls":
-        pytest.importorskip("xlwt")
-    else:
-        pytest.importorskip("openpyxl")
-
+def test_to_excel(cleared_fs, df1):
+    pytest.importorskip("openpyxl")
+    ext = "xlsx"
     path = f"memory://test/test.{ext}"
     df1.to_excel(path, index=True)
 
@@ -132,12 +128,9 @@ def test_read_table_options(fsspectest):
     assert fsspectest.test[0] == "csv_read"
 
 
-@pytest.mark.parametrize("extension", ["xlsx", "xls"])
-def test_excel_options(fsspectest, extension):
-    if extension == "xls":
-        pytest.importorskip("xlwt")
-    else:
-        pytest.importorskip("openpyxl")
+def test_excel_options(fsspectest):
+    pytest.importorskip("openpyxl")
+    extension = "xlsx"
 
     df = DataFrame({"a": [0]})
 

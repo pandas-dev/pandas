@@ -879,14 +879,8 @@ class ExcelFormatter:
             is to be frozen
         engine : string, default None
             write engine to use if writer is a path - you can also set this
-            via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``,
-            and ``io.excel.xlsm.writer``.
-
-            .. deprecated:: 1.2.0
-
-                As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
-                maintained, the ``xlwt`` engine will be removed in a future
-                version of pandas.
+            via the options ``io.excel.xlsx.writer``,
+            or ``io.excel.xlsm.writer``.
 
         {storage_options}
 

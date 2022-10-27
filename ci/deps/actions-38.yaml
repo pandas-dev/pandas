@@ -50,5 +50,4 @@ dependencies:
   - xarray
   - xlrd
   - xlsxwriter
-  - xlwt
   - zstandard

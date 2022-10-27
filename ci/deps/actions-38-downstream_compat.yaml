@@ -51,7 +51,6 @@ dependencies:
   - xarray
   - xlrd
   - xlsxwriter
-  - xlwt
   - zstandard
 
   # downstream packages
