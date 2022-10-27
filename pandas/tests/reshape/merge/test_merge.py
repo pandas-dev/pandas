@@ -218,9 +218,12 @@ class TestMerge:
         tm.assert_frame_equal(result, expected)
 
         result = merge(right, left, right_on="key", left_index=True, how="inner")
-        expected = left.join(right, on="key").dropna().loc[[3,1,2,0,6]]
+        expected = left.join(right, on="key").dropna().loc[[3, 1, 2, 0, 6]]
         expected.index = expected.key.values
-        tm.assert_frame_equal(result, expected.loc[:, result.columns], )
+        tm.assert_frame_equal(
+            result,
+            expected.loc[:, result.columns],
+        )
 
     def test_merge_misspecified(self, df, df2, left, right):
         msg = "Must pass right_on or right_index=True"
@@ -510,7 +513,7 @@ class TestMerge:
             {"left_index": True, "right_on": "x"},
         ]:
             check1(exp_in, kwarg)
-            if kwarg.get("right_on", False)=="x":
+            if kwarg.get("right_on", False) == "x":
                 exp2 = exp_out.copy()
                 exp2.index = exp2.a.values
                 check2(exp_out, exp2, kwarg)
@@ -758,7 +761,7 @@ class TestMerge:
                 "days": days,
             },
             columns=["entity_id", "days"],
-            index=[101, 102]
+            index=[101, 102],
         )
         assert exp["days"].dtype == exp_dtype
         tm.assert_frame_equal(result, exp)
@@ -782,7 +785,7 @@ class TestMerge:
         exp = DataFrame(
             {"entity_id": [101, 102], "days": np.array(["nat", "nat"], dtype=dtype)},
             columns=["entity_id", "days"],
-            index=[101,102]
+            index=[101, 102],
         )
         tm.assert_frame_equal(result, exp)
 
@@ -857,7 +860,12 @@ class TestMerge:
                 "value_y": [pd.NaT]
                 + list(pd.date_range("20151011", periods=2, tz="US/Eastern")),
             },
-        ).astype({"value_x":"datetime64[ns, US/Eastern]", "value_y":"datetime64[ns, US/Eastern]"})
+        ).astype(
+            {
+                "value_x": "datetime64[ns, US/Eastern]",
+                "value_y": "datetime64[ns, US/Eastern]",
+            }
+        )
         result = merge(left, right, on="key", how="outer")
         tm.assert_frame_equal(result, expected)
         assert result["value_x"].dtype == "datetime64[ns, US/Eastern]"
@@ -970,7 +978,7 @@ class TestMerge:
                 "value_x": list(exp_x) + [pd.NaT],
                 "value_y": [pd.NaT] + list(exp_y),
             }
-        ).astype({"value_x":"Period[D]", "value_y":"Period[D]"})
+        ).astype({"value_x": "Period[D]", "value_y": "Period[D]"})
         result = merge(left, right, on="key", how="outer")
         tm.assert_frame_equal(result, expected)
         assert result["value_x"].dtype == "Period[D]"
@@ -2722,9 +2730,10 @@ def test_merge_different_index_names():
     expected = DataFrame({"a_x": [1], "a_y": 1})
     tm.assert_frame_equal(result, expected)
 
+
 def test_join_leftindex_righton():
     # GH 28243
-    left = DataFrame(index=["a","b"])
+    left = DataFrame(index=["a", "b"])
     right = DataFrame({"x": ["a", "c"]})
     result = merge(left, right, how="left", left_index=True, right_on="x")
     expected = DataFrame(index=["a", "b"], columns=["x"], data=["a", np.nan])

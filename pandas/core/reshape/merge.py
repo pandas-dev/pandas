@@ -985,8 +985,9 @@ class _MergeOperation:
                     key_col = Index(lvals).where(~mask_left, rvals)
                     result_dtype = find_common_type([lvals.dtype, rvals.dtype])
 
-                if (self.left_index and not self.right_index) or \
-                        (self.right_index and not self.left_index):
+                if (self.left_index and not self.right_index) or (
+                    self.right_index and not self.left_index
+                ):
                     if key_col.equals(result.index):
                         continue
 
