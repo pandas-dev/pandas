@@ -216,15 +216,7 @@ should already exist.
    python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
-**Installing Pre-commit**
-
-In the root directory of the project run the below command to install the pre-commit tool. For more details on installing and usage of pre-commit,visit
-`here <https://pandas.pydata.org/pandas-docs/stable/development/contributing_codebase.html#pre-commit>`__.
-
-.. code-block:: powershell
-
-   # Install pre-commit
-   pre-commit install
+Be sure to also install the `pre-commit hooks <https://pandas.pydata.org/pandas-docs/stable/development/contributing_codebase.html#pre-commit>`__.
 
 Option 2: creating an environment using Docker
 ----------------------------------------------
