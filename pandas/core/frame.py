@@ -1095,7 +1095,7 @@ class DataFrame(NDFrame, OpsMixin):
             # need to escape the <class>, should be the first line.
             val = buf.getvalue().replace("<", r"&lt;", 1)
             val = val.replace(">", r"&gt;", 1)
-            return "<pre>" + val + "</pre>"
+            return f"<pre>{val}</pre>"
 
         if get_option("display.notebook_repr_html"):
             max_rows = get_option("display.max_rows")
@@ -8945,8 +8945,7 @@ Parrot 2  Parrot       24.0
         if not self.columns.is_unique:
             duplicate_cols = self.columns[self.columns.duplicated()].tolist()
             raise ValueError(
-                "DataFrame columns must be unique. "
-                + f"Duplicate columns: {duplicate_cols}"
+                f"DataFrame columns must be unique. Duplicate columns: {duplicate_cols}"
             )
 
         columns: list[Hashable]

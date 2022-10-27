@@ -391,7 +391,7 @@ class XportReader(ReaderBase, abc.Iterator):
 
         # Setup the dtype.
         dtypel = [
-            ("s" + str(i), "S" + str(field["field_length"]))
+            (f"s{i}", f"S{field['field_length']}")
             for i, field in enumerate(self.fields)
         ]
         dtype = np.dtype(dtypel)
@@ -482,7 +482,7 @@ class XportReader(ReaderBase, abc.Iterator):
 
         df_data = {}
         for j, x in enumerate(self.columns):
-            vec = data["s" + str(j)]
+            vec = data[f"s{j}"]
             ntype = self.fields[j]["ntype"]
             if ntype == "numeric":
                 vec = _handle_truncated_float_vec(vec, self.fields[j]["field_length"])

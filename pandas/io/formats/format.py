@@ -256,7 +256,7 @@ class CategoricalFormatter:
 
         fmt_values = [i.strip() for i in fmt_values]
         values = ", ".join(fmt_values)
-        result = ["[" + values + "]"]
+        result = [f"[{values}]"]
         if self.footer:
             footer = self._get_footer()
             if footer:
@@ -417,10 +417,10 @@ class SeriesFormatter:
             result = self.adj.adjoin(3, fmt_values)
 
         if self.header and have_header:
-            result = fmt_index[0] + "\n" + result
+            result = f"{fmt_index[0]}\n{result}"
 
         if footer:
-            result += "\n" + footer
+            result += f"\n{footer}"
 
         return str("".join(result))
 
@@ -936,7 +936,7 @@ class DataFrameFormatter:
                     and need_leadsp[x]
                     and not restrict_formatting
                 ):
-                    return " " + y
+                    return f" {y}"
                 return y
 
             str_columns = list(
@@ -951,7 +951,7 @@ class DataFrameFormatter:
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
-                [" " + x if not self._get_formatter(i) and need_leadsp[x] else x]
+                [f" {x}" if not self._get_formatter(i) and need_leadsp[x] else x]
                 for i, x in enumerate(fmt_columns)
             ]
         # self.str_columns = str_columns
@@ -1534,7 +1534,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
             # default formatter leaves a space to the left when formatting
             # floats, must be consistent for left-justifying NaNs (GH #25061)
             if self.justify == "left":
-                na_rep = " " + self.na_rep
+                na_rep = f" {self.na_rep}"
             else:
                 na_rep = self.na_rep
 
@@ -1726,7 +1726,7 @@ def format_percentiles(
 
     if np.all(int_idx):
         out = percentiles_round_type.astype(str)
-        return [i + "%" for i in out]
+        return [f"{i}%" for i in out]
 
     unique_pcts = np.unique(percentiles)
     to_begin = unique_pcts[0] if unique_pcts[0] > 0 else None
@@ -1741,7 +1741,7 @@ def format_percentiles(
     out[int_idx] = percentiles[int_idx].round().astype(int).astype(str)
 
     out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
-    return [i + "%" for i in out]
+    return [f"{i}%" for i in out]
 
 
 def is_dates_only(values: np.ndarray | DatetimeArray | Index | DatetimeIndex) -> bool:
@@ -1929,7 +1929,7 @@ def _make_fixed_width(
     def just(x: str) -> str:
         if conf_max is not None:
             if (conf_max > 3) & (adjustment.len(x) > max_len):
-                x = x[: max_len - 3] + "..."
+                x = f"{x[:max_len - 3]}..."
         return x
 
     strings = [just(x) for x in strings]
@@ -2004,7 +2004,7 @@ def _trim_zeros_float(
 
     # leave one 0 after the decimal points if need be.
     result = [
-        x + "0" if is_number_with_decimal(x) and x.endswith(decimal) else x
+        f"{x}0" if is_number_with_decimal(x) and x.endswith(decimal) else x
         for x in trimmed
     ]
     return result

@@ -1138,7 +1138,7 @@ class PlanePlot(MPLPlot, ABC):
     def __init__(self, data, x, y, **kwargs) -> None:
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
-            raise ValueError(self._kind + " requires an x and y column")
+            raise ValueError(f"{self._kind} requires an x and y column")
         if is_integer(x) and not self.data.columns.holds_integer():
             x = self.data.columns[x]
         if is_integer(y) and not self.data.columns.holds_integer():
@@ -1147,9 +1147,9 @@ class PlanePlot(MPLPlot, ABC):
         # Scatter plot allows to plot objects data
         if self._kind == "hexbin":
             if len(self.data[x]._get_numeric_data()) == 0:
-                raise ValueError(self._kind + " requires x column to be numeric")
+                raise ValueError(f"{self._kind} requires x column to be numeric")
             if len(self.data[y]._get_numeric_data()) == 0:
-                raise ValueError(self._kind + " requires y column to be numeric")
+                raise ValueError(f"{self._kind} requires y column to be numeric")
 
         self.x = x
         self.y = y

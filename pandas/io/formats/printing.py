@@ -155,10 +155,8 @@ def _pprint_dict(
             )
         )
 
-    if nitems < len(seq):
-        return fmt.format(things=", ".join(pairs) + ", ...")
-    else:
-        return fmt.format(things=", ".join(pairs))
+    things = ", ".join(pairs)
+    return fmt.format(things=(f"{things}, ..." if nitems < len(seq) else things))
 
 
 def pprint_thing(
@@ -339,7 +337,7 @@ def format_object_summary(
     if line_break_each_value:
         # If we want to vertically align on each value of obj, we need to
         # separate values by a line break and indent the values
-        sep = ",\n " + " " * len(name)
+        sep = f",\n {' ' * len(name)}"
     else:
         sep = ","
     max_seq_items = get_option("display.max_seq_items") or n
@@ -427,16 +425,16 @@ def format_object_summary(
         line = space2
 
         for head_value in head:
-            word = head_value + sep + " "
+            word = f"{head_value}{sep} "
             summary, line = _extend_line(summary, line, word, display_width, space2)
 
         if is_truncated:
             # remove trailing space of last line
-            summary += line.rstrip() + space2 + "..."
+            summary += f"{line.rstrip()}{space2}..."
             line = space2
 
         for tail_item in tail[:-1]:
-            word = tail_item + sep + " "
+            word = f"{tail_item}{sep} "
             summary, line = _extend_line(summary, line, word, display_width, space2)
 
         # last value: no sep added + 1 space of width used for trailing ','
@@ -445,7 +443,7 @@ def format_object_summary(
 
         # right now close is either '' or ', '
         # Now we want to include the ']', but not the maybe space.
-        close = "]" + close.rstrip(" ")
+        close = f"]{close.rstrip(' ')}"
         summary += close
 
         if len(summary) > (display_width) or line_break_each_value:
@@ -454,7 +452,7 @@ def format_object_summary(
             summary += " "
 
         # remove initial space
-        summary = "[" + summary[len(space2) :]
+        summary = f"[{summary[len(space2):]}"
 
     return summary
 

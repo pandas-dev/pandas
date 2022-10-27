@@ -51,7 +51,7 @@ def get_engine(engine: str) -> BaseImpl:
             try:
                 return engine_class()
             except ImportError as err:
-                error_msgs += "\n - " + str(err)
+                error_msgs += f"\n - {err}"
 
         raise ImportError(
             "Unable to find a usable engine; "

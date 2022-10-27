@@ -678,7 +678,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         soup = BeautifulSoup(udoc, features="html5lib", from_encoding=from_encoding)
 
         for br in soup.find_all("br"):
-            br.replace_with("\n" + br.text)
+            br.replace_with(f"\n{br.text}")
 
         return soup
 
@@ -823,7 +823,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
 
         for br in r.xpath("*//br"):
-            br.tail = "\n" + (br.tail or "")
+            br.tail = f"\n{br.tail or ''}"
 
         return r
 

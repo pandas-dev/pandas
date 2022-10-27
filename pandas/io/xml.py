@@ -610,7 +610,7 @@ class _LxmlFrameParser(_XMLFrameParser):
                 children = self.iterparse[next(iter(self.iterparse))]
             else:
                 children = self.xml_doc.xpath(
-                    self.xpath + "[1]/*", namespaces=self.namespaces
+                    f"{self.xpath}[1]/*", namespaces=self.namespaces
                 )
 
             if is_list_like(self.names):

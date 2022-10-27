@@ -2128,18 +2128,18 @@ class Styler(StylerRenderer):
             if styles.get("table_attributes") is None
             else str(styles.get("table_attributes"))
         )
-        self.set_table_attributes((table_attributes + " " + obj_table_atts).strip())
+        self.set_table_attributes(f"{table_attributes} {obj_table_atts}".strip())
         if styles.get("table_styles"):
             self.set_table_styles(styles.get("table_styles"), overwrite=False)
 
         for obj in ["index", "columns"]:
-            hide_obj = styles.get("hide_" + obj)
+            hide_obj = styles.get(f"hide_{obj}")
             if hide_obj is not None:
                 if isinstance(hide_obj, bool):
                     n = getattr(self, obj).nlevels
-                    setattr(self, "hide_" + obj + "_", [hide_obj] * n)
+                    setattr(self, f"hide_{obj}_", [hide_obj] * n)
                 else:
-                    setattr(self, "hide_" + obj + "_", hide_obj)
+                    setattr(self, f"hide_{obj}_", hide_obj)
 
         self.hide_index_names = styles.get("hide_index_names", False)
         self.hide_column_names = styles.get("hide_column_names", False)
@@ -2245,18 +2245,16 @@ class Styler(StylerRenderer):
                 styles: CSSStyles = [
                     {
                         "selector": "thead tr:nth-child(1) th",
-                        "props": props + "top:0px; z-index:2;",
+                        "props": f"{props}top:0px; z-index:2;",
                     }
                 ]
                 if not self.index.names[0] is None:
-                    styles[0]["props"] = (
-                        props + f"top:0px; z-index:2; height:{pixel_size}px;"
-                    )
+                    common_props = f"z-index:2; height:{pixel_size}px;"
+                    styles[0]["props"] = f"{props}{common_props}top:0px;"
                     styles.append(
                         {
                             "selector": "thead tr:nth-child(2) th",
-                            "props": props
-                            + f"top:{pixel_size}px; z-index:2; height:{pixel_size}px; ",
+                            "props": f"{props}{common_props}top:{pixel_size}px;",
                         }
                     )
             else:
@@ -2266,11 +2264,11 @@ class Styler(StylerRenderer):
                 styles = [
                     {
                         "selector": "thead tr th:nth-child(1)",
-                        "props": props + "left:0px; z-index:3 !important;",
+                        "props": f"{props}left:0px; z-index:3 !important;",
                     },
                     {
                         "selector": "tbody tr th:nth-child(1)",
-                        "props": props + "left:0px; z-index:1;",
+                        "props": f"{props}left:0px; z-index:1;",
                     },
                 ]
 
@@ -2317,11 +2315,11 @@ class Styler(StylerRenderer):
                         [
                             {
                                 "selector": f"thead tr th:nth-child({level+1})",
-                                "props": props_ + "z-index:3 !important;",
+                                "props": f"{props_}z-index:3 !important;",
                             },
                             {
                                 "selector": f"tbody tr th.level{level}",
-                                "props": props_ + "z-index:1;",
+                                "props": f"{props_}z-index:1;",
                             },
                         ]
                     )
@@ -3859,9 +3857,7 @@ def _bar(
 
         ret = css_bar(start * width, end * width, color)
         if height < 1 and "background: linear-gradient(" in ret:
-            return (
-                ret + f" no-repeat center; background-size: 100% {height * 100:.1f}%;"
-            )
+            return f"{ret} no-repeat center; background-size: 100% {height * 100:.1f}%;"
         else:
             return ret
 

@@ -312,7 +312,7 @@ class CheckedCall:
     def __call__(self, *args):
         ret = self.f(*args)
         if not ret and get_errno():
-            raise PyperclipWindowsException("Error calling " + self.f.__name__)
+            raise PyperclipWindowsException(f"Error calling {self.f.__name__}")
         return ret
 
     def __setattr__(self, key, value):

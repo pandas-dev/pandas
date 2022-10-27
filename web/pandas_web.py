@@ -370,7 +370,7 @@ def main(
                 )
                 content = extend_base_template(body, context["main"]["base_template"])
             content = jinja_env.from_string(content).render(**context)
-            fname = os.path.splitext(fname)[0] + ".html"
+            fname = f"{os.path.splitext(fname)[0]}.html"
             with open(os.path.join(target_path, fname), "w") as f:
                 f.write(content)
         else:

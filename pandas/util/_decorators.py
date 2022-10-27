@@ -249,7 +249,7 @@ def _format_argument_list(allow_args: list[str]) -> str:
         return f" except for the argument '{allow_args[0]}'"
     else:
         last = allow_args[-1]
-        args = ", ".join(["'" + x + "'" for x in allow_args[:-1]])
+        args = ", ".join([f"'{x}'" for x in allow_args[:-1]])
         return f" except for the arguments {args} and '{last}'"
 
 

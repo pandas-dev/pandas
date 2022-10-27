@@ -1770,7 +1770,7 @@ def spmatrix(request):
     """
     from scipy import sparse
 
-    return getattr(sparse, request.param + "_matrix")
+    return getattr(sparse, f"{request.param}_matrix")
 
 
 @pytest.fixture(

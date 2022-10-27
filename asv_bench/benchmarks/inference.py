@@ -166,14 +166,15 @@ class ToDatetimeCacheSmallCount:
 
 
 class ToDatetimeISO8601:
+    sep_format = "%Y-%m-%d %H:%M:%S"
+    nosep_format = "%Y%m%d %H:%M:%S"
+
     def setup(self):
         rng = date_range(start="1/1/2000", periods=20000, freq="H")
-        self.strings = rng.strftime("%Y-%m-%d %H:%M:%S").tolist()
-        self.strings_nosep = rng.strftime("%Y%m%d %H:%M:%S").tolist()
-        self.strings_tz_space = [
-            x.strftime("%Y-%m-%d %H:%M:%S") + " -0800" for x in rng
-        ]
-        self.strings_zero_tz = [x.strftime("%Y-%m-%d %H:%M:%S") + "Z" for x in rng]
+        self.strings = rng.strftime(self.sep_format).tolist()
+        self.strings_nosep = rng.strftime(self.nosep_format).tolist()
+        self.strings_tz_space = [f"{x.strftime(self.sep_format)} -0800" for x in rng]
+        self.strings_zero_tz = [f"{x.strftime(self.sep_format)}Z" for x in rng]
 
     def time_iso8601(self):
         to_datetime(self.strings)
@@ -182,10 +183,10 @@ class ToDatetimeISO8601:
         to_datetime(self.strings_nosep)
 
     def time_iso8601_format(self):
-        to_datetime(self.strings, format="%Y-%m-%d %H:%M:%S")
+        to_datetime(self.strings, format=self.sep_format)
 
     def time_iso8601_format_no_sep(self):
-        to_datetime(self.strings_nosep, format="%Y%m%d %H:%M:%S")
+        to_datetime(self.strings_nosep, format=self.nosep_format)
 
     def time_iso8601_tz_spaceformat(self):
         to_datetime(self.strings_tz_space)

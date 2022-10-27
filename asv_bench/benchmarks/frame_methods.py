@@ -125,7 +125,7 @@ class Iteration:
         self.df = DataFrame(np.random.randn(N * 10, N))
         self.df2 = DataFrame(np.random.randn(N * 50, 10))
         self.df3 = DataFrame(
-            np.random.randn(N, 5 * N), columns=["C" + str(c) for c in range(N * 5)]
+            np.random.randn(N, 5 * N), columns=[f"C{c}" for c in range(N * 5)]
         )
         self.df4 = DataFrame(np.random.randn(N * 1000, 10))
 

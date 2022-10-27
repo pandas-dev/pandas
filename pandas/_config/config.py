@@ -499,7 +499,7 @@ def register_option(
     path = key.split(".")
 
     for k in path:
-        if not re.match("^" + tokenize.Name + "$", k):
+        if not re.match(f"^{tokenize.Name}$", k):
             raise ValueError(f"{k} is not a valid identifier")
         if keyword.iskeyword(k):
             raise ValueError(f"{k} is a python keyword")
@@ -707,7 +707,7 @@ def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
     from textwrap import wrap
 
     def pp(name: str, ks: Iterable[str]) -> list[str]:
-        pfx = "- " + name + ".[" if name else ""
+        pfx = f"- {name}.[" if name else ""
         ls = wrap(
             ", ".join(ks),
             width,
@@ -716,7 +716,7 @@ def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
             break_long_words=False,
         )
         if ls and ls[-1] and name:
-            ls[-1] = ls[-1] + "]"
+            ls[-1] = f"{ls[-1]}]"
         return ls
 
     ls: list[str] = []

@@ -799,7 +799,7 @@ class StylerRenderer:
             # add custom classes from cell context
             cls = ""
             if (r, c) in self.cell_context:
-                cls = " " + self.cell_context[r, c]
+                cls = f" {self.cell_context[r, c]}"
 
             data_element = _element(
                 "td",
@@ -1999,14 +1999,14 @@ class Tooltips:
         -------
         pseudo_css : List
         """
-        selector_id = "#T_" + uuid + "_row" + str(row) + "_col" + str(col)
+        selector_id = f"#T_{uuid}_row{row}_col{col}"
         return [
             {
-                "selector": selector_id + f":hover .{name}",
+                "selector": f"{selector_id}:hover .{name}",
                 "props": [("visibility", "visible")],
             },
             {
-                "selector": selector_id + f" .{name}::after",
+                "selector": f"{selector_id} .{name}::after",
                 "props": [("content", f'"{text}"')],
             },
         ]

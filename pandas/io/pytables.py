@@ -1504,7 +1504,7 @@ class HDFStore:
         """return the node with the key or None if it does not exist"""
         self._check_if_open()
         if not key.startswith("/"):
-            key = "/" + key
+            key = f"/{key}"
 
         assert self._handle is not None
         assert _table_mod is not None  # for mypy
