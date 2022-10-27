@@ -841,6 +841,8 @@ class IndexOpsMixin(OpsMixin):
                 # expected to be pd.Series(np.nan, ...). As np.nan is
                 # of dtype float64 the return value of this method should
                 # be float64 as well
+                from pandas import Series
+
                 if len(mapper) == 0:
                     mapper = Series(mapper, dtype=np.float64)
                 else:

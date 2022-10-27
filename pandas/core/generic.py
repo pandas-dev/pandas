@@ -6840,6 +6840,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         if inplace:
                             return None
                         return self.copy()
+                    from pandas import Series
+
                     value = Series(value)
                     value = value.reindex(self.index, copy=False)
                     value = value._values

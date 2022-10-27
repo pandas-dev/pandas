@@ -210,26 +210,6 @@ def _coerce_method(converter):
     return wrapper
 
 
-def is_empty_data(data: Any) -> bool:
-    """
-    Utility to check if a Series is instantiated with empty data,
-    which does not contain dtype information.
-
-    Parameters
-    ----------
-    data : array-like, Iterable, dict, or scalar value
-        Contains data stored in Series.
-
-    Returns
-    -------
-    bool
-    """
-    is_none = data is None
-    is_list_like_without_dtype = is_list_like(data) and not hasattr(data, "dtype")
-    is_simple_empty = is_list_like_without_dtype and not data
-    return is_none or is_simple_empty
-
-
 # ----------------------------------------------------------------------
 # Series class
 
@@ -407,11 +387,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             name = ibase.maybe_extract_name(name, data, type(self))
 
-            if is_empty_data(data) and dtype is None:
-                # gh-17261
-                # GH 29405: Pre-2.0, this defaulted to float.
-                dtype = np.dtype(object)
-
             if index is not None:
                 index = ensure_index(index)
 
@@ -469,6 +444,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pass
             else:
                 data = com.maybe_iterable_to_list(data)
+                if not data and dtype is None:
+                    # GH 29405: Pre-2.0, this defaulted to float.
+                    dtype = np.dtype(object)
 
             if index is None:
                 if not is_list_like(data):
