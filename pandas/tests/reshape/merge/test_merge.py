@@ -856,8 +856,8 @@ class TestMerge:
                 + [pd.NaT],
                 "value_y": [pd.NaT]
                 + list(pd.date_range("20151011", periods=2, tz="US/Eastern")),
-            }
-        )
+            },
+        ).astype({"value_x":"datetime64[ns, US/Eastern]", "value_y":"datetime64[ns, US/Eastern]"})
         result = merge(left, right, on="key", how="outer")
         tm.assert_frame_equal(result, expected)
         assert result["value_x"].dtype == "datetime64[ns, US/Eastern]"
@@ -879,10 +879,10 @@ class TestMerge:
         expected = DataFrame(
             {
                 "value_x": Series(dtype=float),
-                "date2_x": Series(dtype=dtz),
-                "date": Series(dtype=dtz),
+                "date2_x": Series(dtype="object"),
+                "date": Series(dtype="object"),
                 "value_y": Series(dtype=float),
-                "date2_y": Series(dtype=dtz),
+                "date2_y": Series(dtype="object"),
             },
             columns=["value_x", "date2_x", "date", "value_y", "date2_y"],
         )
@@ -970,7 +970,7 @@ class TestMerge:
                 "value_x": list(exp_x) + [pd.NaT],
                 "value_y": [pd.NaT] + list(exp_y),
             }
-        )
+        ).astype({"value_x":"Period[D]", "value_y":"Period[D]"})
         result = merge(left, right, on="key", how="outer")
         tm.assert_frame_equal(result, expected)
         assert result["value_x"].dtype == "Period[D]"
@@ -1185,8 +1185,9 @@ class TestMerge:
                 "c": ["meow", "bark", "um... weasel noise?", "nay"],
             },
             columns=["b", "a", "c"],
-            index=range(4),
+            index=["a", "b", "c", "d"],
         )
+        expected_3.index.names = ["a"]
 
         left_index_reset = left.set_index("a")
         result = merge(
@@ -1376,9 +1377,9 @@ class TestMerge:
         right = DataFrame({"b": [1, 2, 3]})
 
         expected = DataFrame(
-            {"a": [1, 2, 3, None], "key": [0, 1, 1, 2], "b": [1, 2, 2, 3]},
+            {"a": [1, 2, 3, None], "key": [0, 1, 1, None], "b": [1, 2, 2, 3]},
             columns=["a", "key", "b"],
-            index=[0, 1, 2, np.nan],
+            index=[0, 1, 1, 2],
         )
         result = left.merge(right, left_on="key", right_index=True, how="right")
         tm.assert_frame_equal(result, expected)
@@ -1408,12 +1409,11 @@ class TestMerge:
         expected = DataFrame(
             {
                 "a": [1, 2, 3, None],
-                "key": Categorical(["a", "a", "b", "c"]),
+                "key": Categorical(["a", "a", "b", None], categories=list("abc")),
                 "b": [1, 1, 2, 3],
             },
-            index=[0, 1, 2, np.nan],
+            index=CategoricalIndex(["a", "a", "b", "c"]),
         )
-        expected = expected.reindex(columns=["a", "key", "b"])
         tm.assert_frame_equal(result, expected)
 
     def test_merge_readonly(self):
