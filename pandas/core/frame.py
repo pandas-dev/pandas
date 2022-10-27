@@ -527,7 +527,9 @@ class DataFrame(NDFrame, OpsMixin):
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, dataclass or list-like objects. If
         data is a dict, column order follows insertion-order. If a dict contains Series
-        which have an index defined, it is aligned by its index.
+        which have an index defined, it is aligned by its index. This alignment also
+        occurs if data is a Series or a DataFrame itself. Alignment is done on
+        Series/DataFrame inputs.
 
         .. versionchanged:: 0.25.0
            If data is a list of dicts, column order follows insertion-order.
@@ -629,6 +631,22 @@ class DataFrame(NDFrame, OpsMixin):
     0  0  0
     1  0  3
     2  2  3
+
+    Constructing DataFrame from Series/DataFrame:
+
+    >>> ser = pd.Series([1, 2, 3], index=["a", "b", "c"])
+    >>> df = pd.DataFrame(data=ser, index=["a", "c"])
+    >>> df
+       0
+    a  1
+    c  3
+
+    >>> df1 = pd.DataFrame([1, 2, 3], index=["a", "b", "c"], columns=["x"])
+    >>> df2 = pd.DataFrame(data=df1, index=["a", "c"])
+    >>> df2
+       x
+    a  1
+    c  3
     """
 
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
@@ -1681,7 +1699,7 @@ class DataFrame(NDFrame, OpsMixin):
                'tight' as an allowed value for the ``orient`` argument
 
         dtype : dtype, default None
-            Data type to force, otherwise infer.
+            Data type to force after DataFrame construction, otherwise infer.
         columns : list, default None
             Column labels to use when ``orient='index'``. Raises a ValueError
             if used with ``orient='columns'`` or ``orient='tight'``.
@@ -6557,10 +6575,10 @@ class DataFrame(NDFrame, OpsMixin):
         self._update_inplace(result)
         return None
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "subset"])
     def drop_duplicates(
         self,
         subset: Hashable | Sequence[Hashable] | None = None,
+        *,
         keep: DropKeep = "first",
         inplace: bool = False,
         ignore_index: bool = False,
@@ -6965,10 +6983,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "sort_index" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def sort_index(  # type: ignore[override]
+    def sort_index(
         self,
+        *,
         axis: Axis = 0,
         level: IndexLabel = None,
         ascending: bool | Sequence[bool] = True,
@@ -8976,7 +8993,11 @@ Parrot 2  Parrot       24.0
         3    4  1    e
         """
         if not self.columns.is_unique:
-            raise ValueError("columns must be unique")
+            duplicate_cols = self.columns[self.columns.duplicated()].tolist()
+            raise ValueError(
+                "DataFrame columns must be unique. "
+                + f"Duplicate columns: {duplicate_cols}"
+            )
 
         columns: list[Hashable]
         if is_scalar(column) or isinstance(column, tuple):
@@ -11795,10 +11816,10 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | None:
         return super().clip(lower, upper, axis=axis, inplace=inplace, **kwargs)
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     def interpolate(
         self: DataFrame,
         method: str = "linear",
+        *,
         axis: Axis = 0,
         limit: int | None = None,
         inplace: bool = False,
@@ -11808,13 +11829,13 @@ Parrot 2  Parrot       24.0
         **kwargs,
     ) -> DataFrame | None:
         return super().interpolate(
-            method,
-            axis,
-            limit,
-            inplace,
-            limit_direction,
-            limit_area,
-            downcast,
+            method=method,
+            axis=axis,
+            limit=limit,
+            inplace=inplace,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            downcast=downcast,
             **kwargs,
         )
 

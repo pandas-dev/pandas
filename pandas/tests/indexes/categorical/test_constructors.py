@@ -146,14 +146,4 @@ class TestCategoricalIndexConstructors:
             CategoricalIndex(data, categories=cats, dtype=dtype)
 
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # passing subclass-specific kwargs to pd.Index
-                Index(data, categories=cats, dtype=dtype)
-
-        with pytest.raises(ValueError, match=msg):
             CategoricalIndex(data, ordered=ordered, dtype=dtype)
-
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # passing subclass-specific kwargs to pd.Index
-                Index(data, ordered=ordered, dtype=dtype)
