@@ -774,7 +774,10 @@ class ParserBase:
                     bool_mask = np.zeros(result.shape, dtype=np.bool_)
                 result = BooleanArray(result, bool_mask)
             elif result.dtype == np.object_ and use_nullable_dtypes:
-                result = StringDtype().construct_array_type()._from_sequence(values)
+                # read_excel sends array of datetime objects
+                inferred_type = lib.infer_datetimelike_array(result)
+                if inferred_type != "datetime":
+                    result = StringDtype().construct_array_type()._from_sequence(values)
 
         return result, na_count
 

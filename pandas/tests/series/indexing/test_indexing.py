@@ -194,12 +194,11 @@ def test_basic_getitem_setitem_corner(datetime_series):
     with pytest.raises(KeyError, match=msg):
         datetime_series[:, 2] = 2
 
-    # weird lists. [slice(0, 5)] will work but not two slices
-    with tm.assert_produces_warning(FutureWarning):
+    # weird lists. [slice(0, 5)] raises but not two slices
+    msg = "Indexing with a single-item list"
+    with pytest.raises(ValueError, match=msg):
         # GH#31299
-        result = datetime_series[[slice(None, 5)]]
-    expected = datetime_series[:5]
-    tm.assert_series_equal(result, expected)
+        datetime_series[[slice(None, 5)]]
 
     # OK
     msg = r"unhashable type(: 'slice')?"

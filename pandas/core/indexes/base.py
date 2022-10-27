@@ -152,11 +152,6 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
 )
-from pandas.core.arrays.datetimes import (
-    tz_to_dtype,
-    validate_tz_from_dtype,
-)
-from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.arrays.string_ import StringArray
 from pandas.core.base import (
     IndexOpsMixin,
@@ -223,7 +218,8 @@ def _maybe_return_indexers(meth: F) -> F:
     @functools.wraps(meth)
     def join(
         self,
-        other,
+        other: Index,
+        *,
         how: str_t = "left",
         level=None,
         return_indexers: bool = False,
@@ -240,11 +236,6 @@ def _maybe_return_indexers(meth: F) -> F:
         return join_index, lidx, ridx
 
     return cast(F, join)
-
-
-def disallow_kwargs(kwargs: dict[str, Any]) -> None:
-    if kwargs:
-        raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
 
 
 def _new_Index(cls, d):
@@ -438,17 +429,7 @@ class Index(IndexOpsMixin, PandasObject):
         copy: bool = False,
         name=None,
         tupleize_cols: bool = True,
-        **kwargs,
     ) -> Index:
-
-        if kwargs:
-            warnings.warn(
-                "Passing keywords other than 'data', 'dtype', 'copy', 'name', "
-                "'tupleize_cols' is deprecated and will raise TypeError in a "
-                "future version.  Use the specific Index subclass directly instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
         from pandas.core.arrays import PandasArray
         from pandas.core.indexes.range import RangeIndex
@@ -457,10 +438,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
-        if "tz" in kwargs:
-            tz = kwargs.pop("tz")
-            validate_tz_from_dtype(dtype, tz)
-            dtype = tz_to_dtype(tz)
 
         if type(data) is PandasArray:
             # ensure users don't accidentally put a PandasArray in an index,
@@ -482,18 +459,17 @@ class Index(IndexOpsMixin, PandasObject):
             # non-EA dtype indexes have special casting logic, so we punt here
             klass = cls._dtype_to_subclass(dtype)
             if klass is not Index:
-                return klass(data, dtype=dtype, copy=copy, name=name, **kwargs)
+                return klass(data, dtype=dtype, copy=copy, name=name)
 
             ea_cls = dtype.construct_array_type()
             data = ea_cls._from_sequence(data, dtype=dtype, copy=copy)
-            disallow_kwargs(kwargs)
             return Index._simple_new(data, name=name)
 
         elif is_ea_or_datetimelike_dtype(data_dtype):
             data_dtype = cast(DtypeObj, data_dtype)
             klass = cls._dtype_to_subclass(data_dtype)
             if klass is not Index:
-                result = klass(data, copy=copy, name=name, **kwargs)
+                result = klass(data, copy=copy, name=name)
                 if dtype is not None:
                     return result.astype(dtype, copy=False)
                 return result
@@ -501,7 +477,6 @@ class Index(IndexOpsMixin, PandasObject):
                 # GH#45206
                 data = data.astype(dtype, copy=False)
 
-            disallow_kwargs(kwargs)
             data = extract_array(data, extract_numpy=True)
             return Index._simple_new(data, name=name)
 
@@ -543,18 +518,14 @@ class Index(IndexOpsMixin, PandasObject):
                     )
                     dtype = arr.dtype
 
-                    if kwargs:
-                        return cls(arr, dtype, copy=copy, name=name, **kwargs)
-
             klass = cls._dtype_to_subclass(arr.dtype)
             arr = klass._ensure_array(arr, dtype, copy)
-            disallow_kwargs(kwargs)
             return klass._simple_new(arr, name)
 
         elif is_scalar(data):
             raise cls._raise_scalar_data_error(data)
         elif hasattr(data, "__array__"):
-            return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
+            return Index(np.asarray(data), dtype=dtype, copy=copy, name=name)
         else:
 
             if tupleize_cols and is_list_like(data):
@@ -567,9 +538,7 @@ class Index(IndexOpsMixin, PandasObject):
                     # 10697
                     from pandas.core.indexes.multi import MultiIndex
 
-                    return MultiIndex.from_tuples(
-                        data, names=name or kwargs.get("names")
-                    )
+                    return MultiIndex.from_tuples(data, names=name)
             # other iterable of some kind
 
             subarr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
@@ -579,7 +548,7 @@ class Index(IndexOpsMixin, PandasObject):
                     subarr, cast_numeric_deprecated=False
                 )
                 dtype = subarr.dtype
-            return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
+            return Index(subarr, dtype=dtype, copy=copy, name=name)
 
     @classmethod
     def _ensure_array(cls, data, dtype, copy: bool):
@@ -617,17 +586,6 @@ class Index(IndexOpsMixin, PandasObject):
                 from pandas import PeriodIndex
 
                 return PeriodIndex
-
-            elif isinstance(dtype, SparseDtype):
-                warnings.warn(
-                    "In a future version, passing a SparseArray to pd.Index "
-                    "will store that array directly instead of converting to a "
-                    "dense numpy ndarray. To retain the old behavior, use "
-                    "pd.Index(arr.to_numpy()) instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return cls._dtype_to_subclass(dtype.subtype)
 
             return Index
 
@@ -1803,9 +1761,8 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> _IndexT | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "names"])
     def set_names(
-        self: _IndexT, names, level=None, inplace: bool = False
+        self: _IndexT, names, *, level=None, inplace: bool = False
     ) -> _IndexT | None:
         """
         Set Index or MultiIndex name.
@@ -4537,11 +4494,11 @@ class Index(IndexOpsMixin, PandasObject):
         ...
 
     @final
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "other"])
     @_maybe_return_indexers
     def join(
         self,
         other: Index,
+        *,
         how: str_t = "left",
         level: Level = None,
         return_indexers: bool = False,
@@ -7093,19 +7050,6 @@ class Index(IndexOpsMixin, PandasObject):
         # See GH#27775, GH#27384 for history/reasoning in how this is defined.
         return (len(self),)
 
-    @final
-    def _deprecated_arg(self, value, name: str_t, methodname: str_t) -> None:
-        """
-        Issue a FutureWarning if the arg/kwarg is not no_default.
-        """
-        if value is not no_default:
-            warnings.warn(
-                f"'{name}' argument in {methodname} is deprecated "
-                "and will be removed in a future version.  Do not pass it.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
 
 def ensure_index_from_sequences(sequences, names=None) -> Index:
     """
@@ -7256,14 +7200,6 @@ def maybe_extract_name(name, obj, cls) -> Hashable:
         raise TypeError(f"{cls.__name__}.name must be a hashable type")
 
     return name
-
-
-_cast_depr_msg = (
-    "In a future version, passing an object-dtype arraylike to pd.Index will "
-    "not infer numeric values to numeric dtype (matching the Series behavior). "
-    "To retain the old behavior, explicitly pass the desired dtype or use the "
-    "desired Index subclass"
-)
 
 
 def _maybe_cast_data_without_dtype(

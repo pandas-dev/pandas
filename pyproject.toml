@@ -79,7 +79,6 @@ disable = [
   "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
-  "consider-iterating-dictionary",
   "consider-using-f-string",
   "disallowed-name",
   "import-outside-toplevel",
@@ -125,8 +124,6 @@ disable = [
   "no-else-return",
   "no-self-use",
   "redefined-argument-from-local",
-  "simplifiable-if-expression",
-  "simplifiable-if-statement",
   "too-few-public-methods",
   "too-many-ancestors",
   "too-many-arguments",
