@@ -22,6 +22,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     Manager,
+    npt,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -1032,7 +1033,7 @@ def _validate_or_indexify_columns(
 
 
 def _convert_object_array(
-    content: list[np.ndarray], dtype: DtypeObj | None
+    content: list[npt.NDArray[np.object_]], dtype: DtypeObj | None
 ) -> list[ArrayLike]:
     """
     Internal function to convert object array.
@@ -1059,6 +1060,7 @@ def _convert_object_array(
                 arr = cls._from_sequence(arr, dtype=dtype, copy=False)
             else:
                 arr = maybe_cast_to_datetime(arr, dtype)
+
         return arr
 
     arrays = [convert(arr) for arr in content]
