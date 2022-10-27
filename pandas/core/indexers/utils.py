@@ -367,12 +367,9 @@ def unpack_1tuple(tup):
 
         if isinstance(tup, list):
             # GH#31299
-            warnings.warn(
+            raise ValueError(
                 "Indexing with a single-item list containing a "
-                "slice is deprecated and will raise in a future "
-                "version.  Pass a tuple instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+                "slice is not allowed. Pass a tuple instead.",
             )
 
         return tup[0]
