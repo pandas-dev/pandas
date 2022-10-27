@@ -365,10 +365,7 @@ class TestSeriesFillNA:
     def test_datetime64_fillna_backfill(self):
         # GH#6587
         # make sure that we are treating as integer when filling
-        msg = "containing strings is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # this also tests inference of a datetime-like with NaT's
-            ser = Series([NaT, NaT, "2013-08-05 15:30:00.000001"])
+        ser = Series([NaT, NaT, "2013-08-05 15:30:00.000001"], dtype="M8[ns]")
 
         expected = Series(
             [
@@ -888,18 +885,6 @@ class TestFillnaPad:
         ts[2] = np.NaN
         tm.assert_series_equal(ts.ffill(), ts.fillna(method="ffill"))
 
-    def test_ffill_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        ser = Series([1, 2, 3])
-        msg = (
-            r"In a future version of pandas all arguments of Series.ffill "
-            r"will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.ffill(0)
-        expected = Series([1, 2, 3])
-        tm.assert_series_equal(result, expected)
-
     def test_ffill_mixed_dtypes_without_missing_data(self):
         # GH#14956
         series = Series([datetime(2015, 1, 1, tzinfo=pytz.utc), 1])
@@ -910,18 +895,6 @@ class TestFillnaPad:
         ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
         ts[2] = np.NaN
         tm.assert_series_equal(ts.bfill(), ts.fillna(method="bfill"))
-
-    def test_bfill_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        ser = Series([1, 2, 3])
-        msg = (
-            r"In a future version of pandas all arguments of Series.bfill "
-            r"will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.bfill(0)
-        expected = Series([1, 2, 3])
-        tm.assert_series_equal(result, expected)
 
     def test_pad_nan(self):
         x = Series(

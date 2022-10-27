@@ -422,13 +422,6 @@ class TestCategoricalAPI:
         tm.assert_index_equal(res.categories, exp_categories_dropped)
         tm.assert_index_equal(c.categories, exp_categories_all)
 
-        with tm.assert_produces_warning(FutureWarning):
-            # issue #37643 inplace kwarg deprecated
-            res = c.remove_unused_categories(inplace=True)
-
-        tm.assert_index_equal(c.categories, exp_categories_dropped)
-        assert res is None
-
         # with NaN values (GH11599)
         c = Categorical(["a", "b", "c", np.nan], categories=["a", "b", "c", "d", "e"])
         res = c.remove_unused_categories()
@@ -515,15 +508,6 @@ class TestCategoricalAPIWithFactor:
             cat.set_categories(["a", "b", "c", "d"], inplace=True)
 
         tm.assert_index_equal(cat.categories, Index(["a", "b", "c", "d"]))
-
-    def test_codes_setter_deprecated(self):
-        cat = Categorical([1, 2, 3, 1, 2, 3, 3, 2, 1, 1, 1])
-        new_codes = cat._codes + 1
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#40606
-            cat._codes = new_codes
-
-        assert cat._codes is new_codes
 
 
 class TestPrivateCategoricalAPI:
