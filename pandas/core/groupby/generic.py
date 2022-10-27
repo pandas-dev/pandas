@@ -332,7 +332,7 @@ class SeriesGroupBy(GroupBy[Series]):
             from pandas import concat
 
             res_df = concat(
-                results.values(), axis=1, keys=[key.label for key in results.keys()]
+                results.values(), axis=1, keys=[key.label for key in results]
             )
             return res_df
 
@@ -1595,12 +1595,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # per GH 23566
         if isinstance(key, tuple) and len(key) > 1:
             # if len == 1, then it becomes a SeriesGroupBy and this is actually
-            # valid syntax, so don't raise warning
-            warnings.warn(
-                "Indexing with multiple keys (implicitly converted to a tuple "
-                "of keys) will be deprecated, use a list instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            # valid syntax, so don't raise
+            raise ValueError(
+                "Cannot subset columns with a tuple with more than one element. "
+                "Use a list instead."
             )
         return super().__getitem__(key)
 

@@ -20,7 +20,6 @@ from pandas._typing import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
 )
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -493,9 +492,9 @@ def _convert_by(by):
 
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["data"])
 def pivot(
     data: DataFrame,
+    *,
     index: IndexLabel | lib.NoDefault = lib.NoDefault,
     columns: IndexLabel | lib.NoDefault = lib.NoDefault,
     values: IndexLabel | lib.NoDefault = lib.NoDefault,
