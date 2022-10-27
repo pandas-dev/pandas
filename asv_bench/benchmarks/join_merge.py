@@ -292,10 +292,13 @@ class Merge:
     def time_merge_dataframes_cross(self, sort):
         merge(self.left.loc[:2000], self.right.loc[:2000], how="cross", sort=sort)
 
+    def time_merge_dataframes_anti(self, sort):
+        merge(self.left, self.right, how="anti_left", sort=sort)
+
 
 class I8Merge:
 
-    params = ["inner", "outer", "left", "right"]
+    params = ["inner", "outer", "left", "right", "anti_left", "anti_right", "anti_full"]
     param_names = ["how"]
 
     def setup(self, how):
@@ -472,7 +475,7 @@ class MergeMultiIndex:
             ("datetime64[ns]", "int64"),
             ("Int64", "Int64"),
         ],
-        ["left", "right", "inner", "outer"],
+        ["left", "right", "inner", "outer", "anti_left", "anti_right", "anti_full"],
     ]
     param_names = ["dtypes", "how"]
 
