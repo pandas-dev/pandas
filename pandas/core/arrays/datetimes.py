@@ -2200,7 +2200,6 @@ def objects_to_datetime64ns(
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             require_iso8601=require_iso8601,
-            allow_mixed=True,
         )
         result = result.reshape(data.shape, order=order)
     except OverflowError as err:
