@@ -1016,7 +1016,7 @@ class _MergeOperation:
         right_ax = self.right.axes[self.axis]
 
         if self.how in ["anti_left", "anti_right", "anti_full"]:
-            how_dict: dict[str, str] = {
+            how_dict = {
                 "anti_left": "left",
                 "anti_right": "right",
                 "anti_full": "outer",
