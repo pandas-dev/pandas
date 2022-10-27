@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import warnings
-
 import numpy as np
 
 from pandas._libs.algos import unique_deltas
@@ -23,16 +21,13 @@ from pandas._libs.tslibs.fields import (
     month_position_check,
 )
 from pandas._libs.tslibs.offsets import (
-    BaseOffset,
     DateOffset,
     Day,
-    _get_offset,
     to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
 from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -102,30 +97,11 @@ def get_period_alias(offset_str: str) -> str | None:
     return _offset_to_period_map.get(offset_str, None)
 
 
-def get_offset(name: str) -> BaseOffset:
-    """
-    Return DateOffset object associated with rule name.
-
-    .. deprecated:: 1.0.0
-
-    Examples
-    --------
-    get_offset('EOM') --> BMonthEnd(1)
-    """
-    warnings.warn(
-        "get_offset is deprecated and will be removed in a future version, "
-        "use to_offset instead.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-    return _get_offset(name)
-
-
 # ---------------------------------------------------------------------
 # Period codes
 
 
-def infer_freq(index, warn: bool = True) -> str | None:
+def infer_freq(index) -> str | None:
     """
     Infer the most likely frequency given the input index.
 
@@ -133,8 +109,6 @@ def infer_freq(index, warn: bool = True) -> str | None:
     ----------
     index : DatetimeIndex or TimedeltaIndex
       If passed a Series will use the values of the series (NOT THE INDEX).
-    warn : bool, default True
-      .. deprecated:: 1.5.0
 
     Returns
     -------
@@ -186,7 +160,7 @@ def infer_freq(index, warn: bool = True) -> str | None:
         )
     elif is_timedelta64_dtype(index.dtype):
         # Allow TimedeltaIndex and TimedeltaArray
-        inferer = _TimedeltaFrequencyInferer(index, warn=warn)
+        inferer = _TimedeltaFrequencyInferer(index)
         return inferer.get_freq()
 
     if isinstance(index, Index) and not isinstance(index, DatetimeIndex):
@@ -199,7 +173,7 @@ def infer_freq(index, warn: bool = True) -> str | None:
     if not isinstance(index, DatetimeIndex):
         index = DatetimeIndex(index)
 
-    inferer = _FrequencyInferer(index, warn=warn)
+    inferer = _FrequencyInferer(index)
     return inferer.get_freq()
 
 
@@ -208,7 +182,7 @@ class _FrequencyInferer:
     Not sure if I can avoid the state machine here
     """
 
-    def __init__(self, index, warn: bool = True) -> None:
+    def __init__(self, index) -> None:
         self.index = index
         self.i8values = index.asi8
 
@@ -229,15 +203,6 @@ class _FrequencyInferer:
         if hasattr(index, "tz"):
             if index.tz is not None:
                 self.i8values = tz_convert_from_utc(self.i8values, index.tz)
-
-        if warn is not True:
-            warnings.warn(
-                "warn is deprecated (and never implemented) and "
-                "will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        self.warn = warn
 
         if len(index) < 3:
             raise ValueError("Need at least 3 dates to infer frequency")
@@ -652,7 +617,6 @@ def _is_weekly(rule: str) -> bool:
 
 __all__ = [
     "Day",
-    "get_offset",
     "get_period_alias",
     "infer_freq",
     "is_subperiod",

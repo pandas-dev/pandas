@@ -319,7 +319,7 @@ how : {'left', 'right', 'outer', 'inner', 'cross', 'anti_left', \
       left frame, and the keys in the left frame that are absent in the
       right frame; sort keys lexicographically.
 
-      .. versionadded:: 1.4.0
+      .. versionadded:: 2.0.0
 
 on : label or list
     Column or index level names to join on. These must be found in both
