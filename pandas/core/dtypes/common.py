@@ -500,6 +500,9 @@ def is_string_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of the string dtype.
 
+    If an array is passed with an object dtype, the elements must be
+    inferred as strings.
+
     Parameters
     ----------
     arr_or_dtype : array-like or dtype
@@ -523,14 +526,11 @@ def is_string_dtype(arr_or_dtype) -> bool:
     True
     >>> is_string_dtype(pd.Series([1, 2]))
     False
+    >>> is_string_dtype(pd.Series([1, 2], dtype=object))
+    False
     """
-    if hasattr(arr_or_dtype, "dtype"):
-        if arr_or_dtype.dtype.kind in "SU":
-            return True
-        elif arr_or_dtype.dtype.kind == "O":
-            return is_all_strings(arr_or_dtype)
-        else:
-            return False
+    if hasattr(arr_or_dtype, "dtype") and arr_or_dtype.dtype.kind == "O":
+        return is_all_strings(arr_or_dtype)
 
     def condition(dtype) -> bool:
         return is_string_or_object_np_dtype(dtype) or dtype == "string"
