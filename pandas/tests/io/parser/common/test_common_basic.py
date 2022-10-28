@@ -805,17 +805,6 @@ def test_read_csv_line_break_as_separator(kwargs, all_parsers):
         parser.read_csv(StringIO(data), **kwargs)
 
 
-def test_read_csv_posargs_deprecation(all_parsers):
-    # GH 41485
-    f = StringIO("a,b\n1,2")
-    parser = all_parsers
-    msg = (
-        "In a future version of pandas all arguments of read_csv "
-        "except for the argument 'filepath_or_buffer' will be keyword-only"
-    )
-    parser.read_csv_check_warnings(FutureWarning, msg, f, " ")
-
-
 @pytest.mark.parametrize("delimiter", [",", "\t"])
 def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
     # GH: 35958
@@ -939,17 +928,6 @@ def test_short_multi_line(all_parsers):
     result = parser.read_csv(StringIO(data), header=None, names=columns)
     expected = DataFrame({"a": [1, 1], "b": [2, 2], "c": [np.nan, np.nan]})
     tm.assert_frame_equal(result, expected)
-
-
-def test_read_table_posargs_deprecation(all_parsers):
-    # https://github.com/pandas-dev/pandas/issues/41485
-    data = StringIO("a\tb\n1\t2")
-    parser = all_parsers
-    msg = (
-        "In a future version of pandas all arguments of read_table "
-        "except for the argument 'filepath_or_buffer' will be keyword-only"
-    )
-    parser.read_table_check_warnings(FutureWarning, msg, data, " ")
 
 
 def test_read_seek(all_parsers):

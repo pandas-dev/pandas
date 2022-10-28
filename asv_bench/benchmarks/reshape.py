@@ -36,7 +36,7 @@ class Pivot:
         self.df = DataFrame(data)
 
     def time_reshape_pivot_time_series(self):
-        self.df.pivot("date", "variable", "value")
+        self.df.pivot(index="date", columns="variable", values="value")
 
 
 class SimpleReshape:

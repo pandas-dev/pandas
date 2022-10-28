@@ -5835,10 +5835,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "keys"])
     def set_index(
         self,
         keys,
+        *,
         drop: bool = True,
         append: bool = False,
         inplace: bool = False,
@@ -6080,10 +6080,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
     def reset_index(
         self,
         level: IndexLabel = None,
+        *,
         drop: bool = False,
         inplace: bool = False,
         col_level: Hashable = 0,
@@ -6376,9 +6376,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def dropna(
         self,
+        *,
         axis: Axis = 0,
         how: AnyAll | NoDefault = no_default,
         thresh: int | NoDefault = no_default,
@@ -8500,9 +8500,8 @@ Parrot 2  Parrot       24.0
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def pivot(
-        self, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
+        self, *, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 

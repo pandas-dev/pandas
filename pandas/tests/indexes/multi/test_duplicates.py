@@ -326,19 +326,6 @@ def test_duplicated_series_complex_numbers(dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_multi_drop_duplicates_pos_args_deprecation():
-    # GH#41485
-    idx = MultiIndex.from_arrays([[1, 2, 3, 1], [1, 2, 3, 1]])
-    msg = (
-        "In a future version of pandas all arguments of "
-        "Index.drop_duplicates will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = idx.drop_duplicates("last")
-    expected = MultiIndex.from_arrays([[2, 3, 1], [2, 3, 1]])
-    tm.assert_index_equal(expected, result)
-
-
 def test_midx_unique_ea_dtype():
     # GH#48335
     vals_a = Series([1, 2, NA, NA], dtype="Int64")

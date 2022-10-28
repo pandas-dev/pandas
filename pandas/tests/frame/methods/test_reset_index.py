@@ -730,19 +730,6 @@ def test_reset_index_multiindex_nat():
     tm.assert_frame_equal(result, expected)
 
 
-def test_drop_pos_args_deprecation():
-    # https://github.com/pandas-dev/pandas/issues/41485
-    df = DataFrame({"a": [1, 2, 3]}).set_index("a")
-    msg = (
-        r"In a future version of pandas all arguments of DataFrame\.reset_index "
-        r"except for the argument 'level' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.reset_index("a", False)
-    expected = DataFrame({"a": [1, 2, 3]})
-    tm.assert_frame_equal(result, expected)
-
-
 def test_reset_index_interval_columns_object_cast():
     # GH 19136
     df = DataFrame(

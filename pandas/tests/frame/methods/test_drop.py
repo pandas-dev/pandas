@@ -510,18 +510,6 @@ class TestDataFrameDrop:
         result = df2.drop("C", axis=1)
         tm.assert_frame_equal(result, expected)
 
-    def test_drop_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame\.drop "
-            r"except for the argument 'labels' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.drop("a", 1)
-        expected = DataFrame(index=[0, 1, 2])
-        tm.assert_frame_equal(result, expected)
-
     def test_drop_inplace_no_leftover_column_reference(self):
         # GH 13934
         df = DataFrame({"a": [1, 2, 3]})

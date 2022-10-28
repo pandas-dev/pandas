@@ -67,7 +67,6 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import (
@@ -2894,8 +2893,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = super().unique()
         return self._shallow_copy(result)
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(self: _IndexT, keep: DropKeep = "first") -> _IndexT:
+    def drop_duplicates(self: _IndexT, *, keep: DropKeep = "first") -> _IndexT:
         """
         Return Index with duplicate values removed.
 

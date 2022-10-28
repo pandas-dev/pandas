@@ -20,10 +20,7 @@ from pandas.compat import (
     pa_version_under6p0,
     pa_version_under7p0,
 )
-from pandas.util._decorators import (
-    deprecate_nonkeyword_arguments,
-    doc,
-)
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -452,13 +449,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         return self._data.is_null().to_numpy()
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(
         self,
+        *,
         ascending: bool = True,
         kind: SortKind = "quicksort",
         na_position: str = "last",
-        *args,
         **kwargs,
     ) -> np.ndarray:
         order = "ascending" if ascending else "descending"
