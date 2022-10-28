@@ -1449,6 +1449,9 @@ Performance of :meth:`~pandas.DataFrame.query`
 ``DataFrame.query()`` using ``numexpr`` is slightly faster than Python for
 large frames.
 
+..
+    The eval-perf.png figure below was generated with /doc/scripts/eval_performance.py
+
 .. image:: ../_static/query-perf.png
 
 
