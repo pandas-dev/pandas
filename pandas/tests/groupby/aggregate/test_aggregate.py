@@ -283,15 +283,15 @@ def test_aggregate_item_by_item(df):
 
     aggfun_0 = lambda ser: ser.size
     result = grouped.agg(aggfun_0)
-    foo = (df.A == "foo").sum()
-    bar = (df.A == "bar").sum()
+    foosum = (df.A == "foo").sum()
+    barsum = (df.A == "bar").sum()
     K = len(result.columns)
 
     # GH5782
-    exp = Series(np.array([foo] * K), index=list("BCD"), name="foo")
+    exp = Series(np.array([foosum] * K), index=list("BCD"), name="foo")
     tm.assert_series_equal(result.xs("foo"), exp)
 
-    exp = Series(np.array([bar] * K), index=list("BCD"), name="bar")
+    exp = Series(np.array([barsum] * K), index=list("BCD"), name="bar")
     tm.assert_almost_equal(result.xs("bar"), exp)
 
     def aggfun_1(ser):
@@ -420,10 +420,10 @@ def test_more_flexible_frame_multi_function(df):
     expected = grouped.aggregate({"C": np.mean, "D": [np.mean, np.std]})
     tm.assert_frame_equal(result, expected)
 
-    def foo(x):
+    def numpymean(x):
         return np.mean(x)
 
-    def bar(x):
+    def numpystd(x):
         return np.std(x, ddof=1)
 
     # this uses column selection & renaming
@@ -433,7 +433,7 @@ def test_more_flexible_frame_multi_function(df):
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK
-    d = {"C": [np.mean], "D": [foo, bar]}
+    d = {"C": [np.mean], "D": [numpymean, numpystd]}
     grouped.aggregate(d)
 
 

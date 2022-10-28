@@ -120,24 +120,26 @@ class TestSeriesConcat:
 
     def test_concat_series_partial_columns_names(self):
         # GH10698
-        foo = Series([1, 2], name="foo")
-        bar = Series([1, 2])
-        baz = Series([4, 5])
+        foo_series = Series([1, 2], name="foo")
+        bar_series = Series([1, 2])
+        baz_series = Series([4, 5])
 
-        result = concat([foo, bar, baz], axis=1)
+        result = concat([foo_series, bar_series, baz_series], axis=1)
         expected = DataFrame(
             {"foo": [1, 2], 0: [1, 2], 1: [4, 5]}, columns=["foo", 0, 1]
         )
         tm.assert_frame_equal(result, expected)
 
-        result = concat([foo, bar, baz], axis=1, keys=["red", "blue", "yellow"])
+        result = concat(
+            [foo_series, bar_series, baz_series], axis=1, keys=["red", "blue", "yellow"]
+        )
         expected = DataFrame(
             {"red": [1, 2], "blue": [1, 2], "yellow": [4, 5]},
             columns=["red", "blue", "yellow"],
         )
         tm.assert_frame_equal(result, expected)
 
-        result = concat([foo, bar, baz], axis=1, ignore_index=True)
+        result = concat([foo_series, bar_series, baz_series], axis=1, ignore_index=True)
         expected = DataFrame({0: [1, 2], 1: [1, 2], 2: [4, 5]})
         tm.assert_frame_equal(result, expected)
 

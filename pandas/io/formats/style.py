@@ -3209,7 +3209,7 @@ class Styler(StylerRenderer):
         return self.applymap(lambda x: values, subset=subset)
 
     @Substitution(subset=subset)
-    def bar(
+    def barchart(
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,
@@ -4216,7 +4216,7 @@ def _bar(
     rgbas = None
     if cmap is not None:
         # use the matplotlib colormap input
-        with _mpl(Styler.bar) as (plt, mpl):
+        with _mpl(Styler.barchart) as (plt, mpl):
             from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
 
             cmap = (

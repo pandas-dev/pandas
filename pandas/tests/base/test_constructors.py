@@ -46,15 +46,15 @@ class TestPandasDelegate:
         _properties = ["foo"]
         _methods = ["bar"]
 
-        def _set_foo(self, value):
-            self.foo = value
+        def _set_value(self, value):
+            self.value = value
 
-        def _get_foo(self):
-            return self.foo
+        def _get_value(self):
+            return self.value
 
-        foo = property(_get_foo, _set_foo, doc="foo property")
+        value = property(_get_value, _set_value, doc="foo property")
 
-        def bar(self, *args, **kwargs):
+        def test_method(self, *args, **kwargs):
             """a test bar method"""
             pass
 
@@ -80,15 +80,15 @@ class TestPandasDelegate:
 
         msg = "You cannot access the property foo"
         with pytest.raises(TypeError, match=msg):
-            delegate.foo
+            delegate.inaccesible
 
         msg = "The property foo cannot be set"
         with pytest.raises(TypeError, match=msg):
-            delegate.foo = 5
+            delegate.inaccesible = 5
 
         msg = "You cannot access the property foo"
         with pytest.raises(TypeError, match=msg):
-            delegate.foo()
+            delegate.inaccesible()
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self):

@@ -25,7 +25,7 @@ class BadDocstrings:
         """
         pass
 
-    def redundant_import(self, foo=None, bar=None):
+    def redundant_import(self, paramx=None, paramy=None):
         """
         A sample DataFrame method.
 

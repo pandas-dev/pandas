@@ -2106,9 +2106,9 @@ class TestPivotTable:
         def agg(arr):
             return np.mean(arr)
 
-        foo = DataFrame({"X": [0, 0, 1, 1], "Y": [0, 1, 0, 1], "Z": [10, 20, 30, 40]})
+        df = DataFrame({"X": [0, 0, 1, 1], "Y": [0, 1, 0, 1], "Z": [10, 20, 30, 40]})
         with pytest.raises(KeyError, match="notpresent"):
-            foo.pivot_table("notpresent", "X", "Y", aggfunc=agg)
+            df.pivot_table("notpresent", "X", "Y", aggfunc=agg)
 
     def test_pivot_table_multiindex_columns_doctest_case(self):
         # The relevant characteristic is that the call

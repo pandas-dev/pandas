@@ -1131,7 +1131,7 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def bar(self, x=None, y=None, **kwargs) -> PlotAccessor:
+    def barplot(self, x=None, y=None, **kwargs) -> PlotAccessor:
         """
         Vertical bar plot.
 
