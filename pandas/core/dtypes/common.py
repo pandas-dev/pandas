@@ -521,7 +521,6 @@ def is_string_dtype(arr_or_dtype) -> bool:
     True
     >>> is_string_dtype(int)
     False
-    >>>
     >>> is_string_dtype(np.array(['a', 'b']))
     True
     >>> is_string_dtype(pd.Series([1, 2]))
@@ -529,7 +528,7 @@ def is_string_dtype(arr_or_dtype) -> bool:
     >>> is_string_dtype(pd.Series([1, 2], dtype=object))
     False
     """
-    if hasattr(arr_or_dtype, "dtype") and arr_or_dtype.dtype.kind == "O":
+    if hasattr(arr_or_dtype, "dtype") and get_dtype(arr_or_dtype).kind == "O":
         return is_all_strings(arr_or_dtype)
 
     def condition(dtype) -> bool:
