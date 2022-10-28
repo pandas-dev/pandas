@@ -795,7 +795,6 @@ class TestBlockManager:
             )
 
     def test_get_bool_data(self, using_copy_on_write):
-        msg = "object-dtype columns with all-bool values"
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
             "str: object; bool: bool; obj: object; dt: datetime",
@@ -803,9 +802,8 @@ class TestBlockManager:
         )
         mgr.iset(6, np.array([True, False, True], dtype=np.object_))
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            bools = mgr.get_bool_data()
-        tm.assert_index_equal(bools.items, Index(["bool", "dt"]))
+        bools = mgr.get_bool_data()
+        tm.assert_index_equal(bools.items, Index(["bool"]))
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
             bools.iget(bools.items.get_loc("bool")).internal_values(),
@@ -824,8 +822,7 @@ class TestBlockManager:
             )
 
         # Check sharing
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            bools2 = mgr.get_bool_data(copy=True)
+        bools2 = mgr.get_bool_data(copy=True)
         bools2.iset(0, np.array([False, True, False]))
         if using_copy_on_write:
             tm.assert_numpy_array_equal(

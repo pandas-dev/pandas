@@ -52,7 +52,6 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_inferred_bool_dtype
 from pandas.core.dtypes.missing import (
     array_equals,
     isna,
@@ -488,7 +487,7 @@ class BaseArrayManager(DataManager):
         copy : bool, default False
             Whether to copy the blocks
         """
-        return self._get_data_subset(is_inferred_bool_dtype)
+        return self._get_data_subset(lambda x: x.dtype == np.dtype(bool))
 
     def get_numeric_data(self: T, copy: bool = False) -> T:
         """

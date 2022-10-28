@@ -70,7 +70,6 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_inferred_bool_dtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -194,7 +193,7 @@ class Block(PandasObject):
         """
         We can be bool if a) we are bool dtype or b) object dtype with bool objects.
         """
-        return is_inferred_bool_dtype(self.values)
+        return self.values.dtype == np.dtype(bool)
 
     @final
     def external_values(self):
