@@ -7,7 +7,7 @@ from typing import Iterator
 
 from dateutil.tz import tzoffset
 import numpy as np
-import numpy.ma as ma
+from numpy import ma
 import pytest
 
 from pandas._libs import (
