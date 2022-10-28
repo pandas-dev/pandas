@@ -1802,10 +1802,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "Categorical to an ordered one\n"
             )
 
-    # error: Signature of "argsort" incompatible with supertype "ExtensionArray"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def argsort(  # type: ignore[override]
-        self, ascending: bool = True, kind: SortKind = "quicksort", **kwargs
+    def argsort(
+        self, *, ascending: bool = True, kind: SortKind = "quicksort", **kwargs
     ):
         """
         Return the indices that would sort the Categorical.
@@ -1875,9 +1873,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def sort_values(
-        self, inplace: bool = False, ascending: bool = True, na_position: str = "last"
+        self,
+        *,
+        inplace: bool = False,
+        ascending: bool = True,
+        na_position: str = "last",
     ) -> Categorical | None:
         """
         Sort the Categorical by category value returning a new

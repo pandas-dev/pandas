@@ -197,6 +197,13 @@ Removal of prior version deprecations/changes
 - Disallow passing non-round floats to :class:`Timestamp` with ``unit="M"`` or ``unit="Y"`` (:issue:`47266`)
 - Remove keywords ``convert_float`` and ``mangle_dupe_cols`` from :func:`read_excel` (:issue:`41176`)
 - Disallow passing non-keyword arguments to :func:`read_excel` except ``io`` and ``sheet_name`` (:issue:`34418`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.set_index` except ``keys`` (:issue:`41495`)
+- Disallow passing non-keyword arguments to :meth:`Resampler.interpolate` except ``method`` (:issue:`41699`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.reset_index` and :meth:`Series.reset_index` except ``level`` (:issue:`41496`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.dropna` and :meth:`Series.dropna` (:issue:`41504`)
+- Disallow passing non-keyword arguments to :meth:`ExtensionArray.argsort` (:issue:`46134`)
+- Disallow passing non-keyword arguments to :meth:`Categorical.sort_values` (:issue:`47618`)
+- Disallow passing non-keyword arguments to :meth:`Index.drop_duplicates` and :meth:`Series.drop_duplicates` (:issue:`41485`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.drop_duplicates` except for ``subset`` (:issue:`41485`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` (:issue:`41506`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` except for ``method`` (:issue:`41510`)
@@ -209,6 +216,9 @@ Removal of prior version deprecations/changes
 - Disallow passing non-keyword arguments to :func:`read_json` except for ``path_or_buf`` (:issue:`27573`)
 - Disallow passing non-keyword arguments to :func:`read_sas` except for ``filepath_or_buffer`` (:issue:`47154`)
 - Disallow passing non-keyword arguments to :func:`read_stata` except for ``filepath_or_buffer`` (:issue:`48128`)
+- Disallow passing non-keyword arguments to :func:`read_csv` except ``filepath_or_buffer`` (:issue:`41485`)
+- Disallow passing non-keyword arguments to :func:`read_table` except ``filepath_or_buffer`` (:issue:`41485`)
+- Disallow passing non-keyword arguments to :func:`read_fwf` except ``filepath_or_buffer`` (:issue:`44710`)
 - Disallow passing non-keyword arguments to :func:`read_xml` except for ``path_or_buffer`` (:issue:`45133`)
 - Disallow passing non-keyword arguments to :meth:`Series.mask` and :meth:`DataFrame.mask` except ``cond`` and ``other`` (:issue:`41580`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.to_stata` except for ``path`` (:issue:`48128`)
@@ -243,6 +253,7 @@ Removal of prior version deprecations/changes
 - Removed :meth:`Series.str.__iter__` (:issue:`28277`)
 - Removed ``pandas.SparseArray`` in favor of :class:`arrays.SparseArray` (:issue:`30642`)
 - Removed ``pandas.SparseSeries`` and ``pandas.SparseDataFrame``, including pickle support. (:issue:`30642`)
+- Enforced disallowing passing an integer ``fill_value`` to :meth:`DataFrame.shift` and :meth:`Series.shift`` with datetime64, timedelta64, or period dtypes (:issue:`32591`)
 - Enforced disallowing a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
 - Enforced disallowing a tuple of column labels into :meth:`.DataFrameGroupBy.__getitem__` (:issue:`30546`)
 - Removed setting Categorical._codes directly (:issue:`41429`)
@@ -259,6 +270,8 @@ Removal of prior version deprecations/changes
 - Changed behavior of :class:`DataFrame` constructor when passed a ``dtype`` (other than int) that the data cannot be cast to; it now raises instead of silently ignoring the dtype (:issue:`41733`)
 - Changed the behavior of :class:`Series` constructor, it will no longer infer a datetime64 or timedelta64 dtype from string entries (:issue:`41731`)
 - Changed behavior of :class:`Index` constructor when passed a ``SparseArray`` or ``SparseDtype`` to retain that dtype instead of casting to ``numpy.ndarray`` (:issue:`43930`)
+- Changed behavior of :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``; object-dtype columns with all-bool values will no longer be included, manually cast to ``bool`` dtype first (:issue:`46188`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:
