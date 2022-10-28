@@ -811,6 +811,9 @@ significant performance benefit.  Here is a plot showing the running time of
 :func:`pandas.eval` as function of the size of the frame involved in the
 computation. The two lines are two different engines.
 
+..
+    The eval-perf.png figure below was generated with /doc/scripts/eval_performance.py
+
 .. image:: ../_static/eval-perf.png
 
 You will only see the performance benefits of using the ``numexpr`` engine with :func:`pandas.eval` if your frame has more than approximately 100,000 rows.
