@@ -1409,10 +1409,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
     def reset_index(
         self,
         level: IndexLabel = None,
+        *,
         drop: bool = False,
         name: Level = lib.no_default,
         inplace: bool = False,
@@ -2186,23 +2186,22 @@ Name: Max Speed, dtype: float64
 
     @overload
     def drop_duplicates(
-        self, keep: DropKeep = ..., *, inplace: Literal[False] = ...
+        self, *, keep: DropKeep = ..., inplace: Literal[False] = ...
     ) -> Series:
         ...
 
     @overload
-    def drop_duplicates(self, keep: DropKeep = ..., *, inplace: Literal[True]) -> None:
+    def drop_duplicates(self, *, keep: DropKeep = ..., inplace: Literal[True]) -> None:
         ...
 
     @overload
     def drop_duplicates(
-        self, keep: DropKeep = ..., *, inplace: bool = ...
+        self, *, keep: DropKeep = ..., inplace: bool = ...
     ) -> Series | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def drop_duplicates(
-        self, keep: DropKeep = "first", inplace: bool = False
+        self, *, keep: DropKeep = "first", inplace: bool = False
     ) -> Series | None:
         """
         Return Series with duplicate values removed.
@@ -3767,10 +3766,9 @@ Keep all original rows and also all original values
     ) -> Series | None:
         ...
 
-    # error: Signature of "sort_index" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def sort_index(  # type: ignore[override]
+    def sort_index(
         self,
+        *,
         axis: Axis = 0,
         level: IndexLabel = None,
         ascending: bool | Sequence[bool] = True,
@@ -5688,9 +5686,9 @@ Keep all original rows and also all original values
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def dropna(
         self,
+        *,
         axis: Axis = 0,
         inplace: bool = False,
         how: AnyAll | None = None,
@@ -5993,10 +5991,10 @@ Keep all original rows and also all original values
     ) -> Series | None:
         return super().clip(lower, upper, axis=axis, inplace=inplace, **kwargs)
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     def interpolate(
         self: Series,
         method: str = "linear",
+        *,
         axis: Axis = 0,
         limit: int | None = None,
         inplace: bool = False,
@@ -6006,13 +6004,13 @@ Keep all original rows and also all original values
         **kwargs,
     ) -> Series | None:
         return super().interpolate(
-            method,
-            axis,
-            limit,
-            inplace,
-            limit_direction,
-            limit_area,
-            downcast,
+            method=method,
+            axis=axis,
+            limit=limit,
+            inplace=inplace,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            downcast=downcast,
             **kwargs,
         )
 

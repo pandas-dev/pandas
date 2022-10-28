@@ -26,9 +26,11 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import (
+    lib,
+    parsers,
+)
 import pandas._libs.ops as libops
-import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
 from pandas._typing import (
@@ -775,7 +777,7 @@ class ParserBase:
                 result = BooleanArray(result, bool_mask)
             elif result.dtype == np.object_ and use_nullable_dtypes:
                 # read_excel sends array of datetime objects
-                inferred_type, _ = lib.infer_datetimelike_array(result)
+                inferred_type = lib.infer_datetimelike_array(result)
                 if inferred_type != "datetime":
                     result = StringDtype().construct_array_type()._from_sequence(values)
 
