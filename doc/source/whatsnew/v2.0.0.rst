@@ -253,6 +253,7 @@ Removal of prior version deprecations/changes
 - Removed the ``display.column_space`` option in favor of ``df.to_string(col_space=...)`` (:issue:`47280`)
 - Removed the deprecated method ``mad`` from pandas classes (:issue:`11787`)
 - Removed the deprecated method ``tshift`` from pandas classes (:issue:`11631`)
+- Changed the behavior of :func:`to_datetime` with argument "now" with ``utc=False`` to match ``Timestamp("now")`` (:issue:`18705`)
 - Changed behavior of :class:`DataFrame` constructor given floating-point ``data`` and an integer ``dtype``, when the data cannot be cast losslessly, the floating point dtype is retained, matching :class:`Series` behavior (:issue:`41170`)
 - Changed behavior of :class:`DataFrame` constructor when passed a ``dtype`` (other than int) that the data cannot be cast to; it now raises instead of silently ignoring the dtype (:issue:`41733`)
 - Changed the behavior of :class:`Series` constructor, it will no longer infer a datetime64 or timedelta64 dtype from string entries (:issue:`41731`)
