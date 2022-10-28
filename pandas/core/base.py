@@ -23,7 +23,6 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
-    ArrayLike,
     Axis,
     AxisInt,
     DtypeObj,
@@ -830,7 +829,9 @@ class IndexOpsMixin(OpsMixin):
                 # If a dictionary subclass defines a default value method,
                 # convert mapper to a lookup function (GH #15999).
                 dict_with_default = mapper
-                mapper = lambda x: dict_with_default[x]
+                mapper = lambda x: dict_with_default[
+                    np.nan if isinstance(x, float) and np.isnan(x) else x
+                ]
             else:
                 # Dictionary does not have a default. Thus it's safe to
                 # convert to an Series for efficiency.
@@ -996,18 +997,11 @@ class IndexOpsMixin(OpsMixin):
 
     def unique(self):
         values = self._values
-
         if not isinstance(values, np.ndarray):
-            result: ArrayLike = values.unique()
-            if (
-                isinstance(self.dtype, np.dtype) and self.dtype.kind in ["m", "M"]
-            ) and isinstance(self, ABCSeries):
-                # GH#31182 Series._values returns EA
-                # unpack numpy datetime for backward-compat
-                result = np.asarray(result)
+            # i.e. ExtensionArray
+            result = values.unique()
         else:
             result = unique1d(values)
-
         return result
 
     def nunique(self, dropna: bool = True) -> int:

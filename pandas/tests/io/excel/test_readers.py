@@ -21,6 +21,10 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -405,7 +409,6 @@ class TestReaders:
                 "FloatCol": [1.25, 2.25, 1.83, 1.92, 0.0000000005],
                 "BoolCol": [True, False, True, True, False],
                 "StrCol": [1, 2, 3, 4, 5],
-                # GH5394 - this is why convert_float isn't vectorized
                 "Str2Col": ["a", 3, "c", "d", "e"],
                 "DateCol": [
                     datetime(2013, 10, 30),
@@ -424,19 +427,8 @@ class TestReaders:
 
         # if not coercing number, then int comes in as float
         float_expected = expected.copy()
-        float_expected["IntCol"] = float_expected["IntCol"].astype(float)
         float_expected.loc[float_expected.index[1], "Str2Col"] = 3.0
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match="convert_float is deprecated",
-            raise_on_extra_warnings=False,
-        ):
-            # raise_on_extra_warnings because xlrd raises a PendingDeprecationWarning
-            # on database job Linux_py37_IO (ci/deps/actions-37-db.yaml)
-            # See GH#41176
-            actual = pd.read_excel(
-                basename + read_ext, sheet_name="Sheet1", convert_float=False
-            )
+        actual = pd.read_excel(basename + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, float_expected)
 
         # check setting Index (assuming xls and xlsx are the same here)
@@ -447,30 +439,11 @@ class TestReaders:
             exp = expected.set_index(name)
             tm.assert_frame_equal(actual, exp)
 
-        # convert_float and converters should be different but both accepted
         expected["StrCol"] = expected["StrCol"].apply(str)
         actual = pd.read_excel(
             basename + read_ext, sheet_name="Sheet1", converters={"StrCol": str}
         )
         tm.assert_frame_equal(actual, expected)
-
-        no_convert_float = float_expected.copy()
-        no_convert_float["StrCol"] = no_convert_float["StrCol"].apply(str)
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match="convert_float is deprecated",
-            raise_on_extra_warnings=False,
-        ):
-            # raise_on_extra_warnings because xlrd raises a PendingDeprecationWarning
-            # on database job Linux_py37_IO (ci/deps/actions-37-db.yaml)
-            # See GH#41176
-            actual = pd.read_excel(
-                basename + read_ext,
-                sheet_name="Sheet1",
-                convert_float=False,
-                converters={"StrCol": str},
-            )
-        tm.assert_frame_equal(actual, no_convert_float)
 
     # GH8212 - support for converters and missing values
     def test_reader_converters(self, read_ext):
@@ -563,6 +536,84 @@ class TestReaders:
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
 
+    def test_use_nullable_dtypes(self, read_ext):
+        # GH#36712
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        df = DataFrame(
+            {
+                "a": Series([1, 3], dtype="Int64"),
+                "b": Series([2.5, 4.5], dtype="Float64"),
+                "c": Series([True, False], dtype="boolean"),
+                "d": Series(["a", "b"], dtype="string"),
+                "e": Series([pd.NA, 6], dtype="Int64"),
+                "f": Series([pd.NA, 7.5], dtype="Float64"),
+                "g": Series([pd.NA, True], dtype="boolean"),
+                "h": Series([pd.NA, "a"], dtype="string"),
+                "i": Series([pd.Timestamp("2019-12-31")] * 2),
+                "j": Series([pd.NA, pd.NA], dtype="Int64"),
+            }
+        )
+        with tm.ensure_clean(read_ext) as file_path:
+            df.to_excel(file_path, "test", index=False)
+            result = pd.read_excel(
+                file_path, sheet_name="test", use_nullable_dtypes=True
+            )
+        tm.assert_frame_equal(result, df)
+
+    def test_use_nullabla_dtypes_and_dtype(self, read_ext):
+        # GH#36712
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        df = DataFrame({"a": [np.nan, 1.0], "b": [2.5, np.nan]})
+        with tm.ensure_clean(read_ext) as file_path:
+            df.to_excel(file_path, "test", index=False)
+            result = pd.read_excel(
+                file_path, sheet_name="test", use_nullable_dtypes=True, dtype="float64"
+            )
+        tm.assert_frame_equal(result, df)
+
+    @td.skip_if_no("pyarrow")
+    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
+    def test_use_nullabla_dtypes_string(self, read_ext, storage):
+        # GH#36712
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        import pyarrow as pa
+
+        with pd.option_context("mode.string_storage", storage):
+
+            df = DataFrame(
+                {
+                    "a": np.array(["a", "b"], dtype=np.object_),
+                    "b": np.array(["x", pd.NA], dtype=np.object_),
+                }
+            )
+            with tm.ensure_clean(read_ext) as file_path:
+                df.to_excel(file_path, "test", index=False)
+                result = pd.read_excel(
+                    file_path, sheet_name="test", use_nullable_dtypes=True
+                )
+
+            if storage == "python":
+                expected = DataFrame(
+                    {
+                        "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
+                        "b": StringArray(np.array(["x", pd.NA], dtype=np.object_)),
+                    }
+                )
+            else:
+                expected = DataFrame(
+                    {
+                        "a": ArrowStringArray(pa.array(["a", "b"])),
+                        "b": ArrowStringArray(pa.array(["x", None])),
+                    }
+                )
+            tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
     def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
         # GH#35211
@@ -654,6 +705,13 @@ class TestReaders:
         expected = DataFrame(columns=["col_1", "col_2"])
         actual = pd.read_excel("blank_with_header" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
+
+    def test_exception_message_includes_sheet_name(self, read_ext):
+        # GH 48706
+        with pytest.raises(ValueError, match=r" \(sheet: Sheet1\)$"):
+            pd.read_excel("blank_with_header" + read_ext, header=[1], sheet_name=None)
+        with pytest.raises(ZeroDivisionError, match=r" \(sheet: Sheet1\)$"):
+            pd.read_excel("test1" + read_ext, usecols=lambda x: 1 / 0, sheet_name=None)
 
     @pytest.mark.filterwarnings("ignore:Cell A4 is marked:UserWarning:openpyxl")
     def test_date_conversion_overflow(self, request, engine, read_ext):
@@ -1222,7 +1280,7 @@ class TestReaders:
             ("testmultiindex", "both", [0, 1], [0, 1], None),
             ("testmultiindex", "mi_column_name", [0, 1], 0, None),
             ("testskiprows", "skiprows_list", None, None, [0, 2]),
-            ("testskiprows", "skiprows_list", None, None, lambda x: x == 0 or x == 2),
+            ("testskiprows", "skiprows_list", None, None, lambda x: x in (0, 2)),
         ],
     )
     def test_read_excel_nrows_params(
@@ -1276,10 +1334,8 @@ class TestReaders:
             tm.assert_series_equal(actual, expected)
 
     def test_deprecated_kwargs(self, read_ext):
-        with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=False):
+        with pytest.raises(TypeError, match="but 3 positional arguments"):
             pd.read_excel("test1" + read_ext, "Sheet1", 0)
-
-        pd.read_excel("test1" + read_ext)
 
     def test_no_header_with_list_index_col(self, read_ext):
         # GH 31783

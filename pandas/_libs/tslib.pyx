@@ -1,5 +1,3 @@
-import warnings
-
 cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
@@ -8,8 +6,6 @@ from cpython.datetime cimport (
     import_datetime,
     tzinfo,
 )
-
-from pandas.util._exceptions import find_stack_level
 
 # import datetime C API
 import_datetime()
@@ -421,6 +417,23 @@ def array_with_unit_to_datetime(
 
     return oresult, tz
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def first_non_null(values: ndarray) -> int:
+    """Find position of first non-null value, return -1 if there isn't one."""
+    cdef:
+        Py_ssize_t n = len(values)
+        Py_ssize_t i
+        int result
+    for i in range(n):
+        val = values[i]
+        if checknull_with_nat_and_na(val):
+            continue
+        if isinstance(val, str) and (len(val) == 0 or val in nat_strings):
+            continue
+        return i
+    else:
+        return -1
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -838,17 +851,12 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
     # We delay this check for as long as possible
     # because it catches relatively rare cases
     if val == "now":
-        iresult[0] = Timestamp.utcnow().value
-        if not utc:
+        if utc:
+            iresult[0] = Timestamp.utcnow().value
+        else:
             # GH#18705 make sure to_datetime("now") matches Timestamp("now")
-            warnings.warn(
-                "The parsing of 'now' in pd.to_datetime without `utc=True` is "
-                "deprecated. In a future version, this will match Timestamp('now') "
-                "and Timestamp.now()",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
+            # Note using Timestamp.now() is faster than Timestamp("now")
+            iresult[0] = Timestamp.now().value
         return True
     elif val == "today":
         iresult[0] = Timestamp.today().value

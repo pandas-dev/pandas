@@ -277,11 +277,11 @@ class TestDataFrameSetItem:
         expected = DataFrame({0: [1, None], "new": [1, None]}, dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        # OutOfBoundsDatetime error shouldn't occur
+        # OutOfBoundsDatetime error shouldn't occur; as of 2.0 we preserve "M8[s]"
         data_s = np.array([1, "nat"], dtype="datetime64[s]")
         result["new"] = data_s
-        expected = DataFrame({0: [1, None], "new": [1e9, None]}, dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        tm.assert_series_equal(result[0], expected[0])
+        tm.assert_numpy_array_equal(result["new"].to_numpy(), data_s)
 
     @pytest.mark.parametrize("unit", ["h", "m", "s", "ms", "D", "M", "Y"])
     def test_frame_setitem_datetime64_col_other_units(self, unit):
@@ -291,12 +291,17 @@ class TestDataFrameSetItem:
 
         dtype = np.dtype(f"M8[{unit}]")
         vals = np.arange(n, dtype=np.int64).view(dtype)
-        ex_vals = vals.astype("datetime64[ns]")
+        if unit in ["s", "ms"]:
+            # supported unit
+            ex_vals = vals
+        else:
+            # we get the nearest supported units, i.e. "s"
+            ex_vals = vals.astype("datetime64[s]")
 
         df = DataFrame({"ints": np.arange(n)}, index=np.arange(n))
         df[unit] = vals
 
-        assert df[unit].dtype == np.dtype("M8[ns]")
+        assert df[unit].dtype == ex_vals.dtype
         assert (df[unit].values == ex_vals).all()
 
     @pytest.mark.parametrize("unit", ["h", "m", "s", "ms", "D", "M", "Y"])
@@ -748,6 +753,14 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_frame_midx_columns(self):
+        # GH#49121
+        df = DataFrame({("a", "b"): [10]})
+        expected = df.copy()
+        col_name = ("a", "b")
+        df[col_name] = df[[col_name]]
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -766,11 +779,7 @@ class TestSetitemTZAwareValues:
         # convert to utc
         df = DataFrame(np.random.randn(2, 1), columns=["A"])
         df["B"] = idx
-
-        with tm.assert_produces_warning(FutureWarning) as m:
-            df["B"] = idx.to_series(keep_tz=False, index=[0, 1])
-        msg = "do 'idx.tz_convert(None)' before calling"
-        assert msg in str(m[0].message)
+        df["B"] = idx.to_series(index=[0, 1]).dt.tz_convert(None)
 
         result = df["B"]
         comp = Series(idx.tz_convert("UTC").tz_localize(None), name="B")

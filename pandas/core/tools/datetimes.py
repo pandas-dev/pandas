@@ -126,9 +126,8 @@ start_caching_at = 50
 
 def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str | None:
     # Try to guess the format based on the first non-NaN element, return None if can't
-    non_nan_elements = notna(arr).nonzero()[0]
-    if len(non_nan_elements):
-        if type(first_non_nan_element := arr[non_nan_elements[0]]) is str:
+    if (first_non_null := tslib.first_non_null(arr)) != -1:
+        if type(first_non_nan_element := arr[first_non_null]) is str:
             # GH#32264 np.str_ object
             return guess_datetime_format(first_non_nan_element, dayfirst=dayfirst)
     return None
@@ -783,15 +782,7 @@ def to_datetime(
         `strftime documentation
         <https://docs.python.org/3/library/datetime.html
         #strftime-and-strptime-behavior>`_ for more information on choices, though
-        note the following differences:
-
-        - :const:`"%f"` will parse all the way
-          up to nanoseconds;
-
-        - :const:`"%S"` without :const:`"%f"` will capture all the way
-          up to nanoseconds if present as decimal places, and will also handle
-          the case where the number of seconds is an integer.
-
+        note that :const:`"%f"` will parse all the way up to nanoseconds.
     exact : bool, default True
         Control how `format` is used:
 
@@ -969,13 +960,6 @@ def to_datetime(
     >>> pd.to_datetime('2018-10-26 12:00:00.0000000011',
     ...                format='%Y-%m-%d %H:%M:%S.%f')
     Timestamp('2018-10-26 12:00:00.000000001')
-
-    :const:`"%S"` without :const:`"%f"` will capture all the way
-    up to nanoseconds if present as decimal places.
-
-    >>> pd.to_datetime('2017-03-22 15:16:45.433502912',
-    ...                format='%Y-%m-%d %H:%M:%S')
-    Timestamp('2017-03-22 15:16:45.433502912')
 
     **Non-convertible date/times**
 

@@ -154,7 +154,7 @@ class TestTimestampUnaryOps:
         result = dt.ceil("D")
         expected = Timestamp("20130102")
         assert result == expected
-        assert result._reso == dt._reso
+        assert result._creso == dt._creso
 
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_floor(self, unit):
@@ -162,7 +162,7 @@ class TestTimestampUnaryOps:
         result = dt.floor("D")
         expected = Timestamp("20130101")
         assert result == expected
-        assert result._reso == dt._reso
+        assert result._creso == dt._creso
 
     @pytest.mark.parametrize("method", ["ceil", "round", "floor"])
     @pytest.mark.parametrize(
@@ -176,14 +176,14 @@ class TestTimestampUnaryOps:
         #
         result = getattr(ts, method)("H", ambiguous=True)
         assert result == ts
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
         result = getattr(ts, method)("H", ambiguous=False)
         expected = Timestamp("2017-10-29 01:00:00", tz="UTC").tz_convert(
             "Europe/Madrid"
         )
         assert result == expected
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
         result = getattr(ts, method)("H", ambiguous="NaT")
         assert result is NaT
@@ -210,7 +210,7 @@ class TestTimestampUnaryOps:
         result = getattr(ts, method)(freq, nonexistent="shift_forward")
         expected = Timestamp("2018-03-11 03:00:00", tz="America/Chicago")
         assert result == expected
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
         result = getattr(ts, method)(freq, nonexistent="NaT")
         assert result is NaT
@@ -363,7 +363,7 @@ class TestTimestampUnaryOps:
         assert ts.to_pydatetime() == datetime(4869, 12, 28)
 
         result = ts.replace(year=4900)
-        assert result._reso == ts._reso
+        assert result._creso == ts._creso
         assert result.to_pydatetime() == datetime(4900, 12, 28)
 
     def test_replace_naive(self):
@@ -490,7 +490,7 @@ class TestTimestampUnaryOps:
         result = t.replace(hour=3)
         expected = Timestamp("2013-11-3 03:00:00", tz="America/Chicago")
         assert result == expected
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     @pytest.mark.parametrize("fold", [0, 1])
     @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
@@ -504,7 +504,7 @@ class TestTimestampUnaryOps:
             tz, ambiguous=not fold
         )
         assert result == expected
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     # --------------------------------------------------------------
     # Timestamp.normalize
@@ -517,7 +517,7 @@ class TestTimestampUnaryOps:
         result = ts.normalize()
         expected = Timestamp("2013-11-30", tz=tz)
         assert result == expected
-        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     def test_normalize_pre_epoch_dates(self):
         # GH: 36294
