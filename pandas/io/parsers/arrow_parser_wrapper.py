@@ -78,7 +78,7 @@ class ArrowParserWrapper(ParserBase):
             else self.kwds["skiprows"],
         }
 
-    def _finalize_output(self, frame: DataFrame) -> DataFrame:
+    def _finalize_pandas_output(self, frame: DataFrame) -> DataFrame:
         """
         Processes data read in based on kwargs.
 
@@ -155,12 +155,12 @@ class ArrowParserWrapper(ParserBase):
             self.kwds["use_nullable_dtypes"]
             and get_option("io.nullable_backend") == "pyarrow"
         ):
-            result = DataFrame(
+            frame = DataFrame(
                 {
                     col_name: arrays.ArrowExtensionArray(pa_col)
                     for col_name, pa_col in zip(table.column_names, table.itercolumns())
                 }
             )
-            return result
-        frame = table.to_pandas()
-        return self._finalize_output(frame)
+        else:
+            frame = table.to_pandas()
+        return self._finalize_pandas_output(frame)
