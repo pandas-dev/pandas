@@ -1985,14 +1985,13 @@ default 'raise'
 # Constructor Helpers
 
 
-def sequence_to_datetimes(data, require_iso8601: bool = False) -> DatetimeArray:
+def sequence_to_datetimes(data) -> DatetimeArray:
     """
     Parse/convert the passed data to either DatetimeArray or np.ndarray[object].
     """
     result, tz, freq = _sequence_to_dt64ns(
         data,
         allow_mixed=True,
-        require_iso8601=require_iso8601,
     )
 
     unit = np.datetime_data(result.dtype)[0]
@@ -2123,10 +2122,15 @@ def _sequence_to_dt64ns(
             # Convert tz-naive to UTC
             # TODO: if tz is UTC, are there situations where we *don't* want a
             #  copy?  tz_localize_to_utc always makes one.
+            shape = data.shape
+            if data.ndim > 1:
+                data = data.ravel()
+
             data = tzconversion.tz_localize_to_utc(
                 data.view("i8"), tz, ambiguous=ambiguous, creso=data_unit
             )
             data = data.view(new_dtype)
+            data = data.reshape(shape)
 
         assert data.dtype == new_dtype, data.dtype
         result = data

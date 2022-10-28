@@ -50,6 +50,7 @@ from pandas._typing import (
     CompressionOptions,
     FilePath,
     ReadBuffer,
+    ReadCsvBuffer,
     StorageOptions,
     WriteBuffer,
 )
@@ -1105,6 +1106,9 @@ def _maybe_memory_map(
     memory_map &= hasattr(handle, "fileno") or isinstance(handle, str)
     if not memory_map:
         return handle, memory_map, handles
+
+    # mmap used by only read_csv
+    handle = cast(ReadCsvBuffer, handle)
 
     # need to open the file first
     if isinstance(handle, str):
