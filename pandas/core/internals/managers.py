@@ -610,7 +610,6 @@ class BaseBlockManager(DataManager):
             axes[-1] = index
         axes[0] = self.items.take(indexer)
 
-        # TODO cover this one
         return type(self).from_blocks(
             new_blocks, axes, new_refs, parent=None if copy else self
         )

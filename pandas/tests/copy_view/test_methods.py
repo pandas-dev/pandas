@@ -192,8 +192,9 @@ def test_to_frame(using_copy_on_write):
         (lambda df: df.copy(deep=False).copy(deep=False), 0),
         (lambda df: df.reset_index().reset_index(), 2),
         (lambda df: df.rename(columns=str.upper).rename(columns=str.lower), 0),
+        (lambda df: df.copy(deep=False).select_dtypes(include="number"), 0),
     ],
-    ids=["shallow-copy", "reset_index", "rename"],
+    ids=["shallow-copy", "reset_index", "rename", "select_dtypes"],
 )
 def test_chained_methods(request, method, idx, using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
