@@ -602,7 +602,10 @@ def _read(
             raise ValueError(
                 "The 'chunksize' option is not supported with the 'pyarrow' engine"
             )
-    elif kwds["use_nullable_dtypes"] and get_option("io.nullable_backend") == "pyarrow":
+    elif (
+        kwds.get("use_nullable_dtypes", False)
+        and get_option("io.nullable_backend") == "pyarrow"
+    ):
         raise NotImplementedError(
             f"use_nullable_dtypes=True and engine={kwds['engine']} with "
             "io.nullable_backend set to 'pyarrow' is not implemented."
