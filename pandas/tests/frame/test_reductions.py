@@ -28,8 +28,10 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-import pandas.core.algorithms as algorithms
-import pandas.core.nanops as nanops
+from pandas.core import (
+    algorithms,
+    nanops,
+)
 
 
 def assert_stat_op_calc(
@@ -168,7 +170,15 @@ class TestDataFrameAnalytics:
         ],
     )
     def test_stat_op_api_float_string_frame(self, float_string_frame, axis, opname):
-        getattr(float_string_frame, opname)(axis=axis)
+        if opname in ["sum", "min", "max"] and axis == 0:
+            warn = None
+        elif opname not in ["count", "nunique"]:
+            warn = FutureWarning
+        else:
+            warn = None
+        msg = "nuisance columns|default value of numeric_only"
+        with tm.assert_produces_warning(warn, match=msg):
+            getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
             getattr(float_string_frame, opname)(axis=axis, numeric_only=True)
 
@@ -1272,7 +1282,6 @@ class TestDataFrameAnalytics:
         assert result is False
 
     def test_any_all_object_bool_only(self):
-        msg = "object-dtype columns with all-bool values"
 
         df = DataFrame({"A": ["foo", 2], "B": [True, False]}).astype(object)
         df._consolidate_inplace()
@@ -1283,36 +1292,29 @@ class TestDataFrameAnalytics:
 
         # The underlying bug is in DataFrame._get_bool_data, so we check
         #  that while we're here
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = df._get_bool_data()
-        expected = df[["B", "C"]]
+        res = df._get_bool_data()
+        expected = df[["C"]]
         tm.assert_frame_equal(res, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = df.all(bool_only=True, axis=0)
-        expected = Series([False, True], index=["B", "C"])
+        res = df.all(bool_only=True, axis=0)
+        expected = Series([True], index=["C"])
         tm.assert_series_equal(res, expected)
 
         # operating on a subset of columns should not produce a _larger_ Series
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = df[["B", "C"]].all(bool_only=True, axis=0)
+        res = df[["B", "C"]].all(bool_only=True, axis=0)
         tm.assert_series_equal(res, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert not df.all(bool_only=True, axis=None)
+        assert df.all(bool_only=True, axis=None)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = df.any(bool_only=True, axis=0)
-        expected = Series([True, True], index=["B", "C"])
+        res = df.any(bool_only=True, axis=0)
+        expected = Series([True], index=["C"])
         tm.assert_series_equal(res, expected)
 
         # operating on a subset of columns should not produce a _larger_ Series
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = df[["B", "C"]].any(bool_only=True, axis=0)
+        res = df[["C"]].any(bool_only=True, axis=0)
         tm.assert_series_equal(res, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert df.any(bool_only=True, axis=None)
+        assert df.any(bool_only=True, axis=None)
 
     @pytest.mark.parametrize("method", ["any", "all"])
     def test_any_all_level_axis_none_raises(self, method):

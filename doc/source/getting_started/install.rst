@@ -336,7 +336,6 @@ Can be managed as optional_extra with ``pandas[excel]``.
 Dependency                Minimum Version    optional_extra  Notes
 ========================= ================== =============== =============================================================
 xlrd                      2.0.1              excel           Reading Excel
-xlwt                      1.3.0              excel           Writing Excel
 xlsxwriter                1.4.3              excel           Writing Excel
 openpyxl                  3.0.7              excel           Reading / writing for xlsx files
 pyxlsb                    1.0.8              excel           Reading for xlsb files

@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.common as common  # noqa: PDF018
+from pandas.core import common  # noqa: PDF018
 from pandas.core.indexers.objects import (
     BaseIndexer,
     ExponentialMovingWindowIndexer,
@@ -1002,7 +1002,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         1  0.75  5.75
         """
         result_kwargs = {}
-        is_frame = True if self._selected_obj.ndim == 2 else False
+        is_frame = self._selected_obj.ndim == 2
         if update_times is not None:
             raise NotImplementedError("update_times is not implemented.")
         else:
