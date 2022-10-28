@@ -449,7 +449,7 @@ def test_use_nullabla_dtypes_and_dtype(all_parsers):
 @pytest.mark.parametrize("storage", ["pyarrow", "python"])
 def test_use_nullabla_dtypes_string(all_parsers, storage):
     # GH#36712
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     with pd.option_context("mode.string_storage", storage):
 
