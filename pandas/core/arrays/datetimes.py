@@ -2162,7 +2162,7 @@ def objects_to_datetime64ns(
     allow_object: bool = False,
     allow_mixed: bool = False,
     format: str = "",
-    exact: bool = True,
+    exact: bool = False,
 ):
     """
     Convert data to array of timestamps.
