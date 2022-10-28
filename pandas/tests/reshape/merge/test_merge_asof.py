@@ -218,7 +218,6 @@ class TestAsOfMerge:
         result = merge_asof(
             trades, quotes, left_on="time", right_index=True, by="ticker"
         )
-        expected.index = result.index
         tm.assert_frame_equal(result, expected)
 
     def test_basic_left_index_right_index(self, trades, asof, quotes):
@@ -230,7 +229,6 @@ class TestAsOfMerge:
         result = merge_asof(
             trades, quotes, left_index=True, right_index=True, by="ticker"
         )
-        expected.index = result.index
         tm.assert_frame_equal(result, expected)
 
     def test_multi_index_left(self, trades, quotes):
@@ -453,7 +451,6 @@ class TestAsOfMerge:
         result = merge_asof(
             left, right, left_index=True, right_index=True, by=["k1", "k2"]
         )
-        expected.index = result.index
         tm.assert_frame_equal(expected, result)
 
         with pytest.raises(
@@ -716,7 +713,6 @@ class TestAsOfMerge:
             by="ticker",
             tolerance=Timedelta("1day"),
         )
-        expected.index = result.index
         tm.assert_frame_equal(result, expected)
 
     def test_allow_exact_matches(self, trades, quotes, allow_exact_matches):
@@ -1404,7 +1400,6 @@ class TestAsOfMerge:
             },
             index=Index([0, 1, 2, 3, 4]),
         )
-        expected.index = result.index
         tm.assert_frame_equal(result, expected)
 
     def test_left_index_right_index_tolerance(self):
@@ -1427,7 +1422,6 @@ class TestAsOfMerge:
             right_index=True,
             tolerance=Timedelta(seconds=0.5),
         )
-        expected.index = result.index
         tm.assert_frame_equal(result, expected)
 
 
@@ -1486,7 +1480,6 @@ def test_merge_asof_index_behavior(kwargs):
         {"left": ["a", "b", "c"], "left_time": [1, 4, 10], "right": [1, 3, 7]},
         index=index,
     )
-    expected.index = result.index
     tm.assert_frame_equal(result, expected)
 
 
