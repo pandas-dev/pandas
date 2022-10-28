@@ -557,7 +557,7 @@ class Apply(metaclass=abc.ABCMeta):
             sig = inspect.getfullargspec(func)
             arg_names = (*sig.args, *sig.kwonlyargs)
             if self.axis != 0 and (
-                "axis" not in arg_names or f in ("corrwith", "mad", "skew")
+                "axis" not in arg_names or f in ("corrwith", "skew")
             ):
                 raise ValueError(f"Operation {f} does not support axis=1")
             elif "axis" in arg_names:

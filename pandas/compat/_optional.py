@@ -9,7 +9,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.util.version import Version
 
-# Update install.rst when updating versions!
+# Update install.rst & setup.cfg when updating versions!
 
 VERSIONS = {
     "bs4": "4.9.3",
@@ -43,7 +43,6 @@ VERSIONS = {
     "tabulate": "0.8.9",
     "xarray": "0.19.0",
     "xlrd": "2.0.1",
-    "xlwt": "1.3.0",
     "xlsxwriter": "1.4.3",
     "zstandard": "0.15.2",
     "tzdata": "2022.1",

@@ -1918,6 +1918,7 @@ with optional parameters:
 * ``date_unit`` : The time unit to encode to, governs timestamp and ISO8601 precision. One of 's', 'ms', 'us' or 'ns' for seconds, milliseconds, microseconds and nanoseconds respectively. Default 'ms'.
 * ``default_handler`` : The handler to call if an object cannot otherwise be converted to a suitable format for JSON. Takes a single argument, which is the object to convert, and returns a serializable object.
 * ``lines`` : If ``records`` orient, then will write each record per line as json.
+* ``mode`` : string, writer mode when writing to path. 'w' for write, 'a' for append. Default 'w'
 
 Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datetime`` objects will be converted based on the ``date_format`` and ``date_unit`` parameters.
 
@@ -3465,8 +3466,6 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 
 .. warning::
 
-   The `xlwt <https://xlwt.readthedocs.io/en/latest/>`__ package for writing old-style ``.xls``
-   excel files is no longer maintained.
    The `xlrd <https://xlrd.readthedocs.io/en/latest/>`__ package is now only for reading
    old-style ``.xls`` files.
 
@@ -3479,12 +3478,6 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
    (``.xlsx``) files.
    **Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.**
    This is no longer supported, switch to using ``openpyxl`` instead.
-
-   Attempting to use the ``xlwt`` engine will raise a ``FutureWarning``
-   unless the option :attr:`io.excel.xls.writer` is set to ``"xlwt"``.
-   While this option is now deprecated and will also raise a ``FutureWarning``,
-   it can be globally set and the warning suppressed. Users are recommended to
-   write ``.xlsx`` files using the ``openpyxl`` engine instead.
 
 .. _io.excel_reader:
 
@@ -3787,7 +3780,7 @@ written. For example:
 
    df.to_excel("path_to_file.xlsx", sheet_name="Sheet1")
 
-Files with a ``.xls`` extension will be written using ``xlwt`` and those with a
+Files with a
 ``.xlsx`` extension will be written using ``xlsxwriter`` (if available) or
 ``openpyxl``.
 
@@ -3848,20 +3841,13 @@ pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 Excel writer engines
 ''''''''''''''''''''
 
-.. deprecated:: 1.2.0
-
-   As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
-   maintained, the ``xlwt`` engine will be removed from a future version
-   of pandas. This is the only engine in pandas that supports writing to
-   ``.xls`` files.
-
 pandas chooses an Excel writer via two methods:
 
 1. the ``engine`` keyword argument
 2. the filename extension (via the default specified in config options)
 
 By default, pandas uses the `XlsxWriter`_  for ``.xlsx``, `openpyxl`_
-for ``.xlsm``, and `xlwt`_ for ``.xls`` files. If you have multiple
+for ``.xlsm``. If you have multiple
 engines installed, you can set the default engine through :ref:`setting the
 config options <options>` ``io.excel.xlsx.writer`` and
 ``io.excel.xls.writer``. pandas will fall back on `openpyxl`_ for ``.xlsx``
@@ -3869,14 +3855,12 @@ files if `Xlsxwriter`_ is not available.
 
 .. _XlsxWriter: https://xlsxwriter.readthedocs.io
 .. _openpyxl: https://openpyxl.readthedocs.io/
-.. _xlwt: http://www.python-excel.org
 
 To specify which writer you want to use, you can pass an engine keyword
 argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
 
 * ``openpyxl``: version 2.4 or higher is required
 * ``xlsxwriter``
-* ``xlwt``
 
 .. code-block:: python
 

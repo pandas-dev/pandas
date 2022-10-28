@@ -841,8 +841,7 @@ def test_timestamp_multiindex_indexer():
 def test_get_slice_bound_with_missing_value(index_arr, expected, target, algo):
     # issue 19132
     idx = MultiIndex.from_arrays(index_arr)
-    with tm.assert_produces_warning(FutureWarning, match="'kind' argument"):
-        result = idx.get_slice_bound(target, side=algo, kind="loc")
+    result = idx.get_slice_bound(target, side=algo)
     assert result == expected
 
 
@@ -884,9 +883,9 @@ def test_pyint_engine():
     # keys would collide; if truncating the last levels, the fifth and
     # sixth; if rotating bits rather than shifting, the third and fifth.
 
-    for idx in range(len(keys)):
+    for idx, key_value in enumerate(keys):
         index = MultiIndex.from_tuples(keys)
-        assert index.get_loc(keys[idx]) == idx
+        assert index.get_loc(key_value) == idx
 
         expected = np.arange(idx + 1, dtype=np.intp)
         result = index.get_indexer([keys[i] for i in expected])
