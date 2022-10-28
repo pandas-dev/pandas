@@ -32,7 +32,7 @@ from pandas.core.resample import (
     _get_timestamp_range_edges,
 )
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 from pandas.tseries.offsets import Minute
 
 

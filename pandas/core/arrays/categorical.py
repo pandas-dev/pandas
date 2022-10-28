@@ -87,6 +87,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import (
+    algorithms,
     arraylike,
     ops,
 )
@@ -94,7 +95,6 @@ from pandas.core.accessor import (
     PandasDelegate,
     delegate_names,
 )
-import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import (
     factorize,
     take_nd,
@@ -133,7 +133,7 @@ CategoricalT = TypeVar("CategoricalT", bound="Categorical")
 
 def _cat_compare_op(op):
     opname = f"__{op.__name__}__"
-    fill_value = True if op is operator.ne else False
+    fill_value = op is operator.ne
 
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
@@ -1802,10 +1802,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "Categorical to an ordered one\n"
             )
 
-    # error: Signature of "argsort" incompatible with supertype "ExtensionArray"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def argsort(  # type: ignore[override]
-        self, ascending: bool = True, kind: SortKind = "quicksort", **kwargs
+    def argsort(
+        self, *, ascending: bool = True, kind: SortKind = "quicksort", **kwargs
     ):
         """
         Return the indices that would sort the Categorical.
@@ -1875,9 +1873,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def sort_values(
-        self, inplace: bool = False, ascending: bool = True, na_position: str = "last"
+        self,
+        *,
+        inplace: bool = False,
+        ascending: bool = True,
+        na_position: str = "last",
     ) -> Categorical | None:
         """
         Sort the Categorical by category value returning a new

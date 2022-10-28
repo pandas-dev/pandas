@@ -7,7 +7,7 @@ from typing import Iterator
 
 from dateutil.tz import tzoffset
 import numpy as np
-import numpy.ma as ma
+from numpy import ma
 import pytest
 
 from pandas._libs import (
@@ -782,25 +782,16 @@ class TestSeriesConstructors:
         # GH#40110
         arr = np.random.randn(2)
 
-        if frame_or_series is Series:
-            # Long-standing behavior has been to ignore the dtype on these;
-            #  not clear if this is what we want long-term
-            expected = frame_or_series(arr)
+        # Long-standing behavior (for Series, new in 2.0 for DataFrame)
+        #  has been to ignore the dtype on these;
+        #  not clear if this is what we want long-term
+        expected = frame_or_series(arr)
 
-            res = frame_or_series(arr, dtype="i8")
-            tm.assert_equal(res, expected)
+        res = frame_or_series(arr, dtype="i8")
+        tm.assert_equal(res, expected)
 
-            res = frame_or_series(list(arr), dtype="i8")
-            tm.assert_equal(res, expected)
-
-        else:
-            msg = "passing float-dtype values and an integer dtype"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                # DataFrame will behave like Series
-                frame_or_series(arr, dtype="i8")
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                # DataFrame will behave like Series
-                frame_or_series(list(arr), dtype="i8")
+        res = frame_or_series(list(arr), dtype="i8")
+        tm.assert_equal(res, expected)
 
         # When we have NaNs, we silently ignore the integer dtype
         arr[0] = np.nan

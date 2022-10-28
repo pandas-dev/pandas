@@ -33,7 +33,7 @@ from typing import (
 import warnings
 
 import numpy as np
-import numpy.ma as ma
+from numpy import ma
 
 from pandas._config import get_option
 
@@ -685,7 +685,7 @@ class DataFrame(NDFrame, OpsMixin):
             # GH#38939 de facto copy defaults to False only in non-dict cases
             mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy, typ=manager)
         elif isinstance(data, ma.MaskedArray):
-            import numpy.ma.mrecords as mrecords
+            from numpy.ma import mrecords
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
@@ -5835,10 +5835,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "keys"])
     def set_index(
         self,
         keys,
+        *,
         drop: bool = True,
         append: bool = False,
         inplace: bool = False,
@@ -6080,10 +6080,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
     def reset_index(
         self,
         level: IndexLabel = None,
+        *,
         drop: bool = False,
         inplace: bool = False,
         col_level: Hashable = 0,
@@ -6376,9 +6376,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def dropna(
         self,
+        *,
         axis: Axis = 0,
         how: AnyAll | NoDefault = no_default,
         thresh: int | NoDefault = no_default,
@@ -8036,7 +8036,7 @@ Keep all original rows and columns and also all original values
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
         """
-        import pandas.core.computation.expressions as expressions
+        from pandas.core.computation import expressions
 
         def combiner(x, y):
             mask = extract_array(isna(x))
@@ -8179,7 +8179,7 @@ Keep all original rows and columns and also all original values
         1  2  500.0
         2  3    6.0
         """
-        import pandas.core.computation.expressions as expressions
+        from pandas.core.computation import expressions
 
         # TODO: Support other joins
         if join != "left":  # pragma: no cover
@@ -8500,9 +8500,8 @@ Parrot 2  Parrot       24.0
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def pivot(
-        self, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
+        self, *, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
@@ -8956,7 +8955,11 @@ Parrot 2  Parrot       24.0
         3    4  1    e
         """
         if not self.columns.is_unique:
-            raise ValueError("columns must be unique")
+            duplicate_cols = self.columns[self.columns.duplicated()].tolist()
+            raise ValueError(
+                "DataFrame columns must be unique. "
+                + f"Duplicate columns: {duplicate_cols}"
+            )
 
         columns: list[Hashable]
         if is_scalar(column) or isinstance(column, tuple):

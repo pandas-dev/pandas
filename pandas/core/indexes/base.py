@@ -67,7 +67,6 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import (
@@ -315,13 +314,6 @@ class Index(IndexOpsMixin, PandasObject):
     >>> pd.Index(list('abc'))
     Index(['a', 'b', 'c'], dtype='object')
     """
-
-    # tolist is not actually deprecated, just suppressed in the __dir__
-    _hidden_attrs: frozenset[str] = (
-        PandasObject._hidden_attrs
-        | IndexOpsMixin._hidden_attrs
-        | frozenset(["contains", "set_value"])
-    )
 
     # To hand over control to subclasses
     _join_precedence = 1
@@ -2901,8 +2893,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = super().unique()
         return self._shallow_copy(result)
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(self: _IndexT, keep: DropKeep = "first") -> _IndexT:
+    def drop_duplicates(self: _IndexT, *, keep: DropKeep = "first") -> _IndexT:
         """
         Return Index with duplicate values removed.
 
