@@ -487,6 +487,60 @@ def test_observed_groups(observed):
     tm.assert_dict_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "keys, expected_values, expected_index_levels",
+    [
+        ("a", [15, 9, 0], CategoricalIndex([1, 2, 3], name="a")),
+        (
+            ["a", "b"],
+            [7, 8, 0, 0, 0, 9, 0, 0, 0],
+            [CategoricalIndex([1, 2, 3], name="a"), Index([4, 5, 6])],
+        ),
+        (
+            ["a", "a2"],
+            [15, 0, 0, 0, 9, 0, 0, 0, 0],
+            [
+                CategoricalIndex([1, 2, 3], name="a"),
+                CategoricalIndex([1, 2, 3], name="a"),
+            ],
+        ),
+    ],
+)
+@pytest.mark.parametrize("test_series", [True, False])
+def test_unobserved_in_index(keys, expected_values, expected_index_levels, test_series):
+    # GH#49354 - ensure unobserved cats occur when grouping by index levels
+    df = DataFrame(
+        {
+            "a": Categorical([1, 1, 2], categories=[1, 2, 3]),
+            "a2": Categorical([1, 1, 2], categories=[1, 2, 3]),
+            "b": [4, 5, 6],
+            "c": [7, 8, 9],
+        }
+    ).set_index(["a", "a2"])
+    if "b" not in keys:
+        # Only keep b when it is used for grouping for consistent columns in the result
+        df = df.drop(columns="b")
+
+    gb = df.groupby(keys, observed=False)
+    if test_series:
+        gb = gb["c"]
+    result = gb.sum()
+
+    if len(keys) == 1:
+        index = expected_index_levels
+    else:
+        codes = [[0, 0, 0, 1, 1, 1, 2, 2, 2], 3 * [0, 1, 2]]
+        index = MultiIndex(
+            expected_index_levels,
+            codes=codes,
+            names=keys,
+        )
+    expected = DataFrame({"c": expected_values}, index=index)
+    if test_series:
+        expected = expected["c"]
+    tm.assert_equal(result, expected)
+
+
 def test_observed_groups_with_nan(observed):
     # GH 24740
     df = DataFrame(
@@ -1235,10 +1289,10 @@ def df_cat(df):
 @pytest.mark.parametrize("operation", ["agg", "apply"])
 def test_seriesgroupby_observed_true(df_cat, operation):
     # GH 24880
-    lev_a = Index(["foo", "foo", "bar", "bar"], dtype=df_cat["A"].dtype, name="A")
-    lev_b = Index(["one", "two", "one", "three"], dtype=df_cat["B"].dtype, name="B")
+    lev_a = Index(["bar", "bar", "foo", "foo"], dtype=df_cat["A"].dtype, name="A")
+    lev_b = Index(["one", "three", "one", "two"], dtype=df_cat["B"].dtype, name="B")
     index = MultiIndex.from_arrays([lev_a, lev_b])
-    expected = Series(data=[1, 3, 2, 4], index=index, name="C")
+    expected = Series(data=[2, 4, 1, 3], index=index, name="C")
 
     grouped = df_cat.groupby(["A", "B"], observed=True)["C"]
     result = getattr(grouped, operation)(sum)
@@ -1272,16 +1326,16 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
             True,
             MultiIndex.from_arrays(
                 [
-                    Index(["foo"] * 4 + ["bar"] * 4, dtype="category", name="A"),
+                    Index(["bar"] * 4 + ["foo"] * 4, dtype="category", name="A"),
                     Index(
-                        ["one", "one", "two", "two", "one", "one", "three", "three"],
+                        ["one", "one", "three", "three", "one", "one", "two", "two"],
                         dtype="category",
                         name="B",
                     ),
                     Index(["min", "max"] * 4),
                 ]
             ),
-            [1, 1, 3, 3, 2, 2, 4, 4],
+            [2, 2, 4, 4, 1, 1, 3, 3],
         ),
         (
             False,
@@ -1857,7 +1911,7 @@ def test_category_order_reducer(
     if (
         reduction_func in ("idxmax", "idxmin")
         and not observed
-        and index_kind == "range"
+        and index_kind != "multi"
     ):
         msg = "GH#10694 - idxmax/min fail with unused categories"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
@@ -2005,10 +2059,13 @@ def test_category_order_apply(as_index, sort, observed, method, index_kind, orde
 
 
 @pytest.mark.parametrize("index_kind", ["range", "single", "multi"])
-def test_many_categories(as_index, sort, index_kind, ordered):
+def test_many_categories(request, as_index, sort, index_kind, ordered):
     # GH#48749 - Test when the grouper has many categories
     if index_kind != "range" and not as_index:
         pytest.skip(reason="Result doesn't have categories, nothing to test")
+    if index_kind == "multi" and as_index and not sort and ordered:
+        msg = "GH#48749 - values are unsorted even though the Categorical is ordered"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
     categories = np.arange(9999, -1, -1)
     grouper = Categorical([2, 1, 2, 3], categories=categories, ordered=ordered)
     df = DataFrame({"a": grouper, "b": range(4)})
@@ -2025,11 +2082,7 @@ def test_many_categories(as_index, sort, index_kind, ordered):
     result = gb.sum()
 
     # Test is setup so that data and index are the same values
-    # TODO: GH#49223 - Order of values should be the same for all index_kinds
-    if index_kind == "range":
-        data = [3, 2, 1] if ordered else [2, 1, 3]
-    else:
-        data = [3, 2, 1] if sort else [2, 1, 3]
+    data = [3, 2, 1] if sort or ordered else [2, 1, 3]
 
     index = CategoricalIndex(
         data, categories=grouper.categories, ordered=ordered, name="a"

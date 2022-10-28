@@ -496,11 +496,17 @@ class Grouping:
             # In extant tests, the new self.grouping_vector matches
             #  `index.get_level_values(ilevel)` whenever
             #  mapper is None and isinstance(index, MultiIndex)
+            # TODO: Can you have two levels with the same name?
+            if isinstance(index, MultiIndex):
+                index = index.get_level_values(ilevel)
             (
                 self.grouping_vector,  # Index
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(mapper, level=ilevel, dropna=dropna)
+            ) = index._get_grouper_for_level(mapper, dropna=dropna)
+            # We've modified the passed index; make sure it isn't used
+            # in the remainder of this method
+            del index
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -523,15 +529,6 @@ class Grouping:
                 # ops.BaseGrouper
                 # use Index instead of ndarray so we can recover the name
                 self.grouping_vector = Index(ng, name=newgrouper.result_index.name)
-
-        elif is_categorical_dtype(self.grouping_vector):
-            # a passed Categorical
-            self._passed_categorical = True
-
-            self._orig_cats = self.grouping_vector.categories
-            self.grouping_vector, self._all_grouper = recode_for_groupby(
-                self.grouping_vector, sort, observed
-            )
 
         elif not isinstance(
             self.grouping_vector, (Series, Index, ExtensionArray, np.ndarray)
@@ -562,6 +559,14 @@ class Grouping:
                 # TODO 2022-10-08 we only have one test that gets here and
                 #  values are already in nanoseconds in that case.
                 self.grouping_vector = Series(self.grouping_vector).to_numpy()
+        elif is_categorical_dtype(self.grouping_vector):
+            # a passed Categorical
+            self._passed_categorical = True
+
+            self._orig_cats = self.grouping_vector.categories
+            self.grouping_vector, self._all_grouper = recode_for_groupby(
+                self.grouping_vector, sort, observed
+            )
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
