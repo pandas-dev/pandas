@@ -17,7 +17,7 @@ from pandas.core.computation.ops import (
     REDUCTIONS,
 )
 
-import pandas.io.formats.printing as printing
+from pandas.io.formats import printing
 
 if TYPE_CHECKING:
     from pandas.core.computation.expr import Expr
