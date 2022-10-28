@@ -288,3 +288,10 @@ def test_bar_color_raises(df):
     msg = "`color` and `cmap` cannot both be given"
     with pytest.raises(ValueError, match=msg):
         df.style.bar(color="something", cmap="something else").to_html()
+
+
+@pytest.mark.xfail(mpl_ge_3_6_0(), reason="passing Colormap instance currently broken")
+def test_pass_colormap_instance(df):
+    # https://github.com/pandas-dev/pandas/issues/49374
+    cmap = mpl.colors.ListedColormap([[1, 1, 1], [0, 0, 0]])
+    df.plot.scatter(x="A", y="B", colormap=cmap)
