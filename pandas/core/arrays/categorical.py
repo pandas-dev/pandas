@@ -40,7 +40,6 @@ from pandas._typing import (
     type_t,
 )
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import deprecate_nonkeyword_arguments
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
@@ -2326,7 +2325,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if not inplace:
             return cat
-        NDArrayBacked.__init__(self, cat._ndarray, cat.dtype)
 
     # ------------------------------------------------------------------------
     # String methods interface
