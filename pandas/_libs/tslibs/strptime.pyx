@@ -134,16 +134,7 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
             iresult[i] = NPY_NAT
             continue
         elif isinstance(val, datetime):
-            iresult[i] = _parse_python_datetime_object(val, &dts)
-            try:
-                check_dts_bounds(&dts)
-            except ValueError:
-                if is_coerce:
-                    iresult[i] = NPY_NAT
-                    continue
-                raise
-            result_timezone[i] = val.tzname()
-            continue
+            val = val.strftime(fmt)
         else:
             val = str(val)
 
@@ -543,29 +534,3 @@ cdef tzinfo parse_timezone_directive(str z):
                      (microseconds // 60_000_000))
     total_minutes = -total_minutes if z.startswith("-") else total_minutes
     return pytz.FixedOffset(total_minutes)
-
-cdef int64_t _parse_python_datetime_object(datetime dt, npy_datetimestruct *dts):
-    """
-    Parse a native datetime.datetime object and return a numpy datetime object
-
-    Parameters
-    ----------
-    dt : datetime.datetime instance
-    dts: numpy datetime struct
-
-    Returns
-    -------
-    int64_t
-        the numpy datetime object
-    """
-    dts.year = dt.year
-    dts.month = dt.month
-    dts.day = dt.day
-    dts.hour = dt.hour
-    dts.min = dt.minute
-    dts.sec = dt.second
-    dts.us = dt.microsecond
-    dts.ps = 0  # Not enough precision in datetime objects (https://github.com/python/cpython/issues/59648)
-
-    npy_datetime = npy_datetimestruct_to_datetime(NPY_FR_ns, dts)
-    return npy_datetime
