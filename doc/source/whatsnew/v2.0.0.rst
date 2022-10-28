@@ -257,6 +257,7 @@ Removal of prior version deprecations/changes
 - Changed behavior of :class:`DataFrame` constructor when passed a ``dtype`` (other than int) that the data cannot be cast to; it now raises instead of silently ignoring the dtype (:issue:`41733`)
 - Changed the behavior of :class:`Series` constructor, it will no longer infer a datetime64 or timedelta64 dtype from string entries (:issue:`41731`)
 - Changed behavior of :class:`Index` constructor when passed a ``SparseArray`` or ``SparseDtype`` to retain that dtype instead of casting to ``numpy.ndarray`` (:issue:`43930`)
+- Removed the deprecated ``base`` and ``loffset`` arguments from :meth:`pandas.DataFrame.resample`, :meth:`pandas.Series.resample` and :class:`pandas.Grouper`. Use ``offset`` or ``origin`` instead (:issue:`31809`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:
@@ -396,7 +397,6 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.sample` raises ``ValueError`` when the object is empty (:issue:`48459`)
 - Bug in :meth:`Series.groupby` raises ``ValueError`` when an entry of the index is equal to the name of the index (:issue:`48567`)
 - Bug in :meth:`DataFrameGroupBy.resample` produces inconsistent results when passing empty DataFrame (:issue:`47705`)
-- Removed the previously deprecated ``base`` and ``loffset`` arguments from :meth:`pandas.DataFrame.resample`, :meth:`pandas.Series.resample` and :class:`pandas.Grouper`. Use ``offset`` or ``origin`` instead (:issue:`31809`)
 -
 
 Reshaping
