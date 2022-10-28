@@ -6814,7 +6814,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    # TODO: Just move the sort_values doc here.
     # error: Signature of "sort_values" incompatible with supertype "NDFrame"
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
