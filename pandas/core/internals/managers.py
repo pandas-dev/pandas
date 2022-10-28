@@ -267,6 +267,8 @@ class BaseBlockManager(DataManager):
         """
         if self.refs is not None:
             self.refs[blkno] = None
+            if com.all_none(*self.refs):
+                self.parent = None
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
