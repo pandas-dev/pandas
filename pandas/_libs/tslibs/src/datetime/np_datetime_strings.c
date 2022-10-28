@@ -68,21 +68,16 @@ This file implements string parsing and creation for NumPy datetime.
  */
 
 #define FORMAT_STARTSWITH(ch) \
-  if (exact) { \
-    if (!format_len || *format != ch) { \
+    /* Always error on character mismatch conditioned on non-exhausted format, \
+       or when format is exhausted in the exact case. */ \
+    if ((format_len && *format != ch) || (exact && !format_len)){ \
         goto parse_error; \
     } \
-    ++format; \
-    --format_len; \
-  } else { \
-    if (format_len > 0) { \
-        if (*format != ch) { \
-            goto parse_error;  \
-        } \
-        ++format; \
-        --format_len; \
+    /* Advance if format is not exhausted */ \
+    if (format_len) { \
+      ++format; \
+      --format_len; \
     } \
-  } \
 
 int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                             npy_datetimestruct *out,
