@@ -1393,7 +1393,6 @@ class Timestamp(_Timestamp):
     def __new__(
         cls,
         object ts_input=_no_input,
-        object freq=None,
         tz=None,
         unit=None,
         year=None,
