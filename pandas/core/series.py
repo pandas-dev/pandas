@@ -578,7 +578,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         dtype
             dtype of the underlying data.
-        
+
         See Also
         --------
         Series.dtypes : Returns the dtype object of the underlying data.
@@ -600,17 +600,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         dtype
             dtype of the underlying data.
-        
+
         See Also
         --------
-        Series.dtype : Returns the dtype object of the underlying data, normally used for  
-                DataFrames.
+        Series.dtype : Returns the dtype object of the underlying data, normally used
+                for DataFrames.
 
         Examples
         --------
         >> s = pd.Series([0, 1, 2, 3, 4])
         >> s.dtypes
-        dtype('int64')        
+        dtype('int64')
         """
         # DataFrame compatibility
         return self.dtype

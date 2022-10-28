@@ -326,7 +326,7 @@ class IndexOpsMixin(OpsMixin):
         See Also
         --------
         Series.size : Returns the size of the Series as an int.
-        
+
         Examples
         --------
         >>> s = pd.Series(['Cat', 'Dog', 'Cow', 'Zebra', 'Monkey'])
@@ -380,7 +380,7 @@ class IndexOpsMixin(OpsMixin):
         --------
         int
             Size of the array.
-        
+
         See Also
         --------
         Series.shape : Returns the shape of the Series as a tuple.
@@ -806,7 +806,7 @@ class IndexOpsMixin(OpsMixin):
         --------
         bool
             Whether the Series contains a NaN.
-        
+
         Examples
         --------
         >> s = pd.Series([0, 1, np.nan, 3, 4])
