@@ -782,25 +782,16 @@ class TestSeriesConstructors:
         # GH#40110
         arr = np.random.randn(2)
 
-        if frame_or_series is Series:
-            # Long-standing behavior has been to ignore the dtype on these;
-            #  not clear if this is what we want long-term
-            expected = frame_or_series(arr)
+        # Long-standing behavior (for Series, new in 2.0 for DataFrame)
+        #  has been to ignore the dtype on these;
+        #  not clear if this is what we want long-term
+        expected = frame_or_series(arr)
 
-            res = frame_or_series(arr, dtype="i8")
-            tm.assert_equal(res, expected)
+        res = frame_or_series(arr, dtype="i8")
+        tm.assert_equal(res, expected)
 
-            res = frame_or_series(list(arr), dtype="i8")
-            tm.assert_equal(res, expected)
-
-        else:
-            msg = "passing float-dtype values and an integer dtype"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                # DataFrame will behave like Series
-                frame_or_series(arr, dtype="i8")
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                # DataFrame will behave like Series
-                frame_or_series(list(arr), dtype="i8")
+        res = frame_or_series(list(arr), dtype="i8")
+        tm.assert_equal(res, expected)
 
         # When we have NaNs, we silently ignore the integer dtype
         arr[0] = np.nan
@@ -1018,24 +1009,20 @@ class TestSeriesConstructors:
         assert series1.dtype == object
 
     def test_constructor_dtype_datetime64_6(self):
-        # these will correctly infer a datetime
-        msg = "containing strings is deprecated"
+        # as of 2.0, these no longer infer datetime64 based on the strings,
+        #  matching the Index behavior
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([None, NaT, "2013-08-05 15:30:00.000001"])
-        assert ser.dtype == "datetime64[ns]"
+        ser = Series([None, NaT, "2013-08-05 15:30:00.000001"])
+        assert ser.dtype == object
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([np.nan, NaT, "2013-08-05 15:30:00.000001"])
-        assert ser.dtype == "datetime64[ns]"
+        ser = Series([np.nan, NaT, "2013-08-05 15:30:00.000001"])
+        assert ser.dtype == object
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([NaT, None, "2013-08-05 15:30:00.000001"])
-        assert ser.dtype == "datetime64[ns]"
+        ser = Series([NaT, None, "2013-08-05 15:30:00.000001"])
+        assert ser.dtype == object
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([NaT, np.nan, "2013-08-05 15:30:00.000001"])
-        assert ser.dtype == "datetime64[ns]"
+        ser = Series([NaT, np.nan, "2013-08-05 15:30:00.000001"])
+        assert ser.dtype == object
 
     def test_constructor_dtype_datetime64_5(self):
         # tz-aware (UTC and other tz's)
@@ -1241,14 +1228,14 @@ class TestSeriesConstructors:
         result = Series(ser.dt.tz_convert("UTC"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)
 
-        msg = "will interpret the data as wall-times"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # deprecate behavior inconsistent with DatetimeIndex GH#33401
-            result = Series(ser.values, dtype=ser.dtype)
-        tm.assert_series_equal(result, ser)
+        # Pre-2.0 dt64 values were treated as utc, which was inconsistent
+        #  with DatetimeIndex, which treats them as wall times, see GH#33401
+        result = Series(ser.values, dtype=ser.dtype)
+        expected = Series(ser.values).dt.tz_localize(ser.dtype.tz)
+        tm.assert_series_equal(result, expected)
 
         with tm.assert_produces_warning(None):
-            # one suggested alternative to the deprecated usage
+            # one suggested alternative to the deprecated (changed in 2.0) usage
             middle = Series(ser.values).dt.tz_localize("UTC")
             result = middle.dt.tz_convert(ser.dtype.tz)
         tm.assert_series_equal(result, ser)
@@ -1517,23 +1504,19 @@ class TestSeriesConstructors:
         td = Series([timedelta(days=i) for i in range(3)] + ["foo"])
         assert td.dtype == "object"
 
-        # these will correctly infer a timedelta
-        msg = "containing strings is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([None, NaT, "1 Day"])
-        assert ser.dtype == "timedelta64[ns]"
+        # as of 2.0, these no longer infer timedelta64 based on the strings,
+        #  matching Index behavior
+        ser = Series([None, NaT, "1 Day"])
+        assert ser.dtype == object
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([np.nan, NaT, "1 Day"])
-        assert ser.dtype == "timedelta64[ns]"
+        ser = Series([np.nan, NaT, "1 Day"])
+        assert ser.dtype == object
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([NaT, None, "1 Day"])
-        assert ser.dtype == "timedelta64[ns]"
+        ser = Series([NaT, None, "1 Day"])
+        assert ser.dtype == object
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([NaT, np.nan, "1 Day"])
-        assert ser.dtype == "timedelta64[ns]"
+        ser = Series([NaT, np.nan, "1 Day"])
+        assert ser.dtype == object
 
     # GH 16406
     def test_constructor_mixed_tz(self):

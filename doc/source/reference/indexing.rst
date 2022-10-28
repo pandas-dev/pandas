@@ -68,7 +68,6 @@ Modifying and computations
    Index.is_floating
    Index.is_integer
    Index.is_interval
-   Index.is_mixed
    Index.is_numeric
    Index.is_object
    Index.min
@@ -111,7 +110,6 @@ Conversion
    Index.map
    Index.ravel
    Index.to_list
-   Index.to_native_types
    Index.to_series
    Index.to_frame
    Index.view
@@ -394,7 +392,6 @@ Conversion
    :toctree: api/
 
    DatetimeIndex.to_period
-   DatetimeIndex.to_perioddelta
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
    DatetimeIndex.to_frame

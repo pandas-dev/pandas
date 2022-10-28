@@ -1649,9 +1649,8 @@ class TextFileReader(abc.Iterator):
 
         validate_header_arg(options["header"])
 
-        for arg in _deprecated_defaults.keys():
+        for arg, depr_default in _deprecated_defaults.items():
             parser_default = _c_parser_defaults.get(arg, parser_defaults[arg])
-            depr_default = _deprecated_defaults[arg]
             if result.get(arg, depr_default) != depr_default.default_value:
                 msg = (
                     f"The {arg} argument has been deprecated and will be "

@@ -27,7 +27,6 @@ from pandas.io.excel import (
     ExcelWriter,
     _OpenpyxlWriter,
     _XlsxWriter,
-    _XlwtWriter,
     register_writer,
 )
 
@@ -61,7 +60,6 @@ def set_engine(engine, ext):
     [
         pytest.param(".xlsx", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
         pytest.param(".xlsm", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
-        pytest.param(".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]),
         pytest.param(
             ".xlsx", marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")]
         ),
@@ -320,9 +318,6 @@ class TestRoundTrip:
             marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")],
         ),
         pytest.param(
-            "xlwt", ".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]
-        ),
-        pytest.param(
             "xlsxwriter",
             ".xlsx",
             marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")],
@@ -470,18 +465,6 @@ class TestExcelWriter:
 
         recons2 = pd.read_excel(path, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(int_frame, recons2)
-
-        # Test with convert_float=False comes back as float.
-        float_frame = df.astype(float)
-        float_frame.columns = float_frame.columns.astype(float)
-        float_frame.index = float_frame.index.astype(float)
-        with tm.assert_produces_warning(
-            FutureWarning, match="convert_float is deprecated"
-        ):
-            recons = pd.read_excel(
-                path, sheet_name="test1", convert_float=False, index_col=0
-            )
-        tm.assert_frame_equal(recons, float_frame)
 
     @pytest.mark.parametrize("np_type", [np.float16, np.float32, np.float64])
     def test_float_types(self, np_type, path):
@@ -972,15 +955,6 @@ class TestExcelWriter:
         result = pd.read_excel(path, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(result, expected)
 
-        # Explicitly, we pass in the parameter.
-        with tm.assert_produces_warning(
-            FutureWarning, match="the 'mangle_dupe_cols' keyword is deprecated"
-        ):
-            result = pd.read_excel(
-                path, sheet_name="test1", index_col=0, mangle_dupe_cols=True
-            )
-        tm.assert_frame_equal(result, expected)
-
         # see gh-11007, gh-10970
         df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]], columns=["A", "B", "A", "B"])
         df.to_excel(path, "test1")
@@ -997,15 +971,6 @@ class TestExcelWriter:
 
         expected = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]])
         tm.assert_frame_equal(result, expected)
-
-        msg = "Setting mangle_dupe_cols=False is not supported yet"
-        with tm.assert_produces_warning(
-            FutureWarning, match="the 'mangle_dupe_cols' keyword is deprecated"
-        ):
-            with pytest.raises(ValueError, match=msg):
-                pd.read_excel(
-                    path, sheet_name="test1", header=None, mangle_dupe_cols=False
-                )
 
     def test_swapped_columns(self, path):
         # Test for issue #5427.
@@ -1212,21 +1177,15 @@ class TestExcelWriter:
                 (pd.Period("2018"), pd.Period("2018Q2")),
             ]
         )
-        expected = DataFrame(np.ones((2, 2)), columns=mi)
+        expected = DataFrame(np.ones((2, 2), dtype="int64"), columns=mi)
         expected.to_excel(path)
-        with tm.assert_produces_warning(
-            FutureWarning, match="convert_float is deprecated"
-        ):
-            result = pd.read_excel(
-                path, header=[0, 1], index_col=0, convert_float=False
-            )
+        result = pd.read_excel(path, header=[0, 1], index_col=0)
         # need to convert PeriodIndexes to standard Indexes for assert equal
         expected.columns = expected.columns.set_levels(
             [[str(i) for i in mi.levels[0]], [str(i) for i in mi.levels[1]]],
             level=[0, 1],
         )
-        expected.index = expected.index.astype(np.float64)
-        tm.assert_frame_equal(expected, result)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_raise_when_saving_timezones(self, dtype, tz_aware_fixture, path):
@@ -1319,7 +1278,6 @@ class TestExcelWriterEngineTests:
         [
             pytest.param(_XlsxWriter, ".xlsx", marks=td.skip_if_no("xlsxwriter")),
             pytest.param(_OpenpyxlWriter, ".xlsx", marks=td.skip_if_no("openpyxl")),
-            pytest.param(_XlwtWriter, ".xls", marks=td.skip_if_no("xlwt")),
         ],
     )
     def test_ExcelWriter_dispatch(self, klass, ext):

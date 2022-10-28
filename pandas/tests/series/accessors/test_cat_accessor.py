@@ -78,17 +78,6 @@ class TestCatAccessor:
         with pytest.raises(AttributeError, match="You cannot add any new attribute"):
             cat.cat.xlabel = "a"
 
-    def test_cat_accessor_updates_on_inplace(self):
-        ser = Series(list("abc")).astype("category")
-        return_value = ser.drop(0, inplace=True)
-        assert return_value is None
-
-        with tm.assert_produces_warning(FutureWarning):
-            return_value = ser.cat.remove_unused_categories(inplace=True)
-
-        assert return_value is None
-        assert len(ser.cat.categories) == 2
-
     def test_categorical_delegations(self):
 
         # invalid accessor

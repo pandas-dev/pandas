@@ -1723,7 +1723,7 @@ class Styler(StylerRenderer):
                         f"Function {repr(func)} must return a DataFrame or ndarray "
                         f"when passed to `Styler.apply` with axis=None"
                     )
-                if not (data.shape == result.shape):
+                if data.shape != result.shape:
                     raise ValueError(
                         f"Function {repr(func)} returned ndarray with wrong shape.\n"
                         f"Result has shape: {result.shape}\n"
@@ -2958,10 +2958,7 @@ class Styler(StylerRenderer):
             setattr(
                 self,
                 f"hide_{objs}_",
-                [
-                    True if lev in levels_ else False
-                    for lev in range(getattr(self, objs).nlevels)
-                ],
+                [lev in levels_ for lev in range(getattr(self, objs).nlevels)],
             )
         else:
             if axis == 0:
@@ -3310,9 +3307,9 @@ class Styler(StylerRenderer):
                     "(eg: color=['#d65f5f', '#5fba7d'])"
                 )
 
-        if not (0 <= width <= 100):
+        if not 0 <= width <= 100:
             raise ValueError(f"`width` must be a value in [0, 100], got {width}")
-        elif not (0 <= height <= 100):
+        elif not 0 <= height <= 100:
             raise ValueError(f"`height` must be a value in [0, 100], got {height}")
 
         if subset is None:

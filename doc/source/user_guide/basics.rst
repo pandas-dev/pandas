@@ -556,7 +556,6 @@ optional ``level`` parameter which applies only if the object has a
     ``count``, Number of non-NA observations
     ``sum``, Sum of values
     ``mean``, Mean of values
-    ``mad``, Mean absolute deviation
     ``median``, Arithmetic median of values
     ``min``, Minimum
     ``max``, Maximum
