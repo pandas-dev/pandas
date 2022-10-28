@@ -635,7 +635,7 @@ class TestToDatetime:
             # GH#18705
             now = Timestamp("now")
             with tm.assert_produces_warning(
-                UserWarning, match="Could not infer format",
+                UserWarning, match="Could not infer format"
             ):
                 pdnow = to_datetime("now")
                 pdnow2 = to_datetime(["now"])[0]
