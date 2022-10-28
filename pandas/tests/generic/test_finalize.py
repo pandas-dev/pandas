@@ -192,14 +192,10 @@ _all_methods = [
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("round", 2)),
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("corr")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("corr")),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("cov")),
         marks=[
-            not_implemented_mark,
             pytest.mark.filterwarnings("ignore::RuntimeWarning"),
         ],
     ),
@@ -399,22 +395,6 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("where", np.array([[True]]))),
     (pd.Series, ([1, 2],), operator.methodcaller("mask", np.array([True, False]))),
     (pd.DataFrame, frame_data, operator.methodcaller("mask", np.array([[True]]))),
-    pytest.param(
-        (
-            pd.Series,
-            (1, pd.date_range("2000", periods=4)),
-            operator.methodcaller("tshift"),
-        ),
-        marks=pytest.mark.filterwarnings("ignore::FutureWarning"),
-    ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            ({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
-            operator.methodcaller("tshift"),
-        ),
-        marks=pytest.mark.filterwarnings("ignore::FutureWarning"),
-    ),
     (pd.Series, ([1, 2],), operator.methodcaller("truncate", before=0)),
     (pd.DataFrame, frame_data, operator.methodcaller("truncate", before=0)),
     (

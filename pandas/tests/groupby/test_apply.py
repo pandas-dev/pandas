@@ -1048,8 +1048,6 @@ def test_apply_with_timezones_aware():
 def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
     # GH #34656
     # GH #34271
-    warn = FutureWarning if reduction_func == "mad" else None
-
     df = DataFrame(
         {
             "a": [99, 99, 99, 88, 88, 88],
@@ -1071,8 +1069,7 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
     # Check output when another method is called before .apply()
     grp = df.groupby(by="a")
     args = get_groupby_method_args(reduction_func, df)
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        _ = getattr(grp, reduction_func)(*args)
+    _ = getattr(grp, reduction_func)(*args)
     result = grp.apply(sum)
     tm.assert_frame_equal(result, expected)
 
@@ -1329,5 +1326,29 @@ def test_result_name_when_one_group(name):
     ser = Series([1, 2], name=name)
     result = ser.groupby(["a", "a"], group_keys=False).apply(lambda x: x)
     expected = Series([1, 2], name=name)
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, op",
+    [
+        ("apply", lambda gb: gb.values[-1]),
+        ("apply", lambda gb: gb["b"].iloc[0]),
+        ("agg", "skew"),
+        ("agg", "prod"),
+        ("agg", "sum"),
+    ],
+)
+def test_empty_df(method, op):
+    # GH 47985
+    empty_df = DataFrame({"a": [], "b": []})
+    gb = empty_df.groupby("a", group_keys=True)
+    group = getattr(gb, "b")
+
+    result = getattr(group, method)(op)
+    expected = Series(
+        [], name="b", dtype="float64", index=Index([], dtype="float64", name="a")
+    )
 
     tm.assert_series_equal(result, expected)

@@ -4,7 +4,6 @@ Concat routines.
 from __future__ import annotations
 
 from collections import abc
-import inspect
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -21,12 +20,10 @@ import numpy as np
 
 from pandas._typing import (
     Axis,
+    AxisInt,
     HashableT,
 )
-from pandas.util._decorators import (
-    cache_readonly,
-    deprecate_nonkeyword_arguments,
-)
+from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.concat import concat_compat
@@ -67,6 +64,7 @@ if TYPE_CHECKING:
 @overload
 def concat(
     objs: Iterable[DataFrame] | Mapping[HashableT, DataFrame],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -83,6 +81,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[Series] | Mapping[HashableT, Series],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -99,6 +98,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -115,6 +115,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Literal[1, "columns"],
     join: str = ...,
     ignore_index: bool = ...,
@@ -131,6 +132,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Axis = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -144,9 +146,9 @@ def concat(
     ...
 
 
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Axis = 0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -390,7 +392,7 @@ class _Concatenator:
     def __init__(
         self,
         objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
-        axis=0,
+        axis: Axis = 0,
         join: str = "outer",
         keys=None,
         levels=None,
@@ -553,7 +555,7 @@ class _Concatenator:
                 "Passing non boolean values for sort is deprecated and "
                 "will error in a future version!",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         self.sort = sort
 
@@ -636,7 +638,7 @@ class _Concatenator:
             for i in range(ndim)
         ]
 
-    def _get_comb_axis(self, i: int) -> Index:
+    def _get_comb_axis(self, i: AxisInt) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
         return get_objs_combined_axis(
             self.objs,

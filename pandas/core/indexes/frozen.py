@@ -65,7 +65,10 @@ class FrozenList(PandasObject, list):
         return type(self)(temp)
 
     # TODO: Consider deprecating these in favor of `union` (xref gh-15506)
-    __add__ = __iadd__ = union
+    # error: Incompatible types in assignment (expression has type
+    # "Callable[[FrozenList, Any], FrozenList]", base class "list" defined the
+    # type as overloaded function)
+    __add__ = __iadd__ = union  # type: ignore[assignment]
 
     def __getitem__(self, n):
         if isinstance(n, slice):

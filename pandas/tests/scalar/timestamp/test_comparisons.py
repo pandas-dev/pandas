@@ -12,6 +12,13 @@ import pandas._testing as tm
 
 
 class TestTimestampComparison:
+    def test_compare_non_nano_dt64(self):
+        # don't raise when converting dt64 to Timestamp in __richcmp__
+        dt = np.datetime64("1066-10-14")
+        ts = Timestamp(dt)
+
+        assert dt == ts
+
     def test_comparison_dt64_ndarray(self):
         ts = Timestamp("2021-01-01")
         ts2 = Timestamp("2019-04-05")
@@ -317,5 +324,5 @@ def test_rich_comparison_with_unsupported_type():
     for left, right in [(inf, timestamp), (timestamp, inf)]:
         assert left > right or left < right
         assert left >= right or left <= right
-        assert not (left == right)
+        assert not left == right
         assert left != right

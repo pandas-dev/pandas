@@ -12,12 +12,12 @@ from datetime import (
     time,
 )
 from functools import partial
-import inspect
 import re
 from typing import (
     TYPE_CHECKING,
     Any,
     Iterator,
+    Literal,
     cast,
     overload,
 )
@@ -603,7 +603,7 @@ def to_sql(
     name: str,
     con,
     schema: str | None = None,
-    if_exists: str = "fail",
+    if_exists: Literal["fail", "replace", "append"] = "fail",
     index: bool = True,
     index_label: IndexLabel = None,
     chunksize: int | None = None,
@@ -762,7 +762,7 @@ def pandasSQL_builder(con, schema: str | None = None) -> SQLDatabase | SQLiteDat
         "database string URI or sqlite3 DBAPI2 connection. "
         "Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.",
         UserWarning,
-        stacklevel=find_stack_level(inspect.currentframe()),
+        stacklevel=find_stack_level(),
     )
     return SQLiteDatabase(con)
 
@@ -784,7 +784,7 @@ class SQLTable(PandasObject):
         pandas_sql_engine,
         frame=None,
         index: bool | str | list[str] | None = True,
-        if_exists: str = "fail",
+        if_exists: Literal["fail", "replace", "append"] = "fail",
         prefix: str = "pandas",
         index_label=None,
         schema=None,
@@ -971,18 +971,18 @@ class SQLTable(PandasObject):
                         [], columns=columns, coerce_float=coerce_float
                     )
                 break
-            else:
-                has_read_data = True
-                self.frame = DataFrame.from_records(
-                    data, columns=columns, coerce_float=coerce_float
-                )
 
-                self._harmonize_columns(parse_dates=parse_dates)
+            has_read_data = True
+            self.frame = DataFrame.from_records(
+                data, columns=columns, coerce_float=coerce_float
+            )
 
-                if self.index is not None:
-                    self.frame.set_index(self.index, inplace=True)
+            self._harmonize_columns(parse_dates=parse_dates)
 
-                yield self.frame
+            if self.index is not None:
+                self.frame.set_index(self.index, inplace=True)
+
+            yield self.frame
 
     def read(
         self,
@@ -1178,7 +1178,7 @@ class SQLTable(PandasObject):
             Time,
         )
 
-        if col_type == "datetime64" or col_type == "datetime":
+        if col_type in ("datetime64", "datetime"):
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
             try:
@@ -1195,7 +1195,7 @@ class SQLTable(PandasObject):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             return BigInteger
         elif col_type == "floating":
@@ -1269,7 +1269,7 @@ class PandasSQL(PandasObject):
         self,
         frame,
         name,
-        if_exists: str = "fail",
+        if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
@@ -1489,16 +1489,16 @@ class SQLDatabase(PandasSQL):
                         parse_dates=parse_dates,
                     )
                 break
-            else:
-                has_read_data = True
-                yield _wrap_result(
-                    data,
-                    columns,
-                    index_col=index_col,
-                    coerce_float=coerce_float,
-                    parse_dates=parse_dates,
-                    dtype=dtype,
-                )
+
+            has_read_data = True
+            yield _wrap_result(
+                data,
+                columns,
+                index_col=index_col,
+                coerce_float=coerce_float,
+                parse_dates=parse_dates,
+                dtype=dtype,
+            )
 
     def read_query(
         self,
@@ -1589,7 +1589,7 @@ class SQLDatabase(PandasSQL):
         self,
         frame,
         name,
-        if_exists="fail",
+        if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool | str | list[str] | None = True,
         index_label=None,
         schema=None,
@@ -1634,8 +1634,8 @@ class SQLDatabase(PandasSQL):
 
     def check_case_sensitive(
         self,
-        name,
-        schema,
+        name: str,
+        schema: str | None,
     ) -> None:
         """
         Checks table name for issues with case-sensitivity.
@@ -1644,10 +1644,10 @@ class SQLDatabase(PandasSQL):
         if not name.isdigit() and not name.islower():
             # check for potentially case sensitivity issues (GH7815)
             # Only check when name is not a number and name is not lower case
-            from sqlalchemy import inspect
+            from sqlalchemy import inspect as sqlalchemy_inspect
 
             with self.connectable.connect() as conn:
-                insp = inspect(conn)
+                insp = sqlalchemy_inspect(conn)
                 table_names = insp.get_table_names(schema=schema or self.meta.schema)
             if name not in table_names:
                 msg = (
@@ -1659,21 +1659,21 @@ class SQLDatabase(PandasSQL):
                 warnings.warn(
                     msg,
                     UserWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
     def to_sql(
         self,
         frame,
-        name,
-        if_exists: str = "fail",
+        name: str,
+        if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool = True,
         index_label=None,
-        schema=None,
+        schema: str | None = None,
         chunksize=None,
         dtype: DtypeArg | None = None,
         method=None,
-        engine="auto",
+        engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
         """
@@ -1756,9 +1756,9 @@ class SQLDatabase(PandasSQL):
         return self.meta.tables
 
     def has_table(self, name: str, schema: str | None = None):
-        from sqlalchemy import inspect
+        from sqlalchemy import inspect as sqlalchemy_inspect
 
-        insp = inspect(self.connectable)
+        insp = sqlalchemy_inspect(self.connectable)
         return insp.has_table(name, schema or self.meta.schema)
 
     def get_table(self, table_name: str, schema: str | None = None) -> Table:
@@ -1968,7 +1968,7 @@ class SQLiteTable(SQLTable):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             col_type = "integer"
 
@@ -2053,16 +2053,16 @@ class SQLiteDatabase(PandasSQL):
                         [], columns=columns, coerce_float=coerce_float
                     )
                 break
-            else:
-                has_read_data = True
-                yield _wrap_result(
-                    data,
-                    columns,
-                    index_col=index_col,
-                    coerce_float=coerce_float,
-                    parse_dates=parse_dates,
-                    dtype=dtype,
-                )
+
+            has_read_data = True
+            yield _wrap_result(
+                data,
+                columns,
+                index_col=index_col,
+                coerce_float=coerce_float,
+                parse_dates=parse_dates,
+                dtype=dtype,
+            )
 
     def read_query(
         self,

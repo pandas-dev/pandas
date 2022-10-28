@@ -4,7 +4,6 @@ from abc import (
     ABC,
     abstractmethod,
 )
-import inspect
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -21,6 +20,7 @@ import numpy as np
 from pandas._typing import (
     IndexLabel,
     PlottingOrientation,
+    npt,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
@@ -138,7 +138,6 @@ class MPLPlot(ABC):
         yticks=None,
         xlabel: Hashable | None = None,
         ylabel: Hashable | None = None,
-        sort_columns: bool = False,
         fontsize=None,
         secondary_y: bool | tuple | list | np.ndarray = False,
         colormap=None,
@@ -184,7 +183,6 @@ class MPLPlot(ABC):
 
         self.kind = kind
 
-        self.sort_columns = sort_columns
         self.subplots = self._validate_subplots_kwarg(subplots)
 
         if sharex is None:
@@ -400,7 +398,7 @@ class MPLPlot(ABC):
         ) and self.colormap is not None:
             warnings.warn(
                 "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if "color" in self.kwds and self.style is not None:
@@ -987,7 +985,11 @@ class MPLPlot(ABC):
                 kwds["color"] = colors[col_num % len(colors)]
         return style, kwds
 
-    def _get_colors(self, num_colors=None, color_kwds="color"):
+    def _get_colors(
+        self,
+        num_colors: int | None = None,
+        color_kwds: str = "color",
+    ):
         if num_colors is None:
             num_colors = self.nseries
 
@@ -1227,16 +1229,22 @@ class ScatterPlot(PlanePlot):
         else:
             c_values = c
 
-        # cmap is only used if c_values are integers, otherwise UserWarning
-        if is_integer_dtype(c_values):
-            # pandas uses colormap, matplotlib uses cmap.
-            cmap = self.colormap or "Greys"
+        if self.colormap is not None:
             if mpl_ge_3_6_0():
-                cmap = mpl.colormaps[cmap]
+                cmap = mpl.colormaps[self.colormap]
             else:
-                cmap = self.plt.cm.get_cmap(cmap)
+                cmap = self.plt.cm.get_cmap(self.colormap)
         else:
-            cmap = None
+            # cmap is only used if c_values are integers, otherwise UserWarning
+            if is_integer_dtype(c_values):
+                # pandas uses colormap, matplotlib uses cmap.
+                cmap = "Greys"
+                if mpl_ge_3_6_0():
+                    cmap = mpl.colormaps[cmap]
+                else:
+                    cmap = self.plt.cm.get_cmap(cmap)
+            else:
+                cmap = None
 
         if color_by_categorical:
             from matplotlib import colors
@@ -1647,7 +1655,14 @@ class BarPlot(MPLPlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax: Axes, x, y, w, start=0, log: bool = False, **kwds
+        cls,
+        ax: Axes,
+        x,
+        y,
+        w,
+        start: int | npt.NDArray[np.intp] = 0,
+        log: bool = False,
+        **kwds,
     ):
         return ax.bar(x, y, w, bottom=start, log=log, **kwds)
 
@@ -1773,7 +1788,14 @@ class BarhPlot(BarPlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax: Axes, x, y, w, start=0, log: bool = False, **kwds
+        cls,
+        ax: Axes,
+        x,
+        y,
+        w,
+        start: int | npt.NDArray[np.intp] = 0,
+        log: bool = False,
+        **kwds,
     ):
         return ax.barh(x, y, w, left=start, log=log, **kwds)
 

@@ -11,6 +11,7 @@ from pandas import (
     DataFrame,
     Index,
     Series,
+    StringDtype,
 )
 import pandas._testing as tm
 from pandas.core.arrays.categorical import recode_for_categories
@@ -237,6 +238,25 @@ class TestCategoricalAPI:
         with pytest.raises(ValueError, match=msg):
             cat.add_categories(["d"])
 
+    def test_add_categories_losing_dtype_information(self):
+        # GH#48812
+        cat = Categorical(Series([1, 2], dtype="Int64"))
+        ser = Series([4], dtype="Int64")
+        result = cat.add_categories(ser)
+        expected = Categorical(
+            Series([1, 2], dtype="Int64"), categories=Series([1, 2, 4], dtype="Int64")
+        )
+        tm.assert_categorical_equal(result, expected)
+
+        cat = Categorical(Series(["a", "b", "a"], dtype=StringDtype()))
+        ser = Series(["d"], dtype=StringDtype())
+        result = cat.add_categories(ser)
+        expected = Categorical(
+            Series(["a", "b", "a"], dtype=StringDtype()),
+            categories=Series(["a", "b", "d"], dtype=StringDtype()),
+        )
+        tm.assert_categorical_equal(result, expected)
+
     def test_set_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
         exp_categories = Index(["c", "b", "a"])
@@ -309,12 +329,6 @@ class TestCategoricalAPI:
         assert not c2.ordered
 
         tm.assert_numpy_array_equal(np.asarray(c), np.asarray(c2))
-
-    def test_to_dense_deprecated(self):
-        cat = Categorical(["a", "b", "c", "a"], ordered=True)
-
-        with tm.assert_produces_warning(FutureWarning):
-            cat.to_dense()
 
     @pytest.mark.parametrize(
         "values, categories, new_categories",
@@ -408,13 +422,6 @@ class TestCategoricalAPI:
         tm.assert_index_equal(res.categories, exp_categories_dropped)
         tm.assert_index_equal(c.categories, exp_categories_all)
 
-        with tm.assert_produces_warning(FutureWarning):
-            # issue #37643 inplace kwarg deprecated
-            res = c.remove_unused_categories(inplace=True)
-
-        tm.assert_index_equal(c.categories, exp_categories_dropped)
-        assert res is None
-
         # with NaN values (GH11599)
         c = Categorical(["a", "b", "c", np.nan], categories=["a", "b", "c", "d", "e"])
         res = c.remove_unused_categories()
@@ -501,15 +508,6 @@ class TestCategoricalAPIWithFactor:
             cat.set_categories(["a", "b", "c", "d"], inplace=True)
 
         tm.assert_index_equal(cat.categories, Index(["a", "b", "c", "d"]))
-
-    def test_codes_setter_deprecated(self):
-        cat = Categorical([1, 2, 3, 1, 2, 3, 3, 2, 1, 1, 1])
-        new_codes = cat._codes + 1
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#40606
-            cat._codes = new_codes
-
-        assert cat._codes is new_codes
 
 
 class TestPrivateCategoricalAPI:

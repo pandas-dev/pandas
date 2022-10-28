@@ -6,7 +6,6 @@ from __future__ import annotations
 import copy
 import datetime
 from functools import partial
-import inspect
 import string
 from typing import (
     TYPE_CHECKING,
@@ -28,6 +27,7 @@ from pandas._libs import (
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    AxisInt,
     DtypeObj,
     IndexLabel,
     Shape,
@@ -106,7 +106,7 @@ def merge(
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
     copy: bool = True,
-    indicator: bool = False,
+    indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
     op = _MergeOperation(
@@ -619,12 +619,12 @@ class _MergeOperation:
     right_on: Sequence[Hashable | AnyArrayLike]
     left_index: bool
     right_index: bool
-    axis: int
-    bm_axis: int
+    axis: AxisInt
+    bm_axis: AxisInt
     sort: bool
     suffixes: Suffixes
     copy: bool
-    indicator: bool
+    indicator: str | bool
     validate: str | None
     join_names: list[Hashable]
     right_join_keys: list[AnyArrayLike]
@@ -638,12 +638,12 @@ class _MergeOperation:
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
-        axis: int = 1,
+        axis: AxisInt = 1,
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = True,
         suffixes: Suffixes = ("_x", "_y"),
-        indicator: bool = False,
+        indicator: str | bool = False,
         validate: str | None = None,
     ) -> None:
         _left = _validate_operand(left)
@@ -685,9 +685,7 @@ class _MergeOperation:
             )
             # stacklevel chosen to be correct when this is reached via pd.merge
             # (and not DataFrame.join)
-            warnings.warn(
-                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-            )
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
@@ -910,6 +908,8 @@ class _MergeOperation:
         left_has_missing = None
         right_has_missing = None
 
+        assert all(is_array_like(x) for x in self.left_join_keys)
+
         keys = zip(self.join_names, self.left_on, self.right_on)
         for i, (name, lname, rname) in enumerate(keys):
             if not _should_fill(lname, rname):
@@ -946,7 +946,7 @@ class _MergeOperation:
                             ):
                                 take_right = self.right[name]._values
 
-            elif left_indexer is not None and is_array_like(self.left_join_keys[i]):
+            elif left_indexer is not None:
                 take_left = self.left_join_keys[i]
                 take_right = self.right_join_keys[i]
 
@@ -1300,13 +1300,7 @@ class _MergeOperation:
                         # "Union[dtype[Any], Type[Any], _SupportsDType[dtype[Any]]]"
                         casted = lk.astype(rk.dtype)  # type: ignore[arg-type]
 
-                        # Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has
-                        # incompatible type "Union[ExtensionArray, ndarray[Any, Any],
-                        # Index, Series]"; expected "Union[_SupportsArray[dtype[Any]],
-                        # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int,
-                        # float, complex, str, bytes, _NestedSequence[Union[bool,
-                        # int, float, complex, str, bytes]]]"
-                        mask = ~np.isnan(lk)  # type: ignore[arg-type]
+                        mask = ~np.isnan(lk)
                         match = lk == casted
                         # error: Item "ExtensionArray" of "Union[ExtensionArray,
                         # ndarray[Any, Any], Any]" has no attribute "all"
@@ -1316,7 +1310,7 @@ class _MergeOperation:
                                 "columns where the float values "
                                 "are not equal to their int representation.",
                                 UserWarning,
-                                stacklevel=find_stack_level(inspect.currentframe()),
+                                stacklevel=find_stack_level(),
                             )
                     continue
 
@@ -1328,13 +1322,7 @@ class _MergeOperation:
                         # "Union[dtype[Any], Type[Any], _SupportsDType[dtype[Any]]]"
                         casted = rk.astype(lk.dtype)  # type: ignore[arg-type]
 
-                        # Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has
-                        # incompatible type "Union[ExtensionArray, ndarray[Any, Any],
-                        # Index, Series]"; expected "Union[_SupportsArray[dtype[Any]],
-                        # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int,
-                        # float, complex, str, bytes, _NestedSequence[Union[bool,
-                        # int, float, complex, str, bytes]]]"
-                        mask = ~np.isnan(rk)  # type: ignore[arg-type]
+                        mask = ~np.isnan(rk)
                         match = rk == casted
                         # error: Item "ExtensionArray" of "Union[ExtensionArray,
                         # ndarray[Any, Any], Any]" has no attribute "all"
@@ -1344,7 +1332,7 @@ class _MergeOperation:
                                 "columns where the float values "
                                 "are not equal to their int representation.",
                                 UserWarning,
-                                stacklevel=find_stack_level(inspect.currentframe()),
+                                stacklevel=find_stack_level(),
                             )
                     continue
 
@@ -1669,7 +1657,7 @@ def restore_dropped_levels_multijoin(
     Returns the levels, labels and names of a multi-index to multi-index join.
     Depending on the type of join, this method restores the appropriate
     dropped levels of the joined multi-index.
-    The method relies on lidx, rindexer which hold the index positions of
+    The method relies on lindexer, rindexer which hold the index positions of
     left and right, where a join was feasible
 
     Parameters
@@ -1715,15 +1703,6 @@ def restore_dropped_levels_multijoin(
     join_codes = join_index.codes
     join_names = join_index.names
 
-    # lindexer and rindexer hold the indexes where the join occurred
-    # for left and right respectively. If left/right is None then
-    # the join occurred on all indices of left/right
-    if lindexer is None:
-        lindexer = range(left.size)
-
-    if rindexer is None:
-        rindexer = range(right.size)
-
     # Iterate through the levels that must be restored
     for dropped_level_name in dropped_level_names:
         if dropped_level_name in left.names:
@@ -1740,9 +1719,13 @@ def restore_dropped_levels_multijoin(
         # Inject -1 in the codes list where a join was not possible
         # IOW indexer[i]=-1
         codes = idx.codes[name_idx]
-        restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
+        if indexer is None:
+            restore_codes = codes
+        else:
+            restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        join_levels = join_levels + [restore_levels]
+        # error: Cannot determine type of "__add__"
+        join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
         join_codes = join_codes + [restore_codes]
         join_names = join_names + [dropped_level_name]
 
@@ -1761,7 +1744,7 @@ class _OrderedMerge(_MergeOperation):
         right_on: IndexLabel | None = None,
         left_index: bool = False,
         right_index: bool = False,
-        axis: int = 1,
+        axis: AxisInt = 1,
         suffixes: Suffixes = ("_x", "_y"),
         fill_method: str | None = None,
         how: str = "outer",
@@ -1850,7 +1833,7 @@ class _AsOfMerge(_OrderedMerge):
         by=None,
         left_by=None,
         right_by=None,
-        axis: int = 1,
+        axis: AxisInt = 1,
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
         fill_method: str | None = None,
@@ -2169,12 +2152,12 @@ def _get_multiindex_indexer(
         rcodes = list(map(i8copy, index.codes))
 
     # fix right labels if there were any nulls
-    for i in range(len(join_keys)):
+    for i, join_key in enumerate(join_keys):
         mask = index.codes[i] == -1
         if mask.any():
             # check if there already was any nulls at this location
             # if there was, it is factorized to `shape[i] - 1`
-            a = join_keys[i][lcodes[i] == shape[i] - 1]
+            a = join_key[lcodes[i] == shape[i] - 1]
             if a.size == 0 or not a[0] != a[0]:
                 shape[i] += 1
 
@@ -2498,7 +2481,7 @@ def _items_overlap_with_suffix(
             "unexpected results. Provide 'suffixes' as a tuple instead. In the "
             "future a 'TypeError' will be raised.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     to_rename = left.intersection(right)
@@ -2548,7 +2531,7 @@ def _items_overlap_with_suffix(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
             f"result is deprecated and will raise a MergeError in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
 
     return llabels, rlabels

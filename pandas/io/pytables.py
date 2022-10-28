@@ -10,7 +10,6 @@ from datetime import (
     date,
     tzinfo,
 )
-import inspect
 import itertools
 import os
 import re
@@ -45,6 +44,7 @@ from pandas._libs.tslibs import timezones
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    AxisInt,
     DtypeArg,
     FilePath,
     Shape,
@@ -64,6 +64,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
+    is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
@@ -135,7 +136,7 @@ def _ensure_decoded(s):
     return s
 
 
-def _ensure_encoding(encoding):
+def _ensure_encoding(encoding: str | None) -> str:
     # set the encoding if we need
     if encoding is None:
         encoding = _default_encoding
@@ -541,8 +542,6 @@ class HDFStore:
 
     _handle: File | None
     _mode: str
-    _complevel: int
-    _fletcher32: bool
 
     def __init__(
         self,
@@ -619,7 +618,7 @@ class HDFStore:
         node = self.get_node(key)
         if node is not None:
             name = node._v_pathname
-            if name == key or name[1:] == key:
+            if key in (name, name[1:]):
                 return True
         return False
 
@@ -693,7 +692,7 @@ class HDFStore:
             "iteritems is deprecated and will be removed in a future version. "
             "Use .items instead.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         yield from self.items()
 
@@ -1041,7 +1040,7 @@ class HDFStore:
         _tbls = [x for x in tbls if isinstance(x, Table)]
 
         # axis is the concentration axes
-        axis = list({t.non_index_axes[0][0] for t in _tbls})[0]
+        axis = {t.non_index_axes[0][0] for t in _tbls}.pop()
 
         def func(_start, _stop, _where):
 
@@ -1530,7 +1529,7 @@ class HDFStore:
     def copy(
         self,
         file,
-        mode="w",
+        mode: str = "w",
         propindexes: bool = True,
         keys=None,
         complib=None,
@@ -1658,13 +1657,6 @@ class HDFStore:
         if value is not None and not isinstance(value, (Series, DataFrame)):
             raise TypeError("value must be None, Series, or DataFrame")
 
-        def error(t):
-            # return instead of raising so mypy can tell where we are raising
-            return TypeError(
-                f"cannot properly create the storer for: [{t}] [group->"
-                f"{group},value->{type(value)},format->{format}"
-            )
-
         pt = _ensure_decoded(getattr(group._v_attrs, "pandas_type", None))
         tt = _ensure_decoded(getattr(group._v_attrs, "table_type", None))
 
@@ -1699,7 +1691,10 @@ class HDFStore:
             try:
                 cls = _STORER_MAP[pt]
             except KeyError as err:
-                raise error("_STORER_MAP") from err
+                raise TypeError(
+                    f"cannot properly create the storer for: [_STORER_MAP] [group->"
+                    f"{group},value->{type(value)},format->{format}"
+                ) from err
             return cls(self, group, encoding=encoding, errors=errors)
 
         # existing node (and must be a table)
@@ -1732,7 +1727,10 @@ class HDFStore:
         try:
             cls = _TABLE_MAP[tt]
         except KeyError as err:
-            raise error("_TABLE_MAP") from err
+            raise TypeError(
+                f"cannot properly create the storer for: [_TABLE_MAP] [group->"
+                f"{group},value->{type(value)},format->{format}"
+            ) from err
 
         return cls(self, group, encoding=encoding, errors=errors)
 
@@ -1973,9 +1971,6 @@ class IndexCol:
     is_data_indexable: bool = True
     _info_fields = ["freq", "tz", "index_name"]
 
-    name: str
-    cname: str
-
     def __init__(
         self,
         name: str,
@@ -2202,9 +2197,7 @@ class IndexCol:
                 if key in ["freq", "index_name"]:
                     ws = attribute_conflict_doc % (key, existing_value, value)
                     warnings.warn(
-                        ws,
-                        AttributeConflictWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        ws, AttributeConflictWarning, stacklevel=find_stack_level()
                     )
 
                     # reset
@@ -2308,7 +2301,7 @@ class DataCol(IndexCol):
         values=None,
         kind=None,
         typ=None,
-        cname=None,
+        cname: str | None = None,
         pos=None,
         tz=None,
         ordered=None,
@@ -2620,17 +2613,14 @@ class Fixed:
     format_type: str = "fixed"  # GH#30962 needed by dask
     obj_type: type[DataFrame | Series]
     ndim: int
-    encoding: str
     parent: HDFStore
-    group: Node
-    errors: str
     is_table: bool = False
 
     def __init__(
         self,
         parent: HDFStore,
         group: Node,
-        encoding: str = "UTF-8",
+        encoding: str | None = "UTF-8",
         errors: str = "strict",
     ) -> None:
         assert isinstance(parent, HDFStore), type(parent)
@@ -3016,7 +3006,7 @@ class GenericFixed(Fixed):
         attrs = node._v_attrs
         factory, kwargs = self._get_index_factory(attrs)
 
-        if kind == "date":
+        if kind in ("date", "object"):
             index = factory(
                 _unconvert_index(
                     data, kind, encoding=self.encoding, errors=self.errors
@@ -3102,11 +3092,7 @@ class GenericFixed(Fixed):
                 pass
             else:
                 ws = performance_doc % (inferred_type, key, items)
-                warnings.warn(
-                    ws,
-                    PerformanceWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
-                )
+                warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
@@ -3304,24 +3290,19 @@ class Table(Fixed):
     levels: int | list[Hashable] = 1
     is_table = True
 
-    index_axes: list[IndexCol]
-    non_index_axes: list[tuple[int, Any]]
-    values_axes: list[DataCol]
-    data_columns: list
     metadata: list
-    info: dict
 
     def __init__(
         self,
         parent: HDFStore,
         group: Node,
-        encoding=None,
+        encoding: str | None = None,
         errors: str = "strict",
-        index_axes=None,
-        non_index_axes=None,
-        values_axes=None,
-        data_columns=None,
-        info=None,
+        index_axes: list[IndexCol] | None = None,
+        non_index_axes: list[tuple[AxisInt, Any]] | None = None,
+        values_axes: list[DataCol] | None = None,
+        data_columns: list | None = None,
+        info: dict | None = None,
         nan_rep=None,
     ) -> None:
         super().__init__(parent, group, encoding=encoding, errors=errors)
@@ -3479,9 +3460,7 @@ class Table(Fixed):
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
 
-        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]" and
-        # "List[Tuple[str, None]]")
-        return dict(d1 + d2 + d3)  # type: ignore[operator]
+        return dict(d1 + d2 + d3)
 
     def index_cols(self):
         """return a list of my index cols"""
@@ -3554,7 +3533,7 @@ class Table(Fixed):
                 warnings.warn(
                     ws,
                     IncompatibilityWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
     def validate_min_itemsize(self, min_itemsize) -> None:
@@ -4809,7 +4788,9 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         return df
 
 
-def _reindex_axis(obj: DataFrame, axis: int, labels: Index, other=None) -> DataFrame:
+def _reindex_axis(
+    obj: DataFrame, axis: AxisInt, labels: Index, other=None
+) -> DataFrame:
     ax = obj._get_axis(axis)
     labels = ensure_index(labels)
 
@@ -4899,7 +4880,11 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     kind = _dtype_to_kind(dtype_name)
     atom = DataIndexableCol._get_atom(converted)
 
-    if isinstance(index, Int64Index) or needs_i8_conversion(index.dtype):
+    if (
+        isinstance(index, Int64Index)
+        or needs_i8_conversion(index.dtype)
+        or is_bool_dtype(index.dtype)
+    ):
         # Includes Int64Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
         #  in which case "kind" is "integer", "integer", "datetime64",
         #  "timedelta64", and "integer", respectively.
@@ -4960,9 +4945,9 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
     elif kind == "date":
         try:
             index = np.asarray([date.fromordinal(v) for v in data], dtype=object)
-        except (ValueError):
+        except ValueError:
             index = np.asarray([date.fromtimestamp(v) for v in data], dtype=object)
-    elif kind in ("integer", "float"):
+    elif kind in ("integer", "float", "bool"):
         index = np.asarray(data)
     elif kind in ("string"):
         index = _unconvert_string_array(
@@ -5258,7 +5243,7 @@ class Selection:
             # see if we have a passed coordinate like
             with suppress(ValueError):
                 inferred = lib.infer_dtype(where, skipna=False)
-                if inferred == "integer" or inferred == "boolean":
+                if inferred in ("integer", "boolean"):
                     where = np.asarray(where)
                     if where.dtype == np.bool_:
                         start, stop = self.start, self.stop

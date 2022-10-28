@@ -17,9 +17,14 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
+from pandas._libs.tslibs import (
+    get_unit_from_dtype,
+    is_supported_unit,
+)
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
+    AxisInt,
     DtypeObj,
     NpDtype,
     PositionalIndexer,
@@ -267,7 +272,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = self._mask.swapaxes(axis1, axis2)
         return type(self)(data, mask)
 
-    def delete(self: BaseMaskedArrayT, loc, axis: int = 0) -> BaseMaskedArrayT:
+    def delete(self: BaseMaskedArrayT, loc, axis: AxisInt = 0) -> BaseMaskedArrayT:
         data = np.delete(self._data, loc, axis=axis)
         mask = np.delete(self._mask, loc, axis=axis)
         return type(self)(data, mask)
@@ -421,6 +426,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             data = self._data.astype(dtype, copy=copy)
         return data
+
+    @doc(ExtensionArray.tolist)
+    def tolist(self):
+        if self.ndim > 1:
+            return [x.tolist() for x in self]
+        if not self._hasna:
+            # faster than list(self)
+            return list(self._data)
+        return list(self)
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -749,12 +763,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return BooleanArray(result, mask, copy=False)
 
-        elif result.dtype == "timedelta64[ns]":
+        elif (
+            isinstance(result.dtype, np.dtype)
+            and result.dtype.kind == "m"
+            and is_supported_unit(get_unit_from_dtype(result.dtype))
+        ):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
             if not isinstance(result, TimedeltaArray):
-                result = TimedeltaArray._simple_new(result)
+                result = TimedeltaArray._simple_new(result, dtype=result.dtype)
 
             result[mask] = result.dtype.type("NaT")
             return result
@@ -783,7 +801,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def _concat_same_type(
         cls: type[BaseMaskedArrayT],
         to_concat: Sequence[BaseMaskedArrayT],
-        axis: int = 0,
+        axis: AxisInt = 0,
     ) -> BaseMaskedArrayT:
         data = np.concatenate([x._data for x in to_concat], axis=axis)
         mask = np.concatenate([x._mask for x in to_concat], axis=axis)
@@ -795,7 +813,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         *,
         allow_fill: bool = False,
         fill_value: Scalar | None = None,
-        axis: int = 0,
+        axis: AxisInt = 0,
     ) -> BaseMaskedArrayT:
         # we always fill with 1 internally
         # to avoid upcasting
@@ -912,7 +930,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 # mypy error: Slice index must be an integer or None
                 # https://github.com/python/mypy/issues/2410
-                na_code = codes[:na_index].argmax() + 1  # type: ignore[misc]
+                na_code = codes[:na_index].max() + 1  # type: ignore[misc]
             codes[codes >= na_code] += 1
             codes[codes == -1] = na_code
             # dummy value for uniques; not used since uniques_mask will be True
@@ -1060,7 +1078,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return self._maybe_mask_result(result, mask)
         return result
 
-    def sum(self, *, skipna: bool = True, min_count=0, axis: int | None = 0, **kwargs):
+    def sum(
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
         nv.validate_sum((), kwargs)
 
         # TODO: do this in validate_sum?
@@ -1081,7 +1106,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             "sum", result, skipna=skipna, axis=axis, **kwargs
         )
 
-    def prod(self, *, skipna: bool = True, min_count=0, axis: int | None = 0, **kwargs):
+    def prod(
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
         nv.validate_prod((), kwargs)
         result = masked_reductions.prod(
             self._data,
@@ -1094,7 +1126,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             "prod", result, skipna=skipna, axis=axis, **kwargs
         )
 
-    def mean(self, *, skipna: bool = True, axis: int | None = 0, **kwargs):
+    def mean(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         nv.validate_mean((), kwargs)
         result = masked_reductions.mean(
             self._data,
@@ -1107,7 +1139,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
 
     def var(
-        self, *, skipna: bool = True, axis: int | None = 0, ddof: int = 1, **kwargs
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="var")
         result = masked_reductions.var(
@@ -1121,7 +1153,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             "var", result, skipna=skipna, axis=axis, **kwargs
         )
 
-    def min(self, *, skipna: bool = True, axis: int | None = 0, **kwargs):
+    def min(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         nv.validate_min((), kwargs)
         return masked_reductions.min(
             self._data,
@@ -1130,7 +1162,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
 
-    def max(self, *, skipna: bool = True, axis: int | None = 0, **kwargs):
+    def max(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         nv.validate_max((), kwargs)
         return masked_reductions.max(
             self._data,

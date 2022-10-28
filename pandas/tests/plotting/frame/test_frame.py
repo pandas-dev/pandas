@@ -76,8 +76,6 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(df.plot, use_index=True)
         self._check_ticks_props(ax, xrot=0)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            _check_plot_works(df.plot, sort_columns=False)
         _check_plot_works(df.plot, yticks=[1, 5, 10])
         _check_plot_works(df.plot, xticks=[1, 5, 10])
         _check_plot_works(df.plot, ylim=(-100, 100), xlim=(-100, 100))
@@ -1681,6 +1679,12 @@ class TestDataFramePlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=0, yerr=1)
         _check_errorbar_color(ax.containers, "green", has_err="has_yerr")
 
+    def test_scatter_unknown_colormap(self):
+        # GH#48726
+        df = DataFrame({"a": [1, 2, 3], "b": 4})
+        with pytest.raises((ValueError, KeyError), match="'unknown' is not a"):
+            df.plot(x="a", y="b", colormap="unknown", kind="scatter")
+
     def test_sharex_and_ax(self):
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
         # the axis in fig.get_axis() are sorted differently than pandas
@@ -1821,11 +1825,11 @@ class TestDataFramePlots(TestPlotBase):
         # force a garbage collection
         gc.collect()
         msg = "weakly-referenced object no longer exists"
-        for key in results:
+        for result_value in results.values():
             # check that every plot was collected
             with pytest.raises(ReferenceError, match=msg):
                 # need to actually access something to get an error
-                results[key].lines
+                result_value.lines
 
     def test_df_gridspec_patterns(self):
         # GH 10819
@@ -2225,19 +2229,6 @@ class TestDataFramePlots(TestPlotBase):
                 assert ax.get_ylabel() == "Y"
                 assert ax.get_ylim() == (0, 100)
                 assert ax.get_yticks()[0] == 99
-
-    def test_sort_columns_deprecated(self):
-        # GH 47563
-        df = DataFrame({"a": [1, 2], "b": [3, 4]})
-
-        with tm.assert_produces_warning(FutureWarning):
-            df.plot.box("a", sort_columns=True)
-
-        with tm.assert_produces_warning(FutureWarning):
-            df.plot.box(sort_columns=False)
-
-        with tm.assert_produces_warning(False):
-            df.plot.box("a")
 
 
 def _generate_4_axes_via_gridspec():

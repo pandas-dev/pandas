@@ -7,7 +7,6 @@ from functools import (
     lru_cache,
     reduce,
 )
-import inspect
 import itertools
 import re
 from typing import (
@@ -278,7 +277,7 @@ class CSSToExcelConverter:
             # Return "none" will keep "border" in style dictionary
             return "none"
 
-        if style == "none" or style == "hidden":
+        if style in ("none", "hidden"):
             return "none"
 
         width_name = self._get_width_name(width)
@@ -432,7 +431,7 @@ class CSSToExcelConverter:
             warnings.warn(
                 f"Unhandled color format: {repr(val)}",
                 CSSWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         return None
 
@@ -880,14 +879,8 @@ class ExcelFormatter:
             is to be frozen
         engine : string, default None
             write engine to use if writer is a path - you can also set this
-            via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``,
-            and ``io.excel.xlsm.writer``.
-
-            .. deprecated:: 1.2.0
-
-                As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
-                maintained, the ``xlwt`` engine will be removed in a future
-                version of pandas.
+            via the options ``io.excel.xlsx.writer``,
+            or ``io.excel.xlsm.writer``.
 
         {storage_options}
 

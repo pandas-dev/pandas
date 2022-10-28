@@ -5,7 +5,6 @@ This is not a public API.
 """
 from __future__ import annotations
 
-import inspect
 import operator
 from typing import TYPE_CHECKING
 import warnings
@@ -13,7 +12,11 @@ import warnings
 import numpy as np
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
-from pandas._typing import Level
+from pandas._typing import (
+    Axis,
+    AxisInt,
+    Level,
+)
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
@@ -175,7 +178,7 @@ def flex_method_SERIES(op):
     doc = make_flex_doc(name, "series")
 
     @Appender(doc)
-    def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
+    def flex_wrapper(self, other, level=None, fill_value=None, axis: Axis = 0):
         # validate axis
         if axis is not None:
             self._get_axis_number(axis)
@@ -302,7 +305,7 @@ def align_method_FRAME(
                     "Do `left, right = left.align(right, axis=1, copy=False)` "
                     "before e.g. `left == right`",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
         left, right = left.align(
@@ -386,7 +389,7 @@ def frame_arith_method_with_reindex(left: DataFrame, right: DataFrame, op) -> Da
     return result
 
 
-def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: int):
+def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: AxisInt):
     """
     If the Series operand is not EA-dtype, we can broadcast to 2D and operate
     blockwise.
@@ -394,7 +397,7 @@ def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: int):
     rvalues = series._values
     if not isinstance(rvalues, np.ndarray):
         # TODO(EA2D): no need to special-case with 2D EAs
-        if rvalues.dtype == "datetime64[ns]" or rvalues.dtype == "timedelta64[ns]":
+        if rvalues.dtype in ("datetime64[ns]", "timedelta64[ns]"):
             # We can losslessly+cheaply cast to ndarray
             rvalues = np.asarray(rvalues)
         else:

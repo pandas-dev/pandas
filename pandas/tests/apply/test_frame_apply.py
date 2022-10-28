@@ -1342,7 +1342,7 @@ def test_size_as_str(how, axis):
     # Just a string attribute arg same as calling df.arg
     # on the columns
     result = getattr(df, how)("size", axis=axis)
-    if axis == 0 or axis == "index":
+    if axis in (0, "index"):
         expected = Series(df.shape[0], index=df.columns)
     else:
         expected = Series(df.shape[1], index=df.index)
@@ -1603,4 +1603,17 @@ def test_unique_agg_type_is_series(test, constant):
 
     result = df1.agg(aggregation)
 
+    tm.assert_series_equal(result, expected)
+
+
+def test_any_apply_keyword_non_zero_axis_regression():
+    # https://github.com/pandas-dev/pandas/issues/48656
+    df = DataFrame({"A": [1, 2, 0], "B": [0, 2, 0], "C": [0, 0, 0]})
+    expected = Series([True, True, False])
+    tm.assert_series_equal(df.any(axis=1), expected)
+
+    result = df.apply("any", axis=1)
+    tm.assert_series_equal(result, expected)
+
+    result = df.apply("any", 1)
     tm.assert_series_equal(result, expected)
