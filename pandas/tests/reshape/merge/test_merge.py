@@ -1,20 +1,15 @@
+import re
 from datetime import (
     date,
     datetime,
     timedelta,
 )
-import re
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_object_dtype,
-)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-
 import pandas as pd
+import pandas._testing as tm
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -27,13 +22,17 @@ from pandas import (
     Series,
     TimedeltaIndex,
 )
-import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.api import (
     Float64Index,
     Int64Index,
     UInt64Index,
 )
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_object_dtype,
+)
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import (
     MergeError,
@@ -2737,4 +2736,17 @@ def test_join_leftindex_righton():
     right = DataFrame({"x": ["a", "c"]})
     result = merge(left, right, how="left", left_index=True, right_on="x")
     expected = DataFrame(index=["a", "b"], columns=["x"], data=["a", np.nan])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_lefton_rightindex():
+    # GH 15692
+    # GH 17257
+    left = DataFrame(columns=["key", "col_left"])
+    right = DataFrame({"col_right": ["a", "b", "c"]})
+    result = left.merge(right, left_on="key", right_index=True, how="right")
+    expected = DataFrame(
+        {"key": [np.nan] * 3, "col_left": [np.nan] * 3, "col_right": ["a", "b", "c"]},
+        dtype="object",
+    )
     tm.assert_frame_equal(result, expected)
