@@ -498,15 +498,14 @@ class Grouping:
             #  mapper is None and isinstance(index, MultiIndex)
             # TODO: Can you have two levels with the same name?
             if isinstance(index, MultiIndex):
-                index = index.get_level_values(ilevel)
+                index_level = index.get_level_values(ilevel)
+            else:
+                index_level = index
             (
                 self.grouping_vector,  # Index
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(mapper, dropna=dropna)
-            # We've modified the passed index; make sure it isn't used
-            # in the remainder of this method
-            del index
+            ) = index_level._get_grouper_for_level(mapper, dropna=dropna)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes

@@ -916,7 +916,7 @@ class BaseGrouper:
         # The first returned ndarray may have any signed integer dtype
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
-            return compress_group_index(group_index, self._sort)
+            return compress_group_index(group_index, sort=self._sort)
             # FIXME: compress_group_index's second return value is int64, not intp
 
         ping = self.groupings[0]
