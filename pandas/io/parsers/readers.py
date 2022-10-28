@@ -24,7 +24,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     CompressionOptions,
@@ -42,7 +42,6 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     deprecate_kwarg,
-    deprecate_nonkeyword_arguments,
 )
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -871,7 +870,6 @@ def read_csv(
 
 
 @deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
@@ -884,6 +882,7 @@ def read_csv(
 )
 def read_csv(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    *,
     sep: str | None | lib.NoDefault = lib.no_default,
     delimiter: str | None | lib.NoDefault = None,
     # Column and Index Locations and Names
@@ -1215,7 +1214,6 @@ def read_table(
 
 
 @deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_table",
@@ -1228,6 +1226,7 @@ def read_table(
 )
 def read_table(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    *,
     sep: str | None | lib.NoDefault = lib.no_default,
     delimiter: str | None | lib.NoDefault = None,
     # Column and Index Locations and Names
@@ -1314,9 +1313,9 @@ def read_table(
     return _read(filepath_or_buffer, kwds)
 
 
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    *,
     colspecs: Sequence[tuple[int, int]] | str | None = "infer",
     widths: Sequence[int] | None = None,
     infer_nrows: int = 100,

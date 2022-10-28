@@ -40,7 +40,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import WeekDay
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 from pandas.tseries.offsets import (
     FY5253,
     BaseOffset,
