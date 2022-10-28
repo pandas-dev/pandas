@@ -218,6 +218,13 @@ class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
             )
         super().test_check_dtype(data)
 
+    def test_is_not_object_type(self, dtype, request):
+        if dtype.numpy_dtype == "object":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="PandasDtype(object) should be object")
+            )
+        super().test_is_not_object_type(dtype)
+
 
 class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
     @skip_nested

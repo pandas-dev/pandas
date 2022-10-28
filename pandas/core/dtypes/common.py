@@ -524,15 +524,16 @@ def is_string_dtype(arr_or_dtype) -> bool:
     >>> is_string_dtype(pd.Series([1, 2]))
     False
     """
-    # TODO: gh-15585: consider making the checks stricter.
-    def condition(dtype) -> bool:
-        return dtype.kind in ("O", "S", "U") and not is_excluded_dtype(dtype)
+    if hasattr(arr_or_dtype, "dtype"):
+        if arr_or_dtype.dtype.kind in "SU":
+            return True
+        elif arr_or_dtype.dtype.kind == "O":
+            return is_all_strings(arr_or_dtype)
+        else:
+            return False
 
-    def is_excluded_dtype(dtype) -> bool:
-        """
-        These have kind = "O" but aren't string dtypes so need to be explicitly excluded
-        """
-        return isinstance(dtype, (PeriodDtype, IntervalDtype, CategoricalDtype))
+    def condition(dtype) -> bool:
+        return is_string_or_object_np_dtype(dtype) or dtype == "string"
 
     return _is_dtype(arr_or_dtype, condition)
 

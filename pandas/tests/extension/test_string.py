@@ -106,6 +106,10 @@ class TestDtype(base.BaseDtypeTests):
         assert dtype == f"string[{dtype.storage}]"
         super().test_eq_with_str(dtype)
 
+    @pytest.mark.xfail(reason="StringDtype is a string dtype")
+    def test_is_not_string_type(self, dtype):
+        super().test_is_not_string_type(dtype)
+
 
 class TestInterface(base.BaseInterfaceTests):
     def test_view(self, data, request):
