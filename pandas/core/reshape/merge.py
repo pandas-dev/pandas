@@ -5,27 +5,19 @@ from __future__ import annotations
 
 import copy
 import datetime
-import string
-import uuid
-import warnings
 from functools import partial
+import string
 from typing import (
     TYPE_CHECKING,
     Hashable,
     Sequence,
     cast,
 )
+import uuid
+import warnings
 
 import numpy as np
 
-import pandas.core.algorithms as algos
-import pandas.core.common as com
-from pandas import (
-    Categorical,
-    Index,
-    MultiIndex,
-    Series,
-)
 from pandas._libs import (
     Timedelta,
     hashtable as libhashtable,
@@ -42,9 +34,14 @@ from pandas._typing import (
     Suffixes,
     npt,
 )
-from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.construction import extract_array
+from pandas.errors import MergeError
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    cache_readonly,
+)
+from pandas.util._exceptions import find_stack_level
+
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -74,25 +71,31 @@ from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
 )
+
+from pandas import (
+    Categorical,
+    Index,
+    MultiIndex,
+    Series,
+)
+import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
 from pandas.core.sorting import is_int64_overflow_possible
-from pandas.errors import MergeError
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    cache_readonly,
-)
-from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
     from pandas import DataFrame
     from pandas.core import groupby
+    from pandas.core.arrays import DatetimeArray
 
 
 @Substitution("\nleft : DataFrame or named Series")
 @Appender(_merge_doc, indents=0)
 def merge(
-        left: DataFrame | Series,
+    left: DataFrame | Series,
     right: DataFrame | Series,
     how: str = "inner",
     on: IndexLabel | None = None,
