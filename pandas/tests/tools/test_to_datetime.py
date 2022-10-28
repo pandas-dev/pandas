@@ -626,20 +626,15 @@ class TestToDatetime:
     def test_to_datetime_now(self):
         # See GH#18666
         with tm.set_timezone("US/Eastern"):
-            msg = "The parsing of 'now' in pd.to_datetime"
-            with tm.assert_produces_warning(
-                FutureWarning, match=msg, check_stacklevel=False
-            ):
-                # checking stacklevel is tricky because we go through cython code
-                # GH#18705
-                npnow = np.datetime64("now").astype("datetime64[ns]")
-                pdnow = to_datetime("now")
-                pdnow2 = to_datetime(["now"])[0]
+            # GH#18705
+            now = Timestamp("now")
+            pdnow = to_datetime("now")
+            pdnow2 = to_datetime(["now"])[0]
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
-            assert abs(pdnow.value - npnow.astype(np.int64)) < 1e10
-            assert abs(pdnow2.value - npnow.astype(np.int64)) < 1e10
+            assert abs(pdnow.value - now.value) < 1e10
+            assert abs(pdnow2.value - now.value) < 1e10
 
             assert pdnow.tzinfo is None
             assert pdnow2.tzinfo is None
@@ -673,12 +668,7 @@ class TestToDatetime:
 
     @pytest.mark.parametrize("arg", ["now", "today"])
     def test_to_datetime_today_now_unicode_bytes(self, arg):
-        warn = FutureWarning if arg == "now" else None
-        msg = "The parsing of 'now' in pd.to_datetime"
-        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-            # checking stacklevel is tricky because we go through cython code
-            # GH#18705
-            to_datetime([arg])
+        to_datetime([arg])
 
     @pytest.mark.parametrize(
         "dt", [np.datetime64("2000-01-01"), np.datetime64("2000-01-02")]
