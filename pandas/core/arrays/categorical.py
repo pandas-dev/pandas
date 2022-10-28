@@ -87,6 +87,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import (
+    algorithms,
     arraylike,
     ops,
 )
@@ -94,7 +95,6 @@ from pandas.core.accessor import (
     PandasDelegate,
     delegate_names,
 )
-import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import (
     factorize,
     take_nd,
