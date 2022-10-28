@@ -216,7 +216,7 @@ should already exist.
    python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
-Be sure to also install the :ref:`pre-commit hooks <contributing.pre-commit>`
+Be sure to also install the :ref:`pre-commit hooks <contributing.pre-commit>`.
 
 Option 2: creating an environment using Docker
 ----------------------------------------------
