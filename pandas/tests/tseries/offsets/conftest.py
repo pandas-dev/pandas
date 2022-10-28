@@ -5,7 +5,7 @@ import pytest
 from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.offsets import MonthOffset
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 
 
 @pytest.fixture(

@@ -48,7 +48,6 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     cache_readonly,
-    deprecate_nonkeyword_arguments,
 )
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
@@ -662,13 +661,12 @@ class ExtensionArray:
         # Note: this is used in `ExtensionArray.argsort/argmin/argmax`.
         return np.array(self)
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(
         self,
+        *,
         ascending: bool = True,
         kind: SortKind = "quicksort",
         na_position: str = "last",
-        *args,
         **kwargs,
     ) -> np.ndarray:
         """
@@ -699,7 +697,7 @@ class ExtensionArray:
         # 1. _values_for_argsort : construct the values passed to np.argsort
         # 2. argsort : total control over sorting. In case of overriding this,
         #    it is recommended to also override argmax/argmin
-        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
+        ascending = nv.validate_argsort_with_ascending(ascending, (), kwargs)
 
         values = self._values_for_argsort()
         return nargsort(
