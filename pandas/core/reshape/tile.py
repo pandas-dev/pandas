@@ -43,8 +43,8 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+from pandas.core import nanops
 import pandas.core.algorithms as algos
-import pandas.core.nanops as nanops
 
 
 def cut(

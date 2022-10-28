@@ -236,7 +236,7 @@ switcher_version = version
 if ".dev" in version:
     switcher_version = "dev"
 elif "rc" in version:
-    switcher_version = version.split("rc")[0] + " (rc)"
+    switcher_version = version.split("rc", maxsplit=1)[0] + " (rc)"
 
 html_theme_options = {
     "external_links": [],
