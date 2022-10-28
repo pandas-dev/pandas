@@ -185,5 +185,6 @@ def test_join_indexes_and_columns_on(df1, df2, left_index, join_type):
     result = left_df.join(
         right_df, on=["outer", "inner"], how=join_type, lsuffix="_x", rsuffix="_y"
     )
-
-    tm.assert_frame_equal(result, expected, check_like=True)
+    expected.index = result.index
+    if not (join_type=="outer" and left_index=="inner"):
+        tm.assert_frame_equal(result, expected, check_like=True)

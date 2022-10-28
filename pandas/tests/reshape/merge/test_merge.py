@@ -881,16 +881,16 @@ class TestMerge:
                 "date2": [pd.Timestamp("2019", tz=dtz.tz)],
             },
             columns=["date", "value", "date2"],
-        )
+        ).astype({"date":"datetime64[ns, UTC]", "date2":"datetime64[ns, UTC]"})
         left = right[:0]
         result = left.merge(right, on="date")
         expected = DataFrame(
             {
                 "value_x": Series(dtype=float),
-                "date2_x": Series(dtype="object"),
-                "date": Series(dtype="object"),
+                "date2_x": Series(dtype=dtz),
+                "date": Series(dtype=dtz),
                 "value_y": Series(dtype=float),
-                "date2_y": Series(dtype="object"),
+                "date2_y": Series(dtype=dtz),
             },
             columns=["value_x", "date2_x", "date", "value_y", "date2_y"],
         )
