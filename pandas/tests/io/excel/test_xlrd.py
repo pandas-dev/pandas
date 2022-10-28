@@ -39,22 +39,6 @@ def test_read_xlrd_book(read_ext_xlrd, datapath):
     tm.assert_frame_equal(result, expected)
 
 
-def test_excel_file_warning_with_xlsx_file(datapath):
-    # GH 29375
-    path = datapath("io", "data", "excel", "test1.xlsx")
-    has_openpyxl = import_optional_dependency("openpyxl", errors="ignore") is not None
-    if not has_openpyxl:
-        with tm.assert_produces_warning(
-            FutureWarning,
-            raise_on_extra_warnings=False,
-            match="The xlrd engine is no longer maintained",
-        ):
-            ExcelFile(path, engine=None)
-    else:
-        with tm.assert_produces_warning(None):
-            pd.read_excel(path, "Sheet1", engine=None)
-
-
 def test_read_excel_warning_with_xlsx_file(datapath):
     # GH 29375
     path = datapath("io", "data", "excel", "test1.xlsx")
