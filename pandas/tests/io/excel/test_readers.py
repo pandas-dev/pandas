@@ -1317,6 +1317,8 @@ class TestReaders:
             match="The squeeze argument has been deprecated "
             "and will be removed in a future version. "
             'Append .squeeze\\("columns"\\) to the call to squeeze.\n\n',
+            # xlrd always raises a warning
+            raise_on_extra_warnings=(read_ext == "xls"),
         ):
             actual = pd.read_excel(
                 f, sheet_name="two_columns", index_col=0, squeeze=True
@@ -1685,7 +1687,9 @@ class TestExcelFileRead:
 
         with tm.ensure_clean(f"corrupt{read_ext}") as file:
             Path(file).write_text("corrupt")
-            with tm.assert_produces_warning(False):
+            warn = UserWarning if engine == "xlrd" else None
+            msg = "The xlrd engine is no longer maintained"
+            with tm.assert_produces_warning(warn, match=msg):
                 try:
                     pd.ExcelFile(file, engine=engine)
                 except errors:

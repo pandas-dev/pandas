@@ -28,8 +28,10 @@ def test_read_xlrd_book(read_ext_xlrd, datapath):
     sheet_name = "Sheet1"
     pth = datapath("io", "data", "excel", "test1.xls")
     with xlrd.open_workbook(pth) as book:
-        with ExcelFile(book, engine=engine) as xl:
-            result = pd.read_excel(xl, sheet_name=sheet_name, index_col=0)
+        msg = "The xlrd engine is no longer maintained"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            with ExcelFile(book, engine=engine) as xl:
+                result = pd.read_excel(xl, sheet_name=sheet_name, index_col=0)
 
         expected = pd.read_excel(
             book, sheet_name=sheet_name, engine=engine, index_col=0
@@ -42,8 +44,10 @@ def test_read_xlsx_fails(datapath):
     from xlrd.biffh import XLRDError
 
     path = datapath("io", "data", "excel", "test1.xlsx")
-    with pytest.raises(XLRDError, match="Excel xlsx file; not supported"):
-        pd.read_excel(path, engine="xlrd")
+    msg = "The xlrd engine is no longer maintained"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        with pytest.raises(XLRDError, match="Excel xlsx file; not supported"):
+            pd.read_excel(path, engine="xlrd")
 
 
 @pytest.mark.parametrize(
