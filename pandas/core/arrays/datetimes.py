@@ -520,12 +520,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         # GH#42228
         value = x.view("i8")
         ts = Timestamp._from_value_and_reso(value, reso=self._creso, tz=self.tz)
-        # Non-overlapping identity check (left operand type: "Timestamp",
-        # right operand type: "NaTType")
-        if ts is not NaT:  # type: ignore[comparison-overlap]
-            # GH#41586
-            # do this instead of passing to the constructor to avoid FutureWarning
-            ts._set_freq(self.freq)
         return ts
 
     @property
@@ -626,7 +620,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 converted = ints_to_pydatetime(
                     data[start_i:end_i],
                     tz=self.tz,
-                    freq=self.freq,
                     box="timestamp",
                     reso=self._creso,
                 )

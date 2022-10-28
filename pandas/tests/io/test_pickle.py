@@ -89,7 +89,6 @@ def compare_element(result, expected, typ):
             assert result is pd.NaT
         else:
             assert result == expected
-            assert result.freq == expected.freq
     else:
         comparator = getattr(tm, f"assert_{typ}_equal", tm.assert_almost_equal)
         comparator(result, expected)
@@ -215,7 +214,6 @@ def python_unpickler(path):
     ],
 )
 @pytest.mark.parametrize("writer", [pd.to_pickle, python_pickler])
-@pytest.mark.filterwarnings("ignore:The 'freq' argument in Timestamp:FutureWarning")
 def test_round_trip_current(current_pickle_data, pickle_writer, writer):
     data = current_pickle_data
     for typ, dv in data.items():

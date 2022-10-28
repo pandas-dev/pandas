@@ -683,8 +683,6 @@ class NaTType(_NaT):
         ----------
         ordinal : int
             Date corresponding to a proleptic Gregorian ordinal.
-        freq : str, DateOffset
-            Offset to apply to the Timestamp.
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
 

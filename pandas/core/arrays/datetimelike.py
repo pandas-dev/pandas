@@ -438,7 +438,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 converted = ints_to_pydatetime(
                     i8data,
                     tz=self.tz,
-                    freq=self.freq,
                     box="timestamp",
                     reso=self._creso,
                 )

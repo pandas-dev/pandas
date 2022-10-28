@@ -97,11 +97,7 @@ from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsTimedelta,
 )
 
-from pandas._libs.tslibs.offsets cimport (
-    BaseOffset,
-    is_offset_object,
-    to_offset,
-)
+from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.timedeltas cimport (
     _Timedelta,
     delta_to_nanoseconds,
@@ -134,7 +130,6 @@ cdef inline _Timestamp create_timestamp_from_ts(
     int64_t value,
     npy_datetimestruct dts,
     tzinfo tz,
-    BaseOffset freq,
     bint fold,
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
@@ -160,7 +155,6 @@ cdef inline _Timestamp create_timestamp_from_ts(
                                  dts.sec, dts.us, tz, fold=fold)
 
     ts_base.value = value
-    ts_base._freq = freq
     ts_base.year = dts.year
     ts_base.nanosecond = dts.ps // 1000
     ts_base._creso = reso
@@ -171,7 +165,6 @@ cdef inline _Timestamp create_timestamp_from_ts(
 def _unpickle_timestamp(value, freq, tz, reso=NPY_FR_ns):
     # GH#41949 dont warn on unpickle if we have a freq
     ts = Timestamp._from_value_and_reso(value, reso, tz)
-    ts._set_freq(freq)
     return ts
 
 
@@ -239,21 +232,6 @@ cdef class _Timestamp(ABCTimestamp):
     max = MinMaxReso("max")
     resolution = MinMaxReso("resolution")  # GH#21336, GH#21365
 
-    cpdef void _set_freq(self, freq):
-        # set the ._freq attribute without going through the constructor,
-        #  which would issue a warning
-        # Caller is responsible for validation
-        self._freq = freq
-
-    @property
-    def freq(self):
-        warnings.warn(
-            "Timestamp.freq is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._freq
-
     @property
     def _unit(self) -> str:
         """
@@ -284,7 +262,7 @@ cdef class _Timestamp(ABCTimestamp):
         maybe_localize_tso(obj, tz, reso)
 
         return create_timestamp_from_ts(
-            value, obj.dts, tz=obj.tzinfo, freq=None, fold=obj.fold, reso=reso
+            value, obj.dts, tz=obj.tzinfo, fold=obj.fold, reso=reso
         )
 
     @classmethod
@@ -454,8 +432,6 @@ cdef class _Timestamp(ABCTimestamp):
                     f"Out of bounds nanosecond timestamp: {new_value}"
                 ) from err
 
-            if result is not NaT:
-                result._set_freq(self._freq)  # avoid warning in constructor
             return result
 
         elif is_integer_object(other):
@@ -592,7 +568,7 @@ cdef class _Timestamp(ABCTimestamp):
         if freq:
             kwds = freq.kwds
             month_kw = kwds.get('startingMonth', kwds.get('month', 12))
-            freqstr = self._freqstr
+            freqstr = freq.freqstr
         else:
             month_kw = 12
             freqstr = None
@@ -602,31 +578,6 @@ cdef class _Timestamp(ABCTimestamp):
         out = get_start_end_field(np.array([val], dtype=np.int64),
                                   field, freqstr, month_kw, self._creso)
         return out[0]
-
-    cdef _warn_on_field_deprecation(self, freq, str field):
-        """
-        Warn if the removal of .freq change the value of start/end properties.
-        """
-        cdef:
-            bint needs = False
-
-        if freq is not None:
-            kwds = freq.kwds
-            month_kw = kwds.get("startingMonth", kwds.get("month", 12))
-            freqstr = self._freqstr
-            if month_kw != 12:
-                needs = True
-            if freqstr.startswith("B"):
-                needs = True
-
-            if needs:
-                warnings.warn(
-                    "Timestamp.freq is deprecated and will be removed in a future "
-                    "version. When you have a freq, use "
-                    f"freq.{field}(timestamp) instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
 
     @property
     def is_month_start(self) -> bool:
@@ -643,11 +594,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.is_month_start
         True
         """
-        if self._freq is None:
-            # fast-path for non-business frequencies
-            return self.day == 1
-        self._warn_on_field_deprecation(self._freq, "is_month_start")
-        return self._get_start_end_field("is_month_start", self._freq)
+        return self.day == 1
 
     @property
     def is_month_end(self) -> bool:
@@ -664,11 +611,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.is_month_end
         True
         """
-        if self._freq is None:
-            # fast-path for non-business frequencies
-            return self.day == self.days_in_month
-        self._warn_on_field_deprecation(self._freq, "is_month_end")
-        return self._get_start_end_field("is_month_end", self._freq)
+        return self.day == self.days_in_month
 
     @property
     def is_quarter_start(self) -> bool:
@@ -685,11 +628,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.is_quarter_start
         True
         """
-        if self._freq is None:
-            # fast-path for non-business frequencies
-            return self.day == 1 and self.month % 3 == 1
-        self._warn_on_field_deprecation(self._freq, "is_quarter_start")
-        return self._get_start_end_field("is_quarter_start", self._freq)
+        return self.day == 1 and self.month % 3 == 1
 
     @property
     def is_quarter_end(self) -> bool:
@@ -706,11 +645,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.is_quarter_end
         True
         """
-        if self._freq is None:
-            # fast-path for non-business frequencies
-            return (self.month % 3) == 0 and self.day == self.days_in_month
-        self._warn_on_field_deprecation(self._freq, "is_quarter_end")
-        return self._get_start_end_field("is_quarter_end", self._freq)
+        return (self.month % 3) == 0 and self.day == self.days_in_month
 
     @property
     def is_year_start(self) -> bool:
@@ -727,11 +662,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.is_year_start
         True
         """
-        if self._freq is None:
-            # fast-path for non-business frequencies
-            return self.day == self.month == 1
-        self._warn_on_field_deprecation(self._freq, "is_year_start")
-        return self._get_start_end_field("is_year_start", self._freq)
+        return self.day == self.month == 1
 
     @property
     def is_year_end(self) -> bool:
@@ -748,11 +679,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.is_year_end
         True
         """
-        if self._freq is None:
-            # fast-path for non-business frequencies
-            return self.month == 12 and self.day == 31
-        self._warn_on_field_deprecation(self._freq, "is_year_end")
-        return self._get_start_end_field("is_year_end", self._freq)
+        return self.month == 12 and self.day == 31
 
     @cython.boundscheck(False)
     cdef _get_date_name_field(self, str field, object locale):
@@ -930,7 +857,6 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __setstate__(self, state):
         self.value = state[0]
-        self._freq = state[1]
         self.tzinfo = state[2]
 
         if len(state) == 3:
@@ -942,7 +868,7 @@ cdef class _Timestamp(ABCTimestamp):
         self._creso = reso
 
     def __reduce__(self):
-        object_state = self.value, self._freq, self.tzinfo, self._creso
+        object_state = self.value, None, self.tzinfo, self._creso
         return (_unpickle_timestamp, object_state)
 
     # -----------------------------------------------------------------
@@ -1021,9 +947,8 @@ cdef class _Timestamp(ABCTimestamp):
             pass
 
         tz = f", tz='{zone}'" if zone is not None else ""
-        freq = "" if self._freq is None else f", freq='{self._freqstr}'"
 
-        return f"Timestamp('{stamp}'{tz}{freq})"
+        return f"Timestamp('{stamp}'{tz})"
 
     @property
     def _repr_base(self) -> str:
@@ -1213,15 +1138,6 @@ cdef class _Timestamp(ABCTimestamp):
                 stacklevel=find_stack_level(),
             )
 
-        if freq is None:
-            freq = self._freq
-            warnings.warn(
-                "In a future version, calling 'Timestamp.to_period()' without "
-                "passing a 'freq' will raise an exception.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
         return Period(self, freq=freq)
 
 
@@ -1244,8 +1160,6 @@ class Timestamp(_Timestamp):
     ----------
     ts_input : datetime-like, str, int, float
         Value to be converted to Timestamp.
-    freq : str, DateOffset
-        Offset which Timestamp will have.
     tz : str, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : str
@@ -1303,7 +1217,7 @@ class Timestamp(_Timestamp):
     """
 
     @classmethod
-    def fromordinal(cls, ordinal, freq=None, tz=None):
+    def fromordinal(cls, ordinal, tz=None):
         """
         Construct a timestamp from a a proleptic Gregorian ordinal.
 
@@ -1311,8 +1225,6 @@ class Timestamp(_Timestamp):
         ----------
         ordinal : int
             Date corresponding to a proleptic Gregorian ordinal.
-        freq : str, DateOffset
-            Offset to apply to the Timestamp.
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
 
@@ -1325,8 +1237,7 @@ class Timestamp(_Timestamp):
         >>> pd.Timestamp.fromordinal(737425)
         Timestamp('2020-01-01 00:00:00')
         """
-        return cls(datetime.fromordinal(ordinal),
-                   freq=freq, tz=tz)
+        return cls(datetime.fromordinal(ordinal), tz=tz)
 
     @classmethod
     def now(cls, tz=None):
@@ -1662,20 +1573,7 @@ class Timestamp(_Timestamp):
         if ts.value == NPY_NAT:
             return NaT
 
-        if freq is None:
-            # GH 22311: Try to extract the frequency of a given Timestamp input
-            freq = getattr(ts_input, '_freq', None)
-        else:
-            warnings.warn(
-                "The 'freq' argument in Timestamp is deprecated and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            if not is_offset_object(freq):
-                freq = to_offset(freq)
-
-        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold, ts.creso)
+        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, ts.fold, ts.creso)
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         cdef:
@@ -1994,22 +1892,6 @@ timedelta}, default 'raise'
             "Use tz_localize() or tz_convert() as appropriate"
         )
 
-    @property
-    def _freqstr(self):
-        return getattr(self._freq, "freqstr", self._freq)
-
-    @property
-    def freqstr(self):
-        """
-        Return the total number of days in the month.
-        """
-        warnings.warn(
-            "Timestamp.freqstr is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._freqstr
-
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
         Localize the Timestamp to a timezone.
@@ -2110,8 +1992,6 @@ default 'raise'
             )
 
         out = type(self)._from_value_and_reso(value, self._creso, tz=tz)
-        if out is not NaT:
-            out._set_freq(self._freq)  # avoid warning in constructor
         return out
 
     def tz_convert(self, tz):
@@ -2165,8 +2045,6 @@ default 'raise'
             # Same UTC timestamp, different time zone
             tz = maybe_get_tz(tz)
             out = type(self)._from_value_and_reso(self.value, reso=self._creso, tz=tz)
-            if out is not NaT:
-                out._set_freq(self._freq)  # avoid warning in constructor
             return out
 
     astimezone = tz_convert
@@ -2299,7 +2177,7 @@ default 'raise'
             ts_input, tzobj, nanos=dts.ps // 1000, reso=self._creso
         )
         return create_timestamp_from_ts(
-            ts.value, dts, tzobj, self._freq, fold, reso=self._creso
+            ts.value, dts, tzobj, fold, reso=self._creso
         )
 
     def to_julian_date(self) -> np.float64:
