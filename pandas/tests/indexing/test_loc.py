@@ -2795,15 +2795,12 @@ def test_loc_mixed_int_float():
     assert result == 0
 
 
-def test_loc_with_positional_slice_deprecation():
+def test_loc_with_positional_slice_raises():
     # GH#31840
     ser = Series(range(4), index=["A", "B", "C", "D"])
 
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
         ser.loc[:3] = 2
-
-    expected = Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
-    tm.assert_series_equal(ser, expected)
 
 
 def test_loc_slice_disallows_positional():
@@ -2822,15 +2819,15 @@ def test_loc_slice_disallows_positional():
         with pytest.raises(TypeError, match=msg):
             obj.loc[1:3]
 
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#31840 deprecated incorrect behavior
+        with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
+            # GH#31840 enforce incorrect behavior
             obj.loc[1:3] = 1
 
     with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1]
 
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#31840 deprecated incorrect behavior
+    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
+        # GH#31840 enforce incorrect behavior
         df.loc[1:3, 1] = 2
 
 
