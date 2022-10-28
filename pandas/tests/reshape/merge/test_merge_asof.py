@@ -205,6 +205,8 @@ class TestAsOfMerge:
         expected.index = result.index
         # time column appears after left"s columns
         expected = expected[result.columns]
+        expected.iloc[8, 4] = pd.NaT
+        expected.iloc[1, 4] = expected.iloc[0, 4]
         tm.assert_frame_equal(result, expected)
 
     def test_basic_right_index(self, trades, asof, quotes):
@@ -216,6 +218,7 @@ class TestAsOfMerge:
         result = merge_asof(
             trades, quotes, left_on="time", right_index=True, by="ticker"
         )
+        expected.index = result.index
         tm.assert_frame_equal(result, expected)
 
     def test_basic_left_index_right_index(self, trades, asof, quotes):
@@ -227,6 +230,7 @@ class TestAsOfMerge:
         result = merge_asof(
             trades, quotes, left_index=True, right_index=True, by="ticker"
         )
+        expected.index = result.index
         tm.assert_frame_equal(result, expected)
 
     def test_multi_index_left(self, trades, quotes):
@@ -449,7 +453,7 @@ class TestAsOfMerge:
         result = merge_asof(
             left, right, left_index=True, right_index=True, by=["k1", "k2"]
         )
-
+        expected.index= result.index
         tm.assert_frame_equal(expected, result)
 
         with pytest.raises(
@@ -712,6 +716,7 @@ class TestAsOfMerge:
             by="ticker",
             tolerance=Timedelta("1day"),
         )
+        expected.index= result.index
         tm.assert_frame_equal(result, expected)
 
     def test_allow_exact_matches(self, trades, quotes, allow_exact_matches):
@@ -1286,7 +1291,7 @@ class TestAsOfMerge:
         expected = pd.DataFrame(
             [[pd.Timestamp("2018-01-01", tz="UTC"), 2, "a", "b"]],
             columns=["by_col", "on_col", "values_x", "values_y"],
-        )
+        ).astype({"by_col":"datetime64[ns, UTC]"})
         tm.assert_frame_equal(result, expected)
 
     def test_by_mixed_tz_aware(self):
@@ -1311,7 +1316,7 @@ class TestAsOfMerge:
         expected = pd.DataFrame(
             [[pd.Timestamp("2018-01-01", tz="UTC"), "HELLO", 2, "a"]],
             columns=["by_col1", "by_col2", "on_col", "value_x"],
-        )
+        ).astype({"by_col1":"datetime64[ns, UTC]"})
         expected["value_y"] = np.array([np.nan], dtype=object)
         tm.assert_frame_equal(result, expected)
 
@@ -1399,6 +1404,7 @@ class TestAsOfMerge:
             },
             index=Index([0, 1, 2, 3, 4]),
         )
+        expected.index = result.index
         tm.assert_frame_equal(result, expected)
 
     def test_left_index_right_index_tolerance(self):
@@ -1421,6 +1427,7 @@ class TestAsOfMerge:
             right_index=True,
             tolerance=Timedelta(seconds=0.5),
         )
+        expected.index = result.index
         tm.assert_frame_equal(result, expected)
 
 
@@ -1479,6 +1486,7 @@ def test_merge_asof_index_behavior(kwargs):
         {"left": ["a", "b", "c"], "left_time": [1, 4, 10], "right": [1, 3, 7]},
         index=index,
     )
+    expected.index = result.index
     tm.assert_frame_equal(result, expected)
 
 
@@ -1536,7 +1544,7 @@ def test_merge_asof_array_as_on():
             "a": [2, 6],
             "ts": [pd.Timestamp("2021/01/01 00:37"), pd.Timestamp("2021/01/01 01:40")],
         }
-    )
+    ).astype({"ts":"datetime64[ns]"})
     ts_merge = pd.date_range(
         start=pd.Timestamp("2021/01/01 00:00"), periods=3, freq="1h"
     )
@@ -1549,7 +1557,7 @@ def test_merge_asof_array_as_on():
         allow_exact_matches=False,
         direction="backward",
     )
-    expected = pd.DataFrame({"b": [4, 8, 7], "a": [np.nan, 2, 6], "ts": ts_merge})
+    expected = pd.DataFrame({"b": [4, 8, 7], "a": [np.nan, 2, 6], "ts": ts_merge}).astype({"ts":"datetime64[ns]"})
     tm.assert_frame_equal(result, expected)
 
     result = merge_asof(
@@ -1566,5 +1574,5 @@ def test_merge_asof_array_as_on():
             "ts": [pd.Timestamp("2021/01/01 00:37"), pd.Timestamp("2021/01/01 01:40")],
             "b": [4, 8],
         }
-    )
+    ).astype({"ts":"datetime64[ns]"})
     tm.assert_frame_equal(result, expected)
