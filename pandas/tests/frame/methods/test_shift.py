@@ -505,26 +505,19 @@ class TestDataFrameShift:
         # GH#31971
         ser = Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = ser.shift(1, fill_value=0)
-        expected = Series([pd.Timestamp(0), ser[0]])
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="value should be a"):
+            ser.shift(1, fill_value=0)
 
         df = ser.to_frame()
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.shift(1, fill_value=0)
-        expected = expected.to_frame()
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match="value should be a"):
+            df.shift(1, fill_value=0)
 
         # axis = 1
         df2 = DataFrame({"A": ser, "B": ser})
         df2._consolidate_inplace()
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df2.shift(1, axis=1, fill_value=0)
-
-        expected = DataFrame({"A": [pd.Timestamp(0), pd.Timestamp(0)], "B": df2["A"]})
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match="value should be a"):
+            df2.shift(1, axis=1, fill_value=0)
 
         # same thing but not consolidated
         # This isn't great that we get different behavior, but
