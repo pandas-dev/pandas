@@ -416,7 +416,7 @@ class TestJoin:
         expected = expected.drop(["first", "second"], axis=1)
         expected.index = joined.index
 
-        #assert joined.index.is_monotonic_increasing
+        # assert joined.index.is_monotonic_increasing
         tm.assert_frame_equal(joined, expected)
 
         # _assert_same_contents(expected, expected2.loc[:, expected.columns])
@@ -662,9 +662,9 @@ class TestJoin:
         right = DataFrame({"v2": [100 * i for i in range(1, 7)]}, index=rightindex)
 
         result = left.join(right, on=["abc", "xy"], how=join_type)
-        expected = (
-            left.reset_index()
-            .merge(right.reset_index(), on=["abc", "xy"], how=join_type))
+        expected = left.reset_index().merge(
+            right.reset_index(), on=["abc", "xy"], how=join_type
+        )
         if join_type == "left":
             expected = expected.set_index(["abc", "xy", "num"])
         else:
@@ -728,7 +728,7 @@ class TestJoin:
             ],
             index=[2, 4],
             columns=["x", "y", "z", "a"],
-        ).astype({"x":"datetime64[ns]"})
+        ).astype({"x": "datetime64[ns]"})
         tm.assert_frame_equal(result, expected)
 
     def test_join_with_categorical_index(self):
