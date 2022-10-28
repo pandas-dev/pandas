@@ -444,7 +444,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pass
             else:
                 data = com.maybe_iterable_to_list(data)
-                if not data and dtype is None:
+                if is_list_like(data) and not data and dtype is None:
                     # GH 29405: Pre-2.0, this defaulted to float.
                     dtype = np.dtype(object)
 
