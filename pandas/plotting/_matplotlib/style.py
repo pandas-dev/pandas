@@ -10,7 +10,7 @@ from typing import (
 import warnings
 
 import matplotlib as mpl
-import matplotlib.cm as cm
+from matplotlib import cm
 import matplotlib.colors
 import numpy as np
 

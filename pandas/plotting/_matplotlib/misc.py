@@ -6,8 +6,8 @@ from typing import (
     Hashable,
 )
 
+from matplotlib import patches
 import matplotlib.lines as mlines
-import matplotlib.patches as patches
 import numpy as np
 
 from pandas.core.dtypes.missing import notna

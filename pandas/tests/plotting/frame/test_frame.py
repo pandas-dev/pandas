@@ -22,6 +22,7 @@ from pandas import (
     Series,
     bdate_range,
     date_range,
+    plotting,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -30,7 +31,6 @@ from pandas.tests.plotting.common import (
 )
 
 from pandas.io.formats.printing import pprint_thing
-import pandas.plotting as plotting
 
 try:
     from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
@@ -1833,7 +1833,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_df_gridspec_patterns(self):
         # GH 10819
-        import matplotlib.gridspec as gridspec
+        from matplotlib import gridspec
         import matplotlib.pyplot as plt
 
         ts = Series(np.random.randn(10), index=date_range("1/1/2000", periods=10))

@@ -12,7 +12,7 @@ from typing import (
 )
 import warnings
 
-import pandas._libs.json as json
+from pandas._libs import json
 from pandas._typing import (
     DtypeObj,
     JSONSerializable,

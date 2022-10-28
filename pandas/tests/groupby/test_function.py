@@ -17,7 +17,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-import pandas.core.nanops as nanops
+from pandas.core import nanops
 from pandas.tests.groupby import get_groupby_method_args
 from pandas.util import _test_decorators as td
 

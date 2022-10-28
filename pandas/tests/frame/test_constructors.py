@@ -14,8 +14,8 @@ from typing import Iterator
 import warnings
 
 import numpy as np
-import numpy.ma as ma
-import numpy.ma.mrecords as mrecords
+from numpy import ma
+from numpy.ma import mrecords
 import pytest
 import pytz
 

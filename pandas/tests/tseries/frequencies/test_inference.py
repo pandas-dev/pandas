@@ -29,8 +29,10 @@ from pandas.core.arrays import (
 )
 from pandas.core.tools.datetimes import to_datetime
 
-import pandas.tseries.frequencies as frequencies
-import pandas.tseries.offsets as offsets
+from pandas.tseries import (
+    frequencies,
+    offsets,
+)
 
 
 @pytest.fixture(

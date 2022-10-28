@@ -31,7 +31,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 
-import pandas.core.algorithms as algorithms
+from pandas.core import algorithms
 from pandas.core.arrays import (
     Categorical,
     ExtensionArray,

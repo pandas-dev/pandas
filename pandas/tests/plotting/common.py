@@ -47,7 +47,7 @@ class TestPlotBase:
 
     @cache_readonly
     def colorconverter(self):
-        import matplotlib.colors as colors
+        from matplotlib import colors
 
         return colors.colorConverter
 

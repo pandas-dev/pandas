@@ -9,8 +9,8 @@ from typing import (
 )
 import warnings
 
+from matplotlib import ticker
 import matplotlib.table
-import matplotlib.ticker as ticker
 import numpy as np
 
 from pandas.util._exceptions import find_stack_level

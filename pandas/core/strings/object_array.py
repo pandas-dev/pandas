@@ -11,7 +11,7 @@ import unicodedata
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 from pandas._typing import (

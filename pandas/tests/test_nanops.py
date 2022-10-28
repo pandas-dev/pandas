@@ -15,8 +15,8 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas.core import nanops
 from pandas.core.arrays import DatetimeArray
-import pandas.core.nanops as nanops
 
 use_bn = nanops._USE_BOTTLENECK
 

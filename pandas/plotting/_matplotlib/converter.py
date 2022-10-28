@@ -17,14 +17,16 @@ from typing import (
 )
 
 from dateutil.relativedelta import relativedelta
-import matplotlib.dates as dates
+from matplotlib import (
+    dates,
+    units,
+)
 from matplotlib.ticker import (
     AutoLocator,
     Formatter,
     Locator,
 )
 from matplotlib.transforms import nonsingular
-import matplotlib.units as units
 import numpy as np
 
 from pandas._libs import lib

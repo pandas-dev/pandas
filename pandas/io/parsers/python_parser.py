@@ -24,7 +24,7 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     ReadCsvBuffer,

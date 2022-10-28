@@ -74,7 +74,7 @@ from pandas._libs.util cimport (
     UINT64_MAX,
 )
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 
 from pandas._libs.khash cimport (
     kh_destroy_float64,

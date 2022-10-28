@@ -27,7 +27,7 @@ from pandas.core.indexes.period import (
 )
 from pandas.core.resample import _get_period_range_edges
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 
 
 @pytest.fixture()

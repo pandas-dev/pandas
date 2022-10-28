@@ -55,7 +55,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-import pandas.io.sql as sql
+from pandas.io import sql
 from pandas.io.sql import (
     SQLAlchemyEngine,
     SQLDatabase,

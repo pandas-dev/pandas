@@ -88,9 +88,12 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import nanops
+from pandas.core import (
+    algorithms,
+    nanops,
+    sample,
+)
 from pandas.core._numba import executor
-import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
     BaseMaskedArray,
     BooleanArray,
@@ -121,7 +124,6 @@ from pandas.core.indexes.api import (
     RangeIndex,
 )
 from pandas.core.internals.blocks import ensure_block_shape
-import pandas.core.sample as sample
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import (

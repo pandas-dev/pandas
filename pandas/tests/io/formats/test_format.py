@@ -45,8 +45,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
-import pandas.io.formats.printing as printing
 
 use_32bit_repr = is_platform_windows() or not IS64
 

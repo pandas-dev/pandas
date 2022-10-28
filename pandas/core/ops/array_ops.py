@@ -47,7 +47,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-import pandas.core.computation.expressions as expressions
+from pandas.core.computation import expressions
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.ops import (
     missing,
