@@ -5,19 +5,27 @@ from __future__ import annotations
 
 import copy
 import datetime
-from functools import partial
 import string
+import uuid
+import warnings
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Hashable,
     Sequence,
     cast,
 )
-import uuid
-import warnings
 
 import numpy as np
 
+import pandas.core.algorithms as algos
+import pandas.core.common as com
+from pandas import (
+    Categorical,
+    Index,
+    MultiIndex,
+    Series,
+)
 from pandas._libs import (
     Timedelta,
     hashtable as libhashtable,
@@ -34,14 +42,9 @@ from pandas._typing import (
     Suffixes,
     npt,
 )
-from pandas.errors import MergeError
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    cache_readonly,
-)
-from pandas.util._exceptions import find_stack_level
-
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.construction import extract_array
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -71,31 +74,25 @@ from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
 )
-
-from pandas import (
-    Categorical,
-    Index,
-    MultiIndex,
-    Series,
-)
-import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-import pandas.core.common as com
-from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
 from pandas.core.sorting import is_int64_overflow_possible
+from pandas.errors import MergeError
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    cache_readonly,
+)
+from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
     from pandas import DataFrame
     from pandas.core import groupby
-    from pandas.core.arrays import DatetimeArray
 
 
 @Substitution("\nleft : DataFrame or named Series")
 @Appender(_merge_doc, indents=0)
 def merge(
-    left: DataFrame | Series,
+        left: DataFrame | Series,
     right: DataFrame | Series,
     how: str = "inner",
     on: IndexLabel | None = None,
@@ -477,8 +474,8 @@ def merge_asof(
     >>> pd.merge_asof(left, right, left_index=True, right_index=True)
        left_val  right_val
     1         a          1
-    3         b          3
-    7        c          7
+    5         b          3
+    10        c          7
 
     Here is a real-world times-series example
 
@@ -1042,7 +1039,15 @@ class _MergeOperation:
             (left_indexer, right_indexer) = self._get_join_indexers()
 
             if self.right_index:
-                if len(self.left) > 0:
+                if self.how == "asof":
+                    # GH#33463 asof should always behave like a left merge
+                    join_index = self._create_join_index(
+                        self.left.index,
+                        self.right.index,
+                        left_indexer,
+                        how="right",
+                    )
+                elif len(self.left) > 0:
                     join_index = self._create_join_index(
                         self.right.index,
                         self.left.index,
@@ -1052,16 +1057,7 @@ class _MergeOperation:
                 else:
                     join_index = self.right.index.take(right_indexer)
             elif self.left_index:
-                if self.how == "asof":
-                    # GH#33463 asof should always behave like a left merge
-                    join_index = self._create_join_index(
-                        self.left.index,
-                        self.right.index,
-                        left_indexer,
-                        how="left",
-                    )
-
-                elif len(self.right) > 0:
+                if len(self.right) > 0:
                     join_index = self._create_join_index(
                         self.left.index,
                         self.right.index,
