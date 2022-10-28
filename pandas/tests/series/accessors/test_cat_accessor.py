@@ -218,9 +218,6 @@ class TestCatAccessor:
             tm.assert_equal(res, exp)
 
         for attr in attr_names:
-            if attr in ["week", "weekofyear"]:
-                # GH#33595 Deprecate week and weekofyear
-                continue
             res = getattr(cat.dt, attr)
             exp = getattr(ser.dt, attr)
 
