@@ -21,7 +21,7 @@ from typing import (
 
 import numpy as np
 
-import pandas._libs.json as json
+from pandas._libs import json
 from pandas._libs.tslibs import iNaT
 from pandas._typing import (
     CompressionOptions,
@@ -34,10 +34,7 @@ from pandas._typing import (
     WriteBuffer,
 )
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import (
-    deprecate_nonkeyword_arguments,
-    doc,
-)
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     ensure_str,
@@ -452,6 +449,7 @@ def read_json(
 @overload
 def read_json(
     path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    *,
     orient: str | None = ...,
     typ: Literal["frame"] = ...,
     dtype: DtypeArg | None = ...,
@@ -475,9 +473,9 @@ def read_json(
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "path_or_buf",
 )
-@deprecate_nonkeyword_arguments(version="2.0", allowed_args=["path_or_buf"])
 def read_json(
     path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    *,
     orient: str | None = None,
     typ: Literal["frame", "series"] = "frame",
     dtype: DtypeArg | None = None,

@@ -70,13 +70,13 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_inferred_bool_dtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
 )
 
+from pandas.core import missing
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     extract_bool_array,
@@ -104,13 +104,12 @@ from pandas.core.arrays import (
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-import pandas.core.computation.expressions as expressions
+from pandas.core.computation import expressions
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
 from pandas.core.indexers import check_setitem_lengths
-import pandas.core.missing as missing
 
 if TYPE_CHECKING:
     from pandas import (
@@ -194,7 +193,7 @@ class Block(PandasObject):
         """
         We can be bool if a) we are bool dtype or b) object dtype with bool objects.
         """
-        return is_inferred_bool_dtype(self.values)
+        return self.values.dtype == np.dtype(bool)
 
     @final
     def external_values(self):

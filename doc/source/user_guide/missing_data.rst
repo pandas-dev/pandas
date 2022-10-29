@@ -472,7 +472,7 @@ at the new values.
 
 .. _scipy: https://scipy.org/
 .. _documentation: https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
-.. _guide: https://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
+.. _guide: https://docs.scipy.org/doc/scipy/tutorial/interpolate.html
 
 .. _missing_data.interp_limits:
 
