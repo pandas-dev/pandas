@@ -394,10 +394,9 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [None, "UTC"])
-    def test_mean_excludes_datetimes(self, tz):
+    def test_mean_includes_datetimes(self, tz):
         # https://github.com/pandas-dev/pandas/issues/24752
-        # Our long-term desired behavior is unclear, but the behavior in
-        # 0.24.0rc1 was buggy.
+        # Behavior in 0.24.0rc1 was buggy.
         # As of 2.0 with numeric_only=None we do *not* drop datetime columns
         df = DataFrame({"A": [Timestamp("2000", tz=tz)] * 2})
         result = df.mean()
