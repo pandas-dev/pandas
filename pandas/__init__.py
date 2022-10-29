@@ -178,7 +178,10 @@ from pandas.util._tester import test
 # use the closest tagged version if possible
 _built_with_meson = False
 try:
-    from pandas._version_meson import __version__, __git_version__
+    from pandas._version_meson import (
+        __version__,
+        __git_version__,
+    )  # pyright: ignore [reportMissingImports]
 
     _built_with_meson = True
 except ImportError:

@@ -258,7 +258,6 @@ class TestTesting(Base):
 
         self.check(testing, self.funcs)
 
-
     def test_util_in_top_level(self, monkeypatch):
         # Can't import pandas from the test directory since its not
         # built inplace with meson
