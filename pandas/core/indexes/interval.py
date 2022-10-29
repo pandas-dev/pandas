@@ -237,7 +237,7 @@ class IntervalIndex(ExtensionIndex):
         % {
             "klass": "IntervalIndex",
             "name": textwrap.dedent(
-            """
+                """
              name : str, optional
                   Name of the resulting IntervalIndex."""
             ),
@@ -272,7 +272,7 @@ class IntervalIndex(ExtensionIndex):
         % {
             "klass": "IntervalIndex",
             "name": textwrap.dedent(
-            """
+                """
              name : str, optional
                   Name of the resulting IntervalIndex."""
             ),
@@ -308,7 +308,7 @@ class IntervalIndex(ExtensionIndex):
         % {
             "klass": "IntervalIndex",
             "name": textwrap.dedent(
-            """
+                """
              name : str, optional
                   Name of the resulting IntervalIndex."""
             ),
