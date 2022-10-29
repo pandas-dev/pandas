@@ -19,6 +19,7 @@ from uuid import uuid4
 
 import numpy as np
 
+from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 from pandas._config import get_option
 
 from pandas._libs import lib
@@ -47,7 +48,6 @@ from pandas.api.types import is_list_like
 import pandas.core.common as com
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]

@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import matplotlib as mpl
 
 from pandas import (
     DataFrame,
@@ -9,8 +10,6 @@ from pandas import (
 
 pytest.importorskip("matplotlib")
 pytest.importorskip("jinja2")
-
-import matplotlib as mpl
 
 from pandas.io.formats.style import Styler
 from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0

@@ -99,7 +99,6 @@ disable = [
   "use-implicit-booleaness-not-len",
   "use-sequence-for-iteration",
   "useless-import-alias",
-  "wrong-import-order",
   "wrong-import-position",
 
   # pylint type "R": refactor, for bad code smell

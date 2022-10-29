@@ -19,6 +19,13 @@ import warnings
 
 import jinja2
 from numpydoc.docscrape import NumpyDocString
+import sphinx  # isort:skip
+from sphinx.ext.autodoc import (  # isort:skip
+    AttributeDocumenter,
+    Documenter,
+    MethodDocumenter,
+)
+from sphinx.ext.autosummary import Autosummary  # isort:skip
 from sphinx.ext.autosummary import _import_by_name
 
 logger = logging.getLogger(__name__)
@@ -477,15 +484,6 @@ ipython_execlines = [
 
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
-
-import sphinx  # isort:skip
-from sphinx.ext.autodoc import (  # isort:skip
-    AttributeDocumenter,
-    Documenter,
-    MethodDocumenter,
-)
-from sphinx.ext.autosummary import Autosummary  # isort:skip
-
 
 class AccessorDocumenter(MethodDocumenter):
     """
