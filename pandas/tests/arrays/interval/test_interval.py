@@ -256,7 +256,7 @@ def test_arrow_extension_type():
 
     assert p1.closed == "left"
     assert p1 == p2
-    assert p1 != p3
+    assert not p1 == p3  # pylint: disable=unneeded-not
     assert hash(p1) == hash(p2)
     assert hash(p1) != hash(p3)
 
