@@ -800,7 +800,7 @@ class TestContains:
     def test_large_mi_contains(self):
         # GH#10645
         result = MultiIndex.from_arrays([range(10**6), range(10**6)])
-        assert not (10**6, 0) in result
+        assert (10**6, 0) not in result
 
 
 def test_timestamp_multiindex_indexer():
