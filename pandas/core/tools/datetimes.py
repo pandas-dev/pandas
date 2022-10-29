@@ -485,9 +485,6 @@ def _array_strptime_with_fallback(
         else:
             result = arg
     except ValueError:
-        # if fmt was inferred, try falling back
-        # to array_to_datetime - terminate here
-        # for specified formats
         if errors == "raise":
             raise
         elif errors == "coerce":

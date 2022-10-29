@@ -634,11 +634,8 @@ class TestToDatetime:
         with tm.set_timezone("US/Eastern"):
             # GH#18705
             now = Timestamp("now")
-            with tm.assert_produces_warning(
-                UserWarning, match="Could not infer format"
-            ):
-                pdnow = to_datetime("now")
-                pdnow2 = to_datetime(["now"])[0]
+            pdnow = to_datetime("now")
+            pdnow2 = to_datetime(["now"])[0]
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
@@ -659,11 +656,8 @@ class TestToDatetime:
         # so this test will not detect the regression introduced in #18666.
         with tm.set_timezone(tz):
             nptoday = np.datetime64("today").astype("datetime64[ns]").astype(np.int64)
-            with tm.assert_produces_warning(
-                UserWarning, match="Could not infer format"
-            ):
-                pdtoday = to_datetime("today")
-                pdtoday2 = to_datetime(["today"])[0]
+            pdtoday = to_datetime("today")
+            pdtoday2 = to_datetime(["today"])[0]
 
             tstoday = Timestamp("today")
             tstoday2 = Timestamp.today()
@@ -680,8 +674,7 @@ class TestToDatetime:
 
     @pytest.mark.parametrize("arg", ["now", "today"])
     def test_to_datetime_today_now_unicode_bytes(self, arg):
-        with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
-            to_datetime([arg])
+        to_datetime([arg])
 
     @pytest.mark.parametrize(
         "dt", [np.datetime64("2000-01-01"), np.datetime64("2000-01-02")]
@@ -2210,8 +2203,8 @@ class TestDatetimeParsingWrappers:
             ("4Q-00", datetime(2000, 10, 1), UserWarning),
             ("00q4", datetime(2000, 10, 1), UserWarning),
             ("2005", datetime(2005, 1, 1), None),
-            ("2005-11", datetime(2005, 11, 1), UserWarning),
-            ("2005 11", datetime(2005, 11, 1), UserWarning),
+            ("2005-11", datetime(2005, 11, 1), None),
+            ("2005 11", datetime(2005, 11, 1), None),
             ("11-2005", datetime(2005, 11, 1), UserWarning),
             ("11 2005", datetime(2005, 11, 1), UserWarning),
             ("200511", datetime(2020, 5, 11), UserWarning),
@@ -2227,9 +2220,9 @@ class TestDatetimeParsingWrappers:
             ("Sep 25 2003", datetime(2003, 9, 25), None),
             ("January 1 2014", datetime(2014, 1, 1), None),
             # GHE10537
-            ("2014-06", datetime(2014, 6, 1), UserWarning),
+            ("2014-06", datetime(2014, 6, 1), None),
             ("06-2014", datetime(2014, 6, 1), UserWarning),
-            ("2014-6", datetime(2014, 6, 1), UserWarning),
+            ("2014-6", datetime(2014, 6, 1), None),
             ("6-2014", datetime(2014, 6, 1), UserWarning),
             ("20010101 12", datetime(2001, 1, 1, 12), None),
             ("20010101 1234", datetime(2001, 1, 1, 12, 34), UserWarning),
