@@ -41,7 +41,7 @@ def test_memorial_day():
     ]
 
 
-# @pytest.mark.xfail(reason="working on GH49075")
+@pytest.mark.xfail(reason="working on GH49075")
 def test_federal_holiday_inconsistent_returntype():
     # GH 49075
 

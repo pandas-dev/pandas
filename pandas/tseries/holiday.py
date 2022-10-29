@@ -336,7 +336,7 @@ class Holiday:
         Dates with rules applied
         """
         if self.observance is not None:
-            return DatetimeIndex([dates.map(lambda d: self.observance(d))])
+            return dates.map(lambda d: self.observance(d))
 
         if self.offset is not None:
             if not isinstance(self.offset, list):
