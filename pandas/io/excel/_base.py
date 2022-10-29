@@ -1599,6 +1599,7 @@ class ExcelFile:
 
         if engine is None:
             # Only determine ext if it is needed
+            ext: str | None
             if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
                 ext = "xls"
             else:
