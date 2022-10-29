@@ -70,7 +70,6 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
 :ref:`API documentation <api.arrays.categorical>`.
 
 .. ipython:: python
-    :okwarning:
 
     df = pd.DataFrame({"id": [1, 2, 3, 4, 5, 6],
                        "raw_grade": ['a', 'b', 'b', 'a', 'a', 'e']})
@@ -79,7 +78,7 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
     df["grade"]
 
     # Rename the categories
-    df["grade"].cat.categories = ["very good", "good", "very bad"]
+    df["grade"] = df["grade"].cat.rename_categories(["very good", "good", "very bad"])
 
     # Reorder the categories and simultaneously add the missing categories
     df["grade"] = df["grade"].cat.set_categories(["very bad", "bad",

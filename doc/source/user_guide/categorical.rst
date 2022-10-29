@@ -353,11 +353,6 @@ Renaming categories is done by using the
 
     In contrast to R's ``factor``, categorical data can have categories of other types than string.
 
-.. note::
-
-    Be aware that assigning new categories is an inplace operation, while most other operations
-    under ``Series.cat`` per default return a new ``Series`` of dtype ``category``.
-
 Categories must be unique or a ``ValueError`` is raised:
 
 .. ipython:: python
@@ -952,7 +947,6 @@ categorical (categories and ordering). So if you read back the CSV file you have
 relevant columns back to ``category`` and assign the right categories and categories ordering.
 
 .. ipython:: python
-    :okwarning:
 
     import io
 
@@ -969,8 +963,8 @@ relevant columns back to ``category`` and assign the right categories and catego
     df2["cats"]
     # Redo the category
     df2["cats"] = df2["cats"].astype("category")
-    df2["cats"].cat.set_categories(
-        ["very bad", "bad", "medium", "good", "very good"], inplace=True
+    df2["cats"] = df2["cats"].cat.set_categories(
+        ["very bad", "bad", "medium", "good", "very good"]
     )
     df2.dtypes
     df2["cats"]
@@ -1162,15 +1156,11 @@ Constructing a ``Series`` from a ``Categorical`` will not copy the input
 change the original ``Categorical``:
 
 .. ipython:: python
-    :okwarning:
 
     cat = pd.Categorical([1, 2, 3, 10], categories=[1, 2, 3, 4, 10])
     s = pd.Series(cat, name="cat")
     cat
     s.iloc[0:2] = 10
-    cat
-    df = pd.DataFrame(s)
-    df["cat"].cat.categories = [1, 2, 3, 4, 5]
     cat
 
 Use ``copy=True`` to prevent such a behaviour or simply don't reuse ``Categoricals``:

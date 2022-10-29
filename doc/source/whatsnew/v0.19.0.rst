@@ -271,12 +271,12 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
    such as :func:`to_datetime`.
 
    .. ipython:: python
-      :okwarning:
 
       df = pd.read_csv(StringIO(data), dtype="category")
       df.dtypes
       df["col3"]
-      df["col3"].cat.categories = pd.to_numeric(df["col3"].cat.categories)
+      new_categories = pd.to_numeric(df["col3"].cat.categories)
+      df["col3"] = df["col3"].cat.rename_categories(new_categories)
       df["col3"]
 
 .. _whatsnew_0190.enhancements.union_categoricals:
