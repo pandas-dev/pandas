@@ -156,6 +156,7 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Removed deprecated :class:`CategoricalBlock`, :meth:`Block.is_categorical`, require datetime64 and timedelta64 values to be wrapped in :class:`DatetimeArray` or :class:`TimedeltaArray` before passing to :meth:`Block.make_block_same_class`, require ``DatetimeTZBlock.values`` to have the correct ndim when passing to the :class:`BlockManager` constructor, and removed the "fastpath" keyword from the :class:`SingleBlockManager` constructor (:issue:`40226`, :issue:`40571`)
 - Removed deprecated :meth:`Categorical.to_dense`, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - Removed deprecated :meth:`Categorical.take_nd` (:issue:`27745`)
 - Removed deprecated :meth:`Categorical.mode`, use ``Series(cat).mode()`` instead (:issue:`45033`)
