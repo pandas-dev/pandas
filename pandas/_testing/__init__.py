@@ -15,7 +15,6 @@ from typing import (
     Counter,
     Iterable,
 )
-import warnings
 
 import numpy as np
 
@@ -29,7 +28,7 @@ from pandas._typing import (
     Dtype,
     Frequency,
 )
-from pandas.compat import pa_version_under1p01
+from pandas.compat import pa_version_under6p0
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -195,15 +194,18 @@ NP_NAT_OBJECTS = [
     ]
 ]
 
-if not pa_version_under1p01:
+if not pa_version_under6p0:
     import pyarrow as pa
 
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
     SIGNED_INT_PYARROW_DTYPES = [pa.int8(), pa.int16(), pa.int32(), pa.int64()]
     ALL_INT_PYARROW_DTYPES = UNSIGNED_INT_PYARROW_DTYPES + SIGNED_INT_PYARROW_DTYPES
 
+    # pa.float16 doesn't seem supported
+    # https://github.com/apache/arrow/blob/master/python/pyarrow/src/arrow/python/helpers.cc#L86
     FLOAT_PYARROW_DTYPES = [pa.float32(), pa.float64()]
-    STRING_PYARROW_DTYPES = [pa.string(), pa.utf8()]
+    STRING_PYARROW_DTYPES = [pa.string()]
+    BINARY_PYARROW_DTYPES = [pa.binary()]
 
     TIME_PYARROW_DTYPES = [
         pa.time32("s"),
@@ -226,6 +228,8 @@ if not pa_version_under1p01:
     ALL_PYARROW_DTYPES = (
         ALL_INT_PYARROW_DTYPES
         + FLOAT_PYARROW_DTYPES
+        + STRING_PYARROW_DTYPES
+        + BINARY_PYARROW_DTYPES
         + TIME_PYARROW_DTYPES
         + DATE_PYARROW_DTYPES
         + DATETIME_PYARROW_DTYPES
@@ -235,28 +239,6 @@ if not pa_version_under1p01:
 
 
 EMPTY_STRING_PATTERN = re.compile("^$")
-
-# set testing_mode
-_testing_mode_warnings = (DeprecationWarning, ResourceWarning)
-
-
-def set_testing_mode() -> None:
-    # set the testing mode filters
-    testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
-    if "deprecate" in testing_mode:
-        for category in _testing_mode_warnings:
-            warnings.simplefilter("always", category)
-
-
-def reset_testing_mode() -> None:
-    # reset the testing mode filters
-    testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
-    if "deprecate" in testing_mode:
-        for category in _testing_mode_warnings:
-            warnings.simplefilter("ignore", category)
-
-
-set_testing_mode()
 
 
 def reset_display_options() -> None:
@@ -1142,14 +1124,12 @@ __all__ = [
     "randbool",
     "rands",
     "reset_display_options",
-    "reset_testing_mode",
     "RNGContext",
     "round_trip_localpath",
     "round_trip_pathlib",
     "round_trip_pickle",
     "setitem",
     "set_locale",
-    "set_testing_mode",
     "set_timezone",
     "shares_memory",
     "SIGNED_INT_EA_DTYPES",

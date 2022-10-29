@@ -25,6 +25,7 @@ API changes
   a lexically sorted index will have a better performance. (:issue:`2646`)
 
   .. ipython:: python
+    :okexcept:
     :okwarning:
 
     df = pd.DataFrame({'jim':[0, 0, 1, 1],

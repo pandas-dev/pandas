@@ -45,8 +45,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
-import pandas.io.formats.printing as printing
 
 use_32bit_repr = is_platform_windows() or not IS64
 
@@ -252,12 +252,13 @@ class TestDataFrameFormatting:
         with option_context("display.max_colwidth", max_len + 2):
             assert "..." not in repr(df)
 
-    def test_repr_deprecation_negative_int(self):
-        # TODO(2.0): remove in future version after deprecation cycle
-        # Non-regression test for:
+    def test_max_colwidth_negative_int_raises(self):
+        # Deprecation enforced from:
         # https://github.com/pandas-dev/pandas/issues/31532
         width = get_option("display.max_colwidth")
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(
+            ValueError, match="Value must be a nonnegative integer or None"
+        ):
             set_option("display.max_colwidth", -1)
         set_option("display.max_colwidth", width)
 
@@ -985,7 +986,7 @@ class TestDataFrameFormatting:
                 if w == 20:
                     assert has_horizontally_truncated_repr(df)
                 else:
-                    assert not (has_horizontally_truncated_repr(df))
+                    assert not has_horizontally_truncated_repr(df)
             with option_context("display.max_rows", 15, "display.max_columns", 15):
                 if h == 20 and w == 20:
                     assert has_doubly_truncated_repr(df)
@@ -3483,9 +3484,3 @@ def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
     msg = "buf is not a file name and it has no write method"
     with pytest.raises(TypeError, match=msg):
         getattr(float_frame, method)(buf=object())
-
-
-def test_col_space_deprecated():
-    # GH 7576
-    with tm.assert_produces_warning(FutureWarning, match="column_space is"):
-        set_option("display.column_space", 11)

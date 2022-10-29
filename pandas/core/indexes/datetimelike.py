@@ -13,7 +13,6 @@ from typing import (
     cast,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -29,14 +28,16 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
-from pandas._typing import Axis
+from pandas._typing import (
+    Axis,
+    npt,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -80,7 +81,7 @@ _TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
     DatetimeLikeArrayMixin,
     cache=True,
 )
-@inherit_names(["mean", "asi8", "freq", "freqstr"], DatetimeLikeArrayMixin)
+@inherit_names(["mean", "freq", "freqstr"], DatetimeLikeArrayMixin)
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     """
     Common ops mixin to support a unified interface datetimelike Index.
@@ -92,6 +93,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     freq: BaseOffset | None
     freqstr: str | None
     _resolution_obj: Resolution
+
+    @property
+    def asi8(self) -> npt.NDArray[np.int64]:
+        return self._data.asi8
 
     # ------------------------------------------------------------------------
 
@@ -285,7 +290,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+    def _maybe_cast_slice_bound(self, label, side: str):
         """
         If label is a string, cast it to scalar type according to resolution.
 
@@ -293,7 +298,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'loc', 'getitem'} or None
 
         Returns
         -------
@@ -303,9 +307,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         -----
         Value of `side` parameter should be validated in caller.
         """
-        assert kind in ["loc", "getitem", None, lib.no_default]
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
-
         if isinstance(label, str):
             try:
                 parsed, reso = self._parse_with_reso(label)
@@ -393,15 +394,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
-
-    def is_type_compatible(self, kind: str) -> bool:
-        warnings.warn(
-            f"{type(self).__name__}.is_type_compatible is deprecated and will be "
-            "removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return kind in self._data._infer_matches
 
     @property
     def values(self) -> np.ndarray:
@@ -663,7 +655,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             if self.size:
                 if item is NaT:
                     pass
-                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                elif loc in (0, -len(self)) and item + self.freq == self[0]:
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq

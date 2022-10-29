@@ -78,7 +78,10 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import arraylike
+from pandas.core import (
+    arraylike,
+    ops,
+)
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
@@ -96,9 +99,8 @@ from pandas.core.indexers import (
 )
 from pandas.core.missing import interpolate_2d
 from pandas.core.nanops import check_below_min_count
-import pandas.core.ops as ops
 
-import pandas.io.formats.printing as printing
+from pandas.io.formats import printing
 
 # See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
@@ -1383,7 +1385,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Indices: array([1, 2], dtype=int32)
         """
         # this is used in apply.
-        # We get hit since we're an "is_extension_type" but regular extension
+        # We get hit since we're an "is_extension_array_dtype" but regular extension
         # types are not hit. This may be worth adding to the interface.
         if isinstance(mapper, ABCSeries):
             mapper = mapper.to_dict()

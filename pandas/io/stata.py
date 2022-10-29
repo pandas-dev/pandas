@@ -50,7 +50,6 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     Appender,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -1853,8 +1852,8 @@ the string values returned are correct."""
             replacements[colname] = replacement
 
         if replacements:
-            for col in replacements:
-                data[col] = replacements[col]
+            for col, value in replacements.items():
+                data[col] = value
         return data
 
     def _insert_strls(self, data: DataFrame) -> DataFrame:
@@ -2009,9 +2008,9 @@ The repeated labels are:
 
 
 @Appender(_read_stata_doc)
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 def read_stata(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    *,
     convert_dates: bool = True,
     convert_categoricals: bool = True,
     index_col: str | None = None,
@@ -2178,7 +2177,7 @@ def _dtype_to_default_stata_fmt(
         return "%9.0g"
     elif dtype == np.int32:
         return "%12.0g"
-    elif dtype == np.int8 or dtype == np.int16:
+    elif dtype in (np.int8, np.int16):
         return "%8.0g"
     else:  # pragma : no cover
         raise NotImplementedError(f"Data type {dtype} not supported.")

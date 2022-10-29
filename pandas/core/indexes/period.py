@@ -5,14 +5,10 @@ from datetime import (
     timedelta,
 )
 from typing import Hashable
-import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    index as libindex,
-    lib,
-)
+from pandas._libs import index as libindex
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -29,13 +25,8 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_datetime64_any_dtype,
-    is_integer,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
@@ -349,32 +340,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         return super().asof_locs(where, mask)
 
-    @doc(Index.astype)
-    def astype(self, dtype, copy: bool = True, how=lib.no_default):
-        dtype = pandas_dtype(dtype)
-
-        if how is not lib.no_default:
-            # GH#37982
-            warnings.warn(
-                "The 'how' keyword in PeriodIndex.astype is deprecated and "
-                "will be removed in a future version. "
-                "Use index.to_timestamp(how=how) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            how = "start"
-
-        if is_datetime64_any_dtype(dtype):
-            # 'how' is index-specific, isn't part of the EA interface.
-            # GH#45038 implement this for PeriodArray (but without "how")
-            #  once the "how" deprecation is enforced we can just dispatch
-            #  directly to PeriodArray.
-            tz = getattr(dtype, "tz", None)
-            return self.to_timestamp(how=how).tz_localize(tz)
-
-        return super().astype(dtype, copy=copy)
-
     @property
     def is_full(self) -> bool:
         """
@@ -386,7 +351,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         if not self.is_monotonic_increasing:
             raise ValueError("Index is not monotonic")
         values = self.asi8
-        return ((values[1:] - values[:-1]) < 2).all()
+        return bool(((values[1:] - values[:-1]) < 2).all())
 
     @property
     def inferred_type(self) -> str:
@@ -506,11 +471,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return key
 
     @doc(DatetimeIndexOpsMixin._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+    def _maybe_cast_slice_bound(self, label, side: str):
         if isinstance(label, datetime):
             label = self._cast_partial_indexing_scalar(label)
 
-        return super()._maybe_cast_slice_bound(label, side, kind=kind)
+        return super()._maybe_cast_slice_bound(label, side)
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         iv = Period(parsed, freq=reso.attr_abbrev)

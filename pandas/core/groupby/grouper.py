@@ -31,7 +31,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 
-import pandas.core.algorithms as algorithms
+from pandas.core import algorithms
 from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
@@ -39,10 +39,7 @@ from pandas.core.arrays import (
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
-from pandas.core.groupby.categorical import (
-    recode_for_groupby,
-    recode_from_groupby,
-)
+from pandas.core.groupby.categorical import recode_for_groupby
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
@@ -462,6 +459,7 @@ class Grouping:
     _group_index: Index | None = None
     _passed_categorical: bool
     _all_grouper: Categorical | None
+    _orig_cats: Index | None
     _index: Index
 
     def __init__(
@@ -479,6 +477,7 @@ class Grouping:
         self._orig_grouper = grouper
         self.grouping_vector = _convert_grouper(index, grouper)
         self._all_grouper = None
+        self._orig_cats = None
         self._index = index
         self._sort = sort
         self.obj = obj
@@ -529,6 +528,7 @@ class Grouping:
             # a passed Categorical
             self._passed_categorical = True
 
+            self._orig_cats = self.grouping_vector.categories
             self.grouping_vector, self._all_grouper = recode_for_groupby(
                 self.grouping_vector, sort, observed
             )
@@ -646,7 +646,9 @@ class Grouping:
         if self._all_grouper is not None:
             group_idx = self.group_index
             assert isinstance(group_idx, CategoricalIndex)
-            return recode_from_groupby(self._all_grouper, self._sort, group_idx)
+            categories = self._all_grouper.categories
+            # set_categories is dynamically added
+            return group_idx.set_categories(categories)  # type: ignore[attr-defined]
         return self.group_index
 
     @cache_readonly
@@ -678,6 +680,8 @@ class Grouping:
             uniques = Categorical.from_codes(
                 codes=ucodes, categories=categories, ordered=cat.ordered
             )
+            if not self._observed:
+                uniques = uniques.reorder_categories(self._orig_cats)
             return cat.codes, uniques
 
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
