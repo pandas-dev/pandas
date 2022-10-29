@@ -74,15 +74,12 @@ def assert_stat_op_calc(
     f = getattr(frame, opname)
 
     if check_dates:
-        expected_warning = FutureWarning if opname in ["mean", "median"] else None
         df = DataFrame({"b": date_range("1/1/2001", periods=2)})
-        with tm.assert_produces_warning(expected_warning):
-            result = getattr(df, opname)()
+        result = getattr(df, opname)()
         assert isinstance(result, Series)
 
         df["a"] = range(len(df))
-        with tm.assert_produces_warning(expected_warning):
-            result = getattr(df, opname)()
+        result = getattr(df, opname)()
         assert isinstance(result, Series)
         assert len(result)
 
@@ -384,21 +381,16 @@ class TestDataFrameAnalytics:
     def test_mean_mixed_datetime_numeric(self, tz):
         # https://github.com/pandas-dev/pandas/issues/24752
         df = DataFrame({"A": [1, 1], "B": [Timestamp("2000", tz=tz)] * 2})
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.mean()
-        expected = Series([1.0], index=["A"])
+        result = df.mean()
+        expected = Series([1.0, Timestamp("2000", tz=tz)], index=["A", "B"])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [None, "UTC"])
-    def test_mean_excludes_datetimes(self, tz):
+    def test_mean_only_datetimes(self, tz):
         # https://github.com/pandas-dev/pandas/issues/24752
-        # Our long-term desired behavior is unclear, but the behavior in
-        # 0.24.0rc1 was buggy.
         df = DataFrame({"A": [Timestamp("2000", tz=tz)] * 2})
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.mean()
-
-        expected = Series(dtype=np.float64)
+        result = df.mean()
+        expected = Series([Timestamp("2000", tz=tz)], index=["A"])
         tm.assert_series_equal(result, expected)
 
     def test_mean_mixed_string_decimal(self):
@@ -864,10 +856,8 @@ class TestDataFrameAnalytics:
         expected = Series({"A": 1.0})
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            # in the future datetime columns will be included
-            result = df.mean()
-        expected = Series({"A": 1.0, "C": df.loc[1, "C"]})
+        result = df.mean()
+        expected = Series({"A": 1.0, "B": Timestamp("2016-01-02"), "C": df.loc[1, "C"]})
         tm.assert_series_equal(result, expected)
 
     def test_mean_datetimelike_numeric_only_false(self):
