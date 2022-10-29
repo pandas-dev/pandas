@@ -859,7 +859,7 @@ class TestMerge:
                 + [pd.NaT],
                 "value_y": [pd.NaT]
                 + list(pd.date_range("20151011", periods=2, tz="US/Eastern")),
-            },
+            }
         )
         result = merge(left, right, on="key", how="outer")
         tm.assert_frame_equal(result, expected)
