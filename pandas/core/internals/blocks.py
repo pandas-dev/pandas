@@ -974,6 +974,9 @@ class Block(PandasObject):
         # length checking
         check_setitem_lengths(indexer, value, values)
         if self.dtype != _dtype_obj:
+            # GH47425
+            # np_can_hold_element assumes that extract_array has been called on
+            # non-object dtype value
             value = extract_array(value, extract_numpy=True)
         try:
             casted = np_can_hold_element(values.dtype, value)
