@@ -728,7 +728,7 @@ class TestJoin:
             ],
             index=[2, 4],
             columns=["x", "y", "z", "a"],
-        ).astype({"x": "datetime64[ns]"})
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_join_with_categorical_index(self):
