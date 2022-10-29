@@ -26,9 +26,11 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import (
+    lib,
+    parsers,
+)
 import pandas._libs.ops as libops
-import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
 from pandas._typing import (
