@@ -227,6 +227,12 @@ class Holiday:
         assert days_of_week is None or type(days_of_week) == tuple
         self.days_of_week = days_of_week
 
+        # GH 49075
+        if start_date is not None and observance is not None and end_date is None:
+            self.end_date = AbstractHolidayCalendar.end_date
+        if end_date is not None and observance is not None and start_date is None:
+            self.start_date = AbstractHolidayCalendar.start_date
+
     def __repr__(self) -> str:
         info = ""
         if self.year is not None:
