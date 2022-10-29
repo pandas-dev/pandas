@@ -451,7 +451,7 @@ class TestAsOfMerge:
         result = merge_asof(
             left, right, left_index=True, right_index=True, by=["k1", "k2"]
         )
-        
+
         tm.assert_frame_equal(expected, result)
 
         with pytest.raises(
