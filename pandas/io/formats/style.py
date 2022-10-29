@@ -4216,7 +4216,7 @@ def _bar(
     rgbas = None
     if cmap is not None:
         # use the matplotlib colormap input
-        with _mpl(Styler.barchart) as (plt, mpl):
+        with _mpl(Styler.bar) as (plt, mpl):
             from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
 
             cmap = (
