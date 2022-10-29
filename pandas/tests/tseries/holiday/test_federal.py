@@ -7,6 +7,8 @@ from pandas.tseries.holiday import (
     USMemorialDay,
 )
 
+import pytest
+
 
 def test_no_mlk_before_1986():
     # see gh-10278
@@ -39,6 +41,7 @@ def test_memorial_day():
     ]
 
 
+# @pytest.mark.xfail(reason="working on GH49075")
 def test_federal_holiday_inconsistent_returntype():
     # GH 49075
 
