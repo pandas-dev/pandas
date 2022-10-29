@@ -98,9 +98,6 @@ class TestDatetime64:
 
             # non boolean accessors -> return Index
             for accessor in DatetimeArray._field_ops:
-                if accessor in ["week", "weekofyear"]:
-                    # GH#33595 Deprecate week and weekofyear
-                    continue
                 res = getattr(dti, accessor)
                 assert len(res) == 365
                 assert isinstance(res, Index)
@@ -285,15 +282,6 @@ def test_iter_readonly():
     arr.setflags(write=False)
     dti = pd.to_datetime(arr)
     list(dti)
-
-
-def test_week_and_weekofyear_are_deprecated():
-    # GH#33595 Deprecate week and weekofyear
-    idx = date_range(start="2019-12-29", freq="D", periods=4)
-    with tm.assert_produces_warning(FutureWarning):
-        idx.week
-    with tm.assert_produces_warning(FutureWarning):
-        idx.weekofyear
 
 
 def test_add_timedelta_preserves_freq():

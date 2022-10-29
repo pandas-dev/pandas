@@ -311,8 +311,6 @@ Datetime properties
    Series.dt.second
    Series.dt.microsecond
    Series.dt.nanosecond
-   Series.dt.week
-   Series.dt.weekofyear
    Series.dt.dayofweek
    Series.dt.day_of_week
    Series.dt.weekday

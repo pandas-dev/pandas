@@ -75,9 +75,6 @@ class TestNonNano:
         assert tz_compare(dta.tz, dta[0].tz)
         assert (dta[0] == dta[:1]).all()
 
-    @pytest.mark.filterwarnings(
-        "ignore:weekofyear and week have been deprecated:FutureWarning"
-    )
     @pytest.mark.parametrize(
         "field", DatetimeArray._field_ops + DatetimeArray._bool_ops
     )

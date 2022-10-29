@@ -343,8 +343,6 @@ Time/date components
    DatetimeIndex.timetz
    DatetimeIndex.dayofyear
    DatetimeIndex.day_of_year
-   DatetimeIndex.weekofyear
-   DatetimeIndex.week
    DatetimeIndex.dayofweek
    DatetimeIndex.day_of_week
    DatetimeIndex.weekday

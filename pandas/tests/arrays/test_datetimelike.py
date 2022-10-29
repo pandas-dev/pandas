@@ -805,18 +805,11 @@ class TestDatetimeArray(SharedTests):
 
     @pytest.mark.parametrize("propname", DatetimeArray._field_ops)
     def test_int_properties(self, arr1d, propname):
-        warn = None
-        msg = "weekofyear and week have been deprecated, please use"
-        if propname in ["week", "weekofyear"]:
-            # GH#33595 Deprecate week and weekofyear
-            warn = FutureWarning
-
         dti = self.index_cls(arr1d)
         arr = arr1d
 
-        with tm.assert_produces_warning(warn, match=msg):
-            result = getattr(arr, propname)
-            expected = np.array(getattr(dti, propname), dtype=result.dtype)
+        result = getattr(arr, propname)
+        expected = np.array(getattr(dti, propname), dtype=result.dtype)
 
         tm.assert_numpy_array_equal(result, expected)
 
