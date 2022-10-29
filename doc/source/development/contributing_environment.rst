@@ -10,7 +10,7 @@ To test out code changes, you'll need to build pandas from source, which
 requires a C/C++ compiler and Python environment. If you're making documentation
 changes, you can skip to :ref:`contributing to the documentation <contributing_documentation>` but if you skip
 creating the development environment you won't be able to build the documentation
-locally before pushing your changes.
+locally before pushing your changes. It's recommended to also install the :ref:`pre-commit hooks <contributing.pre-commit>`.
 
 .. contents:: Table of contents:
    :local:

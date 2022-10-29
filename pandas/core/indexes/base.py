@@ -67,7 +67,6 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import (
@@ -2894,8 +2893,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = super().unique()
         return self._shallow_copy(result)
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(self: _IndexT, keep: DropKeep = "first") -> _IndexT:
+    def drop_duplicates(self: _IndexT, *, keep: DropKeep = "first") -> _IndexT:
         """
         Return Index with duplicate values removed.
 
@@ -4191,12 +4189,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_positional:
             if kind == "loc":
                 # GH#16121, GH#24612, GH#31810
-                warnings.warn(
-                    "Slicing a positional slice with .loc is not supported, "
-                    "and will raise TypeError in a future version.  "
+                raise TypeError(
+                    "Slicing a positional slice with .loc is not allowed, "
                     "Use .loc with labels or .iloc with positions instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
                 )
             indexer = key
         else:
