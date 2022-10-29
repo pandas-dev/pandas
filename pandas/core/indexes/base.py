@@ -106,7 +106,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_signed_integer_dtype,
     is_string_dtype,
-    is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
     validate_all_hashable,
@@ -591,20 +590,20 @@ class Index(IndexOpsMixin, PandasObject):
 
             return TimedeltaIndex
 
-        elif is_float_dtype(dtype):
+        elif dtype.kind == "f":
             from pandas.core.api import Float64Index
 
             return Float64Index
-        elif is_unsigned_integer_dtype(dtype):
+        elif dtype.kind == "u":
             from pandas.core.api import UInt64Index
 
             return UInt64Index
-        elif is_signed_integer_dtype(dtype):
+        elif dtype.kind == "i":
             from pandas.core.api import Int64Index
 
             return Int64Index
 
-        elif dtype == _dtype_obj:
+        elif dtype.kind == "O":
             # NB: assuming away MultiIndex
             return Index
 
