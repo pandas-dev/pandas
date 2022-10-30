@@ -264,3 +264,45 @@ def test_both_offset_observance_raises():
             offset=[DateOffset(weekday=SA(4))],
             observance=next_monday,
         )
+
+
+@pytest.mark.xfail(reason="Working on GH49075")
+def test_half_open_interval_with_observance():
+    # See GH 49075.
+    holiday_1 = Holiday(
+        "Arbitrary Holiday - start 2022-03-14",
+        start_date=datetime.date(2022, 3, 14),
+        month=3,
+        day=14,
+        observance=next_monday,
+    )
+    holiday_2 = Holiday(
+        "Arbitrary Holiday 2 - end 2022-03-20",
+        end_date=datetime.date(2022, 3, 20),
+        month=3,
+        day=20,
+        observance=next_monday,
+    )
+
+    class TestHolidayCalendar(AbstractHolidayCalendar):
+        rules = [
+            USMartinLutherKingJr,
+            holiday_1,
+            holiday_2,
+            USLaborDay,
+        ]
+
+    start_datum = Timestamp("2022-08-01")
+    end_datum = Timestamp("2022-08-31")
+    test_cal = TestHolidayCalendar()
+
+    three_years_before = test_cal.holidays(
+        start_datum - DateOffset(years=3), end_datum - DateOffset(years=3)
+    )
+    year_of = test_cal.holidays(start_datum, end_datum)
+    three_years_after = test_cal.holidays(
+        start_datum + DateOffset(years=3), end_datum + DateOffset(years=3)
+    )
+
+    assert type(three_years_after) == type(year_of)
+    assert type(three_years_before) == type(year_of)
