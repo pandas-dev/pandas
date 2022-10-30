@@ -68,6 +68,12 @@ This file implements string parsing and creation for NumPy datetime.
  */
 
 int format_startswith(char ch, int format_len, char format, int exact) {
+    /* Check if the current character in `format` is `ch`.
+
+    Always error on character mismatch conditioned on non-exhausted format,
+    or when format is exhausted in the exact case.
+    Note that if `format` hasn't been exhausted, it should be advanced
+    outside of this function. */
     if ((format_len && format != ch) || (exact && !format_len)) {
         return 0;
     }
