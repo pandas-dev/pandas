@@ -148,7 +148,7 @@ def test_group_apply_once_per_group(df, group_names):
         names.append(group.name)
         return 0
 
-    def f_none(group):
+    def f_none(group):  # pylint: disable= "useless-return"
         # GH10519, GH12155, GH21417
         names.append(group.name)
         return None
