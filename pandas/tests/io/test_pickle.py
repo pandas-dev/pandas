@@ -26,7 +26,6 @@ import tarfile
 import uuid
 from warnings import (
     catch_warnings,
-    filterwarnings,
     simplefilter,
 )
 import zipfile
@@ -56,10 +55,6 @@ from pandas.tseries.offsets import (
     MonthEnd,
 )
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Timestamp.freq is deprecated:FutureWarning"
-)
-
 
 @pytest.fixture(scope="module")
 def current_pickle_data():
@@ -67,10 +62,6 @@ def current_pickle_data():
     from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 
     with catch_warnings():
-        filterwarnings(
-            "ignore", "The 'freq' argument in Timestamp", category=FutureWarning
-        )
-
         return create_pickle_data()
 
 

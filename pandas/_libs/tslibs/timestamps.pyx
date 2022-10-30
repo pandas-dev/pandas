@@ -1441,19 +1441,19 @@ class Timestamp(_Timestamp):
             if tz is not None:
                 if (is_integer_object(tz)
                     and is_integer_object(ts_input)
-                    and is_integer_object(freq)
+                    and is_integer_object(unit)
                 ):
                     # GH#31929 e.g. Timestamp(2019, 3, 4, 5, 6, tzinfo=foo)
                     # TODO(GH#45307): this will still be fragile to
                     #  mixed-and-matched positional/keyword arguments
                     ts_input = datetime(
                         ts_input,
-                        freq,
                         tz,
                         unit or 0,
                         year or 0,
                         month or 0,
                         day or 0,
+                        hour or 0,
                         fold=fold or 0,
                     )
                     nanosecond = hour
@@ -1495,7 +1495,7 @@ class Timestamp(_Timestamp):
         # check that only ts_input is passed
         # checking verbosely, because cython doesn't optimize
         # list comprehensions (as of cython 0.29.x)
-        if (isinstance(ts_input, _Timestamp) and freq is None and
+        if (isinstance(ts_input, _Timestamp) and
                 tz is None and unit is None and year is None and
                 month is None and day is None and hour is None and
                 minute is None and second is None and
@@ -1532,15 +1532,14 @@ class Timestamp(_Timestamp):
 
             ts_input = datetime(**datetime_kwargs)
 
-        elif is_integer_object(freq):
+        elif is_integer_object(tz):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
             # microsecond[, nanosecond[, tzinfo]]]]]])
-            ts_input = datetime(ts_input, freq, tz, unit or 0,
-                                year or 0, month or 0, day or 0, fold=fold or 0)
+            ts_input = datetime(ts_input, tz, unit or 0,
+                                year or 0, month or 0, day or 0, hour or 0, fold=fold or 0)
             nanosecond = hour
             tz = minute
-            freq = None
             unit = None
 
         if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:

@@ -42,7 +42,7 @@ class TestTimestampProperties:
     def test_properties_business(self):
         freq = to_offset("B")
 
-        ts = Timestamp("2017-10-01", freq="B")
+        ts = Timestamp("2017-10-01")
         assert ts.dayofweek == 6
         assert ts.day_of_week == 6
         assert ts.is_month_start  # not a weekday
@@ -51,7 +51,7 @@ class TestTimestampProperties:
         assert not freq.is_quarter_start(ts)
         assert freq.is_quarter_start(ts + Timedelta(days=1))
 
-        ts = Timestamp("2017-09-30", freq="B")
+        ts = Timestamp("2017-09-30")
         assert ts.dayofweek == 5
         assert ts.day_of_week == 5
         assert ts.is_month_end
