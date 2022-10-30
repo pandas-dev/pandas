@@ -291,9 +291,11 @@ def test_transform_partial_failure(op, request):
         msg = "Transform function failed"
     else:
         error = TypeError
-        msg = (
-            "(not supported between instances of 'type' and 'type'"
-            "|unsupported operand type)"
+        msg = "|".join(
+            [
+                "not supported between instances of 'type' and 'type'",
+                "unsupported operand type",
+            ]
         )
 
     with pytest.raises(error, match=msg):

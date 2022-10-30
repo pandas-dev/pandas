@@ -145,9 +145,11 @@ def test_transform_bad_dtype(op, frame_or_series, request):
         msg = "Transform function failed"
     else:
         error = TypeError
-        msg = (
-            "(not supported between instances of 'type' and 'type'"
-            "|unsupported operand type)"
+        msg = "|".join(
+            [
+                "not supported between instances of 'type' and 'type'",
+                "unsupported operand type",
+            ]
         )
 
     with pytest.raises(error, match=msg):
@@ -176,9 +178,11 @@ def test_transform_failure_typeerror(request, op):
         msg = "Transform function failed"
     else:
         error = TypeError
-        msg = (
-            "(not supported between instances of 'type' and 'type'"
-            "|unsupported operand type)"
+        msg = "|".join(
+            [
+                "not supported between instances of 'type' and 'type'",
+                "unsupported operand type",
+            ]
         )
 
     with pytest.raises(error, match=msg):
