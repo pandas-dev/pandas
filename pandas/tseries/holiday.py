@@ -335,6 +335,16 @@ class Holiday:
         -------
         Dates with rules applied
         """
+        # GH 49075
+        # If we have a half-open date interval with observance, 
+        # ensure we return a DatetimeIndex
+        if (
+            self.observance is not None
+            and (self.start_date is not None and self.end_date is None)
+            or (self.end_date is not None and self.start_date is None)
+        ):
+            return DatetimeIndex([dates.map(lambda d: self.observance(d))])
+
         if self.observance is not None:
             return dates.map(lambda d: self.observance(d))
 

@@ -41,9 +41,8 @@ def test_memorial_day():
     ]
 
 
-@pytest.mark.xfail(reason="See GH 49075")
 def test_federal_holiday_inconsistent_returntype():
-    # GH 49075
+    # GH 49075 test case
     # Instantiate two calendars to rule out _cache
     cal1 = USFederalHolidayCalendar()
     cal2 = USFederalHolidayCalendar()
