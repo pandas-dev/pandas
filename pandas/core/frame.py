@@ -8195,6 +8195,10 @@ Keep all original rows and columns and also all original values
         for col in self.columns:
             this = self[col]._values
             that = other[col]._values
+
+            if all(isna(that)):
+                continue
+
             if filter_func is not None:
                 with np.errstate(all="ignore"):
                     mask = ~filter_func(this) | isna(that)
