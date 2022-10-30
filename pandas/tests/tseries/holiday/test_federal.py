@@ -1,6 +1,5 @@
 from datetime import datetime
 
-
 from pandas.tseries.holiday import (
     AbstractHolidayCalendar,
     USFederalHolidayCalendar,
