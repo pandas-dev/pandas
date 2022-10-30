@@ -65,7 +65,6 @@ from pandas.core.dtypes.common import (
     is_complex,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -1233,22 +1232,20 @@ def maybe_infer_to_datetimelike(
     if not len(v):
         return value
 
-    def try_datetime(v: np.ndarray) -> ArrayLike:
+    def try_datetime(v: np.ndarray) -> np.ndarray | DatetimeArray:
         # Coerce to datetime64, datetime64tz, or in corner cases
         #  object[datetimes]
         from pandas.core.arrays.datetimes import sequence_to_datetimes
 
         try:
-            # GH#19671 we pass require_iso8601 to be relatively strict
-            #  when parsing strings.
-            dta = sequence_to_datetimes(v, require_iso8601=True)
-        except (ValueError, TypeError):
-            # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
-            return v.reshape(shape)
-        else:
+            dta = sequence_to_datetimes(v)
+        except (ValueError, OutOfBoundsDatetime):
+            # ValueError for e.g. mixed tzs
             # GH#19761 we may have mixed timezones, in which cast 'dta' is
             #  an ndarray[object].  Only 1 test
             #  relies on this behavior, see GH#40111
+            return v.reshape(shape)
+        else:
             return dta.reshape(shape)
 
     def try_timedelta(v: np.ndarray) -> np.ndarray:
@@ -1260,12 +1257,16 @@ def maybe_infer_to_datetimelike(
             #  `np.asarray(to_timedelta(v))`, but using a lower-level API that
             #  does not require a circular import.
             td_values = array_to_timedelta64(v).view("m8[ns]")
-        except (ValueError, OverflowError):
+        except OutOfBoundsTimedelta:
             return v.reshape(shape)
         else:
             return td_values.reshape(shape)
 
-    inferred_type, seen_str = lib.infer_datetimelike_array(ensure_object(v))
+    # TODO: this is _almost_ equivalent to lib.maybe_convert_objects,
+    #  the main differences are described in GH#49340 and GH#49341
+    #  and maybe_convert_objects doesn't catch OutOfBoundsDatetime
+    inferred_type = lib.infer_datetimelike_array(ensure_object(v))
+
     if inferred_type in ["period", "interval"]:
         # Incompatible return value type (got "Union[ExtensionArray, ndarray]",
         # expected "Union[ndarray, DatetimeArray, TimedeltaArray, PeriodArray,
@@ -1275,52 +1276,35 @@ def maybe_infer_to_datetimelike(
         )
 
     if inferred_type == "datetime":
-        # error: Incompatible types in assignment (expression has type "ExtensionArray",
-        # variable has type "Union[ndarray, List[Any]]")
+        # Incompatible types in assignment (expression has type
+        # "Union[ndarray[Any, Any], DatetimeArray]", variable has type
+        # "ndarray[Any, Any]")
         value = try_datetime(v)  # type: ignore[assignment]
     elif inferred_type == "timedelta":
         value = try_timedelta(v)
     elif inferred_type == "nat":
-
         # if all NaT, return as datetime
-        if isna(v).all():
-            # error: Incompatible types in assignment (expression has type
-            # "ExtensionArray", variable has type "Union[ndarray, List[Any]]")
-            value = try_datetime(v)  # type: ignore[assignment]
-        else:
+        # only reached if we have at least 1 NaT and the rest (NaT or None or np.nan)
 
-            # We have at least a NaT and a string
-            # try timedelta first to avoid spurious datetime conversions
-            # e.g. '00:00:01' is a timedelta but technically is also a datetime
-            value = try_timedelta(v)
-            if lib.infer_dtype(value, skipna=False) in ["mixed"]:
-                # cannot skip missing values, as NaT implies that the string
-                # is actually a datetime
+        # Incompatible types in assignment (expression has type
+        # "Union[ndarray[Any, Any], DatetimeArray]", variable has type
+        # "ndarray[Any, Any]")
+        value = try_datetime(v)  # type: ignore[assignment]
+        assert value.dtype == "M8[ns]"
 
-                # error: Incompatible types in assignment (expression has type
-                # "ExtensionArray", variable has type "Union[ndarray, List[Any]]")
-                value = try_datetime(v)  # type: ignore[assignment]
-
-    if value.dtype.kind in ["m", "M"] and seen_str:
-        # TODO(2.0): enforcing this deprecation should close GH#40111
-        warnings.warn(
-            f"Inferring {value.dtype} from data containing strings is deprecated "
-            "and will be removed in a future version. To retain the old behavior "
-            f"explicitly pass Series(data, dtype={value.dtype})",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
     return value
 
 
 def maybe_cast_to_datetime(
-    value: ExtensionArray | np.ndarray | list, dtype: DtypeObj | None
+    value: ExtensionArray | np.ndarray | list, dtype: np.dtype | None
 ) -> ExtensionArray | np.ndarray:
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
 
     We allow a list *only* when dtype is not None.
+
+    Caller is responsible for handling ExtensionDtype cases.
     """
     from pandas.core.arrays.datetimes import sequence_to_datetimes
     from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -1332,18 +1316,22 @@ def maybe_cast_to_datetime(
         # TODO: _from_sequence would raise ValueError in cases where
         #  _ensure_nanosecond_dtype raises TypeError
         dtype = cast(np.dtype, dtype)
-        dtype = _ensure_nanosecond_dtype(dtype)
+        # Incompatible types in assignment (expression has type "Union[dtype[Any],
+        # ExtensionDtype]", variable has type "Optional[dtype[Any]]")
+        dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
 
     if dtype is not None:
         is_datetime64 = is_datetime64_dtype(dtype)
-        is_datetime64tz = is_datetime64tz_dtype(dtype)
 
         vdtype = getattr(value, "dtype", None)
 
-        if is_datetime64 or is_datetime64tz:
-            dtype = _ensure_nanosecond_dtype(dtype)
+        if is_datetime64:
+            # Incompatible types in assignment (expression has type
+            # "Union[dtype[Any], ExtensionDtype]", variable has type
+            # "Optional[dtype[Any]]")
+            dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
 
             value = np.array(value, copy=False)
 
@@ -1352,59 +1340,22 @@ def maybe_cast_to_datetime(
                 _disallow_mismatched_datetimelike(value, dtype)
 
                 try:
-                    if is_datetime64:
-                        dta = sequence_to_datetimes(value)
-                        # GH 25843: Remove tz information since the dtype
-                        # didn't specify one
+                    dta = sequence_to_datetimes(value)
+                    # GH 25843: Remove tz information since the dtype
+                    # didn't specify one
 
-                        if dta.tz is not None:
-                            raise ValueError(
-                                "Cannot convert timezone-aware data to "
-                                "timezone-naive dtype. Use "
-                                "pd.Series(values).dt.tz_localize(None) instead."
-                            )
+                    if dta.tz is not None:
+                        raise ValueError(
+                            "Cannot convert timezone-aware data to "
+                            "timezone-naive dtype. Use "
+                            "pd.Series(values).dt.tz_localize(None) instead."
+                        )
 
-                        # TODO(2.0): Do this astype in sequence_to_datetimes to
-                        #  avoid potential extra copy?
-                        dta = dta.astype(dtype, copy=False)
-                        value = dta
-                    elif is_datetime64tz:
-                        dtype = cast(DatetimeTZDtype, dtype)
-                        # The string check can be removed once issue #13712
-                        # is solved. String data that is passed with a
-                        # datetime64tz is assumed to be naive which should
-                        # be localized to the timezone.
-                        is_dt_string = is_string_dtype(value.dtype)
-                        dta = sequence_to_datetimes(value)
-                        if dta.tz is not None:
-                            value = dta.astype(dtype, copy=False)
-                        elif is_dt_string:
-                            # Strings here are naive, so directly localize
-                            # equiv: dta.astype(dtype)  # though deprecated
+                    # TODO(2.0): Do this astype in sequence_to_datetimes to
+                    #  avoid potential extra copy?
+                    dta = dta.astype(dtype, copy=False)
+                    value = dta
 
-                            value = dta.tz_localize(dtype.tz)
-                        else:
-                            # Numeric values are UTC at this point,
-                            # so localize and convert
-                            # equiv: Series(dta).astype(dtype) # though deprecated
-                            if getattr(vdtype, "kind", None) == "M":
-                                # GH#24559, GH#33401 deprecate behavior inconsistent
-                                #  with DatetimeArray/DatetimeIndex
-                                warnings.warn(
-                                    "In a future version, constructing a Series "
-                                    "from datetime64[ns] data and a "
-                                    "DatetimeTZDtype will interpret the data "
-                                    "as wall-times instead of "
-                                    "UTC times, matching the behavior of "
-                                    "DatetimeIndex. To treat the data as UTC "
-                                    "times, use pd.Series(data).dt"
-                                    ".tz_localize('UTC').tz_convert(dtype.tz) "
-                                    "or pd.Series(data.view('int64'), dtype=dtype)",
-                                    FutureWarning,
-                                    stacklevel=find_stack_level(),
-                                )
-
-                            value = dta.tz_localize("UTC").tz_convert(dtype.tz)
                 except OutOfBoundsDatetime:
                     raise
                 except ParserError:

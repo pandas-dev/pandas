@@ -95,7 +95,6 @@ from pandas._libs.util cimport (
     is_nan,
 )
 
-from pandas._libs.tslib import array_to_datetime
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -1583,25 +1582,19 @@ def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
     Returns
     -------
     str: {datetime, timedelta, date, nat, mixed}
-    bool
     """
     cdef:
         Py_ssize_t i, n = len(arr)
         bint seen_timedelta = False, seen_date = False, seen_datetime = False
         bint seen_tz_aware = False, seen_tz_naive = False
-        bint seen_nat = False, seen_str = False
+        bint seen_nat = False
         bint seen_period = False, seen_interval = False
-        list objs = []
         object v
 
     for i in range(n):
         v = arr[i]
         if isinstance(v, str):
-            objs.append(v)
-            seen_str = True
-
-            if len(objs) == 3:
-                break
+            return "mixed"
 
         elif v is None or util.is_nan(v):
             # nan or None
@@ -1619,7 +1612,7 @@ def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
                 seen_tz_aware = True
 
             if seen_tz_naive and seen_tz_aware:
-                return "mixed", seen_str
+                return "mixed"
         elif util.is_datetime64_object(v):
             # np.datetime64
             seen_datetime = True
@@ -1635,43 +1628,30 @@ def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
             seen_interval = True
             break
         else:
-            return "mixed", seen_str
+            return "mixed"
 
     if seen_period:
         if is_period_array(arr):
-            return "period", seen_str
-        return "mixed", seen_str
+            return "period"
+        return "mixed"
 
     if seen_interval:
         if is_interval_array(arr):
-            return "interval", seen_str
-        return "mixed", seen_str
+            return "interval"
+        return "mixed"
 
     if seen_date and not (seen_datetime or seen_timedelta):
-        return "date", seen_str
+        return "date"
     elif seen_datetime and not seen_timedelta:
-        return "datetime", seen_str
+        return "datetime"
     elif seen_timedelta and not seen_datetime:
-        return "timedelta", seen_str
+        return "timedelta"
+    elif seen_datetime and seen_timedelta:
+        return "mixed"
     elif seen_nat:
-        return "nat", seen_str
+        return "nat"
 
-    # short-circuit by trying to
-    # actually convert these strings
-    # this is for performance as we don't need to try
-    # convert *every* string array
-    if len(objs):
-        try:
-            # require_iso8601 as in maybe_infer_to_datetimelike
-            array_to_datetime(objs, errors="raise", require_iso8601=True)
-            return "datetime", seen_str
-        except (ValueError, TypeError):
-            pass
-
-        # we are *not* going to infer from strings
-        # for timedelta as too much ambiguity
-
-    return "mixed", seen_str
+    return "mixed"
 
 
 cdef inline bint is_timedelta(object o):
@@ -2370,7 +2350,7 @@ def maybe_convert_numeric(
 
     # This occurs since we disabled float nulls showing as null in anticipation
     # of seeing ints that were never seen. So then, we return float
-    if allow_null_in_int and seen.null_ and not seen.int_:
+    if allow_null_in_int and seen.null_ and not seen.int_ and not seen.bool_:
         seen.float_ = True
 
     if seen.complex_:
@@ -2390,6 +2370,8 @@ def maybe_convert_numeric(
         else:
             return (ints, None)
     elif seen.bool_:
+        if allow_null_in_int:
+            return (bools.view(np.bool_), mask.view(np.bool_))
         return (bools.view(np.bool_), None)
     elif seen.uint_:
         return (uints, None)

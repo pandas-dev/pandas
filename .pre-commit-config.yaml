@@ -102,7 +102,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.264
+        - pyright@1.1.276
     -   id: pyright_reportGeneralTypeIssues
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues

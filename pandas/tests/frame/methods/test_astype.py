@@ -301,7 +301,7 @@ class TestAstype:
         d = {"A": list("abbc"), "B": list("bccd"), "C": list("cdde")}
         df = DataFrame(d)
         result = df.astype(dtype)
-        expected = DataFrame({k: Categorical(d[k], dtype=dtype) for k in d})
+        expected = DataFrame({k: Categorical(v, dtype=dtype) for k, v in d.items()})
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("cls", [CategoricalDtype, DatetimeTZDtype, IntervalDtype])
@@ -611,27 +611,10 @@ class TestAstype:
         result = timezone_frame.astype(object)
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "Cannot use .astype to convert from timezone-aware dtype to timezone-"
+        with pytest.raises(TypeError, match=msg):
             # dt64tz->dt64 deprecated
-            result = timezone_frame.astype("datetime64[ns]")
-        expected = DataFrame(
-            {
-                "A": date_range("20130101", periods=3),
-                "B": (
-                    date_range("20130101", periods=3, tz="US/Eastern")
-                    .tz_convert("UTC")
-                    .tz_localize(None)
-                ),
-                "C": (
-                    date_range("20130101", periods=3, tz="CET")
-                    .tz_convert("UTC")
-                    .tz_localize(None)
-                ),
-            }
-        )
-        expected.iloc[1, 1] = NaT
-        expected.iloc[1, 2] = NaT
-        tm.assert_frame_equal(result, expected)
+            timezone_frame.astype("datetime64[ns]")
 
     def test_astype_dt64tz_to_str(self, timezone_frame):
         # str formatting

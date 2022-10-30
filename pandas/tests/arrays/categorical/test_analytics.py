@@ -158,10 +158,8 @@ class TestCategoricalAnalytics:
         ],
     )
     def test_mode(self, values, categories, exp_mode):
-        s = Categorical(values, categories=categories, ordered=True)
-        msg = "Use Series.mode instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = s.mode()
+        cat = Categorical(values, categories=categories, ordered=True)
+        res = Series(cat).mode()._values
         exp = Categorical(exp_mode, categories=categories, ordered=True)
         tm.assert_categorical_equal(res, exp)
 
@@ -322,53 +320,6 @@ class TestCategoricalAnalytics:
             'For argument "inplace" expected type bool, '
             f"received type {type(value).__name__}"
         )
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(
-                FutureWarning, match="Use rename_categories"
-            ):
-                cat.set_ordered(value=True, inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(
-                FutureWarning, match="Use rename_categories"
-            ):
-                cat.as_ordered(inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(
-                FutureWarning, match="Use rename_categories"
-            ):
-                cat.as_unordered(inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # issue #37643 inplace kwarg deprecated
-                cat.set_categories(["X", "Y", "Z"], rename=True, inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # issue #37643 inplace kwarg deprecated
-                cat.rename_categories(["X", "Y", "Z"], inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # issue #37643 inplace kwarg deprecated
-                cat.reorder_categories(["X", "Y", "Z"], ordered=True, inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # issue #37643 inplace kwarg deprecated
-                cat.add_categories(new_categories=["D", "E", "F"], inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # issue #37643 inplace kwarg deprecated
-                cat.remove_categories(removals=["D", "E", "F"], inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # issue #37643 inplace kwarg deprecated
-                cat.remove_unused_categories(inplace=value)
 
         with pytest.raises(ValueError, match=msg):
             cat.sort_values(inplace=value)

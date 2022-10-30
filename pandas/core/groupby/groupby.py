@@ -88,9 +88,12 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import nanops
+from pandas.core import (
+    algorithms,
+    nanops,
+    sample,
+)
 from pandas.core._numba import executor
-import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
     BaseMaskedArray,
     BooleanArray,
@@ -121,7 +124,6 @@ from pandas.core.indexes.api import (
     RangeIndex,
 )
 from pandas.core.internals.blocks import ensure_block_shape
-import pandas.core.sample as sample
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import (
@@ -2889,11 +2891,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 else:
                     out = type(values)._empty(values.shape, dtype=values.dtype)
 
-                for i in range(len(values)):
+                for i, value_element in enumerate(values):
                     # call group_fillna_indexer column-wise
                     indexer = np.empty(values.shape[1], dtype=np.intp)
                     col_func(out=indexer, mask=mask[i])
-                    out[i, :] = algorithms.take_nd(values[i], indexer)
+                    out[i, :] = algorithms.take_nd(value_element, indexer)
                 return out
 
         obj = self._obj_with_exclusions
@@ -3877,8 +3879,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         See Also
         --------
         Index.shift : Shift values of Index.
-        tshift : Shift the time index, using the index’s frequency
-            if available.
         """
         if freq is not None or axis != 0:
             f = lambda x: x.shift(periods, freq, axis, fill_value)
