@@ -8,7 +8,6 @@ from pandas.tseries.holiday import (
 )
 
 
-
 def test_no_mlk_before_1986():
     # see gh-10278
     class MLKCalendar(AbstractHolidayCalendar):
