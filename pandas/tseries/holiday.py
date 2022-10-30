@@ -336,7 +336,7 @@ class Holiday:
         Dates with rules applied
         """
         # GH 49075
-        # If we have a half-open date interval with observance, 
+        # If we have a half-open date interval with observance,
         # ensure we return a DatetimeIndex
         if (
             self.observance is not None
