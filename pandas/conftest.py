@@ -153,9 +153,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         # Deprecations where the docstring will emit a warning
         ("DataFrame.append", "The frame.append method is deprecated"),
         ("Series.append", "The series.append method is deprecated"),
-        ("dtypes.common.is_categorical", "is_categorical is deprecated"),
-        ("Categorical.replace", "Categorical.replace is deprecated"),
-        ("MultiIndex._is_lexsorted", "MultiIndex.is_lexsorted is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         # Docstring demonstrates the call raises a warning
@@ -653,7 +650,7 @@ index_fixture2 = index
 
 @pytest.fixture(
     params=[
-        key for key in indices_dict if not isinstance(indices_dict[key], MultiIndex)
+        key for key, value in indices_dict.items() if not isinstance(value, MultiIndex)
     ]
 )
 def index_flat(request):
@@ -671,12 +668,12 @@ index_flat2 = index_flat
 @pytest.fixture(
     params=[
         key
-        for key in indices_dict
+        for key, value in indices_dict.items()
         if not (
             key in ["int", "uint", "range", "empty", "repeats", "bool-dtype"]
             or key.startswith("num_")
         )
-        and not isinstance(indices_dict[key], MultiIndex)
+        and not isinstance(value, MultiIndex)
     ]
 )
 def index_with_missing(request):
@@ -1730,7 +1727,7 @@ def any_skipna_inferred_dtype(request):
 
     Examples
     --------
-    >>> import pandas._libs.lib as lib
+    >>> from pandas._libs import lib
     >>>
     >>> def test_something(any_skipna_inferred_dtype):
     ...     inferred_dtype, values = any_skipna_inferred_dtype

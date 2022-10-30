@@ -40,7 +40,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import WeekDay
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 from pandas.tseries.offsets import (
     FY5253,
     BaseOffset,
@@ -250,16 +250,6 @@ class TestCommon:
         # test nanosecond is preserved
         with tm.assert_produces_warning(exp_warning):
             result = func(ts)
-
-        if exp_warning is None and funcname == "_apply":
-            # GH#44522
-            # Check in this particular case to avoid headaches with
-            #  testing for multiple warnings produced by the same call.
-            with tm.assert_produces_warning(FutureWarning, match="apply is deprecated"):
-                res2 = offset_s.apply(ts)
-
-            assert type(res2) is type(result)
-            assert res2 == result
 
         assert isinstance(result, Timestamp)
         if normalize is False:
@@ -570,27 +560,6 @@ class TestCommon:
 
         base_dt = datetime(2020, 1, 1)
         assert base_dt + off == base_dt + res
-
-    def test_onOffset_deprecated(self, offset_types, fixed_now_ts):
-        # GH#30340 use idiomatic naming
-        off = _create_offset(offset_types)
-
-        ts = fixed_now_ts
-        with tm.assert_produces_warning(FutureWarning):
-            result = off.onOffset(ts)
-
-        expected = off.is_on_offset(ts)
-        assert result == expected
-
-    def test_isAnchored_deprecated(self, offset_types):
-        # GH#30340 use idiomatic naming
-        off = _create_offset(offset_types)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = off.isAnchored()
-
-        expected = off.is_anchored()
-        assert result == expected
 
     def test_offsets_hashable(self, offset_types):
         # GH: 37267

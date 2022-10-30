@@ -30,9 +30,11 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.computation import pytables
+from pandas.core.computation import (
+    expr,
+    pytables,
+)
 from pandas.core.computation.engines import ENGINES
-import pandas.core.computation.expr as expr
 from pandas.core.computation.expr import (
     BaseExprVisitor,
     PandasExprVisitor,
@@ -1105,40 +1107,6 @@ class TestOperations:
         df2 = self.eval("df", local_dict={"df": df})
         tm.assert_frame_equal(df, df2)
 
-    def test_truediv(self):
-        s = np.array([1])  # noqa:F841
-        ex = "s / 1"
-
-        # FutureWarning: The `truediv` parameter in pd.eval is deprecated and will be
-        # removed in a future version.
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval(ex, truediv=False)
-        tm.assert_numpy_array_equal(res, np.array([1.0]))
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval(ex, truediv=True)
-        tm.assert_numpy_array_equal(res, np.array([1.0]))
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval("1 / 2", truediv=True)
-        expec = 0.5
-        assert res == expec
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval("1 / 2", truediv=False)
-        expec = 0.5
-        assert res == expec
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval("s / 2", truediv=False)
-        expec = 0.5
-        assert res == expec
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval("s / 2", truediv=True)
-        expec = 0.5
-        assert res == expec
-
     def test_failing_subscript_with_name_error(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa:F841
         with pytest.raises(NameError, match="name 'x' is not defined"):
@@ -1857,23 +1825,6 @@ def test_inf(engine, parser):
     expected = np.inf
     result = pd.eval(s, engine=engine, parser=parser)
     assert result == expected
-
-
-def test_truediv_deprecated(engine, parser):
-    # GH#29182
-    match = "The `truediv` parameter in pd.eval is deprecated"
-
-    with tm.assert_produces_warning(FutureWarning) as m:
-        pd.eval("1+1", engine=engine, parser=parser, truediv=True)
-
-    assert len(m) == 1
-    assert match in str(m[0].message)
-
-    with tm.assert_produces_warning(FutureWarning) as m:
-        pd.eval("1+1", engine=engine, parser=parser, truediv=False)
-
-    assert len(m) == 1
-    assert match in str(m[0].message)
 
 
 @pytest.mark.parametrize("column", ["Temp(°C)", "Capacitance(μF)"])

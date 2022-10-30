@@ -2,8 +2,7 @@ import os
 
 import pytest
 
-import pandas.compat as compat
-
+from pandas import compat
 import pandas._testing as tm
 
 

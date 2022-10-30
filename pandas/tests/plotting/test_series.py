@@ -12,14 +12,13 @@ from pandas import (
     DataFrame,
     Series,
     date_range,
+    plotting,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     TestPlotBase,
     _check_plot_works,
 )
-
-import pandas.plotting as plotting
 
 try:
     from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
@@ -652,7 +651,7 @@ class TestSeriesPlots(TestPlotBase):
         assert result == [c] * 3
 
     def test_standard_colors_all(self):
-        import matplotlib.colors as colors
+        from matplotlib import colors
 
         from pandas.plotting._matplotlib.style import get_standard_colors
 

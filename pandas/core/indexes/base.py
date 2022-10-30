@@ -67,7 +67,6 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import (
@@ -152,11 +151,6 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
 )
-from pandas.core.arrays.datetimes import (
-    tz_to_dtype,
-    validate_tz_from_dtype,
-)
-from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.arrays.string_ import StringArray
 from pandas.core.base import (
     IndexOpsMixin,
@@ -223,7 +217,8 @@ def _maybe_return_indexers(meth: F) -> F:
     @functools.wraps(meth)
     def join(
         self,
-        other,
+        other: Index,
+        *,
         how: str_t = "left",
         level=None,
         return_indexers: bool = False,
@@ -240,11 +235,6 @@ def _maybe_return_indexers(meth: F) -> F:
         return join_index, lidx, ridx
 
     return cast(F, join)
-
-
-def disallow_kwargs(kwargs: dict[str, Any]) -> None:
-    if kwargs:
-        raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
 
 
 def _new_Index(cls, d):
@@ -324,13 +314,6 @@ class Index(IndexOpsMixin, PandasObject):
     >>> pd.Index(list('abc'))
     Index(['a', 'b', 'c'], dtype='object')
     """
-
-    # tolist is not actually deprecated, just suppressed in the __dir__
-    _hidden_attrs: frozenset[str] = (
-        PandasObject._hidden_attrs
-        | IndexOpsMixin._hidden_attrs
-        | frozenset(["contains", "set_value"])
-    )
 
     # To hand over control to subclasses
     _join_precedence = 1
@@ -438,17 +421,7 @@ class Index(IndexOpsMixin, PandasObject):
         copy: bool = False,
         name=None,
         tupleize_cols: bool = True,
-        **kwargs,
     ) -> Index:
-
-        if kwargs:
-            warnings.warn(
-                "Passing keywords other than 'data', 'dtype', 'copy', 'name', "
-                "'tupleize_cols' is deprecated and will raise TypeError in a "
-                "future version.  Use the specific Index subclass directly instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
         from pandas.core.arrays import PandasArray
         from pandas.core.indexes.range import RangeIndex
@@ -457,10 +430,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
-        if "tz" in kwargs:
-            tz = kwargs.pop("tz")
-            validate_tz_from_dtype(dtype, tz)
-            dtype = tz_to_dtype(tz)
 
         if type(data) is PandasArray:
             # ensure users don't accidentally put a PandasArray in an index,
@@ -482,18 +451,17 @@ class Index(IndexOpsMixin, PandasObject):
             # non-EA dtype indexes have special casting logic, so we punt here
             klass = cls._dtype_to_subclass(dtype)
             if klass is not Index:
-                return klass(data, dtype=dtype, copy=copy, name=name, **kwargs)
+                return klass(data, dtype=dtype, copy=copy, name=name)
 
             ea_cls = dtype.construct_array_type()
             data = ea_cls._from_sequence(data, dtype=dtype, copy=copy)
-            disallow_kwargs(kwargs)
             return Index._simple_new(data, name=name)
 
         elif is_ea_or_datetimelike_dtype(data_dtype):
             data_dtype = cast(DtypeObj, data_dtype)
             klass = cls._dtype_to_subclass(data_dtype)
             if klass is not Index:
-                result = klass(data, copy=copy, name=name, **kwargs)
+                result = klass(data, copy=copy, name=name)
                 if dtype is not None:
                     return result.astype(dtype, copy=False)
                 return result
@@ -501,7 +469,6 @@ class Index(IndexOpsMixin, PandasObject):
                 # GH#45206
                 data = data.astype(dtype, copy=False)
 
-            disallow_kwargs(kwargs)
             data = extract_array(data, extract_numpy=True)
             return Index._simple_new(data, name=name)
 
@@ -543,18 +510,14 @@ class Index(IndexOpsMixin, PandasObject):
                     )
                     dtype = arr.dtype
 
-                    if kwargs:
-                        return cls(arr, dtype, copy=copy, name=name, **kwargs)
-
             klass = cls._dtype_to_subclass(arr.dtype)
             arr = klass._ensure_array(arr, dtype, copy)
-            disallow_kwargs(kwargs)
             return klass._simple_new(arr, name)
 
         elif is_scalar(data):
             raise cls._raise_scalar_data_error(data)
         elif hasattr(data, "__array__"):
-            return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
+            return Index(np.asarray(data), dtype=dtype, copy=copy, name=name)
         else:
 
             if tupleize_cols and is_list_like(data):
@@ -567,9 +530,7 @@ class Index(IndexOpsMixin, PandasObject):
                     # 10697
                     from pandas.core.indexes.multi import MultiIndex
 
-                    return MultiIndex.from_tuples(
-                        data, names=name or kwargs.get("names")
-                    )
+                    return MultiIndex.from_tuples(data, names=name)
             # other iterable of some kind
 
             subarr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
@@ -579,7 +540,7 @@ class Index(IndexOpsMixin, PandasObject):
                     subarr, cast_numeric_deprecated=False
                 )
                 dtype = subarr.dtype
-            return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
+            return Index(subarr, dtype=dtype, copy=copy, name=name)
 
     @classmethod
     def _ensure_array(cls, data, dtype, copy: bool):
@@ -617,17 +578,6 @@ class Index(IndexOpsMixin, PandasObject):
                 from pandas import PeriodIndex
 
                 return PeriodIndex
-
-            elif isinstance(dtype, SparseDtype):
-                warnings.warn(
-                    "In a future version, passing a SparseArray to pd.Index "
-                    "will store that array directly instead of converting to a "
-                    "dense numpy ndarray. To retain the old behavior, use "
-                    "pd.Index(arr.to_numpy()) instead",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return cls._dtype_to_subclass(dtype.subtype)
 
             return Index
 
@@ -1460,45 +1410,6 @@ class Index(IndexOpsMixin, PandasObject):
             result = trim_front(format_array(values, None, justify="left"))
         return header + result
 
-    @final
-    def to_native_types(self, slicer=None, **kwargs) -> np.ndarray:
-        """
-        Format specified values of `self` and return them.
-
-        .. deprecated:: 1.2.0
-
-        Parameters
-        ----------
-        slicer : int, array-like
-            An indexer into `self` that specifies which values
-            are used in the formatting process.
-        kwargs : dict
-            Options for specifying how the values should be formatted.
-            These options include the following:
-
-            1) na_rep : str
-                The value that serves as a placeholder for NULL values
-            2) quoting : bool or None
-                Whether or not there are quoted values in `self`
-            3) date_format : str
-                The format used to represent date-like values.
-
-        Returns
-        -------
-        numpy.ndarray
-            Formatted values.
-        """
-        warnings.warn(
-            "The 'to_native_types' method is deprecated and will be removed in "
-            "a future version. Use 'astype(str)' instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        values = self
-        if slicer is not None:
-            values = values[slicer]
-        return values._format_native_types(**kwargs)
-
     def _format_native_types(
         self, *, na_rep: str_t = "", quoting=None, **kwargs
     ) -> npt.NDArray[np.object_]:
@@ -1842,9 +1753,8 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> _IndexT | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "names"])
     def set_names(
-        self: _IndexT, names, level=None, inplace: bool = False
+        self: _IndexT, names, *, level=None, inplace: bool = False
     ) -> _IndexT | None:
         """
         Set Index or MultiIndex name.
@@ -2983,8 +2893,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = super().unique()
         return self._shallow_copy(result)
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(self: _IndexT, keep: DropKeep = "first") -> _IndexT:
+    def drop_duplicates(self: _IndexT, *, keep: DropKeep = "first") -> _IndexT:
         """
         Return Index with duplicate values removed.
 
@@ -4280,12 +4189,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_positional:
             if kind == "loc":
                 # GH#16121, GH#24612, GH#31810
-                warnings.warn(
-                    "Slicing a positional slice with .loc is not supported, "
-                    "and will raise TypeError in a future version.  "
+                raise TypeError(
+                    "Slicing a positional slice with .loc is not allowed, "
                     "Use .loc with labels or .iloc with positions instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
                 )
             indexer = key
         else:
@@ -4576,11 +4482,11 @@ class Index(IndexOpsMixin, PandasObject):
         ...
 
     @final
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "other"])
     @_maybe_return_indexers
     def join(
         self,
         other: Index,
+        *,
         how: str_t = "left",
         level: Level = None,
         return_indexers: bool = False,
@@ -5905,30 +5811,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return series.iloc[loc]
 
-    @final
-    def set_value(self, arr, key, value) -> None:
-        """
-        Fast lookup of value from 1-dimensional ndarray.
-
-        .. deprecated:: 1.0
-
-        Notes
-        -----
-        Only use this if you know what you're doing.
-        """
-        warnings.warn(
-            (
-                "The 'set_value' method is deprecated, and "
-                "will be removed in a future version."
-            ),
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        loc = self._engine.get_loc(key)
-        if not can_hold_element(arr, value):
-            raise ValueError
-        arr[loc] = value
-
     _index_shared_docs[
         "get_indexer_non_unique"
     ] = """
@@ -6471,7 +6353,6 @@ class Index(IndexOpsMixin, PandasObject):
         start: Hashable | None = None,
         end: Hashable | None = None,
         step: int | None = None,
-        kind=no_default,
     ) -> slice:
         """
         Compute the slice indexer for input labels and step.
@@ -6485,9 +6366,6 @@ class Index(IndexOpsMixin, PandasObject):
         end : label, default None
             If None, defaults to the end.
         step : int, default None
-        kind : str, default None
-
-            .. deprecated:: 1.4.0
 
         Returns
         -------
@@ -6514,8 +6392,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.slice_indexer(start='b', end=('c', 'g'))
         slice(1, 3, None)
         """
-        self._deprecated_arg(kind, "kind", "slice_indexer")
-
         start_slice, end_slice = self.slice_locs(start, end, step=step)
 
         # return a slice
@@ -6550,7 +6426,7 @@ class Index(IndexOpsMixin, PandasObject):
         if key is not None and not is_integer(key):
             self._raise_invalid_indexer(form, key)
 
-    def _maybe_cast_slice_bound(self, label, side: str_t, kind=no_default):
+    def _maybe_cast_slice_bound(self, label, side: str_t):
         """
         This function should be overloaded in subclasses that allow non-trivial
         casting on label-slice bounds, e.g. datetime-like indices allowing
@@ -6560,9 +6436,6 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'loc', 'getitem'} or None
-
-            .. deprecated:: 1.3.0
 
         Returns
         -------
@@ -6572,8 +6445,6 @@ class Index(IndexOpsMixin, PandasObject):
         -----
         Value of `side` parameter should be validated in caller.
         """
-        assert kind in ["loc", "getitem", None, no_default]
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         # We are a plain index here (sub-class override this method if they
         # wish to have special treatment for floats/ints, e.g. Float64Index and
@@ -6598,9 +6469,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(
-        self, label, side: Literal["left", "right"], kind=no_default
-    ) -> int:
+    def get_slice_bound(self, label, side: Literal["left", "right"]) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
@@ -6611,17 +6480,12 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'loc', 'getitem'} or None
-
-            .. deprecated:: 1.4.0
 
         Returns
         -------
         int
             Index of label.
         """
-        assert kind in ["loc", "getitem", None, no_default]
-        self._deprecated_arg(kind, "kind", "get_slice_bound")
 
         if side not in ("left", "right"):
             raise ValueError(
@@ -6667,9 +6531,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return slc
 
-    def slice_locs(
-        self, start=None, end=None, step=None, kind=no_default
-    ) -> tuple[int, int]:
+    def slice_locs(self, start=None, end=None, step=None) -> tuple[int, int]:
         """
         Compute slice locations for input labels.
 
@@ -6681,9 +6543,6 @@ class Index(IndexOpsMixin, PandasObject):
             If None, defaults to the end.
         step : int, defaults None
             If None, defaults to 1.
-        kind : {'loc', 'getitem'} or None
-
-            .. deprecated:: 1.4.0
 
         Returns
         -------
@@ -6703,7 +6562,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.slice_locs(start='b', end='c')
         (1, 3)
         """
-        self._deprecated_arg(kind, "kind", "slice_locs")
         inc = step is None or step >= 0
 
         if not inc:
@@ -7180,19 +7038,6 @@ class Index(IndexOpsMixin, PandasObject):
         # See GH#27775, GH#27384 for history/reasoning in how this is defined.
         return (len(self),)
 
-    @final
-    def _deprecated_arg(self, value, name: str_t, methodname: str_t) -> None:
-        """
-        Issue a FutureWarning if the arg/kwarg is not no_default.
-        """
-        if value is not no_default:
-            warnings.warn(
-                f"'{name}' argument in {methodname} is deprecated "
-                "and will be removed in a future version.  Do not pass it.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
 
 def ensure_index_from_sequences(sequences, names=None) -> Index:
     """
@@ -7343,14 +7188,6 @@ def maybe_extract_name(name, obj, cls) -> Hashable:
         raise TypeError(f"{cls.__name__}.name must be a hashable type")
 
     return name
-
-
-_cast_depr_msg = (
-    "In a future version, passing an object-dtype arraylike to pd.Index will "
-    "not infer numeric values to numeric dtype (matching the Series behavior). "
-    "To retain the old behavior, explicitly pass the desired dtype or use the "
-    "desired Index subclass"
-)
 
 
 def _maybe_cast_data_without_dtype(

@@ -519,12 +519,12 @@ def nanany(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2])
     >>> nanops.nanany(s)
     True
 
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([np.nan])
     >>> nanops.nanany(s)
     False
@@ -565,12 +565,12 @@ def nanall(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
     >>> nanops.nanall(s)
     True
 
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, 0])
     >>> nanops.nanall(s)
     False
@@ -616,7 +616,7 @@ def nansum(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
     >>> nanops.nansum(s)
     3.0
@@ -684,7 +684,7 @@ def nanmean(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
     >>> nanops.nanmean(s)
     1.5
@@ -740,7 +740,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 2])
     >>> nanops.nanmedian(s)
     2.0
@@ -901,7 +901,7 @@ def nanstd(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
     >>> nanops.nanstd(s)
     1.0
@@ -948,7 +948,7 @@ def nanvar(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
     >>> nanops.nanvar(s)
     1.0
@@ -1023,7 +1023,7 @@ def nansem(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
     >>> nanops.nansem(s)
      0.5773502691896258
@@ -1100,7 +1100,7 @@ def nanargmax(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> arr = np.array([1, 2, 3, np.nan, 4])
     >>> nanops.nanargmax(arr)
     4
@@ -1146,7 +1146,7 @@ def nanargmin(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> arr = np.array([1, 2, 3, np.nan, 4])
     >>> nanops.nanargmin(arr)
     0
@@ -1200,7 +1200,7 @@ def nanskew(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 2])
     >>> nanops.nanskew(s)
     1.7320508075688787
@@ -1288,7 +1288,7 @@ def nankurt(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 3, 2])
     >>> nanops.nankurt(s)
     -1.2892561983471076
@@ -1380,7 +1380,7 @@ def nanprod(
 
     Examples
     --------
-    >>> import pandas.core.nanops as nanops
+    >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, 3, np.nan])
     >>> nanops.nanprod(s)
     6.0

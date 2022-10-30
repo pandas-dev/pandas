@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import os
 from typing import Callable
-import warnings
 
 import pandas._config.config as cf
 from pandas._config.config import (
@@ -26,8 +25,6 @@ from pandas._config.config import (
     is_str,
     is_text,
 )
-
-from pandas.util._exceptions import find_stack_level
 
 # compute
 
@@ -363,17 +360,6 @@ with cf.config_prefix("display"):
         float_format_doc,
         validator=is_one_of_factory([None, is_callable]),
     )
-
-    def _deprecate_column_space(key) -> None:
-        warnings.warn(
-            "column_space is deprecated and will be removed "
-            "in a future version. Use df.to_string(col_space=...) "
-            "instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-    cf.register_option("column_space", 12, validator=is_int, cb=_deprecate_column_space)
     cf.register_option(
         "max_info_rows",
         1690785,
@@ -389,24 +375,11 @@ with cf.config_prefix("display"):
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
 
-    def _deprecate_negative_int_max_colwidth(key) -> None:
-        value = cf.get_option(key)
-        if value is not None and value < 0:
-            warnings.warn(
-                "Passing a negative integer is deprecated in version 1.0 and "
-                "will not be supported in future version. Instead, use None "
-                "to not limit the column width.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
     cf.register_option(
-        # TODO(2.0): change `validator=is_nonnegative_int` see GH#31569
         "max_colwidth",
         50,
         max_colwidth_doc,
-        validator=is_instance_factory([type(None), int]),
-        cb=_deprecate_negative_int_max_colwidth,
+        validator=is_nonnegative_int,
     )
     if is_terminal():
         max_cols = 0  # automatically determine optimal number of columns
@@ -651,26 +624,10 @@ writer_engine_doc = """
     auto, {others}.
 """
 
-_xls_options = ["xlwt"]
 _xlsm_options = ["openpyxl"]
 _xlsx_options = ["openpyxl", "xlsxwriter"]
 _ods_options = ["odf"]
 
-
-with cf.config_prefix("io.excel.xls"):
-    cf.register_option(
-        "writer",
-        "auto",
-        writer_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
-        validator=str,
-    )
-cf.deprecate_option(
-    "io.excel.xls.writer",
-    msg="As the xlwt package is no longer maintained, the xlwt engine will be "
-    "removed in a future version of pandas. This is the only engine in pandas that "
-    "supports writing in the xls format. Install openpyxl and write to an "
-    "xlsx file instead.",
-)
 
 with cf.config_prefix("io.excel.xlsm"):
     cf.register_option(

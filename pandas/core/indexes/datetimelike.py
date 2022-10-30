@@ -290,7 +290,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+    def _maybe_cast_slice_bound(self, label, side: str):
         """
         If label is a string, cast it to scalar type according to resolution.
 
@@ -298,7 +298,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'loc', 'getitem'} or None
 
         Returns
         -------
@@ -308,9 +307,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         -----
         Value of `side` parameter should be validated in caller.
         """
-        assert kind in ["loc", "getitem", None, lib.no_default]
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
-
         if isinstance(label, str):
             try:
                 parsed, reso = self._parse_with_reso(label)
