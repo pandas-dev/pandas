@@ -75,7 +75,6 @@ int format_startswith(char ch, int format_len, char format, int exact) {
 }
 
 int parse_iso_8601_datetime(const char *str, int len, int want_exc,
-
                             npy_datetimestruct *out,
                             NPY_DATETIMEUNIT *out_bestunit,
                             int *out_local, int *out_tzoffset,
@@ -126,16 +125,16 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         if (format_len) {++format; --format_len;}
     }
 
-    if (!format_startswith('%', format_len, *format, exact)) goto parse_error;
-    if (format_len) {++format; --format_len;}
-    if (!format_startswith('Y', format_len, *format, exact)) goto parse_error;
-    if (format_len) {++format; --format_len;}
-
     if (sublen == 0) {
         goto parse_error;
     }
 
     /* PARSE THE YEAR (4 digits) */
+    if (!format_startswith('%', format_len, *format, exact)) goto parse_error;
+    if (format_len) {++format; --format_len;}
+    if (!format_startswith('Y', format_len, *format, exact)) goto parse_error;
+    if (format_len) {++format; --format_len;}
+
     out->year = 0;
     if (sublen >= 4 && isdigit(substr[0]) && isdigit(substr[1]) &&
         isdigit(substr[2]) && isdigit(substr[3])) {
@@ -187,14 +186,14 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE MONTH */
-    /* First digit required */
-    out->month = (*substr - '0');
-    ++substr;
-    --sublen;
     if (!format_startswith('%', format_len, *format, exact)) goto parse_error;
     if (format_len) {++format; --format_len;}
     if (!format_startswith('m', format_len, *format, exact)) goto parse_error;
     if (format_len) {++format; --format_len;}
+    /* First digit required */
+    out->month = (*substr - '0');
+    ++substr;
+    --sublen;
     /* Second digit optional if there was a separator */
     if (isdigit(*substr)) {
         out->month = 10 * out->month + (*substr - '0');
@@ -239,6 +238,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE DAY */
+    if (!format_startswith('%', format_len, *format, exact)) goto parse_error;
+    if (format_len) {++format; --format_len;}
+    if (!format_startswith('d', format_len, *format, exact)) goto parse_error;
+    if (format_len) {++format; --format_len;}
     /* First digit required */
     if (!isdigit(*substr)) {
         goto parse_error;
@@ -246,10 +249,6 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     out->day = (*substr - '0');
     ++substr;
     --sublen;
-    if (!format_startswith('%', format_len, *format, exact)) goto parse_error;
-    if (format_len) {++format; --format_len;}
-    if (!format_startswith('d', format_len, *format, exact)) goto parse_error;
-    if (format_len) {++format; --format_len;}
     /* Second digit optional if there was a separator */
     if (isdigit(*substr)) {
         out->day = 10 * out->day + (*substr - '0');
@@ -288,14 +287,14 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     --sublen;
 
     /* PARSE THE HOURS */
-    /* First digit required */
-    if (!isdigit(*substr)) {
-        goto parse_error;
-    }
     if (!format_startswith('%', format_len, *format, exact)) goto parse_error;
     if (format_len) {++format; --format_len;}
     if (!format_startswith('H', format_len, *format, exact)) goto parse_error;
     if (format_len) {++format; --format_len;}
+    /* First digit required */
+    if (!isdigit(*substr)) {
+        goto parse_error;
+    }
     out->hour = (*substr - '0');
     ++substr;
     --sublen;
@@ -345,14 +344,14 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE MINUTES */
-    /* First digit required */
-    out->min = (*substr - '0');
-    ++substr;
-    --sublen;
     if (!format_startswith('%', format_len, *format, exact)) goto parse_error;
     if (format_len) {++format; --format_len;}
     if (!format_startswith('M', format_len, *format, exact)) goto parse_error;
     if (format_len) {++format; --format_len;}
+    /* First digit required */
+    out->min = (*substr - '0');
+    ++substr;
+    --sublen;
     /* Second digit optional if there was a separator */
     if (isdigit(*substr)) {
         out->min = 10 * out->min + (*substr - '0');
@@ -395,14 +394,14 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE SECONDS */
-    /* First digit required */
-    out->sec = (*substr - '0');
-    ++substr;
-    --sublen;
     if (!format_startswith('%', format_len, *format, exact)) goto parse_error;
     if (format_len) {++format; --format_len;}
     if (!format_startswith('S', format_len, *format, exact)) goto parse_error;
     if (format_len) {++format; --format_len;}
+    /* First digit required */
+    out->sec = (*substr - '0');
+    ++substr;
+    --sublen;
     /* Second digit optional if there was a separator */
     if (isdigit(*substr)) {
         out->sec = 10 * out->sec + (*substr - '0');
@@ -518,7 +517,6 @@ parse_timezone:
         if (format_len) {++format; --format_len;}
         if (!format_startswith('Z', format_len, *format, exact)) goto parse_error;
         if (format_len) {++format; --format_len;}
-
         /* "Z" should be equivalent to tz offset "+00:00" */
         if (out_local != NULL) {
             *out_local = 1;
