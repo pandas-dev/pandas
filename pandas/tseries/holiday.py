@@ -227,12 +227,6 @@ class Holiday:
         assert days_of_week is None or type(days_of_week) == tuple
         self.days_of_week = days_of_week
 
-        # GH 49075
-        if start_date is not None and observance is not None and end_date is None:
-            self.end_date = AbstractHolidayCalendar.end_date
-        if end_date is not None and observance is not None and start_date is None:
-            self.start_date = AbstractHolidayCalendar.start_date
-
     def __repr__(self) -> str:
         info = ""
         if self.year is not None:
@@ -426,6 +420,29 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
 
         return None
 
+    def _close_rule_intervals(self) -> None:
+        # GH 49075/49118
+        open_intervals_end = [
+            rule
+            for rule in self.rules
+            if rule.start_date is not None
+            and rule.observance is not None
+            and rule.end_date is None
+        ]
+        if open_intervals_end:
+            for holiday in open_intervals_end:
+                holiday.end_date = AbstractHolidayCalendar.end_date
+        open_intervals_start = [
+            rule
+            for rule in self.rules
+            if rule.end_date is not None
+            and rule.observance is not None
+            and rule.start_date is None
+        ]
+        if open_intervals_start:
+            for holiday in open_intervals_start:
+                holiday.start_date = AbstractHolidayCalendar.start_date
+
     def holidays(self, start=None, end=None, return_name: bool = False):
         """
         Returns a curve with holidays between start_date and end_date
@@ -463,6 +480,8 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
                 rule.dates(start, end, return_name=True) for rule in self.rules
             ]
             if pre_holidays:
+                # GH 49075
+                self._close_rule_intervals()
                 holidays = concat(pre_holidays)
             else:
                 holidays = Series(index=DatetimeIndex([]), dtype=object)
