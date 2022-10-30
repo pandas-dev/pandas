@@ -102,7 +102,7 @@ class Term:
     def _resolve_name(self):
         local_name = str(self.local_name)
         is_local = self.is_local
-        if "column" in self.env.scope and self.env.scope["column"] == local_name:
+        if self.env.scope.get("column") == local_name:
             is_local = not is_local
 
         res = self.env.resolve(local_name, is_local=is_local)
