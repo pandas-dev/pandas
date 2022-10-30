@@ -210,25 +210,27 @@ class TestFactorize:
         tm.assert_index_equal(uniques, to_timedelta([v2, v1]))
 
     def test_factorize_nan(self):
-        # nan should map to -1, not reverse_indexer[-1]
-        # rizer.factorize should not raise an exception if -1 indexes
+        # nan should map to na_sentinel, not reverse_indexer[na_sentinel]
+        # rizer.factorize should not raise an exception if na_sentinel indexes
         # outside of reverse_indexer
         key = np.array([1, 2, 1, np.nan], dtype="O")
         rizer = ht.ObjectFactorizer(len(key))
-        ids = rizer.factorize(key, sort=True, use_na_sentinel=True)
-        expected = np.array([0, 1, 0, -1], dtype="int32")
-        assert len(set(key)) == len(set(expected))
-        tm.assert_numpy_array_equal(pd.isna(key), expected == -1)
+        for na_sentinel in (-1, 20):
+            ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
+            expected = np.array([0, 1, 0, na_sentinel], dtype="int32")
+            assert len(set(key)) == len(set(expected))
+            tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
 
         # nan still maps to na_sentinel when sort=False
         key = np.array([0, np.nan, 1], dtype="O")
+        na_sentinel = -1
 
         # TODO(wesm): unused?
-        ids = rizer.factorize(key, sort=False, use_na_sentinel=True)  # noqa
+        ids = rizer.factorize(key, sort=False, na_sentinel=na_sentinel)  # noqa
 
         expected = np.array([2, -1, 0], dtype="int32")
         assert len(set(key)) == len(set(expected))
-        tm.assert_numpy_array_equal(pd.isna(key), expected == -1)
+        tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
 
     @pytest.mark.parametrize(
         "data, expected_codes, expected_uniques",
@@ -415,7 +417,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     @pytest.mark.parametrize("sort", [True, False])
-    @pytest.mark.parametrize("use_na_sentinel", [True, False])
     @pytest.mark.parametrize(
         "data, uniques",
         [
@@ -430,10 +431,8 @@ class TestFactorize:
         ],
         ids=["numpy_array", "extension_array"],
     )
-    def test_factorize_use_na_sentinel(self, sort, use_na_sentinel, data, uniques):
-        codes, uniques = algos.factorize(
-            data, sort=sort, use_na_sentinel=use_na_sentinel
-        )
+    def test_factorize_use_na_sentinel(self, sort, data, uniques):
+        codes, uniques = algos.factorize(data, sort=sort, use_na_sentinel=True)
         if sort:
             expected_codes = np.array([1, 0, -1, 1], dtype=np.intp)
             expected_uniques = algos.safe_sort(uniques)
