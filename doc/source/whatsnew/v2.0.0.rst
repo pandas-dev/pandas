@@ -237,6 +237,7 @@ Removal of prior version deprecations/changes
 - Removed deprecated :meth:`Timedelta.delta`, :meth:`Timedelta.is_populated`, and :attr:`Timedelta.freq` (:issue:`46430`, :issue:`46476`)
 - Removed deprecated :meth:`Categorical.replace`, use :meth:`Series.replace` instead (:issue:`44929`)
 - Removed the ``numeric_only`` keyword from :meth:`Categorical.min` and :meth:`Categorical.max` in favor of ``skipna`` (:issue:`48821`)
+- Changed behavior of :meth:`DataFrame.median` and :meth:`DataFrame.mean` with ``numeric_only=None`` to not exclude datetime-like columns THIS NOTE WILL BE IRRELEVANT ONCE ``numeric_only=None`` DEPRECATION IS ENFORCED (:issue:`29941`)
 - Removed :func:`is_extension_type` in favor of :func:`is_extension_array_dtype` (:issue:`29457`)
 - Removed ``.ExponentialMovingWindow.vol`` (:issue:`39220`)
 - Removed :meth:`Index.get_value` and :meth:`Index.set_value` (:issue:`33907`, :issue:`28621`)
@@ -275,6 +276,7 @@ Removal of prior version deprecations/changes
 - Changed behavior of :class:`Index` constructor when passed a ``SparseArray`` or ``SparseDtype`` to retain that dtype instead of casting to ``numpy.ndarray`` (:issue:`43930`)
 - Removed the deprecated ``base`` and ``loffset`` arguments from :meth:`pandas.DataFrame.resample`, :meth:`pandas.Series.resample` and :class:`pandas.Grouper`. Use ``offset`` or ``origin`` instead (:issue:`31809`)
 - Changed behavior of :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``; object-dtype columns with all-bool values will no longer be included, manually cast to ``bool`` dtype first (:issue:`46188`)
+- Enforced deprecation of silently dropping columns that raised a ``TypeError`` in :class:`Series.transform` and :class:`DataFrame.transform` when used with a list or dictionary (:issue:`43740`)
 - Change behavior of :meth:`DataFrame.apply` with list-like so that any partial failure will raise an error (:issue:`43740`)
 
 .. ---------------------------------------------------------------------------
