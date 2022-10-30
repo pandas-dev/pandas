@@ -1141,7 +1141,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     result = gba.agg()
 
                 except ValueError as err:
-                    if "no results" not in str(err):
+                    if "No objects to concatenate" not in str(err):
                         # raised directly by _aggregate_multiple_funcs
                         raise
                     result = self._aggregate_frame(func)

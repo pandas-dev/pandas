@@ -4,7 +4,6 @@ import abc
 from collections import defaultdict
 from functools import partial
 import inspect
-import re
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -35,10 +34,7 @@ from pandas._typing import (
     NDFrameT,
     npt,
 )
-from pandas.errors import (
-    DataError,
-    SpecificationError,
-)
+from pandas.errors import SpecificationError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
@@ -345,87 +341,27 @@ class Apply(metaclass=abc.ABCMeta):
 
         results = []
         keys = []
-        failed_names = []
-
-        depr_nuisance_columns_msg = (
-            "{} did not aggregate successfully. If any error is "
-            "raised this will raise in a future version of pandas. "
-            "Drop these columns/ops to avoid this warning."
-        )
 
         # degenerate case
         if selected_obj.ndim == 1:
             for a in arg:
                 colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                try:
-                    new_res = colg.aggregate(a)
+                new_res = colg.aggregate(a)
+                results.append(new_res)
 
-                except TypeError:
-                    failed_names.append(com.get_callable_name(a) or a)
-                else:
-                    results.append(new_res)
-
-                    # make sure we find a good name
-                    name = com.get_callable_name(a) or a
-                    keys.append(name)
+                # make sure we find a good name
+                name = com.get_callable_name(a) or a
+                keys.append(name)
 
         # multiples
         else:
             indices = []
             for index, col in enumerate(selected_obj):
                 colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                try:
-                    # Capture and suppress any warnings emitted by us in the call
-                    # to agg below, but pass through any warnings that were
-                    # generated otherwise.
-                    # This is necessary because of https://bugs.python.org/issue29672
-                    # See GH #43741 for more details
-                    with warnings.catch_warnings(record=True) as record:
-                        new_res = colg.aggregate(arg)
-                    if len(record) > 0:
-                        match = re.compile(depr_nuisance_columns_msg.format(".*"))
-                        for warning in record:
-                            if re.match(match, str(warning.message)):
-                                failed_names.append(col)
-                            else:
-                                warnings.warn_explicit(
-                                    message=warning.message,
-                                    category=warning.category,
-                                    filename=warning.filename,
-                                    lineno=warning.lineno,
-                                )
-
-                except (TypeError, DataError):
-                    failed_names.append(col)
-                except ValueError as err:
-                    # cannot aggregate
-                    if "Must produce aggregated value" in str(err):
-                        # raised directly in _aggregate_named
-                        failed_names.append(col)
-                    elif "no results" in str(err):
-                        # reached in test_frame_apply.test_nuiscance_columns
-                        #  where the colg.aggregate(arg) ends up going through
-                        #  the selected_obj.ndim == 1 branch above with arg == ["sum"]
-                        #  on a datetime64[ns] column
-                        failed_names.append(col)
-                    else:
-                        raise
-                else:
-                    results.append(new_res)
-                    indices.append(index)
-
+                new_res = colg.aggregate(arg)
+                results.append(new_res)
+                indices.append(index)
             keys = selected_obj.columns.take(indices)
-
-        # if we are empty
-        if not len(results):
-            raise ValueError("no results")
-
-        if len(failed_names) > 0:
-            warnings.warn(
-                depr_nuisance_columns_msg.format(failed_names),
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
         try:
             concatenated = concat(results, keys=keys, axis=1, sort=False)
