@@ -722,13 +722,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self._mgr.array_values()
 
     # ops
-    def ravel(self, order: str = "C") -> np.ndarray:
+    def ravel(self, order: str = "C") -> ArrayLike:
         """
-        Return the flattened underlying data as an ndarray.
+        Return the flattened underlying data as an ndarray or ExtensionArray.
 
         Returns
         -------
-        numpy.ndarray or ndarray-like
+        numpy.ndarray or ExtensionArray
             Flattened data of the Series.
 
         See Also

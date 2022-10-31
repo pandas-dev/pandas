@@ -28,7 +28,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -1873,6 +1872,7 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
+@pytest.mark.filterwarnings("ignore:The default value of numeric_only:FutureWarning")
 @pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
 @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_empty_groupby(columns, keys, values, method, op, request, using_array_manager):
@@ -2316,8 +2316,6 @@ def test_group_on_empty_multiindex(transformation_func, request):
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
         pytest.skip(f"Not applicable for {groupby_func}")
-    # TODO(2.0) Remove after pad/backfill deprecation enforced
-    groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
 
     df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])

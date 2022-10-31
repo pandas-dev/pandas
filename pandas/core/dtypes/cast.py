@@ -41,6 +41,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     Scalar,
+    npt,
 )
 from pandas.errors import (
     IntCastingNaNError,
@@ -1199,7 +1200,7 @@ def convert_dtypes(
 
 
 def maybe_infer_to_datetimelike(
-    value: np.ndarray,
+    value: npt.NDArray[np.object_],
 ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray | IntervalArray:
     """
     we might have a array (or single object) that is datetime like,
@@ -1231,7 +1232,9 @@ def maybe_infer_to_datetimelike(
     if not len(v):
         return value
 
-    def try_datetime(v: np.ndarray) -> np.ndarray | DatetimeArray:
+    def try_datetime(
+        v: npt.NDArray[np.object_],
+    ) -> DatetimeArray | npt.NDArray[np.object_]:
         # Coerce to datetime64, datetime64tz, or in corner cases
         #  object[datetimes]
         from pandas.core.arrays.datetimes import sequence_to_datetimes
@@ -1247,7 +1250,9 @@ def maybe_infer_to_datetimelike(
         else:
             return dta.reshape(shape)
 
-    def try_timedelta(v: np.ndarray) -> np.ndarray:
+    def try_timedelta(
+        v: npt.NDArray[np.object_],
+    ) -> npt.NDArray[np.object_] | npt.NDArray[np.timedelta64]:
         # safe coerce to timedelta64
 
         # will try first with a string & object conversion
@@ -1280,7 +1285,10 @@ def maybe_infer_to_datetimelike(
         # "ndarray[Any, Any]")
         value = try_datetime(v)  # type: ignore[assignment]
     elif inferred_type == "timedelta":
-        value = try_timedelta(v)
+        # Incompatible types in assignment (expression has type
+        # "Union[ndarray[Any, dtype[object_]], ndarray[Any, dtype[timedelta64]]]",
+        # variable has type "ndarray[Any, dtype[object_]]")
+        value = try_timedelta(v)  # type: ignore[assignment]
     elif inferred_type == "nat":
         # if all NaT, return as datetime
         # only reached if we have at least 1 NaT and the rest (NaT or None or np.nan)

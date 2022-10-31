@@ -295,6 +295,7 @@ class IndexOpsMixin(OpsMixin):
         # must be defined here as a property for mypy
         raise AbstractMethodError(self)
 
+    @final
     def transpose(self: _T, *args, **kwargs) -> _T:
         """
         Return the transpose, which is by definition self.
@@ -331,6 +332,7 @@ class IndexOpsMixin(OpsMixin):
         """
         return 1
 
+    @final
     def item(self):
         """
         Return the first element of the underlying data as a Python scalar.
@@ -428,6 +430,7 @@ class IndexOpsMixin(OpsMixin):
         """
         raise AbstractMethodError(self)
 
+    @final
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -543,6 +546,7 @@ class IndexOpsMixin(OpsMixin):
                 result[np.asanyarray(self.isna())] = na_value
         return result
 
+    @final
     @property
     def empty(self) -> bool:
         return not self.size
@@ -900,6 +904,7 @@ class IndexOpsMixin(OpsMixin):
 
         return new_values
 
+    @final
     def value_counts(
         self,
         normalize: bool = False,
@@ -1004,6 +1009,7 @@ class IndexOpsMixin(OpsMixin):
             result = unique1d(values)
         return result
 
+    @final
     def nunique(self, dropna: bool = True) -> int:
         """
         Return number of unique elements in the object.
@@ -1101,6 +1107,7 @@ class IndexOpsMixin(OpsMixin):
 
         return Index(self).is_monotonic_decreasing
 
+    @final
     def _memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of the values.
