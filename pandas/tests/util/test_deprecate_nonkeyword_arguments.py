@@ -140,20 +140,18 @@ def test_i_signature():
 
 class Foo:
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "bar"])
-    def args(self, non_keyword=None, foobar=None):
+    def baz(self, bar=None, foobar=None):  # pylint: disable=disallowed-name
         ...
 
 
 def test_foo_signature():
-    assert (
-        str(inspect.signature(Foo.args)) == "(self, non_keyword=None, *, foobar=None)"
-    )
+    assert str(inspect.signature(Foo.baz)) == "(self, bar=None, *, foobar=None)"
 
 
 def test_class():
     msg = (
-        r"In a future version of pandas all arguments of Foo\.args "
-        r"except for the argument \'non_keyword\' will be keyword-only"
+        r"In a future version of pandas all arguments of Foo\.baz "
+        r"except for the argument \'bar\' will be keyword-only"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        Foo().args("qux", "quox")
+        Foo().baz("qux", "quox")
