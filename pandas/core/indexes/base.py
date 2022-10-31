@@ -848,7 +848,7 @@ class Index(IndexOpsMixin, PandasObject):
             #  error: "ExtensionArray" has no attribute "_data"
             if is_masked:
                 return _masked_engines[target_values.dtype.name](
-                    target_values._data,
+                    target_values._data,  # type: ignore[attr-defined]
                     target_values._mask,  # type: ignore[attr-defined]
                 )
             elif self._engine_type is libindex.ObjectEngine:
