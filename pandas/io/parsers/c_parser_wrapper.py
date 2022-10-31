@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.parsers as parsers
+from pandas._libs import parsers
 from pandas._typing import (
     ArrayLike,
     DtypeArg,

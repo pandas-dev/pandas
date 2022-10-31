@@ -21,7 +21,7 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._typing import (
     Axis,
     AxisInt,
@@ -1304,7 +1304,7 @@ class IndexOpsMixin(OpsMixin):
             sorter=sorter,
         )
 
-    def drop_duplicates(self, keep: DropKeep = "first"):
+    def drop_duplicates(self, *, keep: DropKeep = "first"):
         duplicated = self._duplicated(keep=keep)
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]
