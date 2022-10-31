@@ -267,7 +267,6 @@ cdef class _Timestamp(ABCTimestamp):
     @classmethod
     def _from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso, tzinfo tz):
         cdef:
-            npy_datetimestruct dts
             _TSObject obj = _TSObject()
 
         if value == NPY_NAT:
@@ -294,7 +293,6 @@ cdef class _Timestamp(ABCTimestamp):
         # This is herely mainly so we can incrementally implement non-nano
         #  (e.g. only tznaive at first)
         cdef:
-            npy_datetimestruct dts
             int64_t value
             NPY_DATETIMEUNIT reso
 
@@ -317,7 +315,6 @@ cdef class _Timestamp(ABCTimestamp):
     def __richcmp__(_Timestamp self, object other, int op):
         cdef:
             _Timestamp ots
-            int ndim
 
         if isinstance(other, _Timestamp):
             ots = other
@@ -1532,7 +1529,7 @@ class Timestamp(_Timestamp):
                 if (is_integer_object(tz)
                     and is_integer_object(ts_input)
                     and is_integer_object(freq)
-                ):
+                    ):
                     # GH#31929 e.g. Timestamp(2019, 3, 4, 5, 6, tzinfo=foo)
                     # TODO(GH#45307): this will still be fragile to
                     #  mixed-and-matched positional/keyword arguments
@@ -1675,7 +1672,8 @@ class Timestamp(_Timestamp):
             if not is_offset_object(freq):
                 freq = to_offset(freq)
 
-        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold, ts.creso)
+        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold, 
+                                        ts.creso)
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         cdef:

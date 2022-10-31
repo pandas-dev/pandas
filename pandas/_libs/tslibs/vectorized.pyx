@@ -155,7 +155,7 @@ def ints_to_pydatetime(
     elif box == "timestamp":
         use_ts = True
     elif box == "time":
-        use_time = True
+        # use_time = True
     elif box == "datetime":
         use_pydt = True
     else:

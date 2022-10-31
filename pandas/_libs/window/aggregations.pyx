@@ -172,7 +172,8 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
                     add_sum(values[j], &nobs, &sum_x, &compensation_add,
                             &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_sum(minp, nobs, sum_x, num_consecutive_same_value, prev_value)
+            output[i] = calc_sum(minp, nobs, sum_x, num_consecutive_same_value, 
+                                 prev_value)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
@@ -296,7 +297,8 @@ def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
                     add_mean(val, &nobs, &sum_x, &neg_ct, &compensation_add,
                              &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_mean(minp, nobs, neg_ct, sum_x, num_consecutive_same_value, prev_value)
+            output[i] = calc_mean(minp, nobs, neg_ct, sum_x, num_consecutive_same_value, 
+                                  prev_value)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
@@ -566,7 +568,7 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
-        float64_t val, prev, min_val, mean_val, sum_val = 0
+        float64_t val, min_val, mean_val, sum_val = 0
         float64_t compensation_xxx_add, compensation_xxx_remove
         float64_t compensation_xx_add, compensation_xx_remove
         float64_t compensation_x_add, compensation_x_remove
@@ -574,7 +576,7 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
         float64_t prev_value
         int64_t nobs = 0, N = len(start), V = len(values), nobs_mean = 0
         int64_t s, e, num_consecutive_same_value
-        ndarray[float64_t] output, mean_array, values_copy
+        ndarray[float64_t] output, values_copy
         bint is_monotonic_increasing_bounds
 
     minp = max(minp, 3)
@@ -779,7 +781,7 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
-        float64_t val, prev, mean_val, min_val, sum_val = 0
+        float64_t val, mean_val, min_val, sum_val = 0
         float64_t compensation_xxxx_add, compensation_xxxx_remove
         float64_t compensation_xxx_remove, compensation_xxx_add
         float64_t compensation_xx_remove, compensation_xx_add
@@ -876,7 +878,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
         bint err = False, is_monotonic_increasing_bounds
         int midpoint, ret = 0
         int64_t nobs = 0, N = len(start), s, e, win
-        float64_t val, res, prev
+        float64_t val, res, 
         skiplist_t *sl
         ndarray[float64_t] output
 
@@ -1149,7 +1151,7 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
         Py_ssize_t i, j, s, e, N = len(start), idx
         int ret = 0
         int64_t nobs = 0, win
-        float64_t val, prev, midpoint, idx_with_fraction
+        float64_t val, idx_with_fraction
         float64_t vlow, vhigh
         skiplist_t *skiplist
         InterpolationType interpolation_type
@@ -1275,7 +1277,7 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
     derived from roll_quantile
     """
     cdef:
-        Py_ssize_t i, j, s, e, N = len(start), idx
+        Py_ssize_t i, j, s, e, N = len(start), 
         float64_t rank_min = 0, rank = 0
         int64_t nobs = 0, win
         float64_t val
