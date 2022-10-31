@@ -120,22 +120,24 @@ class MaskedNumericEngineIndexing:
 
         if index_type == "monotonic_incr":
             if unique:
-                ser = Series(N * 3, dtype=dtype)
+                ser = Series(np.arange(N * 3, dtype=dtype.lower()), dtype=dtype)
             else:
                 values = list([1] * N + [2] * N + [3] * N)
                 ser = Series(values, dtype=dtype)
         elif index_type == "monotonic_decr":
             if unique:
-                ser = Series(N * 3, dtype=dtype)[::-1]
+                ser = Series(np.arange(N * 3, dtype=dtype.lower()), dtype=dtype)[::-1]
             else:
                 values = list([1] * N + [2] * N + [3] * N)
                 ser = Series(values, dtype=dtype)[::-1]
         else:
             assert index_type == "non_monotonic"
             if unique:
-                ser = Series(np.zeros(N * 3, dtype="uint8"), dtype=dtype)
-                ser[:N] = Series(np.arange(N * 2, N * 3), dtype=dtype)
-                ser[N:] = Series(np.arange(N * 2), dtype=dtype)
+                ser = Series(np.zeros(N * 3, dtype=dtype.lower()), dtype=dtype)
+                ser[:N] = Series(
+                    np.arange(N * 2, N * 3, dtype=dtype.lower()), dtype=dtype
+                )
+                ser[N:] = Series(np.arange(N * 2, dtype=dtype.lower()), dtype=dtype)
                 ser[-1] = NA
 
             else:
