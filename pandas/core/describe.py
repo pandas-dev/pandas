@@ -179,8 +179,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         """Select columns to be described."""
         if (self.include is None) and (self.exclude is None):
             # when some numerics are found, keep only numerics
-            default_include: list[npt.DTypeLike] = [np.number]
-            default_include.append("datetime")
+            default_include: list[npt.DTypeLike] = [np.number, "datetime"]
             data = self.obj.select_dtypes(include=default_include)
             if len(data.columns) == 0:
                 data = self.obj
