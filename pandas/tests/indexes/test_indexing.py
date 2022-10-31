@@ -287,14 +287,11 @@ class TestPutmask:
 @pytest.mark.parametrize(
     "idx", [Index([1, 2, 3]), Index([0.1, 0.2, 0.3]), Index(["a", "b", "c"])]
 )
-def test_getitem_deprecated_float(idx):
-    # https://github.com/pandas-dev/pandas/issues/34191
+def test_getitem_raises_float(idx):
+    # https://github.com/pandas-dev/pandas/issues/34191; enforced 2.0
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = idx[1.0]
-
-    expected = idx[1]
-    assert result == expected
+    with pytest.raises(IndexError, match="Indexing with a float is not allowed"):
+        idx[1.0]
 
 
 @pytest.mark.parametrize(
