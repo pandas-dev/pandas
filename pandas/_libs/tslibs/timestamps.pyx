@@ -1482,9 +1482,6 @@ class Timestamp(_Timestamp):
     def __new__(
         cls,
         object ts_input=_no_input,
-        object freq=None,
-        tz=None,
-        unit=None,
         year=None,
         month=None,
         day=None,
@@ -1492,9 +1489,12 @@ class Timestamp(_Timestamp):
         minute=None,
         second=None,
         microsecond=None,
-        nanosecond=None,
         tzinfo_type tzinfo=None,
         *,
+        nanosecond=None,
+        object freq=None,
+        tz=None,
+        unit=None,
         fold=None,
     ):
         # The parameter list folds together legacy parameter names (the first
@@ -1529,27 +1529,6 @@ class Timestamp(_Timestamp):
             # GH#17690 tzinfo must be a datetime.tzinfo object, ensured
             #  by the cython annotation.
             if tz is not None:
-                if (is_integer_object(tz)
-                    and is_integer_object(ts_input)
-                    and is_integer_object(freq)
-                ):
-                    # GH#31929 e.g. Timestamp(2019, 3, 4, 5, 6, tzinfo=foo)
-                    # TODO(GH#45307): this will still be fragile to
-                    #  mixed-and-matched positional/keyword arguments
-                    ts_input = datetime(
-                        ts_input,
-                        freq,
-                        tz,
-                        unit or 0,
-                        year or 0,
-                        month or 0,
-                        day or 0,
-                        fold=fold or 0,
-                    )
-                    nanosecond = hour
-                    tz = tzinfo
-                    return cls(ts_input, nanosecond=nanosecond, tz=tz)
-
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
             # User passed tzinfo instead of tz; avoid silently ignoring
@@ -1598,7 +1577,7 @@ class Timestamp(_Timestamp):
             if any(arg is not None for arg in _date_attributes):
                 raise ValueError(
                     "Cannot pass a date attribute keyword "
-                    "argument when passing a date string"
+                    "argument when passing a date string; 'tz' is keyword-only"
                 )
 
         elif ts_input is _no_input:
@@ -1622,16 +1601,19 @@ class Timestamp(_Timestamp):
 
             ts_input = datetime(**datetime_kwargs)
 
-        elif is_integer_object(freq):
+        elif is_integer_object(year):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
             # microsecond[, nanosecond[, tzinfo]]]]]])
-            ts_input = datetime(ts_input, freq, tz, unit or 0,
-                                year or 0, month or 0, day or 0, fold=fold or 0)
-            nanosecond = hour
-            tz = minute
+            ts_input = datetime(ts_input, year, month, day or 0,
+                                hour or 0, minute or 0, second or 0, fold=fold or 0)
             freq = None
             unit = None
+
+            if nanosecond is None:
+                # nanosecond was not passed as a keyword, but may have been
+                #  passed positionally see test_constructor_nanosecond
+                nanosecond = microsecond
 
         if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
