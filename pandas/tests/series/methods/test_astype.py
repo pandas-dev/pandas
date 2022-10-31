@@ -99,6 +99,7 @@ class TestAstypeAPI:
 class TestAstype:
     def test_astype_mixed_object_to_dt64tz(self):
         # pre-2.0 this raised ValueError bc of tz mismatch
+        # xref GH#32581
         ts = Timestamp("2016-01-04 05:06:07", tz="US/Pacific")
         ts2 = ts.tz_convert("Asia/Tokyo")
 
