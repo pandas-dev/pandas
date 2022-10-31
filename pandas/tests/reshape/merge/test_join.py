@@ -642,11 +642,12 @@ class TestJoin:
         dta = x.merge(y, left_index=True, right_index=True).merge(
             z, left_index=True, right_index=True, how="outer"
         )
-        with tm.assert_produces_warning(FutureWarning):
-            dta = dta.merge(w, left_index=True, right_index=True)
-        expected = concat([x, y, z, w], axis=1)
-        expected.columns = ["x_x", "y_x", "x_y", "y_y", "x_x", "y_x", "x_y", "y_y"]
-        tm.assert_frame_equal(dta, expected)
+        # GH 40991: As of 2.0 causes duplicate columns
+        with pytest.raises(
+            pd.errors.MergeError,
+            match="Passing 'suffixes' which cause duplicate columns",
+        ):
+            dta.merge(w, left_index=True, right_index=True)
 
     def test_join_multi_to_multi(self, join_type):
         # GH 20475

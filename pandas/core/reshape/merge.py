@@ -2524,11 +2524,9 @@ def _items_overlap_with_suffix(
     if not rlabels.is_unique:
         dups.extend(rlabels[(rlabels.duplicated()) & (~right.duplicated())].tolist())
     if dups:
-        warnings.warn(
-            f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
-            f"result is deprecated and will raise a MergeError in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+        raise MergeError(
+            f"Passing 'suffixes' which cause duplicate columns {set(dups)} is "
+            f"not allowed.",
         )
 
     return llabels, rlabels
