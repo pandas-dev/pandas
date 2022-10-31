@@ -667,3 +667,11 @@ class TestSeriesReplace:
         result = labs.replace(map_dict)
         expected = labs.replace({0: 0, 2: 1, 1: 2})
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("val", [2, np.nan, 2.0])
+    def test_replace_value_none_dtype_numeric(self, val):
+        # GH#48231
+        ser = pd.Series([1, val])
+        result = ser.replace(val, None)
+        expected = pd.Series([1, None], dtype=object)
+        tm.assert_series_equal(result, expected)
