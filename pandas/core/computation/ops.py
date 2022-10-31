@@ -29,6 +29,7 @@ from pandas.core.computation.common import (
     result_type_many,
 )
 from pandas.core.computation.scope import DEFAULT_GLOBALS
+from pandas.core.series import Series
 
 from pandas.io.formats.printing import (
     pprint_thing,
@@ -102,7 +103,8 @@ class Term:
     def _resolve_name(self):
         local_name = str(self.local_name)
         is_local = self.is_local
-        if self.env.scope.get("column") == local_name:
+        check = self.env.scope.get("column") == local_name
+        if not isinstance(check, Series) and check:
             is_local = not is_local
 
         res = self.env.resolve(local_name, is_local=is_local)
