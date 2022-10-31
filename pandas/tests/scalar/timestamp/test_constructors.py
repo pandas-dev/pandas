@@ -403,9 +403,7 @@ class TestTimestampConstructors:
                 tz="UTC",
             ),
             Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, None),
-            # error: Argument 9 to "Timestamp" has incompatible type "_UTCclass";
-            # expected "Optional[int]"
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC),  # type: ignore[arg-type]
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC),
         ],
     )
     def test_constructor_nanosecond(self, result):
