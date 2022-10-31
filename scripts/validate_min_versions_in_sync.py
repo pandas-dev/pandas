@@ -60,6 +60,8 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
             seen_required = True
         elif "# optional dependencies" in line:
             seen_optional = True
+        elif "pip" in line:
+            continue
         elif seen_required and line.strip():
             package, version = line.strip().split("=")
             package = package[2:]
