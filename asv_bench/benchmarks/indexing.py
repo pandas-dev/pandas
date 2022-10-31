@@ -101,7 +101,7 @@ class NumericMaskedIndexing:
         indices = {
             True: Index(range(N), dtype=dtype),
             False: Index(
-                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
+                list(range(50)) + [54, 53, 52, 51] + list(range(55, N - 1)), dtype=dtype
             ).append(Index([NA], dtype=dtype)),
         }
         self.data = indices[monotonic]
