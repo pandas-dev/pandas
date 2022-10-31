@@ -59,7 +59,6 @@ exclude = '''
 max-line-length = 88
 disable = [
   "abstract-class-instantiated",
-  "access-member-before-definition",
   "import-error",
   "invalid-repr-returned",
   "invalid-unary-operand-type",
@@ -136,7 +135,6 @@ disable = [
   "unnecessary-list-index-lookup",
   "use-a-generator",
   "useless-option-value",
-  "useless-return",
 
   # pylint type "W": warning, for python specific problems
   "abstract-method",
@@ -161,7 +159,6 @@ disable = [
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
   "method-cache-max-size-none",
-  "nan-comparison",
   "non-parent-init-called",
   "overridden-final-method",
   "pointless-statement",
