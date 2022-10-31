@@ -1236,8 +1236,6 @@ class SQLTable(PandasObject):
             Integer,
         )
 
-        # GH34988 - Workaround Oracle Dialect NUMBER defaulting to int
-        # and losing precision
         if isinstance(sqltype, NUMBER):
             if sqltype.scale is None:
                 return np.dtype("int64")
