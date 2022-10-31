@@ -10,9 +10,11 @@ import warnings
 import numpy as np
 
 from pandas import (
+    NA,
     CategoricalIndex,
     DataFrame,
     Float64Index,
+    Index,
     Int64Index,
     IntervalIndex,
     MultiIndex,
@@ -85,6 +87,32 @@ class NumericSeriesIndexing:
 
     def time_loc_slice(self, index, index_structure):
         self.data.loc[:800000]
+
+
+class NumericMaskedIndexing:
+    params = [
+        ("Int64", "UInt64", "Float64"),
+        (True, False),
+    ]
+    param_names = ["dtype", "monotonic"]
+
+    def setup(self, dtype, monotonic):
+        N = 10**6
+        indices = {
+            True: Index(range(N), dtype=dtype),
+            False: Index(
+                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
+            ).append(Index([NA], dtype=dtype)),
+        }
+        self.data = indices[monotonic]
+        self.indexer = np.arange(300, 1_000)
+        self.data_dups = self.data.append(self.data)
+
+    def time_get_indexer(self, dtype, monotonic):
+        self.data.get_indexer(self.indexer)
+
+    def time_get_indexer_dups(self, dtype, monotonic):
+        self.data.get_indexer_for(self.indexer)
 
 
 class NonNumericSeriesIndexing:

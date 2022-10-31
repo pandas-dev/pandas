@@ -208,6 +208,22 @@ str_t = str
 
 _dtype_obj = np.dtype("object")
 
+_masked_engines = {
+    "Complex128": libindex.MaskedComplex128Engine,
+    "Complex64": libindex.MaskedComplex64Engine,
+    "Float64": libindex.MaskedFloat64Engine,
+    "Float32": libindex.MaskedFloat32Engine,
+    "UInt64": libindex.MaskedUInt64Engine,
+    "UInt32": libindex.MaskedUInt32Engine,
+    "UInt16": libindex.MaskedUInt16Engine,
+    "UInt8": libindex.MaskedUInt8Engine,
+    "Int64": libindex.MaskedInt64Engine,
+    "Int32": libindex.MaskedInt32Engine,
+    "Int16": libindex.MaskedInt16Engine,
+    "Int8": libindex.MaskedInt8Engine,
+    "boolean": libindex.MaskedBoolEngine,
+}
+
 
 def _maybe_return_indexers(meth: F) -> F:
     """
@@ -824,14 +840,19 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _engine(
         self,
-    ) -> libindex.IndexEngine | libindex.ExtensionEngine:
+    ) -> libindex.IndexEngine | libindex.ExtensionEngine | libindex.MaskedEngine:
         # For base class (object dtype) we get ObjectEngine
         target_values = self._get_engine_target()
-        if (
-            isinstance(target_values, ExtensionArray)
-            and self._engine_type is libindex.ObjectEngine
-        ):
-            return libindex.ExtensionEngine(target_values)
+        if isinstance(target_values, ExtensionArray):
+            is_masked = hasattr(target_values, "_mask")
+            #  error: "ExtensionArray" has no attribute "_data"
+            if is_masked:
+                return _masked_engines[target_values.dtype.name](
+                    target_values._data,
+                    target_values._mask,  # type: ignore[attr-defined]
+                )
+            elif self._engine_type is libindex.ObjectEngine:
+                return libindex.ExtensionEngine(target_values)
 
         target_values = cast(np.ndarray, target_values)
         # to avoid a reference cycle, bind `target_values` to a local variable, so
@@ -3872,7 +3893,14 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 tgt_values = target._get_engine_target()
 
-            indexer = self._engine.get_indexer(tgt_values)
+            if is_extension_array_dtype(tgt_values):
+                # Too many arguments for "get_indexer_non_unique" of "IndexEngine"
+                indexer = self._engine.get_indexer(  # type: ignore[call-arg]
+                    tgt_values._data,
+                    tgt_values._mask,
+                )
+            else:
+                indexer = self._engine.get_indexer(tgt_values)
 
         return ensure_platform_int(indexer)
 
@@ -5040,8 +5068,11 @@ class Index(IndexOpsMixin, PandasObject):
             # GH#45652 much more performant than ExtensionEngine
             return vals._ndarray
         if type(self) is Index and isinstance(self._values, ExtensionArray):
-            # TODO(ExtensionIndex): remove special-case, just use self._values
-            return self._values.astype(object)
+            from pandas.core.arrays import BaseMaskedArray
+
+            if not isinstance(self._values, BaseMaskedArray):
+                # TODO(ExtensionIndex): remove special-case, just use self._values
+                return self._values.astype(object)
         return vals
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
@@ -5867,8 +5898,17 @@ class Index(IndexOpsMixin, PandasObject):
             # Item "IndexEngine" of "Union[IndexEngine, ExtensionEngine]" has
             # no attribute "_extract_level_codes"
             tgt_values = engine._extract_level_codes(target)  # type: ignore[union-attr]
+        if is_extension_array_dtype(tgt_values):
+            # Too many arguments for "get_indexer_non_unique" of "IndexEngine"
+            # start = time.time()
+            indexer, missing = self._engine.get_indexer_non_unique(
+                tgt_values._data,
+                tgt_values._mask,  # type: ignore[call-arg]
+            )
+            # print(time.time()-start)
+        else:
+            indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
 
-        indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @final

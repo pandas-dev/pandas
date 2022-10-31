@@ -9,6 +9,11 @@ import numpy as np
 
 from pandas._libs import index as libindex
 
+from pandas import (
+    NA,
+    Series,
+)
+
 
 def _get_numeric_engines():
     engine_names = [
@@ -22,6 +27,26 @@ def _get_numeric_engines():
         ("UInt8Engine", np.uint8),
         ("Float64Engine", np.float64),
         ("Float32Engine", np.float32),
+    ]
+    return [
+        (getattr(libindex, engine_name), dtype)
+        for engine_name, dtype in engine_names
+        if hasattr(libindex, engine_name)
+    ]
+
+
+def _get_masked_engines():
+    engine_names = [
+        ("MaskedInt64Engine", "Int64"),
+        ("MaskedInt32Engine", "Int32"),
+        ("MaskedInt16Engine", "Int16"),
+        ("MaskedInt8Engine", "Int8"),
+        ("MaskedUInt64Engine", "UInt64"),
+        ("MaskedUInt32Engine", "UInt32"),
+        ("MaskedUInt16engine", "UInt16"),
+        ("MaskedUInt8Engine", "UInt8"),
+        ("MaskedFloat64Engine", "Float64"),
+        ("MaskedFloat32Engine", "Float32"),
     ]
     return [
         (getattr(libindex, engine_name), dtype)
@@ -70,6 +95,59 @@ class NumericEngineIndexing:
 
         self.key_middle = arr[len(arr) // 2]
         self.key_early = arr[2]
+
+    def time_get_loc(self, engine_and_dtype, index_type, unique, N):
+        self.data.get_loc(self.key_early)
+
+    def time_get_loc_near_middle(self, engine_and_dtype, index_type, unique, N):
+        # searchsorted performance may be different near the middle of a range
+        #  vs near an endpoint
+        self.data.get_loc(self.key_middle)
+
+
+class MaskedNumericEngineIndexing:
+
+    params = [
+        _get_masked_engines(),
+        ["monotonic_incr", "monotonic_decr", "non_monotonic"],
+        [True, False],
+        [10**5, 2 * 10**6],  # 2e6 is above SIZE_CUTOFF
+    ]
+    param_names = ["engine_and_dtype", "index_type", "unique", "N"]
+
+    def setup(self, engine_and_dtype, index_type, unique, N):
+        engine, dtype = engine_and_dtype
+
+        if index_type == "monotonic_incr":
+            if unique:
+                ser = Series(N * 3, dtype=dtype)
+            else:
+                values = list([1] * N + [2] * N + [3] * N)
+                ser = Series(values, dtype=dtype)
+        elif index_type == "monotonic_decr":
+            if unique:
+                ser = Series(N * 3, dtype=dtype)[::-1]
+            else:
+                values = list([1] * N + [2] * N + [3] * N)
+                ser = Series(values, dtype=dtype)[::-1]
+        else:
+            assert index_type == "non_monotonic"
+            if unique:
+                ser = Series(np.zeros(N * 3, dtype="uint8"), dtype=dtype)
+                ser[:N] = Series(np.arange(N * 2, N * 3), dtype=dtype)
+                ser[N:] = Series(np.arange(N * 2), dtype=dtype)
+                ser[-1] = NA
+
+            else:
+                ser = Series([1, 2, 3] * N, dtype=dtype)
+                ser[-1] = NA
+
+        self.data = engine(ser._values._data, ser._values._mask)
+        # code belows avoids populating the mapping etc. while timing.
+        self.data.get_loc(2)
+
+        self.key_middle = ser[len(ser) // 2]
+        self.key_early = ser[2]
 
     def time_get_loc(self, engine_and_dtype, index_type, unique, N):
         self.data.get_loc(self.key_early)
