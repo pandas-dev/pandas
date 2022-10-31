@@ -43,16 +43,16 @@ def constructor(request):
 
 class TestPandasDelegate:
     class Delegator:
-        _properties = ["foo"]
+        _properties = ["prop"]
         _methods = ["bar"]
 
-        def _set_value(self, value):
-            self.value = value
+        def _set_prop(self, value):
+            self.prop = value
 
-        def _get_value(self):
-            return self.value
+        def _get_prop(self):
+            return self.prop
 
-        value = property(_get_value, _set_value, doc="foo property")
+        value = property(_get_prop, _set_prop, doc="foo property")
 
         def test_method(self, *args, **kwargs):
             """a test bar method"""
@@ -80,15 +80,15 @@ class TestPandasDelegate:
 
         msg = "You cannot access the property foo"
         with pytest.raises(TypeError, match=msg):
-            delegate.foox
+            delegate.prop
 
         msg = "The property foo cannot be set"
         with pytest.raises(TypeError, match=msg):
-            delegate.foox = 5
+            delegate.prop = 5
 
         msg = "You cannot access the property foo"
         with pytest.raises(TypeError, match=msg):
-            delegate.foox()
+            delegate.prop()
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self):
