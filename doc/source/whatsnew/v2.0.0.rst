@@ -124,6 +124,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +=================+=================+=========+
 | pyarrow         | 6.0.0           |    X    |
 +-----------------+-----------------+---------+
+| fastparquet     | 0.6.3           |    X    |
++-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
