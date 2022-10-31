@@ -488,7 +488,7 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
     else:
         string_to_dts_failed = string_to_dts(
             ts, &dts, &out_bestunit, &out_local,
-            &out_tzoffset, False, "", False
+            &out_tzoffset, False,
         )
         if not string_to_dts_failed:
             try:

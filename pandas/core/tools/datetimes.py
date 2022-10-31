@@ -433,9 +433,6 @@ def _convert_listlike_datetimes(
         )
         if res is not None:
             return res
-    elif format is None:
-        format = ""
-        exact = False
 
     utc = tz == "utc"
     result, tz_parsed = objects_to_datetime64ns(

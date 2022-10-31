@@ -274,8 +274,8 @@ cdef inline int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
-    str format,
-    bint exact,
+    format: str | None = None,
+    bint exact = True,
 ) except? -1:
     cdef:
         Py_ssize_t length
@@ -284,7 +284,12 @@ cdef inline int string_to_dts(
         const char* format_buf
 
     buf = get_c_string_buf_and_size(val, &length)
-    format_buf = get_c_string_buf_and_size(format, &format_length)
+    if format is None:
+        format_buf = b''
+        format_length = 0
+        exact = False
+    else:
+        format_buf = get_c_string_buf_and_size(format, &format_length)
     return parse_iso_8601_datetime(buf, length, want_exc,
                                    dts, out_bestunit, out_local, out_tzoffset,
                                    format_buf, format_length, exact)
