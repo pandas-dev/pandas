@@ -4638,6 +4638,7 @@ class Index(IndexOpsMixin, PandasObject):
             if self.is_monotonic_increasing and other.is_monotonic_increasing:
                 if not is_interval_dtype(self.dtype):
                     # otherwise we will fall through to _join_via_get_indexer
+                    # GH#39133
                     # go through object dtype for ea till engine is supported properly
                     return self._join_monotonic(other, how=how)
             else:
