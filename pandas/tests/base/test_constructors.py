@@ -44,7 +44,7 @@ def constructor(request):
 class TestPandasDelegate:
     class Delegator:
         _properties = ["prop"]
-        _methods = ["bar"]
+        _methods = ["test_method"]
 
         def _set_prop(self, value):
             self.prop = value
@@ -52,7 +52,7 @@ class TestPandasDelegate:
         def _get_prop(self):
             return self.prop
 
-        value = property(_get_prop, _set_prop, doc="foo property")
+        prop = property(_get_prop, _set_prop, doc="foo property")
 
         def test_method(self, *args, **kwargs):
             """a test bar method"""
@@ -78,15 +78,15 @@ class TestPandasDelegate:
 
         delegate = self.Delegate(self.Delegator())
 
-        msg = "You cannot access the property foo"
+        msg = "You cannot access the property prop"
         with pytest.raises(TypeError, match=msg):
             delegate.prop
 
-        msg = "The property foo cannot be set"
+        msg = "The property prop cannot be set"
         with pytest.raises(TypeError, match=msg):
             delegate.prop = 5
 
-        msg = "You cannot access the property foo"
+        msg = "You cannot access the property prop"
         with pytest.raises(TypeError, match=msg):
             delegate.prop()
 
