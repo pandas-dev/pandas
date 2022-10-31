@@ -52,7 +52,7 @@ jobs:
         - [windows-2019, win_amd64]
         - [windows-2019, win32]
         # TODO: support PyPy?
-        python: [["cp38", "3.8"], ["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11-dev"]]# "pp38", "pp39"]
+        python: [["cp38", "3.8"], ["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11"]]# "pp38", "pp39"]
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
@@ -73,7 +73,7 @@ jobs:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
       # Used to test the built wheels
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python[1] }}
 
