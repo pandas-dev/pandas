@@ -1556,7 +1556,6 @@ class ExtensionArray:
         func(npvalues, limit=limit, mask=mask.copy())
         new_values = self._from_sequence(npvalues, dtype=self.dtype)
         self[mask] = new_values[mask]
-        return
 
     def _rank(
         self,

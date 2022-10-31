@@ -258,7 +258,6 @@ def interpolate_array_2d(
             fill_value=fill_value,
             **kwargs,
         )
-    return
 
 
 def _interpolate_2d_with_fill(
@@ -341,7 +340,6 @@ def _interpolate_2d_with_fill(
     # Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]],
     # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]]]]]"
     np.apply_along_axis(func, axis, data)  # type: ignore[arg-type]
-    return
 
 
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
@@ -761,8 +759,6 @@ def _interpolate_with_limit_area(
             invalid[:first] = invalid[last + 1 :] = False
 
         values[invalid] = np.nan
-
-    return
 
 
 def interpolate_2d(
