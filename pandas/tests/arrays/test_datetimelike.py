@@ -292,19 +292,7 @@ class SharedTests:
         assert result == 10
 
     @pytest.mark.parametrize("box", [None, "index", "series"])
-    def test_searchsorted_castable_strings(self, arr1d, box, request, string_storage):
-        if isinstance(arr1d, DatetimeArray):
-            tz = arr1d.tz
-            ts1, ts2 = arr1d[1:3]
-            if tz is not None and ts1.tz.tzname(ts1) != ts2.tz.tzname(ts2):
-                # If we have e.g. tzutc(), when we cast to string and parse
-                #  back we get pytz.UTC, and then consider them different timezones
-                #  so incorrectly raise.
-                mark = pytest.mark.xfail(
-                    raises=TypeError, reason="timezone comparisons inconsistent"
-                )
-                request.node.add_marker(mark)
-
+    def test_searchsorted_castable_strings(self, arr1d, box, string_storage):
         arr = arr1d
         if box is None:
             pass
@@ -461,19 +449,8 @@ class SharedTests:
 
         tm.assert_equal(arr1d, expected)
 
-    def test_setitem_strs(self, arr1d, request):
+    def test_setitem_strs(self, arr1d):
         # Check that we parse strs in both scalar and listlike
-        if isinstance(arr1d, DatetimeArray):
-            tz = arr1d.tz
-            ts1, ts2 = arr1d[-2:]
-            if tz is not None and ts1.tz.tzname(ts1) != ts2.tz.tzname(ts2):
-                # If we have e.g. tzutc(), when we cast to string and parse
-                #  back we get pytz.UTC, and then consider them different timezones
-                #  so incorrectly raise.
-                mark = pytest.mark.xfail(
-                    raises=TypeError, reason="timezone comparisons inconsistent"
-                )
-                request.node.add_marker(mark)
 
         # Setting list-like of strs
         expected = arr1d.copy()

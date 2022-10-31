@@ -2029,6 +2029,11 @@ def _sequence_to_dt64ns(
         copy = False
         if lib.infer_dtype(data, skipna=False) == "integer":
             data = data.astype(np.int64)
+        elif tz is not None and ambiguous == "raise":
+            # TODO: yearfirst/dayfirst/etc?
+            obj_data = np.asarray(data, dtype=object)
+            i8data = tslib.array_to_datetime_with_tz(obj_data, tz)
+            return i8data.view(DT64NS_DTYPE), tz, None
         else:
             # data comes back here as either i8 to denote UTC timestamps
             #  or M8[ns] to denote wall times
