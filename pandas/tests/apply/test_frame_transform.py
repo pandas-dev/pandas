@@ -133,32 +133,37 @@ frame_kernels_raise = [x for x in frame_transform_kernels if x not in wont_fail]
 @pytest.mark.parametrize("op", [*frame_kernels_raise, lambda x: x + 1])
 def test_transform_bad_dtype(op, frame_or_series, request):
     # GH 35964
-    if op == "rank":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=ValueError, reason="GH 40418: rank does not raise a TypeError"
-            )
-        )
-    elif op == "ngroup":
+    if op == "ngroup":
         request.node.add_marker(
             pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
         )
 
     obj = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
     obj = tm.get_obj(obj, frame_or_series)
+    if op == "rank":
+        error = ValueError
+        msg = "Transform function failed"
+    else:
+        error = TypeError
+        msg = "|".join(
+            [
+                "not supported between instances of 'type' and 'type'",
+                "unsupported operand type",
+            ]
+        )
 
-    with pytest.raises(TypeError, match="unsupported operand|not supported"):
+    with pytest.raises(error, match=msg):
         obj.transform(op)
-    with pytest.raises(TypeError, match="Transform function failed"):
+    with pytest.raises(error, match=msg):
         obj.transform([op])
-    with pytest.raises(TypeError, match="Transform function failed"):
+    with pytest.raises(error, match=msg):
         obj.transform({"A": op})
-    with pytest.raises(TypeError, match="Transform function failed"):
+    with pytest.raises(error, match=msg):
         obj.transform({"A": [op]})
 
 
 @pytest.mark.parametrize("op", frame_kernels_raise)
-def test_transform_partial_failure_typeerror(request, op):
+def test_transform_failure_typeerror(request, op):
     # GH 35964
 
     if op == "ngroup":
@@ -168,62 +173,52 @@ def test_transform_partial_failure_typeerror(request, op):
 
     # Using object makes most transform kernels fail
     df = DataFrame({"A": 3 * [object], "B": [1, 2, 3]})
+    if op == "rank":
+        error = ValueError
+        msg = "Transform function failed"
+    else:
+        error = TypeError
+        msg = "|".join(
+            [
+                "not supported between instances of 'type' and 'type'",
+                "unsupported operand type",
+            ]
+        )
 
-    expected = df[["B"]].transform([op])
-    match = r"\['A'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = df.transform([op])
-    tm.assert_equal(result, expected)
+    with pytest.raises(error, match=msg):
+        df.transform([op])
 
-    expected = df[["B"]].transform({"B": op})
-    match = r"\['A'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = df.transform({"A": op, "B": op})
-    tm.assert_equal(result, expected)
+    with pytest.raises(error, match=msg):
+        df.transform({"A": op, "B": op})
 
-    expected = df[["B"]].transform({"B": [op]})
-    match = r"\['A'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = df.transform({"A": [op], "B": [op]})
-    tm.assert_equal(result, expected)
+    with pytest.raises(error, match=msg):
+        df.transform({"A": [op], "B": [op]})
 
-    expected = df.transform({"A": ["shift"], "B": [op]})
-    match = rf"\['{op}'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = df.transform({"A": [op, "shift"], "B": [op]})
-    tm.assert_equal(result, expected)
+    with pytest.raises(error, match=msg):
+        df.transform({"A": [op, "shift"], "B": [op]})
 
 
-def test_transform_partial_failure_valueerror():
+def test_transform_failure_valueerror():
     # GH 40211
-    match = ".*did not transform successfully"
-
     def op(x):
         if np.sum(np.sum(x)) < 10:
             raise ValueError
         return x
 
     df = DataFrame({"A": [1, 2, 3], "B": [400, 500, 600]})
+    msg = "Transform function failed"
 
-    expected = df[["B"]].transform([op])
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = df.transform([op])
-    tm.assert_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        df.transform([op])
 
-    expected = df[["B"]].transform({"B": op})
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = df.transform({"A": op, "B": op})
-    tm.assert_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        df.transform({"A": op, "B": op})
 
-    expected = df[["B"]].transform({"B": [op]})
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = df.transform({"A": [op], "B": [op]})
-    tm.assert_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        df.transform({"A": [op], "B": [op]})
 
-    expected = df.transform({"A": ["shift"], "B": [op]})
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = df.transform({"A": [op, "shift"], "B": [op]})
-    tm.assert_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        df.transform({"A": [op, "shift"], "B": [op]})
 
 
 @pytest.mark.parametrize("use_apply", [True, False])

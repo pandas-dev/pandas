@@ -107,8 +107,7 @@ class TestSeriesDatetimeValues:
 
         for prop in ok_for_dt:
             # we test freq below
-            # we ignore week and weekofyear because they are deprecated
-            if prop not in ["freq", "week", "weekofyear"]:
+            if prop != "freq":
                 self._compare(ser, prop)
 
         for prop in ok_for_dt_methods:
@@ -146,8 +145,7 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt:
 
             # we test freq below
-            # we ignore week and weekofyear because they are deprecated
-            if prop not in ["freq", "week", "weekofyear"]:
+            if prop != "freq":
                 self._compare(ser, prop)
 
         for prop in ok_for_dt_methods:
@@ -792,15 +790,6 @@ class TestSeriesPeriodValuesDtAccessor:
         expected = Series([input_vals], dtype="Period[D]")
         result = Series([input_vals], dtype="datetime64[ns]").dt.to_period("D")
         tm.assert_series_equal(result, expected)
-
-
-def test_week_and_weekofyear_are_deprecated():
-    # GH#33595 Deprecate week and weekofyear
-    series = pd.to_datetime(Series(["2020-01-01"]))
-    with tm.assert_produces_warning(FutureWarning):
-        series.dt.week
-    with tm.assert_produces_warning(FutureWarning):
-        series.dt.weekofyear
 
 
 def test_normalize_pre_epoch_dates():
