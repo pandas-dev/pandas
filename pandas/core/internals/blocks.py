@@ -575,7 +575,7 @@ class Block(PandasObject):
         values = self.values
 
         if isinstance(values, Categorical):
-            # GH (TODO)
+            # GH49404
             blk = self if inplace else self.copy()
             values = cast(Categorical, blk.values)
             values._replace(to_replace=to_replace, value=value, inplace=True)
@@ -686,7 +686,7 @@ class Block(PandasObject):
         values = self.values
 
         if isinstance(values, Categorical):
-            # GH (TODO)
+            # GH49404
             blk = self if inplace else self.copy()
             values = cast(Categorical, blk.values)
             values._replace(to_replace=src_list, value=dest_list, inplace=True)

@@ -21,7 +21,7 @@ import pandas._testing as tm
         ((5, 6), 2, [1, 2, 3], False),
         ([1], [2], [2, 2, 3], False),
         ([1, 4], [5, 2], [5, 2, 3], False),
-        # GH # (TODO)
+        # GH49404
         ([1, 2, 3], [2, 3, 4], [2, 3, 4], False),
         # check_categorical sorts categories, which crashes on mixed dtypes
         (3, "4", [1, 2, "4"], False),
@@ -70,7 +70,7 @@ def test_replace_categorical(to_replace, value, result, expected_error_msg):
 
 
 def test_replace_categorical_ea_dtype():
-    # GH#
+    # GH49404
     cat = Categorical(pd.array(["a", "b"], dtype="string"))
     result = pd.Series(cat).replace(["a", "b"], ["c", pd.NA])._values
     expected = Categorical(pd.array(["c", pd.NA], dtype="string"))
