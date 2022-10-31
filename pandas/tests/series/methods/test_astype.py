@@ -30,18 +30,20 @@ import pandas._testing as tm
 
 
 class TestAstypeAPI:
-    def test_astype_unitless_dt64_deprecated(self):
+    def test_astype_unitless_dt64_raises(self):
         # GH#47844
         ser = Series(["1970-01-01", "1970-01-01", "1970-01-01"], dtype="datetime64[ns]")
+        df = ser.to_frame()
 
-        msg = "Passing unit-less datetime64 dtype to .astype is deprecated and "
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = ser.astype(np.datetime64)
-        tm.assert_series_equal(ser, res)
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = ser.astype("datetime64")
-        tm.assert_series_equal(ser, res)
+        msg = "Casting to unit-less dtype 'datetime64' is not supported"
+        with pytest.raises(TypeError, match=msg):
+            ser.astype(np.datetime64)
+        with pytest.raises(TypeError, match=msg):
+            df.astype(np.datetime64)
+        with pytest.raises(TypeError, match=msg):
+            ser.astype("datetime64")
+        with pytest.raises(TypeError, match=msg):
+            df.astype("datetime64")
 
     def test_arg_for_errors_in_astype(self):
         # see GH#14878
@@ -211,15 +213,14 @@ class TestAstype:
         tm.assert_series_equal(result, expected)
 
         # astype - datetime64[ns, tz]
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "Cannot use .astype to convert from timezone-naive"
+        with pytest.raises(TypeError, match=msg):
             # dt64->dt64tz astype deprecated
-            result = Series(ser.values).astype("datetime64[ns, US/Eastern]")
-        tm.assert_series_equal(result, ser)
+            Series(ser.values).astype("datetime64[ns, US/Eastern]")
 
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match=msg):
             # dt64->dt64tz astype deprecated
-            result = Series(ser.values).astype(ser.dtype)
-        tm.assert_series_equal(result, ser)
+            Series(ser.values).astype(ser.dtype)
 
         result = ser.astype("datetime64[ns, CET]")
         expected = Series(date_range("20130101 06:00:00", periods=3, tz="CET"))

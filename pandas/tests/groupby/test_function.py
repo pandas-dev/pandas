@@ -17,7 +17,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-import pandas.core.nanops as nanops
+from pandas.core import nanops
 from pandas.tests.groupby import get_groupby_method_args
 from pandas.util import _test_decorators as td
 
@@ -323,23 +323,6 @@ class TestGroupByNonCythonPaths:
             result = gb.idxmin()
         tm.assert_frame_equal(result, expected)
 
-    def test_mad(self, gb, gni):
-        # mad
-        expected = DataFrame([[0], [np.nan]], columns=["B"], index=[1, 3])
-        expected.index.name = "A"
-        with tm.assert_produces_warning(
-            FutureWarning, match="The 'mad' method is deprecated"
-        ):
-            result = gb.mad()
-        tm.assert_frame_equal(result, expected)
-
-        expected = DataFrame([[1, 0.0], [3, np.nan]], columns=["A", "B"], index=[0, 1])
-        with tm.assert_produces_warning(
-            FutureWarning, match="The 'mad' method is deprecated"
-        ):
-            result = gni.mad()
-        tm.assert_frame_equal(result, expected)
-
     def test_describe(self, df, gb, gni):
         # describe
         expected_index = Index([1, 3], name="A")
@@ -560,8 +543,6 @@ def test_idxmin_idxmax_axis1():
 def test_axis1_numeric_only(request, groupby_func, numeric_only):
     if groupby_func in ("idxmax", "idxmin"):
         pytest.skip("idxmax and idx_min tested in test_idxmin_idxmax_axis1")
-    if groupby_func in ("mad", "tshift"):
-        pytest.skip("mad and tshift are deprecated")
     if groupby_func in ("corrwith", "skew"):
         msg = "GH#47723 groupby.corrwith and skew do not correctly implement axis=1"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
@@ -1460,7 +1441,7 @@ def test_deprecate_numeric_only(
 @pytest.mark.parametrize("dtype", [bool, int, float, object])
 def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
-    if groupby_func in ("backfill", "mad", "pad", "tshift"):
+    if groupby_func in ("backfill", "pad"):
         pytest.skip("method is deprecated")
     elif groupby_func == "corrwith":
         msg = "corrwith is not implemented on SeriesGroupBy"

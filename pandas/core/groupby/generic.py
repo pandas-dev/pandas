@@ -332,7 +332,7 @@ class SeriesGroupBy(GroupBy[Series]):
             from pandas import concat
 
             res_df = concat(
-                results.values(), axis=1, keys=[key.label for key in results.keys()]
+                results.values(), axis=1, keys=[key.label for key in results]
             )
             return res_df
 
@@ -856,12 +856,9 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         indices: TakeIndexer,
         axis: Axis = 0,
-        is_copy: bool | None = None,
         **kwargs,
     ) -> Series:
-        result = self._op_via_apply(
-            "take", indices=indices, axis=axis, is_copy=is_copy, **kwargs
-        )
+        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
     @doc(Series.skew.__doc__)
@@ -881,18 +878,6 @@ class SeriesGroupBy(GroupBy[Series]):
             numeric_only=numeric_only,
             **kwargs,
         )
-        return result
-
-    @doc(Series.mad.__doc__)
-    def mad(
-        self, axis: Axis | None = None, skipna: bool = True, level: Level | None = None
-    ) -> Series:
-        result = self._op_via_apply("mad", axis=axis, skipna=skipna, level=level)
-        return result
-
-    @doc(Series.tshift.__doc__)
-    def tshift(self, periods: int = 1, freq=None) -> Series:
-        result = self._op_via_apply("tshift", periods=periods, freq=freq)
         return result
 
     @property
@@ -1610,12 +1595,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # per GH 23566
         if isinstance(key, tuple) and len(key) > 1:
             # if len == 1, then it becomes a SeriesGroupBy and this is actually
-            # valid syntax, so don't raise warning
-            warnings.warn(
-                "Indexing with multiple keys (implicitly converted to a tuple "
-                "of keys) will be deprecated, use a list instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            # valid syntax, so don't raise
+            raise ValueError(
+                "Cannot subset columns with a tuple with more than one element. "
+                "Use a list instead."
             )
         return super().__getitem__(key)
 
@@ -2254,12 +2237,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         indices: TakeIndexer,
         axis: Axis | None = 0,
-        is_copy: bool | None = None,
         **kwargs,
     ) -> DataFrame:
-        result = self._op_via_apply(
-            "take", indices=indices, axis=axis, is_copy=is_copy, **kwargs
-        )
+        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
     @doc(DataFrame.skew.__doc__)
@@ -2279,18 +2259,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             numeric_only=numeric_only,
             **kwargs,
         )
-        return result
-
-    @doc(DataFrame.mad.__doc__)
-    def mad(
-        self, axis: Axis | None = None, skipna: bool = True, level: Level | None = None
-    ) -> DataFrame:
-        result = self._op_via_apply("mad", axis=axis, skipna=skipna, level=level)
-        return result
-
-    @doc(DataFrame.tshift.__doc__)
-    def tshift(self, periods: int = 1, freq=None, axis: Axis = 0) -> DataFrame:
-        result = self._op_via_apply("tshift", periods=periods, freq=freq, axis=axis)
         return result
 
     @property
