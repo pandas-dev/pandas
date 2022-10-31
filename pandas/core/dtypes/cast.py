@@ -20,7 +20,6 @@ from typing import (
 )
 import warnings
 
-from dateutil.parser import ParserError
 import numpy as np
 
 from pandas._libs import lib
@@ -1330,9 +1329,6 @@ def maybe_cast_to_datetime(
 
         try:
             dta = DatetimeArray._from_sequence(value, dtype=dtype)
-        except ParserError:
-            # Note: this is dateutil's ParserError, not ours.
-            return np.asarray(value)
         except ValueError as err:
             # We can give a Series-specific exception message.
             if "cannot supply both a tz and a timezone-naive dtype" in str(err):
