@@ -21,7 +21,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :meth:`DataFrame` construction when constructing from a dict where one of the dict values is a numpy recarray should fail, but didn't (:issue:`49388`)
 -
 
 .. ---------------------------------------------------------------------------
