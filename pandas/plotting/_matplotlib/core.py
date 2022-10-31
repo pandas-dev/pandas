@@ -668,7 +668,6 @@ class MPLPlot(ABC):
 
     def _post_plot_logic(self, ax, data) -> None:
         """Post process for each axes. Overridden in child classes"""
-        pass
 
     def _adorn_subplots(self):
         """Common post process unrelated to data"""
