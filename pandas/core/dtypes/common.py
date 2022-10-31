@@ -532,7 +532,12 @@ def is_string_dtype(arr_or_dtype) -> bool:
         return is_all_strings(arr_or_dtype)
 
     def condition(dtype) -> bool:
-        return is_string_or_object_np_dtype(dtype) or dtype == "string"
+        if is_string_or_object_np_dtype(dtype):
+            return True
+        try:
+            return dtype == "string"
+        except TypeError:
+            return False
 
     return _is_dtype(arr_or_dtype, condition)
 
