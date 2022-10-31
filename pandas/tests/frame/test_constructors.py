@@ -797,6 +797,17 @@ class TestDataFrameConstructors:
         expected = DataFrame({"a": [0, 1, 2], "b": [2, 1, 0]})
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_dict_of_rec_raises(self):
+        # GH 49388
+        c = np.array([2] * 20, dtype="f8")
+        rec_arr = np.rec.fromarrays([c], names=["c"])
+        msg = (
+            "Cannot construct a array for a DataFrame from an ndarray with "
+            r"compound dtype "
+        )
+        with pytest.raises(ValueError, match=msg):
+            DataFrame({"a": rec_arr})
+
     def test_constructor_dict_multiindex(self):
         d = {
             ("a", "a"): {("i", "i"): 0, ("i", "j"): 1, ("j", "i"): 2},

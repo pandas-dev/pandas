@@ -534,6 +534,13 @@ def sanitize_array(
         if dtype is None:
             dtype = data.dtype
         data = lib.item_from_zerodim(data)
+    elif isinstance(data, np.ndarray) and len(data.dtype):
+        # GH#13296 we are dealing with a compound dtype, which
+        # should be treated as 2D
+        raise ValueError(
+            "Cannot construct a 1-dim array for a DataFrame from an ndarray with "
+            f"compound dtype {repr(data.dtype)}."
+        )
     elif isinstance(data, range):
         # GH#16804
         data = range_to_ndarray(data)
