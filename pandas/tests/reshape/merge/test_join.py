@@ -420,18 +420,18 @@ class TestJoin:
 
         # _assert_same_contents(expected, expected2.loc[:, expected.columns])
 
-    def test_join_hierarchical_mixed(self):
+    def test_join_hierarchical_mixed_raises(self):
         # GH 2024
+        # GH 40993: For raising, enforced in 2.0
         df = DataFrame([(1, 2, 3), (4, 5, 6)], columns=["a", "b", "c"])
         new_df = df.groupby(["a"]).agg({"b": [np.mean, np.sum]})
         other_df = DataFrame([(1, 2, 3), (7, 10, 6)], columns=["a", "b", "d"])
         other_df.set_index("a", inplace=True)
         # GH 9455, 12219
-        msg = "merging between different levels is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = merge(new_df, other_df, left_index=True, right_index=True)
-        assert ("b", "mean") in result
-        assert "b" in result
+        with pytest.raises(
+            pd.errors.MergeError, match="Not allowed to merge between different levels"
+        ):
+            merge(new_df, other_df, left_index=True, right_index=True)
 
     def test_join_float64_float32(self):
 

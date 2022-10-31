@@ -676,16 +676,14 @@ class _MergeOperation:
                 f"right_index parameter must be of type bool, not {type(right_index)}"
             )
 
-        # warn user when merging between different levels
+        # GH 40993: raise when merging between different levels; enforced in 2.0
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
-                "merging between different levels is deprecated and will be removed "
-                f"in a future version. ({_left.columns.nlevels} levels on the left, "
+                "Not allowed to merge between different levels. "
+                f"({_left.columns.nlevels} levels on the left, "
                 f"{_right.columns.nlevels} on the right)"
             )
-            # stacklevel chosen to be correct when this is reached via pd.merge
-            # (and not DataFrame.join)
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            raise MergeError(msg)
 
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
