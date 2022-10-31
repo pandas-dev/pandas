@@ -2475,13 +2475,10 @@ def _items_overlap_with_suffix(
     If corresponding suffix is empty, the entry is simply converted to string.
 
     """
-    if not is_list_like(suffixes, allow_sets=False):
-        warnings.warn(
-            f"Passing 'suffixes' as a {type(suffixes)}, is not supported and may give "
-            "unexpected results. Provide 'suffixes' as a tuple instead. In the "
-            "future a 'TypeError' will be raised.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+    if not is_list_like(suffixes, allow_sets=False) or isinstance(suffixes, dict):
+        raise TypeError(
+            f"Passing 'suffixes' as a {type(suffixes)}, is not supported. "
+            "Provide 'suffixes' as a tuple instead."
         )
 
     to_rename = left.intersection(right)
