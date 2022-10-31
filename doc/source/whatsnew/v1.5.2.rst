@@ -21,7 +21,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- Bug in :meth:`DataFrame.merge` which also affected :meth:`DataFrame.join`, when joining over index on one :class:`DataFrame` and column on the other :class:`DataFrame` returned incorrectly (:issue:`28243`, :issue:`15692`, :issue:`17257`)
+-
 -
 
 .. ---------------------------------------------------------------------------
