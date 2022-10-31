@@ -1727,7 +1727,7 @@ def any_skipna_inferred_dtype(request):
 
     Examples
     --------
-    >>> import pandas._libs.lib as lib
+    >>> from pandas._libs import lib
     >>>
     >>> def test_something(any_skipna_inferred_dtype):
     ...     inferred_dtype, values = any_skipna_inferred_dtype
