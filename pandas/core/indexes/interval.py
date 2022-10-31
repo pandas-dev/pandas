@@ -786,8 +786,7 @@ class IntervalIndex(ExtensionIndex):
         # ExtensionDtype]" has no attribute "subtype"
         return self.dtype.subtype.kind in ["m", "M"]  # type: ignore[union-attr]
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
+    def _maybe_cast_slice_bound(self, label, side: str):
         return getattr(self, side)._maybe_cast_slice_bound(label, side)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
@@ -1110,7 +1109,13 @@ def interval_range(
         if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
 
-            breaks = maybe_downcast_numeric(breaks, np.dtype("int64"))
+            # error: Argument 1 to "maybe_downcast_numeric" has incompatible type
+            # "Union[ndarray[Any, Any], TimedeltaIndex, DatetimeIndex]";
+            # expected "ndarray[Any, Any]"  [
+            breaks = maybe_downcast_numeric(
+                breaks,  # type: ignore[arg-type]
+                np.dtype("int64"),
+            )
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):

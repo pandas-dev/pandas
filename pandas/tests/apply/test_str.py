@@ -236,7 +236,7 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
     # GH 21224
     # test transforming functions in
     # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
-    if axis == "columns" or axis == 1:
+    if axis in ("columns", 1):
         # operating blockwise doesn't let us preserve dtypes
         expected = expected.astype("float64")
 
@@ -273,7 +273,7 @@ def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
     # GH 35964
 
     args = [0.0] if op == "fillna" else []
-    if axis == 0 or axis == "index":
+    if axis in (0, "index"):
         ones = np.ones(float_frame.shape[0])
     else:
         ones = np.ones(float_frame.shape[1])
@@ -286,7 +286,7 @@ def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
     float_frame["E"] = float_frame["A"].copy()
     assert len(float_frame._mgr.arrays) > 1
 
-    if axis == 0 or axis == "index":
+    if axis in (0, "index"):
         ones = np.ones(float_frame.shape[0])
     else:
         ones = np.ones(float_frame.shape[1])

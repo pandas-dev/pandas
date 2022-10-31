@@ -13,6 +13,7 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
     date_range,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float
@@ -398,18 +399,6 @@ class TestFillNA:
             datetime_frame.ffill(), datetime_frame.fillna(method="ffill")
         )
 
-    def test_ffill_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame.ffill "
-            r"will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.ffill(0)
-        expected = DataFrame({"a": [1, 2, 3]})
-        tm.assert_frame_equal(result, expected)
-
     def test_bfill(self, datetime_frame):
         datetime_frame["A"][:5] = np.nan
         datetime_frame["A"][-5:] = np.nan
@@ -417,18 +406,6 @@ class TestFillNA:
         tm.assert_frame_equal(
             datetime_frame.bfill(), datetime_frame.fillna(method="bfill")
         )
-
-    def test_bfill_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame.bfill "
-            r"will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.bfill(0)
-        expected = DataFrame({"a": [1, 2, 3]})
-        tm.assert_frame_equal(result, expected)
 
     def test_frame_pad_backfill_limit(self):
         index = np.arange(10)
@@ -681,6 +658,18 @@ class TestFillNA:
 
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected2)
+
+    def test_fillna_datetime_inplace(self):
+        # GH#48863
+        df = DataFrame(
+            {
+                "date1": to_datetime(["2018-05-30", None]),
+                "date2": to_datetime(["2018-09-30", None]),
+            }
+        )
+        expected = df.copy()
+        df.fillna(np.nan, inplace=True)
+        tm.assert_frame_equal(df, expected)
 
     def test_fillna_inplace_with_columns_limit_and_value(self):
         # GH40989

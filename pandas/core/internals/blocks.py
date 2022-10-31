@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from functools import wraps
-import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -71,13 +70,13 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_inferred_bool_dtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
 )
 
+from pandas.core import missing
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     extract_bool_array,
@@ -105,13 +104,12 @@ from pandas.core.arrays import (
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-import pandas.core.computation.expressions as expressions
+from pandas.core.computation import expressions
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
 from pandas.core.indexers import check_setitem_lengths
-import pandas.core.missing as missing
 
 if TYPE_CHECKING:
     from pandas import (
@@ -185,7 +183,7 @@ class Block(PandasObject):
             "future version.  Use isinstance(block.values, Categorical) "
             "instead. See https://github.com/pandas-dev/pandas/issues/40226",
             DeprecationWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         return isinstance(self.values, Categorical)
 
@@ -195,7 +193,7 @@ class Block(PandasObject):
         """
         We can be bool if a) we are bool dtype or b) object dtype with bool objects.
         """
-        return is_inferred_bool_dtype(self.values)
+        return self.values.dtype == np.dtype(bool)
 
     @final
     def external_values(self):
@@ -256,7 +254,7 @@ class Block(PandasObject):
                     "already been cast to DatetimeArray and TimedeltaArray, "
                     "respectively.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
             values = new_values
 
@@ -1514,8 +1512,12 @@ class EABackedBlock(Block):
         See Block.putmask.__doc__
         """
         mask = extract_bool_array(mask)
+        if new is lib.no_default:
+            new = self.fill_value
 
         values = self.values
+        if values.ndim == 2:
+            values = values.T
 
         orig_new = new
         orig_mask = mask
@@ -1584,7 +1586,7 @@ class EABackedBlock(Block):
                     "(usually object) instead of raising, matching the "
                     "behavior of other dtypes.",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 raise
             else:
@@ -1981,7 +1983,7 @@ def _catch_deprecated_value_error(err: Exception) -> None:
             # IntervalDtype mismatched 'closed'
             pass
         elif "Timezones don't match" not in str(err):
-            raise
+            raise err
 
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
