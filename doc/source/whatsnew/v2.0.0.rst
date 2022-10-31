@@ -28,10 +28,24 @@ Available optional dependencies (listed in order of appearance at `install guide
 ``[all, performance, computation, timezone, fss, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql,
 sql-other, html, xml, plot, output_formatting, clipboard, compression, test]`` (:issue:`39164`).
 
-.. _whatsnew_200.enhancements.enhancement2:
+.. _whatsnew_200.enhancements.io_readers_nullable_pyarrow:
 
-enhancement2
-^^^^^^^^^^^^
+Configuration option, ``io.nullable_backend`, to return pyarrow-backed dtypes from IO functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A new global configuration, ``io.nullable_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in :func:`read_parquet` and :func:`read_csv` (with ``engine="pyarrow"``)
+to return pyarrow-backed dtypes when set to ``"pyarrow"`` (:issue:`48957`).
+
+.. ipython:: python
+
+    import io
+    data = """a,b,c,d,e,f,g,h,i,j
+        1,2.5,True,a,,,,,12-31-2019,
+        3,4.5,False,b,6,7.5,True,a,12-31-2019,
+    """
+    with pd.option_context("io.nullable_backend", "pyarrow"):
+        df = pd.read_csv(io.StringIO(data), use_nullable_dtypes=True, parse_dates=["i"])
+    df
 
 .. _whatsnew_200.enhancements.other:
 
@@ -42,7 +56,6 @@ Other enhancements
 - :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support an ``axis`` argument. If ``axis`` is set, the default behaviour of which axis to consider can be overwritten (:issue:`47819`)
 - :func:`assert_frame_equal` now shows the first element where the DataFrames differ, analogously to ``pytest``'s output (:issue:`47910`)
 - Added new argument ``use_nullable_dtypes`` to :func:`read_csv` and :func:`read_excel` to enable automatic conversion to nullable dtypes (:issue:`36712`)
-- Added new global configuration, ``io.nullable_backend`` to allow ``use_nullable_dtypes=True`` to return pyarrow-backed dtypes when set to ``"pyarrow"`` in :func:`read_parquet`, :func:`read_csv` (with ``engine="pyarrow"``) (:issue:`48957`)
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
 - Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
 - :class:`.CategoricalConversionWarning`, :class:`.InvalidComparison`, :class:`.InvalidVersion`, :class:`.LossySetitemError`, and :class:`.NoBufferPresent` are now exposed in ``pandas.errors`` (:issue:`27656`)
