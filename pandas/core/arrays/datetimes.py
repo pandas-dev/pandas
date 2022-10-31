@@ -2133,8 +2133,8 @@ def objects_to_datetime64ns(
     require_iso8601: bool = False,
     allow_object: bool = False,
     allow_mixed: bool = False,
-    format: str = "",
-    exact: bool = False,
+    format: str | None = None,
+    exact: bool = True,
 ):
     """
     Convert data to array of timestamps.
