@@ -15,6 +15,7 @@ VERSIONS = {
     "bs4": "4.9.3",
     "blosc": "1.21.0",
     "bottleneck": "1.3.2",
+    "boto3": "1.22.7",
     "brotli": "0.7.0",
     "fastparquet": "0.4.0",
     "fsspec": "2021.07.0",
@@ -46,6 +47,8 @@ VERSIONS = {
     "xlsxwriter": "1.4.3",
     "zstandard": "0.15.2",
     "tzdata": "2022.1",
+    "qtpy": "2.2.0",
+    "PyQt5": "5.15.1",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where

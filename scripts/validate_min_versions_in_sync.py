@@ -66,9 +66,9 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
             if package in EXCLUDE_DEPS:
                 continue
             if not seen_optional:
-                required_deps[package] = version
+                required_deps[package.casefold()] = version
             else:
-                optional_deps[package] = version
+                optional_deps[package.casefold()] = version
     return required_deps, optional_deps
 
 
