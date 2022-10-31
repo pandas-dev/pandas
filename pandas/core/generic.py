@@ -2260,14 +2260,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Upper left cell column to dump data frame.
         engine : str, optional
             Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
-            via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
+            via the options ``io.excel.xlsx.writer`` or
             ``io.excel.xlsm.writer``.
-
-            .. deprecated:: 1.2.0
-
-                As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
-                maintained, the ``xlwt`` engine will be removed in a future version
-                of pandas.
 
         merge_cells : bool, default True
             Write MultiIndex and Hierarchical Rows as merged cells.
@@ -5000,6 +4994,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def sort_index(
         self: NDFrameT,
+        *,
         axis: Axis = 0,
         level: IndexLabel = None,
         ascending: bool_t | Sequence[bool_t] = True,
@@ -7312,6 +7307,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def interpolate(
         self: NDFrameT,
         method: str = "linear",
+        *,
         axis: Axis = 0,
         limit: int | None = None,
         inplace: bool_t = False,
@@ -8458,8 +8454,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         label: str | None = None,
         convention: str = "start",
         kind: str | None = None,
-        loffset=None,
-        base: int | None = None,
         on: Level = None,
         level: Level = None,
         origin: str | TimestampConvertibleTypes = "start_day",
@@ -8497,20 +8491,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Pass 'timestamp' to convert the resulting index to a
             `DateTimeIndex` or 'period' to convert it to a `PeriodIndex`.
             By default the input representation is retained.
-        loffset : timedelta, default None
-            Adjust the resampled time labels.
-
-            .. deprecated:: 1.1.0
-                You should add the loffset to the `df.index` after the resample.
-                See below.
-
-        base : int, default 0
-            For frequencies that evenly subdivide 1 day, the "origin" of the
-            aggregated intervals. For example, for '5min' frequency, base could
-            range from 0 through 4. Defaults to 0.
-
-            .. deprecated:: 1.1.0
-                The new arguments that you should use are 'offset' or 'origin'.
 
         on : str, optional
             For a DataFrame, column to use instead of index for resampling.
@@ -8846,31 +8826,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-02 00:12:00    45
         2000-10-02 00:29:00    45
         Freq: 17T, dtype: int64
-
-        To replace the use of the deprecated `base` argument, you can now use `offset`,
-        in this example it is equivalent to have `base=2`:
-
-        >>> ts.resample('17min', offset='2min').sum()
-        2000-10-01 23:16:00     0
-        2000-10-01 23:33:00     9
-        2000-10-01 23:50:00    36
-        2000-10-02 00:07:00    39
-        2000-10-02 00:24:00    24
-        Freq: 17T, dtype: int64
-
-        To replace the use of the deprecated `loffset` argument:
-
-        >>> from pandas.tseries.frequencies import to_offset
-        >>> loffset = '19min'
-        >>> ts_out = ts.resample('17min').sum()
-        >>> ts_out.index = ts_out.index + to_offset(loffset)
-        >>> ts_out
-        2000-10-01 23:33:00     0
-        2000-10-01 23:50:00     9
-        2000-10-02 00:07:00    21
-        2000-10-02 00:24:00    54
-        2000-10-02 00:41:00    24
-        Freq: 17T, dtype: int64
         """
         from pandas.core.resample import get_resampler
 
@@ -8882,9 +8837,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             closed=closed,
             axis=axis,
             kind=kind,
-            loffset=loffset,
             convention=convention,
-            base=base,
             key=on,
             level=level,
             origin=origin,
@@ -11429,11 +11382,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         axis_descr, name1, name2 = _doc_params(cls)
 
-        @deprecate_nonkeyword_arguments(
-            version=None,
-            allowed_args=["self"],
-            name="DataFrame.any and Series.any",
-        )
         @doc(
             _bool_doc,
             desc=_any_desc,
@@ -11446,13 +11394,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def any(
             self,
+            *,
             axis: Axis = 0,
             bool_only=None,
             skipna: bool_t = True,
             level=None,
             **kwargs,
         ):
-            return NDFrame.any(self, axis, bool_only, skipna, level, **kwargs)
+            return NDFrame.any(
+                self,
+                axis=axis,
+                bool_only=bool_only,
+                skipna=skipna,
+                level=level,
+                **kwargs,
+            )
 
         setattr(cls, "any", any)
 

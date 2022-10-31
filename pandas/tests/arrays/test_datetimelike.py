@@ -554,22 +554,12 @@ class SharedTests:
         tm.assert_equal(arr, expected)
 
     def test_shift_fill_int_deprecated(self):
-        # GH#31971
+        # GH#31971, enforced in 2.0
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
 
-        msg = "Passing <class 'int'> to shift"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = arr.shift(1, fill_value=1)
-
-        expected = arr.copy()
-        if self.array_cls is PeriodArray:
-            fill_val = arr._scalar_type._from_ordinal(1, freq=arr.freq)
-        else:
-            fill_val = arr._scalar_type(1)
-        expected[0] = fill_val
-        expected[1:] = arr[:-1]
-        tm.assert_equal(result, expected)
+        with pytest.raises(TypeError, match="value should be a"):
+            arr.shift(1, fill_value=1)
 
     def test_median(self, arr1d):
         arr = arr1d
@@ -815,18 +805,11 @@ class TestDatetimeArray(SharedTests):
 
     @pytest.mark.parametrize("propname", DatetimeArray._field_ops)
     def test_int_properties(self, arr1d, propname):
-        warn = None
-        msg = "weekofyear and week have been deprecated, please use"
-        if propname in ["week", "weekofyear"]:
-            # GH#33595 Deprecate week and weekofyear
-            warn = FutureWarning
-
         dti = self.index_cls(arr1d)
         arr = arr1d
 
-        with tm.assert_produces_warning(warn, match=msg):
-            result = getattr(arr, propname)
-            expected = np.array(getattr(dti, propname), dtype=result.dtype)
+        result = getattr(arr, propname)
+        expected = np.array(getattr(dti, propname), dtype=result.dtype)
 
         tm.assert_numpy_array_equal(result, expected)
 

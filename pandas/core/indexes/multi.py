@@ -50,7 +50,6 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -3786,10 +3785,8 @@ class MultiIndex(Index):
     def set_names(self, names, *, level=..., inplace: bool = ...) -> MultiIndex | None:
         ...
 
-    # error: Signature of "set_names" incompatible with supertype "Index"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "names"])
-    def set_names(  # type: ignore[override]
-        self, names, level=None, inplace: bool = False
+    def set_names(
+        self, names, *, level=None, inplace: bool = False
     ) -> MultiIndex | None:
         return super().set_names(names=names, level=level, inplace=inplace)
 

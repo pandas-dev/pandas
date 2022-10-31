@@ -13,7 +13,9 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- Fixed regression in :meth:`MultiIndex.join` for extension array dtypes (:issue:`49277`)
++- Fixed regression in :meth:`MultiIndex.join` for extension array dtypes (:issue:`49277`)
++- Fixed regression in :meth:`Series.replace` raising ``RecursionError`` with numeric dtype and when specifying ``value=None`` (:issue:`45725`)
+
 -
 
 .. ---------------------------------------------------------------------------
