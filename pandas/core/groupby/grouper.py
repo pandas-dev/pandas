@@ -496,7 +496,6 @@ class Grouping:
             # In extant tests, the new self.grouping_vector matches
             #  `index.get_level_values(ilevel)` whenever
             #  mapper is None and isinstance(index, MultiIndex)
-            # TODO: Can you have two levels with the same name?
             if isinstance(index, MultiIndex):
                 index_level = index.get_level_values(ilevel)
             else:
