@@ -2295,7 +2295,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         cat = self if inplace else self.copy()
 
         ser = Series(cat.categories, copy=True)
-        ser.replace(to_replace=to_replace, value=value, inplace=True)
+        ser = ser.replace(to_replace=to_replace, value=value)
 
         all_values = Index(ser)
         new_categories = Index(ser.dropna().drop_duplicates(keep="first"))

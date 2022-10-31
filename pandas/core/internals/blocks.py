@@ -574,6 +574,7 @@ class Block(PandasObject):
         values = self.values
 
         if isinstance(values, Categorical):
+            # TODO: avoid special-casing
             # GH49404
             blk = self if inplace else self.copy()
             values = cast(Categorical, blk.values)
@@ -688,6 +689,7 @@ class Block(PandasObject):
         values = self.values
 
         if isinstance(values, Categorical):
+            # TODO: avoid special-casing
             # GH49404
             blk = self if inplace else self.copy()
             values = cast(Categorical, blk.values)
