@@ -134,7 +134,7 @@ class TestSeriesConstructors:
         # Mixed type Series
         mixed = Series(["hello", np.NaN], index=[0, 1])
         assert mixed.dtype == np.object_
-        assert mixed[1] is np.NaN
+        assert np.isnan(mixed[1])
 
         assert not empty_series.index._is_all_dates
         with tm.assert_produces_warning(FutureWarning):

@@ -160,7 +160,6 @@ disable = [
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
   "method-cache-max-size-none",
-  "nan-comparison",
   "non-parent-init-called",
   "overridden-final-method",
   "pointless-statement",
