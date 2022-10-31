@@ -1462,9 +1462,6 @@ class TestLocBaseIndependent:
         assert Timestamp("2008-08-08") == df.loc[0, "c"]
         assert Timestamp("2008-08-08") == df.loc[1, "c"]
         df.loc[2, "c"] = date(2005, 5, 5)
-        with tm.assert_produces_warning(FutureWarning):
-            # Comparing Timestamp to date obj is deprecated
-            assert Timestamp("2005-05-05") == df.loc[2, "c"]
         assert Timestamp("2005-05-05").date() == df.loc[2, "c"]
 
     @pytest.mark.parametrize("idxer", ["var", ["var"]])

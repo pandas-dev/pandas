@@ -287,6 +287,7 @@ Removal of prior version deprecations/changes
 - Changed behavior of :class:`Index` constructor when passed a ``SparseArray`` or ``SparseDtype`` to retain that dtype instead of casting to ``numpy.ndarray`` (:issue:`43930`)
 - Removed the deprecated ``base`` and ``loffset`` arguments from :meth:`pandas.DataFrame.resample`, :meth:`pandas.Series.resample` and :class:`pandas.Grouper`. Use ``offset`` or ``origin`` instead (:issue:`31809`)
 - Changed behavior of :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``; object-dtype columns with all-bool values will no longer be included, manually cast to ``bool`` dtype first (:issue:`46188`)
+- Changed behavior of comparison of a :class:`Timestamp` with a ``datetime.date`` object; these now compare as un-equal and raise on inequality comparisons, matching the ``datetime.datetime`` behavior (:issue:`36131`)
 - Enforced deprecation of silently dropping columns that raised a ``TypeError`` in :class:`Series.transform` and :class:`DataFrame.transform` when used with a list or dictionary (:issue:`43740`)
 -
 
