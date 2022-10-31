@@ -78,7 +78,10 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import arraylike
+from pandas.core import (
+    arraylike,
+    ops,
+)
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
@@ -96,9 +99,8 @@ from pandas.core.indexers import (
 )
 from pandas.core.missing import interpolate_2d
 from pandas.core.nanops import check_below_min_count
-import pandas.core.ops as ops
 
-import pandas.io.formats.printing as printing
+from pandas.io.formats import printing
 
 # See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
