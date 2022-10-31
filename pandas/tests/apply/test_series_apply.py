@@ -280,45 +280,39 @@ def test_transform_partial_failure(op, request):
     # GH 35964
     if op in ("ffill", "bfill", "pad", "backfill", "shift"):
         request.node.add_marker(
-            pytest.mark.xfail(
-                raises=AssertionError, reason=f"{op} is successful on any dtype"
-            )
+            pytest.mark.xfail(reason=f"{op} is successful on any dtype")
         )
 
     # Using object makes most transform kernels fail
     ser = Series(3 * [object])
 
-    expected = ser.transform(["shift"])
-    match = rf"\['{op}'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform([op, "shift"])
-    tm.assert_equal(result, expected)
+    if op in ("fillna", "ngroup", "rank"):
+        error = ValueError
+        msg = "Transform function failed"
+    else:
+        error = TypeError
+        msg = "|".join(
+            [
+                "not supported between instances of 'type' and 'type'",
+                "unsupported operand type",
+            ]
+        )
 
-    expected = ser.transform({"B": "shift"})
-    match = r"\['A'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": op, "B": "shift"})
-    tm.assert_equal(result, expected)
+    with pytest.raises(error, match=msg):
+        ser.transform([op, "shift"])
 
-    expected = ser.transform({"B": ["shift"]})
-    match = r"\['A'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": [op], "B": ["shift"]})
-    tm.assert_equal(result, expected)
+    with pytest.raises(error, match=msg):
+        ser.transform({"A": op, "B": "shift"})
 
-    match = r"\['B'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        expected = ser.transform({"A": ["shift"], "B": [op]})
-    match = rf"\['{op}'\] did not transform successfully"
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": [op, "shift"], "B": [op]})
-    tm.assert_equal(result, expected)
+    with pytest.raises(error, match=msg):
+        ser.transform({"A": [op], "B": ["shift"]})
+
+    with pytest.raises(error, match=msg):
+        ser.transform({"A": [op, "shift"], "B": [op]})
 
 
 def test_transform_partial_failure_valueerror():
     # GH 40211
-    match = ".*did not transform successfully"
-
     def noop(x):
         return x
 
@@ -326,26 +320,19 @@ def test_transform_partial_failure_valueerror():
         raise ValueError
 
     ser = Series(3 * [object])
+    msg = "Transform function failed"
 
-    expected = ser.transform([noop])
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform([noop, raising_op])
-    tm.assert_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        ser.transform([noop, raising_op])
 
-    expected = ser.transform({"B": noop})
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": raising_op, "B": noop})
-    tm.assert_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        ser.transform({"A": raising_op, "B": noop})
 
-    expected = ser.transform({"B": [noop]})
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": [raising_op], "B": [noop]})
-    tm.assert_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        ser.transform({"A": [raising_op], "B": [noop]})
 
-    expected = ser.transform({"A": [noop], "B": [noop]})
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": [noop, raising_op], "B": [noop]})
-    tm.assert_equal(result, expected)
+    with pytest.raises(ValueError, match=msg):
+        ser.transform({"A": [noop, raising_op], "B": [noop]})
 
 
 def test_demo():
