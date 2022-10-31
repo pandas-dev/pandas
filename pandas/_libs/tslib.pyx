@@ -1,5 +1,3 @@
-import warnings
-
 cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
@@ -8,8 +6,6 @@ from cpython.datetime cimport (
     import_datetime,
     tzinfo,
 )
-
-from pandas.util._exceptions import find_stack_level
 
 # import datetime C API
 import_datetime()
@@ -854,20 +850,18 @@ cdef _array_to_datetime_object(
 cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
     # We delay this check for as long as possible
     # because it catches relatively rare cases
-    if val == "now":
-        iresult[0] = Timestamp.utcnow().value * 1000  # *1000 to convert to nanos
-        if not utc:
-            # GH#18705 make sure to_datetime("now") matches Timestamp("now")
-            warnings.warn(
-                "The parsing of 'now' in pd.to_datetime without `utc=True` is "
-                "deprecated. In a future version, this will match Timestamp('now') "
-                "and Timestamp.now()",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
+    # Multiply by 1000 to convert to nanos, since these methods naturally have
+    #  microsecond resolution
+    if val == "now":
+        if utc:
+            iresult[0] = Timestamp.utcnow().value * 1000
+        else:
+            # GH#18705 make sure to_datetime("now") matches Timestamp("now")
+            # Note using Timestamp.now() is faster than Timestamp("now")
+            iresult[0] = Timestamp.now().value * 1000
         return True
     elif val == "today":
-        iresult[0] = Timestamp.today().value * 1000  # *1000 to convert to nanos
+        iresult[0] = Timestamp.today().value * 1000
         return True
     return False

@@ -21,9 +21,8 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._typing import (
-    ArrayLike,
     Axis,
     AxisInt,
     DtypeObj,
@@ -998,18 +997,11 @@ class IndexOpsMixin(OpsMixin):
 
     def unique(self):
         values = self._values
-
         if not isinstance(values, np.ndarray):
-            result: ArrayLike = values.unique()
-            if (
-                isinstance(self.dtype, np.dtype) and self.dtype.kind in ["m", "M"]
-            ) and isinstance(self, ABCSeries):
-                # GH#31182 Series._values returns EA
-                # unpack numpy datetime for backward-compat
-                result = np.asarray(result)
+            # i.e. ExtensionArray
+            result = values.unique()
         else:
             result = unique1d(values)
-
         return result
 
     def nunique(self, dropna: bool = True) -> int:
@@ -1312,7 +1304,7 @@ class IndexOpsMixin(OpsMixin):
             sorter=sorter,
         )
 
-    def drop_duplicates(self, keep: DropKeep = "first"):
+    def drop_duplicates(self, *, keep: DropKeep = "first"):
         duplicated = self._duplicated(keep=keep)
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]

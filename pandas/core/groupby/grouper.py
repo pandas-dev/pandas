@@ -11,7 +11,6 @@ from typing import (
     Iterator,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -23,7 +22,6 @@ from pandas._typing import (
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -31,7 +29,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 
-import pandas.core.algorithms as algorithms
+from pandas.core import algorithms
 from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
@@ -39,10 +37,7 @@ from pandas.core.arrays import (
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
-from pandas.core.groupby.categorical import (
-    recode_for_groupby,
-    recode_from_groupby,
-)
+from pandas.core.groupby.categorical import recode_for_groupby
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
@@ -89,23 +84,6 @@ class Grouper:
         Only when `freq` parameter is passed.
     convention : {'start', 'end', 'e', 's'}
         If grouper is PeriodIndex and `freq` parameter is passed.
-    base : int, default 0
-        Only when `freq` parameter is passed.
-        For frequencies that evenly subdivide 1 day, the "origin" of the
-        aggregated intervals. For example, for '5min' frequency, base could
-        range from 0 through 4. Defaults to 0.
-
-        .. deprecated:: 1.1.0
-            The new arguments that you should use are 'offset' or 'origin'.
-
-    loffset : str, DateOffset, timedelta object
-        Only when `freq` parameter is passed.
-
-        .. deprecated:: 1.1.0
-            loffset is only working for ``.resample(...)`` and not for
-            Grouper (:issue:`28302`).
-            However, loffset is also deprecated for ``.resample(...)``
-            See: :class:`DataFrame.resample`
 
     origin : Timestamp or str, default 'start_day'
         The timestamp on which to adjust the grouping. The timezone of origin must
@@ -269,7 +247,6 @@ class Grouper:
         if kwargs.get("freq") is not None:
             from pandas.core.resample import TimeGrouper
 
-            _check_deprecated_resample_kwargs(kwargs, origin=cls)
             cls = TimeGrouper
         return super().__new__(cls)
 
@@ -462,6 +439,7 @@ class Grouping:
     _group_index: Index | None = None
     _passed_categorical: bool
     _all_grouper: Categorical | None
+    _orig_cats: Index | None
     _index: Index
 
     def __init__(
@@ -479,6 +457,7 @@ class Grouping:
         self._orig_grouper = grouper
         self.grouping_vector = _convert_grouper(index, grouper)
         self._all_grouper = None
+        self._orig_cats = None
         self._index = index
         self._sort = sort
         self.obj = obj
@@ -529,6 +508,7 @@ class Grouping:
             # a passed Categorical
             self._passed_categorical = True
 
+            self._orig_cats = self.grouping_vector.categories
             self.grouping_vector, self._all_grouper = recode_for_groupby(
                 self.grouping_vector, sort, observed
             )
@@ -646,7 +626,9 @@ class Grouping:
         if self._all_grouper is not None:
             group_idx = self.group_index
             assert isinstance(group_idx, CategoricalIndex)
-            return recode_from_groupby(self._all_grouper, self._sort, group_idx)
+            categories = self._all_grouper.categories
+            # set_categories is dynamically added
+            return group_idx.set_categories(categories)  # type: ignore[attr-defined]
         return self.group_index
 
     @cache_readonly
@@ -678,6 +660,8 @@ class Grouping:
             uniques = Categorical.from_codes(
                 codes=ucodes, categories=categories, ordered=cat.ordered
             )
+            if not self._observed:
+                uniques = uniques.reorder_categories(self._orig_cats)
             return cat.codes, uniques
 
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
@@ -950,51 +934,3 @@ def _convert_grouper(axis: Index, grouper):
         return grouper
     else:
         return grouper
-
-
-def _check_deprecated_resample_kwargs(kwargs, origin) -> None:
-    """
-    Check for use of deprecated parameters in ``resample`` and related functions.
-
-    Raises the appropriate warnings if these parameters are detected.
-    Only sets an approximate ``stacklevel`` for the warnings (see #37603, #36629).
-
-    Parameters
-    ----------
-    kwargs : dict
-        Dictionary of keyword arguments to check for deprecated parameters.
-    origin : object
-        From where this function is being called; either Grouper or TimeGrouper. Used
-        to determine an approximate stacklevel.
-    """
-    # Deprecation warning of `base` and `loffset` since v1.1.0:
-    # we are raising the warning here to be able to set the `stacklevel`
-    # properly since we need to raise the `base` and `loffset` deprecation
-    # warning from three different cases:
-    #   core/generic.py::NDFrame.resample
-    #   core/groupby/groupby.py::GroupBy.resample
-    #   core/groupby/grouper.py::Grouper
-    # raising these warnings from TimeGrouper directly would fail the test:
-    #   tests/resample/test_deprecated.py::test_deprecating_on_loffset_and_base
-
-    if kwargs.get("base", None) is not None:
-        warnings.warn(
-            "'base' in .resample() and in Grouper() is deprecated.\n"
-            "The new arguments that you should use are 'offset' or 'origin'.\n"
-            '\n>>> df.resample(freq="3s", base=2)\n'
-            "\nbecomes:\n"
-            '\n>>> df.resample(freq="3s", offset="2s")\n',
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    if kwargs.get("loffset", None) is not None:
-        warnings.warn(
-            "'loffset' in .resample() and in Grouper() is deprecated.\n"
-            '\n>>> df.resample(freq="3s", loffset="8H")\n'
-            "\nbecomes:\n"
-            "\n>>> from pandas.tseries.frequencies import to_offset"
-            '\n>>> df = df.resample(freq="3s").mean()'
-            '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )

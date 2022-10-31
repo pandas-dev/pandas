@@ -284,14 +284,13 @@ class TestSeriesGetitemSlices:
     @pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
     def test_getitem_median_slice_bug(self):
         index = date_range("20090415", "20090519", freq="2B")
-        s = Series(np.random.randn(13), index=index)
+        ser = Series(np.random.randn(13), index=index)
 
         indexer = [slice(6, 7, None)]
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "Indexing with a single-item list"
+        with pytest.raises(ValueError, match=msg):
             # GH#31299
-            result = s[indexer]
-        expected = s[indexer[0]]
-        tm.assert_series_equal(result, expected)
+            ser[indexer]
 
     @pytest.mark.parametrize(
         "slc, positions",
@@ -684,11 +683,6 @@ def test_getitem_categorical_str():
     ser = Series(range(5), index=Categorical(["a", "b", "c", "a", "b"]))
     result = ser["a"]
     expected = ser.iloc[[0, 3]]
-    tm.assert_series_equal(result, expected)
-
-    # Check the intermediate steps work as expected
-    with tm.assert_produces_warning(FutureWarning):
-        result = ser.index.get_value(ser, "a")
     tm.assert_series_equal(result, expected)
 
 

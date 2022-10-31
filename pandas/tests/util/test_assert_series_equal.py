@@ -115,9 +115,7 @@ def test_less_precise(data1, data2, dtype, decimals):
     s1 = Series([data1], dtype=dtype)
     s2 = Series([data2], dtype=dtype)
 
-    if (decimals == 5 or decimals == 10) or (
-        decimals >= 3 and abs(data1 - data2) >= 0.0005
-    ):
+    if decimals in (5, 10) or (decimals >= 3 and abs(data1 - data2) >= 0.0005):
         if is_extension_array_dtype(dtype):
             msg = "ExtensionArray are different"
         else:
