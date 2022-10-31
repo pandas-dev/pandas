@@ -126,7 +126,7 @@ from pandas.core.construction import (
 )
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import (
-    deprecate_ndim_indexing,
+    disallow_ndim_indexing,
     unpack_1tuple,
 )
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
@@ -1020,7 +1020,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             #  see tests.series.timeseries.test_mpl_compat_hack
             # the asarray is needed to avoid returning a 2D DatetimeArray
             result = np.asarray(self._values[key])
-            deprecate_ndim_indexing(result, stacklevel=find_stack_level())
+            disallow_ndim_indexing(result)
             return result
 
         if not isinstance(self.index, MultiIndex):

@@ -269,16 +269,8 @@ class TestSeriesGetitemSlices:
 
     def test_getitem_slice_2d(self, datetime_series):
         # GH#30588 multi-dimensional indexing deprecated
-
-        with tm.assert_produces_warning(
-            FutureWarning, match="Support for multi-dimensional indexing"
-        ):
-            # GH#30867 Don't want to support this long-term, but
-            # for now ensure that the warning from Index
-            # doesn't comes through via Series.__getitem__.
-            result = datetime_series[:, np.newaxis]
-        expected = datetime_series.values[:, np.newaxis]
-        tm.assert_almost_equal(result, expected)
+        with pytest.raises(ValueError, match="Multi-dimensional indexing"):
+            datetime_series[:, np.newaxis]
 
     # FutureWarning from NumPy.
     def test_getitem_median_slice_bug(self):
@@ -291,8 +283,8 @@ class TestSeriesGetitemSlices:
             # GH#31299
             ser[indexer]
         # but we're OK with a single-element tuple
-        result = s[(indexer[0],)]
-        expected = s[indexer[0]]
+        result = ser[(indexer[0],)]
+        expected = ser[indexer[0]]
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -557,14 +549,8 @@ def test_getitem_generator(string_series):
     ],
 )
 def test_getitem_ndim_deprecated(series):
-    with tm.assert_produces_warning(
-        FutureWarning,
-        match="Support for multi-dimensional indexing",
-    ):
-        result = series[:, None]
-
-    expected = np.asarray(series)[:, None]
-    tm.assert_numpy_array_equal(result, expected)
+    with pytest.raises(ValueError, match="Multi-dimensional indexing"):
+        series[:, None]
 
 
 def test_getitem_multilevel_scalar_slice_not_implemented(

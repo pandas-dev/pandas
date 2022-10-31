@@ -290,11 +290,9 @@ class TestPutmask:
 def test_getitem_deprecated_float(idx):
     # https://github.com/pandas-dev/pandas/issues/34191
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = idx[1.0]
-
-    expected = idx[1]
-    assert result == expected
+    msg = "Indexing with a float is no longer supported"
+    with pytest.raises(IndexError, match=msg):
+        idx[1.0]
 
 
 @pytest.mark.parametrize(
