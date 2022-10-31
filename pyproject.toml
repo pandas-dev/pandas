@@ -59,7 +59,6 @@ exclude = '''
 max-line-length = 88
 disable = [
   "abstract-class-instantiated",
-  "access-member-before-definition",
   "import-error",
   "invalid-repr-returned",
   "invalid-unary-operand-type",
