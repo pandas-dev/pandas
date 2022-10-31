@@ -151,7 +151,6 @@ def test_group_apply_once_per_group(df, group_names):
     def f_none(group):
         # GH10519, GH12155, GH21417
         names.append(group.name)
-        return None
 
     def f_constant_df(group):
         # GH2936, GH20084

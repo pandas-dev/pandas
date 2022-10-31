@@ -76,6 +76,7 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
 )
 
+from pandas.core import missing
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     extract_bool_array,
@@ -103,13 +104,12 @@ from pandas.core.arrays import (
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-import pandas.core.computation.expressions as expressions
+from pandas.core.computation import expressions
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
 from pandas.core.indexers import check_setitem_lengths
-import pandas.core.missing as missing
 
 if TYPE_CHECKING:
     from pandas import (
@@ -571,7 +571,6 @@ class Block(PandasObject):
         # Note: the checks we do in NDFrame.replace ensure we never get
         #  here with listlike to_replace or value, as those cases
         #  go through replace_list
-
         values = self.values
 
         if isinstance(values, Categorical):
@@ -610,7 +609,10 @@ class Block(PandasObject):
             return blocks
 
         elif self.ndim == 1 or self.shape[0] == 1:
-            blk = self.coerce_to_target_dtype(value)
+            if value is None:
+                blk = self.astype(np.dtype(object))
+            else:
+                blk = self.coerce_to_target_dtype(value)
             return blk.replace(
                 to_replace=to_replace,
                 value=value,

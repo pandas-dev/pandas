@@ -33,7 +33,7 @@ from typing import (
 import warnings
 
 import numpy as np
-import numpy.ma as ma
+from numpy import ma
 
 from pandas._config import get_option
 
@@ -124,7 +124,6 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_bool_dtype,
     is_dataclass,
-    is_datetime64_any_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -685,7 +684,7 @@ class DataFrame(NDFrame, OpsMixin):
             # GH#38939 de facto copy defaults to False only in non-dict cases
             mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy, typ=manager)
         elif isinstance(data, ma.MaskedArray):
-            import numpy.ma.mrecords as mrecords
+            from numpy.ma import mrecords
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
@@ -5835,10 +5834,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "keys"])
     def set_index(
         self,
         keys,
+        *,
         drop: bool = True,
         append: bool = False,
         inplace: bool = False,
@@ -6080,10 +6079,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
     def reset_index(
         self,
         level: IndexLabel = None,
+        *,
         drop: bool = False,
         inplace: bool = False,
         col_level: Hashable = 0,
@@ -6376,9 +6375,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def dropna(
         self,
+        *,
         axis: Axis = 0,
         how: AnyAll | NoDefault = no_default,
         thresh: int | NoDefault = no_default,
@@ -8036,7 +8035,7 @@ Keep all original rows and columns and also all original values
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
         """
-        import pandas.core.computation.expressions as expressions
+        from pandas.core.computation import expressions
 
         def combiner(x, y):
             mask = extract_array(isna(x))
@@ -8179,7 +8178,7 @@ Keep all original rows and columns and also all original values
         1  2  500.0
         2  3    6.0
         """
-        import pandas.core.computation.expressions as expressions
+        from pandas.core.computation import expressions
 
         # TODO: Support other joins
         if join != "left":  # pragma: no cover
@@ -8500,9 +8499,8 @@ Parrot 2  Parrot       24.0
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def pivot(
-        self, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
+        self, *, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
@@ -10740,29 +10738,6 @@ Parrot 2  Parrot       24.0
         assert filter_type is None or filter_type == "bool", filter_type
         out_dtype = "bool" if filter_type == "bool" else None
 
-        if numeric_only is None and name in ["mean", "median"]:
-            own_dtypes = [arr.dtype for arr in self._mgr.arrays]
-
-            dtype_is_dt = np.array(
-                [is_datetime64_any_dtype(dtype) for dtype in own_dtypes],
-                dtype=bool,
-            )
-            if dtype_is_dt.any():
-                warnings.warn(
-                    "DataFrame.mean and DataFrame.median with numeric_only=None "
-                    "will include datetime64 and datetime64tz columns in a "
-                    "future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                # Non-copy equivalent to
-                #  dt64_cols = self.dtypes.apply(is_datetime64_any_dtype)
-                #  cols = self.columns[~dt64_cols]
-                #  self = self[cols]
-                predicate = lambda x: not is_datetime64_any_dtype(x.dtype)
-                mgr = self._mgr._get_data_subset(predicate)
-                self = type(self)(mgr)
-
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
         labels = self._get_agg_axis(axis)
@@ -11337,8 +11312,6 @@ Parrot 2  Parrot       24.0
         label: str | None = None,
         convention: str = "start",
         kind: str | None = None,
-        loffset=None,
-        base: int | None = None,
         on: Level = None,
         level: Level = None,
         origin: str | TimestampConvertibleTypes = "start_day",
@@ -11352,8 +11325,6 @@ Parrot 2  Parrot       24.0
             label=label,
             convention=convention,
             kind=kind,
-            loffset=loffset,
-            base=base,
             on=on,
             level=level,
             origin=origin,

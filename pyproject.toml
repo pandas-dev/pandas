@@ -5,7 +5,7 @@ requires = [
     "setuptools>=51.0.0",
     "wheel",
     "Cython>=0.29.32,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    "oldest-supported-numpy>=0.10"
+    "oldest-supported-numpy>=2022.8.16"
 ]
 # uncomment to enable pep517 after versioneer problem is fixed.
 # https://github.com/python-versioneer/python-versioneer/issues/193
@@ -59,7 +59,6 @@ exclude = '''
 max-line-length = 88
 disable = [
   "abstract-class-instantiated",
-  "access-member-before-definition",
   "import-error",
   "invalid-repr-returned",
   "invalid-unary-operand-type",
@@ -107,7 +106,6 @@ disable = [
   "comparison-of-constants",
   "comparison-with-itself",
   "consider-merging-isinstance",
-  "consider-using-from-import",
   "consider-using-min-builtin",
   "consider-using-sys-exit",
   "consider-using-ternary",
@@ -137,7 +135,6 @@ disable = [
   "unnecessary-list-index-lookup",
   "use-a-generator",
   "useless-option-value",
-  "useless-return",
 
   # pylint type "W": warning, for python specific problems
   "abstract-method",
@@ -162,7 +159,6 @@ disable = [
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
   "method-cache-max-size-none",
-  "nan-comparison",
   "non-parent-init-called",
   "overridden-final-method",
   "pointless-statement",

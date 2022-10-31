@@ -7,7 +7,7 @@ from typing import Iterator
 
 from dateutil.tz import tzoffset
 import numpy as np
-import numpy.ma as ma
+from numpy import ma
 import pytest
 
 from pandas._libs import (
@@ -52,6 +52,16 @@ from pandas.core.internals.blocks import NumericBlock
 
 
 class TestSeriesConstructors:
+    def test_unparseable_strings_with_dt64_dtype(self):
+        # pre-2.0 these would be silently ignored and come back with object dtype
+        vals = ["aa"]
+        msg = "Unknown string format: aa present at position 0"
+        with pytest.raises(ValueError, match=msg):
+            Series(vals, dtype="datetime64[ns]")
+
+        with pytest.raises(ValueError, match=msg):
+            Series(np.array(vals, dtype=object), dtype="datetime64[ns]")
+
     @pytest.mark.parametrize(
         "constructor,check_index_type",
         [
@@ -134,7 +144,7 @@ class TestSeriesConstructors:
         # Mixed type Series
         mixed = Series(["hello", np.NaN], index=[0, 1])
         assert mixed.dtype == np.object_
-        assert mixed[1] is np.NaN
+        assert np.isnan(mixed[1])
 
         assert not empty_series.index._is_all_dates
         with tm.assert_produces_warning(FutureWarning):
@@ -478,8 +488,7 @@ class TestSeriesConstructors:
         cat = Categorical(["a", "b", "c", "a"])
         s = Series(cat, copy=True)
         assert s.cat is not cat
-        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
-            s.cat.categories = [1, 2, 3]
+        s = s.cat.rename_categories([1, 2, 3])
         exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
         exp_cat = np.array(["a", "b", "c", "a"], dtype=np.object_)
         tm.assert_numpy_array_equal(s.__array__(), exp_s)
@@ -496,16 +505,14 @@ class TestSeriesConstructors:
         cat = Categorical(["a", "b", "c", "a"])
         s = Series(cat)
         assert s.values is cat
-        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
-            s.cat.categories = [1, 2, 3]
+        s = s.cat.rename_categories([1, 2, 3])
+        assert s.values is not cat
         exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
         tm.assert_numpy_array_equal(s.__array__(), exp_s)
-        tm.assert_numpy_array_equal(cat.__array__(), exp_s)
 
         s[0] = 2
         exp_s2 = np.array([2, 2, 3, 1], dtype=np.int64)
         tm.assert_numpy_array_equal(s.__array__(), exp_s2)
-        tm.assert_numpy_array_equal(cat.__array__(), exp_s2)
 
     def test_unordered_compare_equal(self):
         left = Series(["a", "b", "c"], dtype=CategoricalDtype(["a", "b"]))
