@@ -4,7 +4,6 @@ import datetime
 from functools import partial
 from textwrap import dedent
 from typing import TYPE_CHECKING
-import warnings
 
 import numpy as np
 
@@ -21,7 +20,6 @@ if TYPE_CHECKING:
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
@@ -29,7 +27,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.common as common  # noqa: PDF018
+from pandas.core import common  # noqa: PDF018
 from pandas.core.indexers.objects import (
     BaseIndexer,
     ExponentialMovingWindowIndexer,
@@ -653,17 +651,6 @@ class ExponentialMovingWindow(BaseWindow):
             )
         return zsqrt(self.var(bias=bias, numeric_only=numeric_only, **kwargs))
 
-    def vol(self, bias: bool = False, *args, **kwargs):
-        warnings.warn(
-            (
-                "vol is deprecated will be removed in a future version. "
-                "Use std instead."
-            ),
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.std(bias, *args, **kwargs)
-
     @doc(
         template_header,
         create_section_header("Parameters"),
@@ -1015,7 +1002,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         1  0.75  5.75
         """
         result_kwargs = {}
-        is_frame = True if self._selected_obj.ndim == 2 else False
+        is_frame = self._selected_obj.ndim == 2
         if update_times is not None:
             raise NotImplementedError("update_times is not implemented.")
         else:

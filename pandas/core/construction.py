@@ -18,7 +18,7 @@ from typing import (
 import warnings
 
 import numpy as np
-import numpy.ma as ma
+from numpy import ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs.period import Period
@@ -55,10 +55,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_timedelta64_ns_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    PandasDtype,
-)
+from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
@@ -503,7 +500,6 @@ def sanitize_array(
     index: Index | None,
     dtype: DtypeObj | None = None,
     copy: bool = False,
-    raise_cast_failure: bool = True,
     *,
     allow_2d: bool = False,
 ) -> ArrayLike:
@@ -517,19 +513,12 @@ def sanitize_array(
     index : Index or None, default None
     dtype : np.dtype, ExtensionDtype, or None, default None
     copy : bool, default False
-    raise_cast_failure : bool, default True
     allow_2d : bool, default False
         If False, raise if we have a 2D Arraylike.
 
     Returns
     -------
     np.ndarray or ExtensionArray
-
-    Notes
-    -----
-    raise_cast_failure=False is only intended to be True when called from the
-    DataFrame constructor, as the dtype keyword there may be interpreted as only
-    applying to a subset of columns, see GH#24435.
     """
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
@@ -556,8 +545,25 @@ def sanitize_array(
         data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
         return data
 
+    elif isinstance(data, ABCExtensionArray):
+        # it is already ensured above this is not a PandasArray
+        # Until GH#49309 is fixed this check needs to come before the
+        #  ExtensionDtype check
+        if dtype is not None:
+            subarr = data.astype(dtype, copy=copy)
+        elif copy:
+            subarr = data.copy()
+        else:
+            subarr = data
+
+    elif isinstance(dtype, ExtensionDtype):
+        # create an extension array from its dtype
+        _sanitize_non_ordered(data)
+        cls = dtype.construct_array_type()
+        subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+
     # GH#846
-    if isinstance(data, np.ndarray):
+    elif isinstance(data, np.ndarray):
         if isinstance(data, np.matrix):
             data = data.A
 
@@ -567,7 +573,10 @@ def sanitize_array(
                 # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
                 # casting aligning with IntCastingNaNError below
                 with np.errstate(invalid="ignore"):
-                    subarr = _try_cast(data, dtype, copy, True)
+                    # GH#15832: Check if we are requesting a numeric dtype and
+                    # that we can convert the data to the requested dtype.
+                    subarr = maybe_cast_to_integer_array(data, dtype)
+
             except IntCastingNaNError:
                 warnings.warn(
                     "In a future version, passing float-dtype values containing NaN "
@@ -580,21 +589,10 @@ def sanitize_array(
                 )
                 subarr = np.array(data, copy=copy)
             except ValueError:
-                if not raise_cast_failure:
-                    # i.e. called via DataFrame constructor
-                    warnings.warn(
-                        "In a future version, passing float-dtype values and an "
-                        "integer dtype to DataFrame will retain floating dtype "
-                        "if they cannot be cast losslessly (matching Series behavior). "
-                        "To retain the old behavior, use DataFrame(data).astype(dtype)",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    # GH#40110 until the deprecation is enforced, we _dont_
-                    #  ignore the dtype for DataFrame, and _do_ cast even though
-                    #  it is lossy.
-                    dtype = cast(np.dtype, dtype)
-                    return np.array(data, dtype=dtype, copy=copy)
+                # Pre-2.0, we would have different behavior for Series vs DataFrame.
+                #  DataFrame would call np.array(data, dtype=dtype, copy=copy),
+                #  which would cast to the integer dtype even if the cast is lossy.
+                #  See GH#40110.
 
                 # We ignore the dtype arg and return floating values,
                 #  e.g. test_constructor_floating_data_int_dtype
@@ -602,32 +600,31 @@ def sanitize_array(
                 subarr = np.array(data, copy=copy)
         else:
             # we will try to copy by-definition here
-            subarr = _try_cast(data, dtype, copy, raise_cast_failure)
+            subarr = _try_cast(data, dtype, copy)
 
-    elif isinstance(data, ABCExtensionArray):
-        # it is already ensured above this is not a PandasArray
-        subarr = data
-
-        if dtype is not None:
-            subarr = subarr.astype(dtype, copy=copy)
-        elif copy:
-            subarr = subarr.copy()
+    elif hasattr(data, "__array__"):
+        # e.g. dask array GH#38645
+        data = np.array(data, copy=copy)
+        return sanitize_array(
+            data,
+            index=index,
+            dtype=dtype,
+            copy=False,
+            allow_2d=allow_2d,
+        )
 
     else:
-        if isinstance(data, (set, frozenset)):
-            # Raise only for unordered sets, e.g., not for dict_keys
-            raise TypeError(f"'{type(data).__name__}' type is unordered")
-
+        _sanitize_non_ordered(data)
         # materialize e.g. generators, convert e.g. tuples, abc.ValueView
-        if hasattr(data, "__array__"):
-            # e.g. dask array GH#38645
-            data = np.array(data, copy=copy)
-        else:
-            data = list(data)
+        data = list(data)
 
-        if dtype is not None or len(data) == 0:
+        if len(data) == 0 and dtype is None:
+            # We default to float64, matching numpy
+            subarr = np.array([], dtype=np.float64)
+
+        elif dtype is not None:
             try:
-                subarr = _try_cast(data, dtype, copy, raise_cast_failure)
+                subarr = _try_cast(data, dtype, copy)
             except ValueError:
                 if is_integer_dtype(dtype):
                     casted = np.array(data, copy=False)
@@ -639,7 +636,6 @@ def sanitize_array(
                             index,
                             dtype,
                             copy=False,
-                            raise_cast_failure=raise_cast_failure,
                             allow_2d=allow_2d,
                         )
                     else:
@@ -679,6 +675,14 @@ def range_to_ndarray(rng: range) -> np.ndarray:
         else:
             arr = construct_1d_object_array_from_listlike(list(rng))
     return arr
+
+
+def _sanitize_non_ordered(data) -> None:
+    """
+    Raise only for unordered sets, e.g., not for dict_keys
+    """
+    if isinstance(data, (set, frozenset)):
+        raise TypeError(f"'{type(data).__name__}' type is unordered")
 
 
 def _sanitize_ndim(
@@ -751,9 +755,8 @@ def _maybe_repeat(arr: ArrayLike, index: Index | None) -> ArrayLike:
 
 def _try_cast(
     arr: list | np.ndarray,
-    dtype: DtypeObj | None,
+    dtype: np.dtype | None,
     copy: bool,
-    raise_cast_failure: bool,
 ) -> ArrayLike:
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
@@ -762,12 +765,9 @@ def _try_cast(
     ----------
     arr : ndarray or list
         Excludes: ExtensionArray, Series, Index.
-    dtype : np.dtype, ExtensionDtype or None
+    dtype : np.dtype or None
     copy : bool
         If False, don't copy the data if not needed.
-    raise_cast_failure : bool
-        If True, and if a dtype is specified, raise errors during casting.
-        Otherwise an object array is returned.
 
     Returns
     -------
@@ -798,22 +798,6 @@ def _try_cast(
                 return varr
             return maybe_infer_to_datetimelike(varr)
 
-    elif isinstance(dtype, ExtensionDtype):
-        # create an extension array from its dtype
-        if isinstance(dtype, DatetimeTZDtype):
-            # We can't go through _from_sequence because it handles dt64naive
-            #  data differently; _from_sequence treats naive as wall times,
-            #  while maybe_cast_to_datetime treats it as UTC
-            #  see test_maybe_promote_any_numpy_dtype_with_datetimetz
-            # TODO(2.0): with deprecations enforced, should be able to remove
-            #  special case.
-            return maybe_cast_to_datetime(arr, dtype)
-            # TODO: copy?
-
-        array_type = dtype.construct_array_type()._from_sequence
-        subarr = array_type(arr, dtype=dtype, copy=copy)
-        return subarr
-
     elif is_object_dtype(dtype):
         if not is_ndarray:
             subarr = construct_1d_object_array_from_listlike(arr)
@@ -836,35 +820,15 @@ def _try_cast(
     elif dtype.kind in ["m", "M"]:
         return maybe_cast_to_datetime(arr, dtype)
 
-    try:
-        # GH#15832: Check if we are requesting a numeric dtype and
-        # that we can convert the data to the requested dtype.
-        if is_integer_dtype(dtype):
-            # this will raise if we have e.g. floats
+    # GH#15832: Check if we are requesting a numeric dtype and
+    # that we can convert the data to the requested dtype.
+    elif is_integer_dtype(dtype):
+        # this will raise if we have e.g. floats
 
-            subarr = maybe_cast_to_integer_array(arr, dtype)
-        else:
-            # 4 tests fail if we move this to a try/except/else; see
-            #  test_constructor_compound_dtypes, test_constructor_cast_failure
-            #  test_constructor_dict_cast2, test_loc_setitem_dtype
-            subarr = np.array(arr, dtype=dtype, copy=copy)
+        subarr = maybe_cast_to_integer_array(arr, dtype)
+    else:
+        subarr = np.array(arr, dtype=dtype, copy=copy)
 
-    except (ValueError, TypeError):
-        if raise_cast_failure:
-            raise
-        else:
-            # we only get here with raise_cast_failure False, which means
-            #  called via the DataFrame constructor
-            # GH#24435
-            warnings.warn(
-                f"Could not cast to {dtype}, falling back to object. This "
-                "behavior is deprecated. In a future version, when a dtype is "
-                "passed to 'DataFrame', either all columns will be cast to that "
-                "dtype, or a TypeError will be raised.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            subarr = np.array(arr, dtype=object, copy=copy)
     return subarr
 
 
