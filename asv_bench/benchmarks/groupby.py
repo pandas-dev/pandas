@@ -683,7 +683,7 @@ class String:
     def setup(self, dtype, method):
         cols = list("abcdefghjkl")
         self.df = DataFrame(
-            np.random.randint(0, 100, size=(1_000_000, len(cols))),
+            np.random.randint(0, 100, size=(10_000, len(cols))),
             columns=cols,
             dtype=dtype,
         )
