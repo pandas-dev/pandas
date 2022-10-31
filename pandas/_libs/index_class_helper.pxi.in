@@ -44,7 +44,7 @@ cdef class {{prefix}}{{name}}Engine({{engine}}):
 
     cdef _check_type(self, object val):
     {{if engine == 'MaskedIndexEngine'}}
-        if checknull(val):
+        if val is C_NA:
             return val
     {{endif}}
     {{if name not in {'Float64', 'Float32', 'Complex64', 'Complex128'} }}
