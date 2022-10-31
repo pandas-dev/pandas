@@ -74,7 +74,7 @@ cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
 
     else:
         if mask is not None:
-            if checknull(val) and val is C_NA:
+            if val is C_NA:
                 indexer = mask == 1
             else:
                 indexer = (values == val) & ~mask
@@ -168,7 +168,7 @@ cdef class IndexEngine:
             return self._get_loc_duplicates(val)
 
         try:
-            if self.mask is not None and checknull(val) and val is C_NA:
+            if self.mask is not None and val is C_NA:
                 return self.mapping.get_na()
             return self.mapping.get_item(val)
         except OverflowError as err:
@@ -850,7 +850,7 @@ cdef class BoolEngine(UInt8Engine):
 
 cdef class MaskedBoolEngine(MaskedUInt8Engine):
     cdef _check_type(self, object val):
-        if checknull(val) and val is C_NA:
+        if val is C_NA:
             return val
         if not util.is_bool_object(val):
             raise KeyError(val)

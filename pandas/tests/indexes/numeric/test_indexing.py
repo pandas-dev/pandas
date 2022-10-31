@@ -455,6 +455,14 @@ class TestGetIndexer:
         expected = np.array([0, 2, -1])
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_masked_na_boolean(self):
+        # GH#39133
+        idx = Index([True, False, NA], dtype="boolean")
+        result = idx.get_loc(False)
+        assert result == 1
+        result = idx.get_loc(NA)
+        assert result == 2
+
 
 class TestWhere:
     @pytest.mark.parametrize(
