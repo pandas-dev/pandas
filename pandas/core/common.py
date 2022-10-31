@@ -148,15 +148,13 @@ def is_bool_indexer(key: Any) -> bool:
     return False
 
 
-def cast_scalar_indexer(val, warn_float: bool = False):
+def cast_scalar_indexer(val):
     """
     To avoid numpy DeprecationWarnings, cast float to integer where valid.
 
     Parameters
     ----------
     val : scalar
-    warn_float : bool, default False
-        If True, issue deprecation warning for a float indexer.
 
     Returns
     -------
@@ -164,14 +162,10 @@ def cast_scalar_indexer(val, warn_float: bool = False):
     """
     # assumes lib.is_scalar(val)
     if lib.is_float(val) and val.is_integer():
-        if warn_float:
-            warnings.warn(
-                "Indexing with a float is deprecated, and will raise an IndexError "
-                "in pandas 2.0. You can manually convert to an integer key instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return int(val)
+        raise IndexError(
+            "Indexing with a float is not allowed. Manually convert "
+            f"to {val} to an integer key instead.",
+        )
     return val
 
 
