@@ -1616,14 +1616,6 @@ class ExcelFile:
             if engine == "auto":
                 engine = get_default_engine(ext, mode="reader")
 
-        if engine == "xlrd":
-            warnings.warn(
-                "The xlrd engine is no longer maintained and "
-                "will likely be unusable in the future",
-                category=UserWarning,
-                stacklevel=find_stack_level(),
-            )
-
         assert engine is not None
         self.engine = engine
         self.storage_options = storage_options
