@@ -1496,6 +1496,18 @@ class TestDataFrameReplace:
         result = obj.replace(box(to_replace), value)
         tm.assert_equal(result, expected)
 
+    @pytest.mark.parametrize("val", [2, np.nan, 2.0])
+    def test_replace_value_none_dtype_numeric(self, val):
+        # GH#48231
+        df = DataFrame({"a": [1, val]})
+        result = df.replace(val, None)
+        expected = DataFrame({"a": [1, None]}, dtype=object)
+        tm.assert_frame_equal(result, expected)
+
+        df = DataFrame({"a": [1, val]})
+        result = df.replace({val: None})
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameReplaceRegex:
     @pytest.mark.parametrize(
