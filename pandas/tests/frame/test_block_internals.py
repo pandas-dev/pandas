@@ -16,7 +16,6 @@ from pandas import (
     DataFrame,
     Series,
     Timestamp,
-    compat,
     date_range,
     option_context,
 )
@@ -266,8 +265,8 @@ class TestDataFrameBlockInternals:
             f("float64")
 
         # 10822
-        # invalid error message on dt inference
-        if not compat.is_platform_windows():
+        msg = "Unknown string format: aa present at position 0"
+        with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
     def test_pickle(self, float_string_frame, timezone_frame):
