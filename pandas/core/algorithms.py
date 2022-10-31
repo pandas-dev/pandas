@@ -622,7 +622,6 @@ def factorize(
     Parameters
     ----------
     {values}{sort}
-
     use_na_sentinel : bool, default True
         If True, the sentinel -1 will be used for NaN values. If False,
         NaN values will be encoded as non-negative integers and will not drop the
