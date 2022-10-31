@@ -1,5 +1,7 @@
 """
 Module contains tools for processing files into DataFrames or other objects
+
+GH#48849 provides a convenient way of deprecating keyword arguments
 """
 from __future__ import annotations
 
@@ -866,9 +868,7 @@ def read_csv(
     encoding_errors: str | None = "strict",
     dialect: str | csv.Dialect | None = None,
     # Error Handling
-    # TODO(2.0): set on_bad_lines to "error".
-    # See _refine_defaults_read comment for why we do this.
-    on_bad_lines=None,
+    on_bad_lines: str = "error",
     # Internal
     delim_whitespace: bool = False,
     low_memory=_c_parser_defaults["low_memory"],
@@ -1187,9 +1187,7 @@ def read_table(
     encoding_errors: str | None = "strict",
     dialect: str | csv.Dialect | None = None,
     # Error Handling
-    # TODO(2.0): set on_bad_lines to "error".
-    # See _refine_defaults_read comment for why we do this.
-    on_bad_lines=None,
+    on_bad_lines: str = "error",
     # Internal
     delim_whitespace: bool = False,
     low_memory=_c_parser_defaults["low_memory"],
@@ -1849,7 +1847,7 @@ def _refine_defaults_read(
     delim_whitespace: bool,
     engine: CSVEngine | None,
     sep: str | None | lib.NoDefault,
-    on_bad_lines: str | Callable | None,
+    on_bad_lines: str | Callable,
     names: Sequence[Hashable] | None | lib.NoDefault,
     defaults: dict[str, Any],
 ):
@@ -1876,7 +1874,7 @@ def _refine_defaults_read(
     sep : str or object
         A delimiter provided by the user (str) or a sentinel value, i.e.
         pandas._libs.lib.no_default.
-    on_bad_lines : str, callable or None
+    on_bad_lines : str, callable
         An option for handling bad lines or a sentinel value(None).
     names : array-like, optional
         List of column names to use. If the file contains a header row,
@@ -1950,26 +1948,20 @@ def _refine_defaults_read(
         kwds["engine"] = "c"
         kwds["engine_specified"] = False
 
-    # Alias on_bad_lines to "error" on_bad_lines is not set.
-    # on_bad_lines is defaulted to None
-    # so we can tell if it is set (this is why this hack exists).
-    if on_bad_lines is not None:
-        if on_bad_lines == "error":
-            kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.ERROR
-        elif on_bad_lines == "warn":
-            kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
-        elif on_bad_lines == "skip":
-            kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
-        elif callable(on_bad_lines):
-            if engine != "python":
-                raise ValueError(
-                    "on_bad_line can only be a callable function if engine='python'"
-                )
-            kwds["on_bad_lines"] = on_bad_lines
-        else:
-            raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
-    else:
+    if on_bad_lines == "error":
         kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.ERROR
+    elif on_bad_lines == "warn":
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
+    elif on_bad_lines == "skip":
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
+    elif callable(on_bad_lines):
+        if engine != "python":
+            raise ValueError(
+                "on_bad_line can only be a callable function if engine='python'"
+            )
+        kwds["on_bad_lines"] = on_bad_lines
+    else:
+        raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
 
     return kwds
 
