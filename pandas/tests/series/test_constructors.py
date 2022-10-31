@@ -52,6 +52,16 @@ from pandas.core.internals.blocks import NumericBlock
 
 
 class TestSeriesConstructors:
+    def test_unparseable_strings_with_dt64_dtype(self):
+        # pre-2.0 these would be silently ignored and come back with object dtype
+        vals = ["aa"]
+        msg = "Unknown string format: aa present at position 0"
+        with pytest.raises(ValueError, match=msg):
+            Series(vals, dtype="datetime64[ns]")
+
+        with pytest.raises(ValueError, match=msg):
+            Series(np.array(vals, dtype=object), dtype="datetime64[ns]")
+
     @pytest.mark.parametrize(
         "constructor,check_index_type",
         [
@@ -134,7 +144,7 @@ class TestSeriesConstructors:
         # Mixed type Series
         mixed = Series(["hello", np.NaN], index=[0, 1])
         assert mixed.dtype == np.object_
-        assert mixed[1] is np.NaN
+        assert np.isnan(mixed[1])
 
         assert not empty_series.index._is_all_dates
         with tm.assert_produces_warning(FutureWarning):
