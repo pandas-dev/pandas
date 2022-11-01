@@ -3752,6 +3752,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         verify_is_copy : bool, default True
             Provide is_copy checks.
         """
+        if (
+            config.get_option("mode.copy_on_write")
+            and config.get_option("mode.data_manager") == "block"
+        ):
+            return
 
         if verify_is_copy:
             self._check_setitem_copy(t="referent")
