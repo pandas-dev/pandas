@@ -27,14 +27,13 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
-from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_list_like
 
 from pandas import isna
-from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.multi import MultiIndex
+from pandas.core.series import Series
 
 from pandas.io.common import (
     file_exists,
@@ -858,7 +857,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
 def _expand_elements(body) -> None:
     data = [len(elem) for elem in body]
-    lens = create_series_with_explicit_dtype(data, dtype_if_empty=object)
+    lens = Series(data)
     lens_max = lens.max()
     not_max = lens[lens != lens_max]
 
@@ -1026,9 +1025,9 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **
     return ret
 
 
-@deprecate_nonkeyword_arguments(version="2.0")
 def read_html(
     io: FilePath | ReadBuffer[str],
+    *,
     match: str | Pattern = ".+",
     flavor: str | None = None,
     header: int | Sequence[int] | None = None,

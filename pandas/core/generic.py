@@ -145,10 +145,7 @@ from pandas.core import (
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
-from pandas.core.construction import (
-    create_series_with_explicit_dtype,
-    extract_array,
-)
+from pandas.core.construction import extract_array
 from pandas.core.describe import describe_ndframe
 from pandas.core.flags import Flags
 from pandas.core.indexes.api import (
@@ -6843,9 +6840,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         if inplace:
                             return None
                         return self.copy()
-                    value = create_series_with_explicit_dtype(
-                        value, dtype_if_empty=object
-                    )
+                    from pandas import Series
+
+                    value = Series(value)
                     value = value.reindex(self.index, copy=False)
                     value = value._values
                 elif not is_list_like(value):
@@ -9727,7 +9724,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: Literal[False] = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> NDFrameT:
         ...
 
@@ -9740,7 +9736,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: Literal[True],
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -9753,11 +9748,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> NDFrameT | None:
         ...
 
-    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
     @doc(
         klass=_shared_doc_kwargs["klass"],
         cond="True",
@@ -9773,7 +9766,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         axis: Axis | None = None,
         level: Level = None,
-        errors: IgnoreRaise | lib.NoDefault = "raise",
     ) -> NDFrameT | None:
         """
         Replace values where the condition is {cond_rev}.
@@ -9802,15 +9794,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             unused and defaults to 0.
         level : int, default None
             Alignment level if needed.
-        errors : str, {{'raise', 'ignore'}}, default 'raise'
-            Note that currently this parameter won't affect
-            the results and will always coerce to a suitable dtype.
-
-            - 'raise' : allow exceptions to be raised.
-            - 'ignore' : suppress exceptions. On error return original object.
-
-            .. deprecated:: 1.5.0
-               This argument had no effect.
 
         Returns
         -------
@@ -9933,7 +9916,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: Literal[False] = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> NDFrameT:
         ...
 
@@ -9946,7 +9928,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: Literal[True],
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -9959,11 +9940,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> NDFrameT | None:
         ...
 
-    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
     @doc(
         where,
         klass=_shared_doc_kwargs["klass"],
@@ -9980,7 +9959,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         axis: Axis | None = None,
         level: Level = None,
-        errors: IgnoreRaise | lib.NoDefault = "raise",
     ) -> NDFrameT | None:
 
         inplace = validate_bool_kwarg(inplace, "inplace")

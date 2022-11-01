@@ -35,8 +35,7 @@ class TestSeriesSubclassing:
         tm.assert_frame_equal(res, exp)
 
     def test_subclass_empty_repr(self):
-        with tm.assert_produces_warning(FutureWarning):
-            sub_series = tm.SubclassedSeries()
+        sub_series = tm.SubclassedSeries()
         assert "SubclassedSeries" in repr(sub_series)
 
     def test_asof(self):
