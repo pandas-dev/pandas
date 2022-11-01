@@ -654,9 +654,7 @@ class Index(IndexOpsMixin, PandasObject):
         Constructor that uses the 1.0.x behavior inferring numeric dtypes
         for ndarray[object] inputs.
         """
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", ".*the Index constructor", FutureWarning)
-            result = cls(*args, **kwargs)
+        result = cls(*args, **kwargs)
 
         if result.dtype == _dtype_obj and not result._is_multi:
             # error: Argument 1 to "maybe_convert_objects" has incompatible type
@@ -7220,13 +7218,8 @@ def _maybe_cast_data_without_dtype(
         if not cast_numeric_deprecated:
             # i.e. we started with a list, not an ndarray[object]
             return result
+        return subarr
 
-        warnings.warn(
-            "In a future version, the Index constructor will not infer numeric "
-            "dtypes when passed object-dtype sequences (matching Series behavior)",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
     result = ensure_wrapped_if_datetimelike(result)
     return result
 

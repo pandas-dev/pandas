@@ -293,6 +293,7 @@ Removal of prior version deprecations/changes
 - Changed the behavior of :func:`to_datetime` with argument "now" with ``utc=False`` to match ``Timestamp("now")`` (:issue:`18705`)
 - Changed behavior of :meth:`SparseArray.astype` when given a dtype that is not explicitly ``SparseDtype``, cast to the exact requested dtype rather than silently using a ``SparseDtype`` instead (:issue:`34457`)
 - Changed behavior of :class:`DataFrame` constructor given floating-point ``data`` and an integer ``dtype``, when the data cannot be cast losslessly, the floating point dtype is retained, matching :class:`Series` behavior (:issue:`41170`)
+- Changed behavior of :class:`Index` constructor when given a ``np.ndarray`` with object-dtype containing numeric entries; this now retains object dtype rather than inferring a numeric dtype, consistent with :class:`Series` behavior (:issue:`42870`)
 - Changed behavior of :class:`DataFrame` constructor when passed a ``dtype`` (other than int) that the data cannot be cast to; it now raises instead of silently ignoring the dtype (:issue:`41733`)
 - Changed the behavior of :class:`Series` constructor, it will no longer infer a datetime64 or timedelta64 dtype from string entries (:issue:`41731`)
 - Changed behavior of :class:`Timestamp` constructor with a ``np.datetime64`` object and a ``tz`` passed to interpret the input as a wall-time as opposed to a UTC time (:issue:`42288`)
