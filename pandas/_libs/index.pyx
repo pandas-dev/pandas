@@ -36,6 +36,8 @@ from pandas._libs.missing cimport (
     is_matching_na,
 )
 
+multiindex_nulls_shift = 2
+
 
 cdef inline bint is_definitely_invalid_key(object val):
     try:
@@ -652,8 +654,9 @@ cdef class BaseMultiIndexCodesEngine:
         # with positive integers (-1 for NaN becomes 1). This enables us to
         # differentiate between values that are missing in other and matching
         # NaNs. We will set values that are not found to 0 later:
-        codes = (np.array(labels, dtype='int64').T + 2).astype('uint64',
-                                                               copy=False)
+        codes = (np.array(
+            labels, dtype='int64').T + multiindex_nulls_shift
+                 ).astype('uint64', copy=False)
         self.level_has_nans = [-1 in lab for lab in labels]
 
         # Map each codes combination in the index to an integer unambiguously
