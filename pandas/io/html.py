@@ -27,7 +27,6 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
-from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -1026,9 +1025,9 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **
     return ret
 
 
-@deprecate_nonkeyword_arguments(version="2.0")
 def read_html(
     io: FilePath | ReadBuffer[str],
+    *,
     match: str | Pattern = ".+",
     flavor: str | None = None,
     header: int | Sequence[int] | None = None,

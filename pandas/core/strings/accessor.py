@@ -21,10 +21,7 @@ from pandas._typing import (
     F,
     Scalar,
 )
-from pandas.util._decorators import (
-    Appender,
-    deprecate_nonkeyword_arguments,
-)
+from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -840,14 +837,13 @@ class StringMethods(NoNewAttributesMixin):
     """,
         }
     )
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "pat"])
     @forbid_nonstring_types(["bytes"])
     def split(
         self,
         pat: str | re.Pattern | None = None,
+        *,
         n=-1,
         expand: bool = False,
-        *,
         regex: bool | None = None,
     ):
         if regex is False and is_re(pat):
@@ -872,9 +868,8 @@ class StringMethods(NoNewAttributesMixin):
             "regex_examples": "",
         }
     )
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "pat"])
     @forbid_nonstring_types(["bytes"])
-    def rsplit(self, pat=None, n=-1, expand: bool = False):
+    def rsplit(self, pat=None, *, n=-1, expand: bool = False):
         result = self._data.array._str_rsplit(pat, n=n)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
