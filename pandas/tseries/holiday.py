@@ -335,8 +335,9 @@ class Holiday:
         -------
         Dates with rules applied
         """
+        # Found due to GH49075
         if dates.empty:
-            return DatetimeIndex([])
+            return DatetimeIndex([], dtype="datetime64[ns]")
 
         if self.observance is not None:
             return dates.map(lambda d: self.observance(d))
