@@ -418,7 +418,7 @@ cdef parse_datetime_string_with_reso(
             from pandas import Timestamp
             parsed = Timestamp(date_string)
         else:
-            parsed = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, 
+            parsed = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec,
                               dts.us)
         reso = {
             NPY_DATETIMEUNIT.NPY_FR_Y: "year",

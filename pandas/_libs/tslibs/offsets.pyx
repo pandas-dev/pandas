@@ -2268,7 +2268,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
     def _apply_array(self, dtarr):
         reso = get_unit_from_dtype(dtarr.dtype)
         shifted = shift_quarters(
-            dtarr.view("i8"), self.n, self.startingMonth, self._day_opt, modby=3, 
+            dtarr.view("i8"), self.n, self.startingMonth, self._day_opt, modby=3,
             reso=reso
         )
         return shifted
@@ -2549,7 +2549,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
             ndarray i8other = dtarr.view("i8")
             Py_ssize_t i, count = dtarr.size
             int64_t val, res_val
-            ndarray out = cnp.PyArray_EMPTY(i8other.ndim, i8other.shape, cnp.NPY_INT64, 
+            ndarray out = cnp.PyArray_EMPTY(i8other.ndim, i8other.shape, cnp.NPY_INT64,
                                             0)
             npy_datetimestruct dts
             int months, to_day, nadj, n = self.n
@@ -2758,7 +2758,7 @@ cdef class Week(SingleConstructorOffset):
         cdef:
             Py_ssize_t i, count = i8other.size
             int64_t val, res_val
-            ndarray out = cnp.PyArray_EMPTY(i8other.ndim, i8other.shape, cnp.NPY_INT64, 
+            ndarray out = cnp.PyArray_EMPTY(i8other.ndim, i8other.shape, cnp.NPY_INT64,
                                             0)
             npy_datetimestruct dts
             int wday, days, weeks, n = self.n
@@ -4149,7 +4149,7 @@ cdef ndarray _shift_bdays(
     """
     cdef:
         Py_ssize_t i, n = i8other.size
-        ndarray result = cnp.PyArray_EMPTY(i8other.ndim, i8other.shape, cnp.NPY_INT64, 
+        ndarray result = cnp.PyArray_EMPTY(i8other.ndim, i8other.shape, cnp.NPY_INT64,
                                            0)
         int64_t val, res_val
         int wday, nadj, days

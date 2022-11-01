@@ -95,7 +95,7 @@ class Infinity:
 
     def __gt__(self, other):
         return (not isinstance(other, Infinity) and
-                               not missing.checknull(other))
+                            not missing.checknull(other))
 
     def __ge__(self, other):
         return not missing.checknull(other)
@@ -107,7 +107,7 @@ class NegInfinity:
     """
     def __lt__(self, other):
         return  (not isinstance(other, NegInfinity) and
-                                not missing.checknull(other))
+                            not missing.checknull(other))
 
     def __le__(self, other):
         return not missing.checknull(other)
@@ -768,7 +768,7 @@ def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
     n = len(arr)
 
     if n == 1:
-        if arr[0] != arr[0] or (numeric_object_t is int64_t and timelike and 
+        if arr[0] != arr[0] or (numeric_object_t is int64_t and timelike and
                                 arr[0] == NPY_NAT):
             # single value is NaN
             return False, False, True

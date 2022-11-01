@@ -1,5 +1,5 @@
 """
-The following are faster versions of struct.unpack that avoid the overhead of Python 
+The following are faster versions of struct.unpack that avoid the overhead of Python
 function calls.
 
 In the SAS7BDAT parser, they may be called up to (n_rows * n_cols) times.

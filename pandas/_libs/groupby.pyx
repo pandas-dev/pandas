@@ -1367,8 +1367,8 @@ def group_last(
                         #  set a placeholder value in out[i, j].
                         if uses_mask:
                             result_mask[i, j] = True
-                        elif numeric_object_t is float32_t or numeric_object_t is 
-                             float64_t:
+                        elif (numeric_object_t is float32_t or 
+                              numeric_object_t is float64_t):
                             out[i, j] = NAN
                         elif numeric_object_t is int64_t:
                             # Per above, this is a placeholder in
@@ -1488,8 +1488,8 @@ def group_nth(
                             #  it was initialized with np.empty. Also ensures
                             #  we can downcast out if appropriate.
                             out[i, j] = 0
-                        elif numeric_object_t is float32_t or numeric_object_t is 
-                             float64_t:
+                        elif (numeric_object_t is float32_t or 
+                              numeric_object_t is float64_t):
                             out[i, j] = NAN
                         elif numeric_object_t is int64_t:
                             # Per above, this is a placeholder in

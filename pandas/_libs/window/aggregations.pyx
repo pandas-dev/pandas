@@ -172,7 +172,7 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
                     add_sum(values[j], &nobs, &sum_x, &compensation_add,
                             &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_sum(minp, nobs, sum_x, num_consecutive_same_value, 
+            output[i] = calc_sum(minp, nobs, sum_x, num_consecutive_same_value,
                                  prev_value)
 
             if not is_monotonic_increasing_bounds:
@@ -212,7 +212,8 @@ cdef inline float64_t calc_mean(int64_t minp, Py_ssize_t nobs, Py_ssize_t neg_ct
 
 cdef inline void add_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
                           Py_ssize_t *neg_ct, float64_t *compensation,
-                          int64_t *num_consecutive_same_value, float64_t *prev_value) nogil:
+                          int64_t *num_consecutive_same_value, float64_t *prev_value) 
+                          nogil:
     """ add a value from the mean calc using Kahan summation """
     cdef:
         float64_t y, t
@@ -297,7 +298,7 @@ def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
                     add_mean(val, &nobs, &sum_x, &neg_ct, &compensation_add,
                              &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_mean(minp, nobs, neg_ct, sum_x, num_consecutive_same_value, 
+            output[i] = calc_mean(minp, nobs, neg_ct, sum_x, num_consecutive_same_value,
                                   prev_value)
 
             if not is_monotonic_increasing_bounds:
@@ -312,7 +313,8 @@ def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
 
 
 cdef inline float64_t calc_var(int64_t minp, int ddof, float64_t nobs,
-                               float64_t ssqdm_x, int64_t num_consecutive_same_value) nogil:
+                               float64_t ssqdm_x, int64_t num_consecutive_same_value) 
+                               nogil:
     cdef:
         float64_t result
 
@@ -332,7 +334,8 @@ cdef inline float64_t calc_var(int64_t minp, int ddof, float64_t nobs,
 
 cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
                          float64_t *ssqdm_x, float64_t *compensation,
-                         int64_t *num_consecutive_same_value, float64_t *prev_value) nogil:
+                         int64_t *num_consecutive_same_value, float64_t *prev_value) 
+                         nogil:
     """ add a value from the var calc """
     cdef:
         float64_t delta, prev_mean, y, t
@@ -855,7 +858,8 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
                              &compensation_xxx_add, &compensation_xxxx_add,
                              &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_kurt(minp, nobs, x, xx, xxx, xxxx, num_consecutive_same_value)
+            output[i] = calc_kurt(minp, nobs, x, xx, xxx, xxxx, 
+                                  num_consecutive_same_value)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
@@ -878,7 +882,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
         bint err = False, is_monotonic_increasing_bounds
         int midpoint, ret = 0
         int64_t nobs = 0, N = len(start), s, e, win
-        float64_t val, res, 
+        float64_t val, res,
         skiplist_t *sl
         ndarray[float64_t] output
 
@@ -1277,7 +1281,7 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
     derived from roll_quantile
     """
     cdef:
-        Py_ssize_t i, j, s, e, N = len(start), 
+        Py_ssize_t i, j, s, e, N = len(start),
         float64_t rank_min = 0, rank = 0
         int64_t nobs = 0, win
         float64_t val

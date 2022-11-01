@@ -366,8 +366,8 @@ cdef class _Timestamp(ABCTimestamp):
             elif op == Py_NE:
                 return True
             raise TypeError("Cannot compare Timestamp with datetime.date. "
-                "Use ts == pd.Timestamp(date) or ts.date() == date instead."
-            )
+                            "Use ts == pd.Timestamp(date) or ts.date() == date instead."
+                            )
         else:
             return NotImplemented
 
@@ -1670,7 +1670,7 @@ class Timestamp(_Timestamp):
             if not is_offset_object(freq):
                 freq = to_offset(freq)
 
-        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold, 
+        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold,
                                         ts.creso)
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
