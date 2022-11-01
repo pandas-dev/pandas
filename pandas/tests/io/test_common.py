@@ -317,9 +317,6 @@ Look,a snake,🐍"""
             ),
         ],
     )
-    @pytest.mark.filterwarnings(
-        "ignore:CategoricalBlock is deprecated:DeprecationWarning"
-    )
     @pytest.mark.filterwarnings(  # pytables np.object usage
         "ignore:`np.object` is a deprecated alias:DeprecationWarning"
     )
