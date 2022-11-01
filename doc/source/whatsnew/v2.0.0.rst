@@ -39,12 +39,12 @@ to return pyarrow-backed dtypes when set to ``"pyarrow"`` (:issue:`48957`).
 .. ipython:: python
 
     import io
-    data = """a,b,c,d,e,f,g,h,i,j
-        1,2.5,True,a,,,,,12-31-2019,
-        3,4.5,False,b,6,7.5,True,a,12-31-2019,
-    """
+    data = io.StringIO("""a,b,c,d,e,f,g,h,i
+        1,2.5,True,a,,,,,
+        3,4.5,False,b,6,7.5,True,a,
+    """)
     with pd.option_context("io.nullable_backend", "pyarrow"):
-        df = pd.read_csv(io.StringIO(data), use_nullable_dtypes=True, parse_dates=["i"])
+        df = pd.read_csv(data, use_nullable_dtypes=True, engine="pyarrow")
     df
 
 .. _whatsnew_200.enhancements.other:
