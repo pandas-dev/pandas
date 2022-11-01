@@ -101,7 +101,6 @@ def test_same_ordering(datapath):
         pytest.param("bs4", marks=[td.skip_if_no("bs4"), td.skip_if_no("html5lib")]),
         pytest.param("lxml", marks=td.skip_if_no("lxml")),
     ],
-    scope="class",
 )
 class TestReadHtml:
     @pytest.fixture
@@ -112,7 +111,7 @@ class TestReadHtml:
     def banklist_data(self, datapath):
         return datapath("io", "data", "html", "banklist.html")
 
-    @pytest.fixture(autouse=True, scope="function")
+    @pytest.fixture(autouse=True)
     def set_defaults(self, flavor):
         self.read_html = partial(read_html, flavor=flavor)
         yield
