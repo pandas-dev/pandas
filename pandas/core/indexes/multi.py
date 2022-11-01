@@ -28,7 +28,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.index import multiindex_nulls_shift
 from pandas._typing import (
     AnyAll,
     AnyArrayLike,
@@ -1093,7 +1092,13 @@ class MultiIndex(Index):
         # NaN values are shifted to 1 and missing values in other while
         # calculating the indexer are shifted to 0
         sizes = np.ceil(
-            np.log2([len(level) + multiindex_nulls_shift for level in self.levels])
+            np.log2(
+                [
+                    len(level)
+                    + libindex.multiindex_nulls_shift  # type: ignore[attr-defined]
+                    for level in self.levels
+                ]
+            )
         )
 
         # Sum bit counts, starting from the _right_....
