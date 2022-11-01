@@ -265,7 +265,7 @@ def group_cumprod(
     This method modifies the `out` parameter, rather than returning an object.
     """
     cdef:
-        Py_ssize_t i, j, N, K,
+        Py_ssize_t i, j, N, K
         int64float_t val, na_val
         int64float_t[:, ::1] accum
         intp_t lab

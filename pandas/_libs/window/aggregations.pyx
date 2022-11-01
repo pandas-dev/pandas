@@ -901,7 +901,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
         bint err = False, is_monotonic_increasing_bounds
         int midpoint, ret = 0
         int64_t nobs = 0, N = len(start), s, e, win
-        float64_t val, res,
+        float64_t val, res
         skiplist_t *sl
         ndarray[float64_t] output
 
@@ -1300,7 +1300,7 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
     derived from roll_quantile
     """
     cdef:
-        Py_ssize_t i, j, s, e, N = len(start),
+        Py_ssize_t i, j, s, e, N = len(start)
         float64_t rank_min = 0, rank = 0
         int64_t nobs = 0, win
         float64_t val

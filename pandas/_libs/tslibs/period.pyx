@@ -1053,8 +1053,9 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     cdef:
         Py_ssize_t n = len(arr)
         Py_ssize_t increment = arr.strides[0] // 8
-        ndarray[int64_t] result = cnp.PyArray_EMPTY(arr.ndim, arr.shape, cnp.NPY_INT64,
-                                                    0)
+        ndarray[int64_t] result = cnp.PyArray_EMPTY(
+            arr.ndim, arr.shape, cnp.NPY_INT64, 0
+        )
 
     _period_asfreq(
         <int64_t*>cnp.PyArray_DATA(arr),
@@ -2482,8 +2483,8 @@ class Period(_Period):
         the start or the end of the period, but rather the entire period itself.
     freq : str, default None
         One of pandas period strings or corresponding objects. Accepted
-        strings are listed in the :ref:`offset alias section
-        <timeseries.offset_aliases>` in the user docs.
+        strings are listed in the
+        :ref:`offset alias section <timeseries.offset_aliases>` in the user docs.
     ordinal : int, default None
         The period offset from the proleptic Gregorian epoch.
     year : int, default None

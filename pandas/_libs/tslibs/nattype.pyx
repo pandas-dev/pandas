@@ -203,11 +203,11 @@ cdef class _NaT(datetime):
                     result.fill("NaT")
                     return result
 
-                """__rsub__ logic here
-                TODO(cython3): remove this, move above code out of
-                ``if not is_rsub`` block
-                timedelta64 - NaT we have to treat NaT as timedelta64
-                for this to be meaningful, and the result is timedelta64"""
+                # __rsub__ logic here
+                # TODO(cython3): remove this, move above code out of
+                # ``if not is_rsub`` block
+                # timedelta64 - NaT we have to treat NaT as timedelta64
+                # for this to be meaningful, and the result is timedelta64
                 result = np.empty(other.shape, dtype="timedelta64[ns]")
                 result.fill("NaT")
                 return result
