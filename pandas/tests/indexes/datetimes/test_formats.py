@@ -13,25 +13,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_to_native_types_method_deprecated():
-    index = pd.date_range(freq="1D", periods=3, start="2017-01-01")
-    expected = np.array(["2017-01-01", "2017-01-02", "2017-01-03"], dtype=object)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = index.to_native_types()
-
-    tm.assert_numpy_array_equal(result, expected)
-
-    # Make sure slicing works
-    expected = np.array(["2017-01-01", "2017-01-03"], dtype=object)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = index.to_native_types([0, 2])
-
-    tm.assert_numpy_array_equal(result, expected)
-
-
-def test_to_native_types():
+def test_format_native_types():
     index = pd.date_range(freq="1D", periods=3, start="2017-01-01")
 
     # First, with no arguments.

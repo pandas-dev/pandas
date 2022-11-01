@@ -28,6 +28,7 @@ from pandas._libs import (
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    AxisInt,
     DtypeObj,
     IndexLabel,
     TakeIndexer,
@@ -404,6 +405,11 @@ def unique(values):
     >>> pd.unique([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")])
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
     """
+    return unique_with_mask(values)
+
+
+def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
+    """See algorithms.unique for docs. Takes a mask for masked arrays."""
     values = _ensure_arraylike(values)
 
     if is_extension_array_dtype(values.dtype):
@@ -414,9 +420,16 @@ def unique(values):
     htable, values = _get_hashtable_algo(values)
 
     table = htable(len(values))
-    uniques = table.unique(values)
-    uniques = _reconstruct_data(uniques, original.dtype, original)
-    return uniques
+    if mask is None:
+        uniques = table.unique(values)
+        uniques = _reconstruct_data(uniques, original.dtype, original)
+        return uniques
+
+    else:
+        uniques, mask = table.unique(values, mask=mask)
+        uniques = _reconstruct_data(uniques, original.dtype, original)
+        assert mask is not None  # for mypy
+        return uniques, mask.astype("bool")
 
 
 unique1d = unique
@@ -448,12 +461,14 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
-        if not is_signed_integer_dtype(comps):
+        orig_values = list(values)
+        values = _ensure_arraylike(orig_values)
+
+        if is_numeric_dtype(values) and not is_signed_integer_dtype(comps):
             # GH#46485 Use object to avoid upcast to float64 later
             # TODO: Share with _find_common_type_compat
-            values = construct_1d_object_array_from_listlike(list(values))
-        else:
-            values = _ensure_arraylike(list(values))
+            values = construct_1d_object_array_from_listlike(orig_values)
+
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
         values = np.array(values)
@@ -509,7 +524,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
 
 def factorize_array(
     values: np.ndarray,
-    na_sentinel: int = -1,
+    na_sentinel: int | None = -1,
     size_hint: int | None = None,
     na_value: object = None,
     mask: npt.NDArray[np.bool_] | None = None,
@@ -540,6 +555,10 @@ def factorize_array(
     codes : ndarray[np.intp]
     uniques : ndarray
     """
+    ignore_na = na_sentinel is not None
+    if not ignore_na:
+        na_sentinel = -1
+
     original = values
     if values.dtype.kind in ["m", "M"]:
         # _get_hashtable_algo will cast dt64/td64 to i8 via _ensure_data, so we
@@ -552,7 +571,11 @@ def factorize_array(
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
-        values, na_sentinel=na_sentinel, na_value=na_value, mask=mask
+        values,
+        na_sentinel=na_sentinel,
+        na_value=na_value,
+        mask=mask,
+        ignore_na=ignore_na,
     )
 
     # re-cast e.g. i8->dt64/td64, uint8->bool
@@ -726,6 +749,10 @@ def factorize(
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
 
+    # GH#46910 deprecated na_sentinel in favor of use_na_sentinel:
+    #   na_sentinel=None corresponds to use_na_sentinel=False
+    #   na_sentinel=-1 correspond to use_na_sentinel=True
+    # Other na_sentinel values will not be supported when the deprecation is enforced.
     na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
     if isinstance(values, ABCRangeIndex):
         return values.factorize(sort=sort)
@@ -734,13 +761,6 @@ def factorize(
     original = values
     if not isinstance(values, ABCMultiIndex):
         values = extract_array(values, extract_numpy=True)
-
-    # GH35667, if na_sentinel=None, we will not dropna NaNs from the uniques
-    # of values, assign na_sentinel=-1 to replace code value for NaN.
-    dropna = True
-    if na_sentinel is None:
-        na_sentinel = -1
-        dropna = False
 
     if (
         isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray))
@@ -753,38 +773,44 @@ def factorize(
 
     elif not isinstance(values.dtype, np.dtype):
         if (
-            na_sentinel == -1
-            and "use_na_sentinel" in inspect.signature(values.factorize).parameters
-        ):
+            na_sentinel == -1 or na_sentinel is None
+        ) and "use_na_sentinel" in inspect.signature(values.factorize).parameters:
             # Avoid using catch_warnings when possible
             # GH#46910 - TimelikeOps has deprecated signature
             codes, uniques = values.factorize(  # type: ignore[call-arg]
-                use_na_sentinel=True
+                use_na_sentinel=na_sentinel is not None
             )
         else:
+            na_sentinel_arg = -1 if na_sentinel is None else na_sentinel
             with warnings.catch_warnings():
                 # We've already warned above
                 warnings.filterwarnings("ignore", ".*use_na_sentinel.*", FutureWarning)
-                codes, uniques = values.factorize(na_sentinel=na_sentinel)
+                codes, uniques = values.factorize(na_sentinel=na_sentinel_arg)
 
     else:
         values = np.asarray(values)  # convert DTA/TDA/MultiIndex
+
+        if na_sentinel is None and is_object_dtype(values):
+            # factorize can now handle differentiating various types of null values.
+            # These can only occur when the array has object dtype.
+            # However, for backwards compatibility we only use the null for the
+            # provided dtype. This may be revisited in the future, see GH#48476.
+            null_mask = isna(values)
+            if null_mask.any():
+                na_value = na_value_for_dtype(values.dtype, compat=False)
+                # Don't modify (potentially user-provided) array
+                values = np.where(null_mask, na_value, values)
+
         codes, uniques = factorize_array(
-            values, na_sentinel=na_sentinel, size_hint=size_hint
+            values,
+            na_sentinel=na_sentinel,
+            size_hint=size_hint,
         )
 
     if sort and len(uniques) > 0:
         uniques, codes = safe_sort(
             uniques, codes, na_sentinel=na_sentinel, assume_unique=True, verify=False
         )
-
-    code_is_na = codes == na_sentinel
-    if not dropna and code_is_na.any():
-        # na_value is set based on the dtype of uniques, and compat set to False is
-        # because we do not want na_value to be 0 for integers
-        na_value = na_value_for_dtype(uniques.dtype, compat=False)
-        uniques = np.append(uniques, [na_value])
-        codes = np.where(code_is_na, len(uniques) - 1, codes)
 
     uniques = _reconstruct_data(uniques, original.dtype, original)
 
@@ -836,9 +862,7 @@ def resolve_na_sentinel(
                 "Specify `use_na_sentinel=True` to use the sentinel value -1, and "
                 "`use_na_sentinel=False` to encode NaN values."
             )
-        warnings.warn(
-            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
         result = na_sentinel
     return result
 
@@ -1000,6 +1024,10 @@ def duplicated(
     -------
     duplicated : ndarray[bool]
     """
+    if hasattr(values, "dtype") and isinstance(values.dtype, BaseMaskedDtype):
+        values = cast("BaseMaskedArray", values)
+        return htable.duplicated(values._data, keep=keep, mask=values._mask)
+
     values = _ensure_data(values)
     return htable.duplicated(values, keep=keep)
 
@@ -1036,7 +1064,10 @@ def mode(
     try:
         npresult = np.sort(npresult)
     except TypeError as err:
-        warnings.warn(f"Unable to sort modes: {err}")
+        warnings.warn(
+            f"Unable to sort modes: {err}",
+            stacklevel=find_stack_level(),
+        )
 
     result = _reconstruct_data(npresult, original.dtype, original)
     return result
@@ -1044,7 +1075,7 @@ def mode(
 
 def rank(
     values: ArrayLike,
-    axis: int = 0,
+    axis: AxisInt = 0,
     method: str = "average",
     na_option: str = "keep",
     ascending: bool = True,
@@ -1422,7 +1453,7 @@ class SelectNFrame(SelectN):
 def take(
     arr,
     indices: TakeIndexer,
-    axis: int = 0,
+    axis: AxisInt = 0,
     allow_fill: bool = False,
     fill_value=None,
 ):
@@ -1614,7 +1645,7 @@ def searchsorted(
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0):
+def diff(arr, n: int, axis: AxisInt = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1660,7 +1691,7 @@ def diff(arr, n: int, axis: int = 0):
                 "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             arr = np.asarray(arr)
             dtype = arr.dtype
@@ -1733,10 +1764,10 @@ def diff(arr, n: int, axis: int = 0):
 def safe_sort(
     values,
     codes=None,
-    na_sentinel: int = -1,
+    na_sentinel: int | None = -1,
     assume_unique: bool = False,
     verify: bool = True,
-) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+) -> AnyArrayLike | tuple[AnyArrayLike, np.ndarray]:
     """
     Sort ``values`` and reorder corresponding ``codes``.
 
@@ -1750,8 +1781,8 @@ def safe_sort(
     codes : list_like, optional
         Indices to ``values``. All out of bound indices are treated as
         "not found" and will be masked with ``na_sentinel``.
-    na_sentinel : int, default -1
-        Value in ``codes`` to mark "not found".
+    na_sentinel : int or None, default -1
+        Value in ``codes`` to mark "not found", or None to encode null values as normal.
         Ignored when ``codes`` is None.
     assume_unique : bool, default False
         When True, ``values`` are assumed to be unique, which can speed up
@@ -1765,7 +1796,7 @@ def safe_sort(
 
     Returns
     -------
-    ordered : ndarray
+    ordered : AnyArrayLike
         Sorted ``values``
     new_codes : ndarray
         Reordered ``codes``; returned when ``codes`` is not None.
@@ -1784,7 +1815,7 @@ def safe_sort(
             "Only list-like objects are allowed to be passed to safe_sort as values"
         )
 
-    if not isinstance(values, (np.ndarray, ABCExtensionArray)):
+    if not is_array_like(values):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
         # error: Argument "dtype" to "asarray" has incompatible type "Union[dtype[Any],
@@ -1794,6 +1825,7 @@ def safe_sort(
         values = np.asarray(values, dtype=dtype)  # type: ignore[arg-type]
 
     sorter = None
+    ordered: AnyArrayLike
 
     if (
         not is_extension_array_dtype(values)
@@ -1850,30 +1882,35 @@ def safe_sort(
         # may deal with them here without performance loss using `mode='wrap'`
         new_codes = reverse_indexer.take(codes, mode="wrap")
 
-        mask = codes == na_sentinel
-        if verify:
-            mask = mask | (codes < -len(values)) | (codes >= len(values))
+        if na_sentinel is not None:
+            mask = codes == na_sentinel
+            if verify:
+                mask = mask | (codes < -len(values)) | (codes >= len(values))
 
-    if mask is not None:
+    if na_sentinel is not None and mask is not None:
         np.putmask(new_codes, mask, na_sentinel)
 
     return ordered, ensure_platform_int(new_codes)
 
 
-def _sort_mixed(values) -> np.ndarray:
-    """order ints before strings in 1d arrays, safe in py3"""
+def _sort_mixed(values) -> AnyArrayLike:
+    """order ints before strings before nulls in 1d arrays"""
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
-    none_pos = np.array([x is None for x in values], dtype=bool)
-    nums = np.sort(values[~str_pos & ~none_pos])
-    strs = np.sort(values[str_pos])
-    return np.concatenate(
-        [nums, np.asarray(strs, dtype=object), np.array(values[none_pos])]
-    )
+    null_pos = np.array([isna(x) for x in values], dtype=bool)
+    num_pos = ~str_pos & ~null_pos
+    str_argsort = np.argsort(values[str_pos])
+    num_argsort = np.argsort(values[num_pos])
+    # convert boolean arrays to positional indices, then order by underlying values
+    str_locs = str_pos.nonzero()[0].take(str_argsort)
+    num_locs = num_pos.nonzero()[0].take(num_argsort)
+    null_locs = null_pos.nonzero()[0]
+    locs = np.concatenate([num_locs, str_locs, null_locs])
+    return values.take(locs)
 
 
 def _sort_tuples(values: np.ndarray) -> np.ndarray:
     """
-    Convert array of tuples (1d) to array or array (2d).
+    Convert array of tuples (1d) to array of arrays (2d).
     We need to keep the columns separately as they contain different types and
     nans (can't use `np.sort` as it may fail when str and nan are mixed in a
     column as types cannot be compared).
@@ -1886,7 +1923,9 @@ def _sort_tuples(values: np.ndarray) -> np.ndarray:
     return values[indexer]
 
 
-def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
+def union_with_duplicates(
+    lvals: ArrayLike | Index, rvals: ArrayLike | Index
+) -> ArrayLike | Index:
     """
     Extracts the union from lvals and rvals with respect to duplicates and nans in
     both arrays.
@@ -1907,13 +1946,21 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     -----
     Caller is responsible for ensuring lvals.dtype == rvals.dtype.
     """
-    indexer = []
+    from pandas import Series
+
     l_count = value_counts(lvals, dropna=False)
     r_count = value_counts(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
-    unique_array = unique(concat_compat([lvals, rvals]))
-    unique_array = ensure_wrapped_if_datetimelike(unique_array)
-
-    for i, value in enumerate(unique_array):
-        indexer += [i] * int(max(l_count.at[value], r_count.at[value]))
-    return unique_array.take(indexer)
+    final_count = np.maximum(l_count.values, r_count.values)
+    final_count = Series(final_count, index=l_count.index, dtype="int", copy=False)
+    if isinstance(lvals, ABCMultiIndex) and isinstance(rvals, ABCMultiIndex):
+        unique_vals = lvals.append(rvals).unique()
+    else:
+        if isinstance(lvals, ABCIndex):
+            lvals = lvals._values
+        if isinstance(rvals, ABCIndex):
+            rvals = rvals._values
+        unique_vals = unique(concat_compat([lvals, rvals]))
+        unique_vals = ensure_wrapped_if_datetimelike(unique_vals)
+    repeats = final_count.reindex(unique_vals).values
+    return np.repeat(unique_vals, repeats)

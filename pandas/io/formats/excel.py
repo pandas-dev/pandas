@@ -28,6 +28,7 @@ from pandas._typing import (
     StorageOptions,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import (
@@ -276,7 +277,7 @@ class CSSToExcelConverter:
             # Return "none" will keep "border" in style dictionary
             return "none"
 
-        if style == "none" or style == "hidden":
+        if style in ("none", "hidden"):
             return "none"
 
         width_name = self._get_width_name(width)
@@ -427,7 +428,11 @@ class CSSToExcelConverter:
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
-            warnings.warn(f"Unhandled color format: {repr(val)}", CSSWarning)
+            warnings.warn(
+                f"Unhandled color format: {repr(val)}",
+                CSSWarning,
+                stacklevel=find_stack_level(),
+            )
         return None
 
     def _is_hex_color(self, color_string: str) -> bool:
@@ -874,14 +879,8 @@ class ExcelFormatter:
             is to be frozen
         engine : string, default None
             write engine to use if writer is a path - you can also set this
-            via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``,
-            and ``io.excel.xlsm.writer``.
-
-            .. deprecated:: 1.2.0
-
-                As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
-                maintained, the ``xlwt`` engine will be removed in a future
-                version of pandas.
+            via the options ``io.excel.xlsx.writer``,
+            or ``io.excel.xlsm.writer``.
 
         {storage_options}
 

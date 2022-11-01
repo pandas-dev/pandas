@@ -4,7 +4,6 @@ SparseArray data structure
 from __future__ import annotations
 
 from collections import abc
-import inspect
 import numbers
 import operator
 from typing import (
@@ -32,6 +31,8 @@ from pandas._libs.tslibs import NaT
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
+    Axis,
+    AxisInt,
     Dtype,
     NpDtype,
     PositionalIndexer,
@@ -77,7 +78,10 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import arraylike
+from pandas.core import (
+    arraylike,
+    ops,
+)
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
@@ -95,9 +99,8 @@ from pandas.core.indexers import (
 )
 from pandas.core.missing import interpolate_2d
 from pandas.core.nanops import check_below_min_count
-import pandas.core.ops as ops
 
-import pandas.io.formats.printing as printing
+from pandas.io.formats import printing
 
 # See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
@@ -116,6 +119,8 @@ if TYPE_CHECKING:
     )
 
     SparseIndexKind = Literal["integer", "block"]
+
+    from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Series
 
@@ -415,7 +420,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 "to construct an array with the desired repeats of the "
                 "scalar value instead.\n\n",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if index is not None and not is_scalar(data):
@@ -494,7 +499,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                         "loses timezone information. Cast to object before "
                         "sparse to retain timezone information.",
                         UserWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
                     data = np.asarray(data, dtype="datetime64[ns]")
                     if fill_value is NaT:
@@ -661,7 +666,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self.dtype.fill_value
 
     @fill_value.setter
-    def fill_value(self, value):
+    def fill_value(self, value) -> None:
         self._dtype = SparseDtype(self.dtype.subtype, value)
 
     @property
@@ -778,7 +783,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         elif method is not None:
             msg = "fillna with 'method' requires high memory usage."
-            warnings.warn(msg, PerformanceWarning)
+            warnings.warn(
+                msg,
+                PerformanceWarning,
+                stacklevel=find_stack_level(),
+            )
             new_values = np.asarray(self)
             # interpolate_2d modifies new_values inplace
             interpolate_2d(new_values, method=method, limit=limit)
@@ -875,6 +884,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         codes, uniques = algos.factorize(
             np.asarray(self), na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
         )
+        if na_sentinel is lib.no_default:
+            na_sentinel = -1
+        if use_na_sentinel is lib.no_default or use_na_sentinel:
+            codes[codes == -1] = na_sentinel
         uniques_sp = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques_sp
 
@@ -1183,9 +1196,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     ) -> npt.NDArray[np.intp] | np.intp:
 
         msg = "searchsorted requires high memory usage."
-        warnings.warn(
-            msg, PerformanceWarning, stacklevel=find_stack_level(inspect.currentframe())
-        )
+        warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
         if not is_scalar(v):
             v = np.asarray(v)
         v = np.asarray(v)
@@ -1319,14 +1330,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         future_dtype = pandas_dtype(dtype)
         if not isinstance(future_dtype, SparseDtype):
             # GH#34457
-            warnings.warn(
-                "The behavior of .astype from SparseDtype to a non-sparse dtype "
-                "is deprecated. In a future version, this will return a non-sparse "
-                "array with the requested dtype. To retain the old behavior, use "
-                "`obj.astype(SparseDtype(dtype))`",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
+            if isinstance(future_dtype, np.dtype):
+                values = np.array(self)
+                return astype_nansafe(values, dtype=future_dtype)
+            else:
+                dtype = cast(ExtensionDtype, dtype)
+                cls = dtype.construct_array_type()
+                return cls._from_sequence(self, dtype=dtype, copy=copy)
 
         dtype = self.dtype.update_dtype(dtype)
         subtype = pandas_dtype(dtype._subtype_with_str)
@@ -1376,7 +1386,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Indices: array([1, 2], dtype=int32)
         """
         # this is used in apply.
-        # We get hit since we're an "is_extension_type" but regular extension
+        # We get hit since we're an "is_extension_array_dtype" but regular extension
         # types are not hit. This may be worth adding to the interface.
         if isinstance(mapper, ABCSeries):
             mapper = mapper.to_dict()
@@ -1416,8 +1426,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if isinstance(state, tuple):
             # Compat for pandas < 0.24.0
             nd_state, (fill_value, sp_index) = state
-            # error: Need type annotation for "sparse_values"
-            sparse_values = np.array([])  # type: ignore[var-annotated]
+            sparse_values = np.array([])
             sparse_values.__setstate__(nd_state)
 
             self._sparse_values = sparse_values
@@ -1470,7 +1479,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return values.all()
 
-    def any(self, axis=0, *args, **kwargs):
+    def any(self, axis: AxisInt = 0, *args, **kwargs):
         """
         Tests whether at least one of elements evaluate True
 
@@ -1492,7 +1501,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return values.any().item()
 
     def sum(
-        self, axis: int = 0, min_count: int = 0, skipna: bool = True, *args, **kwargs
+        self,
+        axis: AxisInt = 0,
+        min_count: int = 0,
+        skipna: bool = True,
+        *args,
+        **kwargs,
     ) -> Scalar:
         """
         Sum of non-NA/null values
@@ -1530,7 +1544,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum + self.fill_value * nsparse
 
-    def cumsum(self, axis: int = 0, *args, **kwargs) -> SparseArray:
+    def cumsum(self, axis: AxisInt = 0, *args, **kwargs) -> SparseArray:
         """
         Cumulative sum of non-NA/null values.
 
@@ -1562,7 +1576,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             fill_value=self.fill_value,
         )
 
-    def mean(self, axis=0, *args, **kwargs):
+    def mean(self, axis: Axis = 0, *args, **kwargs):
         """
         Mean of non-NA/null values
 
@@ -1581,7 +1595,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
-    def max(self, *, axis: int | None = None, skipna: bool = True):
+    def max(self, *, axis: AxisInt | None = None, skipna: bool = True):
         """
         Max of array values, ignoring NA values if specified.
 
@@ -1599,7 +1613,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         nv.validate_minmax_axis(axis, self.ndim)
         return self._min_max("max", skipna=skipna)
 
-    def min(self, *, axis: int | None = None, skipna: bool = True):
+    def min(self, *, axis: AxisInt | None = None, skipna: bool = True):
         """
         Min of array values, ignoring NA values if specified.
 
@@ -1864,7 +1878,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         pp_index = printing.pprint_thing(self.sp_index)
         return f"{pp_str}\nFill: {pp_fill}\n{pp_index}"
 
-    def _formatter(self, boxed=False):
+    def _formatter(self, boxed: bool = False):
         # Defer to the formatter from the GenericArrayFormatter calling us.
         # This will infer the correct formatter from the dtype of the values.
         return None

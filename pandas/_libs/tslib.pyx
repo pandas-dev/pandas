@@ -1,5 +1,3 @@
-import warnings
-
 cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
@@ -30,9 +28,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     check_dts_bounds,
-    dtstruct_to_dt64,
     get_datetime64_value,
     npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
     pydate_to_dt64,
     pydatetime_to_dt64,
@@ -92,7 +90,7 @@ def _test_parse_iso8601(ts: str):
         return Timestamp.now().normalize()
 
     string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True)
-    obj.value = dtstruct_to_dt64(&obj.dts)
+    obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:
         obj.tzinfo = pytz.FixedOffset(out_tzoffset)
@@ -419,6 +417,23 @@ def array_with_unit_to_datetime(
 
     return oresult, tz
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def first_non_null(values: ndarray) -> int:
+    """Find position of first non-null value, return -1 if there isn't one."""
+    cdef:
+        Py_ssize_t n = len(values)
+        Py_ssize_t i
+        int result
+    for i in range(n):
+        val = values[i]
+        if checknull_with_nat_and_na(val):
+            continue
+        if isinstance(val, str) and (len(val) == 0 or val in nat_strings):
+            continue
+        return i
+    else:
+        return -1
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -471,12 +486,10 @@ cpdef array_to_datetime(
         Py_ssize_t i, n = len(values)
         object val, tz
         ndarray[int64_t] iresult
-        ndarray[object] oresult
         npy_datetimestruct dts
         NPY_DATETIMEUNIT out_bestunit
         bint utc_convert = bool(utc)
         bint seen_integer = False
-        bint seen_string = False
         bint seen_datetime = False
         bint seen_datetime_offset = False
         bint is_raise = errors=='raise'
@@ -486,7 +499,7 @@ cpdef array_to_datetime(
         _TSObject _ts
         int64_t value
         int out_local = 0, out_tzoffset = 0
-        float offset_seconds, tz_offset
+        float tz_offset
         set out_tzoffset_vals = set()
         bint string_to_dts_failed
         datetime py_dt
@@ -513,6 +526,7 @@ cpdef array_to_datetime(
                         found_tz = True
                         if utc_convert:
                             _ts = convert_datetime_to_tsobject(val, None)
+                            _ts.ensure_reso(NPY_FR_ns)
                             iresult[i] = _ts.value
                         elif found_naive:
                             raise ValueError('Tz-aware datetime.datetime '
@@ -526,15 +540,16 @@ cpdef array_to_datetime(
                             found_tz = True
                             tz_out = val.tzinfo
                             _ts = convert_datetime_to_tsobject(val, None)
+                            _ts.ensure_reso(NPY_FR_ns)
                             iresult[i] = _ts.value
 
                     else:
                         found_naive = True
-                        if found_tz:
+                        if found_tz and not utc_convert:
                             raise ValueError('Cannot mix tz-aware with '
                                              'tz-naive values')
                         if isinstance(val, _Timestamp):
-                            iresult[i] = val.value
+                            iresult[i] = val._as_unit("ns").value
                         else:
                             iresult[i] = pydatetime_to_dt64(val, &dts)
                             check_dts_bounds(&dts)
@@ -546,7 +561,7 @@ cpdef array_to_datetime(
 
                 elif is_datetime64_object(val):
                     seen_datetime = True
-                    iresult[i] = get_datetime64_nanos(val)
+                    iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
 
                 elif is_integer_object(val) or is_float_object(val):
                     # these must be ns unit by-definition
@@ -569,7 +584,6 @@ cpdef array_to_datetime(
 
                 elif isinstance(val, str):
                     # string
-                    seen_string = True
                     if type(val) is not str:
                         # GH#32264 np.str_ object
                         val = str(val)
@@ -628,7 +642,7 @@ cpdef array_to_datetime(
                     if not string_to_dts_failed:
                         # No error reported by string_to_dts, pick back up
                         # where we left off
-                        value = dtstruct_to_dt64(&dts)
+                        value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
                         if out_local == 1:
                             seen_datetime_offset = True
                             # Store the out_tzoffset in seconds
@@ -837,17 +851,12 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
     # We delay this check for as long as possible
     # because it catches relatively rare cases
     if val == "now":
-        iresult[0] = Timestamp.utcnow().value
-        if not utc:
+        if utc:
+            iresult[0] = Timestamp.utcnow().value
+        else:
             # GH#18705 make sure to_datetime("now") matches Timestamp("now")
-            warnings.warn(
-                "The parsing of 'now' in pd.to_datetime without `utc=True` is "
-                "deprecated. In a future version, this will match Timestamp('now') "
-                "and Timestamp.now()",
-                FutureWarning,
-                stacklevel=1,
-            )
-
+            # Note using Timestamp.now() is faster than Timestamp("now")
+            iresult[0] = Timestamp.now().value
         return True
     elif val == "today":
         iresult[0] = Timestamp.today().value

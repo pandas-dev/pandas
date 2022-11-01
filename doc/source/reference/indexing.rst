@@ -68,7 +68,6 @@ Modifying and computations
    Index.is_floating
    Index.is_integer
    Index.is_interval
-   Index.is_mixed
    Index.is_numeric
    Index.is_object
    Index.min
@@ -111,7 +110,6 @@ Conversion
    Index.map
    Index.ravel
    Index.to_list
-   Index.to_native_types
    Index.to_series
    Index.to_frame
    Index.view
@@ -157,7 +155,6 @@ Selecting
    Index.get_level_values
    Index.get_loc
    Index.get_slice_bound
-   Index.get_value
    Index.isin
    Index.slice_indexer
    Index.slice_locs
@@ -242,7 +239,7 @@ IntervalIndex components
    IntervalIndex.left
    IntervalIndex.right
    IntervalIndex.mid
-   IntervalIndex.inclusive
+   IntervalIndex.closed
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_empty
@@ -251,7 +248,6 @@ IntervalIndex components
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
-   IntervalIndex.set_inclusive
    IntervalIndex.contains
    IntervalIndex.overlaps
    IntervalIndex.to_tuples
@@ -347,8 +343,6 @@ Time/date components
    DatetimeIndex.timetz
    DatetimeIndex.dayofyear
    DatetimeIndex.day_of_year
-   DatetimeIndex.weekofyear
-   DatetimeIndex.week
    DatetimeIndex.dayofweek
    DatetimeIndex.day_of_week
    DatetimeIndex.weekday
@@ -396,7 +390,6 @@ Conversion
    :toctree: api/
 
    DatetimeIndex.to_period
-   DatetimeIndex.to_perioddelta
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
    DatetimeIndex.to_frame

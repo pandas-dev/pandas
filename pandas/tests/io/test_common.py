@@ -12,6 +12,7 @@ from io import (
 import mmap
 import os
 from pathlib import Path
+import pickle
 import tempfile
 
 import pytest
@@ -117,11 +118,11 @@ bar2,12,13,14,15
                 assert os.path.expanduser(filename) == handles.handle.name
 
     def test_get_handle_with_buffer(self):
-        input_buffer = StringIO()
-        with icom.get_handle(input_buffer, "r") as handles:
-            assert handles.handle == input_buffer
-        assert not input_buffer.closed
-        input_buffer.close()
+        with StringIO() as input_buffer:
+            with icom.get_handle(input_buffer, "r") as handles:
+                assert handles.handle == input_buffer
+            assert not input_buffer.closed
+        assert input_buffer.closed
 
     # Test that BytesIOWrapper(get_handle) returns correct amount of bytes every time
     def test_bytesiowrapper_returns_correct_bytes(self):
@@ -341,7 +342,7 @@ Look,a snake,🐍"""
         "writer_name, writer_kwargs, module",
         [
             ("to_csv", {}, "os"),
-            ("to_excel", {"engine": "xlwt"}, "xlwt"),
+            ("to_excel", {"engine": "openpyxl"}, "openpyxl"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
             ("to_json", {}, "os"),
@@ -604,3 +605,23 @@ def test_close_on_error():
         with BytesIO() as buffer:
             with icom.get_handle(buffer, "rb") as handles:
                 handles.created_handles.append(TestError())
+
+
+@pytest.mark.parametrize(
+    "reader",
+    [
+        pd.read_csv,
+        pd.read_fwf,
+        pd.read_excel,
+        pd.read_feather,
+        pd.read_hdf,
+        pd.read_stata,
+        pd.read_sas,
+        pd.read_json,
+        pd.read_pickle,
+    ],
+)
+def test_pickle_reader(reader):
+    # GH 22265
+    with BytesIO() as buffer:
+        pickle.dump(reader, buffer)

@@ -21,7 +21,9 @@ class SharedSetAxisTests:
         expected.index = new_index
 
         # inplace=False
-        result = obj.set_axis(new_index, axis=0, inplace=False)
+        msg = "set_axis 'inplace' keyword is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.set_axis(new_index, axis=0, inplace=False)
         tm.assert_equal(expected, result)
 
     def test_set_axis_copy(self, obj):
@@ -35,7 +37,8 @@ class SharedSetAxisTests:
         with pytest.raises(
             ValueError, match="Cannot specify both inplace=True and copy=True"
         ):
-            obj.set_axis(new_index, axis=0, inplace=True, copy=True)
+            with tm.assert_produces_warning(FutureWarning):
+                obj.set_axis(new_index, axis=0, inplace=True, copy=True)
 
         result = obj.set_axis(new_index, axis=0, copy=True)
         tm.assert_equal(expected, result)
@@ -75,7 +78,8 @@ class SharedSetAxisTests:
             )
 
         # Do this last since it alters obj inplace
-        res = obj.set_axis(new_index, inplace=True, copy=False)
+        with tm.assert_produces_warning(FutureWarning):
+            res = obj.set_axis(new_index, inplace=True, copy=False)
         assert res is None
         tm.assert_equal(expected, obj)
         # check we did NOT make a copy
@@ -103,7 +107,8 @@ class SharedSetAxisTests:
             expected.columns = new_index
 
         result = obj.copy()
-        result.set_axis(new_index, axis=axis, inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            result.set_axis(new_index, axis=axis, inplace=True)
         tm.assert_equal(result, expected)
 
     def test_set_axis_unnamed_kwarg_warns(self, obj):
@@ -113,7 +118,9 @@ class SharedSetAxisTests:
         expected = obj.copy()
         expected.index = new_index
 
-        with tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(
+            FutureWarning, match="set_axis 'inplace' keyword"
+        ):
             result = obj.set_axis(new_index, inplace=False)
         tm.assert_equal(result, expected)
 
@@ -161,26 +168,3 @@ class TestSeriesSetAxis(SharedSetAxisTests):
     def obj(self):
         ser = Series(np.arange(4), index=[1, 3, 5, 7], dtype="int64")
         return ser
-
-
-def test_nonkeyword_arguments_deprecation_warning():
-    # https://github.com/pandas-dev/pandas/issues/41485
-    df = DataFrame({"a": [1, 2, 3]})
-    msg = (
-        r"In a future version of pandas all arguments of DataFrame\.set_axis "
-        r"except for the argument 'labels' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.set_axis([1, 2, 4], 0)
-    expected = DataFrame({"a": [1, 2, 3]}, index=[1, 2, 4])
-    tm.assert_frame_equal(result, expected)
-
-    ser = Series([1, 2, 3])
-    msg = (
-        r"In a future version of pandas all arguments of Series\.set_axis "
-        r"except for the argument 'labels' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = ser.set_axis([1, 2, 4], 0)
-    expected = Series([1, 2, 3], index=[1, 2, 4])
-    tm.assert_series_equal(result, expected)

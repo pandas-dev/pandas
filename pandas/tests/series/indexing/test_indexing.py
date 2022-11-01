@@ -194,12 +194,11 @@ def test_basic_getitem_setitem_corner(datetime_series):
     with pytest.raises(KeyError, match=msg):
         datetime_series[:, 2] = 2
 
-    # weird lists. [slice(0, 5)] will work but not two slices
-    with tm.assert_produces_warning(FutureWarning):
+    # weird lists. [slice(0, 5)] raises but not two slices
+    msg = "Indexing with a single-item list"
+    with pytest.raises(ValueError, match=msg):
         # GH#31299
-        result = datetime_series[[slice(None, 5)]]
-    expected = datetime_series[:5]
-    tm.assert_series_equal(result, expected)
+        datetime_series[[slice(None, 5)]]
 
     # OK
     msg = r"unhashable type(: 'slice')?"
@@ -209,7 +208,8 @@ def test_basic_getitem_setitem_corner(datetime_series):
         datetime_series[[5, slice(None, None)]] = 2
 
 
-def test_slice(string_series, object_series):
+def test_slice(string_series, object_series, using_copy_on_write):
+    original = string_series.copy()
     numSlice = string_series[10:20]
     numSliceEnd = string_series[-10:]
     objSlice = object_series[10:20]
@@ -227,7 +227,11 @@ def test_slice(string_series, object_series):
     sl = string_series[10:20]
     sl[:] = 0
 
-    assert (string_series[10:20] == 0).all()
+    if using_copy_on_write:
+        # Doesn't modify parent (CoW)
+        tm.assert_series_equal(string_series, original)
+    else:
+        assert (string_series[10:20] == 0).all()
 
 
 def test_timedelta_assignment():
@@ -244,21 +248,25 @@ def test_timedelta_assignment():
     tm.assert_series_equal(s, expected)
 
 
-def test_underlying_data_conversion():
+def test_underlying_data_conversion(using_copy_on_write):
     # GH 4080
     df = DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
     return_value = df.set_index(["a", "b", "c"], inplace=True)
     assert return_value is None
     s = Series([1], index=[(2, 2, 2)])
     df["val"] = 0
+    df_original = df.copy()
     df
     df["val"].update(s)
 
-    expected = DataFrame(
-        {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
-    )
-    return_value = expected.set_index(["a", "b", "c"], inplace=True)
-    assert return_value is None
+    if using_copy_on_write:
+        expected = df_original
+    else:
+        expected = DataFrame(
+            {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
+        )
+        return_value = expected.set_index(["a", "b", "c"], inplace=True)
+        assert return_value is None
     tm.assert_frame_equal(df, expected)
 
 
@@ -347,6 +355,22 @@ def test_loc_boolean_indexer_miss_matching_index():
     indexer = Series([NA, False], dtype="boolean", index=[1, 2])
     with pytest.raises(IndexingError, match="Unalignable"):
         ser.loc[indexer]
+
+
+def test_loc_setitem_nested_data_enlargement():
+    # GH#48614
+    df = DataFrame({"a": [1]})
+    ser = Series({"label": df})
+    ser.loc["new_label"] = df
+    expected = Series({"label": df, "new_label": df})
+    tm.assert_series_equal(ser, expected)
+
+
+def test_getitem_bool_int_key():
+    # GH#48653
+    ser = Series({True: 1, False: 0})
+    with pytest.raises(KeyError, match="0"):
+        ser.loc[0]
 
 
 class TestDeprecatedIndexers:

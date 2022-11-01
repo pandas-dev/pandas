@@ -102,13 +102,13 @@ class TestSelection:
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
 
-        # per GH 23566 this should raise a FutureWarning
-        with tm.assert_produces_warning(FutureWarning):
+        # per GH 23566 enforced deprecation raises a ValueError
+        with pytest.raises(ValueError, match="Cannot subset columns with a tuple"):
             df.groupby(0)[2, 4].mean()
 
-    def test_getitem_single_list_of_columns(self, df):
-        # per GH 23566 this should raise a FutureWarning
-        with tm.assert_produces_warning(FutureWarning):
+    def test_getitem_single_tuple_of_columns_raises(self, df):
+        # per GH 23566 enforced deprecation raises a ValueError
+        with pytest.raises(ValueError, match="Cannot subset columns with a tuple"):
             df.groupby("A")["C", "D"].mean()
 
     def test_getitem_single_column(self):
@@ -799,13 +799,13 @@ class TestGetGroup:
 
         # TODO: should prob allow a str of Interval work as well
         # IOW '(0, 5]'
-        result = g.get_group(pd.Interval(0, 5, "right"))
+        result = g.get_group(pd.Interval(0, 5))
         expected = DataFrame([3, 1], index=[0, 1])
         tm.assert_frame_equal(result, expected)
 
-        msg = r"Interval\(10, 15, inclusive='right'\)"
+        msg = r"Interval\(10, 15, closed='right'\)"
         with pytest.raises(KeyError, match=msg):
-            g.get_group(pd.Interval(10, 15, "right"))
+            g.get_group(pd.Interval(10, 15))
 
     def test_get_group_grouped_by_tuple(self):
         # GH 8121

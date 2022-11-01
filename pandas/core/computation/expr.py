@@ -44,7 +44,7 @@ from pandas.core.computation.parsing import (
 )
 from pandas.core.computation.scope import Scope
 
-import pandas.io.formats.printing as printing
+from pandas.io.formats import printing
 
 
 def _rewrite_assign(tok: tuple[int, str]) -> tuple[int, str]:
@@ -693,7 +693,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         else:
 
-            new_args = [self.visit(arg).value for arg in node.args]
+            new_args = [self.visit(arg)(self.env) for arg in node.args]
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
@@ -704,7 +704,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     )
 
                 if key.arg:
-                    kwargs[key.arg] = self.visit(key.value).value
+                    kwargs[key.arg] = self.visit(key.value)(self.env)
 
             name = self.env.add_tmp(res(*new_args, **kwargs))
             return self.term_type(name=name, env=self.env)

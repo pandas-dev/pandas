@@ -2,6 +2,7 @@ from datetime import datetime
 
 import numpy as np
 import pytest
+import pytz
 
 import pandas.util._test_decorators as td
 
@@ -24,13 +25,6 @@ from pandas.tseries.offsets import (
 )
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
-
-
-def test_union_many_deprecated():
-    dti = date_range("2016-01-01", periods=3)
-
-    with tm.assert_produces_warning(FutureWarning):
-        dti.union_many([dti, dti])
 
 
 class TestDatetimeIndexSetOps:
@@ -593,3 +587,14 @@ class TestCustomDatetimeIndex:
         result = a.intersection(b)
         tm.assert_index_equal(result, b)
         assert result.freq == b.freq
+
+    @pytest.mark.parametrize(
+        "tz", [None, "UTC", "Europe/Berlin", pytz.FixedOffset(-60)]
+    )
+    def test_intersection_dst_transition(self, tz):
+        # GH 46702: Europe/Berlin has DST transition
+        idx1 = date_range("2020-03-27", periods=5, freq="D", tz=tz)
+        idx2 = date_range("2020-03-30", periods=5, freq="D", tz=tz)
+        result = idx1.intersection(idx2)
+        expected = date_range("2020-03-30", periods=2, freq="D", tz=tz)
+        tm.assert_index_equal(result, expected)

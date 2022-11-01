@@ -1,5 +1,3 @@
-import warnings
-
 cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
@@ -22,7 +20,6 @@ cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDelta_Check,
     datetime,
     import_datetime,
 )
@@ -47,7 +44,6 @@ from pandas._libs.missing cimport C_NA
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
-    NPY_FR_us,
     astype_overflowsafe,
     check_dts_bounds,
     get_timedelta64_value,
@@ -777,7 +773,7 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
     """
     cdef:
         int64_t unix_date
-        int freq_group, fmonth, mdiff
+        int freq_group, fmonth
         NPY_DATETIMEUNIT unit
 
     freq_group = get_freq_group(freq)
@@ -1159,7 +1155,8 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         return "NaT"
 
     if isinstance(fmt, str):
-        fmt = fmt.encode("utf-8")
+        # Encode using current locale, in case fmt contains non-utf8 chars
+        fmt = <bytes>util.string_encode_locale(fmt)
 
     if fmt is None:
         freq_group = get_freq_group(freq)
@@ -1228,7 +1225,8 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     # Execute c_strftime to process the usual datetime directives
     formatted = c_strftime(&dts, <char*>fmt)
 
-    result = util.char_to_string(formatted)
+    # Decode result according to current locale
+    result = util.char_to_string_locale(formatted)
     free(formatted)
 
     # Now we will fill the placeholders corresponding to our additional directives
@@ -1691,7 +1689,7 @@ cdef class _Period(PeriodMixin):
             return NaT
 
         try:
-            inc = delta_to_nanoseconds(other, reso=self.freq._reso, round_ok=False)
+            inc = delta_to_nanoseconds(other, reso=self.freq._creso, round_ok=False)
         except ValueError as err:
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})") from err
@@ -1800,7 +1798,7 @@ cdef class _Period(PeriodMixin):
 
         return Period(ordinal=ordinal, freq=freq)
 
-    def to_timestamp(self, freq=None, how='start', tz=None) -> Timestamp:
+    def to_timestamp(self, freq=None, how="start") -> Timestamp:
         """
         Return the Timestamp representation of the Period.
 
@@ -1820,16 +1818,6 @@ cdef class _Period(PeriodMixin):
         -------
         Timestamp
         """
-        if tz is not None:
-            # GH#34522
-            warnings.warn(
-                "Period.to_timestamp `tz` argument is deprecated and will "
-                "be removed in a future version.  Use "
-                "`per.to_timestamp(...).tz_localize(tz)` instead.",
-                FutureWarning,
-                stacklevel=1,
-            )
-
         how = validate_end_alias(how)
 
         end = how == 'E'
@@ -1851,7 +1839,7 @@ cdef class _Period(PeriodMixin):
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
-        return Timestamp(dt64, tz=tz)
+        return Timestamp(dt64)
 
     @property
     def year(self) -> int:
@@ -2286,9 +2274,14 @@ cdef class _Period(PeriodMixin):
         return bool(is_leapyear(self.year))
 
     @classmethod
-    def now(cls, freq=None):
+    def now(cls, freq):
         """
         Return the period of now's date.
+
+        Parameters
+        ----------
+        freq : str, BaseOffset
+            Frequency to use for the returned period.
         """
         return Period(datetime.now(), freq=freq)
 

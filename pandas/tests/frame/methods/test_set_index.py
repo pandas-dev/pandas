@@ -25,25 +25,6 @@ import pandas._testing as tm
 
 
 class TestSetIndex:
-    def test_set_index_copy(self):
-        # GH#48043
-        df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
-        expected = DataFrame({"B": [3, 4], "C": [5, 6]}, index=Index([1, 2], name="A"))
-
-        res = df.set_index("A", copy=True)
-        tm.assert_frame_equal(res, expected)
-        assert not any(tm.shares_memory(df[col], res[col]) for col in res.columns)
-
-        res = df.set_index("A", copy=False)
-        tm.assert_frame_equal(res, expected)
-        assert all(tm.shares_memory(df[col], res[col]) for col in res.columns)
-
-        msg = "Cannot specify copy when inplace=True"
-        with pytest.raises(ValueError, match=msg):
-            df.set_index("A", inplace=True, copy=True)
-        with pytest.raises(ValueError, match=msg):
-            df.set_index("A", inplace=True, copy=False)
-
     def test_set_index_multiindex(self):
         # segfault in GH#3308
         d = {"t1": [2, 2.5, 3], "t2": [4, 5, 6]}
@@ -723,15 +704,3 @@ class TestSetIndexCustomLabelType:
         tm.assert_index_equal(df.index, idx1)
         df = df.set_index(idx2)
         tm.assert_index_equal(df.index, idx2)
-
-    def test_drop_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame\.set_index "
-            r"except for the argument 'keys' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.set_index("a", True)
-        expected = DataFrame(index=Index([1, 2, 3], name="a"))
-        tm.assert_frame_equal(result, expected)

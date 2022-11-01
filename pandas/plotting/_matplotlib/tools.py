@@ -1,7 +1,6 @@
 # being a bit too dynamic
 from __future__ import annotations
 
-import inspect
 from math import ceil
 from typing import (
     TYPE_CHECKING,
@@ -10,8 +9,8 @@ from typing import (
 )
 import warnings
 
+from matplotlib import ticker
 import matplotlib.table
-import matplotlib.ticker as ticker
 import numpy as np
 
 from pandas.util._exceptions import find_stack_level
@@ -38,14 +37,14 @@ if TYPE_CHECKING:
     )
 
 
-def do_adjust_figure(fig: Figure):
+def do_adjust_figure(fig: Figure) -> bool:
     """Whether fig has constrained_layout enabled."""
     if not hasattr(fig, "get_constrained_layout"):
         return False
     return not fig.get_constrained_layout()
 
 
-def maybe_adjust_figure(fig: Figure, *args, **kwargs):
+def maybe_adjust_figure(fig: Figure, *args, **kwargs) -> None:
     """Call fig.subplots_adjust unless fig has constrained_layout enabled."""
     if do_adjust_figure(fig):
         fig.subplots_adjust(*args, **kwargs)
@@ -234,13 +233,14 @@ def create_subplots(
                 warnings.warn(
                     "When passing multiple axes, layout keyword is ignored.",
                     UserWarning,
+                    stacklevel=find_stack_level(),
                 )
             if sharex or sharey:
                 warnings.warn(
                     "When passing multiple axes, sharex and sharey "
                     "are ignored. These settings must be specified when creating axes.",
                     UserWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
             if ax.size == naxes:
                 fig = ax.flat[0].get_figure()
@@ -263,7 +263,7 @@ def create_subplots(
                 "To output multiple subplots, the figure containing "
                 "the passed axes is being cleared.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             fig.clear()
 
@@ -317,7 +317,7 @@ def create_subplots(
     return fig, axes
 
 
-def _remove_labels_from_axis(axis: Axis):
+def _remove_labels_from_axis(axis: Axis) -> None:
     for t in axis.get_majorticklabels():
         t.set_visible(False)
 
@@ -391,7 +391,7 @@ def handle_shared_axes(
     ncols: int,
     sharex: bool,
     sharey: bool,
-):
+) -> None:
     if nplots > 1:
         row_num = lambda x: x.get_subplotspec().rowspan.start
         col_num = lambda x: x.get_subplotspec().colspan.start

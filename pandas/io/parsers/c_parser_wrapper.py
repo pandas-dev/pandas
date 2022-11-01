@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-import inspect
-from io import TextIOWrapper
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -13,7 +11,7 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.parsers as parsers
+from pandas._libs import parsers
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
@@ -34,6 +32,7 @@ from pandas.core.indexes.api import ensure_index_from_sequences
 
 from pandas.io.parsers.base_parser import (
     ParserBase,
+    ParserError,
     is_index_col,
 )
 
@@ -66,17 +65,6 @@ class CParserWrapper(ParserBase):
 
         # Have to pass int, would break tests using TextReader directly otherwise :(
         kwds["on_bad_lines"] = self.on_bad_lines.value
-
-        # c-engine can cope with utf-8 bytes. Remove TextIOWrapper when its errors
-        # policy is the same as the one given to read_csv
-        if (
-            isinstance(src, TextIOWrapper)
-            and src.encoding == "utf-8"
-            and (src.errors or "strict") == kwds["encoding_errors"]
-        ):
-            # error: Incompatible types in assignment (expression has type "BinaryIO",
-            # variable has type "ReadCsvBuffer[str]")
-            src = src.buffer  # type: ignore[assignment]
 
         for key in (
             "storage_options",
@@ -282,6 +270,13 @@ class CParserWrapper(ParserBase):
             # implicit index, no index names
             arrays = []
 
+            if self.index_col and self._reader.leading_cols != len(self.index_col):
+                raise ParserError(
+                    "Could not construct index. Requested to use "
+                    f"{len(self.index_col)} number of columns, but "
+                    f"{self._reader.leading_cols} left to parse."
+                )
+
             for i in range(self._reader.leading_cols):
                 if self.index_col is None:
                     values = data.pop(i)
@@ -422,11 +417,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 f"Specify dtype option on import or set low_memory=False."
             ]
         )
-        warnings.warn(
-            warning_message,
-            DtypeWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
+        warnings.warn(warning_message, DtypeWarning, stacklevel=find_stack_level())
     return result
 
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import abc
 from datetime import datetime
 from functools import partial
-import inspect
 from itertools import islice
 from typing import (
     TYPE_CHECKING,
@@ -125,11 +124,13 @@ start_caching_at = 50
 # ---------------------------------------------------------------------
 
 
-def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False):
-    # Try to guess the format based on the first non-NaN element
-    non_nan_elements = notna(arr).nonzero()[0]
-    if len(non_nan_elements):
-        return guess_datetime_format(arr[non_nan_elements[0]], dayfirst=dayfirst)
+def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str | None:
+    # Try to guess the format based on the first non-NaN element, return None if can't
+    if (first_non_null := tslib.first_non_null(arr)) != -1:
+        if type(first_non_nan_element := arr[first_non_null]) is str:
+            # GH#32264 np.str_ object
+            return guess_datetime_format(first_non_nan_element, dayfirst=dayfirst)
+    return None
 
 
 def should_cache(
@@ -329,7 +330,7 @@ def _convert_listlike_datetimes(
     name: Hashable = None,
     tz: Timezone | None = None,
     unit: str | None = None,
-    errors: str = "raise",
+    errors: DateTimeErrorChoices = "raise",
     infer_datetime_format: bool = False,
     dayfirst: bool | None = None,
     yearfirst: bool | None = None,
@@ -713,7 +714,7 @@ def to_datetime(
     exact: bool = True,
     unit: str | None = None,
     infer_datetime_format: bool = False,
-    origin="unix",
+    origin: str = "unix",
     cache: bool = True,
 ) -> DatetimeIndex | Series | DatetimeScalar | NaTType | None:
     """
@@ -777,11 +778,11 @@ def to_datetime(
         #time-zone-handling>`_.
 
     format : str, default None
-        The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. Note that
-        :const:`"%f"` will parse all the way up to nanoseconds. See
+        The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
         `strftime documentation
         <https://docs.python.org/3/library/datetime.html
-        #strftime-and-strptime-behavior>`_ for more information on choices.
+        #strftime-and-strptime-behavior>`_ for more information on choices, though
+        note that :const:`"%f"` will parse all the way up to nanoseconds.
     exact : bool, default True
         Control how `format` is used:
 
@@ -807,8 +808,10 @@ def to_datetime(
         - If :const:`'julian'`, unit must be :const:`'D'`, and origin is set to
           beginning of Julian Calendar. Julian day number :const:`0` is assigned
           to the day starting at noon on January 1, 4713 BC.
-        - If Timestamp convertible, origin is set to Timestamp identified by
-          origin.
+        - If Timestamp convertible (Timestamp, dt.datetime, np.datetimt64 or date
+          string), origin is set to Timestamp identified by origin.
+        - If a float or integer, origin is the millisecond difference
+          relative to 1970-01-01.
     cache : bool, default True
         If :const:`True`, use a cache of unique, converted dates to apply the
         datetime conversion. May produce significant speed-up when parsing
@@ -949,6 +952,14 @@ def to_datetime(
     ...                origin=pd.Timestamp('1960-01-01'))
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
                   dtype='datetime64[ns]', freq=None)
+
+    **Differences with strptime behavior**
+
+    :const:`"%f"` will parse all the way up to nanoseconds.
+
+    >>> pd.to_datetime('2018-10-26 12:00:00.0000000011',
+    ...                format='%Y-%m-%d %H:%M:%S.%f')
+    Timestamp('2018-10-26 12:00:00.000000001')
 
     **Non-convertible date/times**
 
@@ -1283,13 +1294,18 @@ def _attempt_YYYYMMDD(arg: npt.NDArray[np.object_], errors: str) -> np.ndarray |
     return None
 
 
-def to_time(arg, format=None, infer_time_format=False, errors="raise"):
+def to_time(
+    arg,
+    format=None,
+    infer_time_format: bool = False,
+    errors: DateTimeErrorChoices = "raise",
+):
     # GH#34145
     warnings.warn(
         "`to_time` has been moved, should be imported from pandas.core.tools.times. "
         "This alias will be removed in a future version.",
         FutureWarning,
-        stacklevel=find_stack_level(inspect.currentframe()),
+        stacklevel=find_stack_level(),
     )
     from pandas.core.tools.times import to_time
 

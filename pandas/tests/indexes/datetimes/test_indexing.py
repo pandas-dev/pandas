@@ -388,6 +388,25 @@ class TestTake:
 
 
 class TestGetLoc:
+    def test_get_loc_key_unit_mismatch(self):
+        idx = date_range("2000-01-01", periods=3)
+        key = idx[1]._as_unit("ms")
+        loc = idx.get_loc(key)
+        assert loc == 1
+        assert key in idx
+
+    def test_get_loc_key_unit_mismatch_not_castable(self):
+        dta = date_range("2000-01-01", periods=3)._data.astype("M8[s]")
+        dti = DatetimeIndex(dta)
+        key = dta[0]._as_unit("ns") + pd.Timedelta(1)
+
+        with pytest.raises(
+            KeyError, match=r"Timestamp\('2000-01-01 00:00:00.000000001'\)"
+        ):
+            dti.get_loc(key)
+
+        assert key not in dti
+
     @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
     @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc_method_exact_match(self, method):
@@ -691,39 +710,11 @@ class TestMaybeCastSliceBound:
         assert result == expected
 
 
-class TestGetValue:
-    def test_get_value(self):
-        # specifically make sure we have test for np.datetime64 key
-        dti = date_range("2016-01-01", periods=3)
-
-        arr = np.arange(6, 9)
-        ser = pd.Series(arr, index=dti)
-
-        key = dti[1]
-
-        with pytest.raises(AttributeError, match="has no attribute '_values'"):
-            with tm.assert_produces_warning(FutureWarning):
-                dti.get_value(arr, key)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = dti.get_value(ser, key)
-        assert result == 7
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = dti.get_value(ser, key.to_pydatetime())
-        assert result == 7
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = dti.get_value(ser, key.to_datetime64())
-        assert result == 7
-
-
 class TestGetSliceBounds:
     @pytest.mark.parametrize("box", [date, datetime, Timestamp])
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
     def test_get_slice_bounds_datetime_within(
-        self, box, kind, side, expected, tz_aware_fixture
+        self, box, side, expected, tz_aware_fixture
     ):
         # GH 35690
         tz = tz_aware_fixture
@@ -733,15 +724,14 @@ class TestGetSliceBounds:
         warn = None if tz is None else FutureWarning
         with tm.assert_produces_warning(warn):
             # GH#36148 will require tzawareness-compat
-            result = index.get_slice_bound(key, kind=kind, side=side)
+            result = index.get_slice_bound(key, side=side)
         assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side", ["left", "right"])
     @pytest.mark.parametrize("year, expected", [(1999, 0), (2020, 30)])
     def test_get_slice_bounds_datetime_outside(
-        self, box, kind, side, year, expected, tz_aware_fixture
+        self, box, side, year, expected, tz_aware_fixture
     ):
         # GH 35690
         tz = tz_aware_fixture
@@ -751,12 +741,11 @@ class TestGetSliceBounds:
         warn = None if tz is None else FutureWarning
         with tm.assert_produces_warning(warn):
             # GH#36148 will require tzawareness-compat
-            result = index.get_slice_bound(key, kind=kind, side=side)
+            result = index.get_slice_bound(key, side=side)
         assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
-    def test_slice_datetime_locs(self, box, kind, tz_aware_fixture):
+    def test_slice_datetime_locs(self, box, tz_aware_fixture):
         # GH 34077
         tz = tz_aware_fixture
         index = DatetimeIndex(["2010-01-01", "2010-01-03"]).tz_localize(tz)

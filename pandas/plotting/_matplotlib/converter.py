@@ -12,19 +12,21 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Final,
-    Iterator,
+    Generator,
     cast,
 )
 
 from dateutil.relativedelta import relativedelta
-import matplotlib.dates as dates
+from matplotlib import (
+    dates,
+    units,
+)
 from matplotlib.ticker import (
     AutoLocator,
     Formatter,
     Locator,
 )
 from matplotlib.transforms import nonsingular
-import matplotlib.units as units
 import numpy as np
 
 from pandas._libs import lib
@@ -99,7 +101,7 @@ def register_pandas_matplotlib_converters(func: F) -> F:
 
 
 @contextlib.contextmanager
-def pandas_converters() -> Iterator[None]:
+def pandas_converters() -> Generator[None, None, None]:
     """
     Context manager registering pandas' converters for a plot.
 
@@ -152,9 +154,7 @@ def _to_ordinalf(tm: pydt.time) -> float:
 
 def time2num(d):
     if isinstance(d, str):
-        parsed = tools.to_datetime(d)
-        if not isinstance(parsed, datetime):
-            raise ValueError(f"Could not parse time {d}")
+        parsed = Timestamp(d)
         return _to_ordinalf(parsed.time())
     if isinstance(d, pydt.time):
         return _to_ordinalf(d)
@@ -406,9 +406,8 @@ class MilliSecondLocator(dates.DateLocator):
             if num <= interval * (max_millis_ticks - 1):
                 self._interval = interval
                 break
-            else:
-                # We went through the whole loop without breaking, default to 1
-                self._interval = 1000.0
+            # We went through the whole loop without breaking, default to 1
+            self._interval = 1000.0
 
         estimate = (nmax - nmin) / (self._get_unit() * self._get_interval())
 
@@ -606,7 +605,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
         day_start = period_break(dates_, "day")
         month_start = period_break(dates_, "month")
 
-        def _hour_finder(label_interval, force_year_start):
+        def _hour_finder(label_interval, force_year_start) -> None:
             _hour = dates_.hour
             _prev_hour = (dates_ - 1 * dates_.freq).hour
             hour_start = (_hour - _prev_hour) != 0
@@ -619,7 +618,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
             if force_year_start and not has_level_label(year_start, vmin_orig):
                 info_fmt[first_label(day_start)] = "%H:%M\n%d-%b\n%Y"
 
-        def _minute_finder(label_interval):
+        def _minute_finder(label_interval) -> None:
             hour_start = period_break(dates_, "hour")
             _minute = dates_.minute
             _prev_minute = (dates_ - 1 * dates_.freq).minute
@@ -632,7 +631,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
             info_fmt[day_start] = "%H:%M\n%d-%b"
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
 
-        def _second_finder(label_interval):
+        def _second_finder(label_interval) -> None:
             minute_start = period_break(dates_, "minute")
             _second = dates_.second
             _prev_second = (dates_ - 1 * dates_.freq).second

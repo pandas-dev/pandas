@@ -65,9 +65,19 @@ if TYPE_CHECKING:
 
     from pandas.io.formats.format import EngFormatter
 
+    ScalarLike_co = Union[
+        int,
+        float,
+        complex,
+        str,
+        bytes,
+        np.generic,
+    ]
+
     # numpy compatible types
-    NumpyValueArrayLike = Union[npt._ScalarLike_co, npt.ArrayLike]
-    NumpySorter = Optional[npt._ArrayLikeInt_co]
+    NumpyValueArrayLike = Union[ScalarLike_co, npt.ArrayLike]
+    # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
+    NumpySorter = Optional[npt._ArrayLikeInt_co]  # type: ignore[name-defined]
 
 else:
     npt: Any = None
@@ -106,7 +116,8 @@ NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
-Axis = Union[str, int]
+AxisInt = int
+Axis = Union[AxisInt, Literal["index", "columns", "rows"]]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Hashable
 Shape = Tuple[int, ...]
@@ -187,10 +198,6 @@ class BaseBuffer(Protocol):
         # for _get_filepath_or_buffer
         ...
 
-    def fileno(self) -> int:
-        # for _MMapWrapper
-        ...
-
     def seek(self, __offset: int, __whence: int = ...) -> int:
         # with one argument: gzip.GzipFile, bz2.BZ2File
         # with two arguments: zip.ZipFile, read_sas
@@ -206,7 +213,7 @@ class BaseBuffer(Protocol):
 
 
 class ReadBuffer(BaseBuffer, Protocol[AnyStr_cov]):
-    def read(self, __n: int | None = ...) -> AnyStr_cov:
+    def read(self, __n: int = ...) -> AnyStr_cov:
         # for BytesIOWrapper, gzip.GzipFile, bz2.BZ2File
         ...
 
@@ -222,7 +229,7 @@ class WriteBuffer(BaseBuffer, Protocol[AnyStr_con]):
 
 
 class ReadPickleBuffer(ReadBuffer[bytes], Protocol):
-    def readline(self) -> AnyStr_cov:
+    def readline(self) -> bytes:
         ...
 
 
@@ -234,6 +241,10 @@ class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
 class ReadCsvBuffer(ReadBuffer[AnyStr_cov], Protocol):
     def __iter__(self) -> Iterator[AnyStr_cov]:
         # for engine=python
+        ...
+
+    def fileno(self) -> int:
+        # for _MMapWrapper
         ...
 
     def readline(self) -> AnyStr_cov:
@@ -313,7 +324,7 @@ XMLParsers = Literal["lxml", "etree"]
 
 # Interval closed type
 IntervalLeftRight = Literal["left", "right"]
-IntervalInclusiveType = Union[IntervalLeftRight, Literal["both", "neither"]]
+IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]
 
 # datetime and NaTType
 DatetimeNaTType = Union[datetime, "NaTType"]
@@ -328,3 +339,20 @@ QuantileInterpolation = Literal["linear", "lower", "higher", "midpoint", "neares
 
 # plotting
 PlottingOrientation = Literal["horizontal", "vertical"]
+
+# dropna
+AnyAll = Literal["any", "all"]
+
+MatplotlibColor = Union[str, Sequence[float]]
+TimeGrouperOrigin = Union[
+    "Timestamp", Literal["epoch", "start", "start_day", "end", "end_day"]
+]
+TimeAmbiguous = Union[Literal["infer", "NaT", "raise"], "npt.NDArray[np.bool_]"]
+TimeNonexistent = Union[
+    Literal["shift_forward", "shift_backward", "NaT", "raise"], timedelta
+]
+DropKeep = Literal["first", "last", False]
+CorrelationMethod = Union[
+    Literal["pearson", "kendall", "spearman"], Callable[[np.ndarray, np.ndarray], float]
+]
+AlignJoin = Literal["outer", "inner", "left", "right"]

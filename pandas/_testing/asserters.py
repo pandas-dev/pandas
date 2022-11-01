@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 from typing import (
     Literal,
     cast,
@@ -113,7 +112,7 @@ def assert_almost_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -311,7 +310,7 @@ def assert_index_equal(
     """
     __tracebackhide__ = True
 
-    def _check_types(left, right, obj="Index") -> None:
+    def _check_types(left, right, obj: str = "Index") -> None:
         if not exact:
             return
 
@@ -340,7 +339,7 @@ def assert_index_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -398,6 +397,9 @@ def assert_index_equal(
         if not left.equals(right):
             mismatch = left._values != right._values
 
+            if is_extension_array_dtype(mismatch):
+                mismatch = cast("ExtensionArray", mismatch).fillna(True)
+
             diff = np.sum(mismatch.astype(int)) * 100.0 / len(left)
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
@@ -429,7 +431,9 @@ def assert_index_equal(
             assert_categorical_equal(left._values, right._values, obj=f"{obj} category")
 
 
-def assert_class_equal(left, right, exact: bool | str = True, obj="Input") -> None:
+def assert_class_equal(
+    left, right, exact: bool | str = True, obj: str = "Input"
+) -> None:
     """
     Checks classes are equal.
     """
@@ -523,7 +527,11 @@ def assert_is_sorted(seq) -> None:
 
 
 def assert_categorical_equal(
-    left, right, check_dtype=True, check_category_order=True, obj="Categorical"
+    left,
+    right,
+    check_dtype: bool = True,
+    check_category_order: bool = True,
+    obj: str = "Categorical",
 ) -> None:
     """
     Test that Categoricals are equivalent.
@@ -580,7 +588,7 @@ def assert_categorical_equal(
 
 
 def assert_interval_array_equal(
-    left, right, exact="equiv", obj="IntervalArray"
+    left, right, exact: bool | Literal["equiv"] = "equiv", obj: str = "IntervalArray"
 ) -> None:
     """
     Test that two IntervalArrays are equivalent.
@@ -607,10 +615,10 @@ def assert_interval_array_equal(
     assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
     assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
 
-    assert_attr_equal("inclusive", left, right, obj=obj)
+    assert_attr_equal("closed", left, right, obj=obj)
 
 
-def assert_period_array_equal(left, right, obj="PeriodArray") -> None:
+def assert_period_array_equal(left, right, obj: str = "PeriodArray") -> None:
     _check_isinstance(left, right, PeriodArray)
 
     assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
@@ -618,7 +626,7 @@ def assert_period_array_equal(left, right, obj="PeriodArray") -> None:
 
 
 def assert_datetime_array_equal(
-    left, right, obj="DatetimeArray", check_freq=True
+    left, right, obj: str = "DatetimeArray", check_freq: bool = True
 ) -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
@@ -630,7 +638,7 @@ def assert_datetime_array_equal(
 
 
 def assert_timedelta_array_equal(
-    left, right, obj="TimedeltaArray", check_freq=True
+    left, right, obj: str = "TimedeltaArray", check_freq: bool = True
 ) -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
@@ -639,7 +647,9 @@ def assert_timedelta_array_equal(
         assert_attr_equal("freq", left, right, obj=obj)
 
 
-def raise_assert_detail(obj, message, left, right, diff=None, index_values=None):
+def raise_assert_detail(
+    obj, message, left, right, diff=None, first_diff=None, index_values=None
+):
     __tracebackhide__ = True
 
     msg = f"""{obj} are different
@@ -674,17 +684,20 @@ def raise_assert_detail(obj, message, left, right, diff=None, index_values=None)
     if diff is not None:
         msg += f"\n[diff]: {diff}"
 
+    if first_diff is not None:
+        msg += f"\n{first_diff}"
+
     raise AssertionError(msg)
 
 
 def assert_numpy_array_equal(
     left,
     right,
-    strict_nan=False,
+    strict_nan: bool = False,
     check_dtype: bool | Literal["equiv"] = True,
     err_msg=None,
     check_same=None,
-    obj="numpy array",
+    obj: str = "numpy array",
     index_values=None,
 ) -> None:
     """
@@ -763,7 +776,7 @@ def assert_extension_array_equal(
     check_dtype: bool | Literal["equiv"] = True,
     index_values=None,
     check_less_precise=no_default,
-    check_exact=False,
+    check_exact: bool = False,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
 ) -> None:
@@ -816,7 +829,7 @@ def assert_extension_array_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -867,21 +880,21 @@ def assert_series_equal(
     right,
     check_dtype: bool | Literal["equiv"] = True,
     check_index_type: bool | Literal["equiv"] = "equiv",
-    check_series_type=True,
+    check_series_type: bool = True,
     check_less_precise: bool | int | NoDefault = no_default,
-    check_names=True,
-    check_exact=False,
-    check_datetimelike_compat=False,
-    check_categorical=True,
-    check_category_order=True,
-    check_freq=True,
-    check_flags=True,
-    rtol=1.0e-5,
-    atol=1.0e-8,
-    obj="Series",
+    check_names: bool = True,
+    check_exact: bool = False,
+    check_datetimelike_compat: bool = False,
+    check_categorical: bool = True,
+    check_category_order: bool = True,
+    check_freq: bool = True,
+    check_flags: bool = True,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
+    obj: str = "Series",
     *,
-    check_index=True,
-    check_like=False,
+    check_index: bool = True,
+    check_like: bool = False,
 ) -> None:
     """
     Check that left and right Series are equal.
@@ -971,7 +984,7 @@ def assert_series_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -1135,20 +1148,20 @@ def assert_frame_equal(
     right,
     check_dtype: bool | Literal["equiv"] = True,
     check_index_type: bool | Literal["equiv"] = "equiv",
-    check_column_type="equiv",
-    check_frame_type=True,
+    check_column_type: bool | Literal["equiv"] = "equiv",
+    check_frame_type: bool = True,
     check_less_precise=no_default,
-    check_names=True,
-    by_blocks=False,
-    check_exact=False,
-    check_datetimelike_compat=False,
-    check_categorical=True,
-    check_like=False,
-    check_freq=True,
-    check_flags=True,
-    rtol=1.0e-5,
-    atol=1.0e-8,
-    obj="DataFrame",
+    check_names: bool = True,
+    by_blocks: bool = False,
+    check_exact: bool = False,
+    check_datetimelike_compat: bool = False,
+    check_categorical: bool = True,
+    check_like: bool = False,
+    check_freq: bool = True,
+    check_flags: bool = True,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
+    obj: str = "DataFrame",
 ) -> None:
     """
     Check that left and right DataFrame are equal.
@@ -1264,7 +1277,7 @@ def assert_frame_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
