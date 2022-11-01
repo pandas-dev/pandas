@@ -3398,17 +3398,7 @@ class DataFrame(NDFrame, OpsMixin):
         max_cols: int | None = None,
         memory_usage: bool | str | None = None,
         show_counts: bool | None = None,
-        null_counts: bool | None = None,
     ) -> None:
-        if null_counts is not None:
-            if show_counts is not None:
-                raise ValueError("null_counts used with show_counts. Use show_counts.")
-            warnings.warn(
-                "null_counts is deprecated. Use show_counts instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            show_counts = null_counts
         info = DataFrameInfo(
             data=self,
             memory_usage=memory_usage,

@@ -3590,7 +3590,6 @@ class MultiIndex(Index):
                         RuntimeWarning,
                         stacklevel=find_stack_level(),
                     )
-                    pass
             return result
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
