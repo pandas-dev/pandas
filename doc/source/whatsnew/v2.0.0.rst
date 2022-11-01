@@ -185,6 +185,7 @@ Removal of prior version deprecations/changes
 - Removed ``keep_tz`` argument in :meth:`DatetimeIndex.to_series` (:issue:`29731`)
 - Remove arguments ``names`` and ``dtype`` from :meth:`Index.copy` and ``levels`` and ``codes`` from :meth:`MultiIndex.copy` (:issue:`35853`, :issue:`36685`)
 - Remove argument ``inplace`` from :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` (:issue:`35626`)
+- Removed argument ``inplace`` from :meth:`DataFrame.set_axis` and :meth:`Series.set_axis`, use ``obj = obj.set_axis(..., copy=False)`` instead (:issue:`48130`)
 - Disallow passing positional arguments to :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` (:issue:`41485`)
 - Removed :meth:`MultiIndex.is_lexsorted` and :meth:`MultiIndex.lexsort_depth` (:issue:`38701`)
 - Removed argument ``how`` from :meth:`PeriodIndex.astype`, use :meth:`PeriodIndex.to_timestamp` instead (:issue:`37982`)

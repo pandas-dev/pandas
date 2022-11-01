@@ -4942,39 +4942,6 @@ Keep all original rows and also all original values
         else:
             return self._set_name(index, inplace=inplace)
 
-    @overload
-    def set_axis(
-        self,
-        labels,
-        *,
-        axis: Axis = ...,
-        inplace: Literal[False] | lib.NoDefault = ...,
-        copy: bool | lib.NoDefault = ...,
-    ) -> Series:
-        ...
-
-    @overload
-    def set_axis(
-        self,
-        labels,
-        *,
-        axis: Axis = ...,
-        inplace: Literal[True],
-        copy: bool | lib.NoDefault = ...,
-    ) -> None:
-        ...
-
-    @overload
-    def set_axis(
-        self,
-        labels,
-        *,
-        axis: Axis = ...,
-        inplace: bool | lib.NoDefault = ...,
-        copy: bool | lib.NoDefault = ...,
-    ) -> Series | None:
-        ...
-
     # error: Signature of "set_axis" incompatible with supertype "NDFrame"
     @Appender(
         """
@@ -5006,10 +4973,9 @@ Keep all original rows and also all original values
         labels,
         *,
         axis: Axis = 0,
-        inplace: bool | lib.NoDefault = lib.no_default,
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> Series | None:
-        return super().set_axis(labels, axis=axis, inplace=inplace, copy=copy)
+        return super().set_axis(labels, axis=axis, copy=copy)
 
     # error: Cannot determine type of 'reindex'
     @doc(

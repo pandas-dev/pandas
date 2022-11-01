@@ -5057,39 +5057,6 @@ class DataFrame(NDFrame, OpsMixin):
             broadcast_axis=broadcast_axis,
         )
 
-    @overload
-    def set_axis(
-        self,
-        labels,
-        *,
-        axis: Axis = ...,
-        inplace: Literal[False] | lib.NoDefault = ...,
-        copy: bool | lib.NoDefault = ...,
-    ) -> DataFrame:
-        ...
-
-    @overload
-    def set_axis(
-        self,
-        labels,
-        *,
-        axis: Axis = ...,
-        inplace: Literal[True],
-        copy: bool | lib.NoDefault = ...,
-    ) -> None:
-        ...
-
-    @overload
-    def set_axis(
-        self,
-        labels,
-        *,
-        axis: Axis = ...,
-        inplace: bool | lib.NoDefault = ...,
-        copy: bool | lib.NoDefault = ...,
-    ) -> DataFrame | None:
-        ...
-
     # error: Signature of "set_axis" incompatible with supertype "NDFrame"
     @Appender(
         """
@@ -5134,10 +5101,9 @@ class DataFrame(NDFrame, OpsMixin):
         labels,
         *,
         axis: Axis = 0,
-        inplace: bool | lib.NoDefault = lib.no_default,
         copy: bool | lib.NoDefault = lib.no_default,
     ):
-        return super().set_axis(labels, axis=axis, inplace=inplace, copy=copy)
+        return super().set_axis(labels, axis=axis, copy=copy)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.reindex.__doc__)
