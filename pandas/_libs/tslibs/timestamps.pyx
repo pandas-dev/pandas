@@ -1637,18 +1637,9 @@ class Timestamp(_Timestamp):
 
         tzobj = maybe_get_tz(tz)
         if tzobj is not None and is_datetime64_object(ts_input):
-            # GH#24559, GH#42288 In the future we will treat datetime64 as
+            # GH#24559, GH#42288 As of 2.0 we treat datetime64 as
             #  wall-time (consistent with DatetimeIndex)
-            warnings.warn(
-                "In a future version, when passing a np.datetime64 object and "
-                "a timezone to Timestamp, the datetime64 will be interpreted "
-                "as a wall time, not a UTC time.  To interpret as a UTC time, "
-                "use `Timestamp(dt64).tz_localize('UTC').tz_convert(tz)`",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            # Once this deprecation is enforced, we can do
-            #  return Timestamp(ts_input).tz_localize(tzobj)
+            return cls(ts_input).tz_localize(tzobj)
 
         if nanosecond is None:
             nanosecond = 0
