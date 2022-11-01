@@ -1142,7 +1142,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def sheets(self) -> dict[str, Any]:
         """Mapping of sheet names to sheet objects."""
-        pass
 
     @property
     @abc.abstractmethod
@@ -1152,7 +1151,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         This attribute can be used to access engine-specific features.
         """
-        pass
 
     @book.setter
     @abc.abstractmethod
@@ -1160,7 +1158,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         Set book instance. Class type will depend on the engine used.
         """
-        pass
 
     def write_cells(
         self,
@@ -1212,7 +1209,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         freeze_panes: int tuple of length 2
             contains the bottom-most row and right-most column to freeze
         """
-        pass
 
     def save(self) -> None:
         """
@@ -1228,7 +1224,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         Save workbook to disk.
         """
-        pass
 
     def __init__(
         self,

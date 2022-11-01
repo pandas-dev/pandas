@@ -2417,7 +2417,6 @@ class StataWriter(StataParser):
 
     def _update_strl_names(self) -> None:
         """No-op, forward compatibility"""
-        pass
 
     def _validate_variable_name(self, name: str) -> str:
         """
@@ -2701,19 +2700,15 @@ supported types."""
 
     def _write_map(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_file_close_tag(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_characteristics(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_strls(self) -> None:
         """No-op, future compatibility"""
-        pass
 
     def _write_expansion_fields(self) -> None:
         """Write 5 zeros for expansion fields"""
@@ -3438,7 +3433,6 @@ class StataWriter117(StataWriter):
 
     def _write_expansion_fields(self) -> None:
         """No-op in dta 117+"""
-        pass
 
     def _write_value_labels(self) -> None:
         self._update_map("value_labels")

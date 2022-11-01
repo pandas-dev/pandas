@@ -2593,8 +2593,6 @@ class DataIndexableCol(DataCol):
 class GenericDataIndexableCol(DataIndexableCol):
     """represent a generic pytables data column"""
 
-    pass
-
 
 class Fixed:
     """
@@ -2701,11 +2699,9 @@ class Fixed:
 
     def set_attrs(self) -> None:
         """set our object attributes"""
-        pass
 
     def get_attrs(self) -> None:
         """get our object attributes"""
-        pass
 
     @property
     def storable(self):
@@ -2728,7 +2724,6 @@ class Fixed:
 
     def validate_version(self, where=None) -> None:
         """are we trying to operate on an old version?"""
-        pass
 
     def infer_axes(self) -> bool:
         """

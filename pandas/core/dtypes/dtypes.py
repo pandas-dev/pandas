@@ -116,8 +116,6 @@ class CategoricalDtypeType(type):
     the type of CategoricalDtype, this metaclass determines subclass ability
     """
 
-    pass
-
 
 @register_extension_dtype
 class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):

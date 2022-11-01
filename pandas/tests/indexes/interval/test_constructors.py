@@ -377,7 +377,6 @@ class TestClassConstructors(ConstructorTests):
         override the base class implementation since errors are handled
         differently; checks unnecessary since caught at the Interval level
         """
-        pass
 
     def test_constructor_string(self):
         # GH23013

@@ -177,7 +177,6 @@ disable = [
   "try-except-raise",
   "undefined-loop-variable",
   "unnecessary-lambda",
-  "unnecessary-pass",
   "unspecified-encoding",
   "unused-argument",
   "unused-import",

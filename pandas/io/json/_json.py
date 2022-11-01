@@ -248,7 +248,6 @@ class Writer(ABC):
     @abstractmethod
     def obj_to_write(self) -> NDFrame | Mapping[IndexLabel, Any]:
         """Object to write in JSON format."""
-        pass
 
 
 class SeriesWriter(Writer):
