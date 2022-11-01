@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import pandas._testing as tm
+
 from pandas.tseries.holiday import (
     AbstractHolidayCalendar,
     USFederalHolidayCalendar,
@@ -48,4 +50,4 @@ def test_federal_holiday_inconsistent_returntype():
     results_2018 = cal1.holidays(start=datetime(2018, 8, 1), end=datetime(2018, 8, 31))
     results_2019 = cal2.holidays(start=datetime(2019, 8, 1), end=datetime(2019, 8, 31))
 
-    assert type(results_2018) == type(results_2019)
+    tm.assert_index_equal(results_2018, results_2019)

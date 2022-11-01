@@ -322,7 +322,7 @@ class Holiday:
 
         return dates
 
-    def _apply_rule(self, dates):
+    def _apply_rule(self, dates: DatetimeIndex) -> DatetimeIndex:
         """
         Apply the given offset/observance to a DatetimeIndex of dates.
 
@@ -335,15 +335,8 @@ class Holiday:
         -------
         Dates with rules applied
         """
-        # GH 49075
-        # If we have a half-open date interval with observance,
-        # ensure we return a DatetimeIndex
-        if (
-            self.observance is not None
-            and (self.start_date is not None and self.end_date is None)
-            or (self.end_date is not None and self.start_date is None)
-        ):
-            return DatetimeIndex([dates.map(lambda d: self.observance(d))])
+        if dates.empty:
+            return DatetimeIndex([])
 
         if self.observance is not None:
             return dates.map(lambda d: self.observance(d))

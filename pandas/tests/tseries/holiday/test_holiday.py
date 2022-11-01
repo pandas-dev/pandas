@@ -267,7 +267,11 @@ def test_both_offset_observance_raises():
 
 
 def test_half_open_interval_with_observance():
-    # See GH 49075.
+    # Prompted by GH 49075
+    # Given holidays with a half-open date interval and a defined
+    # observance pattern,  we check to make sure that the return type
+    # for Holiday.dates() remains consistent before/after the date that
+    # marks the 'edge' of the half-open date interval
     holiday_1 = Holiday(
         "Arbitrary Holiday - start 2022-03-14",
         start_date=datetime(2022, 3, 14),
@@ -291,17 +295,17 @@ def test_half_open_interval_with_observance():
             USLaborDay,
         ]
 
-    start_datum = Timestamp("2022-08-01")
-    end_datum = Timestamp("2022-08-31")
+    start = Timestamp("2022-08-01")
+    end = Timestamp("2022-08-31")
     test_cal = TestHolidayCalendar()
 
-    three_years_before = test_cal.holidays(
-        start_datum - DateOffset(years=3), end_datum - DateOffset(years=3)
+    check_before_edge = test_cal.holidays(
+        start - DateOffset(years=3), end - DateOffset(years=3)
     )
-    year_of = test_cal.holidays(start_datum, end_datum)
-    three_years_after = test_cal.holidays(
-        start_datum + DateOffset(years=3), end_datum + DateOffset(years=3)
+    check_year_of = test_cal.holidays(start, end)
+    check_after_edge = test_cal.holidays(
+        start + DateOffset(years=3), end + DateOffset(years=3)
     )
 
-    assert type(three_years_after) == type(year_of)
-    assert type(three_years_before) == type(year_of)
+    tm.assert_index_equal(check_after_edge, check_year_of)
+    tm.assert_index_equal(check_before_edge, check_year_of)
