@@ -49,6 +49,7 @@ Other enhancements
 - Fix ``test`` optional_extra by adding missing test package ``pytest-asyncio`` (:issue:`48361`)
 - :func:`DataFrame.astype` exception message thrown improved to include column name when type conversion is not possible. (:issue:`47571`)
 - :meth:`DataFrame.to_json` now supports a ``mode`` keyword with supported inputs 'w' and 'a'. Defaulting to 'w', 'a' can be used when lines=True and orient='records' to append record oriented json lines to an existing json file. (:issue:`35849`)
+- Added ``name`` parameter to :meth:`IntervalIndex.from_breaks`, :meth:`IntervalIndex.from_arrays` and :meth:`IntervalIndex.from_tuples` (:issue:`48911`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.notable_bug_fixes:
@@ -142,6 +143,7 @@ Other API changes
 - The ``other`` argument in :meth:`DataFrame.mask` and :meth:`Series.mask` now defaults to ``no_default`` instead of ``np.nan`` consistent with :meth:`DataFrame.where` and :meth:`Series.where`. Entries will be filled with the corresponding NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension dtypes). (:issue:`49111`)
 - When creating a :class:`Series` with a object-dtype :class:`Index` of datetime objects, pandas no longer silently converts the index to a :class:`DatetimeIndex` (:issue:`39307`, :issue:`23598`)
 - :meth:`Series.unique` with dtype "timedelta64[ns]" or "datetime64[ns]" now returns :class:`TimedeltaArray` or :class:`DatetimeArray` instead of ``numpy.ndarray`` (:issue:`49176`)
+- Passing strings that cannot be parsed as datetimes to :class:`Series` or :class:`DataFrame` with ``dtype="datetime64[ns]"`` will raise instead of silently ignoring the keyword and returning ``object`` dtype (:issue:`24435`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -157,6 +159,7 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Removed deprecated module ``pandas.core.index`` (:issue:`30193`)
 - Removed deprecated :meth:`Categorical.to_dense`, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - Removed deprecated :meth:`Categorical.take_nd` (:issue:`27745`)
 - Removed deprecated :meth:`Categorical.mode`, use ``Series(cat).mode()`` instead (:issue:`45033`)
@@ -171,10 +174,18 @@ Removal of prior version deprecations/changes
 - Removed deprecated :meth:`Index.to_native_types`, use ``obj.astype(str)`` instead (:issue:`36418`)
 - Removed deprecated :meth:`Series.iteritems`, :meth:`DataFrame.iteritems`, use ``obj.items`` instead (:issue:`45321`)
 - Removed deprecated :meth:`DatetimeIndex.union_many` (:issue:`45018`)
+- Removed deprecated ``weekofyear`` and ``week`` attributes of :class:`DatetimeArray`, :class:`DatetimeIndex` and ``dt`` accessor in favor of ``isocalendar().week`` (:issue:`33595`)
 - Removed deprecated :meth:`RangeIndex._start`, :meth:`RangeIndex._stop`, :meth:`RangeIndex._step`, use ``start``, ``stop``, ``step`` instead (:issue:`30482`)
 - Removed deprecated :meth:`DatetimeIndex.to_perioddelta`, Use ``dtindex - dtindex.to_period(freq).to_timestamp()`` instead (:issue:`34853`)
+- Removed deprecated :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` (:issue:`49397`)
+- Removed deprecated :meth:`.Styler.set_na_rep` and :meth:`.Styler.set_precision` (:issue:`49397`)
+- Removed deprecated :meth:`.Styler.where` (:issue:`49397`)
+- Removed deprecated :meth:`.Styler.render` (:issue:`49397`)
+- Removed deprecated argument ``null_color`` in :meth:`.Styler.highlight_null` (:issue:`49397`)
+- Removed deprecated ``null_counts`` argument in :meth:`DataFrame.info`. Use ``show_counts`` instead (:issue:`37999`)
 - Enforced deprecation disallowing passing a timezone-aware :class:`Timestamp` and ``dtype="datetime64[ns]"`` to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
 - Enforced deprecation disallowing passing a sequence of timezone-aware values and ``dtype="datetime64[ns]"`` to to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
+- Enforced deprecation disallowing unit-less "datetime64" dtype in :meth:`Series.astype` and :meth:`DataFrame.astype` (:issue:`47844`)
 - Enforced deprecation disallowing using ``.astype`` to convert a ``datetime64[ns]`` :class:`Series`, :class:`DataFrame`, or :class:`DatetimeIndex` to timezone-aware dtype, use ``obj.tz_localize`` or ``ser.dt.tz_localize`` instead (:issue:`39258`)
 - Enforced deprecation disallowing using ``.astype`` to convert a timezone-aware :class:`Series`, :class:`DataFrame`, or :class:`DatetimeIndex` to timezone-naive ``datetime64[ns]`` dtype, use ``obj.tz_localize(None)`` or ``obj.tz_convert("UTC").tz_localize(None)`` instead (:issue:`39258`)
 - Removed Date parser functions :func:`~pandas.io.date_converters.parse_date_time`,
@@ -193,11 +204,19 @@ Removal of prior version deprecations/changes
 - Removed argument ``sort_columns`` in :meth:`DataFrame.plot` and :meth:`Series.plot` (:issue:`47563`)
 - Removed argument ``is_copy`` from :meth:`DataFrame.take` and :meth:`Series.take` (:issue:`30615`)
 - Removed argument ``kind`` from :meth:`Index.get_slice_bound`, :meth:`Index.slice_indexer` and :meth:`Index.slice_locs` (:issue:`41378`)
+- Removed argument ``datetime_is_numeric`` from :meth:`DataFrame.describe` and :meth:`Series.describe` as datetime data will always be summarized as numeric data (:issue:`34798`)
 - Disallow subclass-specific keywords (e.g. "freq", "tz", "names", "closed") in the :class:`Index` constructor (:issue:`38597`)
 - Removed argument ``inplace`` from :meth:`Categorical.remove_unused_categories` (:issue:`37918`)
 - Disallow passing non-round floats to :class:`Timestamp` with ``unit="M"`` or ``unit="Y"`` (:issue:`47266`)
 - Remove keywords ``convert_float`` and ``mangle_dupe_cols`` from :func:`read_excel` (:issue:`41176`)
 - Disallow passing non-keyword arguments to :func:`read_excel` except ``io`` and ``sheet_name`` (:issue:`34418`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.set_index` except ``keys`` (:issue:`41495`)
+- Disallow passing non-keyword arguments to :meth:`Resampler.interpolate` except ``method`` (:issue:`41699`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.reset_index` and :meth:`Series.reset_index` except ``level`` (:issue:`41496`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.dropna` and :meth:`Series.dropna` (:issue:`41504`)
+- Disallow passing non-keyword arguments to :meth:`ExtensionArray.argsort` (:issue:`46134`)
+- Disallow passing non-keyword arguments to :meth:`Categorical.sort_values` (:issue:`47618`)
+- Disallow passing non-keyword arguments to :meth:`Index.drop_duplicates` and :meth:`Series.drop_duplicates` (:issue:`41485`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.drop_duplicates` except for ``subset`` (:issue:`41485`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` (:issue:`41506`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` except for ``method`` (:issue:`41510`)
@@ -210,6 +229,9 @@ Removal of prior version deprecations/changes
 - Disallow passing non-keyword arguments to :func:`read_json` except for ``path_or_buf`` (:issue:`27573`)
 - Disallow passing non-keyword arguments to :func:`read_sas` except for ``filepath_or_buffer`` (:issue:`47154`)
 - Disallow passing non-keyword arguments to :func:`read_stata` except for ``filepath_or_buffer`` (:issue:`48128`)
+- Disallow passing non-keyword arguments to :func:`read_csv` except ``filepath_or_buffer`` (:issue:`41485`)
+- Disallow passing non-keyword arguments to :func:`read_table` except ``filepath_or_buffer`` (:issue:`41485`)
+- Disallow passing non-keyword arguments to :func:`read_fwf` except ``filepath_or_buffer`` (:issue:`44710`)
 - Disallow passing non-keyword arguments to :func:`read_xml` except for ``path_or_buffer`` (:issue:`45133`)
 - Disallow passing non-keyword arguments to :meth:`Series.mask` and :meth:`DataFrame.mask` except ``cond`` and ``other`` (:issue:`41580`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.to_stata` except for ``path`` (:issue:`48128`)
@@ -227,6 +249,7 @@ Removal of prior version deprecations/changes
 - Removed deprecated :meth:`Timedelta.delta`, :meth:`Timedelta.is_populated`, and :attr:`Timedelta.freq` (:issue:`46430`, :issue:`46476`)
 - Removed deprecated :meth:`Categorical.replace`, use :meth:`Series.replace` instead (:issue:`44929`)
 - Removed the ``numeric_only`` keyword from :meth:`Categorical.min` and :meth:`Categorical.max` in favor of ``skipna`` (:issue:`48821`)
+- Changed behavior of :meth:`DataFrame.median` and :meth:`DataFrame.mean` with ``numeric_only=None`` to not exclude datetime-like columns THIS NOTE WILL BE IRRELEVANT ONCE ``numeric_only=None`` DEPRECATION IS ENFORCED (:issue:`29941`)
 - Removed :func:`is_extension_type` in favor of :func:`is_extension_array_dtype` (:issue:`29457`)
 - Removed ``.ExponentialMovingWindow.vol`` (:issue:`39220`)
 - Removed :meth:`Index.get_value` and :meth:`Index.set_value` (:issue:`33907`, :issue:`28621`)
@@ -244,9 +267,13 @@ Removal of prior version deprecations/changes
 - Removed :meth:`Series.str.__iter__` (:issue:`28277`)
 - Removed ``pandas.SparseArray`` in favor of :class:`arrays.SparseArray` (:issue:`30642`)
 - Removed ``pandas.SparseSeries`` and ``pandas.SparseDataFrame``, including pickle support. (:issue:`30642`)
+- Enforced disallowing passing an integer ``fill_value`` to :meth:`DataFrame.shift` and :meth:`Series.shift`` with datetime64, timedelta64, or period dtypes (:issue:`32591`)
 - Enforced disallowing a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
 - Enforced disallowing a tuple of column labels into :meth:`.DataFrameGroupBy.__getitem__` (:issue:`30546`)
+- Enforced disallowing setting values with ``.loc`` using a positional slice. Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
 - Removed setting Categorical._codes directly (:issue:`41429`)
+- Removed setting Categorical.categories directly (:issue:`47834`)
+- Removed argument ``inplace`` from :meth:`Categorical.add_categories`, :meth:`Categorical.remove_categories`, :meth:`Categorical.set_categories`, :meth:`Categorical.rename_categories`, :meth:`Categorical.reorder_categories`, :meth:`Categorical.set_ordered`, :meth:`Categorical.as_ordered`, :meth:`Categorical.as_unordered` (:issue:`37981`, :issue:`41118`, :issue:`41133`, :issue:`47834`)
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
 - Renamed ``fname`` to ``path`` in :meth:`DataFrame.to_parquet`, :meth:`DataFrame.to_stata` and :meth:`DataFrame.to_feather` (:issue:`30338`)
 - Enforced disallowing indexing a :class:`Series` with a single item list with a slice (e.g. ``ser[[slice(0, 2)]]``). Either convert the list to tuple, or pass the slice directly instead (:issue:`31333`)
@@ -254,10 +281,17 @@ Removal of prior version deprecations/changes
 - Removed the ``display.column_space`` option in favor of ``df.to_string(col_space=...)`` (:issue:`47280`)
 - Removed the deprecated method ``mad`` from pandas classes (:issue:`11787`)
 - Removed the deprecated method ``tshift`` from pandas classes (:issue:`11631`)
+- Changed behavior of empty data passed into :class:`Series`; the default dtype will be ``object`` instead of ``float64`` (:issue:`29405`)
+- Changed the behavior of :func:`to_datetime` with argument "now" with ``utc=False`` to match ``Timestamp("now")`` (:issue:`18705`)
 - Changed behavior of :class:`DataFrame` constructor given floating-point ``data`` and an integer ``dtype``, when the data cannot be cast losslessly, the floating point dtype is retained, matching :class:`Series` behavior (:issue:`41170`)
 - Changed behavior of :class:`DataFrame` constructor when passed a ``dtype`` (other than int) that the data cannot be cast to; it now raises instead of silently ignoring the dtype (:issue:`41733`)
 - Changed the behavior of :class:`Series` constructor, it will no longer infer a datetime64 or timedelta64 dtype from string entries (:issue:`41731`)
 - Changed behavior of :class:`Index` constructor when passed a ``SparseArray`` or ``SparseDtype`` to retain that dtype instead of casting to ``numpy.ndarray`` (:issue:`43930`)
+- Removed the deprecated ``base`` and ``loffset`` arguments from :meth:`pandas.DataFrame.resample`, :meth:`pandas.Series.resample` and :class:`pandas.Grouper`. Use ``offset`` or ``origin`` instead (:issue:`31809`)
+- Changed behavior of :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``; object-dtype columns with all-bool values will no longer be included, manually cast to ``bool`` dtype first (:issue:`46188`)
+- Changed behavior of comparison of a :class:`Timestamp` with a ``datetime.date`` object; these now compare as un-equal and raise on inequality comparisons, matching the ``datetime.datetime`` behavior (:issue:`36131`)
+- Enforced deprecation of silently dropping columns that raised a ``TypeError`` in :class:`Series.transform` and :class:`DataFrame.transform` when used with a list or dictionary (:issue:`43740`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.performance:

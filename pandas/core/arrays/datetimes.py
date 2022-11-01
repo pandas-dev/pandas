@@ -216,8 +216,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "hour",
         "minute",
         "second",
-        "weekofyear",
-        "week",
         "weekday",
         "dayofweek",
         "day_of_week",
@@ -685,15 +683,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             and dtype != self.dtype
             and is_unitless(dtype)
         ):
-            # TODO(2.0): just fall through to dtl.DatetimeLikeArrayMixin.astype
-            warnings.warn(
-                "Passing unit-less datetime64 dtype to .astype is deprecated "
-                "and will raise in a future version. Pass 'datetime64[ns]' instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise TypeError(
+                "Casting to unit-less dtype 'datetime64' is not supported. "
+                "Pass e.g. 'datetime64[ns]' instead."
             )
-            # unit conversion e.g. datetime64[s]
-            return self._ndarray.astype(dtype)
 
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
@@ -1364,32 +1357,6 @@ default 'raise'
         if self._hasna:
             iso_calendar_df.iloc[self._isnan] = None
         return iso_calendar_df
-
-    @property
-    def weekofyear(self):
-        """
-        The week ordinal of the year.
-
-        .. deprecated:: 1.1.0
-
-        weekofyear and week have been deprecated.
-        Please use DatetimeIndex.isocalendar().week instead.
-        """
-        warnings.warn(
-            "weekofyear and week have been deprecated, please use "
-            "DatetimeIndex.isocalendar().week instead, which returns "
-            "a Series. To exactly reproduce the behavior of week and "
-            "weekofyear and return an Index, you may call "
-            "pd.Int64Index(idx.isocalendar().week)",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        week_series = self.isocalendar().week
-        if week_series.hasnans:
-            return week_series.to_numpy(dtype="float64", na_value=np.nan)
-        return week_series.to_numpy(dtype="int64")
-
-    week = weekofyear
 
     year = _field_accessor(
         "year",
