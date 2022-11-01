@@ -365,9 +365,10 @@ cdef class _Timestamp(ABCTimestamp):
                 return False
             elif op == Py_NE:
                 return True
-            raise TypeError("Cannot compare Timestamp with datetime.date. "
-                            "Use ts == pd.Timestamp(date) or ts.date() == date instead."
-                            )
+            raise TypeError(
+                "Cannot compare Timestamp with datetime.date. "
+                "Use ts == pd.Timestamp(date) or ts.date() == date instead."
+            )
         else:
             return NotImplemented
 

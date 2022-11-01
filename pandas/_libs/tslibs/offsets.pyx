@@ -2549,8 +2549,9 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
             ndarray i8other = dtarr.view("i8")
             Py_ssize_t i, count = dtarr.size
             int64_t val, res_val
-            ndarray out = cnp.PyArray_EMPTY(i8other.ndim, i8other.shape, cnp.NPY_INT64,
-                                            0)
+            ndarray out = cnp.PyArray_EMPTY(
+                i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
+            )
             npy_datetimestruct dts
             int months, to_day, nadj, n = self.n
             int days_in_month, day, anchor_dom = self.day_of_month
@@ -2758,8 +2759,9 @@ cdef class Week(SingleConstructorOffset):
         cdef:
             Py_ssize_t i, count = i8other.size
             int64_t val, res_val
-            ndarray out = cnp.PyArray_EMPTY(i8other.ndim, i8other.shape, cnp.NPY_INT64,
-                                            0)
+            ndarray out = cnp.PyArray_EMPTY(
+                i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
+            )
             npy_datetimestruct dts
             int wday, days, weeks, n = self.n
             int anchor_weekday = self.weekday
@@ -4149,8 +4151,9 @@ cdef ndarray _shift_bdays(
     """
     cdef:
         Py_ssize_t i, n = i8other.size
-        ndarray result = cnp.PyArray_EMPTY(i8other.ndim, i8other.shape, cnp.NPY_INT64,
-                                           0)
+        ndarray result = cnp.PyArray_EMPTY(
+            i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
+        )
         int64_t val, res_val
         int wday, nadj, days
         npy_datetimestruct dts
