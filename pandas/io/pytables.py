@@ -4129,7 +4129,7 @@ class Table(Fixed):
                             # the levels
                             if self.is_multi_index:
                                 filt = filt.union(Index(self.levels))
-
+                            # pylint: disable-next=cell-var-from-loop
                             takers = op(axis_values, filt)
                             return obj.loc(axis=axis_number)[takers]
 
@@ -4143,6 +4143,7 @@ class Table(Fixed):
                             # hack until we support reversed dim flags
                             if isinstance(obj, DataFrame):
                                 axis_number = 1 - axis_number
+                            # pylint: disable-next=cell-var-from-loop
                             takers = op(values, filt)
                             return obj.loc(axis=axis_number)[takers]
 

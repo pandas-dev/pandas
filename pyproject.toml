@@ -143,7 +143,6 @@ disable = [
   "arguments-renamed",
   "attribute-defined-outside-init",
   "broad-except",
-  "cell-var-from-loop",
   "comparison-with-callable",
   "confusing-with-statement",
   "dangerous-default-value",

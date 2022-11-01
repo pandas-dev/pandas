@@ -382,6 +382,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         for i, t in enumerate(tags2):
             pat = sep + t + sep
+            # pylint: disable-next=cell-var-from-loop
             dummies[:, i] = lib.map_infer(arr.to_numpy(), lambda x: pat in x)
         return dummies, tags2
 
