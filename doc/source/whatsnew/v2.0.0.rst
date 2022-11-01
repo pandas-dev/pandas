@@ -382,6 +382,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
+- Bug in :meth:`MultiIndex.get_indexer` not matching ``NaN`` values (:issue:`37222`)
 - Bug in :meth:`MultiIndex.argsort` raising ``TypeError`` when index contains :attr:`NA` (:issue:`48495`)
 - Bug in :meth:`MultiIndex.difference` losing extension array dtype (:issue:`48606`)
 - Bug in :class:`MultiIndex.set_levels` raising ``IndexError`` when setting empty level (:issue:`48636`)
