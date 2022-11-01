@@ -1685,8 +1685,10 @@ cdef class _Period(PeriodMixin):
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})")
 
-        if util.is_timedelta64_object(other) and 
-           get_timedelta64_value(other) == NPY_NAT:
+        if (
+            util.is_timedelta64_object(other) and
+            get_timedelta64_value(other) == NPY_NAT
+        ):
             # i.e. np.timedelta64("nat")
             return NaT
 
@@ -2480,7 +2482,7 @@ class Period(_Period):
         the start or the end of the period, but rather the entire period itself.
     freq : str, default None
         One of pandas period strings or corresponding objects. Accepted
-        strings are listed in the :ref:`offset alias section 
+        strings are listed in the :ref:`offset alias section
         <timeseries.offset_aliases>` in the user docs.
     ordinal : int, default None
         The period offset from the proleptic Gregorian epoch.

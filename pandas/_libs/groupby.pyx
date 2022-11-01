@@ -265,7 +265,7 @@ def group_cumprod(
     This method modifies the `out` parameter, rather than returning an object.
     """
     cdef:
-        Py_ssize_t i, j, N, K, 
+        Py_ssize_t i, j, N, K,
         int64float_t val, na_val
         int64float_t[:, ::1] accum
         intp_t lab
@@ -356,7 +356,7 @@ def group_cumsum(
     This method modifies the `out` parameter, rather than returning an object.
     """
     cdef:
-        Py_ssize_t i, j, N, K, 
+        Py_ssize_t i, j, N, K,
         int64float_t val, y, t, na_val
         int64float_t[:, ::1] accum, compensation
         uint8_t[:, ::1] accum_mask
@@ -770,8 +770,12 @@ def group_sum(
                         #  set a placeholder value in out[i, j].
                         if uses_mask:
                             result_mask[i, j] = True
-                        elif (sum_t is float32_t or sum_t is float64_t
-                            or sum_t is complex64_t or sum_t is complex64_t):
+                        elif (
+                            sum_t is float32_t
+                            or sum_t is float64_t
+                            or sum_t is complex64_t
+                            or sum_t is complex64_t
+                        ):
                             out[i, j] = NAN
                         elif sum_t is int64_t:
                             out[i, j] = NPY_NAT
@@ -799,7 +803,7 @@ def group_prod(
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        int64float_t val, count
+        int64float_t val
         int64float_t[:, ::1] prodx
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
@@ -872,7 +876,7 @@ def group_var(
         floating[:, ::1] mean
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint isna_entry, uses_mask = not mask is None
+        bint isna_entry, uses_mask = mask is not None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -969,7 +973,7 @@ def group_mean(
         mean_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint isna_entry, uses_mask = not mask is None
+        bint isna_entry, uses_mask = mask is not None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -1045,7 +1049,7 @@ def group_ohlc(
         Py_ssize_t i, N, K, lab
         int64float_t val
         uint8_t[::1] first_element_set
-        bint isna_entry, uses_mask = is not mask is None
+        bint isna_entry, uses_mask = mask is not None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -1240,7 +1244,7 @@ cdef inline bint _treat_as_na(numeric_object_t val, bint is_datetimelike) nogil:
         return False
 
 
-cdef numeric_object_t _get_min_or_max(numeric_object_t val, bint compute_max, 
+cdef numeric_object_t _get_min_or_max(numeric_object_t val, bint compute_max,
                                       bint is_datetimelike):
     """
     Find either the min or the max supported by numeric_object_t; 'val' is a
@@ -1367,7 +1371,7 @@ def group_last(
                         #  set a placeholder value in out[i, j].
                         if uses_mask:
                             result_mask[i, j] = True
-                        elif (numeric_object_t is float32_t or 
+                        elif (numeric_object_t is float32_t or
                               numeric_object_t is float64_t):
                             out[i, j] = NAN
                         elif numeric_object_t is int64_t:
@@ -1488,7 +1492,7 @@ def group_nth(
                             #  it was initialized with np.empty. Also ensures
                             #  we can downcast out if appropriate.
                             out[i, j] = 0
-                        elif (numeric_object_t is float32_t or 
+                        elif (numeric_object_t is float32_t or
                               numeric_object_t is float64_t):
                             out[i, j] = NAN
                         elif numeric_object_t is int64_t:

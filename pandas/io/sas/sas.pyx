@@ -253,10 +253,16 @@ cdef:
 
 
 def _init_subheader_signatures():
-    subheaders_32bit = [(sig, idx) for sig, idx in 
-                         const.subheader_signature_to_index.items() if len(sig) == 4]
-    subheaders_64bit  = [(sig, idx) for sig, idx in 
-                         const.subheader_signature_to_index.items() if len(sig) == 8]
+    subheaders_32bit = [
+        (sig, idx)
+        for sig, idx in const.subheader_signature_to_index.items()
+        if len(sig) == 4
+    ]
+    subheaders_64bit = [
+        (sig, idx)
+        for sig, idx in const.subheader_signature_to_index.items()
+        if len(sig) == 8
+    ]
     assert len(subheaders_32bit) == 13
     assert len(subheaders_64bit) == 17
     assert len(const.subheader_signature_to_index) == 13 + 17
@@ -491,8 +497,8 @@ cdef class Parser:
             rpos = self.decompress(source, decompressed_source)
             if rpos != self.row_length:
                 raise ValueError(
-                    f"Expected decompressed line of length {self.row_length} bytes but 
-                      decompressed {rpos} bytes"
+                    f"Expected decompressed line of length {self.row_length} bytes "
+                    f"but decompressed {rpos} bytes"
                 )
             source = decompressed_source
 
