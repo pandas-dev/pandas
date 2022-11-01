@@ -156,7 +156,7 @@ def ints_to_pydatetime(
         use_ts = True
     elif box == "datetime":
         use_pydt = True
-    elif not use_time:
+    elif box != "time":
         raise ValueError(
             "box must be one of 'datetime', 'date', 'time' or 'timestamp'"
         )
