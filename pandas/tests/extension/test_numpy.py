@@ -26,6 +26,7 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_object_dtype
 from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.internals import blocks
 from pandas.tests.extension import base
@@ -220,10 +221,11 @@ class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
 
     def test_is_not_object_type(self, dtype, request):
         if dtype.numpy_dtype == "object":
-            request.node.add_marker(
-                pytest.mark.xfail(reason="PandasDtype(object) should be object")
-            )
-        super().test_is_not_object_type(dtype)
+            # Different from BaseDtypeTests.test_is_not_object_type
+            # because PandasDtype(object) is an object type
+            assert is_object_dtype(dtype)
+        else:
+            super().test_is_not_object_type(dtype)
 
 
 class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
