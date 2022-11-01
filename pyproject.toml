@@ -113,7 +113,6 @@ disable = [
   "cyclic-import",
   "duplicate-code",
   "inconsistent-return-statements",
-  "invalid-sequence-index",
   "literal-comparison",
   "no-else-continue",
   "no-else-raise",
