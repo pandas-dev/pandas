@@ -95,7 +95,7 @@ class Infinity:
 
     def __gt__(self, other):
         return (not isinstance(other, Infinity) and
-                            not missing.checknull(other))
+                not missing.checknull(other))
 
     def __ge__(self, other):
         return not missing.checknull(other)
@@ -107,7 +107,7 @@ class NegInfinity:
     """
     def __lt__(self, other):
         return  (not isinstance(other, NegInfinity) and
-                            not missing.checknull(other))
+                 not missing.checknull(other))
 
     def __le__(self, other):
         return not missing.checknull(other)

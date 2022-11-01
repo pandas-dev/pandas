@@ -1525,9 +1525,8 @@ class Timestamp(_Timestamp):
             #  by the cython annotation.
             if tz is not None:
                 if (is_integer_object(tz)
-                    and is_integer_object(ts_input)
-                    and is_integer_object(freq)
-                    ):
+                        and is_integer_object(ts_input)
+                        and is_integer_object(freq)):
                     # GH#31929 e.g. Timestamp(2019, 3, 4, 5, 6, tzinfo=foo)
                     # TODO(GH#45307): this will still be fragile to
                     #  mixed-and-matched positional/keyword arguments

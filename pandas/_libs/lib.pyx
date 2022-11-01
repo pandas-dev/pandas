@@ -2217,15 +2217,16 @@ def maybe_convert_numeric(
         int maybe_int
         Py_ssize_t i, n = values.size
         Seen seen = Seen(coerce_numeric)
-        ndarray[float64_t, ndim=1] floats = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_FLOAT64,
-                                                              0)
+        ndarray[float64_t, ndim=1] floats = cnp.PyArray_EMPTY(1, values.shape,
+                                                              cnp.NPY_FLOAT64, 0)
         ndarray[complex128_t, ndim=1] complexes = cnp.PyArray_EMPTY(1, values.shape,
-                                                                cnp.NPY_COMPLEX128, 0)
-        ndarray[int64_t, ndim=1] ints = cnp.PyArray_EMPTY(1, values.shape, 
+                                                                    cnp.NPY_COMPLEX128,
+                                                                    0)
+        ndarray[int64_t, ndim=1] ints = cnp.PyArray_EMPTY(1, values.shape,
                                                           cnp.NPY_INT64, 0)
-        ndarray[uint64_t, ndim=1] uints = cnp.PyArray_EMPTY(1, values.shape, 
+        ndarray[uint64_t, ndim=1] uints = cnp.PyArray_EMPTY(1, values.shape,
                                                             cnp.NPY_UINT64, 0)
-        ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(1, values.shape, 
+        ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(1, values.shape,
                                                            cnp.NPY_UINT8, 0)
         ndarray[uint8_t, ndim=1] mask = np.zeros(n, dtype="u1")
         float64_t fval
