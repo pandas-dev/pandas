@@ -1300,10 +1300,6 @@ class TestLocBaseIndependent:
     @pytest.mark.parametrize("spmatrix_t", ["coo_matrix", "csc_matrix", "csr_matrix"])
     @pytest.mark.parametrize("dtype", [np.int64, np.float64, complex])
     @td.skip_if_no_scipy
-    @pytest.mark.filterwarnings(
-        # TODO(2.0): remove filtering; note only needed for using_array_manager
-        "ignore:The behavior of .astype from SparseDtype.*FutureWarning"
-    )
     def test_loc_getitem_range_from_spmatrix(self, spmatrix_t, dtype):
         import scipy.sparse
 

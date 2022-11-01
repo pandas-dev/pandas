@@ -85,9 +85,7 @@ def test_binary_ufunc_with_index(flip, sparse, ufunc, arrays_for_binary_ufunc):
     name = "name"  # op(pd.Series, array) preserves the name.
     series = pd.Series(a1, name=name)
 
-    warn = None if not sparse else FutureWarning
-    with tm.assert_produces_warning(warn):
-        other = pd.Index(a2, name=name).astype("int64")
+    other = pd.Index(a2, name=name).astype("int64")
 
     array_args = (a1, a2)
     series_args = (series, other)  # ufunc(series, array)
