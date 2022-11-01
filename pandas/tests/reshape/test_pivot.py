@@ -2088,7 +2088,7 @@ class TestPivotTable:
 
     @pytest.mark.parametrize("margins", [True, False])
     def test_pivot_table_empty_aggfunc(self, margins):
-        # GH 9186 & GH 13483
+        # GH 9186 & GH 13483 & GH 49240
         df = DataFrame(
             {
                 "A": [2, 2, 3, 3, 2],
