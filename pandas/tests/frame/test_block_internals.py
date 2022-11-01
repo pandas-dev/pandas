@@ -86,12 +86,6 @@ class TestDataFrameBlockInternals:
         for letter in range(ord("A"), ord("Z")):
             float_frame[chr(letter)] = chr(letter)
 
-    def test_values_consolidate(self, float_frame):
-        float_frame["E"] = 7.0
-        assert not float_frame._mgr.is_consolidated()
-        _ = float_frame.values
-        assert float_frame._mgr.is_consolidated()
-
     def test_modify_values(self, float_frame):
         float_frame.values[5] = 5
         assert (float_frame.values[5] == 5).all()

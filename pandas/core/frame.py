@@ -169,6 +169,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
     sanitize_masked_array,
@@ -977,8 +978,6 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Analogue to ._values that may return a 2D ExtensionArray.
         """
-        self._consolidate_inplace()
-
         mgr = self._mgr
 
         if isinstance(mgr, ArrayManager):
@@ -986,11 +985,11 @@ class DataFrame(NDFrame, OpsMixin):
                 # error: Item "ExtensionArray" of "Union[ndarray, ExtensionArray]"
                 # has no attribute "reshape"
                 return mgr.arrays[0].reshape(-1, 1)  # type: ignore[union-attr]
-            return self.values
+            return ensure_wrapped_if_datetimelike(self.values)
 
         blocks = mgr.blocks
         if len(blocks) != 1:
-            return self.values
+            return ensure_wrapped_if_datetimelike(self.values)
 
         arr = blocks[0].values
         if arr.ndim == 1:
@@ -1821,7 +1820,6 @@ class DataFrame(NDFrame, OpsMixin):
         array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
-        self._consolidate_inplace()
         if dtype is not None:
             dtype = np.dtype(dtype)
         result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
@@ -11679,7 +11677,6 @@ Parrot 2  Parrot       24.0
                ['lion', 80.5, 1],
                ['monkey', nan, None]], dtype=object)
         """
-        self._consolidate_inplace()
         return self._mgr.as_array()
 
     @overload
