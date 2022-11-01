@@ -84,9 +84,8 @@ class TestSeriesConstructors:
     )
     def test_empty_constructor(self, constructor, check_index_type):
         # TODO: share with frame test of the same name
-        with tm.assert_produces_warning(FutureWarning):
-            expected = Series()
-            result = constructor()
+        expected = Series()
+        result = constructor()
 
         assert len(result.index) == 0
         tm.assert_series_equal(result, expected, check_index_type=check_index_type)
@@ -129,8 +128,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
 
     def test_constructor(self, datetime_series):
-        with tm.assert_produces_warning(FutureWarning):
-            empty_series = Series()
+        empty_series = Series()
         assert datetime_series.index._is_all_dates
 
         # Pass in Series
@@ -147,8 +145,7 @@ class TestSeriesConstructors:
         assert np.isnan(mixed[1])
 
         assert not empty_series.index._is_all_dates
-        with tm.assert_produces_warning(FutureWarning):
-            assert not Series().index._is_all_dates
+        assert not Series().index._is_all_dates
 
         # exception raised is of type ValueError GH35744
         with pytest.raises(ValueError, match="Data must be 1-dimensional"):
@@ -173,9 +170,8 @@ class TestSeriesConstructors:
 
     @pytest.mark.parametrize("input_class", [list, dict, OrderedDict])
     def test_constructor_empty(self, input_class):
-        with tm.assert_produces_warning(FutureWarning):
-            empty = Series()
-            empty2 = Series(input_class())
+        empty = Series()
+        empty2 = Series(input_class())
 
         # these are Index() and RangeIndex() which don't compare type equal
         # but are just .equals
@@ -193,9 +189,8 @@ class TestSeriesConstructors:
 
         if input_class is not list:
             # With index:
-            with tm.assert_produces_warning(FutureWarning):
-                empty = Series(index=range(10))
-                empty2 = Series(input_class(), index=range(10))
+            empty = Series(index=range(10))
+            empty2 = Series(input_class(), index=range(10))
             tm.assert_series_equal(empty, empty2)
 
             # With index and dtype float64:
@@ -227,8 +222,7 @@ class TestSeriesConstructors:
         assert len(result) == 0
 
     def test_constructor_no_data_index_order(self):
-        with tm.assert_produces_warning(FutureWarning):
-            result = Series(index=["b", "a", "c"])
+        result = Series(index=["b", "a", "c"])
         assert result.index.tolist() == ["b", "a", "c"]
 
     def test_constructor_no_data_string_type(self):
@@ -703,8 +697,7 @@ class TestSeriesConstructors:
         assert s._mgr.blocks[0].values is not index
 
     def test_constructor_pass_none(self):
-        with tm.assert_produces_warning(FutureWarning):
-            s = Series(None, index=range(5))
+        s = Series(None, index=range(5))
         assert s.dtype == np.float64
 
         s = Series(None, index=range(5), dtype=object)
@@ -712,9 +705,8 @@ class TestSeriesConstructors:
 
         # GH 7431
         # inference on the index
-        with tm.assert_produces_warning(FutureWarning):
-            s = Series(index=np.array([None]))
-            expected = Series(index=Index([None]))
+        s = Series(index=np.array([None]))
+        expected = Series(index=Index([None]))
         tm.assert_series_equal(s, expected)
 
     def test_constructor_pass_nan_nat(self):
