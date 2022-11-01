@@ -49,5 +49,11 @@ def test_federal_holiday_inconsistent_returntype():
 
     results_2018 = cal1.holidays(start=datetime(2018, 8, 1), end=datetime(2018, 8, 31))
     results_2019 = cal2.holidays(start=datetime(2019, 8, 1), end=datetime(2019, 8, 31))
-
+    expected_res = DatetimeIndex([], dtype='datetime64[ns]', freq=None)
+    # Check to make sure the returned types are identical
+    # per GH49075 example code 
     tm.assert_index_equal(results_2018, results_2019)
+    # Check each against expected results to rule out if 
+    # the half-open interval logic has failed for one case
+    tm.assert_index_equal(results_2018, expected_res)
+    tm.assert_index_equal(results_2019, expected_res)
