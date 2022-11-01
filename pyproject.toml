@@ -182,11 +182,9 @@ disable = [
   "unused-argument",
   "unused-import",
   "unused-variable",
-  "unused-wildcard-import",
   "using-constant-test",
   "useless-else-on-loop",
-  "useless-parent-delegation",
-  "wildcard-import"
+  "useless-parent-delegation"
 ]
 
 [tool.pytest.ini_options]
