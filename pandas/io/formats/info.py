@@ -52,13 +52,6 @@ show_counts_sub = dedent(
         shows the counts, and False never shows the counts."""
 )
 
-null_counts_sub = dedent(
-    """
-    null_counts : bool, optional
-        .. deprecated:: 1.2.0
-            Use show_counts instead."""
-)
-
 
 frame_examples_sub = dedent(
     """\
@@ -159,7 +152,6 @@ frame_sub_kwargs = {
     "type_sub": " and columns",
     "max_cols_sub": frame_max_cols_sub,
     "show_counts_sub": show_counts_sub,
-    "null_counts_sub": null_counts_sub,
     "examples_sub": frame_examples_sub,
     "see_also_sub": frame_see_also_sub,
     "version_added_sub": "",
@@ -240,7 +232,6 @@ series_sub_kwargs = {
     "type_sub": "",
     "max_cols_sub": "",
     "show_counts_sub": show_counts_sub,
-    "null_counts_sub": "",
     "examples_sub": series_examples_sub,
     "see_also_sub": series_see_also_sub,
     "version_added_sub": "\n.. versionadded:: 1.4.0\n",
@@ -280,7 +271,7 @@ INFO_DOCSTRING = dedent(
         at the cost of computational resources. See the
         :ref:`Frequently Asked Questions <df-memory-usage>` for more
         details.
-    {show_counts_sub}{null_counts_sub}
+    {show_counts_sub}
 
     Returns
     -------

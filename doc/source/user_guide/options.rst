@@ -249,7 +249,7 @@ displayed when calling :meth:`~pandas.DataFrame.info`.
 ``display.max_info_rows``: :meth:`~pandas.DataFrame.info` will usually show null-counts for each column.
 For a large :class:`DataFrame`, this can be quite slow. ``max_info_rows`` and ``max_info_cols``
 limit this null check to the specified rows and columns respectively. The :meth:`~pandas.DataFrame.info`
-keyword argument ``null_counts=True`` will override this.
+keyword argument ``show_counts=True`` will override this.
 
 .. ipython:: python
 
