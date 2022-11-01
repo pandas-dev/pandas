@@ -23,7 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in the Copy-on-Write implementation losing track of views in certain chained indexing cases (:issue:`48996`)
 -
 
 .. ---------------------------------------------------------------------------
