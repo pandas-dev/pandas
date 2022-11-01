@@ -3,6 +3,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
+import sys
 from textwrap import dedent
 from typing import (
     IO,
@@ -68,7 +69,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    ChainedAssignmentError,
+    InvalidIndexError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -1070,6 +1074,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
+        if (
+            get_option("mode.copy_on_write")
+            and get_option("mode.data_manager") == "block"
+        ):
+            print("Series.__getitem__ refcount: ", sys.getrefcount(self))
+            if sys.getrefcount(self) <= 3:
+                raise ChainedAssignmentError("Chained assignment doesn't work!!")
+
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
         cacher_needs_updating = self._check_is_chained_assignment_possible()

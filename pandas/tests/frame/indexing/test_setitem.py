@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import ChainedAssignmentError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.base import _registry as ea_registry
@@ -1126,7 +1127,7 @@ class TestDataFrameSetItemBooleanMask:
 
 
 class TestDataFrameSetitemCopyViewSemantics:
-    def test_setitem_always_copy(self, float_frame):
+    def test_setitem_always_copy(self, float_frame, using_copy_on_write):
         assert "E" not in float_frame.columns
         s = float_frame["A"].copy()
         float_frame["E"] = s
@@ -1245,12 +1246,15 @@ class TestDataFrameSetitemCopyViewSemantics:
         df = DataFrame({col: np.zeros(len(labels)) for col in labels}, index=labels)
         values = df._mgr.blocks[0].values
 
-        for label in df.columns:
-            df[label][label] = 1
-
         if not using_copy_on_write:
+            for label in df.columns:
+                df[label][label] = 1
+
             # diagonal values all updated
             assert np.all(values[np.arange(10), np.arange(10)] == 1)
         else:
+            with pytest.raises(ChainedAssignmentError):
+                for label in df.columns:
+                    df[label][label] = 1
             # original dataframe not updated
             assert np.all(values[np.arange(10), np.arange(10)] == 0)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import suppress
+import sys
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -12,6 +13,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas._typing import (
@@ -20,6 +23,7 @@ from pandas._typing import (
 )
 from pandas.errors import (
     AbstractMethodError,
+    ChainedAssignmentError,
     IndexingError,
     InvalidIndexError,
     LossySetitemError,
@@ -830,6 +834,14 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
+        if (
+            get_option("mode.copy_on_write")
+            and get_option("mode.data_manager") == "block"
+        ):
+            print("_LocationIndexer.__setitem__ refcount: ", sys.getrefcount(self.obj))
+            if sys.getrefcount(self.obj) <= 2:
+                raise ChainedAssignmentError("Chained assignment doesn't work!!")
+
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
             key = tuple(list(x) if is_iterator(x) else x for x in key)

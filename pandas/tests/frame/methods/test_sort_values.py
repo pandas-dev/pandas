@@ -345,8 +345,8 @@ class TestDataFrameSortValues:
             with pytest.raises(ValueError, match="This Series is a view"):
                 s.sort_values(inplace=True)
 
-        cp = s.copy()
-        cp.sort_values()  # it works!
+            cp = s.copy()
+            cp.sort_values()  # it works!
 
     def test_sort_values_nat_values_in_int_column(self):
 

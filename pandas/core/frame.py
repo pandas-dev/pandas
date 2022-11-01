@@ -16,6 +16,7 @@ import datetime
 import functools
 from io import StringIO
 import itertools
+import sys
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -95,7 +96,10 @@ from pandas.compat.numpy import (
     function as nv,
     np_percentile_argname,
 )
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    ChainedAssignmentError,
+    InvalidIndexError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -3838,6 +3842,13 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False)
 
     def __setitem__(self, key, value):
+        if (
+            get_option("mode.copy_on_write")
+            and get_option("mode.data_manager") == "block"
+        ):
+            if sys.getrefcount(self) <= 3:
+                raise ChainedAssignmentError("Chained assignment doesn't work!!")
+
         key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows

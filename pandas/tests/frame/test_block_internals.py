@@ -7,7 +7,10 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    ChainedAssignmentError,
+    PerformanceWarning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -340,7 +343,11 @@ class TestDataFrameBlockInternals:
             )
             repr(Y)
             Y["e"] = Y["e"].astype("object")
-            Y["g"]["c"] = np.NaN
+            if using_copy_on_write:
+                with pytest.raises(ChainedAssignmentError):
+                    Y["g"]["c"] = np.NaN
+            else:
+                Y["g"]["c"] = np.NaN
             repr(Y)
             result = Y.sum()  # noqa
             exp = Y["g"].sum()  # noqa
