@@ -18,7 +18,7 @@ def skipif_32bit(param):
     return pytest.param(param, marks=marks)
 
 
-@pytest.fixture(scope="class", params=["int64", "float64", "uint64"])
+@pytest.fixture(params=["int64", "float64", "uint64"])
 def dtype(request):
     return request.param
 

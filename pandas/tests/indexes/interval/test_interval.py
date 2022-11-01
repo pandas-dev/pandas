@@ -22,7 +22,7 @@ from pandas.core.api import Float64Index
 import pandas.core.common as com
 
 
-@pytest.fixture(scope="class", params=[None, "foo"])
+@pytest.fixture(params=[None, "foo"])
 def name(request):
     return request.param
 
