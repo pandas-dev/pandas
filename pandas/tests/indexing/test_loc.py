@@ -2065,13 +2065,12 @@ class TestLocSetitemWithExpansion:
         df.time = df.set_index("time").index.tz_localize("UTC")
         v = df[df.new_col == "new"].set_index("time").index.tz_convert("US/Pacific")
 
-        # trying to set a single element on a part of a different timezone
-        # this converts to object
+        # pre-2.0  trying to set a single element on a part of a different
+        #  timezone converted to object; in 2.0 it retains dtype
         df2 = df.copy()
-        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
-            df2.loc[df2.new_col == "new", "time"] = v
+        df2.loc[df2.new_col == "new", "time"] = v
 
-        expected = Series([v[0], df.loc[1, "time"]], name="time")
+        expected = Series([v[0].tz_convert("UTC"), df.loc[1, "time"]], name="time")
         tm.assert_series_equal(df2.time, expected)
 
         v = df.loc[df.new_col == "new", "time"] + Timedelta("1s")

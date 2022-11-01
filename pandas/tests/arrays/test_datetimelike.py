@@ -829,18 +829,14 @@ class TestDatetimeArray(SharedTests):
             # GH#37356
             # Assuming here that arr1d fixture does not include Australia/Melbourne
             value = fixed_now_ts.tz_localize("Australia/Melbourne")
-            msg = "Timezones don't match. .* != 'Australia/Melbourne'"
-            with pytest.raises(ValueError, match=msg):
-                # require tz match, not just tzawareness match
-                with tm.assert_produces_warning(
-                    FutureWarning, match="mismatched timezone"
-                ):
-                    result = arr.take([-1, 1], allow_fill=True, fill_value=value)
+            result = arr.take([-1, 1], allow_fill=True, fill_value=value)
 
-            # once deprecation is enforced
-            # expected = arr.take([-1, 1], allow_fill=True,
-            #  fill_value=value.tz_convert(arr.dtype.tz))
-            # tm.assert_equal(result, expected)
+            expected = arr.take(
+                [-1, 1],
+                allow_fill=True,
+                fill_value=value.tz_convert(arr.dtype.tz),
+            )
+            tm.assert_equal(result, expected)
 
     def test_concat_same_type_invalid(self, arr1d):
         # different timezones
