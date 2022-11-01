@@ -337,7 +337,6 @@ class Holiday:
         """
         if dates.empty:
             return DatetimeIndex([], dtype="datetime64[ns]")
-            
 
         if self.observance is not None:
             return dates.map(lambda d: self.observance(d))
