@@ -845,6 +845,7 @@ def get_grouper(
         if not hasattr(gpr, "name"):
             return False
         try:
+            # TODO(CoW) this check no longer works
             return gpr is obj[gpr.name]
         except (KeyError, IndexError, InvalidIndexError):
             # IndexError reached in e.g. test_skip_group_keys when we pass

@@ -4230,6 +4230,13 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _get_item_cache(self, item: Hashable) -> Series:
         """Return the cached item, item represents a label indexer."""
+        if (
+            get_option("mode.copy_on_write")
+            and get_option("mode.data_manager") == "block"
+        ):
+            loc = self.columns.get_loc(item)
+            return self._ixs(loc, axis=1)
+
         cache = self._item_cache
         res = cache.get(item)
         if res is None:

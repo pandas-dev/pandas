@@ -1114,10 +1114,13 @@ class TestLocBaseIndependent:
         else:
             assert (sliced_df["a"] == 4).all()
 
-        # These should not return copies
+        # These should not return copies (but still new objects for CoW)
         assert original_df is original_df.loc[:, :]
         df = DataFrame(np.random.randn(10, 4))
-        assert df[0] is df.loc[:, 0]
+        if using_copy_on_write:
+            assert df[0] is not df.loc[:, 0]
+        else:
+            assert df[0] is df.loc[:, 0]
 
         # Same tests for Series
         original_series = Series([1, 2, 3, 4, 5, 6])

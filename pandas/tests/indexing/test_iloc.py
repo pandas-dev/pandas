@@ -900,10 +900,9 @@ class TestiLocBaseIndependent:
         assert result == 1
 
     @td.skip_array_manager_not_yet_implemented
-    def test_iloc_setitem_categorical_updates_inplace(self, using_copy_on_write):
+    def test_iloc_setitem_categorical_updates_inplace(self):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
         cat = Categorical(["A", "B", "C"])
-        cat_original = cat.copy()
         df = DataFrame({1: cat, 2: [1, 2, 3]}, copy=False)
 
         assert tm.shares_memory(df[1], cat)
@@ -913,12 +912,8 @@ class TestiLocBaseIndependent:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             df.iloc[:, 0] = cat[::-1]
 
-        if not using_copy_on_write:
-            assert tm.shares_memory(df[1], cat)
-            expected = Categorical(["C", "B", "A"], categories=["A", "B", "C"])
-        else:
-            expected = cat_original
-
+        assert tm.shares_memory(df[1], cat)
+        expected = Categorical(["C", "B", "A"], categories=["A", "B", "C"])
         tm.assert_categorical_equal(cat, expected)
 
     def test_iloc_with_boolean_operation(self):

@@ -45,7 +45,7 @@ class TestToDictOfBlocks:
             assert not _df[column].equals(df[column])
 
 
-def test_to_dict_of_blocks_item_cache():
+def test_to_dict_of_blocks_item_cache(using_copy_on_write):
     # Calling to_dict_of_blocks should not poison item_cache
     df = DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
     df["c"] = PandasArray(np.array([1, 2, None, 3], dtype=object))
@@ -56,11 +56,16 @@ def test_to_dict_of_blocks_item_cache():
 
     df._to_dict_of_blocks()
 
-    # Check that the to_dict_of_blocks didn't break link between ser and df
-    ser.values[0] = "foo"
-    assert df.loc[0, "b"] == "foo"
+    if using_copy_on_write:
+        # TODO(CoW) we should disallow this, so `df` doesn't get updated
+        ser.values[0] = "foo"
+        assert df.loc[0, "b"] == "foo"
+    else:
+        # Check that the to_dict_of_blocks didn't break link between ser and df
+        ser.values[0] = "foo"
+        assert df.loc[0, "b"] == "foo"
 
-    assert df["b"] is ser
+        assert df["b"] is ser
 
 
 def test_set_change_dtype_slice():
