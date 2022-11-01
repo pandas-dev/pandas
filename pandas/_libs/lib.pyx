@@ -767,7 +767,7 @@ def generate_bins_dt64(ndarray[int64_t, ndim=1] values, const int64_t[:] binner,
     Int64 (datetime64) version of generic python version in ``groupby.py``.
     """
     cdef:
-        Py_ssize_t lenidx, lenbin, i, j, bc,
+        Py_ssize_t lenidx, lenbin, i, j, bc
         ndarray[int64_t, ndim=1] bins
         int64_t, r_bin, nat_count
         bint right_closed = closed == 'right'
@@ -2310,6 +2310,7 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
+                floatify(val, &fval, &maybe_int)
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = complexes[i] = NaN
@@ -2447,7 +2448,7 @@ def maybe_convert_objects(ndarray[object] objects,
         int64_t[::1] itimedeltas
         Seen seen = Seen()
         object val
-        float64_t, fnan = np.nan
+        float64_t fnan = np.nan
 
     n = len(objects)
 
