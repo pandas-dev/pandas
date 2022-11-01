@@ -453,7 +453,7 @@ class TestGetIndexer:
         idx = Index([1, 2, NA, 3, val], dtype=any_numeric_ea_dtype)
         result = idx.get_indexer_for([1, NA, 5])
         expected = np.array([0, 2, -1])
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
     def test_get_indexer_masked_na_boolean(self):
         # GH#39133
