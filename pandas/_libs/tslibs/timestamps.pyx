@@ -1242,6 +1242,10 @@ class Timestamp(_Timestamp):
     ----------
     ts_input : datetime-like, str, int, float
         Value to be converted to Timestamp.
+    year, month, day : int
+    hour, minute, second, microsecond : int, optional, default 0
+    tzinfo : datetime.tzinfo, optional, default None
+    nanosecond : int, optional, default 0
     freq : str, DateOffset
         Offset which Timestamp will have.
     tz : str, pytz.timezone, dateutil.tz.tzfile or None
@@ -1250,10 +1254,6 @@ class Timestamp(_Timestamp):
         Unit used for conversion if ts_input is of type int or float. The
         valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
-    year, month, day : int
-    hour, minute, second, microsecond : int, optional, default 0
-    nanosecond : int, optional, default 0
-    tzinfo : datetime.tzinfo, optional, default None
     fold : {0, 1}, default None, keyword-only
         Due to daylight saving time, one wall clock time can occur twice
         when shifting from summer to winter time; fold describes whether the
