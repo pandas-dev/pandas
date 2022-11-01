@@ -477,9 +477,9 @@ class TestGetIndexer:
         idx2 = MultiIndex.from_product([["A"], [np.nan, 2.0]], names=["id1", "id2"])
         expected = np.array([-1, 1])
         result = idx2.get_indexer(idx1)
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
         result = idx1.get_indexer(idx2)
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
 
 def test_getitem(idx):
