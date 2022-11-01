@@ -30,18 +30,20 @@ import pandas._testing as tm
 
 
 class TestAstypeAPI:
-    def test_astype_unitless_dt64_deprecated(self):
+    def test_astype_unitless_dt64_raises(self):
         # GH#47844
         ser = Series(["1970-01-01", "1970-01-01", "1970-01-01"], dtype="datetime64[ns]")
+        df = ser.to_frame()
 
-        msg = "Passing unit-less datetime64 dtype to .astype is deprecated and "
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = ser.astype(np.datetime64)
-        tm.assert_series_equal(ser, res)
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = ser.astype("datetime64")
-        tm.assert_series_equal(ser, res)
+        msg = "Casting to unit-less dtype 'datetime64' is not supported"
+        with pytest.raises(TypeError, match=msg):
+            ser.astype(np.datetime64)
+        with pytest.raises(TypeError, match=msg):
+            df.astype(np.datetime64)
+        with pytest.raises(TypeError, match=msg):
+            ser.astype("datetime64")
+        with pytest.raises(TypeError, match=msg):
+            df.astype("datetime64")
 
     def test_arg_for_errors_in_astype(self):
         # see GH#14878
@@ -106,8 +108,7 @@ class TestAstype:
             "m",  # Generic timestamps raise a ValueError. Already tested.
         ):
             init_empty = Series([], dtype=dtype)
-            with tm.assert_produces_warning(FutureWarning):
-                as_type_empty = Series([]).astype(dtype)
+            as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
 
     @pytest.mark.parametrize("dtype", [str, np.str_])

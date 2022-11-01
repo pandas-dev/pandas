@@ -58,10 +58,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.algorithms import safe_sort
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
-from pandas.core.construction import (
-    create_series_with_explicit_dtype,
-    ensure_wrapped_if_datetimelike,
-)
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
     from pandas import (
@@ -266,34 +263,9 @@ class Apply(metaclass=abc.ABCMeta):
         func = self.normalize_dictlike_arg("transform", obj, func)
 
         results: dict[Hashable, DataFrame | Series] = {}
-        failed_names = []
-        all_type_errors = True
         for name, how in func.items():
             colg = obj._gotitem(name, ndim=1)
-            try:
-                results[name] = colg.transform(how, 0, *args, **kwargs)
-            except Exception as err:
-                if str(err) in {
-                    "Function did not transform",
-                    "No transform functions were provided",
-                }:
-                    raise err
-                else:
-                    if not isinstance(err, TypeError):
-                        all_type_errors = False
-                    failed_names.append(name)
-        # combine results
-        if not results:
-            klass = TypeError if all_type_errors else ValueError
-            raise klass("Transform function failed")
-        if len(failed_names) > 0:
-            warnings.warn(
-                f"{failed_names} did not transform successfully. If any error is "
-                f"raised, this will raise in a future version of pandas. "
-                f"Drop these columns/ops to avoid this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            results[name] = colg.transform(how, 0, *args, **kwargs)
         return concat(results, axis=1)
 
     def transform_str_or_callable(self, func) -> DataFrame | Series:
@@ -906,14 +878,12 @@ class FrameApply(NDFrameApply):
 
         # dict of scalars
 
-        # the default dtype of an empty Series will be `object`, but this
+        # the default dtype of an empty Series is `object`, but this
         # code can be hit by df.mean() where the result should have dtype
         # float64 even if it's an empty Series.
         constructor_sliced = self.obj._constructor_sliced
-        if constructor_sliced is Series:
-            result = create_series_with_explicit_dtype(
-                results, dtype_if_empty=np.float64
-            )
+        if len(results) == 0 and constructor_sliced is Series:
+            result = constructor_sliced(results, dtype=np.float64)
         else:
             result = constructor_sliced(results)
         result.index = res_index
