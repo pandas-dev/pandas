@@ -411,7 +411,7 @@ def _generate_marginal_results(
                 table_pieces.append(transformed_piece)
                 margin_keys.append(all_key)
 
-        if table.empty:
+        if not table_pieces:
             # GH 49240
             return table
         else:
