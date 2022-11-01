@@ -840,7 +840,7 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _engine(
         self,
-    ) -> libindex.IndexEngine | libindex.ExtensionEngine | libindex.MaskedEngine:
+    ) -> libindex.IndexEngine | libindex.ExtensionEngine | libindex.MaskedIndexEngine:
         # For base class (object dtype) we get ObjectEngine
         target_values = self._get_engine_target()
         if isinstance(target_values, ExtensionArray):
