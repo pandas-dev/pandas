@@ -683,15 +683,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             and dtype != self.dtype
             and is_unitless(dtype)
         ):
-            # TODO(2.0): just fall through to dtl.DatetimeLikeArrayMixin.astype
-            warnings.warn(
-                "Passing unit-less datetime64 dtype to .astype is deprecated "
-                "and will raise in a future version. Pass 'datetime64[ns]' instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise TypeError(
+                "Casting to unit-less dtype 'datetime64' is not supported. "
+                "Pass e.g. 'datetime64[ns]' instead."
             )
-            # unit conversion e.g. datetime64[s]
-            return self._ndarray.astype(dtype)
 
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
