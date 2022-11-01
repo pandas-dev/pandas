@@ -57,4 +57,4 @@ dependencies:
   - zstandard=0.15.2
 
   - pip:
-    - PyQt5=5.15.1
+    - PyQt5>=5.15.1
