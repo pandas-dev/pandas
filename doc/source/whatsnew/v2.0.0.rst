@@ -198,7 +198,7 @@ Removal of prior version deprecations/changes
 - Removed argument ``inplace`` from :meth:`Categorical.remove_unused_categories` (:issue:`37918`)
 - Disallow passing non-round floats to :class:`Timestamp` with ``unit="M"`` or ``unit="Y"`` (:issue:`47266`)
 - Remove keywords ``convert_float`` and ``mangle_dupe_cols`` from :func:`read_excel` (:issue:`41176`)
-- Removed ``errors`` keyword from :meth:`DataFrame.where`, :meth:`Series.where`, :meth:`DataFrame.mask` and :meth:`Series.mask (:issue:`47728`)
+- Removed ``errors`` keyword from :meth:`DataFrame.where`, :meth:`Series.where`, :meth:`DataFrame.mask` and :meth:`Series.mask` (:issue:`47728`)
 - Disallow passing non-keyword arguments to :func:`read_excel` except ``io`` and ``sheet_name`` (:issue:`34418`)
 - Disallow passing non-keyword arguments to :meth:`StringMethods.split` and :meth:`StringMethods.rsplit` except for ``pat`` (:issue:`47448`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.set_index` except ``keys`` (:issue:`41495`)
