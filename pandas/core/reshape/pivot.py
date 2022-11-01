@@ -411,9 +411,13 @@ def _generate_marginal_results(
                 table_pieces.append(transformed_piece)
                 margin_keys.append(all_key)
 
-        result = concat(table_pieces, axis=cat_axis)
+        try:
+            result = concat(table_pieces, axis=cat_axis)
+        except ValueError:
+            # GH 49240
+            result = table
 
-        if len(rows) == 0:
+        if len(rows) == 0 or len(data) == 0:
             return result
     else:
         result = table
