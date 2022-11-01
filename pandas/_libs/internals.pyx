@@ -676,8 +676,9 @@ cdef class BlockManager:
         public bint _known_consolidated, _is_consolidated
         public ndarray _blknos, _blklocs
         public list refs
+        public object parent
 
-    def __cinit__(self, blocks=None, axes=None, refs=None, verify_integrity=True):
+    def __cinit__(self, blocks=None, axes=None, refs=None, parent=None, verify_integrity=True):
         # None as defaults for unpickling GH#42345
         if blocks is None:
             # This adds 1-2 microseconds to DataFrame(np.array([]))
@@ -690,6 +691,7 @@ cdef class BlockManager:
         self.blocks = blocks
         self.axes = axes.copy()  # copy to make sure we are not remotely-mutable
         self.refs = refs
+        self.parent = parent
 
         # Populate known_consolidate, blknos, and blklocs lazily
         self._known_consolidated = False
@@ -805,7 +807,9 @@ cdef class BlockManager:
             nrefs.append(weakref.ref(blk))
 
         new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
-        mgr = type(self)(tuple(nbs), new_axes, nrefs, verify_integrity=False)
+        mgr = type(self)(
+            tuple(nbs), new_axes, nrefs, parent=self, verify_integrity=False
+        )
 
         # We can avoid having to rebuild blklocs/blknos
         blklocs = self._blklocs
@@ -827,4 +831,6 @@ cdef class BlockManager:
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
-        return type(self)(tuple(new_blocks), new_axes, new_refs, verify_integrity=False)
+        return type(self)(
+            tuple(new_blocks), new_axes, new_refs, parent=self, verify_integrity=False
+        )
