@@ -20,7 +20,6 @@ from typing import (
 )
 import warnings
 
-from dateutil.parser import ParserError
 import numpy as np
 
 from pandas._libs import lib
@@ -1339,28 +1338,21 @@ def maybe_cast_to_datetime(
             if value.size or not is_dtype_equal(value.dtype, dtype):
                 _disallow_mismatched_datetimelike(value, dtype)
 
-                try:
-                    dta = sequence_to_datetimes(value)
-                    # GH 25843: Remove tz information since the dtype
-                    # didn't specify one
+                dta = sequence_to_datetimes(value)
+                # GH 25843: Remove tz information since the dtype
+                # didn't specify one
 
-                    if dta.tz is not None:
-                        raise ValueError(
-                            "Cannot convert timezone-aware data to "
-                            "timezone-naive dtype. Use "
-                            "pd.Series(values).dt.tz_localize(None) instead."
-                        )
+                if dta.tz is not None:
+                    raise ValueError(
+                        "Cannot convert timezone-aware data to "
+                        "timezone-naive dtype. Use "
+                        "pd.Series(values).dt.tz_localize(None) instead."
+                    )
 
-                    # TODO(2.0): Do this astype in sequence_to_datetimes to
-                    #  avoid potential extra copy?
-                    dta = dta.astype(dtype, copy=False)
-                    value = dta
-
-                except OutOfBoundsDatetime:
-                    raise
-                except ParserError:
-                    # Note: this is dateutil's ParserError, not ours.
-                    pass
+                # TODO(2.0): Do this astype in sequence_to_datetimes to
+                #  avoid potential extra copy?
+                dta = dta.astype(dtype, copy=False)
+                value = dta
 
         elif getattr(vdtype, "kind", None) in ["m", "M"]:
             # we are already datetimelike and want to coerce to non-datetimelike;
