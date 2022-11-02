@@ -530,6 +530,54 @@ def test_frame_multi_key_function_list():
                 "two",
                 "one",
             ],
+            "D": np.random.randn(11),
+            "E": np.random.randn(11),
+            "F": np.random.randn(11),
+        }
+    )
+
+    grouped = data.groupby(["A", "B"])
+    funcs = [np.mean, np.std]
+    agged = grouped.agg(funcs)
+    expected = pd.concat(
+        [grouped["D"].agg(funcs), grouped["E"].agg(funcs), grouped["F"].agg(funcs)],
+        keys=["D", "E", "F"],
+        axis=1,
+    )
+    assert isinstance(agged.index, MultiIndex)
+    assert isinstance(expected.index, MultiIndex)
+    tm.assert_frame_equal(agged, expected)
+
+
+def test_frame_multi_key_function_list_partial_failure():
+    data = DataFrame(
+        {
+            "A": [
+                "foo",
+                "foo",
+                "foo",
+                "foo",
+                "bar",
+                "bar",
+                "bar",
+                "bar",
+                "foo",
+                "foo",
+                "foo",
+            ],
+            "B": [
+                "one",
+                "one",
+                "one",
+                "two",
+                "one",
+                "one",
+                "one",
+                "two",
+                "two",
+                "two",
+                "one",
+            ],
             "C": [
                 "dull",
                 "dull",
@@ -551,18 +599,8 @@ def test_frame_multi_key_function_list():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['C'\] did not aggregate successfully"
-    ):
-        agged = grouped.agg(funcs)
-    expected = pd.concat(
-        [grouped["D"].agg(funcs), grouped["E"].agg(funcs), grouped["F"].agg(funcs)],
-        keys=["D", "E", "F"],
-        axis=1,
-    )
-    assert isinstance(agged.index, MultiIndex)
-    assert isinstance(expected.index, MultiIndex)
-    tm.assert_frame_equal(agged, expected)
+    with pytest.raises(TypeError, match="Could not convert dullshinyshiny to numeric"):
+        grouped.agg(funcs)
 
 
 @pytest.mark.parametrize("op", [lambda x: x.sum(), lambda x: x.mean()])

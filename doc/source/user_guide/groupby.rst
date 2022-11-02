@@ -1007,7 +1007,7 @@ functions:
 .. ipython:: python
    :okwarning:
 
-   grouped = df.groupby("A")
+   grouped = df.groupby("A")[["C", "D"]]
    grouped.agg(lambda x: x.std())
 
 But, it's rather verbose and can be untidy if you need to pass additional

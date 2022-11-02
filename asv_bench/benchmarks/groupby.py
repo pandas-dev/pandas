@@ -310,7 +310,7 @@ class AggFunctions:
         df.groupby(["key1", "key2"]).agg([sum, min, max])
 
     def time_different_python_functions_singlecol(self, df):
-        df.groupby("key1").agg([sum, min, max])
+        df.groupby("key1")[["value1", "value2", "value3"]].agg([sum, min, max])
 
 
 class GroupStrings:
