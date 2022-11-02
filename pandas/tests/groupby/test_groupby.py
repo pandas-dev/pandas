@@ -109,46 +109,6 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_return_type():
-
-    # GH2893, return a reduced type
-
-    def func(dataf):
-        return dataf["val2"] - dataf["val2"].mean()
-
-    df1 = DataFrame(
-        [
-            {"val1": 1, "val2": 20},
-            {"val1": 1, "val2": 19},
-            {"val1": 2, "val2": 27},
-            {"val1": 2, "val2": 12},
-        ]
-    )
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = df1.groupby("val1", squeeze=True).apply(func)
-    assert isinstance(result, Series)
-
-    df2 = DataFrame(
-        [
-            {"val1": 1, "val2": 20},
-            {"val1": 1, "val2": 19},
-            {"val1": 1, "val2": 27},
-            {"val1": 1, "val2": 12},
-        ]
-    )
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = df2.groupby("val1", squeeze=True).apply(func)
-    assert isinstance(result, Series)
-
-    # GH3596, return a consistent type (regression in 0.11 from 0.10.1)
-    df = DataFrame([[1, 1], [1, 1]], columns=["X", "Y"])
-    with tm.assert_produces_warning(FutureWarning):
-        result = df.groupby("X", squeeze=False).count()
-    assert isinstance(result, DataFrame)
-
-
 def test_inconsistent_return_type():
     # GH5592
     # inconsistent return type
@@ -570,6 +530,54 @@ def test_frame_multi_key_function_list():
                 "two",
                 "one",
             ],
+            "D": np.random.randn(11),
+            "E": np.random.randn(11),
+            "F": np.random.randn(11),
+        }
+    )
+
+    grouped = data.groupby(["A", "B"])
+    funcs = [np.mean, np.std]
+    agged = grouped.agg(funcs)
+    expected = pd.concat(
+        [grouped["D"].agg(funcs), grouped["E"].agg(funcs), grouped["F"].agg(funcs)],
+        keys=["D", "E", "F"],
+        axis=1,
+    )
+    assert isinstance(agged.index, MultiIndex)
+    assert isinstance(expected.index, MultiIndex)
+    tm.assert_frame_equal(agged, expected)
+
+
+def test_frame_multi_key_function_list_partial_failure():
+    data = DataFrame(
+        {
+            "A": [
+                "foo",
+                "foo",
+                "foo",
+                "foo",
+                "bar",
+                "bar",
+                "bar",
+                "bar",
+                "foo",
+                "foo",
+                "foo",
+            ],
+            "B": [
+                "one",
+                "one",
+                "one",
+                "two",
+                "one",
+                "one",
+                "one",
+                "two",
+                "two",
+                "two",
+                "one",
+            ],
             "C": [
                 "dull",
                 "dull",
@@ -591,18 +599,8 @@ def test_frame_multi_key_function_list():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['C'\] did not aggregate successfully"
-    ):
-        agged = grouped.agg(funcs)
-    expected = pd.concat(
-        [grouped["D"].agg(funcs), grouped["E"].agg(funcs), grouped["F"].agg(funcs)],
-        keys=["D", "E", "F"],
-        axis=1,
-    )
-    assert isinstance(agged.index, MultiIndex)
-    assert isinstance(expected.index, MultiIndex)
-    tm.assert_frame_equal(agged, expected)
+    with pytest.raises(TypeError, match="Could not convert dullshinyshiny to numeric"):
+        grouped.agg(funcs)
 
 
 @pytest.mark.parametrize("op", [lambda x: x.sum(), lambda x: x.mean()])
@@ -728,11 +726,9 @@ def test_ops_not_as_index(reduction_func):
 
     if reduction_func in ("corrwith", "nth", "ngroup"):
         pytest.skip(f"GH 5755: Test not applicable for {reduction_func}")
-    warn = FutureWarning if reduction_func == "mad" else None
 
     df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        expected = getattr(df.groupby("a"), reduction_func)()
+    expected = getattr(df.groupby("a"), reduction_func)()
     if reduction_func == "size":
         expected = expected.rename("size")
     expected = expected.reset_index()
@@ -743,20 +739,16 @@ def test_ops_not_as_index(reduction_func):
 
     g = df.groupby("a", as_index=False)
 
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result = getattr(g, reduction_func)()
+    result = getattr(g, reduction_func)()
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result = g.agg(reduction_func)
+    result = g.agg(reduction_func)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result = getattr(g["b"], reduction_func)()
+    result = getattr(g["b"], reduction_func)()
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result = g["b"].agg(reduction_func)
+    result = g["b"].agg(reduction_func)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1917,7 +1909,7 @@ def test_pivot_table_values_key_error():
 )
 @pytest.mark.parametrize("method", ["attr", "agg", "apply"])
 @pytest.mark.parametrize(
-    "op", ["idxmax", "idxmin", "mad", "min", "max", "sum", "prod", "skew"]
+    "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
 @pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
 @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
@@ -1928,16 +1920,10 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
     if (
         isinstance(values, Categorical)
         and not isinstance(columns, list)
-        and op in ["sum", "prod", "skew", "mad"]
+        and op in ["sum", "prod", "skew"]
     ):
         # handled below GH#41291
-
-        if using_array_manager and op == "mad":
-            right_msg = "Cannot interpret 'CategoricalDtype.* as a data type"
-            msg = "Regex pattern \"'Categorical' does not implement.*" + right_msg
-            mark = pytest.mark.xfail(raises=AssertionError, match=msg)
-            request.node.add_marker(mark)
-
+        pass
     elif (
         isinstance(values, Categorical)
         and len(keys) == 1
@@ -1971,19 +1957,6 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
         )
         request.node.add_marker(mark)
 
-    elif (
-        op == "mad"
-        and not isinstance(columns, list)
-        and isinstance(values, pd.DatetimeIndex)
-        and values.tz is not None
-        and using_array_manager
-    ):
-        mark = pytest.mark.xfail(
-            raises=TypeError,
-            match=r"Cannot interpret 'datetime64\[ns, US/Eastern\]' as a data type",
-        )
-        request.node.add_marker(mark)
-
     elif isinstance(values, BooleanArray) and op in ["sum", "prod"]:
         # We expect to get Int64 back for these
         override_dtype = "Int64"
@@ -2003,14 +1976,10 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
     gb = df.groupby(keys, group_keys=False)[columns]
 
     def get_result():
-        warn = FutureWarning if op == "mad" else None
-        with tm.assert_produces_warning(
-            warn, match="The 'mad' method is deprecated", raise_on_extra_warnings=False
-        ):
-            if method == "attr":
-                return getattr(gb, op)()
-            else:
-                return getattr(gb, method)(op)
+        if method == "attr":
+            return getattr(gb, op)()
+        else:
+            return getattr(gb, method)(op)
 
     if columns == "C":
         # i.e. SeriesGroupBy
@@ -2027,13 +1996,10 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                     get_result()
 
                 return
-        if op in ["prod", "sum", "skew", "mad"]:
+        if op in ["prod", "sum", "skew"]:
             if isinstance(values, Categorical):
                 # GH#41291
-                if op == "mad":
-                    # mad calls mean, which Categorical doesn't implement
-                    msg = "does not support reduction 'mean'"
-                elif op == "skew":
+                if op == "skew":
                     msg = f"does not support reduction '{op}'"
                 else:
                     msg = "category type does not support"
@@ -2084,7 +2050,7 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 return
 
         if (
-            op in ["mad", "min", "max", "skew"]
+            op in ["min", "max", "skew"]
             and isinstance(values, Categorical)
             and len(keys) == 1
         ):
@@ -2347,13 +2313,9 @@ def test_groupby_duplicate_index():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.*is deprecated.*:FutureWarning")
 def test_group_on_empty_multiindex(transformation_func, request):
     # GH 47787
     # With one row, those are transforms so the schema should be the same
-    if transformation_func == "tshift":
-        mark = pytest.mark.xfail(raises=NotImplementedError)
-        request.node.add_marker(mark)
     df = DataFrame(
         data=[[1, Timestamp("today"), 3, 4]],
         columns=["col_1", "col_2", "col_3", "col_4"],
@@ -2363,8 +2325,6 @@ def test_group_on_empty_multiindex(transformation_func, request):
     df = df.set_index(["col_1", "col_2"])
     if transformation_func == "fillna":
         args = ("ffill",)
-    elif transformation_func == "tshift":
-        args = (1, "D")
     else:
         args = ()
     result = df.iloc[:0].groupby(["col_1"]).transform(transformation_func, *args)
@@ -2391,24 +2351,17 @@ def test_group_on_empty_multiindex(transformation_func, request):
         MultiIndex.from_tuples((("a", "a"), ("a", "a")), names=["foo", "bar"]),
     ],
 )
-@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
         pytest.skip(f"Not applicable for {groupby_func}")
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
-    warn = FutureWarning if groupby_func in ("mad", "tshift") else None
 
     df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 
-    if groupby_func == "tshift":
-        df.index = [Timestamp("today")]
-        # args.extend([1, "D"])
     args = get_groupby_method_args(groupby_func, df)
-
-    with tm.assert_produces_warning(warn, match="is deprecated"):
-        result = getattr(grp_by, groupby_func)(*args)
+    result = getattr(grp_by, groupby_func)(*args)
 
     assert result.shape == (1, 2)
     tm.assert_index_equal(result.columns, idx)
@@ -2498,7 +2451,6 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
         (DataFrame, "as_index", False),
         (DataFrame, "sort", False),
         (DataFrame, "group_keys", False),
-        (DataFrame, "squeeze", True),
         (DataFrame, "observed", True),
         (DataFrame, "dropna", False),
         pytest.param(
@@ -2513,13 +2465,9 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
         (Series, "as_index", False),
         (Series, "sort", False),
         (Series, "group_keys", False),
-        (Series, "squeeze", True),
         (Series, "observed", True),
         (Series, "dropna", False),
     ],
-)
-@pytest.mark.filterwarnings(
-    "ignore:The `squeeze` parameter is deprecated:FutureWarning"
 )
 def test_subsetting_columns_keeps_attrs(klass, attr, value):
     # GH 9959 - When subsetting columns, don't drop attributes
@@ -2776,15 +2724,6 @@ def test_rolling_wrong_param_min_period():
     result_error_msg = r"__init__\(\) got an unexpected keyword argument 'min_period'"
     with pytest.raises(TypeError, match=result_error_msg):
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
-
-
-def test_pad_backfill_deprecation():
-    # GH 33396
-    s = Series([1, 2, 3])
-    with tm.assert_produces_warning(FutureWarning, match="backfill"):
-        s.groupby(level=0).backfill()
-    with tm.assert_produces_warning(FutureWarning, match="pad"):
-        s.groupby(level=0).pad()
 
 
 def test_by_column_values_with_same_starting_value():

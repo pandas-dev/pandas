@@ -5,7 +5,6 @@ from abc import (
     ABC,
     abstractmethod,
 )
-import bz2
 import codecs
 import dataclasses
 import functools
@@ -51,10 +50,12 @@ from pandas._typing import (
     CompressionOptions,
     FilePath,
     ReadBuffer,
+    ReadCsvBuffer,
     StorageOptions,
     WriteBuffer,
 )
 from pandas.compat import get_lzma_file
+from pandas.compat._compressors import BZ2File as _BZ2File
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -761,9 +762,9 @@ def get_handle(
 
         # BZ Compression
         elif compression == "bz2":
-            # No overload variant of "BZ2File" matches argument types
+            # Overload of "BZ2File" to handle pickle protocol 5
             # "Union[str, BaseBuffer]", "str", "Dict[str, Any]"
-            handle = bz2.BZ2File(  # type: ignore[call-overload]
+            handle = _BZ2File(  # type: ignore[call-overload]
                 handle,
                 mode=ioargs.mode,
                 **compression_args,
@@ -1105,6 +1106,9 @@ def _maybe_memory_map(
     memory_map &= hasattr(handle, "fileno") or isinstance(handle, str)
     if not memory_map:
         return handle, memory_map, handles
+
+    # mmap used by only read_csv
+    handle = cast(ReadCsvBuffer, handle)
 
     # need to open the file first
     if isinstance(handle, str):

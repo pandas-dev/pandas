@@ -618,7 +618,7 @@ class HDFStore:
         node = self.get_node(key)
         if node is not None:
             name = node._v_pathname
-            if name == key or name[1:] == key:
+            if key in (name, name[1:]):
                 return True
         return False
 
@@ -2593,8 +2593,6 @@ class DataIndexableCol(DataCol):
 class GenericDataIndexableCol(DataIndexableCol):
     """represent a generic pytables data column"""
 
-    pass
-
 
 class Fixed:
     """
@@ -2701,11 +2699,9 @@ class Fixed:
 
     def set_attrs(self) -> None:
         """set our object attributes"""
-        pass
 
     def get_attrs(self) -> None:
         """get our object attributes"""
-        pass
 
     @property
     def storable(self):
@@ -2728,7 +2724,6 @@ class Fixed:
 
     def validate_version(self, where=None) -> None:
         """are we trying to operate on an old version?"""
-        pass
 
     def infer_axes(self) -> bool:
         """
@@ -3006,7 +3001,7 @@ class GenericFixed(Fixed):
         attrs = node._v_attrs
         factory, kwargs = self._get_index_factory(attrs)
 
-        if kind == "date":
+        if kind in ("date", "object"):
             index = factory(
                 _unconvert_index(
                     data, kind, encoding=self.encoding, errors=self.errors
@@ -4945,7 +4940,7 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
     elif kind == "date":
         try:
             index = np.asarray([date.fromordinal(v) for v in data], dtype=object)
-        except (ValueError):
+        except ValueError:
             index = np.asarray([date.fromtimestamp(v) for v in data], dtype=object)
     elif kind in ("integer", "float", "bool"):
         index = np.asarray(data)
@@ -5243,7 +5238,7 @@ class Selection:
             # see if we have a passed coordinate like
             with suppress(ValueError):
                 inferred = lib.infer_dtype(where, skipna=False)
-                if inferred == "integer" or inferred == "boolean":
+                if inferred in ("integer", "boolean"):
                     where = np.asarray(where)
                     if where.dtype == np.bool_:
                         start, stop = self.start, self.stop

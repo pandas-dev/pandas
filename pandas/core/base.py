@@ -21,9 +21,8 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._typing import (
-    ArrayLike,
     Axis,
     AxisInt,
     DtypeObj,
@@ -72,7 +71,6 @@ from pandas.core.algorithms import (
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import (
-    create_series_with_explicit_dtype,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
@@ -843,9 +841,12 @@ class IndexOpsMixin(OpsMixin):
                 # expected to be pd.Series(np.nan, ...). As np.nan is
                 # of dtype float64 the return value of this method should
                 # be float64 as well
-                mapper = create_series_with_explicit_dtype(
-                    mapper, dtype_if_empty=np.float64
-                )
+                from pandas import Series
+
+                if len(mapper) == 0:
+                    mapper = Series(mapper, dtype=np.float64)
+                else:
+                    mapper = Series(mapper)
 
         if isinstance(mapper, ABCSeries):
             if na_action not in (None, "ignore"):
@@ -998,18 +999,11 @@ class IndexOpsMixin(OpsMixin):
 
     def unique(self):
         values = self._values
-
         if not isinstance(values, np.ndarray):
-            result: ArrayLike = values.unique()
-            if (
-                isinstance(self.dtype, np.dtype) and self.dtype.kind in ["m", "M"]
-            ) and isinstance(self, ABCSeries):
-                # GH#31182 Series._values returns EA
-                # unpack numpy datetime for backward-compat
-                result = np.asarray(result)
+            # i.e. ExtensionArray
+            result = values.unique()
         else:
             result = unique1d(values)
-
         return result
 
     def nunique(self, dropna: bool = True) -> int:
@@ -1312,7 +1306,7 @@ class IndexOpsMixin(OpsMixin):
             sorter=sorter,
         )
 
-    def drop_duplicates(self, keep: DropKeep = "first"):
+    def drop_duplicates(self, *, keep: DropKeep = "first"):
         duplicated = self._duplicated(keep=keep)
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]

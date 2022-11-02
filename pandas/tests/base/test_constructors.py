@@ -56,7 +56,6 @@ class TestPandasDelegate:
 
         def bar(self, *args, **kwargs):
             """a test bar method"""
-            pass
 
     class Delegate(PandasDelegate, PandasObject):
         def __init__(self, obj) -> None:
@@ -146,9 +145,9 @@ class TestConstruction:
         # datetime64[non-ns] raise error, other cases result in object dtype
         # and preserve original data
         if a.dtype.kind == "M":
-            msg = "Out of bounds"
-            with pytest.raises(pd.errors.OutOfBoundsDatetime, match=msg):
-                constructor(a)
+            # Can't fit in nanosecond bounds -> get the nearest supported unit
+            result = constructor(a)
+            assert result.dtype == "M8[s]"
         else:
             result = constructor(a)
             assert result.dtype == "object"
@@ -162,7 +161,10 @@ class TestConstruction:
 
     def test_constructor_datetime_nonns(self, constructor):
         arr = np.array(["2020-01-01T00:00:00.000000"], dtype="datetime64[us]")
-        expected = constructor(pd.to_datetime(["2020-01-01"]))
+        dta = pd.core.arrays.DatetimeArray._simple_new(arr, dtype=arr.dtype)
+        expected = constructor(dta)
+        assert expected.dtype == arr.dtype
+
         result = constructor(arr)
         tm.assert_equal(result, expected)
 

@@ -324,7 +324,7 @@ cdef class _Timestamp(ABCTimestamp):
         elif other is NaT:
             return op == Py_NE
         elif is_datetime64_object(other):
-            ots = _Timestamp._from_dt64(other)
+            ots = Timestamp(other)
         elif PyDateTime_Check(other):
             if self.nanosecond == 0:
                 val = self.to_pydatetime()
@@ -364,15 +364,13 @@ cdef class _Timestamp(ABCTimestamp):
             #  which incorrectly drops tz and normalizes to midnight
             #  before comparing
             # We follow the stdlib datetime behavior of never being equal
-            warnings.warn(
-                "Comparison of Timestamp with datetime.date is deprecated in "
-                "order to match the standard library behavior. "
-                "In a future version these will be considered non-comparable. "
-                "Use 'ts == pd.Timestamp(date)' or 'ts.date() == date' instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            if op == Py_EQ:
+                return False
+            elif op == Py_NE:
+                return True
+            raise TypeError("Cannot compare Timestamp with datetime.date. "
+                "Use ts == pd.Timestamp(date) or ts.date() == date instead."
             )
-            return NotImplemented
         else:
             return NotImplemented
 
@@ -1639,18 +1637,9 @@ class Timestamp(_Timestamp):
 
         tzobj = maybe_get_tz(tz)
         if tzobj is not None and is_datetime64_object(ts_input):
-            # GH#24559, GH#42288 In the future we will treat datetime64 as
+            # GH#24559, GH#42288 As of 2.0 we treat datetime64 as
             #  wall-time (consistent with DatetimeIndex)
-            warnings.warn(
-                "In a future version, when passing a np.datetime64 object and "
-                "a timezone to Timestamp, the datetime64 will be interpreted "
-                "as a wall time, not a UTC time.  To interpret as a UTC time, "
-                "use `Timestamp(dt64).tz_localize('UTC').tz_convert(tz)`",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            # Once this deprecation is enforced, we can do
-            #  return Timestamp(ts_input).tz_localize(tzobj)
+            return cls(ts_input).tz_localize(tzobj)
 
         if nanosecond is None:
             nanosecond = 0
