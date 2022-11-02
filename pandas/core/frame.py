@@ -4012,7 +4012,7 @@ class DataFrame(NDFrame, OpsMixin):
             # Using self.iloc[:, i] = ... may set values inplace, which
             #  by convention we do not do in __setitem__
             try:
-                self.columns = Index(range(len(self.columns)))
+                self.columns = default_index(len(self.columns))
                 for i, iloc in enumerate(ilocs):
                     self[iloc] = igetitem(value, i)
             finally:

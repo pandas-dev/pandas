@@ -311,7 +311,7 @@ def ndarray_to_mgr(
             values = [values]
 
         if columns is None:
-            columns = Index(range(len(values)))
+            columns = default_index(len(values))
         else:
             columns = ensure_index(columns)
 
