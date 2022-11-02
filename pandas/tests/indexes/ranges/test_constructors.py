@@ -148,8 +148,7 @@ class TestRangeIndexConstructors:
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = RangeIndex(1, 5)
         assert index.values.dtype == np.int64
-        with tm.assert_produces_warning(FutureWarning, match="will not infer"):
-            expected = Index(arr).astype("int64")
+        expected = Index(arr).astype("int64")
 
         tm.assert_index_equal(index, expected, exact="equiv")
 
