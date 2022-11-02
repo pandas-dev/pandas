@@ -381,7 +381,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         dummies = np.empty((len(arr), len(tags2)), dtype=np.int64)
 
-        def _isin(test_elements, element):
+        def _isin(test_elements, element) -> bool:
             return element in test_elements
 
         for i, t in enumerate(tags2):
