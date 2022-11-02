@@ -67,7 +67,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
     doc,
 )
@@ -119,9 +118,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.construction import (
-    create_series_with_explicit_dtype,
     extract_array,
-    is_empty_data,
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
@@ -140,6 +137,7 @@ from pandas.core.indexes.api import (
     ensure_index,
 )
 import pandas.core.indexes.base as ibase
+from pandas.core.indexes.multi import maybe_droplevels
 from pandas.core.indexing import (
     check_bool_indexer,
     check_deprecated_indexers,
@@ -388,18 +386,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             name = ibase.maybe_extract_name(name, data, type(self))
 
-            if is_empty_data(data) and dtype is None:
-                # gh-17261
-                warnings.warn(
-                    "The default dtype for empty Series will be 'object' instead "
-                    "of 'float64' in a future version. Specify a dtype explicitly "
-                    "to silence this warning.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                # uncomment the line below when removing the FutureWarning
-                # dtype = np.dtype(object)
-
             if index is not None:
                 index = ensure_index(index)
 
@@ -457,6 +443,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pass
             else:
                 data = com.maybe_iterable_to_list(data)
+                if is_list_like(data) and not len(data) and dtype is None:
+                    # GH 29405: Pre-2.0, this defaulted to float.
+                    dtype = np.dtype(object)
 
             if index is None:
                 if not is_list_like(data):
@@ -530,15 +519,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Input is now list-like, so rely on "standard" construction:
 
-        # TODO: passing np.float64 to not break anything yet. See GH-17261
-        s = create_series_with_explicit_dtype(
-            # error: Argument "index" to "create_series_with_explicit_dtype" has
-            # incompatible type "Tuple[Any, ...]"; expected "Union[ExtensionArray,
-            # ndarray, Index, None]"
+        s = self._constructor(
             values,
-            index=keys,  # type: ignore[arg-type]
+            index=keys,
             dtype=dtype,
-            dtype_if_empty=np.float64,
         )
 
         # Now we just make sure the order is respected, if any
@@ -1053,7 +1037,24 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Similar to Index.get_value, but we do not fall back to positional
         loc = self.index.get_loc(label)
-        return self.index._get_values_for_loc(self, loc, label)
+
+        if is_integer(loc):
+            return self._values[loc]
+
+        if isinstance(self.index, MultiIndex):
+            mi = self.index
+            new_values = self._values[loc]
+            if len(new_values) == 1 and mi.nlevels == 1:
+                # If more than one level left, we can not return a scalar
+                return new_values[0]
+
+            new_index = mi[loc]
+            new_index = maybe_droplevels(new_index, label)
+            new_ser = self._constructor(new_values, index=new_index, name=self.name)
+            return new_ser.__finalize__(self)
+
+        else:
+            return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
         check_deprecated_indexers(key)
@@ -1391,10 +1392,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
     def reset_index(
         self,
         level: IndexLabel = None,
+        *,
         drop: bool = False,
         name: Level = lib.no_default,
         inplace: bool = False,
@@ -1782,37 +1783,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return zip(iter(self.index), iter(self))
 
-    def iteritems(self) -> Iterable[tuple[Hashable, Any]]:
-        """
-        Lazily iterate over (index, value) tuples.
-
-        .. deprecated:: 1.5.0
-            iteritems is deprecated and will be removed in a future version.
-            Use .items instead.
-
-        This method returns an iterable tuple (index, value). This is
-        convenient if you want to create a lazy iterator.
-
-        Returns
-        -------
-        iterable
-            Iterable of tuples containing the (index, value) pairs from a
-            Series.
-
-        See Also
-        --------
-        Series.items : Recommended alternative.
-        DataFrame.items : Iterate over (column name, Series) pairs.
-        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series) pairs.
-        """
-        warnings.warn(
-            "iteritems is deprecated and will be removed in a future version. "
-            "Use .items instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.items()
-
     # ----------------------------------------------------------------------
     # Misc public methods
 
@@ -2199,23 +2169,22 @@ Name: Max Speed, dtype: float64
 
     @overload
     def drop_duplicates(
-        self, keep: DropKeep = ..., *, inplace: Literal[False] = ...
+        self, *, keep: DropKeep = ..., inplace: Literal[False] = ...
     ) -> Series:
         ...
 
     @overload
-    def drop_duplicates(self, keep: DropKeep = ..., *, inplace: Literal[True]) -> None:
+    def drop_duplicates(self, *, keep: DropKeep = ..., inplace: Literal[True]) -> None:
         ...
 
     @overload
     def drop_duplicates(
-        self, keep: DropKeep = ..., *, inplace: bool = ...
+        self, *, keep: DropKeep = ..., inplace: bool = ...
     ) -> Series | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def drop_duplicates(
-        self, keep: DropKeep = "first", inplace: bool = False
+        self, *, keep: DropKeep = "first", inplace: bool = False
     ) -> Series | None:
         """
         Return Series with duplicate values removed.
@@ -3523,10 +3492,9 @@ Keep all original rows and also all original values
     ) -> None:
         ...
 
-    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def sort_values(  # type: ignore[override]
+    def sort_values(
         self,
+        *,
         axis: Axis = 0,
         ascending: bool | int | Sequence[bool] | Sequence[int] = True,
         inplace: bool = False,
@@ -3781,10 +3749,9 @@ Keep all original rows and also all original values
     ) -> Series | None:
         ...
 
-    # error: Signature of "sort_index" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def sort_index(  # type: ignore[override]
+    def sort_index(
         self,
+        *,
         axis: Axis = 0,
         level: IndexLabel = None,
         ascending: bool | Sequence[bool] = True,
@@ -4992,7 +4959,6 @@ Keep all original rows and also all original values
         ...
 
     # error: Signature of "set_axis" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     @Appender(
         """
         Examples
@@ -5021,6 +4987,7 @@ Keep all original rows and also all original values
     def set_axis(  # type: ignore[override]
         self,
         labels,
+        *,
         axis: Axis = 0,
         inplace: bool | lib.NoDefault = lib.no_default,
         copy: bool | lib.NoDefault = lib.no_default,
@@ -5313,9 +5280,6 @@ Keep all original rows and also all original values
         ...
 
     # error: Signature of "replace" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "to_replace", "value"]
-    )
     @doc(
         NDFrame.replace,
         klass=_shared_doc_kwargs["klass"],
@@ -5326,6 +5290,7 @@ Keep all original rows and also all original values
         self,
         to_replace=None,
         value=lib.no_default,
+        *,
         inplace: bool = False,
         limit: int | None = None,
         regex: bool = False,
@@ -5704,9 +5669,9 @@ Keep all original rows and also all original values
     ) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def dropna(
         self,
+        *,
         axis: Axis = 0,
         inplace: bool = False,
         how: AnyAll | None = None,
@@ -5827,8 +5792,6 @@ Keep all original rows and also all original values
         label: str | None = None,
         convention: str = "start",
         kind: str | None = None,
-        loffset=None,
-        base: int | None = None,
         on: Level = None,
         level: Level = None,
         origin: str | TimestampConvertibleTypes = "start_day",
@@ -5842,8 +5805,6 @@ Keep all original rows and also all original values
             label=label,
             convention=convention,
             kind=kind,
-            loffset=loffset,
-            base=base,
             on=on,
             level=level,
             origin=origin,
@@ -5945,10 +5906,9 @@ Keep all original rows and also all original values
     ) -> Series | None:
         ...
 
-    # error: Signature of "ffill" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def ffill(  # type: ignore[override]
+    def ffill(
         self,
+        *,
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
@@ -5989,10 +5949,9 @@ Keep all original rows and also all original values
     ) -> Series | None:
         ...
 
-    # error: Signature of "bfill" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def bfill(  # type: ignore[override]
+    def bfill(
         self,
+        *,
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
@@ -6000,24 +5959,21 @@ Keep all original rows and also all original values
     ) -> Series | None:
         return super().bfill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "lower", "upper"]
-    )
     def clip(
         self: Series,
         lower=None,
         upper=None,
+        *,
         axis: Axis | None = None,
         inplace: bool = False,
-        *args,
         **kwargs,
     ) -> Series | None:
-        return super().clip(lower, upper, axis, inplace, *args, **kwargs)
+        return super().clip(lower, upper, axis=axis, inplace=inplace, **kwargs)
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     def interpolate(
         self: Series,
         method: str = "linear",
+        *,
         axis: Axis = 0,
         limit: int | None = None,
         inplace: bool = False,
@@ -6027,13 +5983,13 @@ Keep all original rows and also all original values
         **kwargs,
     ) -> Series | None:
         return super().interpolate(
-            method,
-            axis,
-            limit,
-            inplace,
-            limit_direction,
-            limit_area,
-            downcast,
+            method=method,
+            axis=axis,
+            limit=limit,
+            inplace=inplace,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            downcast=downcast,
             **kwargs,
         )
 
@@ -6046,7 +6002,6 @@ Keep all original rows and also all original values
         inplace: Literal[False] = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> Series:
         ...
 
@@ -6059,7 +6014,6 @@ Keep all original rows and also all original values
         inplace: Literal[True],
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -6072,23 +6026,17 @@ Keep all original rows and also all original values
         inplace: bool = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> Series | None:
         ...
 
-    # error: Signature of "where" incompatible with supertype "NDFrame"
-    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
-    def where(  # type: ignore[override]
+    def where(
         self,
         cond,
         other=lib.no_default,
+        *,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
-        errors: IgnoreRaise | lib.NoDefault = lib.no_default,
     ) -> Series | None:
         return super().where(
             cond,
@@ -6107,7 +6055,6 @@ Keep all original rows and also all original values
         inplace: Literal[False] = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> Series:
         ...
 
@@ -6120,7 +6067,6 @@ Keep all original rows and also all original values
         inplace: Literal[True],
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -6133,23 +6079,17 @@ Keep all original rows and also all original values
         inplace: bool = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> Series | None:
         ...
 
-    # error: Signature of "mask" incompatible with supertype "NDFrame"
-    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
-    def mask(  # type: ignore[override]
+    def mask(
         self,
         cond,
         other=lib.no_default,
+        *,
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
-        errors: IgnoreRaise | lib.NoDefault = lib.no_default,
     ) -> Series | None:
         return super().mask(
             cond,

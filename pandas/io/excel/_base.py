@@ -271,6 +271,13 @@ skipfooter : int, default 0
 
     .. versionadded:: 1.2.0
 
+use_nullable_dtypes : bool, default False
+    Whether or not to use nullable dtypes as default when reading data. If
+    set to True, nullable dtypes are used for all dtypes that have a nullable
+    implementation, even if no nulls are present. Dtype takes precedence if given.
+
+    .. versionadded:: 2.0
+
 Returns
 -------
 DataFrame or dict of DataFrames
@@ -375,6 +382,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -413,6 +421,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> dict[IntStrT, DataFrame]:
     ...
 
@@ -451,6 +460,7 @@ def read_excel(
     comment: str | None = None,
     skipfooter: int = 0,
     storage_options: StorageOptions = None,
+    use_nullable_dtypes: bool = False,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
 
     should_close = False
@@ -487,6 +497,7 @@ def read_excel(
             decimal=decimal,
             comment=comment,
             skipfooter=skipfooter,
+            use_nullable_dtypes=use_nullable_dtypes,
         )
     finally:
         # make sure to close opened file handles
@@ -690,6 +701,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         decimal: str = ".",
         comment: str | None = None,
         skipfooter: int = 0,
+        use_nullable_dtypes: bool = False,
         **kwds,
     ):
 
@@ -848,6 +860,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     comment=comment,
                     skipfooter=skipfooter,
                     usecols=usecols,
+                    use_nullable_dtypes=use_nullable_dtypes,
                     **kwds,
                 )
 
@@ -863,6 +876,10 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 # No Data, return an empty DataFrame
                 output[asheetname] = DataFrame()
 
+            except Exception as err:
+                err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
+                raise err
+
         if ret_dict:
             return output
         else:
@@ -876,7 +893,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     Default is to use:
 
-    * `xlwt <https://pypi.org/project/xlwt/>`__ for xls files
     * `xlsxwriter <https://pypi.org/project/XlsxWriter/>`__ for xlsx files if xlsxwriter
       is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
     * `odswriter <https://pypi.org/project/odswriter/>`__ for ods files
@@ -894,13 +910,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         Engine to use for writing. If None, defaults to
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
         argument.
-
-        .. deprecated:: 1.2.0
-
-            As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
-            maintained, the ``xlwt`` engine will be removed in a future
-            version of pandas.
-
     date_format : str, default None
         Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
@@ -1110,25 +1119,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                 except KeyError as err:
                     raise ValueError(f"No engine for filetype: '{ext}'") from err
 
-            if engine == "xlwt":
-                xls_config_engine = config.get_option(
-                    "io.excel.xls.writer", silent=True
-                )
-                # Don't warn a 2nd time if user has changed the default engine for xls
-                if xls_config_engine != "xlwt":
-                    warnings.warn(
-                        "As the xlwt package is no longer maintained, the xlwt "
-                        "engine will be removed in a future version of pandas. "
-                        "This is the only engine in pandas that supports writing "
-                        "in the xls format. Install openpyxl and write to an xlsx "
-                        "file instead. You can set the option io.excel.xls.writer "
-                        "to 'xlwt' to silence this warning. While this option is "
-                        "deprecated and will also raise a warning, it can "
-                        "be globally set and the warning suppressed.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-
             # for mypy
             assert engine is not None
             cls = get_writer(engine)
@@ -1152,7 +1142,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def sheets(self) -> dict[str, Any]:
         """Mapping of sheet names to sheet objects."""
-        pass
 
     @property
     @abc.abstractmethod
@@ -1162,7 +1151,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         This attribute can be used to access engine-specific features.
         """
-        pass
 
     @book.setter
     @abc.abstractmethod
@@ -1170,7 +1158,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         Set book instance. Class type will depend on the engine used.
         """
-        pass
 
     def write_cells(
         self,
@@ -1222,7 +1209,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         freeze_panes: int tuple of length 2
             contains the bottom-most row and right-most column to freeze
         """
-        pass
 
     def save(self) -> None:
         """
@@ -1238,7 +1224,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         Save workbook to disk.
         """
-        pass
 
     def __init__(
         self,
@@ -1607,9 +1592,9 @@ class ExcelFile:
 
             xlrd_version = Version(get_version(xlrd))
 
-        ext = None
         if engine is None:
             # Only determine ext if it is needed
+            ext: str | None
             if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
                 ext = "xls"
             else:
@@ -1625,32 +1610,6 @@ class ExcelFile:
             engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
             if engine == "auto":
                 engine = get_default_engine(ext, mode="reader")
-
-        if engine == "xlrd" and xlrd_version is not None:
-            if ext is None:
-                # Need ext to determine ext in order to raise/warn
-                if isinstance(path_or_buffer, xlrd.Book):
-                    ext = "xls"
-                else:
-                    ext = inspect_excel_format(
-                        path_or_buffer, storage_options=storage_options
-                    )
-
-            # Pass through if ext is None, otherwise check if ext valid for xlrd
-            if ext and ext != "xls" and xlrd_version >= Version("2"):
-                raise ValueError(
-                    f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
-                    f"only the xls format is supported. Install openpyxl instead."
-                )
-            elif ext and ext != "xls":
-                stacklevel = find_stack_level()
-                warnings.warn(
-                    f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
-                    f"only the xls format is supported. Install "
-                    f"openpyxl instead.",
-                    FutureWarning,
-                    stacklevel=stacklevel,
-                )
 
         assert engine is not None
         self.engine = engine
@@ -1680,6 +1639,7 @@ class ExcelFile:
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,
+        use_nullable_dtypes: bool = False,
         **kwds,
     ) -> DataFrame | dict[str, DataFrame] | dict[int, DataFrame]:
         """
@@ -1711,6 +1671,7 @@ class ExcelFile:
             thousands=thousands,
             comment=comment,
             skipfooter=skipfooter,
+            use_nullable_dtypes=use_nullable_dtypes,
             **kwds,
         )
 

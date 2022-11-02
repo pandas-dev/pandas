@@ -5,7 +5,7 @@ requires = [
     "setuptools>=51.0.0",
     "wheel",
     "Cython>=0.29.32,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    "oldest-supported-numpy>=0.10"
+    "oldest-supported-numpy>=2022.8.16"
 ]
 # uncomment to enable pep517 after versioneer problem is fixed.
 # https://github.com/python-versioneer/python-versioneer/issues/193
@@ -59,7 +59,6 @@ exclude = '''
 max-line-length = 88
 disable = [
   "abstract-class-instantiated",
-  "access-member-before-definition",
   "import-error",
   "invalid-repr-returned",
   "invalid-unary-operand-type",
@@ -79,8 +78,6 @@ disable = [
   "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
-  "consider-iterating-dictionary",
-  "consider-using-dict-items",
   "consider-using-f-string",
   "disallowed-name",
   "import-outside-toplevel",
@@ -90,7 +87,6 @@ disable = [
   "missing-function-docstring",
   "missing-module-docstring",
   "singleton-comparison",
-  "superfluous-parens",
   "too-many-lines",
   "typevar-name-incorrect-variance",
   "ungrouped-imports",
@@ -100,7 +96,6 @@ disable = [
   "unneeded-not",
   "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
-  "use-maxsplit-arg",
   "use-sequence-for-iteration",
   "useless-import-alias",
   "wrong-import-order",
@@ -111,8 +106,6 @@ disable = [
   "comparison-of-constants",
   "comparison-with-itself",
   "consider-merging-isinstance",
-  "consider-using-from-import",
-  "consider-using-get",
   "consider-using-min-builtin",
   "consider-using-sys-exit",
   "consider-using-ternary",
@@ -127,15 +120,12 @@ disable = [
   "no-else-return",
   "no-self-use",
   "redefined-argument-from-local",
-  "simplifiable-if-expression",
-  "simplifiable-if-statement",
   "too-few-public-methods",
   "too-many-ancestors",
   "too-many-arguments",
   "too-many-boolean-expressions",
   "too-many-branches",
   "too-many-instance-attributes",
-  "too-many-locals",
   "too-many-locals",
   "too-many-nested-blocks",
   "too-many-public-methods",
@@ -145,7 +135,6 @@ disable = [
   "unnecessary-list-index-lookup",
   "use-a-generator",
   "useless-option-value",
-  "useless-return",
 
   # pylint type "W": warning, for python specific problems
   "abstract-method",
@@ -170,7 +159,6 @@ disable = [
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
   "method-cache-max-size-none",
-  "nan-comparison",
   "non-parent-init-called",
   "overridden-final-method",
   "pointless-statement",
@@ -189,16 +177,13 @@ disable = [
   "try-except-raise",
   "undefined-loop-variable",
   "unnecessary-lambda",
-  "unnecessary-pass",
   "unspecified-encoding",
   "unused-argument",
   "unused-import",
   "unused-variable",
-  "unused-wildcard-import",
   "using-constant-test",
   "useless-else-on-loop",
-  "useless-parent-delegation",
-  "wildcard-import"
+  "useless-parent-delegation"
 ]
 
 [tool.pytest.ini_options]
