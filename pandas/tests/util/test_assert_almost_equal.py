@@ -70,16 +70,6 @@ def _assert_not_almost_equal_both(a, b, **kwargs):
 
 
 @pytest.mark.parametrize(
-    "a,b,check_less_precise",
-    [(1.1, 1.1, False), (1.1, 1.100001, True), (1.1, 1.1001, 2)],
-)
-def test_assert_almost_equal_deprecated(a, b, check_less_precise):
-    # GH#30562
-    with tm.assert_produces_warning(FutureWarning):
-        _assert_almost_equal_both(a, b, check_less_precise=check_less_precise)
-
-
-@pytest.mark.parametrize(
     "a,b",
     [
         (1.1, 1.1),
@@ -122,7 +112,7 @@ def test_assert_not_almost_equal_numbers(a, b):
     ],
 )
 def test_assert_almost_equal_numbers_atol(a, b):
-    # Equivalent to the deprecated check_less_precise=True
+    # Equivalent to the deprecated check_less_precise=True, enforced in 2.0
     _assert_almost_equal_both(a, b, rtol=0.5e-3, atol=0.5e-3)
 
 

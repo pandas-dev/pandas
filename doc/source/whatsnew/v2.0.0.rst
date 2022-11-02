@@ -185,6 +185,7 @@ Removal of prior version deprecations/changes
 - Removed deprecated :meth:`.Styler.where` (:issue:`49397`)
 - Removed deprecated :meth:`.Styler.render` (:issue:`49397`)
 - Removed deprecated argument ``null_color`` in :meth:`.Styler.highlight_null` (:issue:`49397`)
+- Removed deprecated argument ``check_less_precise`` in :meth:`.testing.assert_frame_equal`, :meth:`.testing.assert_extension_array_equal`, :meth:`.testing.assert_series_equal`,  :meth:`.testing.assert_index_equal` (:issue:`30562`)
 - Removed deprecated ``null_counts`` argument in :meth:`DataFrame.info`. Use ``show_counts`` instead (:issue:`37999`)
 - Enforced deprecation disallowing passing a timezone-aware :class:`Timestamp` and ``dtype="datetime64[ns]"`` to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
 - Enforced deprecation disallowing passing a sequence of timezone-aware values and ``dtype="datetime64[ns]"`` to to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
