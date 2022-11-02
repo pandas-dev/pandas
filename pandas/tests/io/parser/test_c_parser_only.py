@@ -176,7 +176,7 @@ def test_precise_conversion(c_parser_only):
     normal_errors = []
     precise_errors = []
 
-    def error(val, actual_val):
+    def error(val: float, actual_val: Decimal) -> float:
         return abs(Decimal(f"{val:.100}") - actual_val)
 
     # test numbers between 1 and 2
