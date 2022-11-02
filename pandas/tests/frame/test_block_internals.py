@@ -94,10 +94,10 @@ class TestDataFrameBlockInternals:
         float_frame["E"] = 7.0
         col = float_frame["E"]
         float_frame.values[6] = 6
-        assert (float_frame.values[6] == 6).all()
+        # as of 2.0 .values does not consolidate, so subsequent calls to .values
+        #  does not share data
+        assert not (float_frame.values[6] == 6).all()
 
-        # check that item_cache was cleared
-        assert float_frame["E"] is not col
         assert (col == 7).all()
 
     def test_boolean_set_uncons(self, float_frame):
