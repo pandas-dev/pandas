@@ -146,7 +146,7 @@ Other API changes
 - :meth:`Series.unique` with dtype "timedelta64[ns]" or "datetime64[ns]" now returns :class:`TimedeltaArray` or :class:`DatetimeArray` instead of ``numpy.ndarray`` (:issue:`49176`)
 - Passing a sequence containing ``datetime`` objects and ``date`` objects to :class:`Series` constructor will return with ``object`` dtype instead of ``datetime64[ns]`` dtype, consistent with :class:`Index` behavior (:issue:`49341`)
 - Passing strings that cannot be parsed as datetimes to :class:`Series` or :class:`DataFrame` with ``dtype="datetime64[ns]"`` will raise instead of silently ignoring the keyword and returning ``object`` dtype (:issue:`24435`)
-- :meth:`Series.astype` and :meth:`DataFrame.astype` casting to ``datetime64`` dtypes other than "s", "ms", "us", and "ns" now raise instead of silently returning ``datetime64[ns]`` (:issue:`??`)
+- :meth:`Series.astype` and :meth:`DataFrame.astype` casting to ``datetime64`` dtypes other than "s", "ms", "us", and "ns" now raise instead of silently returning ``datetime64[ns]`` (:issue:`49482`)
 -
 
 .. ---------------------------------------------------------------------------
