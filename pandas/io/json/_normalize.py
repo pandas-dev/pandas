@@ -112,9 +112,9 @@ def nested_to_record(
                     v = new_d.pop(k)
                     new_d[newkey] = v
                 continue
-            else:
-                v = new_d.pop(k)
-                new_d.update(nested_to_record(v, newkey, sep, level + 1, max_level))
+
+            v = new_d.pop(k)
+            new_d.update(nested_to_record(v, newkey, sep, level + 1, max_level))
         new_ds.append(new_d)
 
     if singleton:

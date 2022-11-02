@@ -447,7 +447,7 @@ def test_use_nullabla_dtypes_and_dtype(all_parsers):
 
 @pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-def test_use_nullabla_dtypes_string(all_parsers, storage):
+def test_use_nullable_dtypes_string(all_parsers, storage):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
 
