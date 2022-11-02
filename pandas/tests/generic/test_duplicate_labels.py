@@ -414,7 +414,6 @@ def test_dataframe_insert_raises():
     "method, frame_only",
     [
         (operator.methodcaller("set_index", "A", inplace=True), True),
-        (operator.methodcaller("set_axis", ["A", "B"], inplace=True), False),
         (operator.methodcaller("reset_index", inplace=True), True),
         (operator.methodcaller("rename", lambda x: x, inplace=True), False),
     ],
@@ -427,19 +426,11 @@ def test_inplace_raises(method, frame_only):
     s.flags.allows_duplicate_labels = False
     msg = "Cannot specify"
 
-    warn_msg = "Series.set_axis 'inplace' keyword"
-    if "set_axis" in str(method):
-        warn = FutureWarning
-    else:
-        warn = None
-
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(warn, match=warn_msg):
-            method(df)
+        method(df)
     if not frame_only:
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(warn, match=warn_msg):
-                method(s)
+            method(s)
 
 
 def test_pickle():
