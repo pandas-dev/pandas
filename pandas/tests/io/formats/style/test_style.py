@@ -653,10 +653,10 @@ class TestStyler:
     )
     @pytest.mark.parametrize("axis", [0, 1])
     def test_apply_subset(self, slice_, axis, df):
-        def h(x, foo="bar"):
-            return Series(f"color: {foo}", index=x.index, name=x.name)
+        def h(x, color="bar"):
+            return Series(f"color: {color}", index=x.index, name=x.name)
 
-        result = df.style.apply(h, axis=axis, subset=slice_, foo="baz")._compute().ctx
+        result = df.style.apply(h, axis=axis, subset=slice_, color="baz")._compute().ctx
         expected = {
             (r, c): [("color", "baz")]
             for r, row in enumerate(df.index)
