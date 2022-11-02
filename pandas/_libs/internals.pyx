@@ -677,12 +677,12 @@ cdef class BlockManager:
         public list refs
         public object parent
 
-    def __cinit__(self, 
-        blocks=None, 
-        axes=None, 
-        refs=None, 
-        parent=None, 
-        verify_integrity=True):
+    def __cinit__(self,
+                  blocks=None,
+                  axes=None,
+                  refs=None,
+                  parent=None,
+                  verify_integrity=True):
         # None as defaults for unpickling GH#42345
         if blocks is None:
             # This adds 1-2 microseconds to DataFrame(np.array([]))
