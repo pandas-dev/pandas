@@ -99,6 +99,7 @@ from pandas.core.indexes.api import (
     ensure_index,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.no_index import NoIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.reshape.concat import concat
 
@@ -286,7 +287,10 @@ class SeriesFormatter:
         self.na_rep = na_rep
         self.header = header
         self.length = length
-        self.index = index
+        if isinstance(series.index, NoIndex):
+            self.index = False
+        else:
+            self.index = index
         self.max_rows = max_rows
         self.min_rows = min_rows
 
@@ -588,7 +592,10 @@ class DataFrameFormatter:
         self.columns = self._initialize_columns(columns)
         self.col_space = self._initialize_colspace(col_space)
         self.header = header
-        self.index = index
+        if isinstance(frame.index, NoIndex):
+            self.index = False
+        else:
+            self.index = index
         self.na_rep = na_rep
         self.formatters = self._initialize_formatters(formatters)
         self.justify = self._initialize_justify(justify)
