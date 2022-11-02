@@ -176,6 +176,8 @@ Removal of prior version deprecations/changes
 - Removed deprecated :meth:`DataFrame._AXIS_NUMBERS`, :meth:`DataFrame._AXIS_NAMES`, :meth:`Series._AXIS_NUMBERS`, :meth:`Series._AXIS_NAMES` (:issue:`33637`)
 - Removed deprecated :meth:`Index.to_native_types`, use ``obj.astype(str)`` instead (:issue:`36418`)
 - Removed deprecated :meth:`Series.iteritems`, :meth:`DataFrame.iteritems`, use ``obj.items`` instead (:issue:`45321`)
+- Removed deprecated :meth:`DataFrame.lookup` (:issue:`35224`)
+- Removed deprecated :meth:`Series.append`, :meth:`DataFrame.append`, use :func:`concat` instead (:issue:`35407`)
 - Removed deprecated :meth:`DatetimeIndex.union_many` (:issue:`45018`)
 - Removed deprecated ``weekofyear`` and ``week`` attributes of :class:`DatetimeArray`, :class:`DatetimeIndex` and ``dt`` accessor in favor of ``isocalendar().week`` (:issue:`33595`)
 - Removed deprecated :meth:`RangeIndex._start`, :meth:`RangeIndex._stop`, :meth:`RangeIndex._step`, use ``start``, ``stop``, ``step`` instead (:issue:`30482`)
