@@ -494,7 +494,7 @@ def maybe_cast_to_extension_array(
 
     try:
         result = cls._from_sequence(obj, dtype=dtype)
-    except Exception:
+    except Exception: # pylint: disable=broadexcept
         # We can't predict what downstream EA constructors may raise
         result = obj
     return result
