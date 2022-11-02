@@ -28,7 +28,11 @@ class NoIndex(RangeIndex):
         return NoIndex(length)
 
     def __getitem__(self, key):
-        return NoIndex(len(super().__getitem__(key)))
+        _super = super().__getitem__(key)
+        try:
+            return NoIndex(len(_super))
+        except TypeError:
+            return _super
 
     def get_loc(self, key, method=None, tolerance=None):
         from pandas.core import (
