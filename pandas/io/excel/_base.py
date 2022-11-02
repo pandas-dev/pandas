@@ -947,12 +947,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         * odswriter: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
 
         .. versionadded:: 1.3.0
-    **kwargs : dict, optional
-        Keyword arguments to be passed into the engine.
-
-        .. deprecated:: 1.3.0
-
-            Use engine_kwargs instead.
 
     Notes
     -----
@@ -1093,17 +1087,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         storage_options: StorageOptions = None,
         if_sheet_exists: Literal["error", "new", "replace", "overlay"] | None = None,
         engine_kwargs: dict | None = None,
-        **kwargs,
     ) -> ExcelWriter:
-        if kwargs:
-            if engine_kwargs is not None:
-                raise ValueError("Cannot use both engine_kwargs and **kwargs")
-            warnings.warn(
-                "Use of **kwargs is deprecated, use engine_kwargs instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
         # only switch class if generic(ExcelWriter)
         if cls is ExcelWriter:
             if engine is None or (isinstance(engine, str) and engine == "auto"):
@@ -1235,7 +1219,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
-        **kwargs,
     ) -> None:
         # validate that this engine can handle the extension
         if isinstance(path, str):
