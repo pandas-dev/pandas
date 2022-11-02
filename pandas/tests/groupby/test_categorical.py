@@ -1288,7 +1288,8 @@ def df_cat(df):
 
 @pytest.mark.parametrize("operation", ["agg", "apply"])
 def test_seriesgroupby_observed_true(df_cat, operation):
-    # GH 24880
+    # GH#24880
+    # GH#49223 - order of results was wrong when grouping by index levels
     lev_a = Index(["bar", "bar", "foo", "foo"], dtype=df_cat["A"].dtype, name="A")
     lev_b = Index(["one", "three", "one", "two"], dtype=df_cat["B"].dtype, name="B")
     index = MultiIndex.from_arrays([lev_a, lev_b])
