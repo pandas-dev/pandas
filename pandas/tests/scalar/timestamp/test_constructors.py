@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.compat import PY310
 from pandas.errors import OutOfBoundsDatetime
 
@@ -41,10 +42,11 @@ class TestTimestampConstructors:
     def test_constructor_float_not_round_with_YM_unit_deprecated(self):
         # GH#47267 avoid the conversions in cast_from-unit
 
-        with tm.assert_produces_warning(FutureWarning, match="ambiguous"):
+        msg = "Conversion of non-round float with unit=[MY] is ambiguous"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(150.5, unit="Y")
 
-        with tm.assert_produces_warning(FutureWarning, match="ambiguous"):
+        with pytest.raises(ValueError, match=msg):
             Timestamp(150.5, unit="M")
 
     def test_constructor_datetime64_with_tz(self):
@@ -52,18 +54,13 @@ class TestTimestampConstructors:
         dt = np.datetime64("1970-01-01 05:00:00")
         tzstr = "UTC+05:00"
 
-        msg = "interpreted as a wall time"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ts = Timestamp(dt, tz=tzstr)
+        # pre-2.0 this interpreted dt as a UTC time. in 2.0 this is treated
+        #  as a wall-time, consistent with DatetimeIndex behavior
+        ts = Timestamp(dt, tz=tzstr)
 
-        # Check that we match the old behavior
-        alt = Timestamp(dt).tz_localize("UTC").tz_convert(tzstr)
+        alt = Timestamp(dt).tz_localize(tzstr)
         assert ts == alt
-
-        # Check that we *don't* match the future behavior
-        assert ts.hour != 5
-        expected_future = Timestamp(dt).tz_localize(tzstr)
-        assert ts != expected_future
+        assert ts.hour == 5
 
     def test_constructor(self):
         base_str = "2014-07-01 09:00"
@@ -455,14 +452,26 @@ class TestTimestampConstructors:
         Timestamp(min_ts_us)
         Timestamp(max_ts_us)
 
+        # We used to raise on these before supporting non-nano
+        us_val = NpyDatetimeUnit.NPY_FR_us.value
+        assert Timestamp(min_ts_us - one_us)._creso == us_val
+        assert Timestamp(max_ts_us + one_us)._creso == us_val
+
+        # https://github.com/numpy/numpy/issues/22346 for why
+        #  we can't use the same construction as above with minute resolution
+
+        # too_low, too_high are the _just_ outside the range of M8[s]
+        too_low = np.datetime64("-292277022657-01-27T08:29", "m")
+        too_high = np.datetime64("292277026596-12-04T15:31", "m")
+
         msg = "Out of bounds"
         # One us less than the minimum is an error
         with pytest.raises(ValueError, match=msg):
-            Timestamp(min_ts_us - one_us)
+            Timestamp(too_low)
 
         # One us more than the maximum is an error
         with pytest.raises(ValueError, match=msg):
-            Timestamp(max_ts_us + one_us)
+            Timestamp(too_high)
 
     def test_out_of_bounds_string(self):
         msg = "Out of bounds"
@@ -487,7 +496,20 @@ class TestTimestampConstructors:
         for date_string in out_of_bounds_dates:
             for unit in time_units:
                 dt64 = np.datetime64(date_string, unit)
-                msg = "Out of bounds"
+                ts = Timestamp(dt64)
+                if unit in ["s", "ms", "us"]:
+                    # We can preserve the input unit
+                    assert ts.value == dt64.view("i8")
+                else:
+                    # we chose the closest unit that we _do_ support
+                    assert ts._creso == NpyDatetimeUnit.NPY_FR_s.value
+
+        # With more extreme cases, we can't even fit inside second resolution
+        info = np.iinfo(np.int64)
+        msg = "Out of bounds nanosecond timestamp:"
+        for value in [info.min + 1, info.max]:
+            for unit in ["D", "h", "m"]:
+                dt64 = np.datetime64(value, unit)
                 with pytest.raises(OutOfBoundsDatetime, match=msg):
                     Timestamp(dt64)
 
@@ -677,3 +699,10 @@ def test_constructor_missing_keyword(kwargs):
 
     with pytest.raises(TypeError, match=msg):
         Timestamp(**kwargs)
+
+
+@pytest.mark.parametrize("nano", [-1, 1000])
+def test_timestamp_nano_range(nano):
+    # GH 48255
+    with pytest.raises(ValueError, match="nanosecond must be in 0..999"):
+        Timestamp(year=2022, month=1, day=1, nanosecond=nano)

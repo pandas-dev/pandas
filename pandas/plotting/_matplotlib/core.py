@@ -4,7 +4,6 @@ from abc import (
     ABC,
     abstractmethod,
 )
-import inspect
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -139,7 +138,6 @@ class MPLPlot(ABC):
         yticks=None,
         xlabel: Hashable | None = None,
         ylabel: Hashable | None = None,
-        sort_columns: bool = False,
         fontsize=None,
         secondary_y: bool | tuple | list | np.ndarray = False,
         colormap=None,
@@ -185,7 +183,6 @@ class MPLPlot(ABC):
 
         self.kind = kind
 
-        self.sort_columns = sort_columns
         self.subplots = self._validate_subplots_kwarg(subplots)
 
         if sharex is None:
@@ -401,7 +398,7 @@ class MPLPlot(ABC):
         ) and self.colormap is not None:
             warnings.warn(
                 "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if "color" in self.kwds and self.style is not None:
@@ -671,7 +668,6 @@ class MPLPlot(ABC):
 
     def _post_plot_logic(self, ax, data) -> None:
         """Post process for each axes. Overridden in child classes"""
-        pass
 
     def _adorn_subplots(self):
         """Common post process unrelated to data"""
@@ -1234,7 +1230,7 @@ class ScatterPlot(PlanePlot):
 
         if self.colormap is not None:
             if mpl_ge_3_6_0():
-                cmap = mpl.colormaps[self.colormap]
+                cmap = mpl.colormaps.get_cmap(self.colormap)
             else:
                 cmap = self.plt.cm.get_cmap(self.colormap)
         else:
@@ -1314,7 +1310,7 @@ class HexBinPlot(PlanePlot):
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "BuGn"
         if mpl_ge_3_6_0():
-            cmap = mpl.colormaps[cmap]
+            cmap = mpl.colormaps.get_cmap(cmap)
         else:
             cmap = self.plt.cm.get_cmap(cmap)
         cb = self.kwds.pop("colorbar", True)

@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     array,
@@ -90,6 +91,46 @@ class ConcatDataFrames:
 
     def time_f_ordered(self, axis, ignore_index):
         concat(self.frame_f, axis=axis, ignore_index=ignore_index)
+
+
+class ConcatIndexDtype:
+
+    params = (
+        ["datetime64[ns]", "int64", "Int64", "string[python]", "string[pyarrow]"],
+        ["monotonic", "non_monotonic", "has_na"],
+        [0, 1],
+        [True, False],
+    )
+    param_names = ["dtype", "structure", "axis", "sort"]
+
+    def setup(self, dtype, structure, axis, sort):
+        N = 10_000
+        if dtype == "datetime64[ns]":
+            vals = date_range("1970-01-01", periods=N)
+        elif dtype in ("int64", "Int64"):
+            vals = np.arange(N, dtype=np.int64)
+        elif dtype in ("string[python]", "string[pyarrow]"):
+            vals = tm.makeStringIndex(N)
+        else:
+            raise NotImplementedError
+
+        idx = Index(vals, dtype=dtype)
+
+        if structure == "monotonic":
+            idx = idx.sort_values()
+        elif structure == "non_monotonic":
+            idx = idx[::-1]
+        elif structure == "has_na":
+            if not idx._can_hold_na:
+                raise NotImplementedError
+            idx = Index([None], dtype=dtype).append(idx)
+        else:
+            raise NotImplementedError
+
+        self.series = [Series(i, idx[:-i]) for i in range(1, 6)]
+
+    def time_concat_series(self, dtype, structure, axis, sort):
+        concat(self.series, axis=axis, sort=sort)
 
 
 class Join:

@@ -48,7 +48,6 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     cache_readonly,
-    deprecate_nonkeyword_arguments,
 )
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
@@ -93,18 +92,10 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
 
-    class ExtensionArraySupportsAnyAll("ExtensionArray"):
-        def any(self, *, skipna: bool = True) -> bool:
-            pass
-
-        def all(self, *, skipna: bool = True) -> bool:
-            pass
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
     )
-
 
 _extension_array_shared_docs: dict[str, str] = {}
 
@@ -478,7 +469,7 @@ class ExtensionArray:
                 f"instead.  Add this argument to `{name}.factorize` to be compatible "
                 f"with future versions of pandas and silence this warning.",
                 DeprecationWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
     def to_numpy(
@@ -542,7 +533,9 @@ class ExtensionArray:
         """
         The number of elements in the array.
         """
-        return np.prod(self.shape)
+        # error: Incompatible return value type (got "signedinteger[_64Bit]",
+        # expected "int")  [return-value]
+        return np.prod(self.shape)  # type: ignore[return-value]
 
     @property
     def ndim(self) -> int:
@@ -668,13 +661,12 @@ class ExtensionArray:
         # Note: this is used in `ExtensionArray.argsort/argmin/argmax`.
         return np.array(self)
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(
         self,
+        *,
         ascending: bool = True,
         kind: SortKind = "quicksort",
         na_position: str = "last",
-        *args,
         **kwargs,
     ) -> np.ndarray:
         """
@@ -705,7 +697,7 @@ class ExtensionArray:
         # 1. _values_for_argsort : construct the values passed to np.argsort
         # 2. argsort : total control over sorting. In case of overriding this,
         #    it is recommended to also override argmax/argmin
-        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
+        ascending = nv.validate_argsort_with_ascending(ascending, (), kwargs)
 
         values = self._values_for_argsort()
         return nargsort(
@@ -1564,7 +1556,6 @@ class ExtensionArray:
         func(npvalues, limit=limit, mask=mask.copy())
         new_values = self._from_sequence(npvalues, dtype=self.dtype)
         self[mask] = new_values[mask]
-        return
 
     def _rank(
         self,
@@ -1682,6 +1673,14 @@ class ExtensionArray:
                 return result
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
+
+
+class ExtensionArraySupportsAnyAll(ExtensionArray):
+    def any(self, *, skipna: bool = True) -> bool:
+        pass
+
+    def all(self, *, skipna: bool = True) -> bool:
+        pass
 
 
 class ExtensionOpsMixin:

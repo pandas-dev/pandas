@@ -180,7 +180,7 @@ class TestSeriesMisc:
         # GH#9680
         tdi = pd.timedelta_range(start=0, periods=10, freq="1s")
         ser = Series(np.random.normal(size=10), index=tdi)
-        assert "foo" not in ser.__dict__.keys()
+        assert "foo" not in ser.__dict__
         msg = "'Series' object has no attribute 'foo'"
         with pytest.raises(AttributeError, match=msg):
             ser.foo
@@ -204,11 +204,6 @@ class TestSeriesMisc:
         msg = "'Series' object has no attribute 'weekday'"
         with pytest.raises(AttributeError, match=msg):
             ser.weekday
-
-    def test_series_iteritems_deprecated(self):
-        ser = Series([1])
-        with tm.assert_produces_warning(FutureWarning):
-            next(ser.iteritems())
 
     @pytest.mark.parametrize(
         "kernel, has_numeric_only",

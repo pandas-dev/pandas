@@ -2,8 +2,7 @@ import os
 
 import pytest
 
-import pandas.compat as compat
-
+from pandas import compat
 import pandas._testing as tm
 
 
@@ -42,13 +41,6 @@ def test_convert_rows_list_to_csv_str():
         expected = "aaa\nbbb\nccc\n"
 
     assert ret == expected
-
-
-def test_create_temp_directory():
-    with tm.ensure_clean_dir() as path:
-        assert os.path.exists(path)
-        assert os.path.isdir(path)
-    assert not os.path.exists(path)
 
 
 @pytest.mark.parametrize("strict_data_files", [True, False])
