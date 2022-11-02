@@ -627,8 +627,8 @@ def test_read_table_same_signature_as_read_csv(all_parsers):
             assert table_param.annotation == csv_param.annotation
             assert table_param.kind == csv_param.kind
             continue
-        else:
-            assert table_param == csv_param
+
+        assert table_param == csv_param
 
 
 def test_read_table_equivalency_to_read_csv(all_parsers):

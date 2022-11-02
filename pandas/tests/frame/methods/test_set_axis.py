@@ -16,14 +16,9 @@ class SharedSetAxisTests:
     def test_set_axis(self, obj):
         # GH14636; this tests setting index for both Series and DataFrame
         new_index = list("abcd")[: len(obj)]
-
         expected = obj.copy()
         expected.index = new_index
-
-        # inplace=False
-        msg = "set_axis 'inplace' keyword is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = obj.set_axis(new_index, axis=0, inplace=False)
+        result = obj.set_axis(new_index, axis=0)
         tm.assert_equal(expected, result)
 
     def test_set_axis_copy(self, obj):
@@ -33,12 +28,6 @@ class SharedSetAxisTests:
         orig = obj.iloc[:]
         expected = obj.copy()
         expected.index = new_index
-
-        with pytest.raises(
-            ValueError, match="Cannot specify both inplace=True and copy=True"
-        ):
-            with tm.assert_produces_warning(FutureWarning):
-                obj.set_axis(new_index, axis=0, inplace=True, copy=True)
 
         result = obj.set_axis(new_index, axis=0, copy=True)
         tm.assert_equal(expected, result)
@@ -77,39 +66,16 @@ class SharedSetAxisTests:
                 for i in range(obj.shape[1])
             )
 
-        # Do this last since it alters obj inplace
-        with tm.assert_produces_warning(FutureWarning):
-            res = obj.set_axis(new_index, inplace=True, copy=False)
-        assert res is None
-        tm.assert_equal(expected, obj)
+        res = obj.set_axis(new_index, copy=False)
+        tm.assert_equal(expected, res)
         # check we did NOT make a copy
-        if obj.ndim == 1:
-            assert tm.shares_memory(obj, orig)
+        if res.ndim == 1:
+            assert tm.shares_memory(res, orig)
         else:
             assert all(
-                tm.shares_memory(obj.iloc[:, i], orig.iloc[:, i])
-                for i in range(obj.shape[1])
+                tm.shares_memory(res.iloc[:, i], orig.iloc[:, i])
+                for i in range(res.shape[1])
             )
-
-    @pytest.mark.parametrize("axis", [0, "index", 1, "columns"])
-    def test_set_axis_inplace_axis(self, axis, obj):
-        # GH#14636
-        if obj.ndim == 1 and axis in [1, "columns"]:
-            # Series only has [0, "index"]
-            return
-
-        new_index = list("abcd")[: len(obj)]
-
-        expected = obj.copy()
-        if axis in [0, "index"]:
-            expected.index = new_index
-        else:
-            expected.columns = new_index
-
-        result = obj.copy()
-        with tm.assert_produces_warning(FutureWarning):
-            result.set_axis(new_index, axis=axis, inplace=True)
-        tm.assert_equal(result, expected)
 
     def test_set_axis_unnamed_kwarg_warns(self, obj):
         # omitting the "axis" parameter
@@ -118,10 +84,7 @@ class SharedSetAxisTests:
         expected = obj.copy()
         expected.index = new_index
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="set_axis 'inplace' keyword"
-        ):
-            result = obj.set_axis(new_index, inplace=False)
+        result = obj.set_axis(new_index)
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [3, "foo"])

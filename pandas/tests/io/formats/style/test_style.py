@@ -272,8 +272,6 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
         styler.to_html()
 
     excl = [
-        "na_rep",  # deprecated
-        "precision",  # deprecated
         "cellstyle_map",  # render time vars..
         "cellstyle_map_columns",
         "cellstyle_map_index",
@@ -333,8 +331,6 @@ def test_clear(mi_styler_comp):
         "cellstyle_map",  # execution time only
         "cellstyle_map_columns",  # execution time only
         "cellstyle_map_index",  # execution time only
-        "precision",  # deprecated
-        "na_rep",  # deprecated
         "template_latex",  # render templates are class level
         "template_html",
         "template_html_style",
@@ -657,10 +653,10 @@ class TestStyler:
     )
     @pytest.mark.parametrize("axis", [0, 1])
     def test_apply_subset(self, slice_, axis, df):
-        def h(x, foo="bar"):
-            return Series(f"color: {foo}", index=x.index, name=x.name)
+        def h(x, color="bar"):
+            return Series(f"color: {color}", index=x.index, name=x.name)
 
-        result = df.style.apply(h, axis=axis, subset=slice_, foo="baz")._compute().ctx
+        result = df.style.apply(h, axis=axis, subset=slice_, color="baz")._compute().ctx
         expected = {
             (r, c): [("color", "baz")]
             for r, row in enumerate(df.index)
