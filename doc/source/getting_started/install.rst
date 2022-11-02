@@ -310,7 +310,7 @@ Can be managed as optional_extra with ``pandas[plot, output_formatting]``, depen
 ========================= ================== ================== =============================================================
 Dependency                Minimum Version    optional_extra     Notes
 ========================= ================== ================== =============================================================
-matplotlib                3.3.2              plot               Plotting library
+matplotlib                3.6.0              plot               Plotting library
 Jinja2                    3.0.0              output_formatting  Conditional formatting with DataFrame.style
 tabulate                  0.8.9              output_formatting  Printing in Markdown-friendly format (see `tabulate`_)
 ========================= ================== ================== =============================================================
