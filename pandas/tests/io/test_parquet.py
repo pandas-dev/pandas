@@ -53,11 +53,6 @@ except ImportError:
     _HAVE_FASTPARQUET = False
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
-)
-
-
 # TODO(ArrayManager) fastparquet relies on BlockManager internals
 
 # setup engines & skips
@@ -688,7 +683,6 @@ class TestBasic(Base):
         )
 
 
-@pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
 
@@ -1013,6 +1007,43 @@ class TestParquetPyArrow(Base):
             assert isinstance(result._mgr, pd.core.internals.ArrayManager)
         else:
             assert isinstance(result._mgr, pd.core.internals.BlockManager)
+
+    def test_read_use_nullable_types_pyarrow_config(self, pa, df_full):
+        import pyarrow
+
+        df = df_full
+
+        # additional supported types for pyarrow
+        dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
+        dti = dti._with_freq(None)  # freq doesn't round-trip
+        df["datetime_tz"] = dti
+        df["bool_with_none"] = [True, None, True]
+
+        pa_table = pyarrow.Table.from_pandas(df)
+        expected = pd.DataFrame(
+            {
+                col_name: pd.arrays.ArrowExtensionArray(pa_column)
+                for col_name, pa_column in zip(
+                    pa_table.column_names, pa_table.itercolumns()
+                )
+            }
+        )
+        # pyarrow infers datetimes as us instead of ns
+        expected["datetime"] = expected["datetime"].astype("timestamp[us][pyarrow]")
+        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
+            "timestamp[us][pyarrow]"
+        )
+        expected["datetime_tz"] = expected["datetime_tz"].astype(
+            pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
+        )
+
+        with pd.option_context("io.nullable_backend", "pyarrow"):
+            check_round_trip(
+                df,
+                engine=pa,
+                read_kwargs={"use_nullable_dtypes": True},
+                expected=expected,
+            )
 
 
 class TestParquetFastParquet(Base):

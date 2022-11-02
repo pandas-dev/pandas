@@ -215,11 +215,15 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _from_sequence_not_strict(
         cls,
         data,
+        *,
         dtype=None,
         copy: bool = False,
         freq=lib.no_default,
         unit=None,
     ) -> TimedeltaArray:
+        """
+        A non-strict version of _from_sequence, called from TimedeltaIndex.__new__.
+        """
         if dtype:
             dtype = _validate_td64_dtype(dtype)
 

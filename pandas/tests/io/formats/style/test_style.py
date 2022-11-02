@@ -272,8 +272,6 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
         styler.to_html()
 
     excl = [
-        "na_rep",  # deprecated
-        "precision",  # deprecated
         "cellstyle_map",  # render time vars..
         "cellstyle_map_columns",
         "cellstyle_map_index",
@@ -333,8 +331,6 @@ def test_clear(mi_styler_comp):
         "cellstyle_map",  # execution time only
         "cellstyle_map_columns",  # execution time only
         "cellstyle_map_index",  # execution time only
-        "precision",  # deprecated
-        "na_rep",  # deprecated
         "template_latex",  # render templates are class level
         "template_html",
         "template_html_style",
@@ -352,7 +348,7 @@ def test_clear(mi_styler_comp):
 
     # test vars have same vales on obj and clean copy after clearing
     styler.clear()
-    for attr in [a for a in styler.__dict__ if not (callable(a))]:
+    for attr in [a for a in styler.__dict__ if not callable(a)]:
         res = getattr(styler, attr) == getattr(clean_copy, attr)
         assert all(res) if hasattr(res, "__iter__") else res
 

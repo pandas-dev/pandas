@@ -40,7 +40,7 @@ import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.api import Float64Index
 from pandas.core.indexing import _one_ellipsis_message
-from pandas.tests.indexing.common import Base
+from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 
 
 @pytest.mark.parametrize(
@@ -59,16 +59,20 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
     tm.assert_frame_equal(df.notna(), ~expected)
 
 
-class TestLoc(Base):
-    def test_loc_getitem_int(self):
+class TestLoc:
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_int(self, kind, request):
 
         # int label
-        self.check_result("loc", 2, typs=["labels"], fails=KeyError)
+        obj = request.getfixturevalue(f"{kind}_labels")
+        check_indexing_smoketest_or_raises(obj, "loc", 2, fails=KeyError)
 
-    def test_loc_getitem_label(self):
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_label(self, kind, request):
 
         # label
-        self.check_result("loc", "c", typs=["empty"], fails=KeyError)
+        obj = request.getfixturevalue(f"{kind}_empty")
+        check_indexing_smoketest_or_raises(obj, "loc", "c", fails=KeyError)
 
     @pytest.mark.parametrize(
         "key, typs, axes",
@@ -81,10 +85,14 @@ class TestLoc(Base):
             [20, ["floats"], 0],
         ],
     )
-    def test_loc_getitem_label_out_of_range(self, key, typs, axes):
-
-        # out of range label
-        self.check_result("loc", key, typs=typs, axes=axes, fails=KeyError)
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_label_out_of_range(self, key, typs, axes, kind, request):
+        for typ in typs:
+            obj = request.getfixturevalue(f"{kind}_{typ}")
+            # out of range label
+            check_indexing_smoketest_or_raises(
+                obj, "loc", key, axes=axes, fails=KeyError
+            )
 
     @pytest.mark.parametrize(
         "key, typs",
@@ -93,9 +101,12 @@ class TestLoc(Base):
             [[1, 3.0, "A"], ["ints", "uints", "floats"]],
         ],
     )
-    def test_loc_getitem_label_list(self, key, typs):
-        # list of labels
-        self.check_result("loc", key, typs=typs, fails=KeyError)
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_label_list(self, key, typs, kind, request):
+        for typ in typs:
+            obj = request.getfixturevalue(f"{kind}_{typ}")
+            # list of labels
+            check_indexing_smoketest_or_raises(obj, "loc", key, fails=KeyError)
 
     @pytest.mark.parametrize(
         "key, typs, axes",
@@ -107,13 +118,21 @@ class TestLoc(Base):
             [[(1, 3), (1, 4), (2, 5)], ["multi"], 0],
         ],
     )
-    def test_loc_getitem_label_list_with_missing(self, key, typs, axes):
-        self.check_result("loc", key, typs=typs, axes=axes, fails=KeyError)
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_label_list_with_missing(self, key, typs, axes, kind, request):
+        for typ in typs:
+            obj = request.getfixturevalue(f"{kind}_{typ}")
+            check_indexing_smoketest_or_raises(
+                obj, "loc", key, axes=axes, fails=KeyError
+            )
 
-    def test_loc_getitem_label_list_fails(self):
+    @pytest.mark.parametrize("typs", ["ints", "uints"])
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_label_list_fails(self, typs, kind, request):
         # fails
-        self.check_result(
-            "loc", [20, 30, 40], typs=["ints", "uints"], axes=1, fails=KeyError
+        obj = request.getfixturevalue(f"{kind}_{typs}")
+        check_indexing_smoketest_or_raises(
+            obj, "loc", [20, 30, 40], axes=1, fails=KeyError
         )
 
     def test_loc_getitem_label_array_like(self):
@@ -121,11 +140,13 @@ class TestLoc(Base):
         # array like
         pass
 
-    def test_loc_getitem_bool(self):
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_bool(self, kind, request):
+        obj = request.getfixturevalue(f"{kind}_empty")
         # boolean indexers
         b = [True, False, True, False]
 
-        self.check_result("loc", b, typs=["empty"], fails=IndexError)
+        check_indexing_smoketest_or_raises(obj, "loc", b, fails=IndexError)
 
     @pytest.mark.parametrize(
         "slc, typs, axes, fails",
@@ -142,21 +163,23 @@ class TestLoc(Base):
             [slice(2, 4, 2), ["mixed"], 0, TypeError],
         ],
     )
-    def test_loc_getitem_label_slice(self, slc, typs, axes, fails):
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_loc_getitem_label_slice(self, slc, typs, axes, fails, kind, request):
 
         # label slices (with ints)
 
         # real label slices
 
         # GH 14316
-
-        self.check_result(
-            "loc",
-            slc,
-            typs=typs,
-            axes=axes,
-            fails=fails,
-        )
+        for typ in typs:
+            obj = request.getfixturevalue(f"{kind}_{typ}")
+            check_indexing_smoketest_or_raises(
+                obj,
+                "loc",
+                slc,
+                axes=axes,
+                fails=fails,
+            )
 
     def test_setitem_from_duplicate_axis(self):
         # GH#34034
@@ -1277,10 +1300,6 @@ class TestLocBaseIndependent:
     @pytest.mark.parametrize("spmatrix_t", ["coo_matrix", "csc_matrix", "csr_matrix"])
     @pytest.mark.parametrize("dtype", [np.int64, np.float64, complex])
     @td.skip_if_no_scipy
-    @pytest.mark.filterwarnings(
-        # TODO(2.0): remove filtering; note only needed for using_array_manager
-        "ignore:The behavior of .astype from SparseDtype.*FutureWarning"
-    )
     def test_loc_getitem_range_from_spmatrix(self, spmatrix_t, dtype):
         import scipy.sparse
 
@@ -1439,9 +1458,6 @@ class TestLocBaseIndependent:
         assert Timestamp("2008-08-08") == df.loc[0, "c"]
         assert Timestamp("2008-08-08") == df.loc[1, "c"]
         df.loc[2, "c"] = date(2005, 5, 5)
-        with tm.assert_produces_warning(FutureWarning):
-            # Comparing Timestamp to date obj is deprecated
-            assert Timestamp("2005-05-05") == df.loc[2, "c"]
         assert Timestamp("2005-05-05").date() == df.loc[2, "c"]
 
     @pytest.mark.parametrize("idxer", ["var", ["var"]])
@@ -1500,12 +1516,12 @@ class TestLocBaseIndependent:
         mi = MultiIndex.from_tuples([("A", 4), ("B", "3"), ("A", "2")])
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
         obj = df.copy()
-        obj.loc[:, key] = np.zeros((2, 2), dtype=int)
+        obj.loc[:, key] = np.zeros((2, 2), dtype="int64")
         expected = DataFrame([[0, 2, 0], [0, 5, 0]], columns=mi)
         tm.assert_frame_equal(obj, expected)
 
         df = df.sort_index(axis=1)
-        df.loc[:, key] = np.zeros((2, 2), dtype=int)
+        df.loc[:, key] = np.zeros((2, 2), dtype="int64")
         expected = expected.sort_index(axis=1)
         tm.assert_frame_equal(df, expected)
 
@@ -2465,7 +2481,7 @@ class TestLabelSlicing:
         tm.assert_frame_equal(df.loc[:, 1:], expected)
 
 
-class TestLocBooleanLabelsAndSlices(Base):
+class TestLocBooleanLabelsAndSlices:
     @pytest.mark.parametrize("bool_value", [True, False])
     def test_loc_bool_incompatible_index_raises(
         self, index, frame_or_series, bool_value
@@ -2772,15 +2788,12 @@ def test_loc_mixed_int_float():
     assert result == 0
 
 
-def test_loc_with_positional_slice_deprecation():
+def test_loc_with_positional_slice_raises():
     # GH#31840
     ser = Series(range(4), index=["A", "B", "C", "D"])
 
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
         ser.loc[:3] = 2
-
-    expected = Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
-    tm.assert_series_equal(ser, expected)
 
 
 def test_loc_slice_disallows_positional():
@@ -2799,15 +2812,15 @@ def test_loc_slice_disallows_positional():
         with pytest.raises(TypeError, match=msg):
             obj.loc[1:3]
 
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#31840 deprecated incorrect behavior
+        with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
+            # GH#31840 enforce incorrect behavior
             obj.loc[1:3] = 1
 
     with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1]
 
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#31840 deprecated incorrect behavior
+    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
+        # GH#31840 enforce incorrect behavior
         df.loc[1:3, 1] = 2
 
 

@@ -21,9 +21,8 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._typing import (
-    ArrayLike,
     Axis,
     AxisInt,
     DtypeObj,
@@ -72,7 +71,6 @@ from pandas.core.algorithms import (
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import (
-    create_series_with_explicit_dtype,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
@@ -296,6 +294,7 @@ class IndexOpsMixin(OpsMixin):
         # must be defined here as a property for mypy
         raise AbstractMethodError(self)
 
+    @final
     def transpose(self: _T, *args, **kwargs) -> _T:
         """
         Return the transpose, which is by definition self.
@@ -332,6 +331,7 @@ class IndexOpsMixin(OpsMixin):
         """
         return 1
 
+    @final
     def item(self):
         """
         Return the first element of the underlying data as a Python scalar.
@@ -429,6 +429,7 @@ class IndexOpsMixin(OpsMixin):
         """
         raise AbstractMethodError(self)
 
+    @final
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -544,6 +545,7 @@ class IndexOpsMixin(OpsMixin):
                 result[np.asanyarray(self.isna())] = na_value
         return result
 
+    @final
     @property
     def empty(self) -> bool:
         return not self.size
@@ -843,9 +845,12 @@ class IndexOpsMixin(OpsMixin):
                 # expected to be pd.Series(np.nan, ...). As np.nan is
                 # of dtype float64 the return value of this method should
                 # be float64 as well
-                mapper = create_series_with_explicit_dtype(
-                    mapper, dtype_if_empty=np.float64
-                )
+                from pandas import Series
+
+                if len(mapper) == 0:
+                    mapper = Series(mapper, dtype=np.float64)
+                else:
+                    mapper = Series(mapper)
 
         if isinstance(mapper, ABCSeries):
             if na_action not in (None, "ignore"):
@@ -901,6 +906,7 @@ class IndexOpsMixin(OpsMixin):
 
         return new_values
 
+    @final
     def value_counts(
         self,
         normalize: bool = False,
@@ -998,20 +1004,14 @@ class IndexOpsMixin(OpsMixin):
 
     def unique(self):
         values = self._values
-
         if not isinstance(values, np.ndarray):
-            result: ArrayLike = values.unique()
-            if (
-                isinstance(self.dtype, np.dtype) and self.dtype.kind in ["m", "M"]
-            ) and isinstance(self, ABCSeries):
-                # GH#31182 Series._values returns EA
-                # unpack numpy datetime for backward-compat
-                result = np.asarray(result)
+            # i.e. ExtensionArray
+            result = values.unique()
         else:
             result = unique1d(values)
-
         return result
 
+    @final
     def nunique(self, dropna: bool = True) -> int:
         """
         Return number of unique elements in the object.
@@ -1109,6 +1109,7 @@ class IndexOpsMixin(OpsMixin):
 
         return Index(self).is_monotonic_decreasing
 
+    @final
     def _memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of the values.
@@ -1312,7 +1313,7 @@ class IndexOpsMixin(OpsMixin):
             sorter=sorter,
         )
 
-    def drop_duplicates(self, keep: DropKeep = "first"):
+    def drop_duplicates(self, *, keep: DropKeep = "first"):
         duplicated = self._duplicated(keep=keep)
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]

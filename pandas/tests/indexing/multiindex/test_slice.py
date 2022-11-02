@@ -35,7 +35,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in df.index.values
-                if (a == "A1" or a == "A2" or a == "A3") and (c == "C1" or c == "C3")
+                if a in ("A1", "A2", "A3") and c in ("C1", "C3")
             ]
         ]
         tm.assert_frame_equal(result, expected)
@@ -49,8 +49,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in df.index.values
-                if (a == "A1" or a == "A2" or a == "A3")
-                and (c == "C1" or c == "C2" or c == "C3")
+                if a in ("A1", "A2", "A3") and c in ("C1", "C2", "C3")
             ]
         ]
         result = df.loc[(slice("A1", "A3"), slice(None), slice("C1", "C3")), :]
@@ -121,7 +120,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in s.index.values
-                if (a == "A1" or a == "A2" or a == "A3") and (c == "C1" or c == "C3")
+                if a in ("A1", "A2", "A3") and c in ("C1", "C3")
             ]
         ]
         tm.assert_series_equal(result, expected)
@@ -416,7 +415,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in df.index.values
-                if (a == "A1" or a == "A2" or a == "A3") and (c == "C1" or c == "C3")
+                if a in ("A1", "A2", "A3") and c in ("C1", "C3")
             ]
         ]
         tm.assert_frame_equal(result, expected)
@@ -433,7 +432,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in df.index.values
-                if (c == "C1" or c == "C3")
+                if c in ("C1", "C3")
             ]
         ]
         tm.assert_frame_equal(result, expected)
@@ -494,7 +493,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in df.index.values
-                if (a == "A1" or a == "A2" or a == "A3") and (c == "C1" or c == "C3")
+                if a in ("A1", "A2", "A3") and c in ("C1", "C3")
             ]
         ]
         tm.assert_frame_equal(result, expected)
@@ -509,7 +508,7 @@ class TestMultiIndexSlicers:
                     d,
                 )
                 for a, b, c, d in df.index.values
-                if (c == "C1" or c == "C3")
+                if c in ("C1", "C3")
             ]
         ]
         tm.assert_frame_equal(result, expected)

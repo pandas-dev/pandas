@@ -14,10 +14,6 @@ import pandas._testing as tm
 
 pytest.importorskip("pyarrow.orc")
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
-)
-
 
 @pytest.fixture
 def dirpath(datapath):

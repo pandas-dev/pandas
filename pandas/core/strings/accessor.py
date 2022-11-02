@@ -7,7 +7,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Hashable,
-    Iterator,
     Literal,
     cast,
 )
@@ -15,17 +14,14 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._typing import (
     AlignJoin,
     DtypeObj,
     F,
     Scalar,
 )
-from pandas.util._decorators import (
-    Appender,
-    deprecate_nonkeyword_arguments,
-)
+from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -241,19 +237,6 @@ class StringMethods(NoNewAttributesMixin):
     def __getitem__(self, key):
         result = self._data.array._str_getitem(key)
         return self._wrap_result(result)
-
-    def __iter__(self) -> Iterator:
-        warnings.warn(
-            "Columnar iteration over characters will be deprecated in future releases.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        i = 0
-        g = self.get(i)
-        while g.notna().any():
-            yield g
-            i += 1
-            g = self.get(i)
 
     def _wrap_result(
         self,
@@ -854,14 +837,13 @@ class StringMethods(NoNewAttributesMixin):
     """,
         }
     )
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "pat"])
     @forbid_nonstring_types(["bytes"])
     def split(
         self,
         pat: str | re.Pattern | None = None,
+        *,
         n=-1,
         expand: bool = False,
-        *,
         regex: bool | None = None,
     ):
         if regex is False and is_re(pat):
@@ -886,9 +868,8 @@ class StringMethods(NoNewAttributesMixin):
             "regex_examples": "",
         }
     )
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "pat"])
     @forbid_nonstring_types(["bytes"])
-    def rsplit(self, pat=None, n=-1, expand: bool = False):
+    def rsplit(self, pat=None, *, n=-1, expand: bool = False):
         result = self._data.array._str_rsplit(pat, n=n)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 

@@ -383,21 +383,18 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
 
 def test_multiple_functions_tuples_and_non_tuples(df):
     # #1359
+    # Columns B and C would cause partial failure
+    df = df.drop(columns=["B", "C"])
+
     funcs = [("foo", "mean"), "std"]
     ex_funcs = [("foo", "mean"), ("std", "std")]
 
-    result = df.groupby("A")["C"].agg(funcs)
-    expected = df.groupby("A")["C"].agg(ex_funcs)
+    result = df.groupby("A")["D"].agg(funcs)
+    expected = df.groupby("A")["D"].agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['B'\] did not aggregate successfully"
-    ):
-        result = df.groupby("A").agg(funcs)
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['B'\] did not aggregate successfully"
-    ):
-        expected = df.groupby("A").agg(ex_funcs)
+    result = df.groupby("A").agg(funcs)
+    expected = df.groupby("A").agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1348,13 +1345,11 @@ def test_groupby_aggregate_directory(reduction_func):
     # GH#32793
     if reduction_func in ["corrwith", "nth"]:
         return None
-    warn = FutureWarning if reduction_func == "mad" else None
 
     obj = DataFrame([[0, 1], [0, np.nan]])
 
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result_reduced_series = obj.groupby(0).agg(reduction_func)
-        result_reduced_frame = obj.groupby(0).agg({1: reduction_func})
+    result_reduced_series = obj.groupby(0).agg(reduction_func)
+    result_reduced_frame = obj.groupby(0).agg({1: reduction_func})
 
     if reduction_func in ["size", "ngroup"]:
         # names are different: None / 1

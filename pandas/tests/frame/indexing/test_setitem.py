@@ -779,11 +779,7 @@ class TestSetitemTZAwareValues:
         # convert to utc
         df = DataFrame(np.random.randn(2, 1), columns=["A"])
         df["B"] = idx
-
-        with tm.assert_produces_warning(FutureWarning) as m:
-            df["B"] = idx.to_series(keep_tz=False, index=[0, 1])
-        msg = "do 'idx.tz_convert(None)' before calling"
-        assert msg in str(m[0].message)
+        df["B"] = idx.to_series(index=[0, 1]).dt.tz_convert(None)
 
         result = df["B"]
         comp = Series(idx.tz_convert("UTC").tz_localize(None), name="B")
@@ -1080,12 +1076,7 @@ class TestDataFrameSetItemBooleanMask:
         df = DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
 
         exp_fancy = exp_multi_row.copy()
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # issue #37643 inplace kwarg deprecated
-            return_value = exp_fancy["cats"].cat.set_categories(
-                ["a", "b", "c"], inplace=True
-            )
-        assert return_value is None
+        exp_fancy["cats"] = exp_fancy["cats"].cat.set_categories(["a", "b", "c"])
 
         mask = df["cats"] == "c"
         df[mask] = ["b", 2]
