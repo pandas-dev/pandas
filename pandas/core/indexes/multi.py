@@ -3049,10 +3049,10 @@ class MultiIndex(Index):
                             ):
                                 # everything
                                 continue
-                            else:
-                                # e.g. test_xs_IndexSlice_argument_not_implemented
-                                k_index = np.zeros(len(self), dtype=bool)
-                                k_index[loc_level] = True
+
+                            # e.g. test_xs_IndexSlice_argument_not_implemented
+                            k_index = np.zeros(len(self), dtype=bool)
+                            k_index[loc_level] = True
 
                         else:
                             k_index = loc_level
