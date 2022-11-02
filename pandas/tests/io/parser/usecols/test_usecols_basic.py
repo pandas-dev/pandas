@@ -410,7 +410,7 @@ def test_usecols_indices_out_of_bounds(all_parsers, names):
 a,b
 1,2
     """
-    with pytest.raises(ParserError, match="Defining usecols with out of bounds"):
+    with pytest.raises(ParserError, match="Defining usecols without of bounds"):
         parser.read_csv(StringIO(data), usecols=[0, 2], names=names, header=0)
 
 
