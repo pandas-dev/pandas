@@ -674,6 +674,22 @@ class TestToDatetime:
         ]
         tm.assert_equal(result, DatetimeIndex(expected_data))
 
+        # Test ISO8601 format
+        case4 = [
+            Timestamp("2001-10-01 13:18:05"),
+            datetime(2001, 10, 2, 13, 18, 5),
+            "2001-10-03T13:18:05",
+            "20011004",
+        ]
+        result = to_datetime(case4)
+        expected_data = [
+            Timestamp("2001-10-01 13:18:05"),
+            Timestamp("2001-10-02 13:18:05"),
+            Timestamp("2001-10-03 13:18:05"),
+            Timestamp("2001-10-04 00:00:00"),
+        ]
+        tm.assert_equal(result, DatetimeIndex(expected_data))
+
     def test_to_datetime_arraylike_contains_pydatetime_and_timestamp_utc(self):
         # GH 49298
         dt = datetime(2010, 1, 2, 12, 13, 16)
