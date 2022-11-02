@@ -1304,6 +1304,7 @@ def test_seriesgroupby_observed_true(df_cat, operation):
 @pytest.mark.parametrize("observed", [False, None])
 def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
     # GH 24880
+    # GH#49223 - order of results was wrong when grouping by index levels
     index, _ = MultiIndex.from_product(
         [
             CategoricalIndex(["bar", "foo"], ordered=False),
