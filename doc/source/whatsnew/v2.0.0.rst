@@ -354,7 +354,7 @@ Datetimelike
 - Bug in :func:`to_datetime` was raising on invalid offsets with ``errors='coerce'`` and ``infer_datetime_format=True`` (:issue:`48633`)
 - Bug in :class:`DatetimeIndex` constructor failing to raise when ``tz=None`` is explicitly specified in conjunction with timezone-aware ``dtype`` or data (:issue:`48659`)
 - Bug in subtracting a ``datetime`` scalar from :class:`DatetimeIndex` failing to retain the original ``freq`` attribute (:issue:`48818`)
--
+- Bug in ``pandas.tseries.holiday.Holiday`` where a half-open date interval causes inconsistent return types from :meth:`USFederalHolidayCalendar.holidays` (:issue:`49075`)
 
 Timedelta
 ^^^^^^^^^
