@@ -16,7 +16,6 @@ from pandas._libs import lib
 from pandas._libs.tslibs import (
     get_unit_from_dtype,
     is_supported_unit,
-    is_unitless,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
@@ -291,20 +290,6 @@ def astype_array_safe(
     if isinstance(dtype, PandasDtype):
         # Ensure we don't end up with a PandasArray
         dtype = dtype.numpy_dtype
-
-    if (
-        is_datetime64_dtype(values.dtype)
-        # need to do np.dtype check instead of is_datetime64_dtype
-        #  otherwise pyright complains
-        and isinstance(dtype, np.dtype)
-        and dtype.kind == "M"
-        and not is_unitless(dtype)
-        and not is_dtype_equal(dtype, values.dtype)
-        and not is_supported_unit(get_unit_from_dtype(dtype))
-    ):
-        # Supported units we handle in DatetimeArray.astype; but that raises
-        #  on non-supported units, so we handle that here.
-        return np.asarray(values).astype(dtype)
 
     try:
         new_values = astype_array(values, dtype, copy=copy)
