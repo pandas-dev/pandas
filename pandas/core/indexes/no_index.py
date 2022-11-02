@@ -31,7 +31,12 @@ class NoIndex(RangeIndex):
         return NoIndex(len(super().__getitem__(key)))
 
     def get_loc(self, key, method=None, tolerance=None):
-        raise TypeError("Cannot use label-based indexing on NoIndex!")
+        from pandas.core import (
+            algorithms,
+            common as com,
+        )
+        if not com.is_bool_indexer(key):
+            raise TypeError("Cannot use label-based indexing on NoIndex!")
 
     @property
     def _constructor(self):  # type: ignore[override]
