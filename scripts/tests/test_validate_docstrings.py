@@ -24,7 +24,7 @@ class BadDocstrings:
         DataFrame.head : The first `n` rows of the caller object.
         """
 
-    def redundant_import(self, foo=None, bar=None):
+    def redundant_import(self, paramx=None, paramy=None):
         """
         A sample DataFrame method.
 

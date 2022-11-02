@@ -2902,7 +2902,7 @@ class Styler(StylerRenderer):
         return self.applymap(lambda x: values, subset=subset)
 
     @Substitution(subset=subset)
-    def bar(
+    def bar(  # pylint: disable=disallowed-name
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,

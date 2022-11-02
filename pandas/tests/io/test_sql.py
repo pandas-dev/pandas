@@ -2181,26 +2181,26 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # https://github.com/pandas-dev/pandas/issues/10104
         from sqlalchemy.engine import Engine
 
-        def foo(connection):
+        def test_select(connection):
             query = "SELECT test_foo_data FROM test_foo_data"
             return sql.read_sql_query(query, con=connection)
 
-        def bar(connection, data):
+        def test_append(connection, data):
             data.to_sql(name="test_foo_data", con=connection, if_exists="append")
 
-        def baz(conn):
+        def test_connectable(conn):
             # https://github.com/sqlalchemy/sqlalchemy/commit/
             # 00b5c10846e800304caa86549ab9da373b42fa5d#r48323973
-            foo_data = foo(conn)
-            bar(conn, foo_data)
+            foo_data = test_select(conn)
+            test_append(conn, foo_data)
 
         def main(connectable):
             if isinstance(connectable, Engine):
                 with connectable.connect() as conn:
                     with conn.begin():
-                        baz(conn)
+                        test_connectable(conn)
             else:
-                baz(connectable)
+                test_connectable(connectable)
 
         assert (
             DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
@@ -2373,21 +2373,21 @@ class _TestSQLiteAlchemy:
         class Test(BaseModel):
             __tablename__ = "test_frame"
             id = Column(Integer, primary_key=True)
-            foo = Column(String(50))
+            string_column = Column(String(50))
 
         BaseModel.metadata.create_all(self.conn)
         Session = sessionmaker(bind=self.conn)
         with Session() as session:
-            df = DataFrame({"id": [0, 1], "foo": ["hello", "world"]})
+            df = DataFrame({"id": [0, 1], "string_column": ["hello", "world"]})
             assert (
                 df.to_sql("test_frame", con=self.conn, index=False, if_exists="replace")
                 == 2
             )
             session.commit()
-            foo = session.query(Test.id, Test.foo)
-            df = DataFrame(foo)
+            test_query = session.query(Test.id, Test.string_column)
+            df = DataFrame(test_query)
 
-        assert list(df.columns) == ["id", "foo"]
+        assert list(df.columns) == ["id", "string_column"]
 
 
 class _TestMySQLAlchemy:

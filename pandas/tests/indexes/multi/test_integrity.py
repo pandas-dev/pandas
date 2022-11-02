@@ -233,14 +233,14 @@ def test_level_setting_resets_attributes():
 
 def test_rangeindex_fallback_coercion_bug():
     # GH 12893
-    foo = pd.DataFrame(np.arange(100).reshape((10, 10)))
-    bar = pd.DataFrame(np.arange(100).reshape((10, 10)))
-    df = pd.concat({"foo": foo.stack(), "bar": bar.stack()}, axis=1)
+    df1 = pd.DataFrame(np.arange(100).reshape((10, 10)))
+    df2 = pd.DataFrame(np.arange(100).reshape((10, 10)))
+    df = pd.concat({"df1": df1.stack(), "df2": df2.stack()}, axis=1)
     df.index.names = ["fizz", "buzz"]
 
     str(df)
     expected = pd.DataFrame(
-        {"bar": np.arange(100), "foo": np.arange(100)},
+        {"df2": np.arange(100), "df1": np.arange(100)},
         index=MultiIndex.from_product([range(10), range(10)], names=["fizz", "buzz"]),
     )
     tm.assert_frame_equal(df, expected, check_like=True)

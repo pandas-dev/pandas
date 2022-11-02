@@ -140,7 +140,7 @@ def test_i_signature():
 
 class Foo:
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "bar"])
-    def baz(self, bar=None, foobar=None):
+    def baz(self, bar=None, foobar=None):  # pylint: disable=disallowed-name
         ...
 
 

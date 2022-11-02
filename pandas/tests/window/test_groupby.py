@@ -277,11 +277,11 @@ class TestRolling:
     def test_groupby_rolling(self, expected_value, raw_value):
         # GH 31754
 
-        def foo(x):
+        def isnumpyarray(x):
             return int(isinstance(x, np.ndarray))
 
         df = DataFrame({"id": [1, 1, 1], "value": [1, 2, 3]})
-        result = df.groupby("id").value.rolling(1).apply(foo, raw=raw_value)
+        result = df.groupby("id").value.rolling(1).apply(isnumpyarray, raw=raw_value)
         expected = Series(
             [expected_value] * 3,
             index=MultiIndex.from_tuples(((1, 0), (1, 1), (1, 2)), names=["id", None]),
