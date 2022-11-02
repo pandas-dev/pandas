@@ -95,7 +95,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
@@ -3398,17 +3397,7 @@ class DataFrame(NDFrame, OpsMixin):
         max_cols: int | None = None,
         memory_usage: bool | str | None = None,
         show_counts: bool | None = None,
-        null_counts: bool | None = None,
     ) -> None:
-        if null_counts is not None:
-            if show_counts is not None:
-                raise ValueError("null_counts used with show_counts. Use show_counts.")
-            warnings.warn(
-                "null_counts is deprecated. Use show_counts instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            show_counts = null_counts
         info = DataFrameInfo(
             data=self,
             memory_usage=memory_usage,
@@ -11748,7 +11737,6 @@ Parrot 2  Parrot       24.0
         inplace: Literal[False] = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -11761,7 +11749,6 @@ Parrot 2  Parrot       24.0
         inplace: Literal[True],
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -11774,13 +11761,10 @@ Parrot 2  Parrot       24.0
         inplace: bool = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "where" incompatible with supertype "NDFrame"
-    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    def where(  # type: ignore[override]
+    def where(
         self,
         cond,
         other=lib.no_default,
@@ -11788,7 +11772,6 @@ Parrot 2  Parrot       24.0
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
-        errors: IgnoreRaise | lib.NoDefault = "raise",
     ) -> DataFrame | None:
         return super().where(
             cond,
@@ -11807,7 +11790,6 @@ Parrot 2  Parrot       24.0
         inplace: Literal[False] = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -11820,7 +11802,6 @@ Parrot 2  Parrot       24.0
         inplace: Literal[True],
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -11833,13 +11814,10 @@ Parrot 2  Parrot       24.0
         inplace: bool = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "mask" incompatible with supertype "NDFrame"
-    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    def mask(  # type: ignore[override]
+    def mask(
         self,
         cond,
         other=lib.no_default,
@@ -11847,7 +11825,6 @@ Parrot 2  Parrot       24.0
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
-        errors: IgnoreRaise | lib.NoDefault = "raise",
     ) -> DataFrame | None:
         return super().mask(
             cond,
