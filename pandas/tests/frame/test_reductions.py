@@ -228,6 +228,7 @@ class TestDataFrameAnalytics:
             check_dates=True,
         )
 
+        # GH#32571: rol needed for flaky CI builds
         # mixed types (with upcasting happening)
         assert_stat_op_calc(
             "sum",
