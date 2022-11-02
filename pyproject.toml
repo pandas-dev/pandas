@@ -115,7 +115,6 @@ disable = [
   "inconsistent-return-statements",
   "invalid-sequence-index",
   "literal-comparison",
-  "no-else-continue",
   "no-else-raise",
   "no-else-return",
   "no-self-use",
