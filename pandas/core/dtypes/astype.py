@@ -222,6 +222,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
         # Series.astype behavior pre-2.0 did
         #  values.tz_localize("UTC").tz_convert(dtype.tz)
         #  which did not match the DTA/DTI behavior.
+        # We special-case here to give a Series-specific exception message.
         raise TypeError(
             "Cannot use .astype to convert from timezone-naive dtype to "
             "timezone-aware dtype. Use ser.dt.tz_localize instead."
