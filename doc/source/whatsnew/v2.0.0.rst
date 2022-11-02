@@ -265,6 +265,7 @@ Removal of prior version deprecations/changes
 - Removed :func:`is_extension_type` in favor of :func:`is_extension_array_dtype` (:issue:`29457`)
 - Removed ``.ExponentialMovingWindow.vol`` (:issue:`39220`)
 - Removed :meth:`Index.get_value` and :meth:`Index.set_value` (:issue:`33907`, :issue:`28621`)
+- Removed :meth:`Series.is_monotonic` and :meth:`Index.is_monotonic` in favor of :meth:`Series.is_monotonic_increasing` and :meth:`Index.is_monotonic_increasing` (:issue:`45422`)
 - Removed :meth:`Series.slice_shift` and :meth:`DataFrame.slice_shift` (:issue:`37601`)
 - Remove :meth:`DataFrameGroupBy.pad` and :meth:`DataFrameGroupBy.backfill` (:issue:`45076`)
 - Remove ``numpy`` argument from :func:`read_json` (:issue:`30636`)
