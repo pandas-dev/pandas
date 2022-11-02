@@ -302,6 +302,7 @@ Removal of prior version deprecations/changes
 - Changed behavior of empty data passed into :class:`Series`; the default dtype will be ``object`` instead of ``float64`` (:issue:`29405`)
 - Changed the behavior of :meth:`DatetimeIndex.union`, :meth:`DatetimeIndex.intersection`, and :meth:`DatetimeIndex.symmetric_difference` with mismatched timezones to convert to UTC instead of casting to object dtype (:issue:`39328`)
 - Changed the behavior of :func:`to_datetime` with argument "now" with ``utc=False`` to match ``Timestamp("now")`` (:issue:`18705`)
+- Changed the behavior of :meth:`.reindex` with a ``datetime64`` dtype and a ``datetime.date`` object for ``fill_value``; these are no longer considered equivalent to ``datetime.datetime`` objects so the reindex casts to object dtype (:issue:`39767`)
 - Changed behavior of :meth:`SparseArray.astype` when given a dtype that is not explicitly ``SparseDtype``, cast to the exact requested dtype rather than silently using a ``SparseDtype`` instead (:issue:`34457`)
 - Changed behavior of :class:`DataFrame` constructor given floating-point ``data`` and an integer ``dtype``, when the data cannot be cast losslessly, the floating point dtype is retained, matching :class:`Series` behavior (:issue:`41170`)
 - Changed behavior of :class:`Index` constructor when given a ``np.ndarray`` with object-dtype containing numeric entries; this now retains object dtype rather than inferring a numeric dtype, consistent with :class:`Series` behavior (:issue:`42870`)

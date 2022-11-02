@@ -5,7 +5,6 @@ Routines for casting.
 from __future__ import annotations
 
 from datetime import (
-    date,
     datetime,
     timedelta,
 )
@@ -615,41 +614,14 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         if inferred == dtype:
             return dtype, fv
 
-        # TODO(2.0): once this deprecation is enforced, this whole case
-        # becomes equivalent to:
-        #  dta = DatetimeArray._from_sequence([], dtype="M8[ns]")
-        #  try:
-        #      fv = dta._validate_setitem_value(fill_value)
-        #      return dta.dtype, fv
-        #  except (ValueError, TypeError):
-        #      return _dtype_obj, fill_value
-        if isinstance(fill_value, date) and not isinstance(fill_value, datetime):
-            # deprecate casting of date object to match infer_dtype_from_scalar
-            #  and DatetimeArray._validate_setitem_value
-            try:
-                fv = Timestamp(fill_value).to_datetime64()
-            except OutOfBoundsDatetime:
-                pass
-            else:
-                warnings.warn(
-                    "Using a `date` object for fill_value with `datetime64[ns]` "
-                    "dtype is deprecated. In a future version, this will be cast "
-                    "to object dtype. Pass `fill_value=Timestamp(date_obj)` instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return dtype, fv
-        elif isinstance(fill_value, str):
-            try:
-                # explicitly wrap in str to convert np.str_
-                fv = Timestamp(str(fill_value))
-            except (ValueError, TypeError):
-                pass
-            else:
-                if isna(fv) or fv.tz is None:
-                    return dtype, fv.asm8
+        from pandas.core.arrays import DatetimeArray
 
-        return np.dtype("object"), fill_value
+        dta = DatetimeArray._from_sequence([], dtype="M8[ns]")
+        try:
+            fv = dta._validate_setitem_value(fill_value)
+            return dta.dtype, fv
+        except (ValueError, TypeError):
+            return _dtype_obj, fill_value
 
     elif issubclass(dtype.type, np.timedelta64):
         inferred, fv = infer_dtype_from_scalar(fill_value, pandas_dtype=True)
