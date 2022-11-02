@@ -47,7 +47,7 @@ VERSIONS = {
     "zstandard": "0.15.2",
     "tzdata": "2022.1",
     "qtpy": "2.2.0",
-    "PyQt5": "5.15.1",
+    "pyqt5": "5.15.1",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
