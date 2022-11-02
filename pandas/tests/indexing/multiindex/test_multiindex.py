@@ -188,7 +188,7 @@ class TestMultiIndexBasic:
         self, data_result, data_expected
     ):
         # GH 38439
-        # TODO: Refactor. This is impossible to understand
+        # TODO: Refactor. This is impossible to understand GH#49443
         a_index_result = MultiIndex.from_tuples(data_result[0])
         b_index_result = MultiIndex.from_tuples(data_result[1])
         a_series_result = Series(data_result[2], index=a_index_result)
