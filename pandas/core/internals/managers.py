@@ -75,7 +75,6 @@ from pandas.core.internals.base import (
 )
 from pandas.core.internals.blocks import (
     Block,
-    DatetimeTZBlock,
     NumpyBlock,
     ensure_block_shape,
     extend_blocks,
@@ -1021,27 +1020,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         f"Number of Block dimensions ({block.ndim}) must equal "
                         f"number of axes ({self.ndim})"
                     )
-                if isinstance(block, DatetimeTZBlock) and block.values.ndim == 1:
-                    # TODO(2.0): remove once fastparquet no longer needs this
-                    warnings.warn(
-                        "In a future version, the BlockManager constructor "
-                        "will assume that a DatetimeTZBlock with block.ndim==2 "
-                        "has block.values.ndim == 2.",
-                        DeprecationWarning,
-                        stacklevel=find_stack_level(),
-                    )
-
-                    # error: Incompatible types in assignment (expression has type
-                    # "Union[ExtensionArray, ndarray]", variable has type
-                    # "DatetimeArray")
-                    block.values = ensure_block_shape(  # type: ignore[assignment]
-                        block.values, self.ndim
-                    )
-                    try:
-                        block._cache.clear()
-                    except AttributeError:
-                        # _cache not initialized
-                        pass
+                # As of 2.0, the caller is responsible for ensuring that
+                #  DatetimeTZBlock with block.ndim == 2 has block.values.ndim ==2;
+                #  previously there was a special check for fastparquet compat.
 
             self._verify_integrity()
 
@@ -1898,19 +1879,10 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         refs: list[weakref.ref | None] | None = None,
         parent: object = None,
         verify_integrity: bool = False,
-        fastpath=lib.no_default,
     ) -> None:
         # Assertions disabled for performance
         # assert isinstance(block, Block), type(block)
         # assert isinstance(axis, Index), type(axis)
-
-        if fastpath is not lib.no_default:
-            warnings.warn(
-                "The `fastpath` keyword is deprecated and will be removed "
-                "in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
         self.axes = [axis]
         self.blocks = (block,)

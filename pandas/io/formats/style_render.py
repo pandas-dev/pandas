@@ -399,11 +399,11 @@ class StylerRenderer:
         for r, hide in enumerate(self.hide_columns_):
             if hide or not clabels:
                 continue
-            else:
-                header_row = self._generate_col_header_row(
-                    (r, clabels), max_cols, col_lengths
-                )
-                head.append(header_row)
+
+            header_row = self._generate_col_header_row(
+                (r, clabels), max_cols, col_lengths
+            )
+            head.append(header_row)
 
         # 2) index names
         if (
