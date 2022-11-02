@@ -5796,20 +5796,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return not self.holds_integer()
 
-    def _get_values_for_loc(self, series: Series, loc, key):
-        """
-        Do a positional lookup on the given Series, returning either a scalar
-        or a Series.
-
-        Assumes that `series.index is self`
-
-        key is included for MultiIndex compat.
-        """
-        if is_integer(loc):
-            return series._values[loc]
-
-        return series.iloc[loc]
-
     _index_shared_docs[
         "get_indexer_non_unique"
     ] = """
@@ -6802,6 +6788,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
+    @final
     def _construct_result(self, result, name):
         if isinstance(result, tuple):
             return (

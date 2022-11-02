@@ -41,6 +41,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     Scalar,
+    npt,
 )
 from pandas.errors import (
     IntCastingNaNError,
@@ -1199,7 +1200,7 @@ def convert_dtypes(
 
 
 def maybe_infer_to_datetimelike(
-    value: np.ndarray,
+    value: npt.NDArray[np.object_],
 ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray | IntervalArray:
     """
     we might have a array (or single object) that is datetime like,

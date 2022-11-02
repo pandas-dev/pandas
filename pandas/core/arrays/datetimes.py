@@ -292,6 +292,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _from_sequence_not_strict(
         cls,
         data,
+        *,
         dtype=None,
         copy: bool = False,
         tz=lib.no_default,
@@ -300,6 +301,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         yearfirst: bool = False,
         ambiguous: TimeAmbiguous = "raise",
     ):
+        """
+        A non-strict version of _from_sequence, called from DatetimeIndex.__new__.
+        """
         explicit_none = freq is None
         freq = freq if freq is not lib.no_default else None
         freq, freq_infer = dtl.maybe_infer_freq(freq)
@@ -1976,7 +1980,6 @@ def _sequence_to_dt64ns(
     yearfirst: bool = False,
     ambiguous: TimeAmbiguous = "raise",
     allow_mixed: bool = False,
-    require_iso8601: bool = False,
 ):
     """
     Parameters
@@ -1990,8 +1993,6 @@ def _sequence_to_dt64ns(
         See pandas._libs.tslibs.tzconversion.tz_localize_to_utc.
     allow_mixed : bool, default False
         Interpret integers as timestamps when datetime objects are also present.
-    require_iso8601 : bool, default False
-        Only consider ISO-8601 formats when parsing strings.
 
     Returns
     -------
@@ -2038,7 +2039,6 @@ def _sequence_to_dt64ns(
                 yearfirst=yearfirst,
                 allow_object=False,
                 allow_mixed=allow_mixed,
-                require_iso8601=require_iso8601,
             )
             if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr

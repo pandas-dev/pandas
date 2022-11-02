@@ -577,7 +577,7 @@ class TestReaders:
 
     @td.skip_if_no("pyarrow")
     @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-    def test_use_nullabla_dtypes_string(self, read_ext, storage):
+    def test_use_nullable_dtypes_string(self, read_ext, storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")

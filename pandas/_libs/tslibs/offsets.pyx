@@ -1058,12 +1058,6 @@ cdef class Tick(SingleConstructorOffset):
 
         if util.is_timedelta64_object(other) or PyDelta_Check(other):
             return other + self.delta
-        elif isinstance(other, type(self)):
-            # TODO(2.0): remove once apply deprecation is enforced.
-            #  This is reached in tests that specifically call apply,
-            #  but should not be reached "naturally" because __add__ should
-            #  catch this case first.
-            return type(self)(self.n + other.n)
 
         raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
 

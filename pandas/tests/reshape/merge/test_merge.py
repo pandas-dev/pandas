@@ -734,8 +734,6 @@ class TestMerge:
 
         if unit in ["D", "h", "m"]:
             # not supported so we cast to the nearest supported unit, seconds
-            # TODO(2.0): cast to nearest (second) instead of ns
-            # coerces to datetime64[ns], thus should not be affected
             exp_dtype = "datetime64[s]"
         else:
             exp_dtype = dtype

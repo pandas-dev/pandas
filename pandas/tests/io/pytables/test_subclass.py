@@ -13,6 +13,9 @@ from pandas.io.pytables import (
 )
 
 pytest.importorskip("tables")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:`np.object` is a deprecated alias:DeprecationWarning"
+)
 
 
 class TestHDFStoreSubclass:

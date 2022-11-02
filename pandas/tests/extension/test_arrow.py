@@ -46,6 +46,10 @@ from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
 from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:.* may decrease performance. Upgrade to pyarrow >=7 to possibly"
+)
+
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
 def dtype(request):

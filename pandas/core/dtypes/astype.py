@@ -129,8 +129,7 @@ def astype_nansafe(
             return arr.view(dtype)
 
         elif dtype.kind == "m":
-            # TODO(2.0): change to use the same logic as TDA.astype, i.e.
-            #  giving the requested dtype for supported units (s, ms, us, ns)
+            # give the requested dtype for supported units (s, ms, us, ns)
             #  and doing the old convert-to-float behavior otherwise.
             if is_supported_unit(get_unit_from_dtype(arr.dtype)):
                 from pandas.core.construction import ensure_wrapped_if_datetimelike
