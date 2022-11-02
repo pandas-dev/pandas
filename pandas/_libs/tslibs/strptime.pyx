@@ -1,10 +1,13 @@
 """Strptime-related classes and functions.
 """
 from cpython.datetime cimport (
+    PyDateTime_Check,
     date,
-    datetime,
+    import_datetime,
     tzinfo,
 )
+
+import_datetime()
 
 from _thread import allocate_lock as _thread_allocate_lock
 
@@ -133,7 +136,7 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
         elif checknull_with_nat_and_na(val):
             iresult[i] = NPY_NAT
             continue
-        elif isinstance(val, datetime):
+        elif PyDateTime_Check(val):
             val = val.strftime(fmt)
         else:
             val = str(val)
