@@ -14,7 +14,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -24,7 +23,6 @@ from pandas._typing import (
     HashableT,
 )
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -551,11 +549,8 @@ class _Concatenator:
         self.levels = levels
 
         if not is_bool(sort):
-            warnings.warn(
-                "Passing non boolean values for sort is deprecated and "
-                "will error in a future version!",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise ValueError(
+                f"The 'sort' keyword only accepts boolean values; {sort} was passed."
             )
         self.sort = sort
 
