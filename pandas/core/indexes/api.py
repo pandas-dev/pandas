@@ -35,6 +35,7 @@ from pandas.core.indexes.numeric import (
 )
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.range import RangeIndex
+from pandas.core.indexes.no_index import NoIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 _sort_msg = textwrap.dedent(
@@ -383,5 +384,4 @@ def all_indexes_same(indexes) -> bool:
 
 
 def default_index(n: int) -> RangeIndex:
-    rng = range(0, n)
-    return RangeIndex._simple_new(rng, name=None)
+    return NoIndex(n)
