@@ -69,6 +69,7 @@ cdef int rle_decompress(Buffer inbuff, Buffer outbuff) except? 0:
         int rpos = 0
         int i, nbytes, end_of_first_byte
         size_t ipos = 0
+        Py_ssize_t _
 
     while ipos < inbuff.length:
         control_byte = buf_get(inbuff, ipos) & 0xF0
@@ -375,7 +376,10 @@ cdef class Parser:
         cdef:
             bint done
 
-        for _ in range(nrows):
+
+            Py_ssize_t i
+
+        for i in range(nrows):
             done = self.readline()
             if done:
                 break

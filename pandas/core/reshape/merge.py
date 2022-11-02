@@ -676,16 +676,14 @@ class _MergeOperation:
                 f"right_index parameter must be of type bool, not {type(right_index)}"
             )
 
-        # warn user when merging between different levels
+        # GH 40993: raise when merging between different levels; enforced in 2.0
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
-                "merging between different levels is deprecated and will be removed "
-                f"in a future version. ({_left.columns.nlevels} levels on the left, "
+                "Not allowed to merge between different levels. "
+                f"({_left.columns.nlevels} levels on the left, "
                 f"{_right.columns.nlevels} on the right)"
             )
-            # stacklevel chosen to be correct when this is reached via pd.merge
-            # (and not DataFrame.join)
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            raise MergeError(msg)
 
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
@@ -1292,7 +1290,7 @@ class _MergeOperation:
                     continue
 
                 # check whether ints and floats
-                elif is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
+                if is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
                     # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
                     with np.errstate(invalid="ignore"):
                         # error: Argument 1 to "astype" of "ndarray" has incompatible
@@ -1314,7 +1312,7 @@ class _MergeOperation:
                             )
                     continue
 
-                elif is_float_dtype(rk.dtype) and is_integer_dtype(lk.dtype):
+                if is_float_dtype(rk.dtype) and is_integer_dtype(lk.dtype):
                     # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
                     with np.errstate(invalid="ignore"):
                         # error: Argument 1 to "astype" of "ndarray" has incompatible
@@ -1337,7 +1335,7 @@ class _MergeOperation:
                     continue
 
                 # let's infer and see if we are ok
-                elif lib.infer_dtype(lk, skipna=False) == lib.infer_dtype(
+                if lib.infer_dtype(lk, skipna=False) == lib.infer_dtype(
                     rk, skipna=False
                 ):
                     continue
@@ -2475,13 +2473,10 @@ def _items_overlap_with_suffix(
     If corresponding suffix is empty, the entry is simply converted to string.
 
     """
-    if not is_list_like(suffixes, allow_sets=False):
-        warnings.warn(
-            f"Passing 'suffixes' as a {type(suffixes)}, is not supported and may give "
-            "unexpected results. Provide 'suffixes' as a tuple instead. In the "
-            "future a 'TypeError' will be raised.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+    if not is_list_like(suffixes, allow_sets=False) or isinstance(suffixes, dict):
+        raise TypeError(
+            f"Passing 'suffixes' as a {type(suffixes)}, is not supported. "
+            "Provide 'suffixes' as a tuple instead."
         )
 
     to_rename = left.intersection(right)
@@ -2527,11 +2522,9 @@ def _items_overlap_with_suffix(
     if not rlabels.is_unique:
         dups.extend(rlabels[(rlabels.duplicated()) & (~right.duplicated())].tolist())
     if dups:
-        warnings.warn(
-            f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
-            f"result is deprecated and will raise a MergeError in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+        raise MergeError(
+            f"Passing 'suffixes' which cause duplicate columns {set(dups)} is "
+            f"not allowed.",
         )
 
     return llabels, rlabels
