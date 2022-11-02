@@ -625,25 +625,12 @@ class TestToDatetime:
     )
     def test_to_datetime_preserves_resolution_when_possible(self, data, expected):
         # GH 49298
-        if not isinstance(data, str):
-            result = to_datetime([data])
-            tm.assert_equal(result, DatetimeIndex([data]))
-
+        result = to_datetime([data])
+        tm.assert_equal(result, DatetimeIndex([data]))
         result = to_datetime([data], format="%m/%d/%y %H:%M:%S.%f")
         tm.assert_equal(result, DatetimeIndex([expected]))
 
-    @pytest.mark.parametrize(
-        "init_constructor, end_constructor",
-        [
-            (Index, DatetimeIndex),
-            (list, DatetimeIndex),
-            (np.array, DatetimeIndex),
-            (Series, Series),
-        ],
-    )
-    def test_to_datetime_arraylike_contains_pydatetime_and_timestamp(
-        self, init_constructor, end_constructor
-    ):
+    def test_to_datetime_arraylike_contains_pydatetime_and_timestamp(self):
         # GH 49298
         # Timestamp/datetime have more resolution than str
         case1 = [
@@ -651,14 +638,13 @@ class TestToDatetime:
             datetime(2001, 10, 2, 12, 30, 1, 123456),
             "10/03/01",
         ]
-        result = to_datetime(init_constructor(case1), format="%m/%d/%y")
+        result = to_datetime(case1, format="%m/%d/%y")
         expected_data = [
             Timestamp("2001-10-01"),
             Timestamp("2001-10-02"),
             Timestamp("2001-10-03"),
         ]
-        expected = end_constructor(expected_data)
-        tm.assert_equal(result, expected)
+        tm.assert_equal(result, DatetimeIndex(expected_data))
 
         # Timestamp/datetime have the same resolution than str (nanosecond)
         case2 = [
@@ -666,14 +652,13 @@ class TestToDatetime:
             datetime(2001, 10, 2, 12, 30, 1, 123456),
             "10/03/01 13:00:01.123456789",
         ]
-        result = to_datetime(init_constructor(case2), format="%m/%d/%y %H:%M:%S.%f")
+        result = to_datetime(case2, format="%m/%d/%y %H:%M:%S.%f")
         expected_data = [
             Timestamp("2001-10-01 12:00:01.123456"),
             Timestamp("2001-10-02 12:30:01.123456"),
             Timestamp("2001-10-03 13:00:01.123456789"),
         ]
-        expected = end_constructor(expected_data)
-        tm.assert_equal(result, expected)
+        tm.assert_equal(result, DatetimeIndex(expected_data))
 
         # Timestamp/datetime have less resolution than str
         case3 = [
@@ -681,27 +666,15 @@ class TestToDatetime:
             datetime(2001, 10, 2),
             "10/03/01 12:00:01",
         ]
-        result = to_datetime(init_constructor(case3), format="%m/%d/%y %H:%M:%S")
+        result = to_datetime(case3, format="%m/%d/%y %H:%M:%S")
         expected_data = [
             Timestamp("2001-10-01 00:00:00"),
             Timestamp("2001-10-02 00:00:00"),
             Timestamp("2001-10-03 12:00:01"),
         ]
-        expected = end_constructor(expected_data)
-        tm.assert_equal(result, expected)
+        tm.assert_equal(result, DatetimeIndex(expected_data))
 
-    @pytest.mark.parametrize(
-        "init_constructor, end_constructor",
-        [
-            (Index, DatetimeIndex),
-            (list, DatetimeIndex),
-            (np.array, DatetimeIndex),
-            (Series, Series),
-        ],
-    )
-    def test_to_datetime_arraylike_contains_pydatetime_and_timestamp_utc(
-        self, cache, init_constructor, end_constructor
-    ):
+    def test_to_datetime_arraylike_contains_pydatetime_and_timestamp_utc(self):
         # GH 49298
         dt = datetime(2010, 1, 2, 12, 13, 16)
         dt = dt.replace(tzinfo=timezone.utc)
@@ -715,14 +688,8 @@ class TestToDatetime:
             Timestamp("2010-01-02 12:13:15", tz="utc"),
             Timestamp("2010-01-02 12:13:16", tz="utc"),
         ]
-
-        if init_constructor is Series:
-            input_data = init_constructor(data, dtype="datetime64[ns, UTC]")
-        else:
-            input_data = init_constructor(data)
-        result = to_datetime(input_data, format="%Y%m%d %H%M%S", utc=True, cache=cache)
-        expected = end_constructor(expected_data)
-        tm.assert_equal(result, expected)
+        result = to_datetime(data, format="%Y%m%d %H%M%S", utc=True)
+        tm.assert_equal(result, DatetimeIndex(expected_data))
 
     def test_to_datetime_pydatetime(self):
         actual = to_datetime(datetime(2008, 1, 15))
