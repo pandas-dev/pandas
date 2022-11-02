@@ -13,6 +13,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas._typing import (
@@ -933,6 +935,12 @@ class _LocationIndexer(NDFrameIndexerBase):
             # We should never have retval.ndim < self.ndim, as that should
             #  be handled by the _getitem_lowerdim call above.
             assert retval.ndim == self.ndim
+
+        if retval is self.obj and (
+            get_option("mode.copy_on_write")
+            and get_option("mode.data_manager") == "block"
+        ):
+            retval = retval.copy(deep=False)
 
         return retval
 

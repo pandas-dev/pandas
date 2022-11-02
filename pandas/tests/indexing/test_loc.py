@@ -1115,7 +1115,10 @@ class TestLocBaseIndependent:
             assert (sliced_df["a"] == 4).all()
 
         # These should not return copies
-        assert original_df is original_df.loc[:, :]
+        if using_copy_on_write:
+            assert original_df is not original_df.loc[:, :]
+        else:
+            assert original_df is original_df.loc[:, :]
         df = DataFrame(np.random.randn(10, 4))
         assert df[0] is df.loc[:, 0]
 
