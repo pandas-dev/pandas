@@ -374,7 +374,7 @@ class TestExcelWriter:
 
     def test_roundtrip(self, frame, path):
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
 
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
@@ -444,7 +444,7 @@ class TestExcelWriter:
 
     def test_basics_with_nan(self, frame, path):
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
         frame.to_excel(path, "test1", header=False)
@@ -508,7 +508,7 @@ class TestExcelWriter:
         tsframe.index = index
 
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
 
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
@@ -530,7 +530,7 @@ class TestExcelWriter:
 
     def test_colaliases(self, frame, path):
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
 
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
@@ -548,7 +548,7 @@ class TestExcelWriter:
 
     def test_roundtrip_indexlabels(self, merge_cells, frame, path):
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
 
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])

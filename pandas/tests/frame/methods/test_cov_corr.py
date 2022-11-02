@@ -107,9 +107,10 @@ class TestDataFrameCorr:
     @pytest.mark.parametrize("method", ["pearson", "kendall", "spearman"])
     @td.skip_if_no_scipy
     def test_corr_scipy_method(self, float_frame, method):
-        float_frame["A"][:5] = np.nan
-        float_frame["B"][5:10] = np.nan
-        float_frame["A"][:10] = float_frame["A"][10:20]
+        idx = float_frame.index
+        float_frame.loc[: idx[4], "A"] = np.nan
+        float_frame.loc[idx[5] : idx[9], "B"] = np.nan
+        float_frame.loc[: idx[9], "A"] = float_frame["A"][10:20]
 
         correls = float_frame.corr(method=method)
         expected = float_frame["A"].corr(float_frame["C"], method=method)
