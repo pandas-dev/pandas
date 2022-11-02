@@ -56,7 +56,6 @@ class TestPandasDelegate:
 
         def bar(self, *args, **kwargs):
             """a test bar method"""
-            pass
 
     class Delegate(PandasDelegate, PandasObject):
         def __init__(self, obj) -> None:

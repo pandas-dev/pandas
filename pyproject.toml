@@ -113,12 +113,9 @@ disable = [
   "cyclic-import",
   "duplicate-code",
   "inconsistent-return-statements",
-  "invalid-sequence-index",
-  "literal-comparison",
   "no-else-continue",
   "no-else-raise",
   "no-else-return",
-  "no-self-use",
   "redefined-argument-from-local",
   "too-few-public-methods",
   "too-many-ancestors",
@@ -177,16 +174,13 @@ disable = [
   "try-except-raise",
   "undefined-loop-variable",
   "unnecessary-lambda",
-  "unnecessary-pass",
   "unspecified-encoding",
   "unused-argument",
   "unused-import",
   "unused-variable",
-  "unused-wildcard-import",
   "using-constant-test",
   "useless-else-on-loop",
-  "useless-parent-delegation",
-  "wildcard-import"
+  "useless-parent-delegation"
 ]
 
 [tool.pytest.ini_options]
