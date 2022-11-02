@@ -37,8 +37,6 @@ class Timestamp(datetime):
     def __new__(  # type: ignore[misc]
         cls: type[_DatetimeT],
         ts_input: np.integer | float | str | _date | datetime | np.datetime64 = ...,
-        tz: str | _tzinfo | None | int = ...,
-        unit: str | int | None = ...,
         year: int | None = ...,
         month: int | None = ...,
         day: int | None = ...,
@@ -46,9 +44,11 @@ class Timestamp(datetime):
         minute: int | None = ...,
         second: int | None = ...,
         microsecond: int | None = ...,
-        nanosecond: int | None = ...,
         tzinfo: _tzinfo | None = ...,
         *,
+        nanosecond: int | None = ...,
+        tz: str | _tzinfo | None | int = ...,
+        unit: str | int | None = ...,
         fold: int | None = ...,
     ) -> _DatetimeT | NaTType: ...
     @classmethod

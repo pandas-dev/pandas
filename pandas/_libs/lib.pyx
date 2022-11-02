@@ -1640,8 +1640,11 @@ def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
             return "interval"
         return "mixed"
 
-    if seen_date and not (seen_datetime or seen_timedelta):
-        return "date"
+    if seen_date:
+        if not seen_datetime and not seen_timedelta:
+            return "date"
+        return "mixed"
+
     elif seen_datetime and not seen_timedelta:
         return "datetime"
     elif seen_timedelta and not seen_datetime:
@@ -2570,10 +2573,15 @@ def maybe_convert_objects(ndarray[object] objects,
     if seen.datetimetz_:
         if is_datetime_with_singletz_array(objects):
             from pandas import DatetimeIndex
-            dti = DatetimeIndex(objects)
 
-            # unbox to DatetimeArray
-            return dti._data
+            try:
+                dti = DatetimeIndex(objects)
+            except OutOfBoundsDatetime:
+                # e.g. test_to_datetime_cache_coerce_50_lines_outofbounds
+                pass
+            else:
+                # unbox to DatetimeArray
+                return dti._data
         seen.object_ = True
 
     elif seen.datetime_:
