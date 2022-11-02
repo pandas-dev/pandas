@@ -1223,71 +1223,37 @@ def maybe_infer_to_datetimelike(
 
     v = np.array(value, copy=False)
 
-    shape = v.shape
     if v.ndim != 1:
         v = v.ravel()
 
     if not len(v):
         return value
 
-    def try_datetime(v: np.ndarray) -> np.ndarray | DatetimeArray:
-        # Coerce to datetime64, datetime64tz, or in corner cases
-        #  object[datetimes]
-        from pandas.core.arrays.datetimes import sequence_to_datetimes
-
-        try:
-            dta = sequence_to_datetimes(v)
-        except (ValueError, OutOfBoundsDatetime):
-            # ValueError for e.g. mixed tzs
-            # GH#19761 we may have mixed timezones, in which cast 'dta' is
-            #  an ndarray[object].  Only 1 test
-            #  relies on this behavior, see GH#40111
-            return v.reshape(shape)
-        else:
-            return dta.reshape(shape)
-
-    def try_timedelta(v: np.ndarray) -> np.ndarray:
-        # safe coerce to timedelta64
-
-        # will try first with a string & object conversion
-        try:
-            # bc we know v.dtype == object, this is equivalent to
-            #  `np.asarray(to_timedelta(v))`, but using a lower-level API that
-            #  does not require a circular import.
-            td_values = array_to_timedelta64(v).view("m8[ns]")
-        except OutOfBoundsTimedelta:
-            return v.reshape(shape)
-        else:
-            return td_values.reshape(shape)
-
-    # TODO: this is _almost_ equivalent to lib.maybe_convert_objects,
-    #  the main differences are described in GH#49340 and GH#49341
-    #  and maybe_convert_objects doesn't catch OutOfBoundsDatetime
     inferred_type = lib.infer_datetimelike_array(ensure_object(v))
 
-    if inferred_type in ["period", "interval"]:
+    if inferred_type in ["period", "interval", "timedelta", "datetime"]:
         # Incompatible return value type (got "Union[ExtensionArray, ndarray]",
         # expected "Union[ndarray, DatetimeArray, TimedeltaArray, PeriodArray,
         # IntervalArray]")
         return lib.maybe_convert_objects(  # type: ignore[return-value]
-            v, convert_period=True, convert_interval=True
+            v,
+            convert_period=True,
+            convert_interval=True,
+            convert_timedelta=True,
+            convert_datetime=True,
+            dtype_if_all_nat=np.dtype("M8[ns]"),
         )
 
-    if inferred_type == "datetime":
-        # Incompatible types in assignment (expression has type
-        # "Union[ndarray[Any, Any], DatetimeArray]", variable has type
-        # "ndarray[Any, Any]")
-        value = try_datetime(v)  # type: ignore[assignment]
-    elif inferred_type == "timedelta":
-        value = try_timedelta(v)
     elif inferred_type == "nat":
         # if all NaT, return as datetime
         # only reached if we have at least 1 NaT and the rest (NaT or None or np.nan)
+        # This is slightly different from what we'd get with maybe_convert_objects,
+        #  which only converts of all-NaT
+        from pandas.core.arrays.datetimes import sequence_to_datetimes
 
-        # Incompatible types in assignment (expression has type
-        # "Union[ndarray[Any, Any], DatetimeArray]", variable has type
-        # "ndarray[Any, Any]")
-        value = try_datetime(v)  # type: ignore[assignment]
+        # Incompatible types in assignment (expression has type "DatetimeArray",
+        # variable has type "ndarray[Any, Any]")
+        value = sequence_to_datetimes(v)  # type: ignore[assignment]
         assert value.dtype == "M8[ns]"
 
     return value

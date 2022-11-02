@@ -49,7 +49,6 @@ from pandas import (
     notna,
     to_datetime,
 )
-from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 
@@ -249,7 +248,6 @@ class Writer(ABC):
     @abstractmethod
     def obj_to_write(self) -> NDFrame | Mapping[IndexLabel, Any]:
         """Object to write in JSON format."""
-        pass
 
 
 class SeriesWriter(Writer):
@@ -1221,9 +1219,9 @@ class SeriesParser(Parser):
         if self.orient == "split":
             decoded = {str(k): v for k, v in data.items()}
             self.check_keys_split(decoded)
-            self.obj = create_series_with_explicit_dtype(**decoded)
+            self.obj = Series(**decoded)
         else:
-            self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
+            self.obj = Series(data)
 
     def _try_convert_types(self) -> None:
         if self.obj is None:
