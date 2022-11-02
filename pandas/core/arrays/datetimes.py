@@ -2232,7 +2232,7 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
     if is_float_dtype(data.dtype):
         # pre-2.0 we treated these as wall-times, inconsistent with ints
         # GH#23675, GH#45573 deprecated to treat symmetrically with integer dtypes
-        data = data.astype(np.int64)
+        data = data.astype("M8[ns]").view("i8")
         copy = False
 
     elif is_timedelta64_dtype(data.dtype) or is_bool_dtype(data.dtype):
