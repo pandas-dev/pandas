@@ -4106,7 +4106,7 @@ class Table(Fixed):
         for axis, labels in self.non_index_axes:
             obj = _reindex_axis(obj, axis, labels, columns)
 
-            def process_filter(field, filt, op):
+            def process_filter(field, filt):
 
                 for axis_name in obj._AXIS_ORDERS:
                     axis_number = obj._get_axis_number(axis_name)
