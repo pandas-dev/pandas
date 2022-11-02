@@ -4106,7 +4106,7 @@ class Table(Fixed):
         for axis, labels in self.non_index_axes:
             obj = _reindex_axis(obj, axis, labels, columns)
 
-            def process_filter(field, filt):
+            def process_filter(field, filt, op):
 
                 for axis_name in obj._AXIS_ORDERS:
                     axis_number = obj._get_axis_number(axis_name)
@@ -4143,7 +4143,7 @@ class Table(Fixed):
         # apply the selection filters (but keep in the same order)
         if selection.filter is not None:
             for field, op, filt in selection.filter.format():
-                obj = process_filter(field, filt)
+                obj = process_filter(field, filt, op)
 
         return obj
 
