@@ -41,6 +41,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     Scalar,
+    npt,
 )
 from pandas.errors import (
     IntCastingNaNError,
@@ -493,7 +494,7 @@ def maybe_cast_to_extension_array(
 
     try:
         result = cls._from_sequence(obj, dtype=dtype)
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         # We can't predict what downstream EA constructors may raise
         result = obj
     return result
@@ -1198,7 +1199,7 @@ def convert_dtypes(
 
 
 def maybe_infer_to_datetimelike(
-    value: np.ndarray,
+    value: npt.NDArray[np.object_],
 ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray | IntervalArray:
     """
     we might have a array (or single object) that is datetime like,

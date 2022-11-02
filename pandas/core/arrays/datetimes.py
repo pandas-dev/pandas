@@ -292,6 +292,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _from_sequence_not_strict(
         cls,
         data,
+        *,
         dtype=None,
         copy: bool = False,
         tz=lib.no_default,
@@ -300,6 +301,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         yearfirst: bool = False,
         ambiguous: TimeAmbiguous = "raise",
     ):
+        """
+        A non-strict version of _from_sequence, called from DatetimeIndex.__new__.
+        """
         explicit_none = freq is None
         freq = freq if freq is not lib.no_default else None
         freq, freq_infer = dtl.maybe_infer_freq(freq)
@@ -1972,7 +1976,6 @@ def _sequence_to_dt64ns(
     dayfirst: bool = False,
     yearfirst: bool = False,
     ambiguous: TimeAmbiguous = "raise",
-    require_iso8601: bool = False,
 ):
     """
     Parameters
@@ -1984,8 +1987,6 @@ def _sequence_to_dt64ns(
     yearfirst : bool, default False
     ambiguous : str, bool, or arraylike, default 'raise'
         See pandas._libs.tslibs.tzconversion.tz_localize_to_utc.
-    require_iso8601 : bool, default False
-        Only consider ISO-8601 formats when parsing strings.
 
     Returns
     -------
@@ -2031,7 +2032,6 @@ def _sequence_to_dt64ns(
                 dayfirst=dayfirst,
                 yearfirst=yearfirst,
                 allow_object=False,
-                require_iso8601=require_iso8601,
             )
             if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr
@@ -2219,27 +2219,10 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
         return data, copy
 
     if is_float_dtype(data.dtype):
-        # Note: we must cast to datetime64[ns] here in order to treat these
-        #  as wall-times instead of UTC timestamps.
-        data = data.astype(DT64NS_DTYPE)
+        # pre-2.0 we treated these as wall-times, inconsistent with ints
+        # GH#23675, GH#45573 deprecated to treat symmetrically with integer dtypes
+        data = data.astype(np.int64)
         copy = False
-        if (
-            tz is not None
-            and len(data) > 0
-            and not timezones.is_utc(timezones.maybe_get_tz(tz))
-        ):
-            # GH#23675, GH#45573 deprecate to treat symmetrically with integer dtypes
-            warnings.warn(
-                "The behavior of DatetimeArray._from_sequence with a timezone-aware "
-                "dtype and floating-dtype data is deprecated. In a future version, "
-                "this data will be interpreted as nanosecond UTC timestamps "
-                "instead of wall-times, matching the behavior with integer dtypes. "
-                "To retain the old behavior, explicitly cast to 'datetime64[ns]' "
-                "before passing the data to pandas. To get the future behavior, "
-                "first cast to 'int64'.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
     elif is_timedelta64_dtype(data.dtype) or is_bool_dtype(data.dtype):
         # GH#29794 enforcing deprecation introduced in GH#23539
