@@ -113,12 +113,12 @@ with its nanosecond analogue:
 
 .. code-block:: ipython
 
-   In [5]: pd.Series(["2016-01-01"], dtype="datetime64[s]")
+   pd.Series(["2016-01-01"], dtype="datetime64[s]")
    Out[5]:
    0   2016-01-01
    dtype: datetime64[ns]
 
-   In [6]: pd.Series(["2016-01-01"], dtype="datetime64[D]")
+   pd.Series(["2016-01-01"], dtype="datetime64[D]")
    Out[6]:
    0   2016-01-01
    dtype: datetime64[ns]
@@ -144,7 +144,7 @@ a supported dtype:
 .. ipython:: python
    :okexcept:
 
-   In [6]: pd.Series(["2016-01-01"], dtype="datetime64[D]")
+   pd.Series(["2016-01-01"], dtype="datetime64[D]")
 
 .. _whatsnew_200.api_breaking.deps:
 
