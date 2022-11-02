@@ -275,6 +275,7 @@ Removal of prior version deprecations/changes
 - Removed ``pandas.SparseSeries`` and ``pandas.SparseDataFrame``, including pickle support. (:issue:`30642`)
 - Enforced disallowing passing an integer ``fill_value`` to :meth:`DataFrame.shift` and :meth:`Series.shift`` with datetime64, timedelta64, or period dtypes (:issue:`32591`)
 - Enforced disallowing a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
+- Enforced disallowing the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
 - Enforced disallowing a tuple of column labels into :meth:`.DataFrameGroupBy.__getitem__` (:issue:`30546`)
 - Enforced disallowing setting values with ``.loc`` using a positional slice. Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
 - Enforced disallowing ``dict`` or ``set`` objects in ``suffixes`` in :func:`merge` (:issue:`34810`)
