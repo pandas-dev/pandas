@@ -803,7 +803,7 @@ cdef class BaseMultiIndexCodesEngine:
         if not isinstance(key, tuple):
             raise KeyError(key)
         try:
-            indices = [1 if checknull(v) else lev.get_loc(v) + 2
+            indices = [1 if checknull(v) else lev.get_loc(v) + multiindex_nulls_shift
                        for lev, v in zip(self.levels, key)]
         except KeyError:
             raise KeyError(key)
