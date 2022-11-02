@@ -112,7 +112,6 @@ disable = [
   "cyclic-import",
   "duplicate-code",
   "inconsistent-return-statements",
-  "no-else-continue",
   "no-else-raise",
   "no-else-return",
   "redefined-argument-from-local",

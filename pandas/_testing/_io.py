@@ -225,7 +225,7 @@ def network(
             )
         try:
             return t(*args, **kwargs)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-except
             errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
                 # error: "Exception" has no attribute "reason"
