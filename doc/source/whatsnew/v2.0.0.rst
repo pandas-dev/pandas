@@ -30,7 +30,7 @@ sql-other, html, xml, plot, output_formatting, clipboard, compression, test]`` (
 
 .. _whatsnew_200.enhancements.io_readers_nullable_pyarrow:
 
-Configuration option, ``io.nullable_backend`, to return pyarrow-backed dtypes from IO functions
+Configuration option, ``io.nullable_backend``, to return pyarrow-backed dtypes from IO functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A new global configuration, ``io.nullable_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in :func:`read_parquet` and :func:`read_csv` (with ``engine="pyarrow"``)
