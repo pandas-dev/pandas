@@ -124,6 +124,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +=================+=================+=========+
 | pyarrow         | 6.0.0           |    X    |
 +-----------------+-----------------+---------+
+| matplotlib      | 3.6.0           |    X    |
++-----------------+-----------------+---------+
 | fastparquet     | 0.6.3           |    X    |
 +-----------------+-----------------+---------+
 
@@ -133,6 +135,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
+- The ``freq``, ``tz``, ``nanosecond``, and ``unit`` keywords in the :class:`Timestamp` constructor are now keyword-only (:issue:`45307`)
 - Passing ``nanoseconds`` greater than 999 or less than 0 in :class:`Timestamp` now raises a ``ValueError`` (:issue:`48538`, :issue:`48255`)
 - :func:`read_csv`: specifying an incorrect number of columns with ``index_col`` of now raises ``ParserError`` instead of ``IndexError`` when using the c parser.
 - Default value of ``dtype`` in :func:`get_dummies` is changed to ``bool`` from ``uint8`` (:issue:`45848`)
@@ -186,12 +189,14 @@ Removal of prior version deprecations/changes
 - Removed deprecated :meth:`.Styler.where` (:issue:`49397`)
 - Removed deprecated :meth:`.Styler.render` (:issue:`49397`)
 - Removed deprecated argument ``null_color`` in :meth:`.Styler.highlight_null` (:issue:`49397`)
+- Removed deprecated argument ``check_less_precise`` in :meth:`.testing.assert_frame_equal`, :meth:`.testing.assert_extension_array_equal`, :meth:`.testing.assert_series_equal`,  :meth:`.testing.assert_index_equal` (:issue:`30562`)
 - Removed deprecated ``null_counts`` argument in :meth:`DataFrame.info`. Use ``show_counts`` instead (:issue:`37999`)
 - Enforced deprecation disallowing passing a timezone-aware :class:`Timestamp` and ``dtype="datetime64[ns]"`` to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
 - Enforced deprecation disallowing passing a sequence of timezone-aware values and ``dtype="datetime64[ns]"`` to to :class:`Series` or :class:`DataFrame` constructors (:issue:`41555`)
 - Enforced deprecation disallowing unit-less "datetime64" dtype in :meth:`Series.astype` and :meth:`DataFrame.astype` (:issue:`47844`)
 - Enforced deprecation disallowing using ``.astype`` to convert a ``datetime64[ns]`` :class:`Series`, :class:`DataFrame`, or :class:`DatetimeIndex` to timezone-aware dtype, use ``obj.tz_localize`` or ``ser.dt.tz_localize`` instead (:issue:`39258`)
 - Enforced deprecation disallowing using ``.astype`` to convert a timezone-aware :class:`Series`, :class:`DataFrame`, or :class:`DatetimeIndex` to timezone-naive ``datetime64[ns]`` dtype, use ``obj.tz_localize(None)`` or ``obj.tz_convert("UTC").tz_localize(None)`` instead (:issue:`39258`)
+- Enforced deprecation disallowing passing non boolean argument to sort in :func:`concat` (:issue:`44629`)
 - Removed Date parser functions :func:`~pandas.io.date_converters.parse_date_time`,
   :func:`~pandas.io.date_converters.parse_date_fields`, :func:`~pandas.io.date_converters.parse_all_fields`
   and :func:`~pandas.io.date_converters.generic_parser` (:issue:`24518`)
@@ -200,6 +205,7 @@ Removal of prior version deprecations/changes
 - Removed ``keep_tz`` argument in :meth:`DatetimeIndex.to_series` (:issue:`29731`)
 - Remove arguments ``names`` and ``dtype`` from :meth:`Index.copy` and ``levels`` and ``codes`` from :meth:`MultiIndex.copy` (:issue:`35853`, :issue:`36685`)
 - Remove argument ``inplace`` from :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` (:issue:`35626`)
+- Removed argument ``inplace`` from :meth:`DataFrame.set_axis` and :meth:`Series.set_axis`, use ``obj = obj.set_axis(..., copy=False)`` instead (:issue:`48130`)
 - Disallow passing positional arguments to :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` (:issue:`41485`)
 - Removed :meth:`MultiIndex.is_lexsorted` and :meth:`MultiIndex.lexsort_depth` (:issue:`38701`)
 - Removed argument ``how`` from :meth:`PeriodIndex.astype`, use :meth:`PeriodIndex.to_timestamp` instead (:issue:`37982`)
@@ -276,8 +282,11 @@ Removal of prior version deprecations/changes
 - Removed ``pandas.SparseSeries`` and ``pandas.SparseDataFrame``, including pickle support. (:issue:`30642`)
 - Enforced disallowing passing an integer ``fill_value`` to :meth:`DataFrame.shift` and :meth:`Series.shift`` with datetime64, timedelta64, or period dtypes (:issue:`32591`)
 - Enforced disallowing a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
+- Enforced disallowing the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
 - Enforced disallowing a tuple of column labels into :meth:`.DataFrameGroupBy.__getitem__` (:issue:`30546`)
 - Enforced disallowing setting values with ``.loc`` using a positional slice. Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
+- Enforced disallowing positional indexing with a ``float`` key even if that key is a round number, manually cast to integer instead (:issue:`34193`)
+- Enforced disallowing indexing on a :class:`Index` or positional indexing on a :class:`Series` producing multi-dimensional objects e.g. ``obj[:, None]``, convert to numpy before indexing instead (:issue:`35141`)
 - Enforced disallowing ``dict`` or ``set`` objects in ``suffixes`` in :func:`merge` (:issue:`34810`)
 - Enforced disallowing :func:`merge` to produce duplicated columns through the ``suffixes`` keyword and already existing columns (:issue:`22818`)
 - Enforced disallowing using :func:`merge` or :func:`join` on a different number of levels (:issue:`34862`)
@@ -292,9 +301,11 @@ Removal of prior version deprecations/changes
 - Removed the deprecated method ``mad`` from pandas classes (:issue:`11787`)
 - Removed the deprecated method ``tshift`` from pandas classes (:issue:`11631`)
 - Changed behavior of empty data passed into :class:`Series`; the default dtype will be ``object`` instead of ``float64`` (:issue:`29405`)
+- Changed the behavior of :meth:`DatetimeIndex.union`, :meth:`DatetimeIndex.intersection`, and :meth:`DatetimeIndex.symmetric_difference` with mismatched timezones to convert to UTC instead of casting to object dtype (:issue:`39328`)
 - Changed the behavior of :func:`to_datetime` with argument "now" with ``utc=False`` to match ``Timestamp("now")`` (:issue:`18705`)
 - Changed behavior of :meth:`SparseArray.astype` when given a dtype that is not explicitly ``SparseDtype``, cast to the exact requested dtype rather than silently using a ``SparseDtype`` instead (:issue:`34457`)
 - Changed behavior of :class:`DataFrame` constructor given floating-point ``data`` and an integer ``dtype``, when the data cannot be cast losslessly, the floating point dtype is retained, matching :class:`Series` behavior (:issue:`41170`)
+- Changed behavior of :class:`Index` constructor when given a ``np.ndarray`` with object-dtype containing numeric entries; this now retains object dtype rather than inferring a numeric dtype, consistent with :class:`Series` behavior (:issue:`42870`)
 - Changed behavior of :class:`DataFrame` constructor when passed a ``dtype`` (other than int) that the data cannot be cast to; it now raises instead of silently ignoring the dtype (:issue:`41733`)
 - Changed the behavior of :class:`Series` constructor, it will no longer infer a datetime64 or timedelta64 dtype from string entries (:issue:`41731`)
 - Changed behavior of :class:`Timestamp` constructor with a ``np.datetime64`` object and a ``tz`` passed to interpret the input as a wall-time as opposed to a UTC time (:issue:`42288`)
@@ -354,7 +365,7 @@ Datetimelike
 - Bug in :func:`to_datetime` was raising on invalid offsets with ``errors='coerce'`` and ``infer_datetime_format=True`` (:issue:`48633`)
 - Bug in :class:`DatetimeIndex` constructor failing to raise when ``tz=None`` is explicitly specified in conjunction with timezone-aware ``dtype`` or data (:issue:`48659`)
 - Bug in subtracting a ``datetime`` scalar from :class:`DatetimeIndex` failing to retain the original ``freq`` attribute (:issue:`48818`)
--
+- Bug in ``pandas.tseries.holiday.Holiday`` where a half-open date interval causes inconsistent return types from :meth:`USFederalHolidayCalendar.holidays` (:issue:`49075`)
 
 Timedelta
 ^^^^^^^^^
@@ -452,7 +463,7 @@ Reshaping
 - Bug in :meth:`DataFrame.unstack` and :meth:`Series.unstack` unstacking wrong level of :class:`MultiIndex` when :class:`MultiIndex` has mixed names (:issue:`48763`)
 - Bug in :meth:`DataFrame.pivot` not respecting ``None`` as column name (:issue:`48293`)
 - Bug in :func:`join` when ``left_on`` or ``right_on`` is or includes a :class:`CategoricalIndex` incorrectly raising ``AttributeError`` (:issue:`48464`)
--
+- Bug in :meth:`DataFrame.pivot_table` raising ``ValueError`` with parameter ``margins=True`` when result is an empty :class:`DataFrame` (:issue:`49240`)
 
 Sparse
 ^^^^^^
