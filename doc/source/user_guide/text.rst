@@ -267,6 +267,9 @@ i.e., from the end of the string to the beginning of the string:
    s3
    s3.str.replace("^.a|dog", "XX-XX ", case=False, regex=True)
 
+
+.. versionchanged:: 2.0
+
 Single character pattern with ``regex=True`` will also be treated as regular expressions:
 
 .. ipython:: python
