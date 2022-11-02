@@ -124,6 +124,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +=================+=================+=========+
 | pyarrow         | 6.0.0           |    X    |
 +-----------------+-----------------+---------+
+| matplotlib      | 3.6.0           |    X    |
++-----------------+-----------------+---------+
 | fastparquet     | 0.6.3           |    X    |
 +-----------------+-----------------+---------+
 
@@ -282,6 +284,8 @@ Removal of prior version deprecations/changes
 - Enforced disallowing the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
 - Enforced disallowing a tuple of column labels into :meth:`.DataFrameGroupBy.__getitem__` (:issue:`30546`)
 - Enforced disallowing setting values with ``.loc`` using a positional slice. Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
+- Enforced disallowing positional indexing with a ``float`` key even if that key is a round number, manually cast to integer instead (:issue:`34193`)
+- Enforced disallowing indexing on a :class:`Index` or positional indexing on a :class:`Series` producing multi-dimensional objects e.g. ``obj[:, None]``, convert to numpy before indexing instead (:issue:`35141`)
 - Enforced disallowing ``dict`` or ``set`` objects in ``suffixes`` in :func:`merge` (:issue:`34810`)
 - Enforced disallowing :func:`merge` to produce duplicated columns through the ``suffixes`` keyword and already existing columns (:issue:`22818`)
 - Enforced disallowing using :func:`merge` or :func:`join` on a different number of levels (:issue:`34862`)

@@ -184,8 +184,6 @@ def test_setslice(datetime_series):
     assert sl.index.is_unique is True
 
 
-# FutureWarning from NumPy about [slice(None, 5).
-@pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
 def test_basic_getitem_setitem_corner(datetime_series):
     # invalid tuples, e.g. td.ts[:, None] vs. td.ts[:, 2]
     msg = "key of type tuple not found and not a MultiIndex"
@@ -199,6 +197,11 @@ def test_basic_getitem_setitem_corner(datetime_series):
     with pytest.raises(ValueError, match=msg):
         # GH#31299
         datetime_series[[slice(None, 5)]]
+
+    # but we're OK with a single-element tuple
+    result = datetime_series[(slice(None, 5),)]
+    expected = datetime_series[:5]
+    tm.assert_series_equal(result, expected)
 
     # OK
     msg = r"unhashable type(: 'slice')?"
