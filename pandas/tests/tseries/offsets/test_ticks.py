@@ -44,7 +44,7 @@ tick_classes = [Hour, Minute, Second, Milli, Micro, Nano]
 
 
 def test_apply_ticks():
-    result = offsets.Hour(3)._apply(offsets.Hour(4))
+    result = offsets.Hour(3) + offsets.Hour(4)
     exp = offsets.Hour(7)
     assert result == exp
 
@@ -74,7 +74,6 @@ def test_tick_add_sub(cls, n, m):
     expected = cls(n + m)
 
     assert left + right == expected
-    assert left._apply(right) == expected
 
     expected = cls(n - m)
     assert left - right == expected
