@@ -1142,7 +1142,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def sheets(self) -> dict[str, Any]:
         """Mapping of sheet names to sheet objects."""
-        pass
 
     @property
     @abc.abstractmethod
@@ -1152,7 +1151,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         This attribute can be used to access engine-specific features.
         """
-        pass
 
     @book.setter
     @abc.abstractmethod
@@ -1160,7 +1158,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         Set book instance. Class type will depend on the engine used.
         """
-        pass
 
     def write_cells(
         self,
@@ -1212,7 +1209,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         freeze_panes: int tuple of length 2
             contains the bottom-most row and right-most column to freeze
         """
-        pass
 
     def save(self) -> None:
         """
@@ -1228,7 +1224,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         Save workbook to disk.
         """
-        pass
 
     def __init__(
         self,
@@ -1597,9 +1592,9 @@ class ExcelFile:
 
             xlrd_version = Version(get_version(xlrd))
 
-        ext = None
         if engine is None:
             # Only determine ext if it is needed
+            ext: str | None
             if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
                 ext = "xls"
             else:
@@ -1615,32 +1610,6 @@ class ExcelFile:
             engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
             if engine == "auto":
                 engine = get_default_engine(ext, mode="reader")
-
-        if engine == "xlrd" and xlrd_version is not None:
-            if ext is None:
-                # Need ext to determine ext in order to raise/warn
-                if isinstance(path_or_buffer, xlrd.Book):
-                    ext = "xls"
-                else:
-                    ext = inspect_excel_format(
-                        path_or_buffer, storage_options=storage_options
-                    )
-
-            # Pass through if ext is None, otherwise check if ext valid for xlrd
-            if ext and ext != "xls" and xlrd_version >= Version("2"):
-                raise ValueError(
-                    f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
-                    f"only the xls format is supported. Install openpyxl instead."
-                )
-            elif ext and ext != "xls":
-                stacklevel = find_stack_level()
-                warnings.warn(
-                    f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
-                    f"only the xls format is supported. Install "
-                    f"openpyxl instead.",
-                    FutureWarning,
-                    stacklevel=stacklevel,
-                )
 
         assert engine is not None
         self.engine = engine
