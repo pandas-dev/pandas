@@ -9,11 +9,6 @@ import numpy as np
 
 from pandas._libs import index as libindex
 
-from pandas import (
-    NA,
-    Series,
-)
-
 
 def _get_numeric_engines():
     engine_names = [
@@ -120,36 +115,36 @@ class MaskedNumericEngineIndexing:
 
         if index_type == "monotonic_incr":
             if unique:
-                ser = Series(np.arange(N * 3, dtype=dtype.lower()), dtype=dtype)
+                arr = np.arange(N * 3, dtype=dtype.lower())
             else:
                 values = list([1] * N + [2] * N + [3] * N)
-                ser = Series(values, dtype=dtype)
+                arr = np.array(values, dtype=dtype.lower())
+            mask = np.zeros(N * 3, dtype="uint8")
         elif index_type == "monotonic_decr":
             if unique:
-                ser = Series(np.arange(N * 3, dtype=dtype.lower()), dtype=dtype)[::-1]
+                arr = np.arange(N * 3, dtype=dtype.lower())[::-1]
             else:
                 values = list([1] * N + [2] * N + [3] * N)
-                ser = Series(values, dtype=dtype)[::-1]
+                arr = np.array(values, dtype=dtype.lower())[::-1]
+            mask = np.zeros(N * 3, dtype="uint8")
         else:
             assert index_type == "non_monotonic"
             if unique:
-                ser = Series(np.zeros(N * 3, dtype=dtype.lower()), dtype=dtype)
-                ser[:N] = Series(
-                    np.arange(N * 2, N * 3, dtype=dtype.lower()), dtype=dtype
-                )
-                ser[N:] = Series(np.arange(N * 2, dtype=dtype.lower()), dtype=dtype)
-                ser[-1] = NA
+                arr = np.zeros(N * 3, dtype=dtype.lower())
+                arr[:N] = np.arange(N * 2, N * 3, dtype=dtype.lower())
+                arr[N:] = np.arange(N * 2, dtype=dtype.lower())
 
             else:
-                ser = Series([1, 2, 3] * N, dtype=dtype)
-                ser[-1] = NA
+                arr = np.array([1, 2, 3] * N, dtype=dtype.lower())
+            mask = np.zeros(N * 3, dtype="uint8")
+            mask[-1] = True
 
-        self.data = engine(ser._values._data, ser._values._mask)
+        self.data = engine(arr, mask)
         # code belows avoids populating the mapping etc. while timing.
         self.data.get_loc(2)
 
-        self.key_middle = ser[len(ser) // 2]
-        self.key_early = ser[2]
+        self.key_middle = arr[len(arr) // 2]
+        self.key_early = arr[2]
 
     def time_get_loc(self, engine_and_dtype, index_type, unique, N):
         self.data.get_loc(self.key_early)
