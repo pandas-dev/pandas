@@ -4,18 +4,12 @@ from typing import (
     Literal,
     cast,
 )
-import warnings
 
 import numpy as np
 
-from pandas._libs.lib import (
-    NoDefault,
-    no_default,
-)
 from pandas._libs.missing import is_matching_na
 from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -64,7 +58,6 @@ def assert_almost_equal(
     left,
     right,
     check_dtype: bool | Literal["equiv"] = "equiv",
-    check_less_precise: bool | int | NoDefault = no_default,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
     **kwargs,
@@ -83,20 +76,6 @@ def assert_almost_equal(
         Check dtype if both a and b are the same type. If 'equiv' is passed in,
         then `RangeIndex` and `Int64Index` are also considered equivalent
         when doing type checking.
-    check_less_precise : bool or int, default False
-        Specify comparison precision. 5 digits (False) or 3 digits (True)
-        after decimal points are compared. If int, then specify the number
-        of digits to compare.
-
-        When comparing two numbers, if the first number has magnitude less
-        than 1e-5, we compare the two numbers directly and check whether
-        they are equivalent within the specified precision. Otherwise, we
-        compare the **ratio** of the second number to the first number and
-        check whether it is equivalent to 1 within the specified precision.
-
-        .. deprecated:: 1.1.0
-           Use `rtol` and `atol` instead to define relative/absolute
-           tolerance, respectively. Similar to :func:`math.isclose`.
     rtol : float, default 1e-5
         Relative tolerance.
 
@@ -106,16 +85,6 @@ def assert_almost_equal(
 
         .. versionadded:: 1.1.0
     """
-    if check_less_precise is not no_default:
-        warnings.warn(
-            "The 'check_less_precise' keyword in testing.assert_*_equal "
-            "is deprecated and will be removed in a future version. "
-            "You can stop passing 'check_less_precise' to silence this warning.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        rtol = atol = _get_tol_from_less_precise(check_less_precise)
-
     if isinstance(left, Index):
         assert_index_equal(
             left,
@@ -171,46 +140,6 @@ def assert_almost_equal(
         )
 
 
-def _get_tol_from_less_precise(check_less_precise: bool | int) -> float:
-    """
-    Return the tolerance equivalent to the deprecated `check_less_precise`
-    parameter.
-
-    Parameters
-    ----------
-    check_less_precise : bool or int
-
-    Returns
-    -------
-    float
-        Tolerance to be used as relative/absolute tolerance.
-
-    Examples
-    --------
-    >>> # Using check_less_precise as a bool:
-    >>> _get_tol_from_less_precise(False)
-    5e-06
-    >>> _get_tol_from_less_precise(True)
-    0.0005
-    >>> # Using check_less_precise as an int representing the decimal
-    >>> # tolerance intended:
-    >>> _get_tol_from_less_precise(2)
-    0.005
-    >>> _get_tol_from_less_precise(8)
-    5e-09
-    """
-    if isinstance(check_less_precise, bool):
-        if check_less_precise:
-            # 3-digit tolerance
-            return 0.5e-3
-        else:
-            # 5-digit tolerance
-            return 0.5e-5
-    else:
-        # Equivalent to setting checking_less_precise=<decimals>
-        return 0.5 * 10**-check_less_precise
-
-
 def _check_isinstance(left, right, cls):
     """
     Helper method for our assert_* methods that ensures that
@@ -250,7 +179,6 @@ def assert_index_equal(
     right: Index,
     exact: bool | str = "equiv",
     check_names: bool = True,
-    check_less_precise: bool | int | NoDefault = no_default,
     check_exact: bool = True,
     check_categorical: bool = True,
     check_order: bool = True,
@@ -271,14 +199,6 @@ def assert_index_equal(
         Int64Index as well.
     check_names : bool, default True
         Whether to check the names attribute.
-    check_less_precise : bool or int, default False
-        Specify comparison precision. Only used when check_exact is False.
-        5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare.
-
-        .. deprecated:: 1.1.0
-           Use `rtol` and `atol` instead to define relative/absolute
-           tolerance, respectively. Similar to :func:`math.isclose`.
     check_exact : bool, default True
         Whether to compare number exactly.
     check_categorical : bool, default True
@@ -332,16 +252,6 @@ def assert_index_equal(
         level_codes = index.codes[level]
         filled = take_nd(unique._values, level_codes, fill_value=unique._na_value)
         return unique._shallow_copy(filled, name=index.names[level])
-
-    if check_less_precise is not no_default:
-        warnings.warn(
-            "The 'check_less_precise' keyword in testing.assert_*_equal "
-            "is deprecated and will be removed in a future version. "
-            "You can stop passing 'check_less_precise' to silence this warning.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
     # instance validation
     _check_isinstance(left, right, Index)
@@ -775,7 +685,6 @@ def assert_extension_array_equal(
     right,
     check_dtype: bool | Literal["equiv"] = True,
     index_values=None,
-    check_less_precise=no_default,
     check_exact: bool = False,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
@@ -791,14 +700,6 @@ def assert_extension_array_equal(
         Whether to check if the ExtensionArray dtypes are identical.
     index_values : numpy.ndarray, default None
         Optional index (shared by both left and right), used in output.
-    check_less_precise : bool or int, default False
-        Specify comparison precision. Only used when check_exact is False.
-        5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare.
-
-        .. deprecated:: 1.1.0
-           Use `rtol` and `atol` instead to define relative/absolute
-           tolerance, respectively. Similar to :func:`math.isclose`.
     check_exact : bool, default False
         Whether to compare number exactly.
     rtol : float, default 1e-5
@@ -823,16 +724,6 @@ def assert_extension_array_equal(
     >>> b, c = a.array, a.array
     >>> tm.assert_extension_array_equal(b, c)
     """
-    if check_less_precise is not no_default:
-        warnings.warn(
-            "The 'check_less_precise' keyword in testing.assert_*_equal "
-            "is deprecated and will be removed in a future version. "
-            "You can stop passing 'check_less_precise' to silence this warning.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        rtol = atol = _get_tol_from_less_precise(check_less_precise)
-
     assert isinstance(left, ExtensionArray), "left is not an ExtensionArray"
     assert isinstance(right, ExtensionArray), "right is not an ExtensionArray"
     if check_dtype:
@@ -881,7 +772,6 @@ def assert_series_equal(
     check_dtype: bool | Literal["equiv"] = True,
     check_index_type: bool | Literal["equiv"] = "equiv",
     check_series_type: bool = True,
-    check_less_precise: bool | int | NoDefault = no_default,
     check_names: bool = True,
     check_exact: bool = False,
     check_datetimelike_compat: bool = False,
@@ -910,20 +800,6 @@ def assert_series_equal(
         are identical.
     check_series_type : bool, default True
          Whether to check the Series class is identical.
-    check_less_precise : bool or int, default False
-        Specify comparison precision. Only used when check_exact is False.
-        5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare.
-
-        When comparing two numbers, if the first number has magnitude less
-        than 1e-5, we compare the two numbers directly and check whether
-        they are equivalent within the specified precision. Otherwise, we
-        compare the **ratio** of the second number to the first number and
-        check whether it is equivalent to 1 within the specified precision.
-
-        .. deprecated:: 1.1.0
-           Use `rtol` and `atol` instead to define relative/absolute
-           tolerance, respectively. Similar to :func:`math.isclose`.
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
     check_exact : bool, default False
@@ -977,16 +853,6 @@ def assert_series_equal(
 
     if not check_index and check_like:
         raise ValueError("check_like must be False if check_index is False")
-
-    if check_less_precise is not no_default:
-        warnings.warn(
-            "The 'check_less_precise' keyword in testing.assert_*_equal "
-            "is deprecated and will be removed in a future version. "
-            "You can stop passing 'check_less_precise' to silence this warning.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
     # instance validation
     _check_isinstance(left, right, Series)
@@ -1150,7 +1016,6 @@ def assert_frame_equal(
     check_index_type: bool | Literal["equiv"] = "equiv",
     check_column_type: bool | Literal["equiv"] = "equiv",
     check_frame_type: bool = True,
-    check_less_precise=no_default,
     check_names: bool = True,
     by_blocks: bool = False,
     check_exact: bool = False,
@@ -1188,20 +1053,6 @@ def assert_frame_equal(
         :func:`assert_index_equal`.
     check_frame_type : bool, default True
         Whether to check the DataFrame class is identical.
-    check_less_precise : bool or int, default False
-        Specify comparison precision. Only used when check_exact is False.
-        5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare.
-
-        When comparing two numbers, if the first number has magnitude less
-        than 1e-5, we compare the two numbers directly and check whether
-        they are equivalent within the specified precision. Otherwise, we
-        compare the **ratio** of the second number to the first number and
-        check whether it is equivalent to 1 within the specified precision.
-
-        .. deprecated:: 1.1.0
-           Use `rtol` and `atol` instead to define relative/absolute
-           tolerance, respectively. Similar to :func:`math.isclose`.
     check_names : bool, default True
         Whether to check that the `names` attribute for both the `index`
         and `column` attributes of the DataFrame is identical.
@@ -1270,16 +1121,6 @@ def assert_frame_equal(
     >>> assert_frame_equal(df1, df2, check_dtype=False)
     """
     __tracebackhide__ = True
-
-    if check_less_precise is not no_default:
-        warnings.warn(
-            "The 'check_less_precise' keyword in testing.assert_*_equal "
-            "is deprecated and will be removed in a future version. "
-            "You can stop passing 'check_less_precise' to silence this warning.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
     # instance validation
     _check_isinstance(left, right, DataFrame)
