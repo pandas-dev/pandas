@@ -4968,13 +4968,13 @@ Keep all original rows and also all original values
         see_also_sub="",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(  # type: ignore[override]
+    def set_axis(
         self,
         labels,
         *,
         axis: Axis = 0,
-        copy: bool | lib.NoDefault = lib.no_default,
-    ) -> Series | None:
+        copy: bool = True,
+    ) -> Series:
         return super().set_axis(labels, axis=axis, copy=copy)
 
     # error: Cannot determine type of 'reindex'

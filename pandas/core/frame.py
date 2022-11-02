@@ -5101,8 +5101,8 @@ class DataFrame(NDFrame, OpsMixin):
         labels,
         *,
         axis: Axis = 0,
-        copy: bool | lib.NoDefault = lib.no_default,
-    ):
+        copy: bool = True,
+    ) -> DataFrame:
         return super().set_axis(labels, axis=axis, copy=copy)
 
     @Substitution(**_shared_doc_kwargs)

@@ -703,8 +703,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         labels,
         *,
         axis: Axis = 0,
-        copy: bool_t | lib.NoDefault = lib.no_default,
-    ) -> NDFrameT | None:
+        copy: bool_t = True,
+    ) -> NDFrameT:
         """
         Assign desired index to given axis.
 
@@ -734,9 +734,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
         """
-        if copy is lib.no_default:
-            copy = True
-
         return self._set_axis_nocheck(labels, axis, inplace=False, copy=copy)
 
     @final
