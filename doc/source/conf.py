@@ -105,7 +105,7 @@ if pattern:
 
                 if fname == "index.rst" and os.path.abspath(dirname) == source_path:
                     continue
-                elif pattern == "-api" and reldir.startswith("reference"):
+                if pattern == "-api" and reldir.startswith("reference"):
                     exclude_patterns.append(fname)
                 elif (
                     pattern == "whatsnew"
