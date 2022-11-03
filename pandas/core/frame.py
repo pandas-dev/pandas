@@ -8193,10 +8193,9 @@ Keep all original rows and columns and also all original values
         # reindex rows, non-matching columns get skipped
         other = other.reindex(self.index)
 
-        for col in self.columns:
-            if col not in other.columns:
-                continue
+        shared_cols = set(self.columns) & set(other.columns)
 
+        for col in shared_cols:
             this = self[col]._values
             that = other[col]._values
 
