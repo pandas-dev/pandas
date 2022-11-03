@@ -26,6 +26,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
@@ -105,6 +106,11 @@ class TestDtype(base.BaseDtypeTests):
     def test_eq_with_str(self, dtype):
         assert dtype == f"string[{dtype.storage}]"
         super().test_eq_with_str(dtype)
+
+    def test_is_not_string_type(self, dtype):
+        # Different from BaseDtypeTests.test_is_not_string_type
+        # because StringDtype is a string type
+        assert is_string_dtype(dtype)
 
 
 class TestInterface(base.BaseInterfaceTests):
