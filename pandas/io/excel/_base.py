@@ -1528,8 +1528,6 @@ class ExcelFile:
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
-           - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
-             This case will raise a ``ValueError`` in a future version of pandas.
 
            .. warning::
 
