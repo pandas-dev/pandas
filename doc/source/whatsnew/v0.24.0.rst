@@ -1358,6 +1358,7 @@ the object's ``freq`` attribute (:issue:`21939`, :issue:`23878`).
 
 .. ipython:: python
     :okexcept:
+    :okwarning:
 
     ts = pd.Timestamp('1994-05-06 12:15:16', freq=pd.offsets.Hour())
     ts + 2 * ts.freq

@@ -1401,7 +1401,6 @@ class Timestamp(_Timestamp):
         tzinfo_type tzinfo=None,
         *,
         nanosecond=None,
-        object freq=None,
         tz=None,
         unit=None,
         fold=None,
