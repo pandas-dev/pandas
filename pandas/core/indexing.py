@@ -2493,40 +2493,6 @@ def _tupleize_axis_indexer(ndim: int, axis: AxisInt, key) -> tuple:
     return tuple(new_key)
 
 
-def convert_to_index_sliceable(obj: DataFrame, key):
-    """
-    If we are index sliceable, then return my slicer, otherwise return None.
-    """
-    idx = obj.index
-    if isinstance(key, slice):
-        return idx._convert_slice_indexer(key, kind="getitem", is_frame=True)
-
-    elif isinstance(key, str):
-
-        # we are an actual column
-        if key in obj.columns:
-            return None
-
-        # We might have a datetimelike string that we can translate to a
-        # slice here via partial string indexing
-        if idx._supports_partial_string_indexing:
-            try:
-                res = idx._get_string_slice(str(key))
-                warnings.warn(
-                    "Indexing a DataFrame with a datetimelike index using a single "
-                    "string to slice the rows, like `frame[string]`, is deprecated "
-                    "and will be removed in a future version. Use `frame.loc[string]` "
-                    "instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                return res
-            except (KeyError, ValueError, NotImplementedError):
-                return None
-
-    return None
-
-
 def check_bool_indexer(index: Index, key) -> np.ndarray:
     """
     Check if key is a valid boolean indexer for an object with such index and

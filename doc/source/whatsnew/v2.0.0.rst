@@ -389,6 +389,7 @@ Removal of prior version deprecations/changes
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
 - Renamed ``fname`` to ``path`` in :meth:`DataFrame.to_parquet`, :meth:`DataFrame.to_stata` and :meth:`DataFrame.to_feather` (:issue:`30338`)
 - Enforced disallowing indexing a :class:`Series` with a single item list with a slice (e.g. ``ser[[slice(0, 2)]]``). Either convert the list to tuple, or pass the slice directly instead (:issue:`31333`)
+- Changed behavior indexing on a :class:`DataFrame` with a :class:`DatetimeIndex` index using a string indexer, previously this operated as a slice on rows, now it operates like any other column key; use ``frame.loc[key]`` for the old behavior (:issue:`36179`)
 - Enforced the ``display.max_colwidth`` option to not accept negative integers (:issue:`31569`)
 - Removed the ``display.column_space`` option in favor of ``df.to_string(col_space=...)`` (:issue:`47280`)
 - Removed the deprecated method ``mad`` from pandas classes (:issue:`11787`)
