@@ -124,7 +124,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +=================+=================+=========+
 | pyarrow         | 6.0.0           |    X    |
 +-----------------+-----------------+---------+
-| matplotlib      | 3.6.0           |    X    |
+| matplotlib      | 3.6.1           |    X    |
 +-----------------+-----------------+---------+
 | fastparquet     | 0.6.3           |    X    |
 +-----------------+-----------------+---------+
@@ -213,6 +213,7 @@ Removal of prior version deprecations/changes
 - Removed argument ``sort_columns`` in :meth:`DataFrame.plot` and :meth:`Series.plot` (:issue:`47563`)
 - Removed argument ``is_copy`` from :meth:`DataFrame.take` and :meth:`Series.take` (:issue:`30615`)
 - Removed argument ``kind`` from :meth:`Index.get_slice_bound`, :meth:`Index.slice_indexer` and :meth:`Index.slice_locs` (:issue:`41378`)
+- Removed arguments ``prefix``, ``squeeze``, ``error_bad_lines`` and ``warn_bad_lines`` from :func:`read_csv` (:issue:`40413`, :issue:`43427`)
 - Removed argument ``datetime_is_numeric`` from :meth:`DataFrame.describe` and :meth:`Series.describe` as datetime data will always be summarized as numeric data (:issue:`34798`)
 - Disallow subclass-specific keywords (e.g. "freq", "tz", "names", "closed") in the :class:`Index` constructor (:issue:`38597`)
 - Removed argument ``inplace`` from :meth:`Categorical.remove_unused_categories` (:issue:`37918`)
@@ -250,6 +251,7 @@ Removal of prior version deprecations/changes
 - Disallow passing non-keyword arguments to :meth:`DataFrame.where` and :meth:`Series.where` except for ``cond`` and ``other`` (:issue:`41523`)
 - Disallow passing non-keyword arguments to :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` except for ``labels`` (:issue:`41491`)
 - Disallow passing non-keyword arguments to :meth:`Series.rename_axis` and :meth:`DataFrame.rename_axis` except for ``mapper`` (:issue:`47587`)
+- Disallow :meth:`Index.reindex` with non-unique :class:`Index` objects (:issue:`42568`)
 - Disallow passing non-keyword arguments to :meth:`Series.clip` and :meth:`DataFrame.clip` (:issue:`41511`)
 - Disallow passing non-keyword arguments to :meth:`Series.bfill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill` and :meth:`DataFrame.ffill` (:issue:`41508`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.replace`, :meth:`Series.replace` except for ``to_replace`` and ``value`` (:issue:`47587`)
