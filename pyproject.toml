@@ -79,7 +79,6 @@ disable = [
 
  # pylint type "C": convention, for programming standard violation
   "consider-using-f-string",
-  "disallowed-name",
   "import-outside-toplevel",
   "invalid-name",
   "line-too-long",
@@ -113,12 +112,8 @@ disable = [
   "cyclic-import",
   "duplicate-code",
   "inconsistent-return-statements",
-  "invalid-sequence-index",
-  "literal-comparison",
-  "no-else-continue",
   "no-else-raise",
   "no-else-return",
-  "no-self-use",
   "redefined-argument-from-local",
   "too-few-public-methods",
   "too-many-ancestors",

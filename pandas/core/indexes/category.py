@@ -216,18 +216,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
         name = maybe_extract_name(name, data, cls)
 
-        if data is None:
-            # GH#38944
-            warnings.warn(
-                "Constructing a CategoricalIndex without passing data is "
-                "deprecated and will raise in a future version. "
-                "Use CategoricalIndex([], ...) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            data = []
-
         if is_scalar(data):
+            # GH#38944 include None here, which pre-2.0 subbed in []
             cls._raise_scalar_data_error(data)
 
         data = Categorical(
@@ -414,12 +404,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             indexer, missing = self.get_indexer_non_unique(target)
             if not self.is_unique:
                 # GH#42568
-                warnings.warn(
-                    "reindexing with a non-unique Index is deprecated and will "
-                    "raise in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+                raise ValueError("cannot reindex on an axis with duplicate labels")
 
         new_target: Index
         if len(self) and indexer is not None:
