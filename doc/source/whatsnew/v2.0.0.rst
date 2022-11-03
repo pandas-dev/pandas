@@ -124,7 +124,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +=================+=================+=========+
 | pyarrow         | 6.0.0           |    X    |
 +-----------------+-----------------+---------+
-| matplotlib      | 3.6.0           |    X    |
+| matplotlib      | 3.6.1           |    X    |
 +-----------------+-----------------+---------+
 | fastparquet     | 0.6.3           |    X    |
 +-----------------+-----------------+---------+
