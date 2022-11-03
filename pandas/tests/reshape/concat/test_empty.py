@@ -16,11 +16,11 @@ class TestEmptyConcat:
     def test_handle_empty_objects(self, sort):
         df = DataFrame(np.random.randn(10, 4), columns=list("abcd"))
 
-        baz = df[:5].copy()
-        baz["foo"] = "bar"
+        dfcopy = df[:5].copy()
+        dfcopy["foo"] = "bar"
         empty = df[5:5]
 
-        frames = [baz, empty, empty, df[5:]]
+        frames = [dfcopy, empty, empty, df[5:]]
         concatted = concat(frames, axis=0, sort=sort)
 
         expected = df.reindex(columns=["a", "b", "c", "d", "foo"])
