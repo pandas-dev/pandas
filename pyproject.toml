@@ -139,7 +139,6 @@ disable = [
   "confusing-with-statement",
   "dangerous-default-value",
   "deprecated-module",
-  "duplicate-value",
   "eval-used",
   "expression-not-assigned",
   "fixme",
