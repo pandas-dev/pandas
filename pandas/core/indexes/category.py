@@ -4,7 +4,6 @@ from typing import (
     Any,
     Hashable,
 )
-import warnings
 
 import numpy as np
 
@@ -18,7 +17,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
