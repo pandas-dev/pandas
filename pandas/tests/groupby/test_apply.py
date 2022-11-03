@@ -1011,25 +1011,6 @@ def test_result_order_group_keys_false():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_apply_group_keys_warns():
-    df = DataFrame({"A": [0, 1, 1], "B": [1, 2, 3]})
-    msg = "Not prepending group keys to the result index"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").apply(lambda x: x)
-
-    tm.assert_frame_equal(result, df)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A")["B"].apply(lambda x: x)
-
-    tm.assert_series_equal(result, df["B"])
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df["B"].groupby(df["A"]).apply(lambda x: x)
-
-    tm.assert_series_equal(result, df["B"])
-
-
 def test_apply_with_timezones_aware():
     # GH: 27212
     dates = ["2001-01-01"] * 2 + ["2001-01-02"] * 2 + ["2001-01-03"] * 2

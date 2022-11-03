@@ -357,7 +357,7 @@ class SeriesGroupBy(GroupBy[Series]):
         data: Series,
         values: list[Any],
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ) -> DataFrame | Series:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
@@ -399,7 +399,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self._concat_objects(
                 values,
                 not_indexed_same=not_indexed_same,
-                override_group_keys=override_group_keys,
+                is_transform=is_transform,
             )
             result.name = self.obj.name
             return result
@@ -1228,7 +1228,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         data: DataFrame,
         values: list,
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ):
 
         if len(values) == 0:
@@ -1248,7 +1248,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self._concat_objects(
                 values,
                 not_indexed_same=not_indexed_same,
-                override_group_keys=override_group_keys,
+                is_transform=is_transform,
             )
 
         key_index = self.grouper.result_index if self.as_index else None
@@ -1279,7 +1279,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 not_indexed_same,
                 first_not_none,
                 key_index,
-                override_group_keys,
+                is_transform,
             )
 
     def _wrap_applied_output_series(
@@ -1288,7 +1288,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         not_indexed_same: bool,
         first_not_none,
         key_index,
-        override_group_keys: bool,
+        is_transform: bool,
     ) -> DataFrame | Series:
         kwargs = first_not_none._construct_axes_dict()
         backup = Series(**kwargs)
@@ -1301,7 +1301,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self._concat_objects(
                 values,
                 not_indexed_same=True,
-                override_group_keys=override_group_keys,
+                is_transform=is_transform,
             )
 
         # Combine values
