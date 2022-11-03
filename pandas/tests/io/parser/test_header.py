@@ -76,21 +76,6 @@ b"""
         parser.read_csv(StringIO(data), header=header)
 
 
-def test_no_header_prefix(all_parsers):
-    parser = all_parsers
-    data = """1,2,3,4,5
-6,7,8,9,10
-11,12,13,14,15
-"""
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), prefix="Field", header=None)
-    expected = DataFrame(
-        [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]],
-        columns=["Field0", "Field1", "Field2", "Field3", "Field4"],
-    )
-    tm.assert_frame_equal(result, expected)
-
-
 @skip_pyarrow
 def test_header_with_index_col(all_parsers):
     parser = all_parsers
@@ -442,7 +427,6 @@ def test_read_only_header_no_rows(all_parsers, kwargs):
     "kwargs,names",
     [
         ({}, [0, 1, 2, 3, 4]),
-        ({"prefix": "X"}, ["X0", "X1", "X2", "X3", "X4"]),
         (
             {"names": ["foo", "bar", "baz", "quux", "panda"]},
             ["foo", "bar", "baz", "quux", "panda"],
@@ -458,11 +442,7 @@ def test_no_header(all_parsers, kwargs, names):
     expected = DataFrame(
         [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]], columns=names
     )
-    if "prefix" in kwargs.keys():
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = parser.read_csv(StringIO(data), header=None, **kwargs)
-    else:
-        result = parser.read_csv(StringIO(data), header=None, **kwargs)
+    result = parser.read_csv(StringIO(data), header=None, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 

@@ -97,7 +97,6 @@ class ParserBase:
 
         self.names = kwds.get("names")
         self.orig_names: list | None = None
-        self.prefix = kwds.pop("prefix", None)
 
         self.index_col = kwds.get("index_col", None)
         self.unnamed_cols: set = set()
@@ -155,11 +154,6 @@ class ParserBase:
                         "index_col must only contain row numbers "
                         "when specifying a multi-index header"
                     )
-        elif self.header is not None and self.prefix is not None:
-            # GH 27394
-            raise ValueError(
-                "Argument prefix must be None if argument header is not None"
-            )
 
         self._name_processed = False
 
@@ -1161,7 +1155,6 @@ parser_defaults = {
     "header": "infer",
     "index_col": None,
     "names": None,
-    "prefix": None,
     "skiprows": None,
     "skipfooter": 0,
     "nrows": None,
@@ -1185,15 +1178,12 @@ parser_defaults = {
     "chunksize": None,
     "verbose": False,
     "encoding": None,
-    "squeeze": None,
     "compression": None,
     "mangle_dupe_cols": True,
     "infer_datetime_format": False,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
     "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
-    "error_bad_lines": None,
-    "warn_bad_lines": None,
     "use_nullable_dtypes": False,
 }
 
