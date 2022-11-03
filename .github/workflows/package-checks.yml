@@ -38,10 +38,9 @@ jobs:
         with:
           python-version: '3.8'
 
-      - name: Build pandas
+      - name: Install dependencies
         run: |
           python -m pip install python-dateutil pytz numpy cython
-          python setup.py build_ext -j 1
         shell: bash -el {0}
 
       - name: Install with extra
