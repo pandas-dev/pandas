@@ -43,10 +43,10 @@ class TestRank:
         import scipy.stats  # noqa:F401
         from scipy.stats import rankdata
 
-        float_frame["A"][::2] = np.nan
-        float_frame["B"][::3] = np.nan
-        float_frame["C"][::4] = np.nan
-        float_frame["D"][::5] = np.nan
+        float_frame.loc[::2, "A"] = np.nan
+        float_frame.loc[::3, "B"] = np.nan
+        float_frame.loc[::4, "C"] = np.nan
+        float_frame.loc[::5, "D"] = np.nan
 
         ranks0 = float_frame.rank()
         ranks1 = float_frame.rank(1)
@@ -148,10 +148,10 @@ class TestRank:
         import scipy.stats  # noqa:F401
         from scipy.stats import rankdata
 
-        float_frame["A"][::2] = np.nan
-        float_frame["B"][::3] = np.nan
-        float_frame["C"][::4] = np.nan
-        float_frame["D"][::5] = np.nan
+        float_frame.loc[::2, "A"] = np.nan
+        float_frame.loc[::3, "B"] = np.nan
+        float_frame.loc[::4, "C"] = np.nan
+        float_frame.loc[::5, "D"] = np.nan
 
         # bottom
         ranks0 = float_frame.rank(na_option="bottom")
