@@ -2262,8 +2262,12 @@ cdef class QuarterOffset(SingleConstructorOffset):
     def _apply_array(self, dtarr):
         reso = get_unit_from_dtype(dtarr.dtype)
         shifted = shift_quarters(
-            dtarr.view("i8"), self.n, self.startingMonth, self._day_opt, modby=3,
-            reso=reso
+            dtarr.view("i8"),
+            self.n,
+            self.startingMonth,
+            self._day_opt,
+            modby=3,
+            reso=reso,
         )
         return shifted
 
@@ -3327,8 +3331,9 @@ cdef class FY5253Quarter(FY5253Mixin):
             for qlen in qtr_lens:
                 if qlen * 7 <= tdelta.days:
                     num_qtrs += 1
-                    tdelta -= (<_Timedelta>Timedelta(days=qlen * 7))._as_creso(
-                               norm._creso)
+                    tdelta -= (
+                        <_Timedelta>Timedelta(days=qlen * 7)
+                    )._as_creso(norm._creso)
                 else:
                     break
         else:

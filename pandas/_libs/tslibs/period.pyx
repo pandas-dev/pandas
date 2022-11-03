@@ -1439,8 +1439,9 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = values.size
         int64_t ordinal
-        ndarray ordinals = cnp.PyArray_EMPTY(values.ndim, values.shape,
-                                             cnp.NPY_INT64, 0)
+        ndarray ordinals = cnp.PyArray_EMPTY(
+            values.ndim, values.shape, cnp.NPY_INT64, 0
+        )
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(ordinals, values)
         object p
 

@@ -2314,6 +2314,7 @@ def maybe_convert_numeric(
         else:
             try:
                 floatify(val, &fval, &maybe_int)
+
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = complexes[i] = NaN
@@ -3064,8 +3065,9 @@ cpdef ndarray eq_NA_compat(ndarray[object] arr, object key):
     key is assumed to have `not isna(key)`
     """
     cdef:
-        ndarray[uint8_t, cast=True] result = cnp.PyArray_EMPTY(arr.ndim, arr.shape,
-                                                               cnp.NPY_BOOL, 0)
+        ndarray[uint8_t, cast=True] result = cnp.PyArray_EMPTY(
+            arr.ndim, arr.shape, cnp.NPY_BOOL, 0
+        )
         Py_ssize_t i
         object item
 

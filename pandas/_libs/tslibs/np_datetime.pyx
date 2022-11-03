@@ -171,8 +171,11 @@ class OutOfBoundsTimedelta(ValueError):
     pass
 
 
-cdef get_implementation_bounds(NPY_DATETIMEUNIT reso, npy_datetimestruct *lower,
-                               npy_datetimestruct *upper):
+cdef get_implementation_bounds(
+    NPY_DATETIMEUNIT reso,
+    npy_datetimestruct *lower,
+    npy_datetimestruct *upper,
+):
     if reso == NPY_FR_ns:
         upper[0] = _NS_MAX_DTS
         lower[0] = _NS_MIN_DTS

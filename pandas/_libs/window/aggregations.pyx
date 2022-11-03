@@ -172,8 +172,9 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
                     add_sum(values[j], &nobs, &sum_x, &compensation_add,
                             &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_sum(minp, nobs, sum_x, num_consecutive_same_value,
-                                 prev_value)
+            output[i] = calc_sum(
+                minp, nobs, sum_x, num_consecutive_same_value, prev_value
+            )
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
@@ -303,8 +304,9 @@ def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
                     add_mean(val, &nobs, &sum_x, &neg_ct, &compensation_add,
                              &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_mean(minp, nobs, neg_ct, sum_x, num_consecutive_same_value,
-                                  prev_value)
+            output[i] = calc_mean(
+                minp, nobs, neg_ct, sum_x, num_consecutive_same_value, prev_value
+            )
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
