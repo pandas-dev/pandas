@@ -102,7 +102,6 @@ disable = [
 
   # pylint type "R": refactor, for bad code smell
   "chained-comparison",
-  "comparison-of-constants",
   "comparison-with-itself",
   "consider-merging-isinstance",
   "consider-using-min-builtin",
