@@ -321,8 +321,9 @@ def test_nat_doc_strings(compare):
     klass, method = compare
     klass_doc = getattr(klass, method).__doc__
 
-    # Ignore differences with Timestamp.isoformat() as they're intentional
-    if klass == Timestamp and method == "isoformat":
+    # Ignore differences with Timestamp.isoformat() and Timestamp.fromordinal()
+    # as they're intentional
+    if klass == Timestamp and method in ("isoformat", "fromordinal"):
         return
 
     if method == "to_numpy":
