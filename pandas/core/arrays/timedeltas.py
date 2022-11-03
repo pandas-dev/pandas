@@ -45,7 +45,6 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
 
-from pandas.core.dtypes.astype import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     is_dtype_equal,
@@ -292,10 +291,10 @@ class TimedeltaArray(dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # DatetimeLike Interface
 
-    def _unbox_scalar(self, value, setitem: bool = False) -> np.timedelta64:
+    def _unbox_scalar(self, value) -> np.timedelta64:
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timedelta.")
-        self._check_compatible_with(value, setitem=setitem)
+        self._check_compatible_with(value)
         if value is NaT:
             return np.timedelta64(value.value, "ns")
         else:
@@ -304,7 +303,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _scalar_from_string(self, value) -> Timedelta | NaTType:
         return Timedelta(value)
 
-    def _check_compatible_with(self, other, setitem: bool = False) -> None:
+    def _check_compatible_with(self, other) -> None:
         # we don't have anything to validate.
         pass
 
@@ -330,8 +329,11 @@ class TimedeltaArray(dtl.TimelikeOps):
                 return type(self)._simple_new(
                     res_values, dtype=res_values.dtype, freq=self.freq
                 )
-
-            return astype_td64_unit_conversion(self._ndarray, dtype, copy=copy)
+            else:
+                raise ValueError(
+                    f"Cannot convert from {self.dtype} to {dtype}. "
+                    "Supported resolutions are 's', 'ms', 'us', 'ns'"
+                )
 
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
