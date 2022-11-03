@@ -1121,6 +1121,9 @@ class SQLTable(PandasObject):
             try:
                 df_col = self.frame[col_name]
 
+                # the type the dataframe column should have
+                col_type = self._get_dtype(sql_col.type)
+
                 # Handle date parsing upfront; don't try to convert columns
                 # twice
                 if col_name in parse_dates:
@@ -1128,11 +1131,12 @@ class SQLTable(PandasObject):
                         fmt = parse_dates[col_name]
                     except TypeError:
                         fmt = None
-                    self.frame[col_name] = _handle_date_column(df_col, format=fmt)
+                    # Convert tz-aware Datetime SQL columns to UTC
+                    utc = col_type is DatetimeTZDtype
+                    self.frame[col_name] = _handle_date_column(
+                        df_col, format=fmt, utc=utc
+                    )
                     continue
-
-                # the type the dataframe column should have
-                col_type = self._get_dtype(sql_col.type)
 
                 if (
                     col_type is datetime
