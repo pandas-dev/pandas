@@ -8190,14 +8190,15 @@ Keep all original rows and columns and also all original values
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
-        other = other.reindex_like(self)
+        # reindex rows, non-matching columns get skipped
+        other = other.reindex(self.index)
 
         for col in self.columns:
+            if col not in other.columns:
+                continue
+
             this = self[col]._values
             that = other[col]._values
-
-            if all(isna(that)):
-                continue
 
             if filter_func is not None:
                 with np.errstate(all="ignore"):
