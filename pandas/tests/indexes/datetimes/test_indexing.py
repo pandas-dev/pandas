@@ -98,11 +98,9 @@ class TestGetItem:
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_dti_business_getitem_matplotlib_hackaround(self, freq):
         rng = bdate_range(START, END, freq=freq)
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(ValueError, match="Multi-dimensional indexing"):
             # GH#30588 multi-dimensional indexing deprecated
-            values = rng[:, None]
-        expected = rng.values[:, None]
-        tm.assert_numpy_array_equal(values, expected)
+            rng[:, None]
 
     def test_getitem_int_list(self):
         dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
