@@ -45,7 +45,6 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
 
-from pandas.core.dtypes.astype import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     is_dtype_equal,
@@ -330,8 +329,11 @@ class TimedeltaArray(dtl.TimelikeOps):
                 return type(self)._simple_new(
                     res_values, dtype=res_values.dtype, freq=self.freq
                 )
-
-            return astype_td64_unit_conversion(self._ndarray, dtype, copy=copy)
+            else:
+                raise ValueError(
+                    f"Cannot convert from {self.dtype} to {dtype}. "
+                    "Supported resolutions are 's', 'ms', 'us', 'ns'"
+                )
 
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 

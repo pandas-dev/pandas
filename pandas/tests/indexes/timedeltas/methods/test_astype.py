@@ -13,7 +13,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.api import (
-    Float64Index,
     Int64Index,
     UInt64Index,
 )
@@ -89,9 +88,12 @@ class TestTimedeltaIndex:
         # GH 13149, GH 13209
         idx = TimedeltaIndex([1e14, "NaT", NaT, np.NaN])
 
-        result = idx.astype("timedelta64")
-        expected = Float64Index([1e14] + [np.NaN] * 3, dtype="float64")
-        tm.assert_index_equal(result, expected)
+        msg = (
+            r"Cannot convert from timedelta64\[ns\] to timedelta64. "
+            "Supported resolutions are 's', 'ms', 'us', 'ns'"
+        )
+        with pytest.raises(ValueError, match=msg):
+            idx.astype("timedelta64")
 
         result = idx.astype("timedelta64[ns]")
         tm.assert_index_equal(result, idx)
