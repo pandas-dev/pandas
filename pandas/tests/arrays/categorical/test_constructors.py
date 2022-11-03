@@ -33,9 +33,9 @@ from pandas.core.api import Int64Index
 
 
 class TestCategoricalConstructors:
-    def test_categorical_scalar_deprecated(self):
+    def test_categorical_disallows_scalar(self):
         # GH#38433
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="Categorical input must be list-like"):
             Categorical("A", categories=["A", "B"])
 
     def test_categorical_1d_only(self):
@@ -220,13 +220,6 @@ class TestCategoricalConstructors:
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
 
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#38433
-            cat = Categorical(1)
-        assert len(cat.categories) == 1
-        assert cat.categories[0] == 1
-        assert len(cat.codes) == 1
-        assert cat.codes[0] == 0
         # two arrays
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN

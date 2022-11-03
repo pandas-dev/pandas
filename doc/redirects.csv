@@ -661,7 +661,6 @@ generated/pandas.Index.identical,../reference/api/pandas.Index.identical
 generated/pandas.Index.inferred_type,../reference/api/pandas.Index.inferred_type
 generated/pandas.Index.insert,../reference/api/pandas.Index.insert
 generated/pandas.Index.intersection,../reference/api/pandas.Index.intersection
-generated/pandas.Index.is_all_dates,../reference/api/pandas.Index.is_all_dates
 generated/pandas.Index.is_boolean,../reference/api/pandas.Index.is_boolean
 generated/pandas.Index.is_categorical,../reference/api/pandas.Index.is_categorical
 generated/pandas.Index.is_floating,../reference/api/pandas.Index.is_floating
@@ -671,7 +670,6 @@ generated/pandas.Index.is_integer,../reference/api/pandas.Index.is_integer
 generated/pandas.Index.is_interval,../reference/api/pandas.Index.is_interval
 generated/pandas.Index.is_lexsorted_for_tuple,../reference/api/pandas.Index.is_lexsorted_for_tuple
 generated/pandas.Index.is_monotonic_decreasing,../reference/api/pandas.Index.is_monotonic_decreasing
-generated/pandas.Index.is_monotonic,../reference/api/pandas.Index.is_monotonic
 generated/pandas.Index.is_monotonic_increasing,../reference/api/pandas.Index.is_monotonic_increasing
 generated/pandas.Index.isna,../reference/api/pandas.Index.isna
 generated/pandas.Index.isnull,../reference/api/pandas.Index.isnull
@@ -1068,7 +1066,6 @@ generated/pandas.Series.interpolate,../reference/api/pandas.Series.interpolate
 generated/pandas.Series.is_copy,../reference/api/pandas.Series.is_copy
 generated/pandas.Series.isin,../reference/api/pandas.Series.isin
 generated/pandas.Series.is_monotonic_decreasing,../reference/api/pandas.Series.is_monotonic_decreasing
-generated/pandas.Series.is_monotonic,../reference/api/pandas.Series.is_monotonic
 generated/pandas.Series.is_monotonic_increasing,../reference/api/pandas.Series.is_monotonic_increasing
 generated/pandas.Series.isna,../reference/api/pandas.Series.isna
 generated/pandas.Series.isnull,../reference/api/pandas.Series.isnull
