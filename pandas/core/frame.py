@@ -187,7 +187,7 @@ from pandas.core.indexes.multi import (
 )
 from pandas.core.indexing import (
     check_bool_indexer,
-    check_deprecated_indexers,
+    check_dict_or_set_indexers,
 )
 from pandas.core.internals import (
     ArrayManager,
@@ -3702,7 +3702,7 @@ class DataFrame(NDFrame, OpsMixin):
             yield self._get_column_array(i)
 
     def __getitem__(self, key):
-        check_deprecated_indexers(key)
+        check_dict_or_set_indexers(key)
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 

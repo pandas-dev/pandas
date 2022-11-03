@@ -379,6 +379,8 @@ Removal of prior version deprecations/changes
 - Enforced disallowing a tuple of column labels into :meth:`.DataFrameGroupBy.__getitem__` (:issue:`30546`)
 - Enforced disallowing setting values with ``.loc`` using a positional slice. Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
 - Enforced disallowing positional indexing with a ``float`` key even if that key is a round number, manually cast to integer instead (:issue:`34193`)
+- Enforced disallowing using a :class:`DataFrame` indexer with ``.iloc``, use ``.loc`` instead for automatic alignment (:issue:`39022`)
+- Enforced disallowing ``set`` or ``dict`` indexers in ``__getitem__`` and ``__setitem__`` methods (:issue:`42825`)
 - Enforced disallowing indexing on a :class:`Index` or positional indexing on a :class:`Series` producing multi-dimensional objects e.g. ``obj[:, None]``, convert to numpy before indexing instead (:issue:`35141`)
 - Enforced disallowing ``dict`` or ``set`` objects in ``suffixes`` in :func:`merge` (:issue:`34810`)
 - Enforced disallowing :func:`merge` to produce duplicated columns through the ``suffixes`` keyword and already existing columns (:issue:`22818`)
