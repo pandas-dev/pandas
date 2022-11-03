@@ -161,7 +161,7 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.indexers import deprecate_ndim_indexing
+from pandas.core.indexers import disallow_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
@@ -4339,12 +4339,7 @@ class Index(IndexOpsMixin, PandasObject):
 
                 if not self.is_unique:
                     # GH#42568
-                    warnings.warn(
-                        "reindexing with a non-unique Index is deprecated and "
-                        "will raise in a future version.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
+                    raise ValueError("cannot reindex on an axis with duplicate labels")
 
         target = self._wrap_reindex_result(target, indexer, preserve_names)
         return target, indexer
@@ -5220,7 +5215,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_integer(key) or is_float(key):
             # GH#44051 exclude bool, which would return a 2d ndarray
-            key = com.cast_scalar_indexer(key, warn_float=True)
+            key = com.cast_scalar_indexer(key)
             return getitem(key)
 
         if isinstance(key, slice):
@@ -5243,15 +5238,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = getitem(key)
         # Because we ruled out integer above, we always get an arraylike here
         if result.ndim > 1:
-            deprecate_ndim_indexing(result)
-            if hasattr(result, "_ndarray"):
-                # i.e. NDArrayBackedExtensionArray
-                # Unpack to ndarray for MPL compat
-                # error: Item "ndarray[Any, Any]" of
-                # "Union[ExtensionArray, ndarray[Any, Any]]"
-                # has no attribute "_ndarray"
-                return result._ndarray  # type: ignore[union-attr]
-            return result
+            disallow_ndim_indexing(result)
 
         # NB: Using _constructor._simple_new would break if MultiIndex
         #  didn't override __getitem__
