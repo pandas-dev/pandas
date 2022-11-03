@@ -752,7 +752,6 @@ def factorize(
         return _re_wrap_factorize(original, uniques, codes)
 
     elif not isinstance(values.dtype, np.dtype):
-        # GH#46910 - TimelikeOps has deprecated signature
         codes, uniques = values.factorize(use_na_sentinel=use_na_sentinel)
 
     else:
