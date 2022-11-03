@@ -484,36 +484,19 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    def _unbox_scalar(self, value, setitem: bool = False) -> np.datetime64:
+    def _unbox_scalar(self, value) -> np.datetime64:
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timestamp.")
-        self._check_compatible_with(value, setitem=setitem)
+        self._check_compatible_with(value)
         return value.asm8
 
     def _scalar_from_string(self, value) -> Timestamp | NaTType:
         return Timestamp(value, tz=self.tz)
 
-    def _check_compatible_with(self, other, setitem: bool = False):
+    def _check_compatible_with(self, other) -> None:
         if other is NaT:
             return
         self._assert_tzawareness_compat(other)
-        if setitem:
-            # Stricter check for setitem vs comparison methods
-            if self.tz is not None and not timezones.tz_compare(self.tz, other.tz):
-                # TODO(2.0): remove this check. GH#37605
-                warnings.warn(
-                    "Setitem-like behavior with mismatched timezones is deprecated "
-                    "and will change in a future version. Instead of raising "
-                    "(or for Index, Series, and DataFrame methods, coercing to "
-                    "object dtype), the value being set (or passed as a "
-                    "fill_value, or inserted) will be cast to the existing "
-                    "DatetimeArray/DatetimeIndex/Series/DataFrame column's "
-                    "timezone. To retain the old behavior, explicitly cast to "
-                    "object dtype before the operation.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                raise ValueError(f"Timezones don't match. '{self.tz}' != '{other.tz}'")
 
     # -----------------------------------------------------------------
     # Descriptive Properties
@@ -2030,6 +2013,11 @@ def _sequence_to_dt64ns(
         copy = False
         if lib.infer_dtype(data, skipna=False) == "integer":
             data = data.astype(np.int64)
+        elif tz is not None and ambiguous == "raise":
+            # TODO: yearfirst/dayfirst/etc?
+            obj_data = np.asarray(data, dtype=object)
+            i8data = tslib.array_to_datetime_with_tz(obj_data, tz)
+            return i8data.view(DT64NS_DTYPE), tz, None
         else:
             # data comes back here as either i8 to denote UTC timestamps
             #  or M8[ns] to denote wall times
