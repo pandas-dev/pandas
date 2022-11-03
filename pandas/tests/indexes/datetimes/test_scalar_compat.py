@@ -81,7 +81,7 @@ class TestDatetimeIndexOps:
 
         msg = "The 'freq' argument in Timestamp is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            ts = Timestamp(idx[-1], idx.freq)
+            ts = Timestamp(idx[-1], freq=idx.freq)
 
         msg2 = "Timestamp.freq is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg2):
