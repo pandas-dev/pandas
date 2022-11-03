@@ -1035,27 +1035,17 @@ class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
         return 0
 
     @pytest.fixture
-    def expected(self):
+    def expected(self, obj, val):
+        # pre-2.0 this would cast to object, in 2.0 we cast the val to
+        #  the target tz
         expected = Series(
             [
-                Timestamp("2000-01-01 00:00:00-05:00", tz="US/Eastern"),
+                val.tz_convert("US/Central"),
                 Timestamp("2000-01-02 00:00:00-06:00", tz="US/Central"),
             ],
-            dtype=object,
+            dtype=obj.dtype,
         )
         return expected
-
-    @pytest.fixture(autouse=True)
-    def assert_warns(self, request):
-        # check that we issue a FutureWarning about timezone-matching
-        if request.function.__name__ == "test_slice_key":
-            key = request.getfixturevalue("key")
-            if not isinstance(key, slice):
-                # The test is a no-op, so no warning will be issued
-                yield
-            return
-        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
-            yield
 
 
 @pytest.mark.parametrize(
@@ -1341,7 +1331,8 @@ class TestCoercionDatetime64(CoercionTest):
     "val,exp_dtype",
     [
         (Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[ns, US/Eastern]"),
-        (Timestamp("2012-01-01", tz="US/Pacific"), object),
+        # pre-2.0, a mis-matched tz would end up casting to object
+        (Timestamp("2012-01-01", tz="US/Pacific"), "datetime64[ns, US/Eastern]"),
         (Timestamp("2012-01-01"), object),
         (1, object),
     ],
@@ -1352,24 +1343,6 @@ class TestCoercionDatetime64TZ(CoercionTest):
     def obj(self):
         tz = "US/Eastern"
         return Series(date_range("2011-01-01", freq="D", periods=4, tz=tz))
-
-    @pytest.fixture(autouse=True)
-    def assert_warns(self, request):
-        # check that we issue a FutureWarning about timezone-matching
-        if request.function.__name__ == "test_slice_key":
-            key = request.getfixturevalue("key")
-            if not isinstance(key, slice):
-                # The test is a no-op, so no warning will be issued
-                yield
-            return
-
-        exp_dtype = request.getfixturevalue("exp_dtype")
-        val = request.getfixturevalue("val")
-        if exp_dtype == object and isinstance(val, Timestamp) and val.tz is not None:
-            with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
-                yield
-        else:
-            yield
 
 
 @pytest.mark.parametrize(

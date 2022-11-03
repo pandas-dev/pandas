@@ -6,6 +6,7 @@ from cpython.datetime cimport (
     import_datetime,
     tzinfo,
 )
+from cpython.object cimport PyObject
 
 # import datetime C API
 import_datetime()
@@ -862,3 +863,50 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
         iresult[0] = Timestamp.today().value
         return True
     return False
+
+
+def array_to_datetime_with_tz(ndarray values, tzinfo tz):
+    """
+    Vectorized analogue to pd.Timestamp(value, tz=tz)
+
+    values has object-dtype, unrestricted ndim.
+
+    Major differences between this and array_to_datetime with utc=True
+        - np.datetime64 objects are treated as _wall_ times.
+        - tznaive datetimes are treated as _wall_ times.
+    """
+    cdef:
+        ndarray result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_INT64, 0)
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
+        Py_ssize_t i, n = values.size
+        object item
+        int64_t ival
+        datetime ts
+
+    for i in range(n):
+        # Analogous to `item = values[i]`
+        item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+        if checknull_with_nat_and_na(item):
+            # this catches pd.NA which would raise in the Timestamp constructor
+            ival = NPY_NAT
+
+        else:
+            ts = Timestamp(item)
+            if ts is NaT:
+                ival = NPY_NAT
+            else:
+                if ts.tz is not None:
+                    ts = ts.tz_convert(tz)
+                else:
+                    # datetime64, tznaive pydatetime, int, float
+                    ts = ts.tz_localize(tz)
+                ts = ts._as_unit("ns")
+                ival = ts.value
+
+        # Analogous to: result[i] = ival
+        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival
+
+        cnp.PyArray_MultiIter_NEXT(mi)
+
+    return result
