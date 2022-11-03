@@ -24,6 +24,10 @@ from pandas.tests.base.common import allow_na_ops
 def test_value_counts(index_or_series_obj):
     obj = index_or_series_obj
     obj = np.repeat(obj, range(1, len(obj) + 1))
+
+    if obj.dtype == np.float16:
+        pytest.xfail("we don't have Float16Index, so value_counts is problematic")
+
     result = obj.value_counts()
 
     counter = collections.Counter(obj)
@@ -56,6 +60,9 @@ def test_value_counts(index_or_series_obj):
 def test_value_counts_null(null_obj, index_or_series_obj):
     orig = index_or_series_obj
     obj = orig.copy()
+
+    if obj.dtype == np.float16:
+        pytest.xfail("we don't have Float16Index, so value_counts is problematic")
 
     if not allow_na_ops(obj):
         pytest.skip("type doesn't allow for NA operations")

@@ -64,8 +64,8 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import (
-    Float64Index,
     Index,
+    NumericIndex,
     ensure_index,
 )
 from pandas.core.internals.base import (
@@ -1582,7 +1582,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     def quantile(
         self: T,
         *,
-        qs: Float64Index,
+        qs: NumericIndex,
         axis: AxisInt = 0,
         interpolation: QuantileInterpolation = "linear",
     ) -> T:
@@ -1610,7 +1610,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         assert axis == 1  # only ever called this way
 
         new_axes = list(self.axes)
-        new_axes[1] = Float64Index(qs)
+        new_axes[1] = Index(qs, dtype=np.float64)
 
         blocks = [
             blk.quantile(axis=axis, qs=qs, interpolation=interpolation)

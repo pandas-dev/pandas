@@ -5,12 +5,19 @@ from pandas.core.dtypes.common import is_datetime64tz_dtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    NumericIndex,
+    UInt64Index,
+)
 from pandas.tests.base.common import allow_na_ops
 
 
 def test_unique(index_or_series_obj):
     obj = index_or_series_obj
+    if isinstance(obj, (Int64Index, UInt64Index, Float64Index)):
+        pytest.skip("these indexes will be removed in followup")
     obj = np.repeat(obj, range(1, len(obj) + 1))
     result = obj.unique()
 
@@ -36,6 +43,8 @@ def test_unique(index_or_series_obj):
 @pytest.mark.parametrize("null_obj", [np.nan, None])
 def test_unique_null(null_obj, index_or_series_obj):
     obj = index_or_series_obj
+    if isinstance(obj, (Int64Index, UInt64Index, Float64Index)):
+        pytest.skip("these indexes will be removed in followup")
 
     if not allow_na_ops(obj):
         pytest.skip("type doesn't allow for NA operations")

@@ -16,16 +16,15 @@ from pandas.core.indexes.api import (
     Index,
     Int64Index,
     RangeIndex,
-    UInt64Index,
 )
 
 
 class TestRangeIndexSetOps:
-    @pytest.mark.parametrize("klass", [RangeIndex, Int64Index, UInt64Index])
-    def test_intersection_mismatched_dtype(self, klass):
+    @pytest.mark.parametrize("dtype", [None, "int64", "uint64"])
+    def test_intersection_mismatched_dtype(self, dtype):
         # check that we cast to float, not object
         index = RangeIndex(start=0, stop=20, step=2, name="foo")
-        index = klass(index)
+        index = Index(index, dtype=dtype)
 
         flt = index.astype(np.float64)
 

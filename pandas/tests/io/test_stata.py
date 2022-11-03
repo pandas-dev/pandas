@@ -280,9 +280,9 @@ class TestStata:
     def test_read_write_dta5(self):
         original = DataFrame(
             [(np.nan, np.nan, np.nan, np.nan, np.nan)],
+            index=pd.Index([0], dtype=np.int32, name="index"),
             columns=["float_miss", "double_miss", "byte_miss", "int_miss", "long_miss"],
         )
-        original.index.name = "index"
 
         with tm.ensure_clean() as path:
             original.to_stata(path, convert_dates=None)
@@ -370,10 +370,10 @@ class TestStata:
         )
         formatted = DataFrame(
             [(1, 2, 3, 4)],
+            dtype=np.int32,
+            index=pd.Index([0], dtype=np.int32, name="index"),
             columns=["good", "b_d", "_8number", "astringwithmorethan32characters_"],
         )
-        formatted.index.name = "index"
-        formatted = formatted.astype(np.int32)
 
         with tm.ensure_clean() as path:
             with tm.assert_produces_warning(InvalidColumnName):
@@ -397,6 +397,8 @@ class TestStata:
         )
         formatted = DataFrame(
             [(1, 2, 3, 4, 5, 6)],
+            dtype=np.int32,
+            index=pd.Index([0], dtype=np.int32, name="index"),
             columns=[
                 "astringwithmorethan32characters_",
                 "_0astringwithmorethan32character",
@@ -406,8 +408,6 @@ class TestStata:
                 "_delete",
             ],
         )
-        formatted.index.name = "index"
-        formatted = formatted.astype(np.int32)
 
         with tm.ensure_clean() as path:
             with warnings.catch_warnings(record=True) as w:
@@ -423,8 +423,10 @@ class TestStata:
         s1 = Series(2**9, dtype=np.int16)
         s2 = Series(2**17, dtype=np.int32)
         s3 = Series(2**33, dtype=np.int64)
-        original = DataFrame({"int16": s1, "int32": s2, "int64": s3})
-        original.index.name = "index"
+        original = DataFrame(
+            {"int16": s1, "int32": s2, "int64": s3},
+            index=pd.Index([0], dtype=np.int32, name="index"),
+        )
 
         formatted = original
         formatted["int64"] = formatted["int64"].astype(np.float64)
@@ -455,7 +457,8 @@ class TestStata:
         with tm.ensure_clean() as path:
             parsed_114.to_stata(path, convert_dates={"date_td": "td"}, version=version)
             written_and_read_again = self.read_dta(path)
-            tm.assert_frame_equal(written_and_read_again.set_index("index"), parsed_114)
+            expected = parsed_114.set_index(parsed_114.index.astype(np.int32))
+            tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
     @pytest.mark.parametrize(
         "file", ["stata6_113", "stata6_114", "stata6_115", "stata6_117"]
@@ -503,7 +506,7 @@ class TestStata:
 
     def test_numeric_column_names(self):
         original = DataFrame(np.reshape(np.arange(25.0), (5, 5)))
-        original.index.name = "index"
+        original.index = original.index.astype(np.int32).set_names("index")
         with tm.ensure_clean() as path:
             # should get a warning for that format.
             with tm.assert_produces_warning(InvalidColumnName):
@@ -523,7 +526,7 @@ class TestStata:
         s1[::2] = np.nan
         s2[1::2] = np.nan
         original = DataFrame({"s1": s1, "s2": s2})
-        original.index.name = "index"
+        original.index = original.index.astype(np.int32).set_names("index")
         with tm.ensure_clean() as path:
             original.to_stata(path, version=version)
             written_and_read_again = self.read_dta(path)
@@ -544,7 +547,7 @@ class TestStata:
         s1 = Series(["a", "A longer string"])
         s2 = Series([1.0, 2.0], dtype=np.float64)
         original = DataFrame({"s1": s1, "s2": s2})
-        original.index.name = "index"
+        original.index = original.index.astype(np.int32).set_names("index")
         with tm.ensure_clean() as path:
             original.to_stata(path)
             written_and_read_again = self.read_dta(path)
@@ -566,11 +569,12 @@ class TestStata:
             modified["s1"] = Series(modified["s1"], dtype=np.int16)
             modified["s2"] = Series(modified["s2"], dtype=np.int32)
             modified["s3"] = Series(modified["s3"], dtype=np.float64)
+            modified.index = modified.index.astype(np.int32)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), modified)
 
     def test_dates_invalid_column(self):
         original = DataFrame([datetime(2006, 11, 19, 23, 13, 20)])
-        original.index.name = "index"
+        original.index = original.index.astype(np.int32).set_names("index")
         with tm.ensure_clean() as path:
             with tm.assert_produces_warning(InvalidColumnName):
                 original.to_stata(path, convert_dates={0: "tc"})
@@ -620,7 +624,7 @@ class TestStata:
         ]  # Year
 
         expected = DataFrame([expected_values], columns=columns)
-        expected.index.name = "index"
+        expected.index = expected.index.astype(np.int32).set_names("index")
         with tm.ensure_clean() as path:
             original.to_stata(path, convert_dates=conversions)
             written_and_read_again = self.read_dta(path)
@@ -629,7 +633,7 @@ class TestStata:
     def test_write_missing_strings(self):
         original = DataFrame([["1"], [None]], columns=["foo"])
         expected = DataFrame([["1"], [""]], columns=["foo"])
-        expected.index.name = "index"
+        expected.index = expected.index.astype(np.int32).set_names("index")
         with tm.ensure_clean() as path:
             original.to_stata(path)
             written_and_read_again = self.read_dta(path)
@@ -649,7 +653,7 @@ class TestStata:
         original = DataFrame(
             {"s0": s0, "s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5, "s6": s6}
         )
-        original.index.name = "index"
+        original.index = original.index.astype(np.int32).set_names("index")
         expected = original.copy()
         expected_types = (
             np.int8,
@@ -815,7 +819,7 @@ class TestStata:
         date_conversion = {c: c[-2:] for c in columns}
         # {c : c[-2:] for c in columns}
         with tm.ensure_clean() as path:
-            expected.index.name = "index"
+            expected.index = expected.index.astype(np.int32).set_names("index")
             expected.to_stata(path, convert_dates=date_conversion)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(
@@ -936,7 +940,7 @@ class TestStata:
         original = pd.concat(
             [original[col].astype("category") for col in original], axis=1
         )
-        expected.index.name = "index"
+        expected.index = expected.index.astype(np.int32).set_names("index")
 
         expected["incompletely_labeled"] = expected["incompletely_labeled"].apply(str)
         expected["unlabeled"] = expected["unlabeled"].apply(str)
@@ -996,7 +1000,7 @@ class TestStata:
         original = pd.concat(
             [original[col].astype("category") for col in original], axis=1
         )
-        original.index.name = "index"
+        original.index = original.index.astype(np.int32).set_names("index")
         with tm.ensure_clean() as path:
             original.to_stata(path, version=version)
             written_and_read_again = self.read_dta(path)
@@ -1447,9 +1451,9 @@ The repeated labels are:\n-+\nwolof
                     np.finfo(np.float32).eps,
                     np.finfo(np.float32).max,
                 ],
-            }
+            },
+            index=pd.Index(range(3), dtype=np.int32, name="index"),
         )
-        original.index.name = "index"
         for col in original:
             original[col] = original[col].astype(np.float32)
 
@@ -1859,7 +1863,7 @@ def test_compression(compression, version, use_dict, infer):
         compression_arg = {"method": compression}
 
     df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
-    df.index.name = "index"
+    df.index = df.index.astype(np.int32).set_names("index")
     with tm.ensure_clean(file_name) as path:
         df.to_stata(path, version=version, compression=compression_arg)
         if compression == "gzip":
@@ -1894,7 +1898,7 @@ def test_compression_dict(method, file_ext):
     file_name = f"test.{file_ext}"
     archive_name = "test.dta"
     df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
-    df.index.name = "index"
+    df.index = df.index.astype(np.int32).set_names("index")
     with tm.ensure_clean(file_name) as path:
         compression = {"method": method, "archive_name": archive_name}
         df.to_stata(path, compression=compression)
@@ -1912,7 +1916,7 @@ def test_compression_dict(method, file_ext):
 @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
 def test_chunked_categorical(version):
     df = DataFrame({"cats": Series(["a", "b", "a", "b", "c"], dtype="category")})
-    df.index.name = "index"
+    df.index = df.index.astype(np.int32).set_names("index")
     with tm.ensure_clean() as path:
         df.to_stata(path, version=version)
         with StataReader(path, chunksize=2, order_categoricals=False) as reader:

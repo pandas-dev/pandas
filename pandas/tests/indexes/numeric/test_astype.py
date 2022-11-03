@@ -67,7 +67,7 @@ class TestAstype:
 
         idx = Float64Index([0, 1.1, 2])
         result = idx.astype(dtype)
-        expected = Index(idx.values.astype(dtype))
+        expected = Float64Index(idx.values.astype(dtype))
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])

@@ -91,6 +91,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
+    is_complex_dtype,
     is_dtype_equal,
     is_ea_or_datetimelike_dtype,
     is_extension_array_dtype,
@@ -590,18 +591,14 @@ class Index(IndexOpsMixin, PandasObject):
 
             return TimedeltaIndex
 
-        elif dtype.kind == "f":
-            from pandas.core.api import Float64Index
+        elif (
+            is_numeric_dtype(dtype)
+            and not is_bool_dtype(dtype)
+            and not is_complex_dtype(dtype)
+        ):
+            from pandas.core.api import NumericIndex
 
-            return Float64Index
-        elif dtype.kind == "u":
-            from pandas.core.api import UInt64Index
-
-            return UInt64Index
-        elif dtype.kind == "i":
-            from pandas.core.api import Int64Index
-
-            return Int64Index
+            return NumericIndex
 
         elif dtype.kind == "O":
             # NB: assuming away MultiIndex
@@ -1057,14 +1054,29 @@ class Index(IndexOpsMixin, PandasObject):
                 ) from err
 
         # pass copy=False because any copying will be done in the astype above
-        if self._is_backward_compat_public_numeric_index:
-            # this block is needed so e.g. NumericIndex[int8].astype("int32") returns
-            # NumericIndex[int32] and not Int64Index with dtype int64.
+        if not self._is_backward_compat_public_numeric_index and not isinstance(
+            self, ABCRangeIndex
+        ):
+            # this block is needed so e.g. Int64Index.astype("int32") returns
+            # Int64Index and not a NumericIndex with dtype int32.
             # When Int64Index etc. are removed from the code base, removed this also.
             if isinstance(dtype, np.dtype) and is_numeric_dtype(dtype):
-                return self._constructor(
-                    new_values, name=self.name, dtype=dtype, copy=False
+                from pandas.core.api import (
+                    Float64Index,
+                    Int64Index,
+                    UInt64Index,
                 )
+
+                if is_signed_integer_dtype(dtype):
+                    klass = Int64Index
+                elif is_unsigned_integer_dtype(dtype):
+                    klass = UInt64Index
+                elif is_float_dtype(dtype):
+                    klass = Float64Index
+                else:
+                    klass = Index
+                return klass(new_values, name=self.name, dtype=dtype, copy=False)
+
         return Index(new_values, name=self.name, dtype=new_values.dtype, copy=False)
 
     _index_shared_docs[
@@ -5265,6 +5277,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self.dtype != object and is_valid_na_for_dtype(value, self.dtype):
             # e.g. None -> np.nan, see also Block._standardize_fill_value
             value = self._na_value
+
         try:
             converted = self._validate_fill_value(value)
         except (LossySetitemError, ValueError, TypeError) as err:
@@ -6133,13 +6146,6 @@ class Index(IndexOpsMixin, PandasObject):
                 new_values, self.dtype, same_dtype=same_dtype
             )
 
-        if self._is_backward_compat_public_numeric_index and is_numeric_dtype(
-            new_values.dtype
-        ):
-            return self._constructor(
-                new_values, dtype=dtype, copy=False, name=self.name
-            )
-
         return Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
 
     # TODO: De-duplicate with map, xref GH#32349
@@ -6616,10 +6622,17 @@ class Index(IndexOpsMixin, PandasObject):
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
-        if self._typ == "numericindex":
-            # Use self._constructor instead of Index to retain NumericIndex GH#43921
-            # TODO(2.0) can use Index instead of self._constructor
-            return self._constructor._with_infer(new_values, name=self.name)
+        if not self._is_backward_compat_public_numeric_index:
+            from pandas.core.indexes.numeric import NumericIndex
+
+            if not isinstance(self, ABCRangeIndex) or not isinstance(
+                self, NumericIndex
+            ):
+                return Index._with_infer(new_values, name=self.name)
+            else:
+                # Use self._constructor instead of Index to retain old-style num. index
+                # TODO(2.0) can use Index instead of self._constructor
+                return self._constructor._with_infer(new_values, name=self.name)
         else:
             return Index._with_infer(new_values, name=self.name)
 

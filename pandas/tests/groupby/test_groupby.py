@@ -93,7 +93,7 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
     result = grouped.sum()
 
     expected = mframe.groupby(key.astype("O")).sum()
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_index_type=False)
 
     # GH 3911, mixed frame non-conversion
     df = df_mixed_floats.copy()
@@ -228,6 +228,7 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
         2: tsframe[tsframe.index.month == 2].quantile(0.8),
     }
     expected = DataFrame(ex_data).T
+    expected.index = Index(range(1, 3), dtype=np.int32)
     if not as_index:
         # TODO: try to get this more consistent?
         expected.index = Index(range(2))
@@ -2814,7 +2815,7 @@ def test_groupby_overflow(val, dtype):
     result = df.groupby("a").sum()
     expected = DataFrame(
         {"b": [val * 2]},
-        index=Index([1], name="a", dtype=f"{dtype}64"),
+        index=Index([1], name="a", dtype=f"{dtype}8"),
         dtype=f"{dtype}64",
     )
     tm.assert_frame_equal(result, expected)
@@ -2826,7 +2827,7 @@ def test_groupby_overflow(val, dtype):
     result = df.groupby("a").prod()
     expected = DataFrame(
         {"b": [val * val]},
-        index=Index([1], name="a", dtype=f"{dtype}64"),
+        index=Index([1], name="a", dtype=f"{dtype}8"),
         dtype=f"{dtype}64",
     )
     tm.assert_frame_equal(result, expected)

@@ -44,6 +44,11 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     TimedeltaArray,
@@ -55,6 +60,8 @@ class TestFactorize:
     @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = index_or_series_obj
+        if isinstance(obj, (Int64Index, UInt64Index, Float64Index)):
+            pytest.skip("temp. Numeric indexes will soon be removed")
         with tm.maybe_produces_warning(
             PerformanceWarning,
             sort

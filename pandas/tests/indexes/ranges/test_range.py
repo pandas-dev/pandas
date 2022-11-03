@@ -218,7 +218,7 @@ class TestRangeIndex(NumericBase):
 
         loc = [0, 3, 5]
         result = idx.delete(loc)
-        expected = Int64Index([1, 2, 4])
+        expected = Index([1, 2, 4])
         tm.assert_index_equal(result, expected, exact=True)
 
         result = idx.delete(loc[::-1])
@@ -536,8 +536,8 @@ class TestRangeIndex(NumericBase):
             ([RI(2), RI(2, 5), RI(5, 8, 4)], RI(0, 6)),
             ([RI(2), RI(3, 5), RI(5, 8, 4)], I64([0, 1, 3, 4, 5])),
             ([RI(-2, 2), RI(2, 5), RI(5, 8, 4)], RI(-2, 6)),
-            ([RI(3), I64([-1, 3, 15])], I64([0, 1, 2, -1, 3, 15])),
-            ([RI(3), F64([-1, 3.1, 15.0])], F64([0, 1, 2, -1, 3.1, 15.0])),
+            ([RI(3), OI([-1, 3, 15])], OI([0, 1, 2, -1, 3, 15])),
+            ([RI(3), OI([-1, 3.1, 15.0])], OI([0, 1, 2, -1, 3.1, 15.0])),
             ([RI(3), OI(["a", None, 14])], OI([0, 1, 2, "a", None, 14])),
             ([RI(3, 1), OI(["a", None, 14])], OI(["a", None, 14])),
         ]

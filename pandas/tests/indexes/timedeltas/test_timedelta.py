@@ -14,7 +14,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import TimedeltaArray
-from pandas.core.indexes.api import Int64Index
 from pandas.tests.indexes.datetimelike import DatetimeLike
 
 randn = np.random.randn
@@ -56,7 +55,7 @@ class TestTimedeltaIndex(DatetimeLike):
 
         f = lambda x: x.days
         result = rng.map(f)
-        exp = Int64Index([f(x) for x in rng])
+        exp = Index([f(x) for x in rng], dtype=np.int32)
         tm.assert_index_equal(result, exp)
 
     def test_pass_TimedeltaIndex_to_index(self):
@@ -70,15 +69,16 @@ class TestTimedeltaIndex(DatetimeLike):
 
     def test_fields(self):
         rng = timedelta_range("1 days, 10:11:12.100123456", periods=2, freq="s")
-        tm.assert_index_equal(rng.days, Index([1, 1], dtype="int64"))
+        tm.assert_index_equal(rng.days, Index([1, 1], dtype=np.int32))
         tm.assert_index_equal(
             rng.seconds,
-            Index([10 * 3600 + 11 * 60 + 12, 10 * 3600 + 11 * 60 + 13], dtype="int64"),
+            Index([10 * 3600 + 11 * 60 + 12, 10 * 3600 + 11 * 60 + 13], dtype=np.int32),
         )
         tm.assert_index_equal(
-            rng.microseconds, Index([100 * 1000 + 123, 100 * 1000 + 123], dtype="int64")
+            rng.microseconds,
+            Index([100 * 1000 + 123, 100 * 1000 + 123], dtype=np.int32),
         )
-        tm.assert_index_equal(rng.nanoseconds, Index([456, 456], dtype="int64"))
+        tm.assert_index_equal(rng.nanoseconds, Index([456, 456], dtype=np.int32))
 
         msg = "'TimedeltaIndex' object has no attribute '{}'"
         with pytest.raises(AttributeError, match=msg.format("hours")):

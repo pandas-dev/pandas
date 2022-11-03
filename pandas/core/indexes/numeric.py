@@ -13,6 +13,7 @@ from pandas._libs import (
 )
 from pandas._typing import (
     Dtype,
+    DtypeObj,
     npt,
 )
 from pandas.util._decorators import (
@@ -347,7 +348,26 @@ _num_index_shared_docs[
 """
 
 
-class IntegerIndex(NumericIndex):
+class TempBaseIndex(NumericIndex):
+    @classmethod
+    def _dtype_to_subclass(cls, dtype: DtypeObj):
+        if is_integer_dtype(dtype):
+            from pandas.core.api import Int64Index
+
+            return Int64Index
+        elif is_unsigned_integer_dtype(dtype):
+            from pandas.core.api import UInt64Index
+
+            return UInt64Index
+        elif is_float_dtype(dtype):
+            from pandas.core.api import Float64Index
+
+            return Float64Index
+        else:
+            return super()._dtype_to_subclass(dtype)
+
+
+class IntegerIndex(TempBaseIndex):
     """
     This is an abstract class for Int64Index, UInt64Index.
     """
@@ -391,7 +411,7 @@ class UInt64Index(IntegerIndex):
         return libindex.UInt64Engine
 
 
-class Float64Index(NumericIndex):
+class Float64Index(TempBaseIndex):
     _index_descr_args = {
         "klass": "Float64Index",
         "dtype": "float64",

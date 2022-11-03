@@ -11203,7 +11203,7 @@ Parrot 2  Parrot       24.0
             )
         if method == "single":
             # error: Argument "qs" to "quantile" of "BlockManager" has incompatible type
-            # "Index"; expected "Float64Index"
+            # "Index"; expected "NumericIndex"
             res = data._mgr.quantile(
                 qs=q, axis=1, interpolation=interpolation  # type: ignore[arg-type]
             )
