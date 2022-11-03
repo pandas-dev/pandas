@@ -1781,7 +1781,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 )
 
         # GH11216
-        df = read_sql_query("select * from types", self.conn)
+        df = read_sql_table("types", self.conn)
         if not hasattr(df, "DateColWithTz"):
             request.node.add_marker(
                 pytest.mark.xfail(reason="no column with datetime with time zone")
@@ -1793,9 +1793,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         col = df.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
 
-        df = read_sql_query(
-            "select * from types", self.conn, parse_dates=["DateColWithTz"]
-        )
+        df = read_sql_table("types", self.conn, parse_dates=["DateColWithTz"])
         if not hasattr(df, "DateColWithTz"):
             request.node.add_marker(
                 pytest.mark.xfail(reason="no column with datetime with time zone")
@@ -1806,7 +1804,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         check(df.DateColWithTz)
 
         df = concat(
-            list(read_sql_query("select * from types", self.conn, chunksize=1)),
+            list(read_sql_table("types", self.conn, chunksize=1)),
             ignore_index=True,
         )
         col = df.DateColWithTz
