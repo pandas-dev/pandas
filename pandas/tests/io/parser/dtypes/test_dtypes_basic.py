@@ -437,7 +437,7 @@ def test_use_nullabla_dtypes_and_dtype(all_parsers):
 
 @td.skip_if_no("pyarrow")
 @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-def test_use_nullabla_dtypes_string(all_parsers, storage):
+def test_use_nullable_dtypes_string(all_parsers, storage):
     # GH#36712
     import pyarrow as pa
 

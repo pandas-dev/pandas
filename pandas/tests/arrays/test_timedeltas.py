@@ -173,8 +173,7 @@ class TestNonNano:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_add_timedeltaarraylike(self, tda):
-        # TODO(2.0): just do `tda_nano = tda.astype("m8[ns]")`
-        tda_nano = TimedeltaArray(tda._ndarray.astype("m8[ns]"))
+        tda_nano = tda.astype("m8[ns]")
 
         expected = tda_nano * 2
         res = tda_nano + tda
