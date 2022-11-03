@@ -15,7 +15,6 @@ from typing import (
     cast,
     overload,
 )
-from warnings import warn
 
 import numpy as np
 
@@ -40,7 +39,6 @@ from pandas._typing import (
     type_t,
 )
 from pandas.compat.numpy import function as nv
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -384,13 +382,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if not is_list_like(values):
             # GH#38433
-            warn(
-                "Allowing scalars in the Categorical constructor is deprecated "
-                "and will raise in a future version.  Use `[value]` instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            values = [values]
+            raise TypeError("Categorical input must be list-like")
 
         # null_mask indicates missing values we want to exclude from inference.
         # This means: only missing values in list-likes (not arrays/ndframes).

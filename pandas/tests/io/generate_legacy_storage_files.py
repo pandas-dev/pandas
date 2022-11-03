@@ -324,7 +324,7 @@ def write_legacy_file():
     sys.path.insert(0, ".")
 
     if not 3 <= len(sys.argv) <= 4:
-        exit(
+        sys.exit(
             "Specify output directory and storage type: generate_legacy_"
             "storage_files.py <output_dir> <storage_type> "
         )
@@ -335,7 +335,7 @@ def write_legacy_file():
     if storage_type == "pickle":
         write_legacy_pickles(output_dir=output_dir)
     else:
-        exit("storage_type must be one of {'pickle'}")
+        sys.exit("storage_type must be one of {'pickle'}")
 
 
 if __name__ == "__main__":
