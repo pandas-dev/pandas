@@ -734,8 +734,6 @@ class TestMerge:
 
         if unit in ["D", "h", "m"]:
             # not supported so we cast to the nearest supported unit, seconds
-            # TODO(2.0): cast to nearest (second) instead of ns
-            # coerces to datetime64[ns], thus should not be affected
             exp_dtype = "datetime64[s]"
         else:
             exp_dtype = dtype
@@ -1255,7 +1253,18 @@ class TestMerge:
             merge(left_w_dups, right_w_dups, on="a", validate="one_to_many")
 
         # Check invalid arguments
-        msg = "Not a valid argument for validate"
+        msg = (
+            '"jibberish" is not a valid argument. '
+            "Valid arguments are:\n"
+            '- "1:1"\n'
+            '- "1:m"\n'
+            '- "m:1"\n'
+            '- "m:m"\n'
+            '- "one_to_one"\n'
+            '- "one_to_many"\n'
+            '- "many_to_one"\n'
+            '- "many_to_many"'
+        )
         with pytest.raises(ValueError, match=msg):
             merge(left, right, on="a", validate="jibberish")
 
@@ -2207,6 +2216,7 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
 
 def test_merge_series_multilevel():
     # GH#47946
+    # GH 40993: For raising, enforced in 2.0
     a = DataFrame(
         {"A": [1, 2, 3, 4]},
         index=MultiIndex.from_product([["a", "b"], [0, 1]], names=["outer", "inner"]),
@@ -2216,13 +2226,10 @@ def test_merge_series_multilevel():
         index=MultiIndex.from_product([["a", "b"], [1, 2]], names=["outer", "inner"]),
         name=("B", "C"),
     )
-    expected = DataFrame(
-        {"A": [2, 4], ("B", "C"): [1, 3]},
-        index=MultiIndex.from_product([["a", "b"], [1]], names=["outer", "inner"]),
-    )
-    with tm.assert_produces_warning(FutureWarning):
-        result = merge(a, b, on=["outer", "inner"])
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(
+        MergeError, match="Not allowed to merge between different levels"
+    ):
+        merge(a, b, on=["outer", "inner"])
 
 
 @pytest.mark.parametrize(
@@ -2303,12 +2310,12 @@ def test_merge_suffix_error(col1, col2, suffixes):
 
 
 @pytest.mark.parametrize("suffixes", [{"left", "right"}, {"left": 0, "right": 0}])
-def test_merge_suffix_warns(suffixes):
+def test_merge_suffix_raises(suffixes):
     a = DataFrame({"a": [1, 2, 3]})
     b = DataFrame({"b": [3, 4, 5]})
 
-    with tm.assert_produces_warning(FutureWarning):
-        merge(a, b, left_index=True, right_index=True, suffixes={"left", "right"})
+    with pytest.raises(TypeError, match="Passing 'suffixes' as a"):
+        merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 
 
 @pytest.mark.parametrize(
@@ -2609,20 +2616,16 @@ def test_merge_result_empty_index_and_on():
     tm.assert_frame_equal(result, expected)
 
 
-def test_merge_suffixes_produce_dup_columns_warns():
-    # GH#22818
+def test_merge_suffixes_produce_dup_columns_raises():
+    # GH#22818; Enforced in 2.0
     left = DataFrame({"a": [1, 2, 3], "b": 1, "b_x": 2})
     right = DataFrame({"a": [1, 2, 3], "b": 2})
-    expected = DataFrame(
-        [[1, 1, 2, 2], [2, 1, 2, 2], [3, 1, 2, 2]], columns=["a", "b_x", "b_x", "b_y"]
-    )
-    with tm.assert_produces_warning(FutureWarning):
-        result = merge(left, right, on="a")
-    tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(MergeError, match="Passing 'suffixes' which cause duplicate"):
+        merge(left, right, on="a")
+
+    with pytest.raises(MergeError, match="Passing 'suffixes' which cause duplicate"):
         merge(right, left, on="a", suffixes=("_y", "_x"))
-    tm.assert_frame_equal(result, expected)
 
 
 def test_merge_duplicate_columns_with_suffix_no_warning():
@@ -2635,15 +2638,13 @@ def test_merge_duplicate_columns_with_suffix_no_warning():
     tm.assert_frame_equal(result, expected)
 
 
-def test_merge_duplicate_columns_with_suffix_causing_another_duplicate():
-    # GH#22818
+def test_merge_duplicate_columns_with_suffix_causing_another_duplicate_raises():
+    # GH#22818, Enforced in 2.0
     # This should raise warning because suffixes cause another collision
     left = DataFrame([[1, 1, 1, 1], [2, 2, 2, 2]], columns=["a", "b", "b", "b_x"])
     right = DataFrame({"a": [1, 3], "b": 2})
-    with tm.assert_produces_warning(FutureWarning):
-        result = merge(left, right, on="a")
-    expected = DataFrame([[1, 1, 1, 1, 2]], columns=["a", "b_x", "b_x", "b_x", "b_y"])
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(MergeError, match="Passing 'suffixes' which cause duplicate"):
+        merge(left, right, on="a")
 
 
 def test_merge_string_float_column_result():

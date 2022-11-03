@@ -2902,7 +2902,7 @@ class Styler(StylerRenderer):
         return self.applymap(lambda x: values, subset=subset)
 
     @Substitution(subset=subset)
-    def bar(
+    def bar(  # pylint: disable=disallowed-name
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,
@@ -3610,7 +3610,7 @@ def _background_gradient(
             if cmap is None:
                 rgbas = mpl.colormaps[mpl.rcParams["image.cmap"]](norm(gmap))
             else:
-                rgbas = mpl.colormaps[cmap](norm(gmap))
+                rgbas = mpl.colormaps.get_cmap(cmap)(norm(gmap))
         else:
             rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
 
