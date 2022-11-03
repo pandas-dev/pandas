@@ -1248,6 +1248,12 @@ class Timestamp(_Timestamp):
     nanosecond : int, optional, default 0
     freq : str, DateOffset
         Offset which Timestamp will have.
+
+        .. deprecated:: 1.3.0
+
+           The freq parameter of a Timestamp is deprecated and will be
+           removed in a future version.
+
     tz : str, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : str
@@ -1311,6 +1317,12 @@ class Timestamp(_Timestamp):
             Date corresponding to a proleptic Gregorian ordinal.
         freq : str, DateOffset
             Offset to apply to the Timestamp.
+
+            .. deprecated:: 1.3.0
+
+               The freq parameter of a Timestamp is deprecated and will be
+               removed in a future version.
+
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
 
