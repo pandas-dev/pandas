@@ -79,7 +79,6 @@ disable = [
 
  # pylint type "C": convention, for programming standard violation
   "consider-using-f-string",
-  "disallowed-name",
   "import-outside-toplevel",
   "invalid-name",
   "line-too-long",

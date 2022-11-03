@@ -1516,10 +1516,10 @@ def test_aggregation_func_column_order():
         columns=("att1", "att2", "att3"),
     )
 
-    def foo(s):
+    def sum_div2(s):
         return s.sum() / 2
 
-    aggs = ["sum", foo, "count", "min"]
+    aggs = ["sum", sum_div2, "count", "min"]
     result = df.agg(aggs)
     expected = DataFrame(
         {
@@ -1527,7 +1527,7 @@ def test_aggregation_func_column_order():
             "att2": [18.0, 9.0, 6.0, 0.0],
             "att3": [17.0, 8.5, 6.0, 0.0],
         },
-        index=["sum", "foo", "count", "min"],
+        index=["sum", "sum_div2", "count", "min"],
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1548,13 +1548,13 @@ def test_nuisance_depr_passes_through_warnings():
     # sure if some other warnings were raised, they get passed through to
     # the user.
 
-    def foo(x):
+    def expected_warning(x):
         warnings.warn("Hello, World!")
         return x.sum()
 
     df = DataFrame({"a": [1, 2, 3]})
     with tm.assert_produces_warning(UserWarning, match="Hello, World!"):
-        df.agg([foo])
+        df.agg([expected_warning])
 
 
 def test_apply_type():
