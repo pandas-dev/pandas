@@ -96,9 +96,7 @@ class ArrowParserWrapper(ParserBase):
         multi_index_named = True
         if self.header is None:
             if self.names is None:
-                if self.prefix is not None:
-                    self.names = [f"{self.prefix}{i}" for i in range(num_cols)]
-                elif self.header is None:
+                if self.header is None:
                     self.names = range(num_cols)
             if len(self.names) != num_cols:
                 # usecols is passed through to pyarrow, we only handle index col here
