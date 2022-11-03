@@ -392,18 +392,16 @@ class TestFillNA:
         tm.assert_frame_equal(result, expected)
 
     def test_ffill(self, datetime_frame):
-        idx = datetime_frame.index
-        datetime_frame.loc[: idx[4], "A"] = np.nan
-        datetime_frame.loc[idx[-5] :, "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
 
         tm.assert_frame_equal(
             datetime_frame.ffill(), datetime_frame.fillna(method="ffill")
         )
 
     def test_bfill(self, datetime_frame):
-        idx = datetime_frame.index
-        datetime_frame.loc[: idx[4], "A"] = np.nan
-        datetime_frame.loc[idx[-5] :, "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
 
         tm.assert_frame_equal(
             datetime_frame.bfill(), datetime_frame.fillna(method="bfill")

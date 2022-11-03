@@ -29,9 +29,8 @@ def mix_abc() -> dict[str, list[float | str]]:
 
 class TestDataFrameReplace:
     def test_replace_inplace(self, datetime_frame, float_string_frame):
-        idx = datetime_frame.index
-        datetime_frame.loc[: idx[4], "A"] = np.nan
-        datetime_frame.loc[idx[-5] :, "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
 
         tsframe = datetime_frame.copy()
         return_value = tsframe.replace(np.nan, 0, inplace=True)
@@ -421,17 +420,16 @@ class TestDataFrameReplace:
         tm.assert_equal(result, expected)
 
     def test_replace(self, datetime_frame):
-        idx = datetime_frame.index
-        datetime_frame.loc[: idx[4], "A"] = np.nan
-        datetime_frame.loc[idx[-5] :, "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
 
         zero_filled = datetime_frame.replace(np.nan, -1e8)
         tm.assert_frame_equal(zero_filled, datetime_frame.fillna(-1e8))
         tm.assert_frame_equal(zero_filled.replace(-1e8, np.nan), datetime_frame)
 
-        datetime_frame.loc[: idx[4], "A"] = np.nan
-        datetime_frame.loc[idx[-5] :, "A"] = np.nan
-        datetime_frame.loc[: idx[4], "B"] = -1e8
+        datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
+        datetime_frame.loc[datetime_frame.index[:5], "B"] = -1e8
 
         # empty
         df = DataFrame(index=["a", "b"])
@@ -718,17 +716,16 @@ class TestDataFrameReplace:
 
         # dtypes
         tsframe = datetime_frame.copy().astype(np.float32)
-        idx = tsframe.index
-        tsframe.loc[: idx[4], "A"] = np.nan
-        tsframe.loc[idx[-5] :, "A"] = np.nan
+        tsframe.loc[tsframe.index[:5], "A"] = np.nan
+        tsframe.loc[tsframe.index[-5:], "A"] = np.nan
 
         zero_filled = tsframe.replace(np.nan, -1e8)
         tm.assert_frame_equal(zero_filled, tsframe.fillna(-1e8))
         tm.assert_frame_equal(zero_filled.replace(-1e8, np.nan), tsframe)
 
-        tsframe.loc[: idx[4], "A"] = np.nan
-        tsframe.loc[idx[-5] :, "A"] = np.nan
-        tsframe.loc[: idx[4], "B"] = -1e8
+        tsframe.loc[tsframe.index[:5], "A"] = np.nan
+        tsframe.loc[tsframe.index[-5:], "A"] = np.nan
+        tsframe.loc[tsframe.index[:5], "B"] = -1e8
 
         b = tsframe["B"]
         b[b == -1e8] = np.nan
