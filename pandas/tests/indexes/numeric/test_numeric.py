@@ -471,6 +471,20 @@ class TestIntNumericIndex(NumericInt):
         assert type(arr) is Index
 
 
+class TestFloat16Index:
+    # float 16 indexes not supported
+    # GH 49535
+    def test_array(self):
+        arr = np.array([1, 2, 3], dtype=np.float16)
+        result = NumericIndex(arr)
+
+        expected = NumericIndex([1, 2, 3], dtype=np.float32)
+        tm.assert_index_equal(result, expected, check_exact=True)
+
+        result = NumericIndex([1, 2, 3], dtype=np.float16)
+        tm.assert_index_equal(result, expected, check_exact=True)
+
+
 class TestUIntNumericIndex(NumericInt):
 
     _index_cls = NumericIndex
