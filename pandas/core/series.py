@@ -67,7 +67,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -4925,7 +4924,6 @@ Keep all original rows and also all original values
         else:
             return self._set_name(index, inplace=inplace)
 
-    # error: Signature of "set_axis" incompatible with supertype "NDFrame"
     @Appender(
         """
         Examples
@@ -5022,12 +5020,10 @@ Keep all original rows and also all original values
     ) -> Series | None:
         ...
 
-    # error: Signature of "drop" incompatible with supertype "NDFrame"
-    # github.com/python/mypy/issues/12387
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
-    def drop(  # type: ignore[override]
+    def drop(
         self,
         labels: IndexLabel = None,
+        *,
         axis: Axis = 0,
         index: IndexLabel = None,
         columns: IndexLabel = None,
@@ -5171,11 +5167,11 @@ Keep all original rows and also all original values
         ...
 
     #  error: Signature of "fillna" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(  # type: ignore[override]
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
+        *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,

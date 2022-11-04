@@ -418,7 +418,9 @@ cdef parse_datetime_string_with_reso(
             from pandas import Timestamp
             parsed = Timestamp(date_string)
         else:
-            parsed = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us)
+            parsed = datetime(
+                dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us
+            )
         reso = {
             NPY_DATETIMEUNIT.NPY_FR_Y: "year",
             NPY_DATETIMEUNIT.NPY_FR_M: "month",
@@ -717,7 +719,8 @@ def try_parse_dates(
             date = datetime.now()
             default = datetime(date.year, date.month, 1)
 
-        parse_date = lambda x: du_parse(x, dayfirst=dayfirst, default=default)
+        def parse_date(x):
+            return du_parse(x, dayfirst=dayfirst, default=default)
 
         # EAFP here
         try:
@@ -1050,6 +1053,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     else:
         return None
 
+
 cdef str _fill_token(token: str, padding: int):
     cdef str token_filled
     if '.' not in token:
@@ -1063,6 +1067,7 @@ cdef str _fill_token(token: str, padding: int):
         nanoseconds = nanoseconds.ljust(9, '0')[:6]
         token_filled = f'{seconds}.{nanoseconds}'
     return token_filled
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

@@ -248,6 +248,7 @@ Other API changes
 - :func:`pandas.api.dtypes.is_string_dtype` now only returns ``True`` for array-likes with ``dtype=object`` when the elements are inferred to be strings (:issue:`15585`)
 - Passing a sequence containing ``datetime`` objects and ``date`` objects to :class:`Series` constructor will return with ``object`` dtype instead of ``datetime64[ns]`` dtype, consistent with :class:`Index` behavior (:issue:`49341`)
 - Passing strings that cannot be parsed as datetimes to :class:`Series` or :class:`DataFrame` with ``dtype="datetime64[ns]"`` will raise instead of silently ignoring the keyword and returning ``object`` dtype (:issue:`24435`)
+- Passing a sequence containing a type that cannot be converted to :class:`Timedelta` to :func:`to_timedelta` or to the :class:`Series` or :class:`DataFrame` constructor with ``dtype="timedelta64[ns]"`` or to :class:`TimedeltaIndex` now raises ``TypeError`` instead of ``ValueError`` (:issue:`49525`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -263,6 +264,7 @@ Deprecations
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Removed deprecated :attr:`Timestamp.freq`, :attr:`Timestamp.freqstr` and argument ``freq`` from the :class:`Timestamp` constructor and :meth:`Timestamp.fromordinal` (:issue:`14146`)
 - Removed deprecated :class:`CategoricalBlock`, :meth:`Block.is_categorical`, require datetime64 and timedelta64 values to be wrapped in :class:`DatetimeArray` or :class:`TimedeltaArray` before passing to :meth:`Block.make_block_same_class`, require ``DatetimeTZBlock.values`` to have the correct ndim when passing to the :class:`BlockManager` constructor, and removed the "fastpath" keyword from the :class:`SingleBlockManager` constructor (:issue:`40226`, :issue:`40571`)
 - Removed deprecated module ``pandas.core.index`` (:issue:`30193`)
 - Removed deprecated alias ``pandas.core.tools.datetimes.to_time``, import the function directly from ``pandas.core.tools.times`` instead (:issue:`34145`)
@@ -306,6 +308,8 @@ Removal of prior version deprecations/changes
 - Removed ``keep_tz`` argument in :meth:`DatetimeIndex.to_series` (:issue:`29731`)
 - Remove arguments ``names`` and ``dtype`` from :meth:`Index.copy` and ``levels`` and ``codes`` from :meth:`MultiIndex.copy` (:issue:`35853`, :issue:`36685`)
 - Remove argument ``inplace`` from :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` (:issue:`35626`)
+- Removed arguments ``verbose`` and ``encoding`` from :meth:`DataFrame.to_excel` and :meth:`Series.to_excel` (:issue:`47912`)
+- Removed argument ``line_terminator`` from :meth:`DataFrame.to_csv` and :meth:`Series.to_csv`, use ``lineterminator`` instead (:issue:`45302`)
 - Removed argument ``inplace`` from :meth:`DataFrame.set_axis` and :meth:`Series.set_axis`, use ``obj = obj.set_axis(..., copy=False)`` instead (:issue:`48130`)
 - Disallow passing positional arguments to :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` (:issue:`41485`)
 - Removed :meth:`MultiIndex.is_lexsorted` and :meth:`MultiIndex.lexsort_depth` (:issue:`38701`)
@@ -323,6 +327,8 @@ Removal of prior version deprecations/changes
 - Remove keywords ``convert_float`` and ``mangle_dupe_cols`` from :func:`read_excel` (:issue:`41176`)
 - Removed ``errors`` keyword from :meth:`DataFrame.where`, :meth:`Series.where`, :meth:`DataFrame.mask` and :meth:`Series.mask` (:issue:`47728`)
 - Disallow passing non-keyword arguments to :func:`read_excel` except ``io`` and ``sheet_name`` (:issue:`34418`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.drop` and :meth:`Series.drop` except ``labels`` (:issue:`41486`)
+- Disallow passing non-keyword arguments to :meth:`DataFrame.fillna` and :meth:`Series.fillna` except ``value`` (:issue:`41485`)
 - Disallow passing non-keyword arguments to :meth:`StringMethods.split` and :meth:`StringMethods.rsplit` except for ``pat`` (:issue:`47448`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.set_index` except ``keys`` (:issue:`41495`)
 - Disallow passing non-keyword arguments to :meth:`Resampler.interpolate` except ``method`` (:issue:`41699`)
@@ -396,6 +402,7 @@ Removal of prior version deprecations/changes
 - Enforced disallowing ``dict`` or ``set`` objects in ``suffixes`` in :func:`merge` (:issue:`34810`)
 - Enforced disallowing :func:`merge` to produce duplicated columns through the ``suffixes`` keyword and already existing columns (:issue:`22818`)
 - Enforced disallowing using :func:`merge` or :func:`join` on a different number of levels (:issue:`34862`)
+- Enforced disallowing ``value_name`` argument in :func:`DataFrame.melt` to match an element in the :class:`DataFrame` columns (:issue:`35003`)
 - Removed setting Categorical._codes directly (:issue:`41429`)
 - Removed setting Categorical.categories directly (:issue:`47834`)
 - Removed argument ``inplace`` from :meth:`Categorical.add_categories`, :meth:`Categorical.remove_categories`, :meth:`Categorical.set_categories`, :meth:`Categorical.rename_categories`, :meth:`Categorical.reorder_categories`, :meth:`Categorical.set_ordered`, :meth:`Categorical.as_ordered`, :meth:`Categorical.as_unordered` (:issue:`37981`, :issue:`41118`, :issue:`41133`, :issue:`47834`)
@@ -421,6 +428,7 @@ Removal of prior version deprecations/changes
 - Changed behavior of setitem-like operations (``__setitem__``, ``fillna``, ``where``, ``mask``, ``replace``, ``insert``, fill_value for ``shift``) on an object with :class:`DatetimeTZDtype` when using a value with a non-matching timezone, the value will be cast to the object's timezone instead of casting both to object-dtype (:issue:`44243`)
 - Changed behavior of :class:`Index`, :class:`Series`, :class:`DataFrame` constructors with floating-dtype data and a :class:`DatetimeTZDtype`, the data are now interpreted as UTC-times instead of wall-times, consistent with how integer-dtype data are treated (:issue:`45573`)
 - Removed the deprecated ``base`` and ``loffset`` arguments from :meth:`pandas.DataFrame.resample`, :meth:`pandas.Series.resample` and :class:`pandas.Grouper`. Use ``offset`` or ``origin`` instead (:issue:`31809`)
+- Changed behavior of :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtype and an incompatible ``fill_value``; this now casts to ``object`` dtype instead of raising, consistent with the behavior with other dtypes (:issue:`45746`)
 - Change the default argument of ``regex`` for :meth:`Series.str.replace` from ``True`` to ``False``. Additionally, a single character ``pat`` with ``regex=True`` is now treated as a regular expression instead of a string literal. (:issue:`36695`, :issue:`24804`)
 - Changed behavior of :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``; object-dtype columns with all-bool values will no longer be included, manually cast to ``bool`` dtype first (:issue:`46188`)
 - Changed behavior of comparison of a :class:`Timestamp` with a ``datetime.date`` object; these now compare as un-equal and raise on inequality comparisons, matching the ``datetime.datetime`` behavior (:issue:`36131`)

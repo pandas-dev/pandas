@@ -479,6 +479,6 @@ def test_getitem_str_second_with_datetimeindex():
     with pytest.raises(KeyError, match=r"^'2012-01-02 18:01:02'$"):
         df["2012-01-02 18:01:02"]
 
-    msg = r"Timestamp\('2012-01-02 18:01:02-0600', tz='US/Central', freq='S'\)"
+    msg = r"Timestamp\('2012-01-02 18:01:02-0600', tz='US/Central'\)"
     with pytest.raises(KeyError, match=msg):
         df[df.index[2]]
