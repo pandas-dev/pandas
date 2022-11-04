@@ -2625,7 +2625,9 @@ def need_slice(obj: slice) -> bool:
 
 
 def check_dict_or_set_indexers(key) -> None:
-    """Checks if the key is a deprecated indexer."""
+    """
+    Check if the indexer is or contains a dict or set, which is no longer allowed.
+    """
     if (
         isinstance(key, set)
         or isinstance(key, tuple)

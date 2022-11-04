@@ -1716,7 +1716,7 @@ class TestDeprecatedIndexers:
         "key", [{1}, {1: 1}, ({1}, "a"), ({1: 1}, "a"), (1, {"a"}), (1, {"a": "a"})]
     )
     def test_getitem_dict_and_set_deprecated(self, key):
-        # GH#42825 enforced in 2.0 enforced in 2.0
+        # GH#42825 enforced in 2.0
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key]
