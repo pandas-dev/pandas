@@ -151,17 +151,10 @@ class TestSeriesFillNA:
         )
         tm.assert_series_equal(result, expected)
 
-        # where (we ignore the errors=)
-        with tm.assert_produces_warning(FutureWarning, match="the 'errors' keyword"):
-            result = ser.where(
-                [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
-            )
+        result = ser.where([True, False], Timestamp("20130101", tz="US/Eastern"))
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match="the 'errors' keyword"):
-            result = ser.where(
-                [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
-            )
+        result = ser.where([True, False], Timestamp("20130101", tz="US/Eastern"))
         tm.assert_series_equal(result, expected)
 
         # with a non-datetime
@@ -566,14 +559,15 @@ class TestSeriesFillNA:
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
-            result = ser.fillna(Timestamp("20130101", tz="US/Pacific"))
+        # pre-2.0 fillna with mixed tzs would cast to object, in 2.0
+        #  it retains dtype.
+        result = ser.fillna(Timestamp("20130101", tz="US/Pacific"))
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00", tz=tz),
-                Timestamp("2013-01-01", tz="US/Pacific"),
+                Timestamp("2013-01-01", tz="US/Pacific").tz_convert(tz),
                 Timestamp("2011-01-03 10:00", tz=tz),
-                Timestamp("2013-01-01", tz="US/Pacific"),
+                Timestamp("2013-01-01", tz="US/Pacific").tz_convert(tz),
             ]
         )
         tm.assert_series_equal(expected, result)
@@ -824,18 +818,15 @@ class TestSeriesFillNA:
         result = ser.fillna(datetime(2020, 1, 2, tzinfo=timezone.utc))
         tm.assert_series_equal(result, expected)
 
-        # but we dont (yet) consider distinct tzinfos for non-UTC tz equivalent
+        # pre-2.0 we cast to object with mixed tzs, in 2.0 we retain dtype
         ts = Timestamp("2000-01-01", tz="US/Pacific")
         ser2 = Series(ser._values.tz_convert("dateutil/US/Pacific"))
         assert ser2.dtype.kind == "M"
-        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
-            result = ser2.fillna(ts)
-        expected = Series([ser[0], ts, ser[2]], dtype=object)
-        # TODO(2.0): once deprecation is enforced
-        # expected = Series(
-        #    [ser2[0], ts.tz_convert(ser2.dtype.tz), ser2[2]],
-        #    dtype=ser2.dtype,
-        # )
+        result = ser2.fillna(ts)
+        expected = Series(
+            [ser2[0], ts.tz_convert(ser2.dtype.tz), ser2[2]],
+            dtype=ser2.dtype,
+        )
         tm.assert_series_equal(result, expected)
 
     def test_fillna_pos_args_deprecation(self):

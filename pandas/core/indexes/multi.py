@@ -1738,17 +1738,6 @@ class MultiIndex(Index):
         """
         from pandas import DataFrame
 
-        if name is None:
-            warnings.warn(
-                "Explicitly passing `name=None` currently preserves the Index's name "
-                "or uses a default name of 0. This behaviour is deprecated, and in "
-                "the future `None` will be used as the name of the resulting "
-                "DataFrame column.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            name = lib.no_default
-
         if name is not lib.no_default:
             if not is_list_like(name):
                 raise TypeError("'name' must be a list / sequence of column names.")
@@ -2031,7 +2020,7 @@ class MultiIndex(Index):
 
     def __getitem__(self, key):
         if is_scalar(key):
-            key = com.cast_scalar_indexer(key, warn_float=True)
+            key = com.cast_scalar_indexer(key)
 
             retval = []
             for lev, level_codes in zip(self.levels, self.codes):
@@ -2538,26 +2527,6 @@ class MultiIndex(Index):
         """
         # GH#33355
         return self.levels[0]._should_fallback_to_positional
-
-    def _get_values_for_loc(self, series: Series, loc, key):
-        """
-        Do a positional lookup on the given Series, returning either a scalar
-        or a Series.
-
-        Assumes that `series.index is self`
-        """
-        new_values = series._values[loc]
-        if is_scalar(loc):
-            return new_values
-
-        if len(new_values) == 1 and not self.nlevels > 1:
-            # If more than one level left, we can not return a scalar
-            return new_values[0]
-
-        new_index = self[loc]
-        new_index = maybe_droplevels(new_index, key)
-        new_ser = series._constructor(new_values, index=new_index, name=series.name)
-        return new_ser.__finalize__(series)
 
     def _get_indexer_strict(
         self, key, axis_name: str
@@ -3069,10 +3038,10 @@ class MultiIndex(Index):
                             ):
                                 # everything
                                 continue
-                            else:
-                                # e.g. test_xs_IndexSlice_argument_not_implemented
-                                k_index = np.zeros(len(self), dtype=bool)
-                                k_index[loc_level] = True
+
+                            # e.g. test_xs_IndexSlice_argument_not_implemented
+                            k_index = np.zeros(len(self), dtype=bool)
+                            k_index[loc_level] = True
 
                         else:
                             k_index = loc_level
@@ -3610,7 +3579,6 @@ class MultiIndex(Index):
                         RuntimeWarning,
                         stacklevel=find_stack_level(),
                     )
-                    pass
             return result
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:

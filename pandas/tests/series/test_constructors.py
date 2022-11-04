@@ -52,6 +52,20 @@ from pandas.core.internals.blocks import NumericBlock
 
 
 class TestSeriesConstructors:
+    def test_infer_with_date_and_datetime(self):
+        # GH#49341 pre-2.0 we inferred datetime-and-date to datetime64, which
+        #  was inconsistent with Index behavior
+        ts = Timestamp(2016, 1, 1)
+        vals = [ts.to_pydatetime(), ts.date()]
+
+        ser = Series(vals)
+        expected = Series(vals, dtype=object)
+        tm.assert_series_equal(ser, expected)
+
+        idx = Index(vals)
+        expected = Index(vals, dtype=object)
+        tm.assert_index_equal(idx, expected)
+
     def test_unparseable_strings_with_dt64_dtype(self):
         # pre-2.0 these would be silently ignored and come back with object dtype
         vals = ["aa"]
@@ -1965,8 +1979,6 @@ class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
-        with tm.assert_produces_warning(FutureWarning):
-            assert ser.index.is_all_dates
         # as of 2.0, we no longer silently cast the object-dtype index
         #  to DatetimeIndex GH#39307, GH#23598
         assert not isinstance(ser.index, DatetimeIndex)
