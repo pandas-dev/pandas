@@ -80,7 +80,6 @@ disable = [
   "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
-  "consider-using-f-string",
   "import-outside-toplevel",
   "invalid-name",
   "line-too-long",
