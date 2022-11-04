@@ -63,6 +63,8 @@ repos:
     rev: v2.15.5
     hooks:
     -   id: pylint
+        language: system
+        stages: [manual]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
