@@ -1097,11 +1097,12 @@ class TestDataFrameSelectReindex:
                 df2.reindex(["a", "b"])
 
         # args NotImplemented ATM
-        msg = "method pad not yet implemented for CategoricalIndex"
-        with pytest.raises(NotImplementedError, match=msg):
+        msg = r"argument {} is not implemented for CategoricalIndex\.reindex"
+        with pytest.raises(NotImplementedError, match=msg.format("method")):
             df.reindex(["a"], method="ffill")
-        msg = "limit argument only valid if doing pad, backfill or nearest reindexing"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(NotImplementedError, match=msg.format("level")):
+            df.reindex(["a"], level=1)
+        with pytest.raises(NotImplementedError, match=msg.format("limit")):
             df.reindex(["a"], limit=2)
 
     def test_reindex_signature(self):
