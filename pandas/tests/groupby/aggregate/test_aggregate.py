@@ -308,8 +308,7 @@ def test_wrap_agg_out(three_group):
     def func(ser):
         if ser.dtype == object:
             raise TypeError
-        else:
-            return ser.sum()
+        return ser.sum()
 
     with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
         result = grouped.aggregate(func)

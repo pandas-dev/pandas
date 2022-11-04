@@ -658,8 +658,7 @@ class ExcelFormatter:
                         f"Writing {len(self.columns)} cols "
                         f"but got {len(self.header)} aliases"
                     )
-                else:
-                    colnames = self.header
+                colnames = self.header
 
             for colindex, colname in enumerate(colnames):
                 yield CssExcelCell(

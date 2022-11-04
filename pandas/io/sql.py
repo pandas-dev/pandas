@@ -751,8 +751,7 @@ def pandasSQL_builder(con, schema: str | None = None) -> SQLDatabase | SQLiteDat
     if isinstance(con, str):
         if sqlalchemy is None:
             raise ImportError("Using URI string without sqlalchemy installed.")
-        else:
-            con = sqlalchemy.create_engine(con)
+        con = sqlalchemy.create_engine(con)
 
     if sqlalchemy is not None and isinstance(con, sqlalchemy.engine.Connectable):
         return SQLDatabase(con, schema=schema)
@@ -828,7 +827,7 @@ class SQLTable(PandasObject):
         if self.exists():
             if self.if_exists == "fail":
                 raise ValueError(f"Table '{self.name}' already exists.")
-            elif self.if_exists == "replace":
+            if self.if_exists == "replace":
                 self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
             elif self.if_exists == "append":
@@ -1038,8 +1037,7 @@ class SQLTable(PandasObject):
                         "Length of 'index_label' should match number of "
                         f"levels, which is {nlevels}"
                     )
-                else:
-                    return index_label
+                return index_label
             # return the used column labels for the index columns
             if (
                 nlevels == 1
@@ -1332,8 +1330,7 @@ class SQLAlchemyEngine(BaseEngine):
             err_text = str(err.orig)
             if re.search(msg, err_text):
                 raise ValueError("inf cannot be used with MySQL") from err
-            else:
-                raise err
+            raise err
 
 
 def get_engine(engine: str) -> BaseEngine:
@@ -1362,7 +1359,7 @@ def get_engine(engine: str) -> BaseEngine:
             f"{error_msgs}"
         )
 
-    elif engine == "sqlalchemy":
+    if engine == "sqlalchemy":
         return SQLAlchemyEngine()
 
     raise ValueError("engine must be one of 'auto', 'sqlalchemy'")

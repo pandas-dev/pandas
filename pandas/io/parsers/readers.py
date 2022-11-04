@@ -1274,7 +1274,7 @@ def read_fwf(
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
-    elif colspecs not in (None, "infer") and widths is not None:
+    if colspecs not in (None, "infer") and widths is not None:
         raise ValueError("You must specify only one of 'widths' and 'colspecs'")
 
     # Compute 'colspecs' from 'widths', if specified.
@@ -1391,11 +1391,10 @@ class TextFileReader(abc.Iterator):
                     f"The {repr(argname)} option is not supported with the "
                     f"'pyarrow' engine"
                 )
-            elif argname == "mangle_dupe_cols" and value is False:
+            if argname == "mangle_dupe_cols" and value is False:
                 # GH12935
                 raise ValueError("Setting mangle_dupe_cols=False is not supported yet")
-            else:
-                options[argname] = value
+            options[argname] = value
 
         for argname, default in _c_parser_defaults.items():
             if argname in kwds:

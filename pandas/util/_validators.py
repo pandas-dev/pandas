@@ -386,7 +386,7 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = Tru
 
     if value is None and method is None:
         raise ValueError("Must specify a fill 'value' or 'method'.")
-    elif value is None and method is not None:
+    if value is None and method is not None:
         method = clean_fill_method(method)
 
     elif value is not None and method is None:

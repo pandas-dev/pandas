@@ -1392,8 +1392,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             ext = ext[1:]
         if not any(ext in extension for extension in cls._supported_extensions):
             raise ValueError(f"Invalid extension for engine '{cls.engine}': '{ext}'")
-        else:
-            return True
+        return True
 
     # Allow use as a contextmanager
     def __enter__(self) -> ExcelWriter:
@@ -1462,9 +1461,8 @@ def inspect_excel_format(
         buf = stream.read(PEEK_SIZE)
         if buf is None:
             raise ValueError("stream is empty")
-        else:
-            assert isinstance(buf, bytes)
-            peek = buf
+        assert isinstance(buf, bytes)
+        peek = buf
         stream.seek(0)
 
         if any(peek.startswith(sig) for sig in XLS_SIGNATURES):

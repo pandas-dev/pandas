@@ -259,8 +259,7 @@ class DocBuilder:
                     "You should check the file "
                     '"build/latex/pandas.pdf" for problems.'
                 )
-            else:
-                self._run_os("make")
+            self._run_os("make")
             return ret_code
 
     def latex_forced(self):

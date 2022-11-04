@@ -171,9 +171,9 @@ class BaseWindow(SelectionMixin):
         if self.min_periods is not None:
             if not is_integer(self.min_periods):
                 raise ValueError("min_periods must be an integer")
-            elif self.min_periods < 0:
+            if self.min_periods < 0:
                 raise ValueError("min_periods must be >= 0")
-            elif is_integer(self.window) and self.min_periods > self.window:
+            if is_integer(self.window) and self.min_periods > self.window:
                 raise ValueError(
                     f"min_periods {self.min_periods} must be <= window {self.window}"
                 )
@@ -205,7 +205,7 @@ class BaseWindow(SelectionMixin):
         if self.step is not None:
             if not is_integer(self.step):
                 raise ValueError("step must be an integer")
-            elif self.step < 0:
+            if self.step < 0:
                 raise ValueError("step must be >= 0")
 
     def _check_window_bounds(
@@ -216,7 +216,7 @@ class BaseWindow(SelectionMixin):
                 f"start ({len(start)}) and end ({len(end)}) bounds must be the "
                 f"same length"
             )
-        elif len(start) != (num_vals + (self.step or 1) - 1) // (self.step or 1):
+        if len(start) != (num_vals + (self.step or 1) - 1) // (self.step or 1):
             raise ValueError(
                 f"start and end bounds ({len(start)}) must be the same length "
                 f"as the object ({num_vals}) divided by the step ({self.step}) "
@@ -363,16 +363,15 @@ class BaseWindow(SelectionMixin):
                 f"ops for {type(self).__name__} for this "
                 f"dtype {values.dtype} are not implemented"
             )
-        else:
-            # GH #12373 : rolling functions error on float32 data
-            # make sure the data is coerced to float64
-            try:
-                if isinstance(values, ExtensionArray):
-                    values = values.to_numpy(np.float64, na_value=np.nan)
-                else:
-                    values = ensure_float64(values)
-            except (ValueError, TypeError) as err:
-                raise TypeError(f"cannot handle this type -> {values.dtype}") from err
+        # GH #12373 : rolling functions error on float32 data
+        # make sure the data is coerced to float64
+        try:
+            if isinstance(values, ExtensionArray):
+                values = values.to_numpy(np.float64, na_value=np.nan)
+            else:
+                values = ensure_float64(values)
+        except (ValueError, TypeError) as err:
+            raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
         inf = np.isinf(values)
@@ -418,7 +417,7 @@ class BaseWindow(SelectionMixin):
         """Validate and finalize result."""
         if out.shape[1] == 0 and obj.shape[1] > 0:
             raise DataError("No numeric types to aggregate")
-        elif out.shape[1] == 0:
+        if out.shape[1] == 0:
             return obj.astype("float64")
 
         self._insert_on_column(out, obj)
@@ -1141,7 +1140,7 @@ class Window(BaseWindow):
             raise NotImplementedError(
                 "BaseIndexer subclasses not implemented with win_types."
             )
-        elif not is_integer(self.window) or self.window < 0:
+        if not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
 
         if self.method != "single":
@@ -1559,10 +1558,9 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 raise NotImplementedError("std not supported with method='table'")
-            else:
-                from pandas.core._numba.kernels import sliding_var
+            from pandas.core._numba.kernels import sliding_var
 
-                return zsqrt(self._numba_apply(sliding_var, engine_kwargs, ddof))
+            return zsqrt(self._numba_apply(sliding_var, engine_kwargs, ddof))
         window_func = window_aggregations.roll_var
 
         def zsqrt_func(values, begin, end, min_periods):
@@ -1588,10 +1586,9 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 raise NotImplementedError("var not supported with method='table'")
-            else:
-                from pandas.core._numba.kernels import sliding_var
+            from pandas.core._numba.kernels import sliding_var
 
-                return self._numba_apply(sliding_var, engine_kwargs, ddof)
+            return self._numba_apply(sliding_var, engine_kwargs, ddof)
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
         return self._apply(
             window_func,

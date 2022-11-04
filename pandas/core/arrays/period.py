@@ -1167,7 +1167,7 @@ def _make_field_arrays(*fields) -> list[np.ndarray]:
         if isinstance(x, (list, np.ndarray, ABCSeries)):
             if length is not None and len(x) != length:
                 raise ValueError("Mismatched Period array lengths")
-            elif length is None:
+            if length is None:
                 length = len(x)
 
     # error: Argument 2 to "repeat" has incompatible type "Optional[int]"; expected

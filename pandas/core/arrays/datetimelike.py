@@ -2263,7 +2263,7 @@ def validate_inferred_freq(
                 "values does not conform to passed frequency "
                 f"{freq.freqstr}"
             )
-        elif freq is None:
+        if freq is None:
             freq = inferred_freq
         freq_infer = False
 

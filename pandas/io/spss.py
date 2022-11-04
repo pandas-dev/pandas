@@ -44,8 +44,7 @@ def read_spss(
     if usecols is not None:
         if not is_list_like(usecols):
             raise TypeError("usecols must be list-like.")
-        else:
-            usecols = list(usecols)  # pyreadstat requires a list
+        usecols = list(usecols)  # pyreadstat requires a list
 
     df, _ = pyreadstat.read_sav(
         stringify_path(path), usecols=usecols, apply_value_formats=convert_categoricals

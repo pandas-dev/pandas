@@ -1947,7 +1947,7 @@ def _get_timestamp_range_edges(
         index_tz = first.tz
         if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
-        elif origin == "epoch":
+        if origin == "epoch":
             # set the epoch based on the timezone to have similar bins results when
             # resampling on the same kind of indexes on different timezones
             origin = Timestamp("1970-01-01", tz=index_tz)

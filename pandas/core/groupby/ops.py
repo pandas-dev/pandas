@@ -169,7 +169,7 @@ class WrappedCythonOp:
                     f"function is not implemented for this dtype: "
                     f"[how->{how},dtype->{dtype_str}]"
                 )
-            elif "object" not in f.__signatures__:
+            if "object" not in f.__signatures__:
                 # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(
                     f"function is not implemented for this dtype: "
@@ -241,10 +241,10 @@ class WrappedCythonOp:
             #  non-cython implementation.
             if how in ["sum", "prod", "cumsum", "cumprod"]:
                 raise TypeError(f"{dtype} type does not support {how} operations")
-            elif how not in ["rank"]:
+            if how not in ["rank"]:
                 # only "rank" is implemented in cython
                 raise NotImplementedError(f"{dtype} dtype not supported")
-            elif not dtype.ordered:
+            if not dtype.ordered:
                 # TODO: TypeError?
                 raise NotImplementedError(f"{dtype} dtype not supported")
 
@@ -628,7 +628,7 @@ class WrappedCythonOp:
         """
         if values.ndim > 2:
             raise NotImplementedError("number of dimensions is currently limited to 2")
-        elif values.ndim == 2:
+        if values.ndim == 2:
             assert axis == 1, axis
         elif not is_1d_only_ea_dtype(values.dtype):
             # Note: it is *not* the case that axis is always 0 for 1-dim values,

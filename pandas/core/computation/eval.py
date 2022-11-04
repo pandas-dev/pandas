@@ -344,7 +344,7 @@ def eval(
                     "Multi-line expressions are only valid "
                     "if all expressions contain an assignment"
                 )
-            elif inplace:
+            if inplace:
                 raise ValueError("Cannot operate inplace if there is no assignment")
 
         # assign if needed

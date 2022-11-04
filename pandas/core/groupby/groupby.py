@@ -1759,7 +1759,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise NotImplementedError(
                     f"{type(self).__name__}.{how} does not implement {kwd_name}."
                 )
-            elif not is_ser:
+            if not is_ser:
                 data = data.get_numeric_data(copy=False)
 
         def array_func(values: ArrayLike) -> ArrayLike:
