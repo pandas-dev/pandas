@@ -28,26 +28,6 @@ class GetNumericData:
         self.df._get_numeric_data()
 
 
-class Lookup:
-    def setup(self):
-        self.df = DataFrame(np.random.randn(10000, 8), columns=list("abcdefgh"))
-        self.df["foo"] = "bar"
-        self.row_labels = list(self.df.index[::10])[:900]
-        self.col_labels = list(self.df.columns) * 100
-        self.row_labels_all = np.array(
-            list(self.df.index) * len(self.df.columns), dtype="object"
-        )
-        self.col_labels_all = np.array(
-            list(self.df.columns) * len(self.df.index), dtype="object"
-        )
-
-    def time_frame_fancy_lookup(self):
-        self.df.lookup(self.row_labels, self.col_labels)
-
-    def time_frame_fancy_lookup_all(self):
-        self.df.lookup(self.row_labels_all, self.col_labels_all)
-
-
 class Reindex:
     def setup(self):
         N = 10**3
