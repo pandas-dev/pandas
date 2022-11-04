@@ -176,7 +176,9 @@ def ints_to_pytimedelta(ndarray m8values, box=False):
         #  `it` iterates C-order as well, so the iteration matches
         #  See discussion at
         #  github.com/pandas-dev/pandas/pull/46886#discussion_r860261305
-        ndarray result = cnp.PyArray_EMPTY(m8values.ndim, m8values.shape, cnp.NPY_OBJECT, 0)
+        ndarray result = cnp.PyArray_EMPTY(
+            m8values.ndim, m8values.shape, cnp.NPY_OBJECT, 0
+        )
         object[::1] res_flat = result.ravel()     # should NOT be a copy
 
         ndarray arr = m8values.view("i8")
@@ -364,7 +366,7 @@ cdef convert_to_timedelta64(object ts, str unit):
     if PyDelta_Check(ts):
         ts = np.timedelta64(delta_to_nanoseconds(ts), "ns")
     elif not is_timedelta64_object(ts):
-        raise ValueError(f"Invalid type for timedelta scalar: {type(ts)}")
+        raise TypeError(f"Invalid type for timedelta scalar: {type(ts)}")
     return ts.astype("timedelta64[ns]")
 
 
@@ -468,7 +470,11 @@ cdef inline int64_t _item_to_timedelta64_fastpath(object item) except? -1:
         return parse_timedelta_string(item)
 
 
-cdef inline int64_t _item_to_timedelta64(object item, str parsed_unit, str errors) except? -1:
+cdef inline int64_t _item_to_timedelta64(
+    object item,
+    str parsed_unit,
+    str errors
+) except? -1:
     """
     See array_to_timedelta64.
     """
@@ -966,7 +972,6 @@ cdef _timedelta_from_value_and_reso(int64_t value, NPY_DATETIMEUNIT reso):
         raise NotImplementedError(
             "Only resolutions 's', 'ms', 'us', 'ns' are supported."
         )
-
 
     td_base.value = value
     td_base._is_populated = 0
@@ -1570,8 +1575,6 @@ class Timedelta(_Timedelta):
                            "milliseconds", "microseconds", "nanoseconds"}
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
-        cdef _Timedelta td_base
-
         if value is _no_input:
             if not len(kwargs):
                 raise ValueError("cannot construct a Timedelta without a "
@@ -1625,7 +1628,8 @@ class Timedelta(_Timedelta):
             if len(kwargs):
                 # GH#48898
                 raise ValueError(
-                    "Cannot pass both a Timedelta input and timedelta keyword arguments, got "
+                    "Cannot pass both a Timedelta input and timedelta keyword "
+                    "arguments, got "
                     f"{list(kwargs.keys())}"
                 )
             return value
@@ -1712,7 +1716,7 @@ class Timedelta(_Timedelta):
     @cython.cdivision(True)
     def _round(self, freq, mode):
         cdef:
-            int64_t result, unit, remainder
+            int64_t result, unit
             ndarray[int64_t] arr
 
         from pandas._libs.tslibs.offsets import to_offset
@@ -1801,9 +1805,6 @@ class Timedelta(_Timedelta):
     __rmul__ = __mul__
 
     def __truediv__(self, other):
-        cdef:
-            int64_t new_value
-
         if _should_cast_to_timedelta(other):
             # We interpret NaT as timedelta64("NaT")
             other = Timedelta(other)

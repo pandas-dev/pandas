@@ -20,11 +20,6 @@ from pandas.tests.plotting.common import (
     _check_plot_works,
 )
 
-try:
-    from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
-except ImportError:
-    mpl_ge_3_6_0 = lambda: True
-
 
 @pytest.fixture
 def ts():
@@ -497,7 +492,7 @@ class TestSeriesPlots(TestPlotBase):
         # gh-14821: check if the values have any missing values
         assert any(~np.isnan(axes.lines[0].get_xdata()))
 
-    @pytest.mark.xfail(mpl_ge_3_6_0(), reason="Api changed")
+    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_boxplot_series(self, ts):
         _, ax = self.plt.subplots()
         ax = ts.plot.box(logy=True, ax=ax)

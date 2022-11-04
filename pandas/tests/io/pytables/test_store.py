@@ -1009,15 +1009,6 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
             assert len(result)
 
 
-def test_hdfstore_iteritems_deprecated(tmp_path, setup_path):
-    path = tmp_path / setup_path
-    df = DataFrame({"a": [1]})
-    with HDFStore(path, mode="w") as hdf:
-        hdf.put("table", df)
-        with tm.assert_produces_warning(FutureWarning):
-            next(hdf.iteritems())
-
-
 def test_hdfstore_strides(setup_path):
     # GH22073
     df = DataFrame({"a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})

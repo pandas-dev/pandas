@@ -125,38 +125,12 @@ class TestReadHtml:
                 c_idx_names=False,
                 r_idx_names=False,
             )
-            .applymap("{:.3f}".format)
-            .astype(float)
+            # pylint: disable-next=consider-using-f-string
+            .applymap("{:.3f}".format).astype(float)
         )
         out = df.to_html()
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
-
-    @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://www.fdic.gov/resources/resolutions/"
-            "bank-failures/failed-bank-list/index.html"
-        ),
-        check_before_test=True,
-    )
-    def test_banklist_url_positional_match(self):
-        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
-        # Passing match argument as positional should cause a FutureWarning.
-        with tm.assert_produces_warning(FutureWarning):
-            df1 = self.read_html(
-                # lxml cannot find attrs leave out for now
-                url,
-                "First Federal Bank of Florida",  # attrs={"class": "dataTable"}
-            )
-        with tm.assert_produces_warning(FutureWarning):
-            # lxml cannot find attrs leave out for now
-            df2 = self.read_html(
-                url,
-                "Metcalf Bank",
-            )  # attrs={"class": "dataTable"})
-
-        assert_framelist_equal(df1, df2)
 
     @pytest.mark.network
     @tm.network(

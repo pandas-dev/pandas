@@ -95,7 +95,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
@@ -5047,40 +5046,6 @@ class DataFrame(NDFrame, OpsMixin):
             broadcast_axis=broadcast_axis,
         )
 
-    @overload
-    def set_axis(
-        self,
-        labels,
-        *,
-        axis: Axis = ...,
-        inplace: Literal[False] | lib.NoDefault = ...,
-        copy: bool | lib.NoDefault = ...,
-    ) -> DataFrame:
-        ...
-
-    @overload
-    def set_axis(
-        self,
-        labels,
-        *,
-        axis: Axis = ...,
-        inplace: Literal[True],
-        copy: bool | lib.NoDefault = ...,
-    ) -> None:
-        ...
-
-    @overload
-    def set_axis(
-        self,
-        labels,
-        *,
-        axis: Axis = ...,
-        inplace: bool | lib.NoDefault = ...,
-        copy: bool | lib.NoDefault = ...,
-    ) -> DataFrame | None:
-        ...
-
-    # error: Signature of "set_axis" incompatible with supertype "NDFrame"
     @Appender(
         """
         Examples
@@ -5124,10 +5089,9 @@ class DataFrame(NDFrame, OpsMixin):
         labels,
         *,
         axis: Axis = 0,
-        inplace: bool | lib.NoDefault = lib.no_default,
-        copy: bool | lib.NoDefault = lib.no_default,
-    ):
-        return super().set_axis(labels, axis=axis, inplace=inplace, copy=copy)
+        copy: bool = True,
+    ) -> DataFrame:
+        return super().set_axis(labels, axis=axis, copy=copy)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.reindex.__doc__)
@@ -5192,12 +5156,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "drop" incompatible with supertype "NDFrame"
-    # github.com/python/mypy/issues/12387
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
-    def drop(  # type: ignore[override]
+    def drop(
         self,
         labels: IndexLabel = None,
+        *,
         axis: Axis = 0,
         index: IndexLabel = None,
         columns: IndexLabel = None,
@@ -5567,11 +5529,11 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     # error: Signature of "fillna" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(  # type: ignore[override]
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
+        *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
@@ -11772,7 +11734,6 @@ Parrot 2  Parrot       24.0
         inplace: Literal[False] = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -11785,7 +11746,6 @@ Parrot 2  Parrot       24.0
         inplace: Literal[True],
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -11798,13 +11758,10 @@ Parrot 2  Parrot       24.0
         inplace: bool = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "where" incompatible with supertype "NDFrame"
-    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    def where(  # type: ignore[override]
+    def where(
         self,
         cond,
         other=lib.no_default,
@@ -11812,7 +11769,6 @@ Parrot 2  Parrot       24.0
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
-        errors: IgnoreRaise | lib.NoDefault = "raise",
     ) -> DataFrame | None:
         return super().where(
             cond,
@@ -11831,7 +11787,6 @@ Parrot 2  Parrot       24.0
         inplace: Literal[False] = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -11844,7 +11799,6 @@ Parrot 2  Parrot       24.0
         inplace: Literal[True],
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -11857,13 +11811,10 @@ Parrot 2  Parrot       24.0
         inplace: bool = ...,
         axis: Axis | None = ...,
         level: Level = ...,
-        errors: IgnoreRaise | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "mask" incompatible with supertype "NDFrame"
-    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
-    def mask(  # type: ignore[override]
+    def mask(
         self,
         cond,
         other=lib.no_default,
@@ -11871,7 +11822,6 @@ Parrot 2  Parrot       24.0
         inplace: bool = False,
         axis: Axis | None = None,
         level: Level = None,
-        errors: IgnoreRaise | lib.NoDefault = "raise",
     ) -> DataFrame | None:
         return super().mask(
             cond,

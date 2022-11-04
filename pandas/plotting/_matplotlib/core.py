@@ -55,7 +55,6 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
@@ -1229,19 +1228,13 @@ class ScatterPlot(PlanePlot):
             c_values = c
 
         if self.colormap is not None:
-            if mpl_ge_3_6_0():
-                cmap = mpl.colormaps[self.colormap]
-            else:
-                cmap = self.plt.cm.get_cmap(self.colormap)
+            cmap = mpl.colormaps.get_cmap(self.colormap)
         else:
             # cmap is only used if c_values are integers, otherwise UserWarning
             if is_integer_dtype(c_values):
                 # pandas uses colormap, matplotlib uses cmap.
                 cmap = "Greys"
-                if mpl_ge_3_6_0():
-                    cmap = mpl.colormaps[cmap]
-                else:
-                    cmap = self.plt.cm.get_cmap(cmap)
+                cmap = mpl.colormaps[cmap]
             else:
                 cmap = None
 
@@ -1309,10 +1302,7 @@ class HexBinPlot(PlanePlot):
         ax = self.axes[0]
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "BuGn"
-        if mpl_ge_3_6_0():
-            cmap = mpl.colormaps[cmap]
-        else:
-            cmap = self.plt.cm.get_cmap(cmap)
+        cmap = mpl.colormaps.get_cmap(cmap)
         cb = self.kwds.pop("colorbar", True)
 
         if C is None:
