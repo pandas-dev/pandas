@@ -1525,7 +1525,6 @@ class Timestamp(_Timestamp):
             # GH#17690 tzinfo must be a datetime.tzinfo object, ensured
             #  by the cython annotation.
             if tz is not None:
-
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
             # User passed tzinfo instead of tz; avoid silently ignoring
