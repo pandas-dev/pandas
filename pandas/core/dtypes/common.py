@@ -1471,7 +1471,7 @@ def get_dtype(arr_or_dtype) -> DtypeObj:
         raise TypeError("Cannot deduce dtype from null object")
 
     # fastpath
-    elif isinstance(arr_or_dtype, np.dtype):
+    if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype
     elif isinstance(arr_or_dtype, type):
         return np.dtype(arr_or_dtype)
@@ -1639,8 +1639,7 @@ def validate_all_hashable(*args, error_name: str | None = None) -> None:
     if not all(is_hashable(arg) for arg in args):
         if error_name:
             raise TypeError(f"{error_name} must be a hashable type")
-        else:
-            raise TypeError("All elements must be hashable")
+        raise TypeError("All elements must be hashable")
 
 
 def pandas_dtype(dtype) -> DtypeObj:

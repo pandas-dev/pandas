@@ -206,8 +206,7 @@ def deprecate_kwarg(
                         f"or {repr(new_arg_name)}, not both."
                     )
                     raise TypeError(msg)
-                else:
-                    kwargs[new_arg_name] = new_arg_value
+                kwargs[new_arg_name] = new_arg_value
             return func(*args, **kwargs)
 
         return cast(F, wrapper)

@@ -2368,7 +2368,7 @@ def validate_tz_from_dtype(
         if dtz is not None:
             if tz is not None and not timezones.tz_compare(tz, dtz):
                 raise ValueError("cannot supply both a tz and a dtype with a tz")
-            elif explicit_tz_none:
+            if explicit_tz_none:
                 raise ValueError("Cannot pass both a timezone-aware dtype and tz=None")
             tz = dtz
 

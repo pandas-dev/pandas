@@ -1866,7 +1866,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 return element
             raise LossySetitemError
 
-        elif is_integer(element) or (is_float(element) and element.is_integer()):
+        if is_integer(element) or (is_float(element) and element.is_integer()):
             # e.g. test_setitem_series_int8 if we have a python int 1
             #  tipo may be np.int32, despite the fact that it will fit
             #  in smaller int dtypes.
@@ -1893,7 +1893,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
                 # Anything other than integer we cannot hold
                 raise LossySetitemError
-            elif (
+            if (
                 dtype.kind == "u"
                 and isinstance(element, np.ndarray)
                 and element.dtype.kind == "i"
@@ -1905,9 +1905,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     #  itemsize issues there?
                     return casted
                 raise LossySetitemError
-            elif dtype.itemsize < tipo.itemsize:
+            if dtype.itemsize < tipo.itemsize:
                 raise LossySetitemError
-            elif not isinstance(tipo, np.dtype):
+            if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
                 if element._hasna:
@@ -1918,7 +1918,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
         raise LossySetitemError
 
-    elif dtype.kind == "f":
+    if dtype.kind == "f":
         if lib.is_integer(element) or lib.is_float(element):
             casted = dtype.type(element)
             if np.isnan(casted) or casted == element:
@@ -1931,7 +1931,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if tipo.kind not in ["f", "i", "u"]:
                 # Anything other than float/integer we cannot hold
                 raise LossySetitemError
-            elif not isinstance(tipo, np.dtype):
+            if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
                 if element._hasna:
@@ -1950,7 +1950,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
         raise LossySetitemError
 
-    elif dtype.kind == "c":
+    if dtype.kind == "c":
         if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
             if np.isnan(element):
                 # see test_where_complex GH#6345
@@ -1968,7 +1968,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             raise LossySetitemError
         raise LossySetitemError
 
-    elif dtype.kind == "b":
+    if dtype.kind == "b":
         if tipo is not None:
             if tipo.kind == "b":
                 if not isinstance(tipo, np.dtype):
@@ -1982,7 +1982,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             return element
         raise LossySetitemError
 
-    elif dtype.kind == "S":
+    if dtype.kind == "S":
         # TODO: test tests.frame.methods.test_replace tests get here,
         #  need more targeted tests.  xref phofl has a PR about this
         if tipo is not None:

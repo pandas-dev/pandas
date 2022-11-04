@@ -3002,7 +3002,7 @@ class Styler(StylerRenderer):
 
         if not 0 <= width <= 100:
             raise ValueError(f"`width` must be a value in [0, 100], got {width}")
-        elif not 0 <= height <= 100:
+        if not 0 <= height <= 100:
             raise ValueError(f"`height` must be a value in [0, 100], got {height}")
 
         if subset is None:
@@ -3560,12 +3560,12 @@ def _validate_apply_axis_arg(
             f"'{arg_name}' is a Series but underlying data for operations "
             f"is a DataFrame since 'axis=None'"
         )
-    elif isinstance(arg, DataFrame) and isinstance(data, Series):
+    if isinstance(arg, DataFrame) and isinstance(data, Series):
         raise ValueError(
             f"'{arg_name}' is a DataFrame but underlying data for "
             f"operations is a Series with 'axis in [0,1]'"
         )
-    elif isinstance(arg, (Series, DataFrame)):  # align indx / cols to data
+    if isinstance(arg, (Series, DataFrame)):  # align indx / cols to data
         arg = arg.reindex_like(data, method=None).to_numpy(**dtype)
     else:
         arg = np.asarray(arg, **dtype)

@@ -398,7 +398,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 raise NotImplementedError(
                     "initializing a Series from a MultiIndex is not supported"
                 )
-            elif isinstance(data, Index):
+            if isinstance(data, Index):
 
                 if dtype is not None:
                     # astype copies

@@ -993,7 +993,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 raise TypeError(
                     "Cannot specify both 'axis' and any of 'index' or 'columns'"
                 )
-            elif mapper is not None:
+            if mapper is not None:
                 raise TypeError(
                     "Cannot specify both 'mapper' and any of 'index' or 'columns'"
                 )
@@ -4125,7 +4125,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if value == "raise":
             raise SettingWithCopyError(t)
-        elif value == "warn":
+        if value == "warn":
             warnings.warn(t, SettingWithCopyWarning, stacklevel=find_stack_level())
 
     def __delitem__(self, key) -> None:
@@ -8355,7 +8355,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
         # If any of the deprecated arguments ('include_start', 'include_end')
         # have been passed
-        elif old_include_arg_used:
+        if old_include_arg_used:
             warnings.warn(
                 "`include_start` and `include_end` are deprecated in "
                 "favour of `inclusive`.",
@@ -9595,7 +9595,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if axis is None and not other._indexed_same(self):
                     raise InvalidIndexError
 
-                elif other.ndim < self.ndim:
+                if other.ndim < self.ndim:
                     # TODO(EA2D): avoid object-dtype cast in EA case GH#38729
                     other = other._values
                     if axis == 0:
@@ -10265,8 +10265,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise TypeError(
                         f"{ax_name} is not a valid DatetimeIndex or PeriodIndex"
                     )
-                else:
-                    ax = DatetimeIndex([], tz=tz)
+                ax = DatetimeIndex([], tz=tz)
             else:
                 ax = ax.tz_convert(tz)
             return ax
@@ -10435,8 +10434,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise TypeError(
                         f"{ax_name} is not a valid DatetimeIndex or PeriodIndex"
                     )
-                else:
-                    ax = DatetimeIndex([], tz=tz)
+                ax = DatetimeIndex([], tz=tz)
             else:
                 ax = ax.tz_localize(tz, ambiguous=ambiguous, nonexistent=nonexistent)
             return ax

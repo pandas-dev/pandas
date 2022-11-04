@@ -1620,7 +1620,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if names is not None and name is not None:
             raise TypeError("Can only provide one of `names` and `name`")
-        elif names is None and name is None:
+        if names is None and name is None:
             new_names = deepcopy(self.names) if deep else self.names
         elif names is not None:
             if not is_list_like(names):
@@ -1801,16 +1801,16 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError("Level must be None for non-MultiIndex")
 
-        elif level is not None and not is_list_like(level) and is_list_like(names):
+        if level is not None and not is_list_like(level) and is_list_like(names):
             raise TypeError("Names must be a string when a single level is provided.")
 
-        elif not is_list_like(names) and level is None and self.nlevels > 1:
+        if not is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
 
-        elif is_dict_like(names) and not isinstance(self, ABCMultiIndex):
+        if is_dict_like(names) and not isinstance(self, ABCMultiIndex):
             raise TypeError("Can only pass dict-like as `names` for MultiIndex.")
 
-        elif is_dict_like(names) and level is not None:
+        if is_dict_like(names) and level is not None:
             raise TypeError("Can not pass level for dictlike `names`.")
 
         if isinstance(self, ABCMultiIndex) and is_dict_like(names) and level is None:
@@ -1919,7 +1919,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "Too many levels: Index has only 1 level, "
                     f"{level} is not a valid level number"
                 )
-            elif level > 0:
+            if level > 0:
                 raise IndexError(
                     f"Too many levels: Index has only 1 level, not {level + 1}"
                 )
@@ -3847,7 +3847,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "method='nearest' not implemented yet "
                     "for MultiIndex; see GitHub issue 9365"
                 )
-            elif method in ("pad", "backfill"):
+            if method in ("pad", "backfill"):
                 if tolerance is not None:
                     raise NotImplementedError(
                         "tolerance not implemented yet for MultiIndex"
@@ -4149,8 +4149,7 @@ class Index(IndexOpsMixin, PandasObject):
         )
         if reraise is not lib.no_default:
             raise TypeError(msg) from reraise
-        else:
-            raise TypeError(msg)
+        raise TypeError(msg)
 
     # --------------------------------------------------------------------
     # Reindex Methods

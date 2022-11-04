@@ -257,7 +257,7 @@ class MPLPlot(ABC):
         # Probably better to accept either.
         if "cmap" in kwds and colormap:
             raise TypeError("Only specify one of `cmap` and `colormap`.")
-        elif "cmap" in kwds:
+        if "cmap" in kwds:
             self.colormap = kwds.pop("cmap")
         else:
             self.colormap = colormap
@@ -358,16 +358,15 @@ class MPLPlot(ABC):
                 raise ValueError(
                     f"Column label(s) {list(bad_labels)} not found in the DataFrame."
                 )
-            else:
-                unique_columns = set(group)
-                duplicates = seen_columns.intersection(unique_columns)
-                if duplicates:
-                    raise ValueError(
-                        "Each column should be in only one subplot. "
-                        f"Columns {duplicates} were found in multiple subplots."
-                    )
-                seen_columns = seen_columns.union(unique_columns)
-                out.append(tuple(idx_locs))
+            unique_columns = set(group)
+            duplicates = seen_columns.intersection(unique_columns)
+            if duplicates:
+                raise ValueError(
+                    "Each column should be in only one subplot. "
+                    f"Columns {duplicates} were found in multiple subplots."
+                )
+            seen_columns = seen_columns.union(unique_columns)
+            out.append(tuple(idx_locs))
 
         unseen_columns = columns.difference(seen_columns)
         for column in unseen_columns:
@@ -1217,7 +1216,7 @@ class ScatterPlot(PlanePlot):
         color = self.kwds.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
-        elif c is None and color is None:
+        if c is None and color is None:
             c_values = self.plt.rcParams["patch.facecolor"]
         elif color is not None:
             c_values = color
