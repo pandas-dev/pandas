@@ -90,19 +90,6 @@ def test_drop_non_empty_list(data, index, drop_labels):
         ser.drop(drop_labels)
 
 
-def test_drop_pos_args_deprecation():
-    # https://github.com/pandas-dev/pandas/issues/41485
-    ser = Series([1, 2, 3])
-    msg = (
-        r"In a future version of pandas all arguments of Series\.drop "
-        r"except for the argument 'labels' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = ser.drop(1, 0)
-    expected = Series([1, 3], index=[0, 2])
-    tm.assert_series_equal(result, expected)
-
-
 def test_drop_index_ea_dtype(any_numeric_ea_dtype):
     # GH#45860
     df = Series(100, index=Index([1, 2, 2], dtype=any_numeric_ea_dtype))
