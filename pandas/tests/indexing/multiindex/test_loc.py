@@ -342,8 +342,10 @@ class TestMultiIndexLoc:
             for indexer_type, k in zip(types, keys)
         )
         if indexer_type_1 is set or indexer_type_2 is set:
-            with tm.assert_produces_warning(FutureWarning):
-                result = df.loc[indexer, "Data"]
+            with pytest.raises(TypeError, match="as an indexer is not supported"):
+                df.loc[indexer, "Data"]
+
+            return
         else:
             result = df.loc[indexer, "Data"]
         expected = Series(

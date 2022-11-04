@@ -1271,7 +1271,8 @@ class TestILocErrors:
         # GH#39004
         df = DataFrame({"a": [1, 2, 3]})
         indexer = DataFrame({"a": [True, False, True]})
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "DataFrame indexer for .iloc is not supported. Consider using .loc"
+        with pytest.raises(TypeError, match=msg):
             df.iloc[indexer] = 1
 
         msg = (
