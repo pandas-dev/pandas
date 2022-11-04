@@ -4839,7 +4839,6 @@ Keep all original rows and also all original values
         else:
             return self._set_name(index, inplace=inplace)
 
-    # error: Signature of "set_axis" incompatible with supertype "NDFrame"
     @Appender(
         """
         Examples
