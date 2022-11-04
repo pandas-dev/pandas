@@ -307,7 +307,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # GH 15931
             raise SpecificationError("nested renamer is not supported")
 
-        elif any(isinstance(x, (tuple, list)) for x in arg):
+        if any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
 
             # indicated column order

@@ -5046,7 +5046,6 @@ class DataFrame(NDFrame, OpsMixin):
             broadcast_axis=broadcast_axis,
         )
 
-    # error: Signature of "set_axis" incompatible with supertype "NDFrame"
     @Appender(
         """
         Examples
@@ -5157,12 +5156,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "drop" incompatible with supertype "NDFrame"
-    # github.com/python/mypy/issues/12387
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
-    def drop(  # type: ignore[override]
+    def drop(
         self,
         labels: IndexLabel = None,
+        *,
         axis: Axis = 0,
         index: IndexLabel = None,
         columns: IndexLabel = None,
@@ -5532,11 +5529,11 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     # error: Signature of "fillna" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(  # type: ignore[override]
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
+        *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,

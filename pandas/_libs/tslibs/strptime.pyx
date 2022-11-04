@@ -75,7 +75,6 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
         int iso_week, iso_year
         int64_t us, ns
         object val, group_key, ampm, found, timezone
-        dict found_key
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
