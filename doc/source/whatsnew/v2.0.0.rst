@@ -399,7 +399,7 @@ Removal of prior version deprecations/changes
 - Changed behavior of empty data passed into :class:`Series`; the default dtype will be ``object`` instead of ``float64`` (:issue:`29405`)
 - Changed the behavior of :meth:`DatetimeIndex.union`, :meth:`DatetimeIndex.intersection`, and :meth:`DatetimeIndex.symmetric_difference` with mismatched timezones to convert to UTC instead of casting to object dtype (:issue:`39328`)
 - Changed the behavior of :func:`to_datetime` with argument "now" with ``utc=False`` to match ``Timestamp("now")`` (:issue:`18705`)
-- Changed the behavior of indexing on a timezone-aware :class:`DatetimeIndex` with a timezone-naive ``datetime`` object or vice-versa; these now behave like any other non-comparable type (:issue:`36148`)
+- Changed the behavior of indexing on a timezone-aware :class:`DatetimeIndex` with a timezone-naive ``datetime`` object or vice-versa; these now behave like any other non-comparable type by raising ``KeyError`` (:issue:`36148`)
 - Changed behavior of :meth:`SparseArray.astype` when given a dtype that is not explicitly ``SparseDtype``, cast to the exact requested dtype rather than silently using a ``SparseDtype`` instead (:issue:`34457`)
 - Changed behavior of :meth:`Index.ravel` to return a view on the original :class:`Index` instead of a ``np.ndarray`` (:issue:`36900`)
 - Changed behavior of :meth:`Index.to_frame` with explicit ``name=None`` to use ``None`` for the column name instead of the index's name or default ``0`` (:issue:`45523`)
