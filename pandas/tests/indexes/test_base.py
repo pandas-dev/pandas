@@ -664,23 +664,6 @@ class TestIndex(Base):
     def test_is_object(self, index, expected):
         assert index.is_object() is expected
 
-    @pytest.mark.parametrize(
-        "index, expected",
-        [
-            ("string", False),
-            ("bool-object", False),
-            ("bool-dtype", False),
-            ("categorical", False),
-            ("int", False),
-            ("datetime", True),
-            ("float", False),
-        ],
-        indirect=["index"],
-    )
-    def test_is_all_dates(self, index, expected):
-        with tm.assert_produces_warning(FutureWarning):
-            assert index.is_all_dates is expected
-
     def test_summary(self, index):
         index._summary()
 

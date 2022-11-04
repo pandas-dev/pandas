@@ -1132,7 +1132,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         s = float_frame["A"].copy()
         float_frame["E"] = s
 
-        float_frame["E"][5:10] = np.nan
+        float_frame.iloc[5:10, float_frame.columns.get_loc("E")] = np.nan
         assert notna(s[5:10]).all()
 
     @pytest.mark.parametrize("consolidate", [True, False])

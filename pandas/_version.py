@@ -1,3 +1,4 @@
+# pylint: disable=consider-using-f-string
 # This file helps to compute a version number in source trees obtained from
 # git-archive tarball (such as those provided by GitHub's download-from-tag
 # feature). Distribution tarballs (built by setup.py sdist) and build

@@ -1616,7 +1616,7 @@ def test_set_group_name(df, grouper):
         assert group.name is not None
         return group.sum()
 
-    def foo(x):
+    def freducex(x):
         return freduce(x)
 
     grouped = df.groupby(grouper, group_keys=False)
@@ -1629,7 +1629,7 @@ def test_set_group_name(df, grouper):
 
     grouped["C"].apply(f)
     grouped["C"].aggregate(freduce)
-    grouped["C"].aggregate([freduce, foo])
+    grouped["C"].aggregate([freduce, freducex])
     grouped["C"].transform(f)
 
 

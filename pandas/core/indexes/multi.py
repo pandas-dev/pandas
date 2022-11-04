@@ -14,7 +14,6 @@ from typing import (
     Sequence,
     Tuple,
     cast,
-    overload,
 )
 import warnings
 
@@ -1737,17 +1736,6 @@ class MultiIndex(Index):
         b d  b  d
         """
         from pandas import DataFrame
-
-        if name is None:
-            warnings.warn(
-                "Explicitly passing `name=None` currently preserves the Index's name "
-                "or uses a default name of 0. This behaviour is deprecated, and in "
-                "the future `None` will be used as the name of the resulting "
-                "DataFrame column.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            name = lib.no_default
 
         if name is not lib.no_default:
             if not is_list_like(name):
@@ -3750,28 +3738,9 @@ class MultiIndex(Index):
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
 
-    @overload
-    def set_names(
-        self, names, *, level=..., inplace: Literal[False] = ...
-    ) -> MultiIndex:
-        ...
-
-    @overload
-    def set_names(self, names, *, level=..., inplace: Literal[True]) -> None:
-        ...
-
-    @overload
-    def set_names(self, names, *, level=..., inplace: bool = ...) -> MultiIndex | None:
-        ...
-
-    def set_names(
-        self, names, *, level=None, inplace: bool = False
-    ) -> MultiIndex | None:
-        return super().set_names(names=names, level=level, inplace=inplace)
-
     # error: Incompatible types in assignment (expression has type overloaded function,
     # base class "Index" defined the type as "Callable[[Index, Any, bool], Any]")
-    rename = set_names  # type: ignore[assignment]
+    rename = Index.set_names  # type: ignore[assignment]
 
     # ---------------------------------------------------------------
     # Arithmetic/Numeric Methods - Disabled

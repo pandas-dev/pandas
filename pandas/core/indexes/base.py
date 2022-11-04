@@ -41,7 +41,6 @@ from pandas._libs.tslibs import (
     IncompatibleFrequency,
     OutOfBoundsDatetime,
     Timestamp,
-    is_unitless,
     tz_compare,
 )
 from pandas._typing import (
@@ -61,7 +60,6 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
-    IntCastingNaNError,
     InvalidIndexError,
 )
 from pandas.util._decorators import (
@@ -938,34 +936,19 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.dtype
 
     @final
-    def ravel(self, order: str_t = "C"):
+    def ravel(self, order: str_t = "C") -> Index:
         """
-        Return an ndarray of the flattened values of the underlying data.
+        Return a view on self.
 
         Returns
         -------
-        numpy.ndarray
-            Flattened array.
+        Index
 
         See Also
         --------
         numpy.ndarray.ravel : Return a flattened array.
         """
-        warnings.warn(
-            "Index.ravel returning ndarray is deprecated; in a future version "
-            "this will return a view on self.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        if needs_i8_conversion(self.dtype):
-            # Item "ndarray[Any, Any]" of "Union[ExtensionArray, ndarray[Any, Any]]"
-            # has no attribute "_ndarray"
-            values = self._data._ndarray  # type: ignore[union-attr]
-        elif is_interval_dtype(self.dtype):
-            values = np.asarray(self._data)
-        else:
-            values = self._get_engine_target()
-        return values.ravel(order=order)
+        return self[:]
 
     def view(self, cls=None):
 
@@ -1031,11 +1014,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         values = self._data
         if isinstance(values, ExtensionArray):
-            if isinstance(dtype, np.dtype) and dtype.kind == "M" and is_unitless(dtype):
-                # TODO(2.0): remove this special-casing once this is enforced
-                #  in DTA.astype
-                raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
-
             with rewrite_exception(type(values).__name__, type(self).__name__):
                 new_values = values.astype(dtype, copy=copy)
 
@@ -1054,22 +1032,12 @@ class Index(IndexOpsMixin, PandasObject):
             new_values = cls._from_sequence(self, dtype=dtype, copy=copy)
 
         else:
-            try:
-                if dtype == str:
-                    # GH#38607
-                    new_values = values.astype(dtype, copy=copy)
-                else:
-                    # GH#13149 specifically use astype_nansafe instead of astype
-                    new_values = astype_nansafe(values, dtype=dtype, copy=copy)
-            except IntCastingNaNError:
-                raise
-            except (TypeError, ValueError) as err:
-                if dtype.kind == "u" and "losslessly" in str(err):
-                    # keep the message from _astype_float_to_int_nansafe
-                    raise
-                raise TypeError(
-                    f"Cannot cast {type(self).__name__} to dtype {dtype}"
-                ) from err
+            if dtype == str:
+                # GH#38607 see test_astype_str_from_bytes
+                new_values = values.astype(dtype, copy=copy)
+            else:
+                # GH#13149 specifically use astype_nansafe instead of astype
+                new_values = astype_nansafe(values, dtype=dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the astype above
         if self._is_backward_compat_public_numeric_index:
@@ -1552,7 +1520,7 @@ class Index(IndexOpsMixin, PandasObject):
         index : bool, default True
             Set the index of the returned DataFrame as the original Index.
 
-        name : object, default None
+        name : object, defaults to index.name
             The passed name should substitute for the index name (if it has
             one).
 
@@ -1593,17 +1561,6 @@ class Index(IndexOpsMixin, PandasObject):
         2   Cow
         """
         from pandas import DataFrame
-
-        if name is None:
-            warnings.warn(
-                "Explicitly passing `name=None` currently preserves the Index's name "
-                "or uses a default name of 0. This behaviour is deprecated, and in "
-                "the future `None` will be used as the name of the resulting "
-                "DataFrame column.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            name = lib.no_default
 
         if name is lib.no_default:
             name = self._get_level_names()
@@ -2197,24 +2154,6 @@ class Index(IndexOpsMixin, PandasObject):
             return False
         return True
 
-    @final
-    @property
-    def is_monotonic(self) -> bool:
-        """
-        Alias for is_monotonic_increasing.
-
-        .. deprecated:: 1.5.0
-            is_monotonic is deprecated and will be removed in a future version.
-            Use is_monotonic_increasing instead.
-        """
-        warnings.warn(
-            "is_monotonic is deprecated and will be removed in a future version. "
-            "Use is_monotonic_increasing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.is_monotonic_increasing
-
     @property
     def is_monotonic_increasing(self) -> bool:
         """
@@ -2625,20 +2564,6 @@ class Index(IndexOpsMixin, PandasObject):
         elif self._is_multi:
             return False
         return is_datetime_array(ensure_object(self._values))
-
-    @cache_readonly
-    @final
-    def is_all_dates(self) -> bool:
-        """
-        Whether or not the index values only consist of dates.
-        """
-        warnings.warn(
-            "Index.is_all_dates is deprecated, will be removed in a future version. "
-            "check index.inferred_type instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._is_all_dates
 
     @final
     @cache_readonly
@@ -4339,12 +4264,7 @@ class Index(IndexOpsMixin, PandasObject):
 
                 if not self.is_unique:
                     # GH#42568
-                    warnings.warn(
-                        "reindexing with a non-unique Index is deprecated and "
-                        "will raise in a future version.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
+                    raise ValueError("cannot reindex on an axis with duplicate labels")
 
         target = self._wrap_reindex_result(target, indexer, preserve_names)
         return target, indexer
