@@ -272,11 +272,10 @@ class TestSeriesLogicalOps:
         )  # TODO: raises if bool-dtype
         idx2 = Index([1, 0, 1, 0])
 
-        expected = ser ^ idx1.values
+        expected = Series([False, True, True, False])
         result = idx1 ^ ser
         tm.assert_series_equal(result, expected)
 
-        expected = ser ^ idx2.values
         result = idx2 ^ ser
         tm.assert_series_equal(result, expected)
 
@@ -312,7 +311,7 @@ class TestSeriesLogicalOps:
     def test_reverse_ops_with_index(self, op, expected):
         # https://github.com/pandas-dev/pandas/pull/23628
         # multi-set Index ops are buggy, so let's avoid duplicates...
-        # GH#...
+        # GH#49503
         ser = Series([True, False])
         idx = Index([False, True])
 
