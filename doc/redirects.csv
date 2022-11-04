@@ -1321,8 +1321,6 @@ generated/pandas.Timestamp.daysinmonth,../reference/api/pandas.Timestamp.daysinm
 generated/pandas.Timestamp.dst,../reference/api/pandas.Timestamp.dst
 generated/pandas.Timestamp.floor,../reference/api/pandas.Timestamp.floor
 generated/pandas.Timestamp.fold,../reference/api/pandas.Timestamp.fold
-generated/pandas.Timestamp.freq,../reference/api/pandas.Timestamp.freq
-generated/pandas.Timestamp.freqstr,../reference/api/pandas.Timestamp.freqstr
 generated/pandas.Timestamp.fromisoformat,../reference/api/pandas.Timestamp.fromisoformat
 generated/pandas.Timestamp.fromordinal,../reference/api/pandas.Timestamp.fromordinal
 generated/pandas.Timestamp.fromtimestamp,../reference/api/pandas.Timestamp.fromtimestamp
