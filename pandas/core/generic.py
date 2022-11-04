@@ -86,8 +86,6 @@ from pandas.errors import (
     SettingWithCopyWarning,
 )
 from pandas.util._decorators import (
-    deprecate_kwarg,
-    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -2130,8 +2128,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # I/O Methods
 
     @final
-    @deprecate_kwarg(old_arg_name="verbose", new_arg_name=None)
-    @deprecate_kwarg(old_arg_name="encoding", new_arg_name=None)
     @doc(
         klass="object",
         storage_options=_shared_docs["storage_options"],
@@ -2151,9 +2147,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         startcol: int = 0,
         engine: str | None = None,
         merge_cells: bool_t = True,
-        encoding: lib.NoDefault = lib.no_default,
         inf_rep: str = "inf",
-        verbose: lib.NoDefault = lib.no_default,
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions = None,
     ) -> None:
@@ -2203,24 +2197,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         merge_cells : bool, default True
             Write MultiIndex and Hierarchical Rows as merged cells.
-        encoding : str, optional
-            Encoding of the resulting excel file. Only necessary for xlwt,
-            other writers support unicode natively.
-
-            .. deprecated:: 1.5.0
-
-                This keyword was not used.
-
         inf_rep : str, default 'inf'
             Representation for infinity (there is no native representation for
             infinity in Excel).
-        verbose : bool, default True
-            Display more information in the error logs.
-
-            .. deprecated:: 1.5.0
-
-                This keyword was not used.
-
         freeze_panes : tuple of int (length 2), optional
             Specifies the one-based bottommost row and rightmost column that
             is to be frozen.
@@ -3469,7 +3448,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         storage_options=_shared_docs["storage_options"],
         compression_options=_shared_docs["compression_options"] % "path_or_buf",
     )
-    @deprecate_kwarg(old_arg_name="line_terminator", new_arg_name="lineterminator")
     def to_csv(
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -4394,10 +4372,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def drop(
         self: NDFrameT,
         labels: IndexLabel = None,
+        *,
         axis: Axis = 0,
         index: IndexLabel = None,
         columns: IndexLabel = None,
