@@ -261,7 +261,7 @@ def array_with_unit_to_datetime(
     tz : parsed timezone offset or None
     """
     cdef:
-        Py_ssize_t i, j, n=len(values)
+        Py_ssize_t i, n=len(values)
         int64_t mult
         int prec = 0
         ndarray[float64_t] fvalues
@@ -418,6 +418,7 @@ def array_with_unit_to_datetime(
 
     return oresult, tz
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def first_non_null(values: ndarray) -> int:
@@ -425,7 +426,6 @@ def first_non_null(values: ndarray) -> int:
     cdef:
         Py_ssize_t n = len(values)
         Py_ssize_t i
-        int result
     for i in range(n):
         val = values[i]
         if checknull_with_nat_and_na(val):
@@ -435,6 +435,7 @@ def first_non_null(values: ndarray) -> int:
         return i
     else:
         return -1
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -610,7 +611,8 @@ cpdef array_to_datetime(
                                 continue
                             elif is_raise:
                                 raise ValueError(
-                                    f"time data \"{val}\" at position {i} doesn't match format specified"
+                                    f"time data \"{val}\" at position {i} doesn't "
+                                    "match format specified"
                                 )
                             return values, tz_out
 
@@ -626,7 +628,10 @@ cpdef array_to_datetime(
                             if is_coerce:
                                 iresult[i] = NPY_NAT
                                 continue
-                            raise TypeError(f"invalid string coercion to datetime for \"{val}\" at position {i}")
+                            raise TypeError(
+                                f"invalid string coercion to datetime for \"{val}\" "
+                                f"at position {i}"
+                            )
 
                         if tz is not None:
                             seen_datetime_offset = True
