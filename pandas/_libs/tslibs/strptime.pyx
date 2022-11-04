@@ -29,7 +29,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
+    pydatetime_to_dt64,
 )
+from pandas._libs.tslibs.timestamps cimport _Timestamp
 
 
 cdef dict _parse_code_table = {'y': 0,
@@ -137,7 +139,13 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
             iresult[i] = NPY_NAT
             continue
         elif PyDateTime_Check(val):
-            val = val.strftime(fmt)
+            if isinstance(val, _Timestamp):
+                iresult[i] = val.tz_localize(None)._as_unit("ns").value
+            else:
+                iresult[i] = pydatetime_to_dt64(val, &dts)
+                check_dts_bounds(&dts)
+            result_timezone[i] = val.tzinfo
+            continue
         else:
             val = str(val)
 
