@@ -224,14 +224,13 @@ timedelta-like}
     """
     cdef:
         ndarray[uint8_t, cast=True] ambiguous_array
-        Py_ssize_t i, idx, pos, n = vals.shape[0]
-        Py_ssize_t delta_idx_offset, delta_idx, pos_left, pos_right
+        Py_ssize_t i, n = vals.shape[0]
+        Py_ssize_t delta_idx_offset, delta_idx
         int64_t v, left, right, val, new_local, remaining_mins
         int64_t first_delta, delta
         int64_t shift_delta = 0
         ndarray[int64_t] result_a, result_b, dst_hours
         int64_t[::1] result
-        npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
         bint shift_forward = False, shift_backward = False
         bint fill_nonexist = False

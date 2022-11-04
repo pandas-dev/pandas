@@ -267,7 +267,6 @@ cdef class _Timestamp(ABCTimestamp):
     @classmethod
     def _from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso, tzinfo tz):
         cdef:
-            npy_datetimestruct dts
             _TSObject obj = _TSObject()
 
         if value == NPY_NAT:
@@ -294,7 +293,6 @@ cdef class _Timestamp(ABCTimestamp):
         # This is herely mainly so we can incrementally implement non-nano
         #  (e.g. only tznaive at first)
         cdef:
-            npy_datetimestruct dts
             int64_t value
             NPY_DATETIMEUNIT reso
 
@@ -317,7 +315,6 @@ cdef class _Timestamp(ABCTimestamp):
     def __richcmp__(_Timestamp self, object other, int op):
         cdef:
             _Timestamp ots
-            int ndim
 
         if isinstance(other, _Timestamp):
             ots = other
@@ -368,7 +365,8 @@ cdef class _Timestamp(ABCTimestamp):
                 return False
             elif op == Py_NE:
                 return True
-            raise TypeError("Cannot compare Timestamp with datetime.date. "
+            raise TypeError(
+                "Cannot compare Timestamp with datetime.date. "
                 "Use ts == pd.Timestamp(date) or ts.date() == date instead."
             )
         else:
@@ -1646,7 +1644,9 @@ class Timestamp(_Timestamp):
             if not is_offset_object(freq):
                 freq = to_offset(freq)
 
-        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold, ts.creso)
+        return create_timestamp_from_ts(
+            ts.value, ts.dts, ts.tzinfo, freq, ts.fold, ts.creso
+        )
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         cdef:

@@ -282,7 +282,7 @@ def init_dev_clipboard_clipboard():
                 stacklevel=find_stack_level(),
             )
 
-        with open("/dev/clipboard", "wt") as fd:
+        with open("/dev/clipboard", "w") as fd:
             fd.write(text)
 
     def paste_dev_clipboard() -> str:

@@ -138,7 +138,7 @@ def ints_to_pydatetime(
 
         npy_datetimestruct dts
         tzinfo new_tz
-        bint use_date = False, use_time = False, use_ts = False, use_pydt = False
+        bint use_date = False, use_ts = False, use_pydt = False
         object res_val
 
         # Note that `result` (and thus `result_flat`) is C-order and
@@ -154,11 +154,9 @@ def ints_to_pydatetime(
         use_date = True
     elif box == "timestamp":
         use_ts = True
-    elif box == "time":
-        use_time = True
     elif box == "datetime":
         use_pydt = True
-    else:
+    elif box != "time":
         raise ValueError(
             "box must be one of 'datetime', 'date', 'time' or 'timestamp'"
         )
