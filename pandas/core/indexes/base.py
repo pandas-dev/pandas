@@ -41,7 +41,6 @@ from pandas._libs.tslibs import (
     IncompatibleFrequency,
     OutOfBoundsDatetime,
     Timestamp,
-    is_unitless,
     tz_compare,
 )
 from pandas._typing import (
@@ -61,7 +60,6 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
-    IntCastingNaNError,
     InvalidIndexError,
 )
 from pandas.util._decorators import (
@@ -1016,11 +1014,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         values = self._data
         if isinstance(values, ExtensionArray):
-            if isinstance(dtype, np.dtype) and dtype.kind == "M" and is_unitless(dtype):
-                # TODO(2.0): remove this special-casing once this is enforced
-                #  in DTA.astype
-                raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
-
             with rewrite_exception(type(values).__name__, type(self).__name__):
                 new_values = values.astype(dtype, copy=copy)
 
@@ -1039,22 +1032,12 @@ class Index(IndexOpsMixin, PandasObject):
             new_values = cls._from_sequence(self, dtype=dtype, copy=copy)
 
         else:
-            try:
-                if dtype == str:
-                    # GH#38607
-                    new_values = values.astype(dtype, copy=copy)
-                else:
-                    # GH#13149 specifically use astype_nansafe instead of astype
-                    new_values = astype_nansafe(values, dtype=dtype, copy=copy)
-            except IntCastingNaNError:
-                raise
-            except (TypeError, ValueError) as err:
-                if dtype.kind == "u" and "losslessly" in str(err):
-                    # keep the message from _astype_float_to_int_nansafe
-                    raise
-                raise TypeError(
-                    f"Cannot cast {type(self).__name__} to dtype {dtype}"
-                ) from err
+            if dtype == str:
+                # GH#38607 see test_astype_str_from_bytes
+                new_values = values.astype(dtype, copy=copy)
+            else:
+                # GH#13149 specifically use astype_nansafe instead of astype
+                new_values = astype_nansafe(values, dtype=dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the astype above
         if self._is_backward_compat_public_numeric_index:
