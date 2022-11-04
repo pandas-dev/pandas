@@ -46,7 +46,7 @@ cdef extern from "src/datetime/np_datetime.h":
     npy_datetimestruct _S_MIN_DTS, _S_MAX_DTS
     npy_datetimestruct _M_MIN_DTS, _M_MAX_DTS
 
-    PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype);
+    PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype)
 
 cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(const char *str, int len, int want_exc,
@@ -171,7 +171,11 @@ class OutOfBoundsTimedelta(ValueError):
     pass
 
 
-cdef get_implementation_bounds(NPY_DATETIMEUNIT reso, npy_datetimestruct *lower, npy_datetimestruct *upper):
+cdef get_implementation_bounds(
+    NPY_DATETIMEUNIT reso,
+    npy_datetimestruct *lower,
+    npy_datetimestruct *upper,
+):
     if reso == NPY_FR_ns:
         upper[0] = _NS_MAX_DTS
         lower[0] = _NS_MIN_DTS
@@ -420,7 +424,6 @@ def compare_mismatched_resolutions(ndarray left, ndarray right, op):
         Py_ssize_t i, N = left.size
         npy_datetimestruct ldts, rdts
 
-
     for i in range(N):
         # Analogous to: lval = lvalues[i]
         lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
@@ -511,7 +514,10 @@ cdef ndarray astype_round_check(
 
 
 @cython.overflowcheck(True)
-cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT to_unit) except? -1:
+cdef int64_t get_conversion_factor(
+    NPY_DATETIMEUNIT from_unit,
+    NPY_DATETIMEUNIT to_unit
+) except? -1:
     """
     Find the factor by which we need to multiply to convert from from_unit to to_unit.
     """
