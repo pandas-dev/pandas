@@ -78,7 +78,6 @@ disable = [
   "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
-  "consider-using-f-string",
   "import-outside-toplevel",
   "invalid-name",
   "line-too-long",
@@ -102,17 +101,14 @@ disable = [
 
   # pylint type "R": refactor, for bad code smell
   "chained-comparison",
-  "comparison-of-constants",
   "comparison-with-itself",
   "consider-merging-isinstance",
   "consider-using-min-builtin",
-  "consider-using-sys-exit",
   "consider-using-ternary",
   "consider-using-with",
   "cyclic-import",
   "duplicate-code",
   "inconsistent-return-statements",
-  "no-else-raise",
   "no-else-return",
   "redefined-argument-from-local",
   "too-few-public-methods",
@@ -138,7 +134,6 @@ disable = [
   "arguments-renamed",
   "attribute-defined-outside-init",
   "broad-except",
-  "cell-var-from-loop",
   "comparison-with-callable",
   "confusing-with-statement",
   "dangerous-default-value",

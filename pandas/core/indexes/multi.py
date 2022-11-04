@@ -14,7 +14,6 @@ from typing import (
     Sequence,
     Tuple,
     cast,
-    overload,
 )
 import warnings
 
@@ -204,7 +203,7 @@ def names_compat(meth: F) -> F:
     def new_meth(self_or_cls, *args, **kwargs):
         if "name" in kwargs and "names" in kwargs:
             raise TypeError("Can only provide one of `names` and `name`")
-        elif "name" in kwargs:
+        if "name" in kwargs:
             kwargs["names"] = kwargs.pop("name")
 
         return meth(self_or_cls, *args, **kwargs)
@@ -482,7 +481,7 @@ class MultiIndex(Index):
         error_msg = "Input must be a list / sequence of array-likes."
         if not is_list_like(arrays):
             raise TypeError(error_msg)
-        elif is_iterator(arrays):
+        if is_iterator(arrays):
             arrays = list(arrays)
 
         # Check if elements of array are list-like
@@ -553,7 +552,7 @@ class MultiIndex(Index):
         """
         if not is_list_like(tuples):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
-        elif is_iterator(tuples):
+        if is_iterator(tuples):
             tuples = list(tuples)
         tuples = cast(Collection[Tuple[Hashable, ...]], tuples)
 
@@ -642,7 +641,7 @@ class MultiIndex(Index):
 
         if not is_list_like(iterables):
             raise TypeError("Input must be a list / sequence of iterables.")
-        elif is_iterator(iterables):
+        if is_iterator(iterables):
             iterables = list(iterables)
 
         codes, levels = factorize_from_iterables(iterables)
@@ -1499,7 +1498,7 @@ class MultiIndex(Index):
         except ValueError as err:
             if not is_integer(level):
                 raise KeyError(f"Level {level} not found") from err
-            elif level < 0:
+            if level < 0:
                 level += self.nlevels
                 if level < 0:
                     orig_level = level - self.nlevels
@@ -1737,17 +1736,6 @@ class MultiIndex(Index):
         b d  b  d
         """
         from pandas import DataFrame
-
-        if name is None:
-            warnings.warn(
-                "Explicitly passing `name=None` currently preserves the Index's name "
-                "or uses a default name of 0. This behaviour is deprecated, and in "
-                "the future `None` will be used as the name of the resulting "
-                "DataFrame column.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            name = lib.no_default
 
         if name is not lib.no_default:
             if not is_list_like(name):
@@ -3664,12 +3652,12 @@ class MultiIndex(Index):
         if is_categorical_dtype(dtype):
             msg = "> 1 ndim Categorical are not supported at this time"
             raise NotImplementedError(msg)
-        elif not is_object_dtype(dtype):
+        if not is_object_dtype(dtype):
             raise TypeError(
                 "Setting a MultiIndex dtype to anything other than object "
                 "is not supported"
             )
-        elif copy is True:
+        if copy is True:
             return self._view()
         return self
 
@@ -3750,28 +3738,9 @@ class MultiIndex(Index):
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
 
-    @overload
-    def set_names(
-        self, names, *, level=..., inplace: Literal[False] = ...
-    ) -> MultiIndex:
-        ...
-
-    @overload
-    def set_names(self, names, *, level=..., inplace: Literal[True]) -> None:
-        ...
-
-    @overload
-    def set_names(self, names, *, level=..., inplace: bool = ...) -> MultiIndex | None:
-        ...
-
-    def set_names(
-        self, names, *, level=None, inplace: bool = False
-    ) -> MultiIndex | None:
-        return super().set_names(names=names, level=level, inplace=inplace)
-
     # error: Incompatible types in assignment (expression has type overloaded function,
     # base class "Index" defined the type as "Callable[[Index, Any, bool], Any]")
-    rename = set_names  # type: ignore[assignment]
+    rename = Index.set_names  # type: ignore[assignment]
 
     # ---------------------------------------------------------------
     # Arithmetic/Numeric Methods - Disabled

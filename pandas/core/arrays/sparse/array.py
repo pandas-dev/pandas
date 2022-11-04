@@ -781,7 +781,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         ):
             raise ValueError("Must specify one of 'method' or 'value'.")
 
-        elif method is not None:
+        if method is not None:
             msg = "fillna with 'method' requires high memory usage."
             warnings.warn(
                 msg,
@@ -1172,8 +1172,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if (indices.max() >= n) or (indices.min() < -n):
             if n == 0:
                 raise IndexError("cannot do a non-empty take from an empty axes.")
-            else:
-                raise IndexError("out of bounds value in 'indices'.")
+            raise IndexError("out of bounds value in 'indices'.")
 
         if to_shift.any():
             indices = indices.copy()
