@@ -243,13 +243,12 @@ class TestSeriesFillNA:
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 
-        # interpreted as seconds, no longer supported
-        msg = "value should be a 'Timedelta', 'NaT', or array of those. Got 'int'"
-        wmsg = "In a future version, this will cast to a common dtype"
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=wmsg):
-                # GH#45746
-                obj.fillna(1)
+        # GH#45746 pre-1.? ints were interpreted as seconds.  then that was
+        #  deprecated and changed to raise. In 2.0 it casts to common dtype,
+        #  consistent with every other dtype's behavior
+        res = obj.fillna(1)
+        expected = obj.astype(object).fillna(1)
+        tm.assert_equal(res, expected)
 
         result = obj.fillna(Timedelta(seconds=1))
         expected = Series(
