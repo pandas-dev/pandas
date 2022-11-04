@@ -4870,69 +4870,6 @@ class DataFrame(NDFrame, OpsMixin):
             for idx, item in enumerate(self.columns)
         }
 
-    def lookup(
-        self, row_labels: Sequence[IndexLabel], col_labels: Sequence[IndexLabel]
-    ) -> np.ndarray:
-        """
-        Label-based "fancy indexing" function for DataFrame.
-
-        .. deprecated:: 1.2.0
-            DataFrame.lookup is deprecated,
-            use pandas.factorize and NumPy indexing instead.
-            For further details see
-            :ref:`Looking up values by index/column labels <indexing.lookup>`.
-
-        Given equal-length arrays of row and column labels, return an
-        array of the values corresponding to each (row, col) pair.
-
-        Parameters
-        ----------
-        row_labels : sequence
-            The row labels to use for lookup.
-        col_labels : sequence
-            The column labels to use for lookup.
-
-        Returns
-        -------
-        numpy.ndarray
-            The found values.
-        """
-        msg = (
-            "The 'lookup' method is deprecated and will be "
-            "removed in a future version. "
-            "You can use DataFrame.melt and DataFrame.loc "
-            "as a substitute."
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-
-        n = len(row_labels)
-        if n != len(col_labels):
-            raise ValueError("Row labels must have same size as column labels")
-        if not (self.index.is_unique and self.columns.is_unique):
-            # GH#33041
-            raise ValueError("DataFrame.lookup requires unique index and columns")
-
-        thresh = 1000
-        if not self._is_mixed_type or n > thresh:
-            values = self.values
-            ridx = self.index.get_indexer(row_labels)
-            cidx = self.columns.get_indexer(col_labels)
-            if (ridx == -1).any():
-                raise KeyError("One or more row labels was not found")
-            if (cidx == -1).any():
-                raise KeyError("One or more column labels was not found")
-            flat_index = ridx * len(self.columns) + cidx
-            result = values.flat[flat_index]
-        else:
-            result = np.empty(n, dtype="O")
-            for i, (r, c) in enumerate(zip(row_labels, col_labels)):
-                result[i] = self._get_value(r, c)
-
-        if is_object_dtype(result):
-            result = lib.maybe_convert_objects(result)
-
-        return result
-
     # ----------------------------------------------------------------------
     # Reindexing and alignment
 
@@ -5156,12 +5093,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "drop" incompatible with supertype "NDFrame"
-    # github.com/python/mypy/issues/12387
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
-    def drop(  # type: ignore[override]
+    def drop(
         self,
         labels: IndexLabel = None,
+        *,
         axis: Axis = 0,
         index: IndexLabel = None,
         columns: IndexLabel = None,
@@ -5531,11 +5466,11 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     # error: Signature of "fillna" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(  # type: ignore[override]
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
+        *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
@@ -9561,118 +9496,6 @@ Parrot 2  Parrot       24.0
 
     # ----------------------------------------------------------------------
     # Merging / joining methods
-
-    def append(
-        self,
-        other,
-        ignore_index: bool = False,
-        verify_integrity: bool = False,
-        sort: bool = False,
-    ) -> DataFrame:
-        """
-        Append rows of `other` to the end of caller, returning a new object.
-
-        .. deprecated:: 1.4.0
-            Use :func:`concat` instead. For further details see
-            :ref:`whatsnew_140.deprecations.frame_series_append`
-
-        Columns in `other` that are not in the caller are added as new columns.
-
-        Parameters
-        ----------
-        other : DataFrame or Series/dict-like object, or list of these
-            The data to append.
-        ignore_index : bool, default False
-            If True, the resulting axis will be labeled 0, 1, …, n - 1.
-        verify_integrity : bool, default False
-            If True, raise ValueError on creating index with duplicates.
-        sort : bool, default False
-            Sort columns if the columns of `self` and `other` are not aligned.
-
-            .. versionchanged:: 1.0.0
-
-                Changed to not sort by default.
-
-        Returns
-        -------
-        DataFrame
-            A new DataFrame consisting of the rows of caller and the rows of `other`.
-
-        See Also
-        --------
-        concat : General function to concatenate DataFrame or Series objects.
-
-        Notes
-        -----
-        If a list of dict/series is passed and the keys are all contained in
-        the DataFrame's index, the order of the columns in the resulting
-        DataFrame will be unchanged.
-
-        Iteratively appending rows to a DataFrame can be more computationally
-        intensive than a single concatenate. A better solution is to append
-        those rows to a list and then concatenate the list with the original
-        DataFrame all at once.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'), index=['x', 'y'])
-        >>> df
-           A  B
-        x  1  2
-        y  3  4
-        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'), index=['x', 'y'])
-        >>> df.append(df2)
-           A  B
-        x  1  2
-        y  3  4
-        x  5  6
-        y  7  8
-
-        With `ignore_index` set to True:
-
-        >>> df.append(df2, ignore_index=True)
-           A  B
-        0  1  2
-        1  3  4
-        2  5  6
-        3  7  8
-
-        The following, while not recommended methods for generating DataFrames,
-        show two ways to generate a DataFrame from multiple data sources.
-
-        Less efficient:
-
-        >>> df = pd.DataFrame(columns=['A'])
-        >>> for i in range(5):
-        ...     df = df.append({'A': i}, ignore_index=True)
-        >>> df
-           A
-        0  0
-        1  1
-        2  2
-        3  3
-        4  4
-
-        More efficient:
-
-        >>> pd.concat([pd.DataFrame([i], columns=['A']) for i in range(5)],
-        ...           ignore_index=True)
-           A
-        0  0
-        1  1
-        2  2
-        3  3
-        4  4
-        """
-        warnings.warn(
-            "The frame.append method is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Use pandas.concat instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        return self._append(other, ignore_index, verify_integrity, sort)
 
     def _append(
         self,

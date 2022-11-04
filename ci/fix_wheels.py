@@ -4,7 +4,12 @@ import sys
 import zipfile
 
 try:
-    _, wheel_path, dest_dir = sys.argv
+    if len(sys.argv) != 3:
+        raise ValueError(
+            "User must pass the path to the wheel and the destination directory."
+        )
+    wheel_path = sys.argv[1]
+    dest_dir = sys.argv[2]
     # Figure out whether we are building on 32 or 64 bit python
     is_32 = sys.maxsize <= 2**32
     PYTHON_ARCH = "x86" if is_32 else "x64"
@@ -50,5 +55,4 @@ with zipfile.ZipFile(repaired_wheel_path, "a") as zipf:
 if not success:
     os.remove(repaired_wheel_path)
     raise exception
-else:
-    print(f"Successfully repaired wheel was written to {repaired_wheel_path}")
+print(f"Successfully repaired wheel was written to {repaired_wheel_path}")
