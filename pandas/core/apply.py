@@ -652,6 +652,10 @@ class FrameApply(NDFrameApply):
 
         return self.apply_standard()
 
+    def _filter_numeric_only(self) -> None:
+        if "numeric_only" in self.kwargs and self.kwargs["numeric_only"] is True:
+            self.obj = self.obj._get_numeric_data()
+
     def agg(self):
         obj = self.obj
         axis = self.axis
@@ -659,6 +663,7 @@ class FrameApply(NDFrameApply):
         # TODO: Avoid having to change state
         self.obj = self.obj if self.axis == 0 else self.obj.T
         self.axis = 0
+        self._filter_numeric_only()
 
         result = None
         try:
