@@ -48,13 +48,8 @@ def arr_float(arr_shape):
 
 
 @pytest.fixture
-def arr_float1(arr_float):
-    return arr_float
-
-
-@pytest.fixture
-def arr_complex(arr_float, arr_float1):
-    return arr_float + arr_float1 * 1j
+def arr_complex(arr_float):
+    return arr_float + arr_float * 1j
 
 
 @pytest.fixture
@@ -102,13 +97,8 @@ def arr_float_nan(arr_float, arr_nan):
 
 
 @pytest.fixture
-def arr_float1_nan(arr_float1, arr_nan):
-    return np.vstack([arr_float1, arr_nan])
-
-
-@pytest.fixture
-def arr_nan_float1(arr_nan, arr_float1):
-    return np.vstack([arr_nan, arr_float1])
+def arr_nan_float1(arr_nan, arr_float):
+    return np.vstack([arr_nan, arr_float])
 
 
 @pytest.fixture
@@ -184,43 +174,8 @@ def arr_complex_nan_infj(arr_complex, arr_nan_infj):
 
 
 @pytest.fixture
-def arr_float_2d(arr_float):
-    return arr_float
-
-
-@pytest.fixture
-def arr_float1_2d(arr_float1):
-    return arr_float1
-
-
-@pytest.fixture
-def arr_nan_2d(arr_nan):
-    return arr_nan
-
-
-@pytest.fixture
-def arr_float_nan_2d(arr_float_nan):
-    return arr_float_nan
-
-
-@pytest.fixture
-def arr_float1_nan_2d(arr_float1_nan):
-    return arr_float1_nan
-
-
-@pytest.fixture
-def arr_nan_float1_2d(arr_nan_float1):
-    return arr_nan_float1
-
-
-@pytest.fixture
 def arr_float_1d(arr_float):
     return arr_float[:, 0]
-
-
-@pytest.fixture
-def arr_float1_1d(arr_float1):
-    return arr_float1
 
 
 @pytest.fixture
@@ -812,12 +767,12 @@ class TestnanopsDataFrame:
 )
 def test_nan_comparison(request, op, nanop, disable_bottleneck):
     arr_float = request.getfixturevalue("arr_float")
-    arr_float1 = request.getfixturevalue("arr_float1")
+    arr_float1 = request.getfixturevalue("arr_float")
     targ0 = op(arr_float, arr_float1)
     arr_nan = request.getfixturevalue("arr_nan")
     arr_nan_nan = request.getfixturevalue("arr_nan_nan")
     arr_float_nan = request.getfixturevalue("arr_float_nan")
-    arr_float1_nan = request.getfixturevalue("arr_float1_nan")
+    arr_float1_nan = request.getfixturevalue("arr_float_nan")
     arr_nan_float1 = request.getfixturevalue("arr_nan_float1")
 
     while targ0.ndim:
@@ -861,7 +816,7 @@ def test_nan_comparison(request, op, nanop, disable_bottleneck):
         ("arr_complex_nan_infj", True),
     ],
 )
-def test__has_infs_non_float(request, arr, correct, disable_bottleneck):
+def test_has_infs_non_float(request, arr, correct, disable_bottleneck):
     val = request.getfixturevalue(arr)
     while getattr(val, "ndim", True):
         res0 = nanops._has_infs(val)
@@ -892,7 +847,7 @@ def test__has_infs_non_float(request, arr, correct, disable_bottleneck):
     ],
 )
 @pytest.mark.parametrize("astype", [None, "f4", "f2"])
-def test__has_infs_floats(request, arr, correct, astype, disable_bottleneck):
+def test_has_infs_floats(request, arr, correct, astype, disable_bottleneck):
     val = request.getfixturevalue(arr)
     if astype is not None:
         val = val.astype(astype)
@@ -913,7 +868,7 @@ def test__has_infs_floats(request, arr, correct, astype, disable_bottleneck):
 @pytest.mark.parametrize(
     "fixture", ["arr_float", "arr_complex", "arr_int", "arr_bool", "arr_str", "arr_utf"]
 )
-def test__bn_ok_dtype(fixture, request, disable_bottleneck):
+def test_bn_ok_dtype(fixture, request, disable_bottleneck):
     obj = request.getfixturevalue(fixture)
     assert nanops._bn_ok_dtype(obj.dtype, "test")
 
@@ -926,7 +881,7 @@ def test__bn_ok_dtype(fixture, request, disable_bottleneck):
         "arr_obj",
     ],
 )
-def test__bn_not_ok_dtype(fixture, request, disable_bottleneck):
+def test_bn_not_ok_dtype(fixture, request, disable_bottleneck):
     obj = request.getfixturevalue(fixture)
     assert not nanops._bn_ok_dtype(obj.dtype, "test")
 
@@ -1299,7 +1254,7 @@ def test_nanops_independent_of_mask_param(operation):
 
 
 @pytest.mark.parametrize("min_count", [-1, 0])
-def test_check_below_min_count__negative_or_zero_min_count(min_count):
+def test_check_below_min_count_negative_or_zero_min_count(min_count):
     # GH35227
     result = nanops.check_below_min_count((21, 37), None, min_count)
     expected_result = False
@@ -1310,7 +1265,7 @@ def test_check_below_min_count__negative_or_zero_min_count(min_count):
     "mask", [None, np.array([False, False, True]), np.array([True] + 9 * [False])]
 )
 @pytest.mark.parametrize("min_count, expected_result", [(1, False), (101, True)])
-def test_check_below_min_count__positive_min_count(mask, min_count, expected_result):
+def test_check_below_min_count_positive_min_count(mask, min_count, expected_result):
     # GH35227
     shape = (10, 10)
     result = nanops.check_below_min_count(shape, mask, min_count)
@@ -1320,7 +1275,7 @@ def test_check_below_min_count__positive_min_count(mask, min_count, expected_res
 @td.skip_if_windows
 @td.skip_if_32bit
 @pytest.mark.parametrize("min_count, expected_result", [(1, False), (2812191852, True)])
-def test_check_below_min_count__large_shape(min_count, expected_result):
+def test_check_below_min_count_large_shape(min_count, expected_result):
     # GH35227 large shape used to show that the issue is fixed
     shape = (2244367, 1253)
     result = nanops.check_below_min_count(shape, mask=None, min_count=min_count)
