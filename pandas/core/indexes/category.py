@@ -4,7 +4,6 @@ from typing import (
     Any,
     Hashable,
 )
-import warnings
 
 import numpy as np
 
@@ -18,7 +17,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -216,18 +214,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
         name = maybe_extract_name(name, data, cls)
 
-        if data is None:
-            # GH#38944
-            warnings.warn(
-                "Constructing a CategoricalIndex without passing data is "
-                "deprecated and will raise in a future version. "
-                "Use CategoricalIndex([], ...) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            data = []
-
         if is_scalar(data):
+            # GH#38944 include None here, which pre-2.0 subbed in []
             cls._raise_scalar_data_error(data)
 
         data = Categorical(

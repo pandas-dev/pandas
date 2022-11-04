@@ -61,10 +61,10 @@ def test_view_preserves_name(index):
     assert index.view().name == index.name
 
 
-def test_ravel_deprecation(index):
-    # GH#19956 ravel returning ndarray is deprecated
-    with tm.assert_produces_warning(FutureWarning):
-        index.ravel()
+def test_ravel(index):
+    # GH#19956 ravel returning ndarray is deprecated, in 2.0 returns a view on self
+    res = index.ravel()
+    tm.assert_index_equal(res, index)
 
 
 class TestConversion:

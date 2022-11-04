@@ -44,7 +44,8 @@ class TestFromRecords:
         dtypes = [("EXPIRY", "<M8[m]")]
         recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
         result = DataFrame.from_records(recarray)
-        expected["EXPIRY"] = expected["EXPIRY"].astype("M8[m]")
+        # we get the closest supported unit, "s"
+        expected["EXPIRY"] = expected["EXPIRY"].astype("M8[s]")
         tm.assert_frame_equal(result, expected)
 
     def test_from_records_sequencelike(self):
