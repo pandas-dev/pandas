@@ -1192,7 +1192,7 @@ def test_read_with_parse_dates_scalar_non_bool(all_parsers, kwargs):
         parser.read_csv(StringIO(data), parse_dates="C", **kwargs)
 
 
-@pytest.mark.parametrize("parse_dates", [(1,), np.array([4, 5]), {1, 3, 3}])
+@pytest.mark.parametrize("parse_dates", [(1,), np.array([4, 5]), {1, 3}])
 def test_read_with_parse_dates_invalid_type(all_parsers, parse_dates):
     parser = all_parsers
     msg = (
