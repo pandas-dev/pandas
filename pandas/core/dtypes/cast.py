@@ -1414,7 +1414,7 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
 
 
 # TODO: other value-dependent functions to standardize here include
-#  dtypes.concat.cast_to_common_type and Index._find_common_type_compat
+#  Index._find_common_type_compat
 def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
     """
     Find the type/dtype for a the result of an operation between these objects.
