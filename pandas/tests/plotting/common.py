@@ -510,18 +510,10 @@ class TestPlotBase:
         return [v[field] for v in rcParams["axes.prop_cycle"]]
 
     def get_x_axis(self, ax):
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_5_0
-
-        if mpl_ge_3_5_0():
-            return ax._shared_axes["x"]
-        return ax._shared_x_axes
+        return ax._shared_axes["x"]
 
     def get_y_axis(self, ax):
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_5_0
-
-        if mpl_ge_3_5_0():
-            return ax._shared_axes["y"]
-        return ax._shared_y_axes
+        return ax._shared_axes["y"]
 
 
 def _check_plot_works(f, filterwarnings="always", default_axes=False, **kwargs):

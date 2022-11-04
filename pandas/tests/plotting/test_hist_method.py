@@ -18,11 +18,6 @@ from pandas.tests.plotting.common import (
     _check_plot_works,
 )
 
-try:
-    from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
-except ImportError:
-    mpl_ge_3_6_0 = lambda: True
-
 
 @pytest.fixture
 def ts():
@@ -196,7 +191,7 @@ class TestSeriesPlots(TestPlotBase):
         ax = ts.plot.hist(align="left", stacked=True, ax=ax)
         tm.close()
 
-    @pytest.mark.xfail(mpl_ge_3_6_0(), reason="Api changed")
+    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     @td.skip_if_no_scipy
     def test_hist_kde(self, ts):
 
