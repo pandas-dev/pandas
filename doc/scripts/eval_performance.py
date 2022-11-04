@@ -2,8 +2,10 @@ from timeit import repeat as timeit
 
 import numpy as np
 import seaborn as sns
+import os
 
 from pandas import DataFrame
+from matplotlib.pyplot import figure
 
 setup_common = """from pandas import DataFrame
 from numpy.random import randn
@@ -15,15 +17,15 @@ setup_with = "s = 'a + b * (c ** 2 + b ** 2 - a) / (a * c) ** 3'"
 
 def bench_with(n, times=10, repeat=3, engine="numexpr"):
     return (
-        np.array(
-            timeit(
-                "df.eval(s, engine=%r)" % engine,
-                setup=setup_common % (n, setup_with),
-                repeat=repeat,
-                number=times,
+            np.array(
+                timeit(
+                    "df.eval(s, engine=%r)" % engine,
+                    setup=setup_common % (n, setup_with),
+                    repeat=repeat,
+                    number=times,
+                )
             )
-        )
-        / times
+            / times
     )
 
 
@@ -32,15 +34,15 @@ setup_subset = "s = 'a <= b <= c ** 2 + b ** 2 - a and b > c'"
 
 def bench_subset(n, times=20, repeat=3, engine="numexpr"):
     return (
-        np.array(
-            timeit(
-                "df.query(s, engine=%r)" % engine,
-                setup=setup_common % (n, setup_subset),
-                repeat=repeat,
-                number=times,
+            np.array(
+                timeit(
+                    "df.query(s, engine=%r)" % engine,
+                    setup=setup_common % (n, setup_subset),
+                    repeat=repeat,
+                    number=times,
+                )
             )
-        )
-        / times
+            / times
     )
 
 
@@ -65,8 +67,6 @@ def bench(mn=3, mx=7, num=100, engines=("python", "numexpr"), verbose=False):
 
 
 def plot_perf(df, engines, title, filename=None):
-    from matplotlib.pyplot import figure
-
     sns.set()
     sns.set_palette("Set2")
 
@@ -89,14 +89,12 @@ def plot_perf(df, engines, title, filename=None):
 
 
 if __name__ == "__main__":
-    import os
-
     pandas_dir = os.path.dirname(
         os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
     )
     static_path = os.path.join(pandas_dir, "doc", "source", "_static")
 
-    join = lambda p: os.path.join(static_path, p)
+    def join(p): return os.path.join(static_path, p)
 
     fn = join("eval-query-perf-data.h5")
 
