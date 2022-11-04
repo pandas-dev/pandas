@@ -304,8 +304,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             # well. Previously this raised an internal ValueError. We might
             # support it someday, so raise a NotImplementedError.
             raise NotImplementedError(
-                "Cannot apply ufunc {} to mixed DataFrame and Series "
-                "inputs.".format(ufunc)
+                f"Cannot apply ufunc {ufunc} to mixed DataFrame and Series inputs."
             )
         axes = self.axes
         for obj in alignable[1:]:
