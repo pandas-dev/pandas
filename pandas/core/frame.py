@@ -5044,7 +5044,6 @@ class DataFrame(NDFrame, OpsMixin):
             broadcast_axis=broadcast_axis,
         )
 
-    # error: Signature of "set_axis" incompatible with supertype "NDFrame"
     @Appender(
         """
         Examples
