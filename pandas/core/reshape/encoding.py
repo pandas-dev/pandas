@@ -508,7 +508,7 @@ def from_dummies(
                 "Dummy DataFrame contains multi-assignment(s); "
                 f"First instance in row: {assigned.idxmax()}"
             )
-        elif any(assigned == 0):
+        if any(assigned == 0):
             if isinstance(default_category, dict):
                 cats.append(default_category[prefix])
             else:
