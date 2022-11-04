@@ -102,11 +102,9 @@ disable = [
 
   # pylint type "R": refactor, for bad code smell
   "chained-comparison",
-  "comparison-of-constants",
   "comparison-with-itself",
   "consider-merging-isinstance",
   "consider-using-min-builtin",
-  "consider-using-sys-exit",
   "consider-using-ternary",
   "consider-using-with",
   "cyclic-import",
@@ -138,7 +136,6 @@ disable = [
   "arguments-renamed",
   "attribute-defined-outside-init",
   "broad-except",
-  "cell-var-from-loop",
   "comparison-with-callable",
   "confusing-with-statement",
   "dangerous-default-value",
