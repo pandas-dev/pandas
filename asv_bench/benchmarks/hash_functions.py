@@ -1,6 +1,7 @@
 import numpy as np
 
 import pandas as pd
+from pandas.core.api import Int64Index, UInt64Index, Float64Index
 
 
 class UniqueForLargePyObjectInts:
@@ -57,7 +58,7 @@ class Unique:
 class NumericSeriesIndexing:
 
     params = [
-        (pd.Int64Index, pd.UInt64Index, pd.Float64Index),
+        (Int64Index, UInt64Index, Float64Index),
         (10**4, 10**5, 5 * 10**5, 10**6, 5 * 10**6),
     ]
     param_names = ["index_dtype", "N"]
@@ -75,7 +76,7 @@ class NumericSeriesIndexing:
 class NumericSeriesIndexingShuffled:
 
     params = [
-        (pd.Int64Index, pd.UInt64Index, pd.Float64Index),
+        (Int64Index, UInt64Index, Float64Index),
         (10**4, 10**5, 5 * 10**5, 10**6, 5 * 10**6),
     ]
     param_names = ["index_dtype", "N"]

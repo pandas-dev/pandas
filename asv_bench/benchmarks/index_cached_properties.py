@@ -1,4 +1,5 @@
 import pandas as pd
+from pandas.core.api import Float64Index, UInt64Index
 
 
 class IndexCache:
@@ -40,9 +41,9 @@ class IndexCache:
         elif index_type == "TimedeltaIndex":
             self.idx = pd.TimedeltaIndex(range(N))
         elif index_type == "Float64Index":
-            self.idx = pd.Float64Index(range(N))
+            self.idx = Float64Index(range(N))
         elif index_type == "UInt64Index":
-            self.idx = pd.UInt64Index(range(N))
+            self.idx = UInt64Index(range(N))
         elif index_type == "CategoricalIndex":
             self.idx = pd.CategoricalIndex(range(N), range(N))
         else:

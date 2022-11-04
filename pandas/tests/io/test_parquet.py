@@ -831,8 +831,8 @@ class TestParquetPyArrow(Base):
         if partition_col:
             partition_col_type = "category"
 
-            expected_df[partition_col] = expected_df[partition_col].astype(
-                partition_col_type
+            expected_df[partition_col] = (
+                expected_df[partition_col].astype(np.int32).astype(partition_col_type)
             )
 
         check_round_trip(

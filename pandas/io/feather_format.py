@@ -17,7 +17,6 @@ from pandas.util._decorators import doc
 
 from pandas.core.api import (
     DataFrame,
-    Index,
     RangeIndex,
 )
 from pandas.core.shared_docs import _shared_docs
