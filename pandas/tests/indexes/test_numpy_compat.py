@@ -82,9 +82,15 @@ def test_numpy_ufuncs_basic(index, func):
             assert type(result) is NumericIndex
             if is_complex_dtype(index):
                 assert result.dtype == "complex64"
-            elif index.dtype in ("bool", "int8", "uint8", "float16"):
-                assert result.dtype == "float16"
-            elif index.dtype in ("int16", "uint16", "float32"):
+            elif index.dtype in {
+                "bool",
+                "int8",
+                "int16",
+                "uint8",
+                "uint16",
+                "float16",
+                "float32",
+            }:
                 assert result.dtype == "float32"
             else:
                 assert result.dtype == "float64"

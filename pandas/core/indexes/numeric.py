@@ -75,8 +75,8 @@ class NumericIndex(Index):
     Notes
     -----
     An NumericIndex instance can **only** contain numpy int64/32/16/8, uint64/32/16/8 or
-    float64/32/16 dtype. In particular, ``NumericIndex`` *can not* hold Pandas numeric
-    dtypes (:class:`Int64Dtype`, :class:`Int32Dtype` etc.).
+    float64/32 dtype. In particular, ``NumericIndex`` *can not* hold numpy float16
+    dtype or Pandas numeric dtypes (:class:`Int64Dtype`, :class:`Int32Dtype` etc.).
     """
 
     _typ = "numericindex"
@@ -175,6 +175,10 @@ class NumericIndex(Index):
             raise ValueError("Index data must be 1-dimensional")
 
         subarr = np.asarray(subarr)
+        if subarr.dtype == "float16":
+            # float16 not supported (no indexing engine)
+            subarr = subarr.astype("float32")
+
         return subarr
 
     @classmethod
@@ -199,6 +203,9 @@ class NumericIndex(Index):
             return cls._default_dtype
 
         dtype = pandas_dtype(dtype)
+        if dtype == np.float16:
+            # float16 not supported (no indexing engine)
+            dtype = np.dtype(np.float32)
         assert isinstance(dtype, np.dtype)
 
         if cls._is_backward_compat_public_numeric_index:
