@@ -364,7 +364,7 @@ cdef convert_to_timedelta64(object ts, str unit):
     if PyDelta_Check(ts):
         ts = np.timedelta64(delta_to_nanoseconds(ts), "ns")
     elif not is_timedelta64_object(ts):
-        raise ValueError(f"Invalid type for timedelta scalar: {type(ts)}")
+        raise TypeError(f"Invalid type for timedelta scalar: {type(ts)}")
     return ts.astype("timedelta64[ns]")
 
 
