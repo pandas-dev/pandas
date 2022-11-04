@@ -769,7 +769,7 @@ def generate_bins_dt64(ndarray[int64_t, ndim=1] values, const int64_t[:] binner,
     cdef:
         Py_ssize_t lenidx, lenbin, i, j, bc
         ndarray[int64_t, ndim=1] bins
-        int64_t, r_bin, nat_count
+        int64_t r_bin, nat_count
         bint right_closed = closed == 'right'
 
     nat_count = 0

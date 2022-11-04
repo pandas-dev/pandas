@@ -225,7 +225,7 @@ timedelta-like}
     cdef:
         ndarray[uint8_t, cast=True] ambiguous_array
         Py_ssize_t i, n = vals.shape[0]
-        Py_ssize_t delta_idx_offset, delta_idx,
+        Py_ssize_t delta_idx_offset, delta_idx
         int64_t v, left, right, val, new_local, remaining_mins
         int64_t first_delta, delta
         int64_t shift_delta = 0

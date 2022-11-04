@@ -356,7 +356,7 @@ def group_cumsum(
     This method modifies the `out` parameter, rather than returning an object.
     """
     cdef:
-        Py_ssize_t i, j, N, K,
+        Py_ssize_t i, j, N, K
         int64float_t val, y, t, na_val
         int64float_t[:, ::1] accum, compensation
         uint8_t[:, ::1] accum_mask

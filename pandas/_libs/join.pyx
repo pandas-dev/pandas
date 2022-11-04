@@ -275,7 +275,7 @@ def left_join_indexer_unique(
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[intp_t] indexer
-        numeric_object_t, rval
+        numeric_object_t rval
 
     i = 0
     j = 0
