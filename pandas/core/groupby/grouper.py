@@ -901,7 +901,7 @@ def get_grouper(
 
     if len(groupings) == 0 and len(obj):
         raise ValueError("No group keys passed!")
-    elif len(groupings) == 0:
+    if len(groupings) == 0:
         groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
 
     # create the internals grouper

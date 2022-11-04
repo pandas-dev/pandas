@@ -77,7 +77,7 @@ def to_time(
                             f"format {format}"
                         )
                         raise ValueError(msg) from err
-                    elif errors == "ignore":
+                    if errors == "ignore":
                         return arg
                     else:
                         times.append(None)

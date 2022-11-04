@@ -70,6 +70,3 @@ class IndexCache:
 
     def time_inferred_type(self, index_type):
         self.idx.inferred_type
-
-    def time_is_all_dates(self, index_type):
-        self.idx.is_all_dates
