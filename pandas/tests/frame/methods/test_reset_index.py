@@ -479,7 +479,6 @@ class TestResetIndex:
         with pytest.raises(ValueError, match="expected type bool"):
             multiindex_df.reset_index(allow_duplicates=allow_duplicates)
 
-    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_reset_index_datetime(self, tz_naive_fixture):
         # GH#3950
         tz = tz_naive_fixture

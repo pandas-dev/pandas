@@ -7,7 +7,6 @@ import pytest
 from pandas import (
     DataFrame,
     Series,
-    date_range,
 )
 import pandas._testing as tm
 
@@ -73,22 +72,3 @@ class TestFirstValidIndex:
         ser = frame["foo"]
         assert ser.first_valid_index() is None
         assert ser.last_valid_index() is None
-
-    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
-    def test_first_last_valid_preserves_freq(self):
-        # GH#20499: its preserves freq with holes
-        index = date_range("20110101", periods=30, freq="B")
-        frame = DataFrame(np.nan, columns=["foo"], index=index)
-
-        frame.iloc[1] = 1
-        frame.iloc[-2] = 1
-        assert frame.first_valid_index() == frame.index[1]
-        assert frame.last_valid_index() == frame.index[-2]
-        assert frame.first_valid_index().freq == frame.index.freq
-        assert frame.last_valid_index().freq == frame.index.freq
-
-        ts = frame["foo"]
-        assert ts.first_valid_index() == ts.index[1]
-        assert ts.last_valid_index() == ts.index[-2]
-        assert ts.first_valid_index().freq == ts.index.freq
-        assert ts.last_valid_index().freq == ts.index.freq

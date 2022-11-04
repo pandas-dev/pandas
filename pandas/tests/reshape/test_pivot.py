@@ -525,7 +525,6 @@ class TestPivotTable:
             result = pd.pivot(df, index="b", columns="a", values="c")
         tm.assert_frame_equal(result, pv.T)
 
-    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     @pytest.mark.parametrize("method", [True, False])
     def test_pivot_with_tz(self, method):
         # GH 5878

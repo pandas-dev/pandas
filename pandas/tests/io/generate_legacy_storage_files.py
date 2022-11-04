@@ -243,9 +243,6 @@ def create_data():
         "tz": Timestamp("2011-01-01", tz="US/Eastern"),
     }
 
-    timestamp["freq"] = Timestamp("2011-01-01", freq="D")
-    timestamp["both"] = Timestamp("2011-01-01", tz="Asia/Tokyo", freq="M")
-
     off = {
         "DateOffset": DateOffset(years=1),
         "DateOffset_h_ns": DateOffset(hour=6, nanoseconds=5824),
