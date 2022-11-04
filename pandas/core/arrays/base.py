@@ -780,9 +780,11 @@ class ExtensionArray:
             Alternatively, an array-like 'value' can be given. It's expected
             that the array-like have the same length as 'self'.
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap.
+            Method to use for filling holes in reindexed Series:
+
+            * pad / ffill: propagate last valid observation forward to next valid.
+            * backfill / bfill: use NEXT valid observation to fill gap.
+
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
