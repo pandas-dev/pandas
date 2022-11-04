@@ -14,6 +14,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._typing import (
     ArrayLike,
     Axis,
@@ -844,8 +846,17 @@ def get_grouper(
     def is_in_obj(gpr) -> bool:
         if not hasattr(gpr, "name"):
             return False
+        if (
+            get_option("mode.copy_on_write")
+            and get_option("mode.data_manager") == "block"
+        ):
+            # For the CoW case, we need an equality check as the identity check
+            # no longer works (each Series from column access is a new object)
+            try:
+                return gpr.equals(obj[gpr.name])
+            except (AttributeError, KeyError, IndexError, InvalidIndexError):
+                return False
         try:
-            # TODO(CoW) this check no longer works
             return gpr is obj[gpr.name]
         except (KeyError, IndexError, InvalidIndexError):
             # IndexError reached in e.g. test_skip_group_keys when we pass
