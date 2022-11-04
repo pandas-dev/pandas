@@ -12,17 +12,15 @@ import numpy as np
 from pandas import (
     CategoricalIndex,
     DataFrame,
-    Float64Index,
-    Int64Index,
     IntervalIndex,
     MultiIndex,
     Series,
-    UInt64Index,
     concat,
     date_range,
     option_context,
     period_range,
 )
+from pandas.core.api import Float64Index, Int64Index, UInt64Index
 
 from .pandas_vb_common import tm
 

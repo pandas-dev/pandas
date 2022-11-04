@@ -13,16 +13,13 @@ if TYPE_CHECKING:
         CategoricalIndex,
         DataFrame,
         DatetimeIndex,
-        Float64Index,
         Index,
-        Int64Index,
         IntervalIndex,
         MultiIndex,
         PeriodIndex,
         RangeIndex,
         Series,
         TimedeltaIndex,
-        UInt64Index,
     )
     from pandas.core.arrays import (
         DatetimeArray,
@@ -31,6 +28,7 @@ if TYPE_CHECKING:
         PeriodArray,
         TimedeltaArray,
     )
+    from pandas.core.api import Float64Index, Int64Index, UInt64Index
     from pandas.core.generic import NDFrame
 
 
