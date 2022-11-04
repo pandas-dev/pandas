@@ -1,7 +1,11 @@
 import numpy as np
 
 import pandas as pd
-from pandas.core.api import Int64Index, UInt64Index, Float64Index
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 
 
 class UniqueForLargePyObjectInts:

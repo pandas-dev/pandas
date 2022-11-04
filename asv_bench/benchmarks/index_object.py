@@ -4,7 +4,6 @@ import numpy as np
 
 from pandas import (
     DatetimeIndex,
-    Float64Index,
     Index,
     IntervalIndex,
     MultiIndex,
@@ -12,6 +11,7 @@ from pandas import (
     Series,
     date_range,
 )
+from pandas.core.api import Float64Index
 
 from .pandas_vb_common import tm
 

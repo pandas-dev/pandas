@@ -1,5 +1,8 @@
 import pandas as pd
-from pandas.core.api import Float64Index, UInt64Index
+from pandas.core.api import (
+    Float64Index,
+    UInt64Index,
+)
 
 
 class IndexCache:
