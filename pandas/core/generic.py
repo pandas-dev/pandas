@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import collections
 from datetime import timedelta
-import functools
 import gc
 import json
 import operator
@@ -4596,7 +4595,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2       3       5
         3       4       6
         """
-        f = functools.partial("{prefix}{}".format, prefix=prefix)
+        f = lambda x: f"{prefix}{x}"
 
         axis_name = self._info_axis_name
         if axis is not None:
@@ -4670,7 +4669,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2       3       5
         3       4       6
         """
-        f = functools.partial("{}{suffix}".format, suffix=suffix)
+        f = lambda x: f"{x}{suffix}"
 
         axis_name = self._info_axis_name
         if axis is not None:

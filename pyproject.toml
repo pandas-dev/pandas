@@ -78,7 +78,6 @@ disable = [
   "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
-  "consider-using-f-string",
   "import-outside-toplevel",
   "invalid-name",
   "line-too-long",
@@ -102,7 +101,6 @@ disable = [
 
   # pylint type "R": refactor, for bad code smell
   "chained-comparison",
-  "comparison-of-constants",
   "comparison-with-itself",
   "consider-merging-isinstance",
   "consider-using-min-builtin",

@@ -1569,7 +1569,18 @@ class _MergeOperation:
             pass
 
         else:
-            raise ValueError("Not a valid argument for validate")
+            raise ValueError(
+                f'"{validate}" is not a valid argument. '
+                "Valid arguments are:\n"
+                '- "1:1"\n'
+                '- "1:m"\n'
+                '- "m:1"\n'
+                '- "m:m"\n'
+                '- "one_to_one"\n'
+                '- "one_to_many"\n'
+                '- "many_to_one"\n'
+                '- "many_to_many"'
+            )
 
 
 def get_join_indexers(
