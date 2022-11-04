@@ -609,30 +609,9 @@ class TestToDatetime:
         result = to_datetime(arr)
         assert result is arr
 
-    @pytest.mark.parametrize(
-        "data, expected",
-        [
-            (
-                Timestamp("2001-10-01 12:00:01.123456789"),
-                Timestamp("2001-10-01 12:00:01.123456"),
-            ),
-            (
-                datetime(2002, 10, 1, 12, 00, 1, 123456),
-                Timestamp("2002-10-01 12:00:01.123456"),
-            ),
-            ("10/01/03 12:00:01.123456789", Timestamp("2003-10-01 12:00:01.123456789")),
-        ],
-    )
-    def test_to_datetime_preserves_resolution_when_possible(self, data, expected):
-        # GH 49298
-        result = to_datetime([data])
-        tm.assert_equal(result, DatetimeIndex([data]))
-        result = to_datetime([data], format="%m/%d/%y %H:%M:%S.%f")
-        tm.assert_equal(result, DatetimeIndex([expected]))
-
     def test_to_datetime_arraylike_contains_pydatetime_and_timestamp(self):
         # GH 49298
-        # Timestamp/datetime have more resolution than str
+        # Test explicit custom format
         case1 = [
             Timestamp("2001-10-01 12:00:01.123456789"),
             datetime(2001, 10, 2, 12, 30, 1, 123456),
@@ -640,48 +619,20 @@ class TestToDatetime:
         ]
         result = to_datetime(case1, format="%m/%d/%y")
         expected_data = [
-            Timestamp("2001-10-01"),
-            Timestamp("2001-10-02"),
-            Timestamp("2001-10-03"),
-        ]
-        tm.assert_equal(result, DatetimeIndex(expected_data))
-
-        # Timestamp/datetime have the same resolution than str (nanosecond)
-        case2 = [
             Timestamp("2001-10-01 12:00:01.123456789"),
-            datetime(2001, 10, 2, 12, 30, 1, 123456),
-            "10/03/01 13:00:01.123456789",
-        ]
-        result = to_datetime(case2, format="%m/%d/%y %H:%M:%S.%f")
-        expected_data = [
-            Timestamp("2001-10-01 12:00:01.123456"),
             Timestamp("2001-10-02 12:30:01.123456"),
-            Timestamp("2001-10-03 13:00:01.123456789"),
-        ]
-        tm.assert_equal(result, DatetimeIndex(expected_data))
-
-        # Timestamp/datetime have less resolution than str
-        case3 = [
-            Timestamp("2001-10-01"),
-            datetime(2001, 10, 2),
-            "10/03/01 12:00:01",
-        ]
-        result = to_datetime(case3, format="%m/%d/%y %H:%M:%S")
-        expected_data = [
-            Timestamp("2001-10-01 00:00:00"),
-            Timestamp("2001-10-02 00:00:00"),
-            Timestamp("2001-10-03 12:00:01"),
+            Timestamp("2001-10-03 00:00:00"),
         ]
         tm.assert_equal(result, DatetimeIndex(expected_data))
 
         # Test ISO8601 format
-        case4 = [
+        case2 = [
             Timestamp("2001-10-01 13:18:05"),
             datetime(2001, 10, 2, 13, 18, 5),
             "2001-10-03T13:18:05",
             "20011004",
         ]
-        result = to_datetime(case4)
+        result = to_datetime(case2)
         expected_data = [
             Timestamp("2001-10-01 13:18:05"),
             Timestamp("2001-10-02 13:18:05"),
@@ -690,22 +641,33 @@ class TestToDatetime:
         ]
         tm.assert_equal(result, DatetimeIndex(expected_data))
 
-    def test_to_datetime_arraylike_contains_pydatetime_and_timestamp_utc(self):
+    def test_to_datetime_arraylike_contains_pydatetime_and_timestamp_with_tz(self):
         # GH 49298
-        dt = datetime(2010, 1, 2, 12, 13, 16)
-        dt = dt.replace(tzinfo=timezone.utc)
+        # Different offsets when utc=True
         data = [
-            "20100102 121314",
-            Timestamp("2010-01-02 12:13:15", tz="utc"),
-            dt,
+            "20100102 121314 +01:00",
+            "20100102 121315 -05:00",
+            pytz.timezone("Europe/Berlin").localize(datetime(2010, 1, 2, 12, 13, 16)),
+            pytz.timezone("US/Eastern").localize(Timestamp("2010-01-02 12:13:17")),
         ]
         expected_data = [
-            Timestamp("2010-01-02 12:13:14", tz="utc"),
-            Timestamp("2010-01-02 12:13:15", tz="utc"),
-            Timestamp("2010-01-02 12:13:16", tz="utc"),
+            Timestamp("2010-01-02 11:13:14", tz="utc"),
+            Timestamp("2010-01-02 17:13:15", tz="utc"),
+            Timestamp("2010-01-02 11:13:16", tz="utc"),
+            Timestamp("2010-01-02 17:13:17", tz="utc"),
         ]
-        result = to_datetime(data, format="%Y%m%d %H%M%S", utc=True)
+        result = to_datetime(data, format="%Y%m%d %H%M%S %z", utc=True)
         tm.assert_equal(result, DatetimeIndex(expected_data))
+
+        # Different offsets when utc=False
+        expected_data = [
+            Timestamp("2010-01-02 12:13:14 +01:00"),
+            Timestamp("2010-01-02 12:13:15 -05:00"),
+            Timestamp("2010-01-02 12:13:16 +01:00"),
+            Timestamp("2010-01-02 12:13:17 -05:00"),
+        ]
+        result = to_datetime(data, format="%Y%m%d %H%M%S %z", utc=False)
+        tm.assert_equal(result, Index(expected_data))
 
     def test_to_datetime_pydatetime(self):
         actual = to_datetime(datetime(2008, 1, 15))
