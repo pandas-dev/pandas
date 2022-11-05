@@ -9,10 +9,7 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
 )
-from pandas.compat import (
-    IS64,
-    pa_version_under7p0,
-)
+from pandas.compat import pa_version_under7p0
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
@@ -255,8 +252,7 @@ class TestFactorize:
         mask = np.array([False, False, False, False, False, True])
         rizer = ht.Int64Factorizer(len(data))
         result = rizer.factorize(data, mask=mask)
-        exp_dtype = "int64" if IS64 else "int32"
-        expected = np.array([0, 1, 2, 0, 0, -1], dtype=exp_dtype)
+        expected = np.array([0, 1, 2, 0, 0, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         expected_uniques = np.array([1, 2, 3], dtype="int64")
         tm.assert_numpy_array_equal(rizer.uniques.to_array(), expected_uniques)
@@ -266,8 +262,7 @@ class TestFactorize:
         data = np.array([1, 2, 3, 1, np.nan])
         rizer = ht.ObjectFactorizer(len(data))
         result = rizer.factorize(data.astype(object))
-        exp_dtype = "int64" if IS64 else "int32"
-        expected = np.array([0, 1, 2, 0, -1], dtype=exp_dtype)
+        expected = np.array([0, 1, 2, 0, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         expected_uniques = np.array([1, 2, 3], dtype=object)
         tm.assert_numpy_array_equal(rizer.uniques.to_array(), expected_uniques)
