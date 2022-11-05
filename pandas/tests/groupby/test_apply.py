@@ -971,13 +971,12 @@ def test_apply_function_with_indexing_return_column():
     # GH: 7002
     df = DataFrame(
         {
-            "foo1": ["one", "two", "two", "three", "one", "two"],
+            "foo1": [1, 2, 2, 3, 1, 2],
             "foo2": [1, 2, 4, 4, 5, 6],
         }
     )
-    with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-        result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
-    expected = DataFrame({"foo1": ["one", "three", "two"], "foo2": [3.0, 4.0, 4.0]})
+    result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
+    expected = DataFrame({"foo1": [1.0, 2.0, 3.0], "foo2": [3.0, 4.0, 4.0]})
     tm.assert_frame_equal(result, expected)
 
 

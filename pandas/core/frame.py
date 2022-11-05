@@ -10739,7 +10739,7 @@ Parrot 2  Parrot       24.0
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
-            res, _ = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
+            res, _ = df._mgr.reduce(blk_func, ignore_failures=False)
             out = df._constructor(res).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)
@@ -10761,31 +10761,31 @@ Parrot 2  Parrot       24.0
         data = self
         values = data.values
 
-        try:
-            result = func(values)
+        # try:
+        result = func(values)
 
-        except TypeError:
-            # e.g. in nanops trying to convert strs to float
-
-            data = _get_data()
-            labels = data._get_agg_axis(axis)
-
-            values = data.values
-            with np.errstate(all="ignore"):
-                result = func(values)
-
-            # columns have been dropped GH#41480
-            arg_name = "numeric_only"
-            if name in ["all", "any"]:
-                arg_name = "bool_only"
-            warnings.warn(
-                "Dropping of nuisance columns in DataFrame reductions "
-                f"(with '{arg_name}=None') is deprecated; in a future "
-                "version this will raise TypeError.  Select only valid "
-                "columns before calling the reduction.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+        # except TypeError:
+        #     # e.g. in nanops trying to convert strs to float
+        #
+        #     data = _get_data()
+        #     labels = data._get_agg_axis(axis)
+        #
+        #     values = data.values
+        #     with np.errstate(all="ignore"):
+        #         result = func(values)
+        #
+        #     # columns have been dropped GH#41480
+        #     arg_name = "numeric_only"
+        #     if name in ["all", "any"]:
+        #         arg_name = "bool_only"
+        #     warnings.warn(
+        #         "Dropping of nuisance columns in DataFrame reductions "
+        #         f"(with '{arg_name}=None') is deprecated; in a future "
+        #         "version this will raise TypeError.  Select only valid "
+        #         "columns before calling the reduction.",
+        #         FutureWarning,
+        #         stacklevel=find_stack_level(),
+        #     )
 
         if hasattr(result, "dtype"):
             if filter_type == "bool" and notna(result).all():

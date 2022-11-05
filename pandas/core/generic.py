@@ -11549,7 +11549,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
             level=None,
-            numeric_only=None,
+            numeric_only=False,
             **kwargs,
         ):
             return NDFrame.mean(self, axis, skipna, level, numeric_only, **kwargs)

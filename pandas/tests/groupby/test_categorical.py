@@ -298,7 +298,7 @@ def test_apply(ordered):
     #  is coming back as Series([0., 1., 0.], index=["missing", "dense", "values"])
     #  when we expect Series(0., index=["values"])
     with tm.assert_produces_warning(
-        FutureWarning, match="Select only valid", check_stacklevel=False
+        None, match="Select only valid", check_stacklevel=False
     ):
         result = grouped.apply(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
