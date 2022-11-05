@@ -74,6 +74,8 @@ def raw_frame(multiindex_dataframe_random_data):
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.filterwarnings("ignore:Using the level keyword:FutureWarning")
+@pytest.mark.filterwarnings("ignore:The default value of numeric_only:FutureWarning")
 def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
     # GH6944
     # GH 17537

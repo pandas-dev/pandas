@@ -756,7 +756,7 @@ class PythonParser(ParserBase):
         """
         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
             raise ParserError(msg)
-        elif self.on_bad_lines == self.BadLineHandleMethod.WARN:
+        if self.on_bad_lines == self.BadLineHandleMethod.WARN:
             base = f"Skipping line {row_num}: "
             sys.stderr.write(base + msg + "\n")
 

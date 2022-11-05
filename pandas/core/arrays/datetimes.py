@@ -505,12 +505,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         # GH#42228
         value = x.view("i8")
         ts = Timestamp._from_value_and_reso(value, reso=self._creso, tz=self.tz)
-        # Non-overlapping identity check (left operand type: "Timestamp",
-        # right operand type: "NaTType")
-        if ts is not NaT:  # type: ignore[comparison-overlap]
-            # GH#41586
-            # do this instead of passing to the constructor to avoid FutureWarning
-            ts._set_freq(self.freq)
         return ts
 
     @property
@@ -611,7 +605,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 converted = ints_to_pydatetime(
                     data[start_i:end_i],
                     tz=self.tz,
-                    freq=self.freq,
                     box="timestamp",
                     reso=self._creso,
                 )
@@ -2368,7 +2361,7 @@ def validate_tz_from_dtype(
         if dtz is not None:
             if tz is not None and not timezones.tz_compare(tz, dtz):
                 raise ValueError("cannot supply both a tz and a dtype with a tz")
-            elif explicit_tz_none:
+            if explicit_tz_none:
                 raise ValueError("Cannot pass both a timezone-aware dtype and tz=None")
             tz = dtz
 

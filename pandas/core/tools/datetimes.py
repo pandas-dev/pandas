@@ -474,7 +474,7 @@ def _array_strptime_with_fallback(
     except OutOfBoundsDatetime:
         if errors == "raise":
             raise
-        elif errors == "coerce":
+        if errors == "coerce":
             result = np.empty(arg.shape, dtype="M8[ns]")
             iresult = result.view("i8")
             iresult.fill(iNaT)
@@ -487,7 +487,7 @@ def _array_strptime_with_fallback(
         if not infer_datetime_format:
             if errors == "raise":
                 raise
-            elif errors == "coerce":
+            if errors == "coerce":
                 result = np.empty(arg.shape, dtype="M8[ns]")
                 iresult = result.view("i8")
                 iresult.fill(iNaT)
