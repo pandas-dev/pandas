@@ -1018,8 +1018,7 @@ def test_wrap_aggregated_output_multindex(mframe):
     def aggfun(ser):
         if ser.name == ("foo", "one"):
             raise TypeError
-        else:
-            return ser.sum()
+        return ser.sum()
 
     with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
         agged2 = df.groupby(keys).aggregate(aggfun)
@@ -1616,7 +1615,7 @@ def test_set_group_name(df, grouper):
         assert group.name is not None
         return group.sum()
 
-    def foo(x):
+    def freducex(x):
         return freduce(x)
 
     grouped = df.groupby(grouper, group_keys=False)
@@ -1629,7 +1628,7 @@ def test_set_group_name(df, grouper):
 
     grouped["C"].apply(f)
     grouped["C"].aggregate(freduce)
-    grouped["C"].aggregate([freduce, foo])
+    grouped["C"].aggregate([freduce, freducex])
     grouped["C"].transform(f)
 
 
