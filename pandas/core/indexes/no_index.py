@@ -23,7 +23,8 @@ class NoIndex(RangeIndex):
             other = [other]
         length = len(self)
         for _other in other:
-            assert isinstance(_other, NoIndex)
+            if not isinstance(_other, NoIndex):
+                raise TypeError(f'Can only concatenate NoIndex to NoIndex - got {_other}')
             length += len(_other)
         return NoIndex(length)
 
@@ -35,6 +36,7 @@ class NoIndex(RangeIndex):
             return _super
 
     def get_loc(self, key, method=None, tolerance=None):
+        breakpoint()
         from pandas.core import common as com
 
         if not com.is_bool_indexer(key):
@@ -70,3 +72,9 @@ class NoIndex(RangeIndex):
 
     def insert(self, loc):
         raise NotImplementedError()
+
+    def reindex(self, *args, **kwargs):
+        raise NotImplementedError(
+            "Can't reindex a DataFrame without an index. "
+            "First, give it an index."
+        )

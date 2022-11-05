@@ -384,7 +384,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         else:
             index = ensure_index(index)
         if columns is None:
-            columns = default_index(K)
+            from pandas.core.indexes.range import RangeIndex
+            columns = RangeIndex(range(K))
         else:
             columns = ensure_index(columns)
 

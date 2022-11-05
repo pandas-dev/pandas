@@ -1675,7 +1675,11 @@ class TextFileReader(abc.Iterator):
                 if col_dict:
                     # Any column is actually fine:
                     new_rows = len(next(iter(col_dict.values())))
-                    index = RangeIndex(self._currow, self._currow + new_rows)
+                    from pandas.core.indexes.no_index import NoIndex
+                    if False:
+                        index = default_index(self._currow, self._currow + new_rows)
+                    else:
+                        index = NoIndex(new_rows)
                 else:
                     new_rows = 0
             else:

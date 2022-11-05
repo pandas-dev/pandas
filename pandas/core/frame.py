@@ -3614,13 +3614,22 @@ class DataFrame(NDFrame, OpsMixin):
 
         dtypes = list(self.dtypes)
 
+        from pandas.core.indexes.no_index import NoIndex
+        from pandas.core.indexes.range import RangeIndex
+
+        if isinstance(self.index, NoIndex):
+            # columns can't be NoIndex
+            columns = RangeIndex(self.index._range)
+        else:
+            columns = self.index
+
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
             new_vals = self._values.T
             if copy:
                 new_vals = new_vals.copy()
 
-            result = self._constructor(new_vals, index=self.columns, columns=self.index)
+            result = self._constructor(new_vals, index=self.columns, columns=columns)
 
         elif (
             self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0])
@@ -3632,14 +3641,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
             result = type(self)._from_arrays(
-                new_values, index=self.columns, columns=self.index
+                new_values, index=self.columns, columns=columns
             )
 
         else:
             new_arr = self.values.T
             if copy:
                 new_arr = new_arr.copy()
-            result = self._constructor(new_arr, index=self.columns, columns=self.index)
+            result = self._constructor(new_arr, index=self.columns, columns=columns)
 
         return result.__finalize__(self, method="transpose")
 
