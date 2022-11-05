@@ -802,7 +802,7 @@ def test_rendered_links(type, text, exp, found):
         df = DataFrame([0], index=[text])
         styler = df.style.format_index(hyperlinks="html")
 
-    rendered = '<a href="{0}" target="_blank">{0}</a>'.format(found)
+    rendered = f'<a href="{found}" target="_blank">{found}</a>'
     result = styler.to_html()
     assert (rendered in result) is exp
     assert (text in result) is not exp  # test conversion done when expected and not
@@ -810,6 +810,7 @@ def test_rendered_links(type, text, exp, found):
 
 def test_multiple_rendered_links():
     links = ("www.a.b", "http://a.c", "https://a.d", "ftp://a.e")
+    # pylint: disable-next=consider-using-f-string
     df = DataFrame(["text {} {} text {} {}".format(*links)])
     result = df.style.format(hyperlinks="html").to_html()
     href = '<a href="{0}" target="_blank">{0}</a>'

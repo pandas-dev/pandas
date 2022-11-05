@@ -412,8 +412,7 @@ def validate_resampler_func(method: str, args, kwargs) -> None:
                 "numpy operations are not valid with resample. "
                 f"Use .resample(...).{method}() instead"
             )
-        else:
-            raise TypeError("too many arguments passed in")
+        raise TypeError("too many arguments passed in")
 
 
 def validate_minmax_axis(axis: AxisInt | None, ndim: int = 1) -> None:

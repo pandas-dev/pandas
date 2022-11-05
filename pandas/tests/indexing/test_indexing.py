@@ -706,7 +706,7 @@ class TestMisc:
         # make frames multi-type & re-run tests
         for frame in [df, rhs, right_loc, right_iloc]:
             frame["joe"] = frame["joe"].astype("float64")
-            frame["jolie"] = frame["jolie"].map("@{}".format)
+            frame["jolie"] = frame["jolie"].map(lambda x: f"@{x}")
         right_iloc["joe"] = [1.0, "@-28", "@-20", "@-12", 17.0]
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
         run_tests(df, rhs, right_loc, right_iloc)
