@@ -246,6 +246,27 @@ class TestFactorize:
         assert len(set(key)) == len(set(expected))
         tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
 
+    def test_factorizer_with_mask(self):
+        # GH#
+        data = np.array([1, 2, 3, 1, 1, 0])
+        mask = np.array([False, False, False, False, False, True])
+        rizer = ht.Int64Factorizer(len(data))
+        result = rizer.factorize(data, mask=mask)
+        expected = np.array([0, 1, 2, 0, 0, -1])
+        tm.assert_numpy_array_equal(result, expected)
+        expected_uniques = np.array([1, 2, 3])
+        tm.assert_numpy_array_equal(rizer.uniques.to_array(), expected_uniques)
+
+    def test_factorizer_object_with_nan(self):
+        # GH#
+        data = np.array([1, 2, 3, 1, np.nan])
+        rizer = ht.ObjectFactorizer(len(data))
+        result = rizer.factorize(data.astype(object))
+        expected = np.array([0, 1, 2, 0, -1])
+        tm.assert_numpy_array_equal(result, expected)
+        expected_uniques = np.array([1, 2, 3], dtype=object)
+        tm.assert_numpy_array_equal(rizer.uniques.to_array(), expected_uniques)
+
     @pytest.mark.parametrize(
         "data, expected_codes, expected_uniques",
         [

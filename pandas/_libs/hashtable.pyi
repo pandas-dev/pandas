@@ -36,6 +36,7 @@ class Int64Factorizer(Factorizer):
         sort: bool = ...,
         na_sentinel=...,
         na_value=...,
+        mask=...,
     ) -> npt.NDArray[np.intp]: ...
 
 class Int64Vector:
