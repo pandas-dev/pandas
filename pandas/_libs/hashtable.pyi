@@ -138,6 +138,7 @@ class HashTable:
         count_prior: int = ...,
         na_sentinel: int = ...,
         na_value: object = ...,
+        mask=...,
     ) -> npt.NDArray[np.intp]: ...
     def unique(
         self,
