@@ -231,10 +231,10 @@ class TestFactorize:
         rizer = ht.ObjectFactorizer(len(key))
         for na_sentinel in (-1, 20):
             ids = rizer.factorize(key, na_sentinel=na_sentinel)
-            expected = np.array([0, 1, 0, na_sentinel], dtype="int64")
+            expected = np.array([0, 1, 0, na_sentinel], dtype=np.intp)
             assert len(set(key)) == len(set(expected))
             tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
-            tm.assert_numpy_array_equal(ids, expected, check_dtype=False)
+            tm.assert_numpy_array_equal(ids, expected)
 
     @pytest.mark.parametrize(
         "data, expected_codes, expected_uniques",
