@@ -134,7 +134,6 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_numeric_dtype,
-    is_object_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -266,9 +265,8 @@ _shared_doc_kwargs = {
     you to specify a location to update with some value.""",
 }
 
-_numeric_only_doc = """numeric_only : bool or None, default None
-    Include only float, int, boolean data. If None, will attempt to use
-    everything, then use only numeric data
+_numeric_only_doc = """numeric_only : bool, default False
+    Include only float, int, boolean data.
 """
 
 _merge_doc = """
@@ -10506,7 +10504,7 @@ Parrot 2  Parrot       24.0
         *,
         axis: Axis = 0,
         skipna: bool = True,
-        numeric_only: bool | None = None,
+        numeric_only: bool = False,
         filter_type=None,
         **kwds,
     ):
@@ -10515,12 +10513,7 @@ Parrot 2  Parrot       24.0
 
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
-        labels = self._get_agg_axis(axis)
         assert axis in [0, 1]
-
-        def func(values: np.ndarray):
-            # We only use this in the case that operates on self.values
-            return op(values, axis=axis, skipna=skipna, **kwds)
 
         def blk_func(values, axis: Axis = 1):
             if isinstance(values, ExtensionArray):
@@ -10541,84 +10534,26 @@ Parrot 2  Parrot       24.0
                 data = self._get_bool_data()
             return data
 
-        numeric_only_bool = com.resolve_numeric_only(numeric_only)
-        if numeric_only is not None or axis == 0:
-            # For numeric_only non-None and axis non-None, we know
-            #  which blocks to use and no try/except is needed.
-            #  For numeric_only=None only the case with axis==0 and no object
-            #  dtypes are unambiguous can be handled with BlockManager.reduce
-            # Case with EAs see GH#35881
-            df = self
-            if numeric_only_bool:
-                df = _get_data()
-            if axis == 1:
-                df = df.T
-                axis = 0
+        # Case with EAs see GH#35881
+        df = self
+        if numeric_only:
+            df = _get_data()
+        if axis == 1:
+            df = df.T
+            axis = 0
 
-            ignore_failures = numeric_only is None
+        # After possibly _get_data and transposing, we are now in the
+        #  simple case where we can use BlockManager.reduce
+        res, _ = df._mgr.reduce(blk_func, ignore_failures=False)
+        out = df._constructor(res).iloc[0]
+        if out_dtype is not None:
+            out = out.astype(out_dtype)
+        if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
+            # Even if we are object dtype, follow numpy and return
+            #  float64, see test_apply_funcs_over_empty
+            out = out.astype(np.float64)
 
-            # After possibly _get_data and transposing, we are now in the
-            #  simple case where we can use BlockManager.reduce
-            res, _ = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
-            out = df._constructor(res).iloc[0]
-            if out_dtype is not None:
-                out = out.astype(out_dtype)
-            if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
-                # Even if we are object dtype, follow numpy and return
-                #  float64, see test_apply_funcs_over_empty
-                out = out.astype(np.float64)
-
-            if numeric_only is None and out.shape[0] != df.shape[1]:
-                # columns have been dropped GH#41480
-                com.deprecate_numeric_only_default(
-                    type(self), name, deprecate_none=True
-                )
-
-            return out
-
-        assert numeric_only is None
-
-        data = self
-        values = data.values
-
-        try:
-            result = func(values)
-
-        except TypeError:
-            # e.g. in nanops trying to convert strs to float
-
-            data = _get_data()
-            labels = data._get_agg_axis(axis)
-
-            values = data.values
-            with np.errstate(all="ignore"):
-                result = func(values)
-
-            # columns have been dropped GH#41480
-            arg_name = "numeric_only"
-            if name in ["all", "any"]:
-                arg_name = "bool_only"
-            warnings.warn(
-                "Dropping of nuisance columns in DataFrame reductions "
-                f"(with '{arg_name}=None') is deprecated; in a future "
-                "version this will raise TypeError.  Select only valid "
-                "columns before calling the reduction.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        if hasattr(result, "dtype"):
-            if filter_type == "bool" and notna(result).all():
-                result = result.astype(np.bool_)
-            elif filter_type is None and is_object_dtype(result.dtype):
-                try:
-                    result = result.astype(np.float64)
-                except (ValueError, TypeError):
-                    # try to coerce to the original dtypes item by item if we can
-                    pass
-
-        result = self._constructor_sliced(result, index=labels)
-        return result
+        return out
 
     def _reduce_axis1(self, name: str, func, skipna: bool) -> Series:
         """
