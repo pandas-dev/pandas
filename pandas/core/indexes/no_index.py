@@ -35,10 +35,8 @@ class NoIndex(RangeIndex):
             return _super
 
     def get_loc(self, key, method=None, tolerance=None):
-        from pandas.core import (
-            algorithms,
-            common as com,
-        )
+        from pandas.core import common as com
+
         if not com.is_bool_indexer(key):
             raise TypeError("Cannot use label-based indexing on NoIndex!")
 
@@ -57,3 +55,18 @@ class NoIndex(RangeIndex):
         result._cache = {}
         result._reset_identity()
         return result
+
+    def sort_values(
+        self,
+        return_indexer: bool = False,
+        ascending: bool = True,
+        na_position: str = "last",
+        key=None,
+    ):
+        raise NotImplementedError()
+
+    def delete(self, loc):
+        raise NotImplementedError()
+
+    def insert(self, loc):
+        raise NotImplementedError()

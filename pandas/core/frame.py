@@ -657,6 +657,10 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError("index cannot be a set")
         if columns is not None and isinstance(columns, set):
             raise ValueError("columns cannot be a set")
+        from pandas.core.indexes.no_index import NoIndex
+
+        if columns is not None and isinstance(columns, NoIndex):
+            raise ValueError("columns cannot be NoIndex")
 
         if copy is None:
             if isinstance(data, dict):
