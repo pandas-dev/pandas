@@ -1361,6 +1361,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_object_dtype(values.dtype):
             values = cast(np.ndarray, values)
+            # Only place where we pass safe=True, only needed for
+            #  test_format_missing
             values = lib.maybe_convert_objects(values, safe=True)
 
             result = [pprint_thing(x, escape_chars=("\t", "\r", "\n")) for x in values]

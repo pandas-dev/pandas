@@ -2641,6 +2641,36 @@ def maybe_convert_objects(ndarray[object] objects,
 
         seen.object_ = True
 
+    if seen.nat_:
+        if seen.object_:
+            result = objects
+        elif seen.bool_:
+            result = objects
+        elif seen.null_:
+            result = objects
+        elif not safe and seen.nan_:
+            result = objects
+        elif seen.numeric_:
+            result = objects
+        else:
+            if convert_datetime and convert_timedelta:
+                dtype = dtype_if_all_nat
+                if dtype is not None:
+                    # otherwise we keep object dtype
+                    result = _infer_all_nats(
+                        dtype, objects.shape
+                    )
+                else:
+                    result = objects
+            elif convert_datetime:
+                result = datetimes
+            elif convert_timedelta:
+                result = timedeltas
+            else:
+                result = objects
+            return result
+        return result
+
     if not seen.object_:
         result = None
         if not safe:
@@ -2660,36 +2690,15 @@ def maybe_convert_objects(ndarray[object] objects,
                         result = floats
             else:
                 if not seen.bool_:
-                    if seen.datetime_:
-                        if not seen.numeric_ and not seen.timedelta_:
-                            result = datetimes
-                    elif seen.timedelta_:
-                        if not seen.numeric_:
-                            result = timedeltas
-                    elif seen.nat_:
-                        if not seen.numeric_:
-                            if convert_datetime and convert_timedelta:
-                                dtype = dtype_if_all_nat
-                                if dtype is not None:
-                                    # otherwise we keep object dtype
-                                    result = _infer_all_nats(
-                                        dtype, datetimes, timedeltas
-                                    )
-
-                            elif convert_datetime:
-                                result = datetimes
-                            elif convert_timedelta:
-                                result = timedeltas
-                    else:
-                        if seen.complex_:
-                            result = complexes
-                        elif seen.float_:
-                            result = floats
-                        elif seen.int_:
-                            if seen.uint_:
-                                result = uints
-                            else:
-                                result = ints
+                    if seen.complex_:
+                        result = complexes
+                    elif seen.float_:
+                        result = floats
+                    elif seen.int_:
+                        if seen.uint_:
+                            result = uints
+                        else:
+                            result = ints
                 elif seen.is_bool:
                     result = bools.view(np.bool_)
 
@@ -2705,38 +2714,17 @@ def maybe_convert_objects(ndarray[object] objects,
                             result = floats
             else:
                 if not seen.bool_:
-                    if seen.datetime_:
-                        if not seen.numeric_ and not seen.timedelta_:
-                            result = datetimes
-                    elif seen.timedelta_:
-                        if not seen.numeric_:
-                            result = timedeltas
-                    elif seen.nat_:
-                        if not seen.numeric_:
-                            if convert_datetime and convert_timedelta:
-                                dtype = dtype_if_all_nat
-                                if dtype is not None:
-                                    # otherwise we keep object dtype
-                                    result = _infer_all_nats(
-                                        dtype, datetimes, timedeltas
-                                    )
-
-                            elif convert_datetime:
-                                result = datetimes
-                            elif convert_timedelta:
-                                result = timedeltas
-                    else:
-                        if seen.complex_:
-                            if not seen.int_:
-                                result = complexes
-                        elif seen.float_ or seen.nan_:
-                            if not seen.int_:
-                                result = floats
-                        elif seen.int_:
-                            if seen.uint_:
-                                result = uints
-                            else:
-                                result = ints
+                    if seen.complex_:
+                        if not seen.int_:
+                            result = complexes
+                    elif seen.float_ or seen.nan_:
+                        if not seen.int_:
+                            result = floats
+                    elif seen.int_:
+                        if seen.uint_:
+                            result = uints
+                        else:
+                            result = ints
                 elif seen.is_bool and not seen.nan_:
                     result = bools.view(np.bool_)
 
@@ -2751,22 +2739,24 @@ def maybe_convert_objects(ndarray[object] objects,
     return objects
 
 
-cdef _infer_all_nats(dtype, ndarray datetimes, ndarray timedeltas):
+cdef _infer_all_nats(dtype, cnp.npy_intp* shape):
     """
     If we have all-NaT values, cast these to the given dtype.
     """
     if cnp.PyArray_DescrCheck(dtype):
         # i.e. isinstance(dtype, np.dtype):
-        if dtype == "M8[ns]":
-            result = datetimes
-        elif dtype == "m8[ns]":
-            result = timedeltas
+        if dtype == "M8[ns]" or dtype == "m8[ns]":
+            pass
         else:
             raise ValueError(dtype)
+
+        i8vals = cnp.PyArray_EMPTY(1, shape, cnp.NPY_INT64, 0)
+        i8vals.fill(NPY_NAT)
+        result = i8vals.view(dtype)
     else:
         # ExtensionDtype
         cls = dtype.construct_array_type()
-        i8vals = cnp.PyArray_EMPTY(1, datetimes.shape, cnp.NPY_INT64, 0)
+        i8vals = cnp.PyArray_EMPTY(1, shape, cnp.NPY_INT64, 0)
         i8vals.fill(NPY_NAT)
         result = cls(i8vals, dtype=dtype)
     return result
