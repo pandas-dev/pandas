@@ -59,10 +59,8 @@ exclude = '''
 max-line-length = 88
 disable = [
   "abstract-class-instantiated",
-  "c-extension-no-member",
   "import-error",
   "invalid-repr-returned",
-  "invalid-sequence-index",
   "invalid-unary-operand-type",
   "no-member",
   "no-name-in-module",
@@ -150,7 +148,6 @@ disable = [
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
   "method-cache-max-size-none",
-  "missing-timeout",
   "non-parent-init-called",
   "overridden-final-method",
   "pointless-statement",
