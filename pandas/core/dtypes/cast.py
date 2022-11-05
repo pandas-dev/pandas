@@ -50,7 +50,6 @@ from pandas.errors import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
@@ -312,6 +311,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
         result = array_to_timedelta64(result)
 
     elif dtype == np.dtype("M8[ns]") and result.dtype == _dtype_obj:
+        result = cast(np.ndarray, result)
         return np.asarray(maybe_cast_to_datetime(result, dtype=dtype))
 
     return result
@@ -1262,82 +1262,58 @@ def maybe_infer_to_datetimelike(
 
 
 def maybe_cast_to_datetime(
-    value: ExtensionArray | np.ndarray | list, dtype: np.dtype | None
+    value: np.ndarray | list, dtype: np.dtype
 ) -> ExtensionArray | np.ndarray:
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
 
-    We allow a list *only* when dtype is not None.
-
-    Caller is responsible for handling ExtensionDtype cases.
+    Caller is responsible for handling ExtensionDtype cases and non dt64/td64
+    cases.
     """
     from pandas.core.arrays.datetimes import sequence_to_datetimes
     from pandas.core.arrays.timedeltas import TimedeltaArray
 
+    assert dtype.kind in ["m", "M"]
     if not is_list_like(value):
         raise TypeError("value must be listlike")
 
     if is_timedelta64_dtype(dtype):
         # TODO: _from_sequence would raise ValueError in cases where
         #  _ensure_nanosecond_dtype raises TypeError
-        dtype = cast(np.dtype, dtype)
         # Incompatible types in assignment (expression has type "Union[dtype[Any],
         # ExtensionDtype]", variable has type "Optional[dtype[Any]]")
         dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
 
-    if dtype is not None:
-        is_datetime64 = is_datetime64_dtype(dtype)
+    if is_datetime64_dtype(dtype):
+        # Incompatible types in assignment (expression has type
+        # "Union[dtype[Any], ExtensionDtype]", variable has type
+        # "Optional[dtype[Any]]")
+        dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
 
-        vdtype = getattr(value, "dtype", None)
+        value = np.array(value, copy=False)
 
-        if is_datetime64:
-            # Incompatible types in assignment (expression has type
-            # "Union[dtype[Any], ExtensionDtype]", variable has type
-            # "Optional[dtype[Any]]")
-            dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
+        # we have an array of datetime or timedeltas & nulls
+        if value.size or not is_dtype_equal(value.dtype, dtype):
+            _disallow_mismatched_datetimelike(value, dtype)
 
-            value = np.array(value, copy=False)
+            dta = sequence_to_datetimes(value)
+            # GH 25843: Remove tz information since the dtype
+            # didn't specify one
 
-            # we have an array of datetime or timedeltas & nulls
-            if value.size or not is_dtype_equal(value.dtype, dtype):
-                _disallow_mismatched_datetimelike(value, dtype)
+            if dta.tz is not None:
+                raise ValueError(
+                    "Cannot convert timezone-aware data to "
+                    "timezone-naive dtype. Use "
+                    "pd.Series(values).dt.tz_localize(None) instead."
+                )
 
-                dta = sequence_to_datetimes(value)
-                # GH 25843: Remove tz information since the dtype
-                # didn't specify one
-
-                if dta.tz is not None:
-                    raise ValueError(
-                        "Cannot convert timezone-aware data to "
-                        "timezone-naive dtype. Use "
-                        "pd.Series(values).dt.tz_localize(None) instead."
-                    )
-
-                # TODO(2.0): Do this astype in sequence_to_datetimes to
-                #  avoid potential extra copy?
-                dta = dta.astype(dtype, copy=False)
-                value = dta
-
-        elif getattr(vdtype, "kind", None) in ["m", "M"]:
-            # we are already datetimelike and want to coerce to non-datetimelike;
-            #  astype_nansafe will raise for anything other than object, then upcast.
-            #  see test_datetimelike_values_with_object_dtype
-            # error: Argument 2 to "astype_nansafe" has incompatible type
-            # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
-            return astype_nansafe(value, dtype)  # type: ignore[arg-type]
-
-    elif isinstance(value, np.ndarray):
-        if value.dtype == _dtype_obj:
-            value = maybe_infer_to_datetimelike(value)
-
-    elif isinstance(value, list):
-        # we only get here with dtype=None, which we do not allow
-        raise ValueError(
-            "maybe_cast_to_datetime allows a list *only* if dtype is not None"
-        )
+            # TODO(2.0): Do this astype in sequence_to_datetimes to
+            #  avoid potential extra copy?
+            dta = dta.astype(dtype, copy=False)
+            return dta
 
     # at this point we have converted or raised in all cases where we had a list
     return cast(ArrayLike, value)
