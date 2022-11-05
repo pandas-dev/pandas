@@ -148,7 +148,7 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first', cons
         {{else}}
         with nogil:
         {{endif}}
-            {{if keep == 'last'}}
+            {{if keep == '"last"'}}
             for i in range(n - 1, -1, -1):
             {{else}}
             for i in range(n):
