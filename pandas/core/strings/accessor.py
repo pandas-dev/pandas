@@ -1323,7 +1323,7 @@ class StringMethods(NoNewAttributesMixin):
         n: int = -1,
         case: bool | None = None,
         flags: int = 0,
-        regex: bool | None = None,
+        regex: bool = False,
     ):
         r"""
         Replace each occurrence of pattern/regex in the Series/Index.
@@ -1351,15 +1351,13 @@ class StringMethods(NoNewAttributesMixin):
         flags : int, default 0 (no flags)
             Regex module flags, e.g. re.IGNORECASE. Cannot be set if `pat` is a compiled
             regex.
-        regex : bool, default True
+        regex : bool, default False
             Determines if the passed-in pattern is a regular expression:
 
             - If True, assumes the passed-in pattern is a regular expression.
             - If False, treats the pattern as a literal string
             - Cannot be set to False if `pat` is a compiled regex or `repl` is
               a callable.
-
-            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -1444,20 +1442,6 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
-        if regex is None:
-            if isinstance(pat, str) and any(c in pat for c in ".+*|^$?[](){}\\"):
-                # warn only in cases where regex behavior would differ from literal
-                msg = (
-                    "The default value of regex will change from True to False "
-                    "in a future version."
-                )
-                if len(pat) == 1:
-                    msg += (
-                        " In addition, single character regular expressions will "
-                        "*not* be treated as literal strings when regex=True."
-                    )
-                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-
         # Check whether repl is valid (GH 13438, GH 15055)
         if not (isinstance(repl, str) or callable(repl)):
             raise TypeError("repl must be a string or callable")
@@ -1475,14 +1459,6 @@ class StringMethods(NoNewAttributesMixin):
             )
         elif callable(repl):
             raise ValueError("Cannot use a callable replacement when regex=False")
-
-        # The current behavior is to treat single character patterns as literal strings,
-        # even when ``regex`` is set to ``True``.
-        if isinstance(pat, str) and len(pat) == 1:
-            regex = False
-
-        if regex is None:
-            regex = True
 
         if case is None:
             case = True
