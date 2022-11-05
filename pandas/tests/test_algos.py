@@ -234,7 +234,7 @@ class TestFactorize:
             expected = np.array([0, 1, 0, na_sentinel], dtype="int64")
             assert len(set(key)) == len(set(expected))
             tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
-            tm.assert_numpy_array_equal(ids, expected)
+            tm.assert_numpy_array_equal(ids, expected, check_dtype=False)
 
     @pytest.mark.parametrize(
         "data, expected_codes, expected_uniques",
