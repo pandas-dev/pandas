@@ -1284,13 +1284,12 @@ cdef class Seen:
 
     @property
     def is_bool(self):
-        return not (self.datetime_ or self.numeric_ or self.timedelta_
-                    or self.nat_)
-
-    @property
-    def is_float_or_complex(self):
-        return not (self.bool_ or self.datetime_ or self.timedelta_
-                    or self.nat_)
+        # i.e. not (anything but bool)
+        return not (
+            self.datetime_ or self.datetimetz_ or self.timedelta_ or self.nat_
+            or self.period_ or self.interval_
+            or self.numeric_ or self.nan_ or self.null_ or self.object_
+        )
 
 
 cdef object _try_infer_map(object dtype):
@@ -2671,62 +2670,53 @@ def maybe_convert_objects(ndarray[object] objects,
             return result
         return result
 
+    if seen.bool_:
+        if seen.is_bool:
+            # is_bool property rules out everything else
+            return bools.view(np.bool_)
+        seen.object_ = True
+
     if not seen.object_:
         result = None
         if not safe:
-            if seen.null_ or seen.nan_:
-                if seen.is_float_or_complex:
-                    if seen.complex_:
-                        result = complexes
-                    elif seen.float_:
+            if seen.complex_:
+                result = complexes
+            elif seen.float_:
+                result = floats
+            elif seen.null_ or seen.nan_:
+                if seen.int_:
+                    if convert_to_nullable_integer:
+                        from pandas.core.arrays import IntegerArray
+                        result = IntegerArray(ints, mask)
+                    else:
                         result = floats
-                    elif seen.int_:
-                        if convert_to_nullable_integer:
-                            from pandas.core.arrays import IntegerArray
-                            result = IntegerArray(ints, mask)
-                        else:
-                            result = floats
-                    elif seen.nan_:
-                        result = floats
+                elif seen.nan_:
+                    result = floats
             else:
-                if not seen.bool_:
-                    if seen.complex_:
-                        result = complexes
-                    elif seen.float_:
-                        result = floats
-                    elif seen.int_:
-                        if seen.uint_:
-                            result = uints
-                        else:
-                            result = ints
-                elif seen.is_bool:
-                    result = bools.view(np.bool_)
+                if seen.int_:
+                    if seen.uint_:
+                        result = uints
+                    else:
+                        result = ints
 
         else:
             # don't cast int to float, etc.
-            if seen.null_:
-                if seen.is_float_or_complex:
-                    if seen.complex_:
-                        if not seen.int_:
-                            result = complexes
-                    elif seen.float_ or seen.nan_:
-                        if not seen.int_:
-                            result = floats
+            if seen.int_:
+                if seen.null_ or seen.nan_ or seen.float_ or seen.complex_:
+                    # we have seen something other than int, so we do not
+                    #  convert with safe=True.
+                    pass
+                else:
+                    if seen.uint_:
+                        result = uints
+                    else:
+                        result = ints
+
             else:
-                if not seen.bool_:
-                    if seen.complex_:
-                        if not seen.int_:
-                            result = complexes
-                    elif seen.float_ or seen.nan_:
-                        if not seen.int_:
-                            result = floats
-                    elif seen.int_:
-                        if seen.uint_:
-                            result = uints
-                        else:
-                            result = ints
-                elif seen.is_bool and not seen.nan_:
-                    result = bools.view(np.bool_)
+                if seen.complex_:
+                    result = complexes
+                elif seen.float_ or seen.nan_:
+                    result = floats
 
         if result is uints or result is ints or result is floats or result is complexes:
             # cast to the largest itemsize when all values are NumPy scalars
