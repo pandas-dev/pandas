@@ -284,8 +284,7 @@ def union_categoricals(
         if all(c.ordered for c in to_union):
             msg = "to union ordered Categoricals, all categories must be the same"
             raise TypeError(msg)
-        else:
-            raise TypeError("Categorical.ordered must be the same")
+        raise TypeError("Categorical.ordered must be the same")
 
     if ignore_order:
         ordered = False
