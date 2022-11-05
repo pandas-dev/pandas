@@ -95,6 +95,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     all_indexes_same,
+    default_index,
 )
 from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.series import Series
@@ -1159,7 +1160,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
-            result.index = Index(range(len(result)))
+            result.index = default_index(len(result))
 
         return result
 
@@ -1778,7 +1779,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         if not self.as_index:
-            results.index = Index(range(len(results)))
+            results.index = default_index(len(results))
             self._insert_inaxis_grouper_inplace(results)
 
         return results
