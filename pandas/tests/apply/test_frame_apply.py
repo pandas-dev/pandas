@@ -1429,6 +1429,18 @@ def test_apply_datetime_tz_issue():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("df", [DataFrame({"A": ["a", None], "B": ["c", "d"]})])
+@pytest.mark.parametrize("method", ["min", "max", "sum"])
+def test_mixed_column_raises(df, method):
+    # GH 16832
+    if method == "sum":
+        msg = r'can only concatenate str \(not "int"\) to str'
+    else:
+        msg = "not supported between instances of 'str' and 'float'"
+    with pytest.raises(TypeError, match=msg):
+        getattr(df, method)()
+
+
 @pytest.mark.parametrize("col", [1, 1.0, True, "a", np.nan])
 def test_apply_dtype(col):
     # GH 31466
