@@ -370,7 +370,8 @@ static int module_clear(PyObject *m) {
 static void module_free(void *module) { module_clear((PyObject *)module); }
 
 PyMODINIT_FUNC PyInit_json(void) {
-    import_array() PyObject *module;
+    import_array()
+    PyObject *module;
 
 #ifndef PYPY_VERSION
     // This function is not supported in PyPy.
@@ -384,8 +385,6 @@ PyMODINIT_FUNC PyInit_json(void) {
     if (module == NULL) {
         return NULL;
     }
-
-    // PyModule_AddStringConstant(module, "__version__", UJSON_VERSION);
 
 #ifndef PYPY_VERSION
     PyObject *mod_decimal = PyImport_ImportModule("decimal");
