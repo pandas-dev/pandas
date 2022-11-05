@@ -78,7 +78,6 @@ disable = [
   "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
-  "consider-using-f-string",
   "import-outside-toplevel",
   "invalid-name",
   "line-too-long",
@@ -110,7 +109,6 @@ disable = [
   "cyclic-import",
   "duplicate-code",
   "inconsistent-return-statements",
-  "no-else-raise",
   "no-else-return",
   "redefined-argument-from-local",
   "too-few-public-methods",
@@ -140,7 +138,6 @@ disable = [
   "confusing-with-statement",
   "dangerous-default-value",
   "deprecated-module",
-  "duplicate-value",
   "eval-used",
   "expression-not-assigned",
   "fixme",
