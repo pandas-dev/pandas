@@ -247,7 +247,7 @@ class TestFactorize:
         tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
 
     def test_factorizer_with_mask(self):
-        # GH#
+        # GH#49549
         data = np.array([1, 2, 3, 1, 1, 0])
         mask = np.array([False, False, False, False, False, True])
         rizer = ht.Int64Factorizer(len(data))
@@ -258,7 +258,7 @@ class TestFactorize:
         tm.assert_numpy_array_equal(rizer.uniques.to_array(), expected_uniques)
 
     def test_factorizer_object_with_nan(self):
-        # GH#
+        # GH#49549
         data = np.array([1, 2, 3, 1, np.nan])
         rizer = ht.ObjectFactorizer(len(data))
         result = rizer.factorize(data.astype(object))
