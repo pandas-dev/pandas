@@ -560,6 +560,7 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_yaxis().get_visible()
         tm.close()
 
+    @td.skip_if_no_mpl
     def test_hist_with_nans_and_weights(self):
         # GH 48884
         df = DataFrame(
