@@ -418,7 +418,9 @@ cdef parse_datetime_string_with_reso(
             from pandas import Timestamp
             parsed = Timestamp(date_string)
         else:
-            parsed = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us)
+            parsed = datetime(
+                dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us
+            )
         reso = {
             NPY_DATETIMEUNIT.NPY_FR_Y: "year",
             NPY_DATETIMEUNIT.NPY_FR_M: "month",
@@ -717,7 +719,8 @@ def try_parse_dates(
             date = datetime.now()
             default = datetime(date.year, date.month, 1)
 
-        parse_date = lambda x: du_parse(x, dayfirst=dayfirst, default=default)
+        def parse_date(x):
+            return du_parse(x, dayfirst=dayfirst, default=default)
 
         # EAFP here
         try:
@@ -737,49 +740,6 @@ def try_parse_dates(
                 result[i] = np.nan
             else:
                 result[i] = parse_date(values[i])
-
-    return result.base  # .base to access underlying ndarray
-
-
-def try_parse_date_and_time(
-    object[:] dates,
-    object[:] times,
-    date_parser=None,
-    time_parser=None,
-    bint dayfirst=False,
-    default=None,
-) -> np.ndarray:
-    cdef:
-        Py_ssize_t i, n
-        object[::1] result
-
-    n = len(dates)
-    # TODO(cython3): Use len instead of `shape[0]`
-    if times.shape[0] != n:
-        raise ValueError('Length of dates and times must be equal')
-    result = np.empty(n, dtype='O')
-
-    if date_parser is None:
-        if default is None:  # GH2618
-            date = datetime.now()
-            default = datetime(date.year, date.month, 1)
-
-        parse_date = lambda x: du_parse(x, dayfirst=dayfirst, default=default)
-
-    else:
-        parse_date = date_parser
-
-    if time_parser is None:
-        parse_time = lambda x: du_parse(x)
-
-    else:
-        parse_time = time_parser
-
-    for i in range(n):
-        d = parse_date(str(dates[i]))
-        t = parse_time(str(times[i]))
-        result[i] = datetime(d.year, d.month, d.day,
-                             t.hour, t.minute, t.second)
 
     return result.base  # .base to access underlying ndarray
 
@@ -1053,8 +1013,13 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
                 found_attrs.update(attrs)
                 break
 
-    # Only consider it a valid guess if we have a year, month and day
-    if len({'year', 'month', 'day'} & found_attrs) != 3:
+    # Only consider it a valid guess if we have a year, month and day,
+    # unless it's %Y or %Y-%m which conform with ISO8601. Note that we don't
+    # make an exception for %Y%m because it's explicitly not considered ISO8601.
+    if (
+        len({'year', 'month', 'day'} & found_attrs) != 3
+        and format_guess not in (['%Y'], ['%Y', None, '%m'])
+    ):
         return None
 
     output_format = []
@@ -1088,6 +1053,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     else:
         return None
 
+
 cdef str _fill_token(token: str, padding: int):
     cdef str token_filled
     if '.' not in token:
@@ -1101,6 +1067,7 @@ cdef str _fill_token(token: str, padding: int):
         nanoseconds = nanoseconds.ljust(9, '0')[:6]
         token_filled = f'{seconds}.{nanoseconds}'
     return token_filled
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

@@ -73,9 +73,6 @@ def test_nat_vector_field_access():
         # on NaT/Timestamp for compat with datetime
         if field == "weekday":
             continue
-        if field in ["week", "weekofyear"]:
-            # GH#33595 Deprecate week and weekofyear
-            continue
 
         result = getattr(idx, field)
         expected = Index([getattr(x, field) for x in idx])
@@ -87,9 +84,6 @@ def test_nat_vector_field_access():
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
         if field == "weekday":
-            continue
-        if field in ["week", "weekofyear"]:
-            # GH#33595 Deprecate week and weekofyear
             continue
 
         result = getattr(ser.dt, field)
@@ -190,13 +184,11 @@ def test_nat_iso_format(get_nat):
 @pytest.mark.parametrize(
     "klass,expected",
     [
-        (Timestamp, ["freqstr", "normalize", "to_julian_date", "to_period"]),
+        (Timestamp, ["normalize", "to_julian_date", "to_period"]),
         (
             Timedelta,
             [
                 "components",
-                "delta",
-                "is_populated",
                 "resolution_string",
                 "to_pytimedelta",
                 "to_timedelta64",

@@ -14,8 +14,8 @@ from typing import Iterator
 import warnings
 
 import numpy as np
-import numpy.ma as ma
-import numpy.ma.mrecords as mrecords
+from numpy import ma
+from numpy.ma import mrecords
 import pytest
 import pytz
 
@@ -141,13 +141,8 @@ class TestDataFrameConstructors:
         if frame_or_series is DataFrame:
             arr = arr.reshape(1, 1)
 
-        msg = "|".join(
-            [
-                "Could not convert object to NumPy timedelta",
-                "Invalid type for timedelta scalar: <class 'numpy.datetime64'>",
-            ]
-        )
-        with pytest.raises(ValueError, match=msg):
+        msg = "Invalid type for timedelta scalar: <class 'numpy.datetime64'>"
+        with pytest.raises(TypeError, match=msg):
             frame_or_series(arr, dtype="m8[ns]")
 
     @pytest.mark.parametrize("kind", ["m", "M"])
@@ -245,10 +240,11 @@ class TestDataFrameConstructors:
         assert float_string_frame["foo"].dtype == np.object_
 
     def test_constructor_cast_failure(self):
-        msg = "either all columns will be cast to that dtype, or a TypeError will"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            foo = DataFrame({"a": ["a", "b", "c"]}, dtype=np.float64)
-        assert foo["a"].dtype == object
+        # as of 2.0, we raise if we can't respect "dtype", previously we
+        #  silently ignored
+        msg = "could not convert string to float"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame({"a": ["a", "b", "c"]}, dtype=np.float64)
 
         # GH 3010, constructing with odd arrays
         df = DataFrame(np.ones((4, 2)))
@@ -717,7 +713,8 @@ class TestDataFrameConstructors:
         from collections import defaultdict
 
         data = {}
-        float_frame["B"][:10] = np.nan
+        float_frame.loc[: float_frame.index[10], "B"] = np.nan
+
         for k, v in float_frame.items():
             dct = defaultdict(dict)
             dct.update(v.to_dict())
@@ -753,13 +750,8 @@ class TestDataFrameConstructors:
             "A": dict(zip(range(20), tm.makeStringIndex(20))),
             "B": dict(zip(range(15), np.random.randn(15))),
         }
-        msg = "either all columns will be cast to that dtype, or a TypeError will"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            frame = DataFrame(test_data, dtype=float)
-
-        assert len(frame) == 20
-        assert frame["A"].dtype == np.object_
-        assert frame["B"].dtype == np.float64
+        with pytest.raises(ValueError, match="could not convert string"):
+            DataFrame(test_data, dtype=float)
 
     def test_constructor_dict_dont_upcast(self):
         d = {"Col1": {"Row1": "A String", "Row2": np.nan}}
@@ -2075,18 +2067,19 @@ class TestDataFrameConstructors:
 
     @pytest.mark.parametrize("order", ["K", "A", "C", "F"])
     @pytest.mark.parametrize(
-        "dtype",
+        "unit",
         [
-            "timedelta64[D]",
-            "timedelta64[h]",
-            "timedelta64[m]",
-            "timedelta64[s]",
-            "timedelta64[ms]",
-            "timedelta64[us]",
-            "timedelta64[ns]",
+            "D",
+            "h",
+            "m",
+            "s",
+            "ms",
+            "us",
+            "ns",
         ],
     )
-    def test_constructor_timedelta_non_ns(self, order, dtype):
+    def test_constructor_timedelta_non_ns(self, order, unit):
+        dtype = f"timedelta64[{unit}]"
         na = np.array(
             [
                 [np.timedelta64(1, "D"), np.timedelta64(2, "D")],
@@ -2095,13 +2088,22 @@ class TestDataFrameConstructors:
             dtype=dtype,
             order=order,
         )
-        df = DataFrame(na).astype("timedelta64[ns]")
+        df = DataFrame(na)
+        if unit in ["D", "h", "m"]:
+            # we get the nearest supported unit, i.e. "s"
+            exp_unit = "s"
+        else:
+            exp_unit = unit
+        exp_dtype = np.dtype(f"m8[{exp_unit}]")
         expected = DataFrame(
             [
                 [Timedelta(1, "D"), Timedelta(2, "D")],
                 [Timedelta(4, "D"), Timedelta(5, "D")],
             ],
+            dtype=exp_dtype,
         )
+        # TODO(2.0): ideally we should get the same 'expected' without passing
+        #  dtype=exp_dtype.
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_for_list_with_dtypes(self):
@@ -2197,7 +2199,9 @@ class TestDataFrameConstructors:
         series = float_frame._series
 
         df = DataFrame({"A": series["A"]}, copy=True)
-        df["A"][:] = 5
+        # TODO can be replaced with `df.loc[:, "A"] = 5` after deprecation about
+        # inplace mutation is enforced
+        df.loc[df.index[0] : df.index[-1], "A"] = 5
 
         assert not (series["A"] == 5).all()
 
@@ -2778,13 +2782,14 @@ class TestDataFrameConstructorWithDtypeCoercion:
 
         arr = np.random.randn(10, 5)
 
-        msg = "if they cannot be cast losslessly"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            DataFrame(arr, dtype="i8")
+        # as of 2.0, we match Series behavior by retaining float dtype instead
+        #  of doing a lossy conversion here. Below we _do_ do the conversion
+        #  since it is lossless.
+        df = DataFrame(arr, dtype="i8")
+        assert (df.dtypes == "f8").all()
 
-        with tm.assert_produces_warning(None):
-            # if they can be cast losslessly, no warning
-            DataFrame(arr.round(), dtype="i8")
+        df = DataFrame(arr.round(), dtype="i8")
+        assert (df.dtypes == "i8").all()
 
         # with NaNs, we go through a different path with a different warning
         arr[0, 0] = np.nan
@@ -2838,37 +2843,32 @@ class TestDataFrameConstructorWithDatetimeTZ:
         ts = Timestamp("2019", tz=tz)
         if pydt:
             ts = ts.to_pydatetime()
-        ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame({0: [ts]}, dtype="datetime64[ns]")
+        msg = (
+            "Cannot convert timezone-aware data to timezone-naive dtype. "
+            r"Use pd.Series\(values\).dt.tz_localize\(None\) instead."
+        )
+        with pytest.raises(ValueError, match=msg):
+            DataFrame({0: [ts]}, dtype="datetime64[ns]")
 
-        expected = DataFrame({0: [ts_naive]})
-        tm.assert_frame_equal(result, expected)
+        msg2 = "Cannot unbox tzaware Timestamp to tznaive dtype"
+        with pytest.raises(TypeError, match=msg2):
+            DataFrame({0: ts}, index=[0], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame({0: ts}, index=[0], dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([ts], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame([ts], dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(np.array([ts], dtype=object), dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame(np.array([ts], dtype=object), dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match=msg2):
+            DataFrame(ts, index=[0], columns=[0], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame(ts, index=[0], columns=[0], dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([Series([ts])], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            df = DataFrame([Series([ts])], dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning):
-            df = DataFrame([[ts]], columns=[0], dtype="datetime64[ns]")
-        tm.assert_equal(df, expected)
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([[ts]], columns=[0], dtype="datetime64[ns]")
 
     def test_from_dict(self):
 
@@ -3041,8 +3041,11 @@ def get1(obj):  # TODO: make a helper in tm?
 
 class TestFromScalar:
     @pytest.fixture(params=[list, dict, None])
-    def constructor(self, request, frame_or_series):
-        box = request.param
+    def box(self, request):
+        return request.param
+
+    @pytest.fixture
+    def constructor(self, frame_or_series, box):
 
         extra = {"index": range(2)}
         if frame_or_series is DataFrame:
@@ -3171,16 +3174,22 @@ class TestFromScalar:
         dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
         assert dtype == object
 
-    def test_tzaware_data_tznaive_dtype(self, constructor):
+    def test_tzaware_data_tznaive_dtype(self, constructor, box, frame_or_series):
         tz = "US/Eastern"
         ts = Timestamp("2019", tz=tz)
-        ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(FutureWarning, match="Data is timezone-aware"):
-            result = constructor(ts, dtype="M8[ns]")
+        if box is None or (frame_or_series is DataFrame and box is dict):
+            msg = "Cannot unbox tzaware Timestamp to tznaive dtype"
+            err = TypeError
+        else:
+            msg = (
+                "Cannot convert timezone-aware data to timezone-naive dtype. "
+                r"Use pd.Series\(values\).dt.tz_localize\(None\) instead."
+            )
+            err = ValueError
 
-        assert np.all(result.dtypes == "M8[ns]")
-        assert np.all(result == ts_naive)
+        with pytest.raises(err, match=msg):
+            constructor(ts, dtype="M8[ns]")
 
 
 # TODO: better location for this test?

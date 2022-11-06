@@ -147,6 +147,9 @@ def test_parsers_month_freq(date_str, expected):
     [
         ("20111230", "%Y%m%d"),
         ("2011-12-30", "%Y-%m-%d"),
+        ("2011", "%Y"),
+        ("2011-01", "%Y-%m"),
+        ("2011/01", "%Y/%m"),
         ("30-12-2011", "%d-%m-%Y"),
         ("2011-12-30 00:00:00", "%Y-%m-%d %H:%M:%S"),
         ("2011-12-30T00:00:00", "%Y-%m-%dT%H:%M:%S"),
@@ -208,12 +211,13 @@ def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
 @pytest.mark.parametrize(
     "invalid_dt",
     [
-        "2013",
         "01/2013",
         "12:00:00",
         "1/1/1/1",
         "this_is_not_a_datetime",
         "51a",
+        "13/2019",
+        "202001",  # YYYYMM isn't ISO8601
     ],
 )
 def test_guess_datetime_format_invalid_inputs(invalid_dt):

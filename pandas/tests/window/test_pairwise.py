@@ -252,7 +252,7 @@ class TestPairwise:
         tm.assert_index_equal(
             result.index.levels[0], pairwise_frames.index, check_names=False
         )
-        tm.assert_numpy_array_equal(
+        tm.assert_index_equal(
             safe_sort(result.index.levels[1]),
             safe_sort(pairwise_frames.columns.unique()),
         )
@@ -310,7 +310,7 @@ class TestPairwise:
         tm.assert_index_equal(
             result.index.levels[0], pairwise_frames.index, check_names=False
         )
-        tm.assert_numpy_array_equal(
+        tm.assert_index_equal(
             safe_sort(result.index.levels[1]),
             safe_sort(pairwise_other_frame.columns.unique()),
         )

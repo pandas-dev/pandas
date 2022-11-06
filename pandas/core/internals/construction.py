@@ -15,13 +15,14 @@ from typing import (
 import warnings
 
 import numpy as np
-import numpy.ma as ma
+from numpy import ma
 
 from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
     Manager,
+    npt,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -43,6 +44,7 @@ from pandas.core.dtypes.common import (
     is_named_tuple,
     is_object_dtype,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -330,14 +332,11 @@ def ndarray_to_mgr(
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
         # GH#40110 see similar check inside sanitize_array
-        rcf = not (is_integer_dtype(dtype) and values.dtype.kind == "f")
-
         values = sanitize_array(
             values,
             None,
             dtype=dtype,
             copy=copy_on_sanitize,
-            raise_cast_failure=rcf,
             allow_2d=True,
         )
 
@@ -602,7 +601,7 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
         else:
             if isinstance(val, dict):
                 # GH#41785 this _should_ be equivalent to (but faster than)
-                #  val = create_series_with_explicit_dtype(val, index=index)._values
+                #  val = Series(val, index=index)._values
                 if oindex is None:
                     oindex = index.astype("O")
 
@@ -614,9 +613,7 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
                     val = dict(val)
                 val = lib.fast_multiget(val, oindex._values, default=np.nan)
 
-            val = sanitize_array(
-                val, index, dtype=dtype, copy=False, raise_cast_failure=False
-            )
+            val = sanitize_array(val, index, dtype=dtype, copy=False)
             com.require_length_match(val, index)
 
         homogenized.append(val)
@@ -655,7 +652,7 @@ def _extract_index(data) -> Index:
         if not indexes and not raw_lengths:
             raise ValueError("If using all scalar values, you must pass an index")
 
-        elif have_series:
+        if have_series:
             index = union_indexes(indexes)
         elif have_dicts:
             index = union_indexes(indexes, sort=False)
@@ -1018,7 +1015,7 @@ def _validate_or_indexify_columns(
                 f"{len(columns)} columns passed, passed data had "
                 f"{len(content)} columns"
             )
-        elif is_mi_list:
+        if is_mi_list:
 
             # check if nested list column, length of each sub-list should be equal
             if len({len(col) for col in columns}) > 1:
@@ -1027,7 +1024,7 @@ def _validate_or_indexify_columns(
                 )
 
             # if columns is not empty and length of sublist is not equal to content
-            elif columns and len(columns[0]) != len(content):
+            if columns and len(columns[0]) != len(content):
                 raise ValueError(
                     f"{len(columns[0])} columns passed, passed data had "
                     f"{len(content)} columns"
@@ -1036,7 +1033,7 @@ def _validate_or_indexify_columns(
 
 
 def _convert_object_array(
-    content: list[np.ndarray], dtype: DtypeObj | None
+    content: list[npt.NDArray[np.object_]], dtype: DtypeObj | None
 ) -> list[ArrayLike]:
     """
     Internal function to convert object array.
@@ -1054,7 +1051,16 @@ def _convert_object_array(
     def convert(arr):
         if dtype != np.dtype("O"):
             arr = lib.maybe_convert_objects(arr)
-            arr = maybe_cast_to_datetime(arr, dtype)
+
+            if isinstance(dtype, ExtensionDtype):
+                # TODO: test(s) that get here
+                # TODO: try to de-duplicate this convert function with
+                #  core.construction functions
+                cls = dtype.construct_array_type()
+                arr = cls._from_sequence(arr, dtype=dtype, copy=False)
+            else:
+                arr = maybe_cast_to_datetime(arr, dtype)
+
         return arr
 
     arrays = [convert(arr) for arr in content]

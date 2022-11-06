@@ -157,8 +157,6 @@ Methods
    Timestamp.day_name
    Timestamp.dst
    Timestamp.floor
-   Timestamp.freq
-   Timestamp.freqstr
    Timestamp.fromordinal
    Timestamp.fromtimestamp
    Timestamp.isocalendar
@@ -238,9 +236,6 @@ Properties
    Timedelta.asm8
    Timedelta.components
    Timedelta.days
-   Timedelta.delta
-   Timedelta.freq
-   Timedelta.is_populated
    Timedelta.max
    Timedelta.microseconds
    Timedelta.min
@@ -630,7 +625,6 @@ Data type introspection
     api.types.is_datetime64_dtype
     api.types.is_datetime64_ns_dtype
     api.types.is_datetime64tz_dtype
-    api.types.is_extension_type
     api.types.is_extension_array_dtype
     api.types.is_float_dtype
     api.types.is_int64_dtype
@@ -663,7 +657,6 @@ Scalar introspection
    :toctree: api/
 
     api.types.is_bool
-    api.types.is_categorical
     api.types.is_complex
     api.types.is_float
     api.types.is_hashable

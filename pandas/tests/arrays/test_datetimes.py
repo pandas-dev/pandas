@@ -71,13 +71,10 @@ class TestNonNano:
         dta = DatetimeArray._simple_new(arr, dtype=dtype)
 
         assert dta.dtype == dtype
-        assert dta[0]._reso == reso
+        assert dta[0]._creso == reso
         assert tz_compare(dta.tz, dta[0].tz)
         assert (dta[0] == dta[:1]).all()
 
-    @pytest.mark.filterwarnings(
-        "ignore:weekofyear and week have been deprecated:FutureWarning"
-    )
     @pytest.mark.parametrize(
         "field", DatetimeArray._field_ops + DatetimeArray._bool_ops
     )
@@ -124,7 +121,7 @@ class TestNonNano:
 
         # we should match the nano-reso std, but floored to our reso.
         res = dta.std()
-        assert res._reso == dta._reso
+        assert res._creso == dta._creso
         assert res == dti.std().floor(unit)
 
     @pytest.mark.filterwarnings("ignore:Converting to PeriodArray.*:UserWarning")
@@ -141,12 +138,12 @@ class TestNonNano:
 
         assert type(res) is pd.Timestamp
         assert res.value == expected.value
-        assert res._reso == expected._reso
+        assert res._creso == expected._creso
         assert res == expected
 
     def test_astype_object(self, dta):
         result = dta.astype(object)
-        assert all(x._reso == dta._reso for x in result)
+        assert all(x._creso == dta._creso for x in result)
         assert all(x == y for x, y in zip(result, dta))
 
     def test_to_pydatetime(self, dta_dti):
@@ -240,7 +237,7 @@ class TestNonNano:
         dta, dti = dta_dti
 
         td = pd.Timedelta(scalar)
-        exp_reso = max(dta._reso, td._reso)
+        exp_reso = max(dta._creso, td._creso)
         exp_unit = npy_unit_to_abbrev(exp_reso)
 
         expected = (dti + td)._data._as_unit(exp_unit)
@@ -364,15 +361,22 @@ class TestDatetimeArray:
         ser = pd.Series([1, 2], dtype=dtype)
         orig = ser.copy()
 
-        warn = None
+        err = False
         if (dtype == "datetime64[ns]") ^ (other == "datetime64[ns]"):
             # deprecated in favor of tz_localize
-            warn = FutureWarning
+            err = True
 
-        with tm.assert_produces_warning(warn):
+        if err:
+            if dtype == "datetime64[ns]":
+                msg = "Use ser.dt.tz_localize instead"
+            else:
+                msg = "from timezone-aware dtype to timezone-naive dtype"
+            with pytest.raises(TypeError, match=msg):
+                ser.astype(other)
+        else:
             t = ser.astype(other)
-        t[:] = pd.NaT
-        tm.assert_series_equal(ser, orig)
+            t[:] = pd.NaT
+            tm.assert_series_equal(ser, orig)
 
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
@@ -425,19 +429,16 @@ class TestDatetimeArray:
         tm.assert_equal(arr, expected)
 
     def test_setitem_different_tz_raises(self):
+        # pre-2.0 we required exact tz match, in 2.0 we require only
+        #  tzawareness-match
         data = np.array([1, 2, 3], dtype="M8[ns]")
         arr = DatetimeArray(data, copy=False, dtype=DatetimeTZDtype(tz="US/Central"))
         with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             arr[0] = pd.Timestamp("2000")
 
         ts = pd.Timestamp("2000", tz="US/Eastern")
-        with pytest.raises(ValueError, match="US/Central"):
-            with tm.assert_produces_warning(
-                FutureWarning, match="mismatched timezones"
-            ):
-                arr[0] = ts
-        # once deprecation is enforced
-        # assert arr[0] == ts.tz_convert("US/Central")
+        arr[0] = ts
+        assert arr[0] == ts.tz_convert("US/Central")
 
     def test_setitem_clears_freq(self):
         a = DatetimeArray(pd.date_range("2000", periods=2, freq="D", tz="US/Central"))
@@ -684,23 +685,16 @@ class TestDatetimeArray:
                 dta.shift(1, fill_value=invalid)
 
     def test_shift_requires_tzmatch(self):
-        # since filling is setitem-like, we require a matching timezone,
-        #  not just matching tzawawreness
+        # pre-2.0 we required exact tz match, in 2.0 we require just
+        #  matching tzawareness
         dti = pd.date_range("2016-01-01", periods=3, tz="UTC")
         dta = dti._data
 
         fill_value = pd.Timestamp("2020-10-18 18:44", tz="US/Pacific")
 
-        msg = "Timezones don't match. 'UTC' != 'US/Pacific'"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(
-                FutureWarning, match="mismatched timezones"
-            ):
-                dta.shift(1, fill_value=fill_value)
-
-        # once deprecation is enforced
-        # expected = dta.shift(1, fill_value=fill_value.tz_convert("UTC"))
-        # tm.assert_equal(result, expected)
+        result = dta.shift(1, fill_value=fill_value)
+        expected = dta.shift(1, fill_value=fill_value.tz_convert("UTC"))
+        tm.assert_equal(result, expected)
 
     def test_tz_localize_t2d(self):
         dti = pd.date_range("1994-05-12", periods=12, tz="US/Pacific")

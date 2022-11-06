@@ -20,9 +20,11 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
     astype_overflowsafe,
+    get_supported_reso,
     get_unit_from_dtype,
     iNaT,
     is_supported_unit,
+    npy_unit_to_abbrev,
     periods_per_second,
     to_offset,
 )
@@ -43,7 +45,6 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
 
-from pandas.core.dtypes.astype import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     is_dtype_equal,
@@ -71,7 +72,7 @@ if TYPE_CHECKING:
 def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:
         values = self.asi8
-        result = get_timedelta_field(values, alias, reso=self._reso)
+        result = get_timedelta_field(values, alias, reso=self._creso)
         if self._hasna:
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
@@ -147,7 +148,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         y = x.view("i8")
         if y == NaT.value:
             return NaT
-        return Timedelta._from_value_and_reso(y, reso=self._reso)
+        return Timedelta._from_value_and_reso(y, reso=self._creso)
 
     @property
     # error: Return type "dtype" of "dtype" incompatible with return type
@@ -197,14 +198,15 @@ class TimedeltaArray(dtl.TimelikeOps):
         return result
 
     @classmethod
-    def _from_sequence(
-        cls, data, *, dtype=TD64NS_DTYPE, copy: bool = False
-    ) -> TimedeltaArray:
+    def _from_sequence(cls, data, *, dtype=None, copy: bool = False) -> TimedeltaArray:
         if dtype:
-            _validate_td64_dtype(dtype)
+            dtype = _validate_td64_dtype(dtype)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=None)
         freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)
+
+        if dtype is not None:
+            data = astype_overflowsafe(data, dtype=dtype, copy=False)
 
         return cls._simple_new(data, dtype=data.dtype, freq=freq)
 
@@ -212,13 +214,17 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _from_sequence_not_strict(
         cls,
         data,
-        dtype=TD64NS_DTYPE,
+        *,
+        dtype=None,
         copy: bool = False,
         freq=lib.no_default,
         unit=None,
     ) -> TimedeltaArray:
+        """
+        A non-strict version of _from_sequence, called from TimedeltaIndex.__new__.
+        """
         if dtype:
-            _validate_td64_dtype(dtype)
+            dtype = _validate_td64_dtype(dtype)
 
         assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
 
@@ -231,6 +237,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
         if explicit_none:
             freq = None
+
+        if dtype is not None:
+            data = astype_overflowsafe(data, dtype=dtype, copy=False)
 
         result = cls._simple_new(data, dtype=data.dtype, freq=freq)
 
@@ -282,20 +291,19 @@ class TimedeltaArray(dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # DatetimeLike Interface
 
-    def _unbox_scalar(self, value, setitem: bool = False) -> np.timedelta64:
+    def _unbox_scalar(self, value) -> np.timedelta64:
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timedelta.")
-        self._check_compatible_with(value, setitem=setitem)
+        self._check_compatible_with(value)
         if value is NaT:
             return np.timedelta64(value.value, "ns")
         else:
             return value._as_unit(self._unit).asm8
-        return np.timedelta64(value.value, "ns")
 
     def _scalar_from_string(self, value) -> Timedelta | NaTType:
         return Timedelta(value)
 
-    def _check_compatible_with(self, other, setitem: bool = False) -> None:
+    def _check_compatible_with(self, other) -> None:
         # we don't have anything to validate.
         pass
 
@@ -321,8 +329,11 @@ class TimedeltaArray(dtl.TimelikeOps):
                 return type(self)._simple_new(
                     res_values, dtype=res_values.dtype, freq=self.freq
                 )
-
-            return astype_td64_unit_conversion(self._ndarray, dtype, copy=copy)
+            else:
+                raise ValueError(
+                    f"Cannot convert from {self.dtype} to {dtype}. "
+                    "Supported resolutions are 's', 'ms', 'us', 'ns'"
+                )
 
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
@@ -479,7 +490,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide vectors with unequal lengths")
 
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return self._ndarray / other
 
@@ -543,7 +554,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide vectors with unequal lengths")
 
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return other / self._ndarray
 
@@ -595,7 +606,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -664,7 +675,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
             # numpy timedelta64 does not natively support floordiv, so operate
             #  on the i8 values
@@ -789,7 +800,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         Float64Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0],
                      dtype='float64')
         """
-        pps = periods_per_second(self._reso)
+        pps = periods_per_second(self._creso)
         return self._maybe_mask_results(self.asi8 / pps, fill_value=None)
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:
@@ -944,9 +955,13 @@ def sequence_to_td64ns(
         copy = False
 
     elif is_timedelta64_dtype(data.dtype):
-        if data.dtype != TD64NS_DTYPE:
-            # non-nano unit
-            data = astype_overflowsafe(data, dtype=TD64NS_DTYPE)
+        data_unit = get_unit_from_dtype(data.dtype)
+        if not is_supported_unit(data_unit):
+            # cast to closest supported unit, i.e. s or ns
+            new_reso = get_supported_reso(data_unit)
+            new_unit = npy_unit_to_abbrev(new_reso)
+            new_dtype = np.dtype(f"m8[{new_unit}]")
+            data = astype_overflowsafe(data, dtype=new_dtype, copy=False)
             copy = False
 
     else:
@@ -955,7 +970,9 @@ def sequence_to_td64ns(
 
     data = np.array(data, copy=copy)
 
-    assert data.dtype == "m8[ns]", data
+    assert data.dtype.kind == "m"
+    assert data.dtype != "m8"  # i.e. not unit-less
+
     return data, inferred_freq
 
 
@@ -1045,7 +1062,11 @@ def _validate_td64_dtype(dtype) -> DtypeObj:
         )
         raise ValueError(msg)
 
-    if not is_dtype_equal(dtype, TD64NS_DTYPE):
+    if (
+        not isinstance(dtype, np.dtype)
+        or dtype.kind != "m"
+        or not is_supported_unit(get_unit_from_dtype(dtype))
+    ):
         raise ValueError(f"dtype {dtype} cannot be converted to timedelta64[ns]")
 
     return dtype
