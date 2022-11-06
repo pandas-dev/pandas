@@ -5855,7 +5855,8 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             frame = self
         else:
-            frame = self.copy()
+            # GH 49473 Use "lazy copy" with Copy-on-Write
+            frame = self.copy(deep=None)
 
         arrays = []
         names: list[Hashable] = []

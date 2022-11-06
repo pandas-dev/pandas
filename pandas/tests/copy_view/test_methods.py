@@ -214,3 +214,20 @@ def test_chained_methods(request, method, idx, using_copy_on_write):
     df.iloc[0, 0] = 0
     if not df2_is_view:
         tm.assert_frame_equal(df2.iloc[:, idx:], df_orig)
+
+
+def test_set_index(using_copy_on_write):
+    # GH 49473
+    df = DataFrame(
+        {
+            "month": [1, 4, 7, 10],
+            "year": [2012, 2014, 2013, 2014],
+            "sale": [55, 40, 84, 31],
+        }
+    )
+    df2 = df.set_index("month")
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "year"), get_array(df, "year"))
+    else:
+        assert not np.shares_memory(get_array(df2, "year"), get_array(df, "year"))
