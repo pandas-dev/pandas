@@ -116,8 +116,6 @@ class CategoricalDtypeType(type):
     the type of CategoricalDtype, this metaclass determines subclass ability
     """
 
-    pass
-
 
 @register_extension_dtype
 class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
@@ -525,7 +523,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             raise TypeError(
                 f"Parameter 'categories' must be list-like, was {repr(categories)}"
             )
-        elif not isinstance(categories, ABCIndex):
+        if not isinstance(categories, ABCIndex):
             categories = Index._with_infer(categories, tupleize_cols=False)
 
         if not fastpath:
@@ -713,7 +711,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         self._tz = tz
 
     @cache_readonly
-    def _reso(self) -> int:
+    def _creso(self) -> int:
         """
         The NPY_DATETIMEUNIT corresponding to this dtype's resolution.
         """
@@ -986,10 +984,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
             # but doesn't regard freq str like "U" as dtype.
             if dtype.startswith("period[") or dtype.startswith("Period["):
                 try:
-                    if cls._parse_dtype_strict(dtype) is not None:
-                        return True
-                    else:
-                        return False
+                    return cls._parse_dtype_strict(dtype) is not None
                 except ValueError:
                     return False
             else:
@@ -1254,10 +1249,7 @@ class IntervalDtype(PandasExtensionDtype):
         if isinstance(dtype, str):
             if dtype.lower().startswith("interval"):
                 try:
-                    if cls.construct_from_string(dtype) is not None:
-                        return True
-                    else:
-                        return False
+                    return cls.construct_from_string(dtype) is not None
                 except (ValueError, TypeError):
                     return False
             else:

@@ -12,7 +12,6 @@ from datetime import (
     time,
 )
 from functools import partial
-import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -26,7 +25,7 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._typing import (
     DateTimeErrorChoices,
     DtypeArg,
@@ -752,8 +751,7 @@ def pandasSQL_builder(con, schema: str | None = None) -> SQLDatabase | SQLiteDat
     if isinstance(con, str):
         if sqlalchemy is None:
             raise ImportError("Using URI string without sqlalchemy installed.")
-        else:
-            con = sqlalchemy.create_engine(con)
+        con = sqlalchemy.create_engine(con)
 
     if sqlalchemy is not None and isinstance(con, sqlalchemy.engine.Connectable):
         return SQLDatabase(con, schema=schema)
@@ -763,7 +761,7 @@ def pandasSQL_builder(con, schema: str | None = None) -> SQLDatabase | SQLiteDat
         "database string URI or sqlite3 DBAPI2 connection. "
         "Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.",
         UserWarning,
-        stacklevel=find_stack_level(inspect.currentframe()),
+        stacklevel=find_stack_level(),
     )
     return SQLiteDatabase(con)
 
@@ -829,7 +827,7 @@ class SQLTable(PandasObject):
         if self.exists():
             if self.if_exists == "fail":
                 raise ValueError(f"Table '{self.name}' already exists.")
-            elif self.if_exists == "replace":
+            if self.if_exists == "replace":
                 self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
             elif self.if_exists == "append":
@@ -972,18 +970,18 @@ class SQLTable(PandasObject):
                         [], columns=columns, coerce_float=coerce_float
                     )
                 break
-            else:
-                has_read_data = True
-                self.frame = DataFrame.from_records(
-                    data, columns=columns, coerce_float=coerce_float
-                )
 
-                self._harmonize_columns(parse_dates=parse_dates)
+            has_read_data = True
+            self.frame = DataFrame.from_records(
+                data, columns=columns, coerce_float=coerce_float
+            )
 
-                if self.index is not None:
-                    self.frame.set_index(self.index, inplace=True)
+            self._harmonize_columns(parse_dates=parse_dates)
 
-                yield self.frame
+            if self.index is not None:
+                self.frame.set_index(self.index, inplace=True)
+
+            yield self.frame
 
     def read(
         self,
@@ -1039,8 +1037,7 @@ class SQLTable(PandasObject):
                         "Length of 'index_label' should match number of "
                         f"levels, which is {nlevels}"
                     )
-                else:
-                    return index_label
+                return index_label
             # return the used column labels for the index columns
             if (
                 nlevels == 1
@@ -1179,7 +1176,7 @@ class SQLTable(PandasObject):
             Time,
         )
 
-        if col_type == "datetime64" or col_type == "datetime":
+        if col_type in ("datetime64", "datetime"):
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
             try:
@@ -1196,7 +1193,7 @@ class SQLTable(PandasObject):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             return BigInteger
         elif col_type == "floating":
@@ -1333,8 +1330,7 @@ class SQLAlchemyEngine(BaseEngine):
             err_text = str(err.orig)
             if re.search(msg, err_text):
                 raise ValueError("inf cannot be used with MySQL") from err
-            else:
-                raise err
+            raise err
 
 
 def get_engine(engine: str) -> BaseEngine:
@@ -1363,7 +1359,7 @@ def get_engine(engine: str) -> BaseEngine:
             f"{error_msgs}"
         )
 
-    elif engine == "sqlalchemy":
+    if engine == "sqlalchemy":
         return SQLAlchemyEngine()
 
     raise ValueError("engine must be one of 'auto', 'sqlalchemy'")
@@ -1490,16 +1486,16 @@ class SQLDatabase(PandasSQL):
                         parse_dates=parse_dates,
                     )
                 break
-            else:
-                has_read_data = True
-                yield _wrap_result(
-                    data,
-                    columns,
-                    index_col=index_col,
-                    coerce_float=coerce_float,
-                    parse_dates=parse_dates,
-                    dtype=dtype,
-                )
+
+            has_read_data = True
+            yield _wrap_result(
+                data,
+                columns,
+                index_col=index_col,
+                coerce_float=coerce_float,
+                parse_dates=parse_dates,
+                dtype=dtype,
+            )
 
     def read_query(
         self,
@@ -1660,7 +1656,7 @@ class SQLDatabase(PandasSQL):
                 warnings.warn(
                     msg,
                     UserWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
     def to_sql(
@@ -1969,7 +1965,7 @@ class SQLiteTable(SQLTable):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             col_type = "integer"
 
@@ -2054,16 +2050,16 @@ class SQLiteDatabase(PandasSQL):
                         [], columns=columns, coerce_float=coerce_float
                     )
                 break
-            else:
-                has_read_data = True
-                yield _wrap_result(
-                    data,
-                    columns,
-                    index_col=index_col,
-                    coerce_float=coerce_float,
-                    parse_dates=parse_dates,
-                    dtype=dtype,
-                )
+
+            has_read_data = True
+            yield _wrap_result(
+                data,
+                columns,
+                index_col=index_col,
+                coerce_float=coerce_float,
+                parse_dates=parse_dates,
+                dtype=dtype,
+            )
 
     def read_query(
         self,

@@ -81,26 +81,48 @@ class Infinity:
     """
     Provide a positive Infinity comparison method for ranking.
     """
-    __lt__ = lambda self, other: False
-    __le__ = lambda self, other: isinstance(other, Infinity)
-    __eq__ = lambda self, other: isinstance(other, Infinity)
-    __ne__ = lambda self, other: not isinstance(other, Infinity)
-    __gt__ = lambda self, other: (not isinstance(other, Infinity) and
-                                  not missing.checknull(other))
-    __ge__ = lambda self, other: not missing.checknull(other)
+    def __lt__(self, other):
+        return False
+
+    def __le__(self, other):
+        return isinstance(other, Infinity)
+
+    def __eq__(self, other):
+        return isinstance(other, Infinity)
+
+    def __ne__(self, other):
+        return not isinstance(other, Infinity)
+
+    def __gt__(self, other):
+        return (not isinstance(other, Infinity) and
+                not missing.checknull(other))
+
+    def __ge__(self, other):
+        return not missing.checknull(other)
 
 
 class NegInfinity:
     """
     Provide a negative Infinity comparison method for ranking.
     """
-    __lt__ = lambda self, other: (not isinstance(other, NegInfinity) and
-                                  not missing.checknull(other))
-    __le__ = lambda self, other: not missing.checknull(other)
-    __eq__ = lambda self, other: isinstance(other, NegInfinity)
-    __ne__ = lambda self, other: not isinstance(other, NegInfinity)
-    __gt__ = lambda self, other: False
-    __ge__ = lambda self, other: isinstance(other, NegInfinity)
+    def __lt__(self, other):
+        return  (not isinstance(other, NegInfinity) and
+                 not missing.checknull(other))
+
+    def __le__(self, other):
+        return not missing.checknull(other)
+
+    def __eq__(self, other):
+        return isinstance(other, NegInfinity)
+
+    def __ne__(self, other):
+        return not isinstance(other, NegInfinity)
+
+    def __gt__(self, other):
+        return False
+
+    def __ge__(self, other):
+        return isinstance(other, NegInfinity)
 
 
 @cython.wraparound(False)
@@ -321,7 +343,7 @@ def kth_smallest(numeric_t[::1] arr, Py_ssize_t k) -> numeric_t:
 @cython.cdivision(True)
 def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     cdef:
-        Py_ssize_t i, j, xi, yi, N, K
+        Py_ssize_t i, xi, yi, N, K
         bint minpv
         float64_t[:, ::1] result
         ndarray[uint8_t, ndim=2] mask
@@ -377,7 +399,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 @cython.wraparound(False)
 def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarray:
     cdef:
-        Py_ssize_t i, j, xi, yi, N, K
+        Py_ssize_t i, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
         ndarray[float64_t, ndim=2] ranked_mat
         ndarray[float64_t, ndim=1] rankedx, rankedy
@@ -746,7 +768,8 @@ def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
     n = len(arr)
 
     if n == 1:
-        if arr[0] != arr[0] or (numeric_object_t is int64_t and timelike and arr[0] == NPY_NAT):
+        if arr[0] != arr[0] or (numeric_object_t is int64_t and timelike and
+                                arr[0] == NPY_NAT):
             # single value is NaN
             return False, False, True
         else:

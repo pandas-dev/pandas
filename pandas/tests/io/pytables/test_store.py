@@ -917,9 +917,8 @@ def test_copy():
         df = tm.makeDataFrame()
 
         with tm.ensure_clean() as path:
-            st = HDFStore(path)
-            st.append("df", df, data_columns=["A"])
-            st.close()
+            with HDFStore(path) as st:
+                st.append("df", df, data_columns=["A"])
             do_copy(f=path)
             do_copy(f=path, propindexes=False)
 
@@ -1008,15 +1007,6 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
             df.to_hdf(path, "df", format="table", data_columns=True)
             result = read_hdf(path, "df", where=f"index = [{df.index[0]}]")
             assert len(result)
-
-
-def test_hdfstore_iteritems_deprecated(tmp_path, setup_path):
-    path = tmp_path / setup_path
-    df = DataFrame({"a": [1]})
-    with HDFStore(path, mode="w") as hdf:
-        hdf.put("table", df)
-        with tm.assert_produces_warning(FutureWarning):
-            next(hdf.iteritems())
 
 
 def test_hdfstore_strides(setup_path):

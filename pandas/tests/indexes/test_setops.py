@@ -8,10 +8,7 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    pa_version_under2p0,
-    pa_version_under7p0,
-)
+from pandas.compat import pa_version_under7p0
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.cast import find_common_type
@@ -106,7 +103,7 @@ def test_union_different_types(index_flat, index_flat2, request):
         # complex objects non-sortable
         warn = RuntimeWarning
 
-    any_uint64 = idx1.dtype == np.uint64 or idx2.dtype == np.uint64
+    any_uint64 = np.uint64 in (idx1.dtype, idx2.dtype)
     idx1_signed = is_signed_integer_dtype(idx1.dtype)
     idx2_signed = is_signed_integer_dtype(idx2.dtype)
 
@@ -579,12 +576,8 @@ def test_intersection_duplicates_all_indexes(index):
     idx = index
     idx_non_unique = idx[[0, 0, 1, 2]]
 
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under2p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-    ):
-        assert idx.intersection(idx_non_unique).equals(idx_non_unique.intersection(idx))
-        assert idx.intersection(idx_non_unique).is_unique
+    assert idx.intersection(idx_non_unique).equals(idx_non_unique.intersection(idx))
+    assert idx.intersection(idx_non_unique).is_unique
 
 
 @pytest.mark.parametrize(

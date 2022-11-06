@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-import inspect
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -12,7 +11,7 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.parsers as parsers
+from pandas._libs import parsers
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
@@ -72,8 +71,6 @@ class CParserWrapper(ParserBase):
             "encoding",
             "memory_map",
             "compression",
-            "error_bad_lines",
-            "warn_bad_lines",
         ):
             kwds.pop(key, None)
 
@@ -103,16 +100,8 @@ class CParserWrapper(ParserBase):
 
         # error: Cannot determine type of 'names'
         if self.names is None:  # type: ignore[has-type]
-            if self.prefix:
-                # error: Cannot determine type of 'names'
-                self.names = [  # type: ignore[has-type]
-                    f"{self.prefix}{i}" for i in range(self._reader.table_width)
-                ]
-            else:
-                # error: Cannot determine type of 'names'
-                self.names = list(  # type: ignore[has-type]
-                    range(self._reader.table_width)
-                )
+            # error: Cannot determine type of 'names'
+            self.names = list(range(self._reader.table_width))  # type: ignore[has-type]
 
         # gh-9755
         #
@@ -418,11 +407,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 f"Specify dtype option on import or set low_memory=False."
             ]
         )
-        warnings.warn(
-            warning_message,
-            DtypeWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
+        warnings.warn(warning_message, DtypeWarning, stacklevel=find_stack_level())
     return result
 
 
