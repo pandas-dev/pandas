@@ -7213,6 +7213,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if inplace:
             return self._update_inplace(result)
         else:
+            # GH 49473 Use "lazy copy" with Copy-on-Write
+            result = self.copy(deep=None)
             return result.__finalize__(self, method="replace")
 
     def interpolate(

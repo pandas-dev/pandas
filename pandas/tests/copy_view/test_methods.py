@@ -214,3 +214,21 @@ def test_chained_methods(request, method, idx, using_copy_on_write):
     df.iloc[0, 0] = 0
     if not df2_is_view:
         tm.assert_frame_equal(df2.iloc[:, idx:], df_orig)
+
+
+def test_replace(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.replace(1, 5)
+    df2._mgr._verify_integrity()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    # mutating df2 triggers a copy-on-write for that column/block
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
