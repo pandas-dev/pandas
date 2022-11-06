@@ -134,6 +134,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_numeric_dtype,
+    is_object_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -10575,8 +10576,6 @@ Parrot 2  Parrot       24.0
         data = self
         values = data.values
         result = func(values)
-
-        from pandas.core.dtypes.common import is_object_dtype
 
         if hasattr(result, "dtype"):
             if filter_type == "bool" and notna(result).all():
