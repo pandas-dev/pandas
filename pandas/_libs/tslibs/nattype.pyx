@@ -548,15 +548,15 @@ class NaTType(_NaT):
 
         Construct a timezone-aware UTC datetime from a POSIX timestamp.
 
-        Examples
-        --------
-        >>> pd.Timestamp.utcfromtimestamp(1584199972)
-        Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
-
         Notes
         -----
         Timestamp.utcfromtimestamp behavior differs from datetime.utcfromtimestamp
         in returning a timezone-aware object.
+
+        Examples
+        --------
+        >>> pd.Timestamp.utcfromtimestamp(1584199972)
+        Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
         """,
     )
     fromtimestamp = _make_error_func(
