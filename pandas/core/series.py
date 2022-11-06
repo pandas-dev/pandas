@@ -4611,7 +4611,7 @@ Keep all original rows and also all original values
         *,
         axis: Axis = 0,
         skipna: bool = True,
-        numeric_only=None,
+        numeric_only: bool = False,
         filter_type=None,
         **kwds,
     ):

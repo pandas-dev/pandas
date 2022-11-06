@@ -496,6 +496,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.add` cannot apply ufunc when inputs contain mixed DataFrame type and Series type (:issue:`39853`)
+- Bug in DataFrame reduction methods (e.g. :meth:`DataFrame.sum`) with object dtype, ``axis=1`` and ``numeric_only=False`` would not be coerced to float (:issue:`49551`)
 -
 
 Conversion

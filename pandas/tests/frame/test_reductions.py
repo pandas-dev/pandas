@@ -331,9 +331,7 @@ class TestDataFrameAnalytics:
         assert df.values.dtype == np.object_
         result = getattr(df, method)(1)
         expected = getattr(df.astype("f8"), method)(1)
-
-        if method in ["sum", "prod"]:
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])
     def test_mixed_ops(self, op):
