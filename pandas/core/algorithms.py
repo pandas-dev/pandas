@@ -950,6 +950,11 @@ def value_counts(
             result.name = name
             counts = result._values
 
+        elif isinstance(values, ABCMultiIndex):
+            levels = list(range(values.nlevels))
+            result = Series(index=values).groupby(level=levels, dropna=dropna).size()
+            counts = result._values
+
         else:
             values = _ensure_arraylike(values)
             keys, counts = value_counts_arraylike(values, dropna)
