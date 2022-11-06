@@ -120,6 +120,8 @@ if TYPE_CHECKING:
 
     SparseIndexKind = Literal["integer", "block"]
 
+    from pandas.core.dtypes.dtypes import ExtensionDtype
+
     from pandas import Series
 
 else:
@@ -779,7 +781,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         ):
             raise ValueError("Must specify one of 'method' or 'value'.")
 
-        elif method is not None:
+        if method is not None:
             msg = "fillna with 'method' requires high memory usage."
             warnings.warn(
                 msg,
@@ -1170,8 +1172,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if (indices.max() >= n) or (indices.min() < -n):
             if n == 0:
                 raise IndexError("cannot do a non-empty take from an empty axes.")
-            else:
-                raise IndexError("out of bounds value in 'indices'.")
+            raise IndexError("out of bounds value in 'indices'.")
 
         if to_shift.any():
             indices = indices.copy()
@@ -1328,14 +1329,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         future_dtype = pandas_dtype(dtype)
         if not isinstance(future_dtype, SparseDtype):
             # GH#34457
-            warnings.warn(
-                "The behavior of .astype from SparseDtype to a non-sparse dtype "
-                "is deprecated. In a future version, this will return a non-sparse "
-                "array with the requested dtype. To retain the old behavior, use "
-                "`obj.astype(SparseDtype(dtype))`",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            if isinstance(future_dtype, np.dtype):
+                values = np.array(self)
+                return astype_nansafe(values, dtype=future_dtype)
+            else:
+                dtype = cast(ExtensionDtype, dtype)
+                cls = dtype.construct_array_type()
+                return cls._from_sequence(self, dtype=dtype, copy=copy)
 
         dtype = self.dtype.update_dtype(dtype)
         subtype = pandas_dtype(dtype._subtype_with_str)

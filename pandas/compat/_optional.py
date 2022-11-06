@@ -16,14 +16,14 @@ VERSIONS = {
     "blosc": "1.21.0",
     "bottleneck": "1.3.2",
     "brotli": "0.7.0",
-    "fastparquet": "0.4.0",
+    "fastparquet": "0.6.3",
     "fsspec": "2021.07.0",
     "html5lib": "1.1",
     "hypothesis": "6.13.0",
     "gcsfs": "2021.07.0",
     "jinja2": "3.0.0",
     "lxml.etree": "4.6.3",
-    "matplotlib": "3.3.2",
+    "matplotlib": "3.6.1",
     "numba": "0.53.1",
     "numexpr": "2.7.3",
     "odfpy": "1.4.1",
@@ -141,8 +141,7 @@ def import_optional_dependency(
     except ImportError:
         if errors == "raise":
             raise ImportError(msg)
-        else:
-            return None
+        return None
 
     # Handle submodules: if we have submodule, grab parent module from sys.modules
     parent = name.split(".")[0]

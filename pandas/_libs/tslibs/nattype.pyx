@@ -204,9 +204,10 @@ cdef class _NaT(datetime):
                     return result
 
                 # __rsub__ logic here
-                # TODO(cython3): remove this, move above code out of ``if not is_rsub`` block
+                # TODO(cython3): remove this, move above code out of
+                # ``if not is_rsub`` block
                 # timedelta64 - NaT we have to treat NaT as timedelta64
-                #  for this to be meaningful, and the result is timedelta64
+                # for this to be meaningful, and the result is timedelta64
                 result = np.empty(other.shape, dtype="timedelta64[ns]")
                 result.fill("NaT")
                 return result
@@ -240,7 +241,8 @@ cdef class _NaT(datetime):
                 result = np.empty(other.shape, dtype="timedelta64[ns]")
                 result.fill("NaT")
                 return result
-        # other cases are same, swap operands is allowed even though we subtract because this is NaT
+        # other cases are same, swap operands is allowed even though we subtract
+        # because this is NaT
         return self.__sub__(other)
 
     def __pos__(self):
@@ -683,8 +685,6 @@ class NaTType(_NaT):
         ----------
         ordinal : int
             Date corresponding to a proleptic Gregorian ordinal.
-        freq : str, DateOffset
-            Offset to apply to the Timestamp.
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
 
@@ -1201,6 +1201,7 @@ default 'raise'
         NaT
         """,
     )
+
     @property
     def tz(self) -> None:
         return None

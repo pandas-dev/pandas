@@ -15,7 +15,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -42,7 +41,6 @@ from pandas._typing import (
     Timezone,
     npt,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -476,7 +474,7 @@ def _array_strptime_with_fallback(
     except OutOfBoundsDatetime:
         if errors == "raise":
             raise
-        elif errors == "coerce":
+        if errors == "coerce":
             result = np.empty(arg.shape, dtype="M8[ns]")
             iresult = result.view("i8")
             iresult.fill(iNaT)
@@ -489,7 +487,7 @@ def _array_strptime_with_fallback(
         if not infer_datetime_format:
             if errors == "raise":
                 raise
-            elif errors == "coerce":
+            if errors == "coerce":
                 result = np.empty(arg.shape, dtype="M8[ns]")
                 iresult = result.view("i8")
                 iresult.fill(iNaT)
@@ -1294,27 +1292,8 @@ def _attempt_YYYYMMDD(arg: npt.NDArray[np.object_], errors: str) -> np.ndarray |
     return None
 
 
-def to_time(
-    arg,
-    format=None,
-    infer_time_format: bool = False,
-    errors: DateTimeErrorChoices = "raise",
-):
-    # GH#34145
-    warnings.warn(
-        "`to_time` has been moved, should be imported from pandas.core.tools.times. "
-        "This alias will be removed in a future version.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-    from pandas.core.tools.times import to_time
-
-    return to_time(arg, format, infer_time_format, errors)
-
-
 __all__ = [
     "DateParseError",
     "should_cache",
     "to_datetime",
-    "to_time",
 ]

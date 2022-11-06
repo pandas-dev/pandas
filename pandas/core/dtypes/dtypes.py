@@ -116,8 +116,6 @@ class CategoricalDtypeType(type):
     the type of CategoricalDtype, this metaclass determines subclass ability
     """
 
-    pass
-
 
 @register_extension_dtype
 class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
@@ -525,7 +523,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             raise TypeError(
                 f"Parameter 'categories' must be list-like, was {repr(categories)}"
             )
-        elif not isinstance(categories, ABCIndex):
+        if not isinstance(categories, ABCIndex):
             categories = Index._with_infer(categories, tupleize_cols=False)
 
         if not fastpath:
