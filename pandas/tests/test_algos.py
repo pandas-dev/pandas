@@ -1350,16 +1350,6 @@ class TestValueCounts:
 
         tm.assert_series_equal(result, expected)
 
-    def test_value_counts_multiindex(self):
-        # GH49558
-        mi = MultiIndex.from_tuples(
-            tuples=[(1, "a"), (2, "b"), (3, "c"), (2, "b")],
-            names=["foo", "bar"],
-        )
-        result = algos.value_counts(mi)
-        expected = Series(data=[2, 1, 1], index=mi.take([1, 0, 2]))
-        tm.assert_series_equal(result, expected)
-
 
 class TestDuplicated:
     def test_duplicated_with_nas(self):
