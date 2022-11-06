@@ -951,6 +951,7 @@ def value_counts(
             counts = result._values
 
         elif isinstance(values, ABCMultiIndex):
+            # GH49558
             levels = list(range(values.nlevels))
             result = Series(index=values).groupby(level=levels, dropna=dropna).size()
             counts = result._values

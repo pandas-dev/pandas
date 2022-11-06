@@ -1351,7 +1351,7 @@ class TestValueCounts:
         tm.assert_series_equal(result, expected)
 
     def test_value_counts_multiindex(self):
-        # GH# (TODO)
+        # GH49558
         mi = MultiIndex.from_tuples(
             tuples=[(1, "a"), (2, "b"), (3, "c"), (2, "b")],
             names=["foo", "bar"],
