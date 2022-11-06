@@ -1755,6 +1755,7 @@ def test_fails_on_non_numeric(kernel):
             "argument must be a string or a number",
             "not supported between instances of",
             "unsupported operand type",
+            "argument must be a string or a real number",
         ]
     )
     with pytest.raises(TypeError, match=msg):
