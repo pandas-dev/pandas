@@ -347,7 +347,7 @@ def test_apply_yield_list(float_frame):
 
 
 def test_apply_reduce_Series(float_frame):
-    float_frame["A"].iloc[::2] = np.nan
+    float_frame.iloc[::2, float_frame.columns.get_loc("A")] = np.nan
     expected = float_frame.mean(1)
     result = float_frame.apply(np.mean, axis=1)
     tm.assert_series_equal(result, expected)
@@ -1427,6 +1427,18 @@ def test_apply_datetime_tz_issue():
     expected = Series(index=timestamps, data=timestamps)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("df", [DataFrame({"A": ["a", None], "B": ["c", "d"]})])
+@pytest.mark.parametrize("method", ["min", "max", "sum"])
+def test_mixed_column_raises(df, method):
+    # GH 16832
+    if method == "sum":
+        msg = r'can only concatenate str \(not "int"\) to str'
+    else:
+        msg = "not supported between instances of 'str' and 'float'"
+    with pytest.raises(TypeError, match=msg):
+        getattr(df, method)()
 
 
 @pytest.mark.parametrize("col", [1, 1.0, True, "a", np.nan])

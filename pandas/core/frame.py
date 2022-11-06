@@ -134,7 +134,6 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_numeric_dtype,
-    is_object_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -187,8 +186,7 @@ from pandas.core.indexes.multi import (
 )
 from pandas.core.indexing import (
     check_bool_indexer,
-    check_deprecated_indexers,
-    convert_to_index_sliceable,
+    check_dict_or_set_indexers,
 )
 from pandas.core.internals import (
     ArrayManager,
@@ -267,9 +265,8 @@ _shared_doc_kwargs = {
     you to specify a location to update with some value.""",
 }
 
-_numeric_only_doc = """numeric_only : bool or None, default None
-    Include only float, int, boolean data. If None, will attempt to use
-    everything, then use only numeric data
+_numeric_only_doc = """numeric_only : bool, default False
+    Include only float, int, boolean data.
 """
 
 _merge_doc = """
@@ -3703,7 +3700,7 @@ class DataFrame(NDFrame, OpsMixin):
             yield self._get_column_array(i)
 
     def __getitem__(self, key):
-        check_deprecated_indexers(key)
+        check_dict_or_set_indexers(key)
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
@@ -3723,17 +3720,18 @@ class DataFrame(NDFrame, OpsMixin):
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
         # Do we have a slicer (on rows)?
-        indexer = convert_to_index_sliceable(self, key)
-        if indexer is not None:
+        if isinstance(key, slice):
+            indexer = self.index._convert_slice_indexer(
+                key, kind="getitem", is_frame=True
+            )
             if isinstance(indexer, np.ndarray):
+                # reachable with DatetimeIndex
                 indexer = lib.maybe_indices_to_slice(
                     indexer.astype(np.intp, copy=False), len(self)
                 )
                 if isinstance(indexer, np.ndarray):
                     # GH#43223 If we can not convert, use take
                     return self.take(indexer, axis=0)
-            # either we have a slice or we have a string that can be converted
-            #  to a slice for partial-string date indexing
             return self._slice(indexer, axis=0)
 
         # Do we have a (boolean) DataFrame?
@@ -3903,11 +3901,9 @@ class DataFrame(NDFrame, OpsMixin):
         key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows
-        indexer = convert_to_index_sliceable(self, key)
-        if indexer is not None:
-            # either we have a slice or we have a string that can be converted
-            #  to a slice for partial-string date indexing
-            return self._setitem_slice(indexer, value)
+        if isinstance(key, slice):
+            slc = self.index._convert_slice_indexer(key, kind="getitem", is_frame=True)
+            return self._setitem_slice(slc, value)
 
         if isinstance(key, DataFrame) or getattr(key, "ndim", None) == 2:
             self._setitem_frame(key, value)
@@ -4870,69 +4866,6 @@ class DataFrame(NDFrame, OpsMixin):
             for idx, item in enumerate(self.columns)
         }
 
-    def lookup(
-        self, row_labels: Sequence[IndexLabel], col_labels: Sequence[IndexLabel]
-    ) -> np.ndarray:
-        """
-        Label-based "fancy indexing" function for DataFrame.
-
-        .. deprecated:: 1.2.0
-            DataFrame.lookup is deprecated,
-            use pandas.factorize and NumPy indexing instead.
-            For further details see
-            :ref:`Looking up values by index/column labels <indexing.lookup>`.
-
-        Given equal-length arrays of row and column labels, return an
-        array of the values corresponding to each (row, col) pair.
-
-        Parameters
-        ----------
-        row_labels : sequence
-            The row labels to use for lookup.
-        col_labels : sequence
-            The column labels to use for lookup.
-
-        Returns
-        -------
-        numpy.ndarray
-            The found values.
-        """
-        msg = (
-            "The 'lookup' method is deprecated and will be "
-            "removed in a future version. "
-            "You can use DataFrame.melt and DataFrame.loc "
-            "as a substitute."
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-
-        n = len(row_labels)
-        if n != len(col_labels):
-            raise ValueError("Row labels must have same size as column labels")
-        if not (self.index.is_unique and self.columns.is_unique):
-            # GH#33041
-            raise ValueError("DataFrame.lookup requires unique index and columns")
-
-        thresh = 1000
-        if not self._is_mixed_type or n > thresh:
-            values = self.values
-            ridx = self.index.get_indexer(row_labels)
-            cidx = self.columns.get_indexer(col_labels)
-            if (ridx == -1).any():
-                raise KeyError("One or more row labels was not found")
-            if (cidx == -1).any():
-                raise KeyError("One or more column labels was not found")
-            flat_index = ridx * len(self.columns) + cidx
-            result = values.flat[flat_index]
-        else:
-            result = np.empty(n, dtype="O")
-            for i, (r, c) in enumerate(zip(row_labels, col_labels)):
-                result[i] = self._get_value(r, c)
-
-        if is_object_dtype(result):
-            result = lib.maybe_convert_objects(result)
-
-        return result
-
     # ----------------------------------------------------------------------
     # Reindexing and alignment
 
@@ -5046,7 +4979,6 @@ class DataFrame(NDFrame, OpsMixin):
             broadcast_axis=broadcast_axis,
         )
 
-    # error: Signature of "set_axis" incompatible with supertype "NDFrame"
     @Appender(
         """
         Examples
@@ -5157,12 +5089,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "drop" incompatible with supertype "NDFrame"
-    # github.com/python/mypy/issues/12387
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
-    def drop(  # type: ignore[override]
+    def drop(
         self,
         labels: IndexLabel = None,
+        *,
         axis: Axis = 0,
         index: IndexLabel = None,
         columns: IndexLabel = None,
@@ -5532,11 +5462,11 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     # error: Signature of "fillna" incompatible with supertype "NDFrame"
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(  # type: ignore[override]
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
+        *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
@@ -9563,118 +9493,6 @@ Parrot 2  Parrot       24.0
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(
-        self,
-        other,
-        ignore_index: bool = False,
-        verify_integrity: bool = False,
-        sort: bool = False,
-    ) -> DataFrame:
-        """
-        Append rows of `other` to the end of caller, returning a new object.
-
-        .. deprecated:: 1.4.0
-            Use :func:`concat` instead. For further details see
-            :ref:`whatsnew_140.deprecations.frame_series_append`
-
-        Columns in `other` that are not in the caller are added as new columns.
-
-        Parameters
-        ----------
-        other : DataFrame or Series/dict-like object, or list of these
-            The data to append.
-        ignore_index : bool, default False
-            If True, the resulting axis will be labeled 0, 1, …, n - 1.
-        verify_integrity : bool, default False
-            If True, raise ValueError on creating index with duplicates.
-        sort : bool, default False
-            Sort columns if the columns of `self` and `other` are not aligned.
-
-            .. versionchanged:: 1.0.0
-
-                Changed to not sort by default.
-
-        Returns
-        -------
-        DataFrame
-            A new DataFrame consisting of the rows of caller and the rows of `other`.
-
-        See Also
-        --------
-        concat : General function to concatenate DataFrame or Series objects.
-
-        Notes
-        -----
-        If a list of dict/series is passed and the keys are all contained in
-        the DataFrame's index, the order of the columns in the resulting
-        DataFrame will be unchanged.
-
-        Iteratively appending rows to a DataFrame can be more computationally
-        intensive than a single concatenate. A better solution is to append
-        those rows to a list and then concatenate the list with the original
-        DataFrame all at once.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'), index=['x', 'y'])
-        >>> df
-           A  B
-        x  1  2
-        y  3  4
-        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'), index=['x', 'y'])
-        >>> df.append(df2)
-           A  B
-        x  1  2
-        y  3  4
-        x  5  6
-        y  7  8
-
-        With `ignore_index` set to True:
-
-        >>> df.append(df2, ignore_index=True)
-           A  B
-        0  1  2
-        1  3  4
-        2  5  6
-        3  7  8
-
-        The following, while not recommended methods for generating DataFrames,
-        show two ways to generate a DataFrame from multiple data sources.
-
-        Less efficient:
-
-        >>> df = pd.DataFrame(columns=['A'])
-        >>> for i in range(5):
-        ...     df = df.append({'A': i}, ignore_index=True)
-        >>> df
-           A
-        0  0
-        1  1
-        2  2
-        3  3
-        4  4
-
-        More efficient:
-
-        >>> pd.concat([pd.DataFrame([i], columns=['A']) for i in range(5)],
-        ...           ignore_index=True)
-           A
-        0  0
-        1  1
-        2  2
-        3  3
-        4  4
-        """
-        warnings.warn(
-            "The frame.append method is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Use pandas.concat instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        return self._append(other, ignore_index, verify_integrity, sort)
-
     def _append(
         self,
         other,
@@ -10686,7 +10504,7 @@ Parrot 2  Parrot       24.0
         *,
         axis: Axis = 0,
         skipna: bool = True,
-        numeric_only: bool | None = None,
+        numeric_only: bool = False,
         filter_type=None,
         **kwds,
     ):
@@ -10695,12 +10513,7 @@ Parrot 2  Parrot       24.0
 
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
-        labels = self._get_agg_axis(axis)
         assert axis in [0, 1]
-
-        def func(values: np.ndarray):
-            # We only use this in the case that operates on self.values
-            return op(values, axis=axis, skipna=skipna, **kwds)
 
         def blk_func(values, axis: Axis = 1):
             if isinstance(values, ExtensionArray):
@@ -10721,84 +10534,26 @@ Parrot 2  Parrot       24.0
                 data = self._get_bool_data()
             return data
 
-        numeric_only_bool = com.resolve_numeric_only(numeric_only)
-        if numeric_only is not None or axis == 0:
-            # For numeric_only non-None and axis non-None, we know
-            #  which blocks to use and no try/except is needed.
-            #  For numeric_only=None only the case with axis==0 and no object
-            #  dtypes are unambiguous can be handled with BlockManager.reduce
-            # Case with EAs see GH#35881
-            df = self
-            if numeric_only_bool:
-                df = _get_data()
-            if axis == 1:
-                df = df.T
-                axis = 0
+        # Case with EAs see GH#35881
+        df = self
+        if numeric_only:
+            df = _get_data()
+        if axis == 1:
+            df = df.T
+            axis = 0
 
-            ignore_failures = numeric_only is None
+        # After possibly _get_data and transposing, we are now in the
+        #  simple case where we can use BlockManager.reduce
+        res, _ = df._mgr.reduce(blk_func, ignore_failures=False)
+        out = df._constructor(res).iloc[0]
+        if out_dtype is not None:
+            out = out.astype(out_dtype)
+        if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
+            # Even if we are object dtype, follow numpy and return
+            #  float64, see test_apply_funcs_over_empty
+            out = out.astype(np.float64)
 
-            # After possibly _get_data and transposing, we are now in the
-            #  simple case where we can use BlockManager.reduce
-            res, _ = df._mgr.reduce(blk_func, ignore_failures=False)
-            out = df._constructor(res).iloc[0]
-            if out_dtype is not None:
-                out = out.astype(out_dtype)
-            if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
-                # Even if we are object dtype, follow numpy and return
-                #  float64, see test_apply_funcs_over_empty
-                out = out.astype(np.float64)
-
-            if numeric_only is None and out.shape[0] != df.shape[1]:
-                # columns have been dropped GH#41480
-                com.deprecate_numeric_only_default(
-                    type(self), name, deprecate_none=True
-                )
-
-            return out
-
-        assert numeric_only is None
-
-        data = self
-        values = data.values
-
-        # try:
-        result = func(values)
-
-        # except TypeError:
-        #     # e.g. in nanops trying to convert strs to float
-        #
-        #     data = _get_data()
-        #     labels = data._get_agg_axis(axis)
-        #
-        #     values = data.values
-        #     with np.errstate(all="ignore"):
-        #         result = func(values)
-        #
-        #     # columns have been dropped GH#41480
-        #     arg_name = "numeric_only"
-        #     if name in ["all", "any"]:
-        #         arg_name = "bool_only"
-        #     warnings.warn(
-        #         "Dropping of nuisance columns in DataFrame reductions "
-        #         f"(with '{arg_name}=None') is deprecated; in a future "
-        #         "version this will raise TypeError.  Select only valid "
-        #         "columns before calling the reduction.",
-        #         FutureWarning,
-        #         stacklevel=find_stack_level(),
-        #     )
-
-        if hasattr(result, "dtype"):
-            if filter_type == "bool" and notna(result).all():
-                result = result.astype(np.bool_)
-            elif filter_type is None and is_object_dtype(result.dtype):
-                try:
-                    result = result.astype(np.float64)
-                except (ValueError, TypeError):
-                    # try to coerce to the original dtypes item by item if we can
-                    pass
-
-        result = self._constructor_sliced(result, index=labels)
-        return result
+        return out
 
     def _reduce_axis1(self, name: str, func, skipna: bool) -> Series:
         """

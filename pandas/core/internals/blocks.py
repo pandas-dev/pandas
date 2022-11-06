@@ -11,7 +11,6 @@ from typing import (
     cast,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -36,7 +35,6 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import astype_array_safe
@@ -1545,35 +1543,6 @@ class EABackedBlock(Block):
 
         return [self]
 
-    def fillna(
-        self, value, limit: int | None = None, inplace: bool = False, downcast=None
-    ) -> list[Block]:
-        # Caller is responsible for validating limit; if int it is strictly positive
-
-        if self.dtype.kind == "m":
-            try:
-                res_values = self.values.fillna(value, limit=limit)
-            except (ValueError, TypeError):
-                # GH#45746
-                warnings.warn(
-                    "The behavior of fillna with timedelta64[ns] dtype and "
-                    f"an incompatible value ({type(value)}) is deprecated. "
-                    "In a future version, this will cast to a common dtype "
-                    "(usually object) instead of raising, matching the "
-                    "behavior of other dtypes.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                raise
-            else:
-                res_blk = self.make_block(res_values)
-                return [res_blk]
-
-        # TODO: since this now dispatches to super, which in turn dispatches
-        #  to putmask, it may *actually* respect 'inplace=True'. If so, add
-        #  tests for this.
-        return super().fillna(value, limit=limit, inplace=inplace, downcast=downcast)
-
     def delete(self, loc) -> Block:
         # This will be unnecessary if/when __array_function__ is implemented
         values = self.values.delete(loc)
@@ -1655,7 +1624,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             col, loc = i
             if not com.is_null_slice(col) and col != 0:
                 raise IndexError(f"{self} only contains one item")
-            elif isinstance(col, slice):
+            if isinstance(col, slice):
                 # the is_null_slice check above assures that col is slice(None)
                 #  so what we want is a view on all our columns and row loc
                 if loc < 0:
@@ -2162,7 +2131,7 @@ def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
             f"values.ndim > ndim [{values.ndim} > {ndim}]"
         )
 
-    elif not is_1d_only_ea_dtype(values.dtype):
+    if not is_1d_only_ea_dtype(values.dtype):
         # TODO(EA2D): special case not needed with 2D EAs
         if values.ndim != ndim:
             raise ValueError(

@@ -294,13 +294,7 @@ def test_apply(ordered):
     idx = MultiIndex.from_arrays([missing, dense], names=["missing", "dense"])
     expected = DataFrame([0, 1, 2.0], index=idx, columns=["values"])
 
-    # GH#21636 tracking down the xfail, in some builds np.mean(df.loc[[0]])
-    #  is coming back as Series([0., 1., 0.], index=["missing", "dense", "values"])
-    #  when we expect Series(0., index=["values"])
-    with tm.assert_produces_warning(
-        None, match="Select only valid", check_stacklevel=False
-    ):
-        result = grouped.apply(lambda x: np.mean(x))
+    result = grouped.apply(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
 
     result = grouped.mean()

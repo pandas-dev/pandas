@@ -387,7 +387,7 @@ def parallel_coordinates(
     elif xticks is not None:
         if not np.all(np.isreal(xticks)):
             raise ValueError("xticks specified must be numeric")
-        elif len(xticks) != ncols:
+        if len(xticks) != ncols:
             raise ValueError("Length of xticks must match number of columns")
         x = xticks
     else:

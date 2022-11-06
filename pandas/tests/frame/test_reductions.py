@@ -185,7 +185,7 @@ class TestDataFrameAnalytics:
                 ]
             )
             with pytest.raises(TypeError, match=msg):
-                print(getattr(float_string_frame, opname)(axis=axis))
+                getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
             getattr(float_string_frame, opname)(axis=axis, numeric_only=True)
 

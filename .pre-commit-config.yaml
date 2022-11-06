@@ -18,16 +18,16 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/python/black
-    rev: 22.8.0
+    rev: 22.10.0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.2.1
+    rev: v2.2.2
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.1.8
+    rev: v0.2.1
     hooks:
     -   id: cython-lint
 -   repo: https://github.com/pre-commit/pre-commit-hooks
@@ -60,15 +60,16 @@ repos:
         - flake8-bugbear==22.7.1
         - pandas-dev-flaker==0.5.0
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.15.3
+    rev: v2.15.5
     hooks:
     -   id: pylint
+        stages: [manual]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.38.2
+    rev: v3.2.0
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -83,7 +84,7 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.6.1
+    rev: v0.6.7
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/asottile/yesqa
