@@ -337,7 +337,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         attrs = [
             (
                 "categories",
-                "[" + ", ".join(self._data._repr_categories()) + "]",
+                f"[{', '.join(self._data._repr_categories())}]",
             ),
             ("ordered", self.ordered),
         ]

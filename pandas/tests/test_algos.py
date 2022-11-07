@@ -230,21 +230,11 @@ class TestFactorize:
         key = np.array([1, 2, 1, np.nan], dtype="O")
         rizer = ht.ObjectFactorizer(len(key))
         for na_sentinel in (-1, 20):
-            ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
-            expected = np.array([0, 1, 0, na_sentinel], dtype="int32")
+            ids = rizer.factorize(key, na_sentinel=na_sentinel)
+            expected = np.array([0, 1, 0, na_sentinel], dtype=np.intp)
             assert len(set(key)) == len(set(expected))
             tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
-
-        # nan still maps to na_sentinel when sort=False
-        key = np.array([0, np.nan, 1], dtype="O")
-        na_sentinel = -1
-
-        # TODO(wesm): unused?
-        ids = rizer.factorize(key, sort=False, na_sentinel=na_sentinel)  # noqa
-
-        expected = np.array([2, -1, 0], dtype="int32")
-        assert len(set(key)) == len(set(expected))
-        tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
+            tm.assert_numpy_array_equal(ids, expected)
 
     @pytest.mark.parametrize(
         "data, expected_codes, expected_uniques",
