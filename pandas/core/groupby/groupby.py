@@ -1533,9 +1533,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     with np.errstate(all="ignore"):
                         return func(g, *args, **kwargs)
 
-            elif hasattr(nanops, "nan" + func):
+            elif hasattr(nanops, f"nan{func}"):
                 # TODO: should we wrap this in to e.g. _is_builtin_func?
-                f = getattr(nanops, "nan" + func)
+                f = getattr(nanops, f"nan{func}")
 
             else:
                 raise ValueError(
@@ -1759,7 +1759,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise NotImplementedError(
                     f"{type(self).__name__}.{how} does not implement {kwd_name}."
                 )
-            elif not is_ser:
+            if not is_ser:
                 data = data.get_numeric_data(copy=False)
 
         def array_func(values: ArrayLike) -> ArrayLike:

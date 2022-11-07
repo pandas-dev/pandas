@@ -990,7 +990,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 raise TypeError(
                     "Cannot specify both 'axis' and any of 'index' or 'columns'"
                 )
-            elif mapper is not None:
+            if mapper is not None:
                 raise TypeError(
                     "Cannot specify both 'mapper' and any of 'index' or 'columns'"
                 )
@@ -3908,12 +3908,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         labels = self._get_axis(axis)
 
         if isinstance(key, list):
-            warnings.warn(
-                "Passing lists as key for xs is deprecated and will be removed in a "
-                "future version. Pass key as a tuple instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            raise TypeError("list keys are not supported in xs, pass a tuple instead")
 
         if level is not None:
             if not isinstance(labels, MultiIndex):
@@ -4102,7 +4097,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if value == "raise":
             raise SettingWithCopyError(t)
-        elif value == "warn":
+        if value == "warn":
             warnings.warn(t, SettingWithCopyWarning, stacklevel=find_stack_level())
 
     def __delitem__(self, key) -> None:
@@ -6627,9 +6622,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             in the dict/Series/DataFrame will not be filled. This value cannot
             be a list.
         method : {{'backfill', 'bfill', 'ffill', None}}, default None
-            Method to use for filling holes in reindexed Series
-            ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use next valid observation to fill gap.
+            Method to use for filling holes in reindexed Series:
+
+            * ffill: propagate last valid observation forward to next valid.
+            * backfill / bfill: use next valid observation to fill gap.
+
         axis : {axes_single_arg}
             Axis along which to fill missing values. For `Series`
             this parameter is unused and defaults to 0.
@@ -8332,7 +8329,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
         # If any of the deprecated arguments ('include_start', 'include_end')
         # have been passed
-        elif old_include_arg_used:
+        if old_include_arg_used:
             warnings.warn(
                 "`include_start` and `include_end` are deprecated in "
                 "favour of `inclusive`.",
@@ -9572,7 +9569,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if axis is None and not other._indexed_same(self):
                     raise InvalidIndexError
 
-                elif other.ndim < self.ndim:
+                if other.ndim < self.ndim:
                     # TODO(EA2D): avoid object-dtype cast in EA case GH#38729
                     other = other._values
                     if axis == 0:
@@ -10242,8 +10239,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise TypeError(
                         f"{ax_name} is not a valid DatetimeIndex or PeriodIndex"
                     )
-                else:
-                    ax = DatetimeIndex([], tz=tz)
+                ax = DatetimeIndex([], tz=tz)
             else:
                 ax = ax.tz_convert(tz)
             return ax
@@ -10412,8 +10408,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise TypeError(
                         f"{ax_name} is not a valid DatetimeIndex or PeriodIndex"
                     )
-                else:
-                    ax = DatetimeIndex([], tz=tz)
+                ax = DatetimeIndex([], tz=tz)
             else:
                 ax = ax.tz_localize(tz, ambiguous=ambiguous, nonexistent=nonexistent)
             return ax

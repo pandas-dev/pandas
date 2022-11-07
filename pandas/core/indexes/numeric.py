@@ -254,11 +254,11 @@ class NumericIndex(Index):
                     f"tolerance argument for {type(self).__name__} must contain "
                     "numeric elements if it is list type"
                 )
-            else:
-                raise ValueError(
-                    f"tolerance argument for {type(self).__name__} must be numeric "
-                    f"if it is a scalar: {repr(tolerance)}"
-                )
+
+            raise ValueError(
+                f"tolerance argument for {type(self).__name__} must be numeric "
+                f"if it is a scalar: {repr(tolerance)}"
+            )
         return tolerance
 
     @classmethod
