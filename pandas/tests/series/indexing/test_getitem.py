@@ -635,7 +635,7 @@ def test_getitem_with_integer_labels():
 def test_getitem_missing(datetime_series):
     # missing
     d = datetime_series.index[0] - BDay()
-    msg = r"Timestamp\('1999-12-31 00:00:00', freq='B'\)"
+    msg = r"Timestamp\('1999-12-31 00:00:00'\)"
     with pytest.raises(KeyError, match=msg):
         datetime_series[d]
 
@@ -691,14 +691,14 @@ def test_duplicated_index_getitem_positional_indexer(index_vals):
 class TestGetitemDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser[key]
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
-    def test_setitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed(self, key):
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser[key] = 1

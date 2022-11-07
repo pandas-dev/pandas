@@ -621,6 +621,8 @@ ctypedef fused ndarr_object:
 
 # TODO: get rid of this in StringArray and modify
 #  and go through ensure_string_array instead
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def convert_nans_to_NA(ndarr_object arr) -> ndarray:
@@ -765,9 +767,9 @@ def generate_bins_dt64(ndarray[int64_t, ndim=1] values, const int64_t[:] binner,
     Int64 (datetime64) version of generic python version in ``groupby.py``.
     """
     cdef:
-        Py_ssize_t lenidx, lenbin, i, j, bc, vc
+        Py_ssize_t lenidx, lenbin, i, j, bc
         ndarray[int64_t, ndim=1] bins
-        int64_t l_bin, r_bin, nat_count
+        int64_t r_bin, nat_count
         bint right_closed = closed == 'right'
 
     nat_count = 0
@@ -2215,14 +2217,24 @@ def maybe_convert_numeric(
 
     # Otherwise, iterate and do full inference.
     cdef:
-        int status, maybe_int
+        int maybe_int
         Py_ssize_t i, n = values.size
         Seen seen = Seen(coerce_numeric)
-        ndarray[float64_t, ndim=1] floats = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_FLOAT64, 0)
-        ndarray[complex128_t, ndim=1] complexes = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_COMPLEX128, 0)
-        ndarray[int64_t, ndim=1] ints = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_INT64, 0)
-        ndarray[uint64_t, ndim=1] uints = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_UINT64, 0)
-        ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_UINT8, 0)
+        ndarray[float64_t, ndim=1] floats = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_FLOAT64, 0
+        )
+        ndarray[complex128_t, ndim=1] complexes = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_COMPLEX128, 0
+        )
+        ndarray[int64_t, ndim=1] ints = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_INT64, 0
+        )
+        ndarray[uint64_t, ndim=1] uints = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_UINT64, 0
+        )
+        ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_UINT8, 0
+        )
         ndarray[uint8_t, ndim=1] mask = np.zeros(n, dtype="u1")
         float64_t fval
         bint allow_null_in_int = convert_to_masked_nullable
@@ -2301,7 +2313,7 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
-                status = floatify(val, &fval, &maybe_int)
+                floatify(val, &fval, &maybe_int)
 
                 if fval in na_values:
                     seen.saw_null()
@@ -2440,7 +2452,7 @@ def maybe_convert_objects(ndarray[object] objects,
         int64_t[::1] itimedeltas
         Seen seen = Seen()
         object val
-        float64_t fval, fnan = np.nan
+        float64_t fnan = np.nan
 
     n = len(objects)
 
@@ -2925,7 +2937,7 @@ def to_object_array(rows: object, min_width: int = 0) -> ndarray:
 
 def tuples_to_object_array(ndarray[object] tuples):
     cdef:
-        Py_ssize_t i, j, n, k, tmp
+        Py_ssize_t i, j, n, k
         ndarray[object, ndim=2] result
         tuple tup
 
@@ -3053,7 +3065,9 @@ cpdef ndarray eq_NA_compat(ndarray[object] arr, object key):
     key is assumed to have `not isna(key)`
     """
     cdef:
-        ndarray[uint8_t, cast=True] result = cnp.PyArray_EMPTY(arr.ndim, arr.shape, cnp.NPY_BOOL, 0)
+        ndarray[uint8_t, cast=True] result = cnp.PyArray_EMPTY(
+            arr.ndim, arr.shape, cnp.NPY_BOOL, 0
+        )
         Py_ssize_t i
         object item
 

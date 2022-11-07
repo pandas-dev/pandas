@@ -84,6 +84,7 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
+from pandas.core.indexes.api import default_index
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
@@ -306,7 +307,7 @@ def merge_ordered(
 
     if left_by is not None and right_by is not None:
         raise ValueError("Can only group either left or right frames")
-    elif left_by is not None:
+    if left_by is not None:
         if isinstance(left_by, str):
             left_by = [left_by]
         check = set(left_by).difference(left.columns)
@@ -1060,7 +1061,7 @@ class _MergeOperation:
                 else:
                     join_index = self.left.index.take(left_indexer)
             else:
-                join_index = Index(np.arange(len(left_indexer)))
+                join_index = default_index(len(left_indexer))
 
         if len(join_index) == 0:
             join_index = join_index.astype(object)
@@ -1542,11 +1543,11 @@ class _MergeOperation:
                     "Merge keys are not unique in either left "
                     "or right dataset; not a one-to-one merge"
                 )
-            elif not left_unique:
+            if not left_unique:
                 raise MergeError(
                     "Merge keys are not unique in left dataset; not a one-to-one merge"
                 )
-            elif not right_unique:
+            if not right_unique:
                 raise MergeError(
                     "Merge keys are not unique in right dataset; not a one-to-one merge"
                 )
@@ -1568,7 +1569,18 @@ class _MergeOperation:
             pass
 
         else:
-            raise ValueError("Not a valid argument for validate")
+            raise ValueError(
+                f'"{validate}" is not a valid argument. '
+                "Valid arguments are:\n"
+                '- "1:1"\n'
+                '- "1:m"\n'
+                '- "m:1"\n'
+                '- "m:m"\n'
+                '- "one_to_one"\n'
+                '- "one_to_many"\n'
+                '- "many_to_one"\n'
+                '- "many_to_many"'
+            )
 
 
 def get_join_indexers(
@@ -2062,15 +2074,13 @@ class _AsOfMerge(_OrderedMerge):
             side = "left"
             if isna(left_values).any():
                 raise ValueError(f"Merge keys contain null values on {side} side")
-            else:
-                raise ValueError(f"{side} keys must be sorted")
+            raise ValueError(f"{side} keys must be sorted")
 
         if not Index(right_values).is_monotonic_increasing:
             side = "right"
             if isna(right_values).any():
                 raise ValueError(f"Merge keys contain null values on {side} side")
-            else:
-                raise ValueError(f"{side} keys must be sorted")
+            raise ValueError(f"{side} keys must be sorted")
 
         # initial type conversion as needed
         if needs_i8_conversion(left_values):
@@ -2394,7 +2404,7 @@ def _sort_labels(
     llength = len(left)
     labels = np.concatenate([left, right])
 
-    _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
+    _, new_labels = algos.safe_sort(uniques, labels, use_na_sentinel=True)
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
     return new_left, new_right
@@ -2454,8 +2464,7 @@ def _validate_operand(obj: DataFrame | Series) -> DataFrame:
     elif isinstance(obj, ABCSeries):
         if obj.name is None:
             raise ValueError("Cannot merge a Series without a name")
-        else:
-            return obj.to_frame()
+        return obj.to_frame()
     else:
         raise TypeError(
             f"Can only merge Series or DataFrame objects, a {type(obj)} was passed"
