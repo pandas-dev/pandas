@@ -906,7 +906,7 @@ def array_to_datetime_with_tz(ndarray values, tzinfo tz):
                 else:
                     # datetime64, tznaive pydatetime, int, float
                     ts = ts.tz_localize(tz)
-                ts = ts._as_unit("ns")
+                ts = ts.as_unit("ns")
                 ival = ts.value
 
         # Analogous to: result[i] = ival
