@@ -821,11 +821,11 @@ cdef class {{name}}HashTable(HashTable):
 
     def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
-                   object na_value=None):
+                   object na_value=None, object mask=None):
         # -> np.ndarray[np.intp]
         _, labels = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
-                                 ignore_na=True, return_inverse=True)
+                                 ignore_na=True, return_inverse=True, mask=mask)
         return labels
 
     {{if dtype == 'int64'}}

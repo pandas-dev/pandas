@@ -36,6 +36,7 @@ class Int64Factorizer(Factorizer):
         sort: bool = ...,
         na_sentinel=...,
         na_value=...,
+        mask=...,
     ) -> npt.NDArray[np.intp]: ...
 
 class Int64Vector:
@@ -137,6 +138,7 @@ class HashTable:
         count_prior: int = ...,
         na_sentinel: int = ...,
         na_value: object = ...,
+        mask=...,
     ) -> npt.NDArray[np.intp]: ...
     def unique(
         self,
