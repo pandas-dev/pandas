@@ -6,7 +6,6 @@ from datetime import (
     timedelta,
 )
 import locale
-import pickle
 import unicodedata
 
 from dateutil.tz import tzutc
@@ -36,64 +35,31 @@ from pandas import (
 import pandas._testing as tm
 
 from pandas.tseries import offsets
+from pandas.tseries.frequencies import to_offset
 
 
 class TestTimestampProperties:
-    def test_freq_deprecation(self):
-        # GH#41586
-        msg = "The 'freq' argument in Timestamp is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # warning issued at construction
-            ts = Timestamp("2021-06-01", freq="D")
-            ts2 = Timestamp("2021-06-01", freq="B")
-
-        msg = "Timestamp.freq is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # warning issued at attribute lookup
-            ts.freq
-
-        for per in ["month", "quarter", "year"]:
-            for side in ["start", "end"]:
-                attr = f"is_{per}_{side}"
-
-                with tm.assert_produces_warning(FutureWarning, match=msg):
-                    getattr(ts2, attr)
-
-                # is_(month|quarter|year)_(start|end) does _not_ issue a warning
-                #  with freq="D" bc the result will be unaffected by the deprecation
-                with tm.assert_produces_warning(None):
-                    getattr(ts, attr)
-
-    @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
-    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_properties_business(self):
-        ts = Timestamp("2017-10-01", freq="B")
-        control = Timestamp("2017-10-01")
+        freq = to_offset("B")
+
+        ts = Timestamp("2017-10-01")
         assert ts.dayofweek == 6
         assert ts.day_of_week == 6
-        assert not ts.is_month_start  # not a weekday
-        assert not ts.freq.is_month_start(ts)
-        assert ts.freq.is_month_start(ts + Timedelta(days=1))
-        assert not ts.is_quarter_start  # not a weekday
-        assert not ts.freq.is_quarter_start(ts)
-        assert ts.freq.is_quarter_start(ts + Timedelta(days=1))
-        # Control case: non-business is month/qtr start
-        assert control.is_month_start
-        assert control.is_quarter_start
+        assert ts.is_month_start  # not a weekday
+        assert not freq.is_month_start(ts)
+        assert freq.is_month_start(ts + Timedelta(days=1))
+        assert not freq.is_quarter_start(ts)
+        assert freq.is_quarter_start(ts + Timedelta(days=1))
 
-        ts = Timestamp("2017-09-30", freq="B")
-        control = Timestamp("2017-09-30")
+        ts = Timestamp("2017-09-30")
         assert ts.dayofweek == 5
         assert ts.day_of_week == 5
-        assert not ts.is_month_end  # not a weekday
-        assert not ts.freq.is_month_end(ts)
-        assert ts.freq.is_month_end(ts - Timedelta(days=1))
-        assert not ts.is_quarter_end  # not a weekday
-        assert not ts.freq.is_quarter_end(ts)
-        assert ts.freq.is_quarter_end(ts - Timedelta(days=1))
-        # Control case: non-business is month/qtr start
-        assert control.is_month_end
-        assert control.is_quarter_end
+        assert ts.is_month_end
+        assert not freq.is_month_end(ts)
+        assert freq.is_month_end(ts - Timedelta(days=1))
+        assert ts.is_quarter_end
+        assert not freq.is_quarter_end(ts)
+        assert freq.is_quarter_end(ts - Timedelta(days=1))
 
     @pytest.mark.parametrize(
         "attr, expected",
@@ -476,26 +442,6 @@ class TestTimestamp:
         )
         assert hash(transition_1) == hash(transition_2)
 
-    def test_tz_conversion_freq(self, tz_naive_fixture):
-        # GH25241
-        with tm.assert_produces_warning(FutureWarning, match="freq"):
-            t1 = Timestamp("2019-01-01 10:00", freq="H")
-            assert t1.tz_localize(tz=tz_naive_fixture).freq == t1.freq
-        with tm.assert_produces_warning(FutureWarning, match="freq"):
-            t2 = Timestamp("2019-01-02 12:00", tz="UTC", freq="T")
-            assert t2.tz_convert(tz="UTC").freq == t2.freq
-
-    def test_pickle_freq_no_warning(self):
-        # GH#41949 we don't want a warning on unpickling
-        with tm.assert_produces_warning(FutureWarning, match="freq"):
-            ts = Timestamp("2019-01-01 10:00", freq="H")
-
-        out = pickle.dumps(ts)
-        with tm.assert_produces_warning(None):
-            res = pickle.loads(out)
-
-        assert res._freq == ts._freq
-
 
 class TestTimestampNsOperations:
     def test_nanosecond_string_parsing(self):
@@ -749,18 +695,13 @@ class TestNonNano:
         assert not ts.is_month_end
         assert not ts.is_month_end
 
-        freq = offsets.BDay()
-        ts._set_freq(freq)
-
         # 2016-01-01 is a Friday, so is year/quarter/month start with this freq
-        msg = "Timestamp.freq is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert ts.is_year_start
-            assert ts.is_quarter_start
-            assert ts.is_month_start
-            assert not ts.is_year_end
-            assert not ts.is_month_end
-            assert not ts.is_month_end
+        assert ts.is_year_start
+        assert ts.is_quarter_start
+        assert ts.is_month_start
+        assert not ts.is_year_end
+        assert not ts.is_month_end
+        assert not ts.is_month_end
 
     def test_day_name(self, dt64, ts):
         alt = Timestamp(dt64)

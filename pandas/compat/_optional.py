@@ -23,7 +23,7 @@ VERSIONS = {
     "gcsfs": "2021.07.0",
     "jinja2": "3.0.0",
     "lxml.etree": "4.6.3",
-    "matplotlib": "3.3.2",
+    "matplotlib": "3.6.1",
     "numba": "0.53.1",
     "numexpr": "2.7.3",
     "odfpy": "1.4.1",
@@ -141,8 +141,7 @@ def import_optional_dependency(
     except ImportError:
         if errors == "raise":
             raise ImportError(msg)
-        else:
-            return None
+        return None
 
     # Handle submodules: if we have submodule, grab parent module from sys.modules
     parent = name.split(".")[0]

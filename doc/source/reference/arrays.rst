@@ -159,8 +159,6 @@ Methods
    Timestamp.day_name
    Timestamp.dst
    Timestamp.floor
-   Timestamp.freq
-   Timestamp.freqstr
    Timestamp.fromordinal
    Timestamp.fromtimestamp
    Timestamp.isocalendar

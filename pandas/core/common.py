@@ -148,15 +148,13 @@ def is_bool_indexer(key: Any) -> bool:
     return False
 
 
-def cast_scalar_indexer(val, warn_float: bool = False):
+def cast_scalar_indexer(val):
     """
-    To avoid numpy DeprecationWarnings, cast float to integer where valid.
+    Disallow indexing with a float key, even if that key is a round number.
 
     Parameters
     ----------
     val : scalar
-    warn_float : bool, default False
-        If True, issue deprecation warning for a float indexer.
 
     Returns
     -------
@@ -164,14 +162,11 @@ def cast_scalar_indexer(val, warn_float: bool = False):
     """
     # assumes lib.is_scalar(val)
     if lib.is_float(val) and val.is_integer():
-        if warn_float:
-            warnings.warn(
-                "Indexing with a float is deprecated, and will raise an IndexError "
-                "in pandas 2.0. You can manually convert to an integer key instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return int(val)
+        raise IndexError(
+            # GH#34193
+            "Indexing with a float is no longer supported. Manually convert "
+            "to an integer key instead."
+        )
     return val
 
 
@@ -393,7 +388,7 @@ def standardize_mapping(into):
         into = type(into)
     if not issubclass(into, abc.Mapping):
         raise TypeError(f"unsupported type: {into}")
-    elif into == defaultdict:
+    if into == defaultdict:
         raise TypeError("to_dict() only accepts initialized defaultdicts")
     return into
 

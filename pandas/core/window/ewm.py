@@ -1005,10 +1005,9 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         is_frame = self._selected_obj.ndim == 2
         if update_times is not None:
             raise NotImplementedError("update_times is not implemented.")
-        else:
-            update_deltas = np.ones(
-                max(self._selected_obj.shape[self.axis - 1] - 1, 0), dtype=np.float64
-            )
+        update_deltas = np.ones(
+            max(self._selected_obj.shape[self.axis - 1] - 1, 0), dtype=np.float64
+        )
         if update is not None:
             if self._mean.last_ewm is None:
                 raise ValueError(

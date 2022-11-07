@@ -698,7 +698,7 @@ def _sanitize_ndim(
     if getattr(result, "ndim", 0) == 0:
         raise ValueError("result should be arraylike with ndim > 0")
 
-    elif result.ndim == 1:
+    if result.ndim == 1:
         # the result that we want
         result = _maybe_repeat(result, index)
 

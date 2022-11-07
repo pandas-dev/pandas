@@ -429,19 +429,16 @@ class TestDatetimeArray:
         tm.assert_equal(arr, expected)
 
     def test_setitem_different_tz_raises(self):
+        # pre-2.0 we required exact tz match, in 2.0 we require only
+        #  tzawareness-match
         data = np.array([1, 2, 3], dtype="M8[ns]")
         arr = DatetimeArray(data, copy=False, dtype=DatetimeTZDtype(tz="US/Central"))
         with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             arr[0] = pd.Timestamp("2000")
 
         ts = pd.Timestamp("2000", tz="US/Eastern")
-        with pytest.raises(ValueError, match="US/Central"):
-            with tm.assert_produces_warning(
-                FutureWarning, match="mismatched timezones"
-            ):
-                arr[0] = ts
-        # once deprecation is enforced
-        # assert arr[0] == ts.tz_convert("US/Central")
+        arr[0] = ts
+        assert arr[0] == ts.tz_convert("US/Central")
 
     def test_setitem_clears_freq(self):
         a = DatetimeArray(pd.date_range("2000", periods=2, freq="D", tz="US/Central"))
@@ -688,23 +685,16 @@ class TestDatetimeArray:
                 dta.shift(1, fill_value=invalid)
 
     def test_shift_requires_tzmatch(self):
-        # since filling is setitem-like, we require a matching timezone,
-        #  not just matching tzawawreness
+        # pre-2.0 we required exact tz match, in 2.0 we require just
+        #  matching tzawareness
         dti = pd.date_range("2016-01-01", periods=3, tz="UTC")
         dta = dti._data
 
         fill_value = pd.Timestamp("2020-10-18 18:44", tz="US/Pacific")
 
-        msg = "Timezones don't match. 'UTC' != 'US/Pacific'"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(
-                FutureWarning, match="mismatched timezones"
-            ):
-                dta.shift(1, fill_value=fill_value)
-
-        # once deprecation is enforced
-        # expected = dta.shift(1, fill_value=fill_value.tz_convert("UTC"))
-        # tm.assert_equal(result, expected)
+        result = dta.shift(1, fill_value=fill_value)
+        expected = dta.shift(1, fill_value=fill_value.tz_convert("UTC"))
+        tm.assert_equal(result, expected)
 
     def test_tz_localize_t2d(self):
         dti = pd.date_range("1994-05-12", periods=12, tz="US/Pacific")
