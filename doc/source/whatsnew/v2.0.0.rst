@@ -126,12 +126,12 @@ with its nanosecond analogue:
 
 .. code-block:: ipython
 
-   pd.Series(["2016-01-01"], dtype="datetime64[s]")
+   In [5]: pd.Series(["2016-01-01"], dtype="datetime64[s]")
    Out[5]:
    0   2016-01-01
    dtype: datetime64[ns]
 
-   pd.Series(["2016-01-01"], dtype="datetime64[D]")
+   In [6] pd.Series(["2016-01-01"], dtype="datetime64[D]")
    Out[6]:
    0   2016-01-01
    dtype: datetime64[ns]
