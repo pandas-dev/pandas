@@ -25,7 +25,7 @@ def array_to_datetime(
     utc: bool = ...,
     require_iso8601: bool = ...,
     allow_mixed: bool = ...,
-    format: str = ...,
+    format: str | None = ...,
     exact: bool = ...,
 ) -> tuple[np.ndarray, tzinfo | None]: ...
 
