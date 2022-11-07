@@ -45,5 +45,5 @@ jobs:
 
       - name: Pip install with extra
         run: |
-          python -m pip install -e .[${{ matrix.extra }}] --no-build-isolation --no-use-pep517
+          python -m pip install -e .[${{ matrix.extra }}] --no-build-isolation --no-use-pep517 --install-option="clean"
         shell: bash -el {0}
