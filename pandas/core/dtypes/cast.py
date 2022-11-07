@@ -1244,7 +1244,10 @@ def maybe_infer_to_datetimelike(
         #  numpy would have done it for us.
         #  See also _maybe_cast_data_without_dtype
         return v
-    return out
+    # Incompatible return value type (got "Union[ExtensionArray, ndarray[Any, Any]]",
+    # expected "Union[ndarray[Any, Any], DatetimeArray, TimedeltaArray, PeriodArray,
+    # IntervalArray]")
+    return out  # type: ignore[return-value]
 
 
 def maybe_cast_to_datetime(
