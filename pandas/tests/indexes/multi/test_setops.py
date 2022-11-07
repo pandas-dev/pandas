@@ -111,13 +111,11 @@ def test_symmetric_difference(idx, sort):
 def test_multiindex_symmetric_difference():
     # GH 13490
     idx = MultiIndex.from_product([["a", "b"], ["A", "B"]], names=["a", "b"])
-    with tm.assert_produces_warning(FutureWarning):
-        result = idx ^ idx
+    result = idx.symmetric_difference(idx)
     assert result.names == idx.names
 
     idx2 = idx.copy().rename(["A", "B"])
-    with tm.assert_produces_warning(FutureWarning):
-        result = idx ^ idx2
+    result = idx.symmetric_difference(idx2)
     assert result.names == [None, None]
 
 

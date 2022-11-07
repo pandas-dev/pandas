@@ -191,20 +191,6 @@ def test_union_dtypes(left, right, expected, names):
     assert result.name == names[2]
 
 
-def test_dunder_inplace_setops_deprecated(index):
-    # GH#37374 these will become logical ops, not setops
-
-    with tm.assert_produces_warning(FutureWarning):
-        index |= index
-
-    with tm.assert_produces_warning(FutureWarning):
-        index &= index
-
-    is_pyarrow = str(index.dtype) == "string[pyarrow]" and pa_version_under7p0
-    with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=is_pyarrow):
-        index ^= index
-
-
 @pytest.mark.parametrize("values", [[1, 2, 2, 3], [3, 3]])
 def test_intersection_duplicates(values):
     # GH#31326

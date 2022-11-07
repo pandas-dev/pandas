@@ -131,12 +131,6 @@ class TestSetOps:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
 
-        # __xor__ syntax
-        with tm.assert_produces_warning(FutureWarning):
-            expected = index1 ^ index2
-        assert tm.equalContents(result, expected)
-        assert result.name is None
-
 
 class TestSetOpsSort:
     @pytest.mark.parametrize("slice_", [slice(None), slice(0)])
