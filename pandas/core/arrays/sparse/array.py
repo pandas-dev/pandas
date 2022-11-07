@@ -378,7 +378,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         self,
         data,
         sparse_index=None,
-        index=None,
         fill_value=None,
         kind: SparseIndexKind = "integer",
         dtype: Dtype | None = None,
@@ -413,26 +412,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 fill_value = dtype.fill_value
             dtype = dtype.subtype
 
-        if index is not None:
-            warnings.warn(
-                "The index argument has been deprecated and will be "
-                "removed in a future version. Use a function like np.full "
-                "to construct an array with the desired repeats of the "
-                "scalar value instead.\n\n",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        if index is not None and not is_scalar(data):
-            raise Exception("must only pass scalars with an index")
-
         if is_scalar(data):
-            if index is not None and data is None:
-                data = np.nan
-
-            if index is not None:
-                npoints = len(index)
-            elif sparse_index is None:
+            if sparse_index is None:
                 npoints = 1
             else:
                 npoints = sparse_index.length

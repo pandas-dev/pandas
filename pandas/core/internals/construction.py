@@ -6,11 +6,9 @@ from __future__ import annotations
 
 from collections import abc
 from typing import (
-    TYPE_CHECKING,
     Any,
     Hashable,
     Sequence,
-    cast,
 )
 import warnings
 
@@ -32,7 +30,6 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
-    maybe_upcast,
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
@@ -90,10 +87,6 @@ from pandas.core.internals.managers import (
     create_block_manager_from_blocks,
     create_block_manager_from_column_arrays,
 )
-
-if TYPE_CHECKING:
-    from numpy.ma.mrecords import MaskedRecords
-
 
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -163,7 +156,7 @@ def arrays_to_mgr(
 
 
 def rec_array_to_mgr(
-    data: MaskedRecords | np.recarray | np.ndarray,
+    data: np.recarray | np.ndarray,
     index,
     columns,
     dtype: DtypeObj | None,
@@ -184,24 +177,9 @@ def rec_array_to_mgr(
         columns = ensure_index(columns)
     arrays, arr_columns = to_arrays(fdata, columns)
 
-    # fill if needed
-    if isinstance(data, np.ma.MaskedArray):
-        # GH#42200 we only get here with MaskedRecords, but check for the
-        #  parent class MaskedArray to avoid the need to import MaskedRecords
-        data = cast("MaskedRecords", data)
-        new_arrays = fill_masked_arrays(data, arr_columns)
-    else:
-        # error: Incompatible types in assignment (expression has type
-        # "List[ExtensionArray]", variable has type "List[ndarray]")
-        new_arrays = arrays  # type: ignore[assignment]
-
     # create the manager
 
-    # error: Argument 1 to "reorder_arrays" has incompatible type "List[ndarray]";
-    # expected "List[Union[ExtensionArray, ndarray]]"
-    arrays, arr_columns = reorder_arrays(
-        new_arrays, arr_columns, columns, len(index)  # type: ignore[arg-type]
-    )
+    arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns, len(index))
     if columns is None:
         columns = arr_columns
 
@@ -210,24 +188,6 @@ def rec_array_to_mgr(
     if copy:
         mgr = mgr.copy()
     return mgr
-
-
-def fill_masked_arrays(data: MaskedRecords, arr_columns: Index) -> list[np.ndarray]:
-    """
-    Convert numpy MaskedRecords to ensure mask is softened.
-    """
-    new_arrays = []
-
-    for col in arr_columns:
-        arr = data[col]
-        fv = arr.fill_value
-
-        mask = ma.getmaskarray(arr)
-        if mask.any():
-            arr, fv = maybe_upcast(arr, fill_value=fv, copy=True)
-            arr[mask] = fv
-        new_arrays.append(arr)
-    return new_arrays
 
 
 def mgr_to_mgr(mgr, typ: str, copy: bool = True):

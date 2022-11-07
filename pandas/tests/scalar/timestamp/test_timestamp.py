@@ -255,14 +255,9 @@ class TestTimestamp:
         compare(Timestamp.utcnow(), datetime.utcnow())
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
-        msg = "timezone-aware Timestamp with UTC"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # GH#22451
-            ts_utc = Timestamp.utcfromtimestamp(current_time)
-        compare(
-            ts_utc,
-            datetime.utcfromtimestamp(current_time),
-        )
+
+        ts_utc = Timestamp.utcfromtimestamp(current_time)
+        assert ts_utc.timestamp() == current_time
         compare(
             Timestamp.fromtimestamp(current_time), datetime.fromtimestamp(current_time)
         )
@@ -300,15 +295,9 @@ class TestTimestamp:
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
 
-        msg = "timezone-aware Timestamp with UTC"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # GH#22451
-            ts_utc = Timestamp.utcfromtimestamp(current_time)
+        ts_utc = Timestamp.utcfromtimestamp(current_time)
+        assert ts_utc.timestamp() == current_time
 
-        compare(
-            ts_utc,
-            datetime.utcfromtimestamp(current_time),
-        )
         compare(
             Timestamp.fromtimestamp(current_time), datetime.fromtimestamp(current_time)
         )

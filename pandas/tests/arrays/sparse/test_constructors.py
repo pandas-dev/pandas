@@ -218,28 +218,6 @@ class TestConstructors:
         with pytest.raises(ValueError, match="not '4'"):
             SparseArray.from_spmatrix(mat)
 
-    @pytest.mark.parametrize(
-        "scalar,dtype",
-        [
-            (False, SparseDtype(bool, False)),
-            (0.0, SparseDtype("float64", 0)),
-            (1, SparseDtype("int64", 1)),
-            ("z", SparseDtype("object", "z")),
-        ],
-    )
-    def test_scalar_with_index_infer_dtype(self, scalar, dtype):
-        # GH#19163
-        with tm.assert_produces_warning(
-            FutureWarning, match="The index argument has been deprecated"
-        ):
-            arr = SparseArray(scalar, index=[1, 2, 3], fill_value=scalar)
-        exp = SparseArray([scalar, scalar, scalar], fill_value=scalar)
-
-        tm.assert_sp_array_equal(arr, exp)
-
-        assert arr.dtype == dtype
-        assert exp.dtype == dtype
-
     def test_constructor_from_too_large_array(self):
         with pytest.raises(TypeError, match="expected dimension <= 1 data"):
             SparseArray(np.arange(10).reshape((2, 5)))
