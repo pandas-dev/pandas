@@ -103,7 +103,6 @@ disable = [
   "chained-comparison",
   "comparison-with-itself",
   "consider-merging-isinstance",
-  "consider-using-min-builtin",
   "consider-using-ternary",
   "consider-using-with",
   "cyclic-import",
