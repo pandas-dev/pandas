@@ -8,7 +8,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._typing import (
     Dtype,
     PositionalIndexer,
@@ -31,7 +30,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.algorithms import resolve_na_sentinel
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import (
@@ -553,11 +551,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     @doc(ExtensionArray.factorize)
     def factorize(
         self,
-        na_sentinel: int | lib.NoDefault = lib.no_default,
-        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool = True,
     ) -> tuple[np.ndarray, ExtensionArray]:
-        resolved_na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
-        null_encoding = "mask" if resolved_na_sentinel is not None else "encode"
+        null_encoding = "mask" if use_na_sentinel else "encode"
         encoded = self._data.dictionary_encode(null_encoding=null_encoding)
         if encoded.length() == 0:
             indices = np.array([], dtype=np.intp)
@@ -565,10 +561,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         else:
             pa_indices = encoded.combine_chunks().indices
             if pa_indices.null_count > 0:
-                fill_value = (
-                    resolved_na_sentinel if resolved_na_sentinel is not None else -1
-                )
-                pa_indices = pc.fill_null(pa_indices, fill_value)
+                pa_indices = pc.fill_null(pa_indices, -1)
             indices = pa_indices.to_numpy(zero_copy_only=False, writable=True).astype(
                 np.intp, copy=False
             )

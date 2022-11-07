@@ -1138,12 +1138,9 @@ class IndexOpsMixin(OpsMixin):
     def factorize(
         self,
         sort: bool = False,
-        na_sentinel: int | lib.NoDefault = lib.no_default,
-        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool = True,
     ):
-        return algorithms.factorize(
-            self, sort=sort, na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
-        )
+        return algorithms.factorize(self, sort=sort, use_na_sentinel=use_na_sentinel)
 
     _shared_docs[
         "searchsorted"
