@@ -1058,7 +1058,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             data = self.to_numpy("float64", na_value=np.nan)
 
         # median, var, std, skew, kurt, idxmin, idxmax
-        op = getattr(nanops, "nan" + name)
+        op = getattr(nanops, f"nan{name}")
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
         if np.isnan(result):

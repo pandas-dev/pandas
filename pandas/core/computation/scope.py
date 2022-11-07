@@ -250,7 +250,7 @@ class Scope:
         variables = itertools.product(scopes, stack)
         for scope, (frame, _, _, _, _, _) in variables:
             try:
-                d = getattr(frame, "f_" + scope)
+                d = getattr(frame, f"f_{scope}")
                 self.scope = DeepChainMap(self.scope.new_child(d))
             finally:
                 # won't remove it, but DECREF it

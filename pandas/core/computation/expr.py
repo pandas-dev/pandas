@@ -410,7 +410,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     e.msg = "Python keyword not valid identifier in numexpr query"
                 raise e
 
-        method = "visit_" + type(node).__name__
+        method = f"visit_{type(node).__name__}"
         visitor = getattr(self, method)
         return visitor(node, **kwargs)
 
