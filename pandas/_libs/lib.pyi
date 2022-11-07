@@ -65,6 +65,19 @@ def map_infer(
     convert: bool = ...,
     ignore_na: bool = ...,
 ) -> np.ndarray: ...
+@overload  # all convert_foo False -> only convert numeric
+def maybe_convert_objects(
+    objects: npt.NDArray[np.object_],
+    *,
+    try_float: bool = ...,
+    safe: bool = ...,
+    convert_datetime: Literal[False] = ...,
+    convert_timedelta: Literal[False] = ...,
+    convert_period: Literal[False] = ...,
+    convert_interval: Literal[False] = ...,
+    convert_to_nullable_integer: Literal[False] = ...,
+    dtype_if_all_nat: DtypeObj | None = ...,
+) -> npt.NDArray[np.object_ | np.number]: ...
 @overload  # both convert_datetime and convert_to_nullable_integer False -> np.ndarray
 def maybe_convert_objects(
     objects: npt.NDArray[np.object_],

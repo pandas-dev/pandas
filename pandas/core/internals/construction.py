@@ -1052,13 +1052,22 @@ def _convert_object_array(
         if dtype != np.dtype("O"):
             arr = lib.maybe_convert_objects(arr)
 
-            if isinstance(dtype, ExtensionDtype):
+            if dtype is None:
+                if arr.dtype == np.dtype("O"):
+                    # i.e. maybe_convert_objects didn't convert
+                    arr = maybe_infer_to_datetimelike(arr)
+            elif isinstance(dtype, ExtensionDtype):
                 # TODO: test(s) that get here
                 # TODO: try to de-duplicate this convert function with
                 #  core.construction functions
                 cls = dtype.construct_array_type()
                 arr = cls._from_sequence(arr, dtype=dtype, copy=False)
-            else:
+            elif dtype.kind in ["m", "M"]:
+                # This restriction is harmless bc these are the only cases
+                #  where maybe_cast_to_datetime is not a no-op.
+                # Here we know:
+                #  1) dtype.kind in ["m", "M"] and
+                #  2) arr is either object or numeric dtype
                 arr = maybe_cast_to_datetime(arr, dtype)
 
         return arr
