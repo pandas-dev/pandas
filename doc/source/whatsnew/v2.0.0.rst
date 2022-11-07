@@ -317,7 +317,7 @@ Removal of prior version deprecations/changes
 - Removed argument ``line_terminator`` from :meth:`DataFrame.to_csv` and :meth:`Series.to_csv`, use ``lineterminator`` instead (:issue:`45302`)
 - Removed argument ``inplace`` from :meth:`DataFrame.set_axis` and :meth:`Series.set_axis`, use ``obj = obj.set_axis(..., copy=False)`` instead (:issue:`48130`)
 - Disallow passing positional arguments to :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` (:issue:`41485`)
-- Disallow parsing to Timedelta strings with components with units "Y", "y", or "m", as these do not represent unambiguous durations (:issue:`47268`)
+- Disallow parsing to Timedelta strings with components with units "Y", "y", or "M", as these do not represent unambiguous durations (:issue:`36838`)
 - Removed :meth:`MultiIndex.is_lexsorted` and :meth:`MultiIndex.lexsort_depth` (:issue:`38701`)
 - Removed argument ``how`` from :meth:`PeriodIndex.astype`, use :meth:`PeriodIndex.to_timestamp` instead (:issue:`37982`)
 - Removed argument ``try_cast`` from :meth:`DataFrame.mask`, :meth:`DataFrame.where`, :meth:`Series.mask` and :meth:`Series.where` (:issue:`38836`)
