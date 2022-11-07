@@ -1163,8 +1163,7 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
                 raise ValueError(
                     f"Could not find file {path} and --strict-data-files is set."
                 )
-            else:
-                pytest.skip(f"Could not find {path}.")
+            pytest.skip(f"Could not find {path}.")
         return path
 
     return deco
@@ -1727,7 +1726,7 @@ def any_skipna_inferred_dtype(request):
 
     Examples
     --------
-    >>> import pandas._libs.lib as lib
+    >>> from pandas._libs import lib
     >>>
     >>> def test_something(any_skipna_inferred_dtype):
     ...     inferred_dtype, values = any_skipna_inferred_dtype

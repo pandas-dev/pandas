@@ -15,13 +15,14 @@ from typing import (
 import warnings
 
 import numpy as np
-import numpy.ma as ma
+from numpy import ma
 
 from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
     Manager,
+    npt,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -600,7 +601,7 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
         else:
             if isinstance(val, dict):
                 # GH#41785 this _should_ be equivalent to (but faster than)
-                #  val = create_series_with_explicit_dtype(val, index=index)._values
+                #  val = Series(val, index=index)._values
                 if oindex is None:
                     oindex = index.astype("O")
 
@@ -651,7 +652,7 @@ def _extract_index(data) -> Index:
         if not indexes and not raw_lengths:
             raise ValueError("If using all scalar values, you must pass an index")
 
-        elif have_series:
+        if have_series:
             index = union_indexes(indexes)
         elif have_dicts:
             index = union_indexes(indexes, sort=False)
@@ -1014,7 +1015,7 @@ def _validate_or_indexify_columns(
                 f"{len(columns)} columns passed, passed data had "
                 f"{len(content)} columns"
             )
-        elif is_mi_list:
+        if is_mi_list:
 
             # check if nested list column, length of each sub-list should be equal
             if len({len(col) for col in columns}) > 1:
@@ -1023,7 +1024,7 @@ def _validate_or_indexify_columns(
                 )
 
             # if columns is not empty and length of sublist is not equal to content
-            elif columns and len(columns[0]) != len(content):
+            if columns and len(columns[0]) != len(content):
                 raise ValueError(
                     f"{len(columns[0])} columns passed, passed data had "
                     f"{len(content)} columns"
@@ -1032,7 +1033,7 @@ def _validate_or_indexify_columns(
 
 
 def _convert_object_array(
-    content: list[np.ndarray], dtype: DtypeObj | None
+    content: list[npt.NDArray[np.object_]], dtype: DtypeObj | None
 ) -> list[ArrayLike]:
     """
     Internal function to convert object array.
@@ -1051,14 +1052,24 @@ def _convert_object_array(
         if dtype != np.dtype("O"):
             arr = lib.maybe_convert_objects(arr)
 
-            if isinstance(dtype, ExtensionDtype):
+            if dtype is None:
+                if arr.dtype == np.dtype("O"):
+                    # i.e. maybe_convert_objects didn't convert
+                    arr = maybe_infer_to_datetimelike(arr)
+            elif isinstance(dtype, ExtensionDtype):
                 # TODO: test(s) that get here
                 # TODO: try to de-duplicate this convert function with
                 #  core.construction functions
                 cls = dtype.construct_array_type()
                 arr = cls._from_sequence(arr, dtype=dtype, copy=False)
-            else:
+            elif dtype.kind in ["m", "M"]:
+                # This restriction is harmless bc these are the only cases
+                #  where maybe_cast_to_datetime is not a no-op.
+                # Here we know:
+                #  1) dtype.kind in ["m", "M"] and
+                #  2) arr is either object or numeric dtype
                 arr = maybe_cast_to_datetime(arr, dtype)
+
         return arr
 
     arrays = [convert(arr) for arr in content]

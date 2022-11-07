@@ -17,14 +17,16 @@ from typing import (
 )
 
 from dateutil.relativedelta import relativedelta
-import matplotlib.dates as dates
+from matplotlib import (
+    dates,
+    units,
+)
 from matplotlib.ticker import (
     AutoLocator,
     Formatter,
     Locator,
 )
 from matplotlib.transforms import nonsingular
-import matplotlib.units as units
 import numpy as np
 
 from pandas._libs import lib
@@ -1107,7 +1109,5 @@ class TimeSeries_TimedeltaFormatter(Formatter):
 
     def __call__(self, x, pos: int = 0) -> str:
         (vmin, vmax) = tuple(self.axis.get_view_interval())
-        n_decimals = int(np.ceil(np.log10(100 * 10**9 / abs(vmax - vmin))))
-        if n_decimals > 9:
-            n_decimals = 9
+        n_decimals = min(int(np.ceil(np.log10(100 * 10**9 / abs(vmax - vmin)))), 9)
         return self.format_timedelta_ticks(x, pos, n_decimals)
