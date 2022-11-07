@@ -36,7 +36,7 @@ class ArrowPeriodType(pyarrow.ExtensionType):
             return NotImplemented
 
     def __ne__(self, other) -> bool:
-        return not self.__eq__(other)
+        return not self == other
 
     def __hash__(self) -> int:
         return hash((str(self), self.freq))
@@ -95,7 +95,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
             return NotImplemented
 
     def __ne__(self, other) -> bool:
-        return not self.__eq__(other)
+        return not self == other
 
     def __hash__(self) -> int:
         return hash((str(self), str(self.subtype), self.closed))
