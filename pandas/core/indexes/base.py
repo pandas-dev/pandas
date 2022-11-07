@@ -1603,7 +1603,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if names is not None and name is not None:
             raise TypeError("Can only provide one of `names` and `name`")
-        elif names is None and name is None:
+        if names is None and name is None:
             new_names = deepcopy(self.names) if deep else self.names
         elif names is not None:
             if not is_list_like(names):
@@ -1784,16 +1784,16 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError("Level must be None for non-MultiIndex")
 
-        elif level is not None and not is_list_like(level) and is_list_like(names):
+        if level is not None and not is_list_like(level) and is_list_like(names):
             raise TypeError("Names must be a string when a single level is provided.")
 
-        elif not is_list_like(names) and level is None and self.nlevels > 1:
+        if not is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
 
-        elif is_dict_like(names) and not isinstance(self, ABCMultiIndex):
+        if is_dict_like(names) and not isinstance(self, ABCMultiIndex):
             raise TypeError("Can only pass dict-like as `names` for MultiIndex.")
 
-        elif is_dict_like(names) and level is not None:
+        if is_dict_like(names) and level is not None:
             raise TypeError("Can not pass level for dictlike `names`.")
 
         if isinstance(self, ABCMultiIndex) and is_dict_like(names) and level is None:
@@ -1902,7 +1902,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "Too many levels: Index has only 1 level, "
                     f"{level} is not a valid level number"
                 )
-            elif level > 0:
+            if level > 0:
                 raise IndexError(
                     f"Too many levels: Index has only 1 level, not {level + 1}"
                 )
@@ -2933,39 +2933,6 @@ class Index(IndexOpsMixin, PandasObject):
         return self + other
 
     @final
-    def __and__(self, other):
-        warnings.warn(
-            "Index.__and__ operating as a set operation is deprecated, "
-            "in the future this will be a logical operation matching "
-            "Series.__and__.  Use index.intersection(other) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.intersection(other)
-
-    @final
-    def __or__(self, other):
-        warnings.warn(
-            "Index.__or__ operating as a set operation is deprecated, "
-            "in the future this will be a logical operation matching "
-            "Series.__or__.  Use index.union(other) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.union(other)
-
-    @final
-    def __xor__(self, other):
-        warnings.warn(
-            "Index.__xor__ operating as a set operation is deprecated, "
-            "in the future this will be a logical operation matching "
-            "Series.__xor__.  Use index.symmetric_difference(other) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.symmetric_difference(other)
-
-    @final
     def __nonzero__(self) -> NoReturn:
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
@@ -3830,7 +3797,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "method='nearest' not implemented yet "
                     "for MultiIndex; see GitHub issue 9365"
                 )
-            elif method in ("pad", "backfill"):
+            if method in ("pad", "backfill"):
                 if tolerance is not None:
                     raise NotImplementedError(
                         "tolerance not implemented yet for MultiIndex"
@@ -4132,8 +4099,7 @@ class Index(IndexOpsMixin, PandasObject):
         )
         if reraise is not lib.no_default:
             raise TypeError(msg) from reraise
-        else:
-            raise TypeError(msg)
+        raise TypeError(msg)
 
     # --------------------------------------------------------------------
     # Reindex Methods
@@ -6692,6 +6658,16 @@ class Index(IndexOpsMixin, PandasObject):
                 result = ops.comparison_op(self._values, other, op)
 
         return result
+
+    @final
+    def _logical_method(self, other, op):
+        res_name = ops.get_op_result_name(self, other)
+
+        lvalues = self._values
+        rvalues = extract_array(other, extract_numpy=True, extract_range=True)
+
+        res_values = ops.logical_op(lvalues, rvalues, op)
+        return self._construct_result(res_values, name=res_name)
 
     @final
     def _construct_result(self, result, name):

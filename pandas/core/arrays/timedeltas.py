@@ -490,7 +490,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide vectors with unequal lengths")
 
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return self._ndarray / other
 
@@ -554,7 +554,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide vectors with unequal lengths")
 
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return other / self._ndarray
 
@@ -606,7 +606,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -675,7 +675,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other.dtype):
+        if is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
             # numpy timedelta64 does not natively support floordiv, so operate
             #  on the i8 values

@@ -295,12 +295,10 @@ class TestSlicing:
                     expected = df["a"][theslice]
                     tm.assert_series_equal(result, expected)
 
-                    # Frame should return slice as well
-                    with tm.assert_produces_warning(FutureWarning):
-                        # GH#36179 deprecated this indexing
-                        result = df[ts_string]
-                    expected = df[theslice]
-                    tm.assert_frame_equal(result, expected)
+                    # pre-2.0 df[ts_string] was overloaded to interpret this
+                    #  as slicing along index
+                    with pytest.raises(KeyError, match=ts_string):
+                        df[ts_string]
 
             # Timestamp with resolution more precise than index
             # Compatible with existing key

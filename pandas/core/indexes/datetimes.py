@@ -992,7 +992,7 @@ def date_range(
             "Deprecated argument `closed` cannot be passed"
             "if argument `inclusive` is not None"
         )
-    elif closed is not lib.no_default:
+    if closed is not lib.no_default:
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,

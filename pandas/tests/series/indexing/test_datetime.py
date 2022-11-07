@@ -424,10 +424,11 @@ def test_indexing():
     expected.name = "A"
 
     df = DataFrame({"A": ts})
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#36179 string indexing on rows for DataFrame deprecated
-        result = df["2001"]["A"]
-    tm.assert_series_equal(expected, result)
+
+    # GH#36179 pre-2.0 df["2001"] operated as slicing on rows. in 2.0 it behaves
+    #  like any other key, so raises
+    with pytest.raises(KeyError, match="2001"):
+        df["2001"]
 
     # setting
     ts["2001"] = 1
@@ -436,10 +437,8 @@ def test_indexing():
 
     df.loc["2001", "A"] = 1
 
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#36179 string indexing on rows for DataFrame deprecated
-        result = df["2001"]["A"]
-    tm.assert_series_equal(expected, result)
+    with pytest.raises(KeyError, match="2001"):
+        df["2001"]
 
 
 def test_getitem_str_month_with_datetimeindex():

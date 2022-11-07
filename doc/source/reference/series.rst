@@ -247,7 +247,6 @@ Combining / comparing / joining / merging
 .. autosummary::
    :toctree: api/
 
-   Series.append
    Series.compare
    Series.update
 
