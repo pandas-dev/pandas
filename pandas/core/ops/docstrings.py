@@ -25,11 +25,11 @@ def make_flex_doc(op_name: str, typ: str) -> str:
     op_desc_op = op_desc["op"]
     assert op_desc_op is not None  # for mypy
     if op_name.startswith("r"):
-        equiv = "other " + op_desc_op + " " + typ
+        equiv = f"other {op_desc_op} {typ}"
     elif op_name == "divmod":
         equiv = f"{op_name}({typ}, other)"
     else:
-        equiv = typ + " " + op_desc_op + " other"
+        equiv = f"{typ} {op_desc_op} other"
 
     if typ == "series":
         base_doc = _flex_doc_SERIES

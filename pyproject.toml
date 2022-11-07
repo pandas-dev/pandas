@@ -104,7 +104,6 @@ disable = [
   "chained-comparison",
   "comparison-with-itself",
   "consider-merging-isinstance",
-  "consider-using-min-builtin",
   "consider-using-ternary",
   "consider-using-with",
   "cyclic-import",
@@ -125,7 +124,6 @@ disable = [
   "too-many-statements",
   "unnecessary-comprehension",
   "unnecessary-list-index-lookup",
-  "use-a-generator",
   "useless-option-value",
 
   # pylint type "W": warning, for python specific problems
