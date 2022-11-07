@@ -84,6 +84,7 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
+from pandas.core.indexes.api import default_index
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
@@ -306,7 +307,7 @@ def merge_ordered(
 
     if left_by is not None and right_by is not None:
         raise ValueError("Can only group either left or right frames")
-    elif left_by is not None:
+    if left_by is not None:
         if isinstance(left_by, str):
             left_by = [left_by]
         check = set(left_by).difference(left.columns)
@@ -676,16 +677,14 @@ class _MergeOperation:
                 f"right_index parameter must be of type bool, not {type(right_index)}"
             )
 
-        # warn user when merging between different levels
+        # GH 40993: raise when merging between different levels; enforced in 2.0
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
-                "merging between different levels is deprecated and will be removed "
-                f"in a future version. ({_left.columns.nlevels} levels on the left, "
+                "Not allowed to merge between different levels. "
+                f"({_left.columns.nlevels} levels on the left, "
                 f"{_right.columns.nlevels} on the right)"
             )
-            # stacklevel chosen to be correct when this is reached via pd.merge
-            # (and not DataFrame.join)
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            raise MergeError(msg)
 
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
@@ -1062,7 +1061,7 @@ class _MergeOperation:
                 else:
                     join_index = self.left.index.take(left_indexer)
             else:
-                join_index = Index(np.arange(len(left_indexer)))
+                join_index = default_index(len(left_indexer))
 
         if len(join_index) == 0:
             join_index = join_index.astype(object)
@@ -1292,7 +1291,7 @@ class _MergeOperation:
                     continue
 
                 # check whether ints and floats
-                elif is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
+                if is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
                     # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
                     with np.errstate(invalid="ignore"):
                         # error: Argument 1 to "astype" of "ndarray" has incompatible
@@ -1314,7 +1313,7 @@ class _MergeOperation:
                             )
                     continue
 
-                elif is_float_dtype(rk.dtype) and is_integer_dtype(lk.dtype):
+                if is_float_dtype(rk.dtype) and is_integer_dtype(lk.dtype):
                     # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
                     with np.errstate(invalid="ignore"):
                         # error: Argument 1 to "astype" of "ndarray" has incompatible
@@ -1337,7 +1336,7 @@ class _MergeOperation:
                     continue
 
                 # let's infer and see if we are ok
-                elif lib.infer_dtype(lk, skipna=False) == lib.infer_dtype(
+                if lib.infer_dtype(lk, skipna=False) == lib.infer_dtype(
                     rk, skipna=False
                 ):
                     continue
@@ -1544,11 +1543,11 @@ class _MergeOperation:
                     "Merge keys are not unique in either left "
                     "or right dataset; not a one-to-one merge"
                 )
-            elif not left_unique:
+            if not left_unique:
                 raise MergeError(
                     "Merge keys are not unique in left dataset; not a one-to-one merge"
                 )
-            elif not right_unique:
+            if not right_unique:
                 raise MergeError(
                     "Merge keys are not unique in right dataset; not a one-to-one merge"
                 )
@@ -1570,7 +1569,18 @@ class _MergeOperation:
             pass
 
         else:
-            raise ValueError("Not a valid argument for validate")
+            raise ValueError(
+                f'"{validate}" is not a valid argument. '
+                "Valid arguments are:\n"
+                '- "1:1"\n'
+                '- "1:m"\n'
+                '- "m:1"\n'
+                '- "m:m"\n'
+                '- "one_to_one"\n'
+                '- "one_to_many"\n'
+                '- "many_to_one"\n'
+                '- "many_to_many"'
+            )
 
 
 def get_join_indexers(
@@ -2064,15 +2074,13 @@ class _AsOfMerge(_OrderedMerge):
             side = "left"
             if isna(left_values).any():
                 raise ValueError(f"Merge keys contain null values on {side} side")
-            else:
-                raise ValueError(f"{side} keys must be sorted")
+            raise ValueError(f"{side} keys must be sorted")
 
         if not Index(right_values).is_monotonic_increasing:
             side = "right"
             if isna(right_values).any():
                 raise ValueError(f"Merge keys contain null values on {side} side")
-            else:
-                raise ValueError(f"{side} keys must be sorted")
+            raise ValueError(f"{side} keys must be sorted")
 
         # initial type conversion as needed
         if needs_i8_conversion(left_values):
@@ -2456,8 +2464,7 @@ def _validate_operand(obj: DataFrame | Series) -> DataFrame:
     elif isinstance(obj, ABCSeries):
         if obj.name is None:
             raise ValueError("Cannot merge a Series without a name")
-        else:
-            return obj.to_frame()
+        return obj.to_frame()
     else:
         raise TypeError(
             f"Can only merge Series or DataFrame objects, a {type(obj)} was passed"
@@ -2475,13 +2482,10 @@ def _items_overlap_with_suffix(
     If corresponding suffix is empty, the entry is simply converted to string.
 
     """
-    if not is_list_like(suffixes, allow_sets=False):
-        warnings.warn(
-            f"Passing 'suffixes' as a {type(suffixes)}, is not supported and may give "
-            "unexpected results. Provide 'suffixes' as a tuple instead. In the "
-            "future a 'TypeError' will be raised.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+    if not is_list_like(suffixes, allow_sets=False) or isinstance(suffixes, dict):
+        raise TypeError(
+            f"Passing 'suffixes' as a {type(suffixes)}, is not supported. "
+            "Provide 'suffixes' as a tuple instead."
         )
 
     to_rename = left.intersection(right)
@@ -2527,11 +2531,9 @@ def _items_overlap_with_suffix(
     if not rlabels.is_unique:
         dups.extend(rlabels[(rlabels.duplicated()) & (~right.duplicated())].tolist())
     if dups:
-        warnings.warn(
-            f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
-            f"result is deprecated and will raise a MergeError in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+        raise MergeError(
+            f"Passing 'suffixes' which cause duplicate columns {set(dups)} is "
+            f"not allowed.",
         )
 
     return llabels, rlabels

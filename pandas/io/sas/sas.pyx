@@ -69,6 +69,7 @@ cdef int rle_decompress(Buffer inbuff, Buffer outbuff) except? 0:
         int rpos = 0
         int i, nbytes, end_of_first_byte
         size_t ipos = 0
+        Py_ssize_t _
 
     while ipos < inbuff.length:
         control_byte = buf_get(inbuff, ipos) & 0xF0
@@ -253,8 +254,16 @@ cdef:
 
 
 def _init_subheader_signatures():
-    subheaders_32bit = [(sig, idx) for sig, idx in const.subheader_signature_to_index.items() if len(sig) == 4]
-    subheaders_64bit  = [(sig, idx) for sig, idx in const.subheader_signature_to_index.items() if len(sig) == 8]
+    subheaders_32bit = [
+        (sig, idx)
+        for sig, idx in const.subheader_signature_to_index.items()
+        if len(sig) == 4
+    ]
+    subheaders_64bit = [
+        (sig, idx)
+        for sig, idx in const.subheader_signature_to_index.items()
+        if len(sig) == 8
+    ]
     assert len(subheaders_32bit) == 13
     assert len(subheaders_64bit) == 17
     assert len(const.subheader_signature_to_index) == 13 + 17
@@ -366,9 +375,9 @@ cdef class Parser:
     def read(self, int nrows):
         cdef:
             bint done
-            int i
+            Py_ssize_t i
 
-        for _ in range(nrows):
+        for i in range(nrows):
             done = self.readline()
             if done:
                 break
@@ -490,7 +499,8 @@ cdef class Parser:
             rpos = self.decompress(source, decompressed_source)
             if rpos != self.row_length:
                 raise ValueError(
-                    f"Expected decompressed line of length {self.row_length} bytes but decompressed {rpos} bytes"
+                    f"Expected decompressed line of length {self.row_length} bytes "
+                    f"but decompressed {rpos} bytes"
                 )
             source = decompressed_source
 

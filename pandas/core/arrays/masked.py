@@ -655,7 +655,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     raise NotImplementedError(
                         f"operator '{op_name}' not implemented for bool dtypes"
                     )
-                elif op_name in {"mod", "rmod"}:
+                if op_name in {"mod", "rmod"}:
                     dtype = "int8"
                 else:
                     dtype = "bool"
@@ -1034,7 +1034,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 # I think this should be out_mask=self.isna().all(axis=1)
                 #  but am holding off until we have tests
                 raise NotImplementedError
-            elif self.isna().all():
+            if self.isna().all():
                 out_mask = np.ones(res.shape, dtype=bool)
             else:
                 out_mask = np.zeros(res.shape, dtype=bool)
@@ -1058,7 +1058,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             data = self.to_numpy("float64", na_value=np.nan)
 
         # median, var, std, skew, kurt, idxmin, idxmax
-        op = getattr(nanops, "nan" + name)
+        op = getattr(nanops, f"nan{name}")
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
         if np.isnan(result):

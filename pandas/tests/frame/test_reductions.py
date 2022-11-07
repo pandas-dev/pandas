@@ -228,8 +228,7 @@ class TestDataFrameAnalytics:
             check_dates=True,
         )
 
-        # GH#32571 check_less_precise is needed on apparently-random
-        #  py37-npdev builds and OSX-PY36-min_version builds
+        # GH#32571: rol needed for flaky CI builds
         # mixed types (with upcasting happening)
         assert_stat_op_calc(
             "sum",

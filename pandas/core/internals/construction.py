@@ -601,7 +601,7 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
         else:
             if isinstance(val, dict):
                 # GH#41785 this _should_ be equivalent to (but faster than)
-                #  val = create_series_with_explicit_dtype(val, index=index)._values
+                #  val = Series(val, index=index)._values
                 if oindex is None:
                     oindex = index.astype("O")
 
@@ -652,7 +652,7 @@ def _extract_index(data) -> Index:
         if not indexes and not raw_lengths:
             raise ValueError("If using all scalar values, you must pass an index")
 
-        elif have_series:
+        if have_series:
             index = union_indexes(indexes)
         elif have_dicts:
             index = union_indexes(indexes, sort=False)
@@ -1015,7 +1015,7 @@ def _validate_or_indexify_columns(
                 f"{len(columns)} columns passed, passed data had "
                 f"{len(content)} columns"
             )
-        elif is_mi_list:
+        if is_mi_list:
 
             # check if nested list column, length of each sub-list should be equal
             if len({len(col) for col in columns}) > 1:
@@ -1024,7 +1024,7 @@ def _validate_or_indexify_columns(
                 )
 
             # if columns is not empty and length of sublist is not equal to content
-            elif columns and len(columns[0]) != len(content):
+            if columns and len(columns[0]) != len(content):
                 raise ValueError(
                     f"{len(columns[0])} columns passed, passed data had "
                     f"{len(content)} columns"
