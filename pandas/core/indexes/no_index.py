@@ -18,6 +18,17 @@ class NoIndex(RangeIndex):
         rng = range(0, len)
         return cls._simple_new(rng)
 
+    @property
+    def name(self):
+        return None
+
+    @name.setter
+    def name(self, new_name):
+        raise ValueError("Can't set name of NoIndex!")
+
+    def __repr__(self) -> str:
+        return f"NoIndex(len={self.stop})"
+
     def append(self, other):
         if not isinstance(other, list):
             other = [other]

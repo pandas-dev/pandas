@@ -531,6 +531,22 @@ with cf.config_prefix("mode"):
         validator=is_bool,
     )
 
+# TODO better name?
+no_default_index_doc = """
+: bool
+    If set, then you won't get an Index unless you ask for one.
+"""
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "no_default_index",
+        # Get the default from an environment variable, if set, otherwise defaults
+        # to False. This environment variable can be set for testing.
+        os.environ.get("PANDAS_NO_DEFAULT_INDEX", "0") == "1",
+        no_default_index_doc,
+        validator=is_bool,
+    )
 
 # user warnings
 chained_assignment = """
