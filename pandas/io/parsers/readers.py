@@ -24,6 +24,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
@@ -560,6 +562,14 @@ def _read(
             raise ValueError(
                 "The 'chunksize' option is not supported with the 'pyarrow' engine"
             )
+    elif (
+        kwds.get("use_nullable_dtypes", False)
+        and get_option("io.nullable_backend") == "pyarrow"
+    ):
+        raise NotImplementedError(
+            f"use_nullable_dtypes=True and engine={kwds['engine']} with "
+            "io.nullable_backend set to 'pyarrow' is not implemented."
+        )
     else:
         chunksize = validate_integer("chunksize", chunksize, 1)
 
