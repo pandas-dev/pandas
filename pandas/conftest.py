@@ -1163,8 +1163,7 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
                 raise ValueError(
                     f"Could not find file {path} and --strict-data-files is set."
                 )
-            else:
-                pytest.skip(f"Could not find {path}.")
+            pytest.skip(f"Could not find {path}.")
         return path
 
     return deco

@@ -213,8 +213,7 @@ class CSVFormatter:
                 raise ValueError(
                     f"Writing {len(self.cols)} cols but got {len(self.header)} aliases"
                 )
-            else:
-                return self.header
+            return self.header
         else:
             # self.cols is an ndarray derived from Index._format_native_types,
             #  so its entries are strings, i.e. hashable
