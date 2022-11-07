@@ -669,6 +669,21 @@ class TestToDatetime:
         result = to_datetime(data, format="%Y%m%d %H%M%S %z", utc=False)
         tm.assert_equal(result, Index(expected_data))
 
+    @pytest.mark.parametrize("value", [datetime(2010, 1, 2, 12, 13, 16), Timestamp("2010-01-02 12:13:17")])
+    def test_to_datetime_includes_tz_dtype_on_pydatetime_and_timestamp(self, value):
+        # GH 49298
+        # No timezone
+        result_no_format = to_datetime([value])
+        result_with_format = to_datetime([value], format="%m-%d-%Y")
+        tm.assert_equal(result_no_format, result_with_format)
+
+        # Localized value
+        america_santiago = pytz.timezone("America/Santiago")
+        result_no_format = to_datetime([america_santiago.localize(value)])
+        result_with_format = to_datetime([america_santiago.localize(value)], format="%m-%d-%Y")
+        tm.assert_equal(result_with_format.dtype.tz, america_santiago)
+        tm.assert_equal(result_no_format, result_with_format)
+
     def test_to_datetime_pydatetime(self):
         actual = to_datetime(datetime(2008, 1, 15))
         assert actual == datetime(2008, 1, 15)
