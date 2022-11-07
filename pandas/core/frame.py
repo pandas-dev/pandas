@@ -187,8 +187,7 @@ from pandas.core.indexes.multi import (
 )
 from pandas.core.indexing import (
     check_bool_indexer,
-    check_deprecated_indexers,
-    convert_to_index_sliceable,
+    check_dict_or_set_indexers,
 )
 from pandas.core.internals import (
     ArrayManager,
@@ -1095,7 +1094,7 @@ class DataFrame(NDFrame, OpsMixin):
             # need to escape the <class>, should be the first line.
             val = buf.getvalue().replace("<", r"&lt;", 1)
             val = val.replace(">", r"&gt;", 1)
-            return "<pre>" + val + "</pre>"
+            return f"<pre>{val}</pre>"
 
         if get_option("display.notebook_repr_html"):
             max_rows = get_option("display.max_rows")
@@ -3703,7 +3702,7 @@ class DataFrame(NDFrame, OpsMixin):
             yield self._get_column_array(i)
 
     def __getitem__(self, key):
-        check_deprecated_indexers(key)
+        check_dict_or_set_indexers(key)
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
@@ -3723,17 +3722,18 @@ class DataFrame(NDFrame, OpsMixin):
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
         # Do we have a slicer (on rows)?
-        indexer = convert_to_index_sliceable(self, key)
-        if indexer is not None:
+        if isinstance(key, slice):
+            indexer = self.index._convert_slice_indexer(
+                key, kind="getitem", is_frame=True
+            )
             if isinstance(indexer, np.ndarray):
+                # reachable with DatetimeIndex
                 indexer = lib.maybe_indices_to_slice(
                     indexer.astype(np.intp, copy=False), len(self)
                 )
                 if isinstance(indexer, np.ndarray):
                     # GH#43223 If we can not convert, use take
                     return self.take(indexer, axis=0)
-            # either we have a slice or we have a string that can be converted
-            #  to a slice for partial-string date indexing
             return self._slice(indexer, axis=0)
 
         # Do we have a (boolean) DataFrame?
@@ -3903,11 +3903,9 @@ class DataFrame(NDFrame, OpsMixin):
         key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows
-        indexer = convert_to_index_sliceable(self, key)
-        if indexer is not None:
-            # either we have a slice or we have a string that can be converted
-            #  to a slice for partial-string date indexing
-            return self._setitem_slice(indexer, value)
+        if isinstance(key, slice):
+            slc = self.index._convert_slice_indexer(key, kind="getitem", is_frame=True)
+            return self._setitem_slice(slc, value)
 
         if isinstance(key, DataFrame) or getattr(key, "ndim", None) == 2:
             self._setitem_frame(key, value)
@@ -8845,8 +8843,7 @@ Parrot 2  Parrot       24.0
         if not self.columns.is_unique:
             duplicate_cols = self.columns[self.columns.duplicated()].tolist()
             raise ValueError(
-                "DataFrame columns must be unique. "
-                + f"Duplicate columns: {duplicate_cols}"
+                f"DataFrame columns must be unique. Duplicate columns: {duplicate_cols}"
             )
 
         columns: list[Hashable]

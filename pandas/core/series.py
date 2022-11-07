@@ -139,7 +139,7 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.multi import maybe_droplevels
 from pandas.core.indexing import (
     check_bool_indexer,
-    check_deprecated_indexers,
+    check_dict_or_set_indexers,
 )
 from pandas.core.internals import (
     SingleArrayManager,
@@ -913,7 +913,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self._get_values(slobj)
 
     def __getitem__(self, key):
-        check_deprecated_indexers(key)
+        check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
 
         if key is Ellipsis:
@@ -1056,7 +1056,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        check_deprecated_indexers(key)
+        check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
         cacher_needs_updating = self._check_is_chained_assignment_possible()
 
@@ -1556,6 +1556,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return a string representation for a particular Series.
         """
+        # pylint: disable=invalid-repr-returned
         repr_params = fmt.get_series_repr_params()
         return self.to_string(**repr_params)
 
@@ -1982,7 +1983,7 @@ Name: Max Speed, dtype: float64
         self,
         by=None,
         axis: Axis = 0,
-        level: Level = None,
+        level: IndexLabel = None,
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = no_default,

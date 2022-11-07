@@ -84,6 +84,7 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
+from pandas.core.indexes.api import default_index
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
@@ -1060,7 +1061,7 @@ class _MergeOperation:
                 else:
                     join_index = self.left.index.take(left_indexer)
             else:
-                join_index = Index(np.arange(len(left_indexer)))
+                join_index = default_index(len(left_indexer))
 
         if len(join_index) == 0:
             join_index = join_index.astype(object)
@@ -2403,7 +2404,7 @@ def _sort_labels(
     llength = len(left)
     labels = np.concatenate([left, right])
 
-    _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
+    _, new_labels = algos.safe_sort(uniques, labels, use_na_sentinel=True)
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
     return new_left, new_right

@@ -3908,12 +3908,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         labels = self._get_axis(axis)
 
         if isinstance(key, list):
-            warnings.warn(
-                "Passing lists as key for xs is deprecated and will be removed in a "
-                "future version. Pass key as a tuple instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            raise TypeError("list keys are not supported in xs, pass a tuple instead")
 
         if level is not None:
             if not isinstance(labels, MultiIndex):
@@ -6627,9 +6622,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             in the dict/Series/DataFrame will not be filled. This value cannot
             be a list.
         method : {{'backfill', 'bfill', 'ffill', None}}, default None
-            Method to use for filling holes in reindexed Series
-            ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use next valid observation to fill gap.
+            Method to use for filling holes in reindexed Series:
+
+            * ffill: propagate last valid observation forward to next valid.
+            * backfill / bfill: use next valid observation to fill gap.
+
         axis : {axes_single_arg}
             Axis along which to fill missing values. For `Series`
             this parameter is unused and defaults to 0.
