@@ -107,7 +107,7 @@ def _border_expander(side: str = "") -> Callable:
         for token in tokens:
             if token in self.BORDER_STYLES:
                 border_declarations[f"border{side}-style"] = token
-            elif any([ratio in token for ratio in self.BORDER_WIDTH_RATIOS]):
+            elif any(ratio in token for ratio in self.BORDER_WIDTH_RATIOS):
                 border_declarations[f"border{side}-width"] = token
             else:
                 border_declarations[f"border{side}-color"] = token
@@ -194,11 +194,11 @@ class CSSResolver:
 
     CSS_EXPANSIONS = {
         **{
-            "-".join(["border", prop] if prop else ["border"]): _border_expander(prop)
+            (f"border-{prop}" if prop else "border"): _border_expander(prop)
             for prop in ["", "top", "right", "bottom", "left"]
         },
         **{
-            "-".join(["border", prop]): _side_expander("border-{:s}-" + prop)
+            f"border-{prop}": _side_expander(f"border-{{:s}}-{prop}")
             for prop in ["color", "style", "width"]
         },
         **{

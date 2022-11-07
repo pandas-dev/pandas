@@ -347,7 +347,7 @@ def test_apply_yield_list(float_frame):
 
 
 def test_apply_reduce_Series(float_frame):
-    float_frame["A"].iloc[::2] = np.nan
+    float_frame.iloc[::2, float_frame.columns.get_loc("A")] = np.nan
     expected = float_frame.mean(1)
     result = float_frame.apply(np.mean, axis=1)
     tm.assert_series_equal(result, expected)
@@ -1141,7 +1141,35 @@ def test_agg_with_name_as_column_name():
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_multiple_mixed_no_warning():
+def test_agg_multiple_mixed():
+    # GH 20909
+    mdf = DataFrame(
+        {
+            "A": [1, 2, 3],
+            "B": [1.0, 2.0, 3.0],
+            "C": ["foo", "bar", "baz"],
+        }
+    )
+    expected = DataFrame(
+        {
+            "A": [1, 6],
+            "B": [1.0, 6.0],
+            "C": ["bar", "foobarbaz"],
+        },
+        index=["min", "sum"],
+    )
+    # sorted index
+    result = mdf.agg(["min", "sum"])
+    tm.assert_frame_equal(result, expected)
+
+    result = mdf[["C", "B", "A"]].agg(["sum", "min"])
+    # GH40420: the result of .agg should have an index that is sorted
+    # according to the arguments provided to agg.
+    expected = expected[["C", "B", "A"]].reindex(["sum", "min"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_mixed_raises():
     # GH 20909
     mdf = DataFrame(
         {
@@ -1151,32 +1179,15 @@ def test_agg_multiple_mixed_no_warning():
             "D": date_range("20130101", periods=3),
         }
     )
-    expected = DataFrame(
-        {
-            "A": [1, 6],
-            "B": [1.0, 6.0],
-            "C": ["bar", "foobarbaz"],
-            "D": [Timestamp("2013-01-01"), pd.NaT],
-        },
-        index=["min", "sum"],
-    )
+
     # sorted index
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['D'\] did not aggregate successfully"
-    ):
-        result = mdf.agg(["min", "sum"])
+    # TODO: GH#49399 will fix error message
+    msg = "DataFrame constructor called with"
+    with pytest.raises(TypeError, match=msg):
+        mdf.agg(["min", "sum"])
 
-    tm.assert_frame_equal(result, expected)
-
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['D'\] did not aggregate successfully"
-    ):
-        result = mdf[["D", "C", "B", "A"]].agg(["sum", "min"])
-
-    # GH40420: the result of .agg should have an index that is sorted
-    # according to the arguments provided to agg.
-    expected = expected[["D", "C", "B", "A"]].reindex(["sum", "min"])
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(TypeError, match=msg):
+        mdf[["D", "C", "B", "A"]].agg(["sum", "min"])
 
 
 def test_agg_reduce(axis, float_frame):
@@ -1277,14 +1288,10 @@ def test_nuiscance_columns():
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['D'\] did not aggregate successfully"
-    ):
-        result = df.agg(["sum"])
-    expected = DataFrame(
-        [[6, 6.0, "foobarbaz"]], index=["sum"], columns=["A", "B", "C"]
-    )
-    tm.assert_frame_equal(result, expected)
+    # TODO: GH#49399 will fix error message
+    msg = "DataFrame constructor called with"
+    with pytest.raises(TypeError, match=msg):
+        df.agg(["sum"])
 
 
 @pytest.mark.parametrize("how", ["agg", "apply"])
@@ -1499,32 +1506,28 @@ def test_aggregation_func_column_order():
     # according to the arguments provided to agg.
     df = DataFrame(
         [
-            ("1", 1, 0, 0),
-            ("2", 2, 0, 0),
-            ("3", 3, 0, 0),
-            ("4", 4, 5, 4),
-            ("5", 5, 6, 6),
-            ("6", 6, 7, 7),
+            (1, 0, 0),
+            (2, 0, 0),
+            (3, 0, 0),
+            (4, 5, 4),
+            (5, 6, 6),
+            (6, 7, 7),
         ],
-        columns=("item", "att1", "att2", "att3"),
+        columns=("att1", "att2", "att3"),
     )
 
-    def foo(s):
+    def sum_div2(s):
         return s.sum() / 2
 
-    aggs = ["sum", foo, "count", "min"]
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['item'\] did not aggregate successfully"
-    ):
-        result = df.agg(aggs)
+    aggs = ["sum", sum_div2, "count", "min"]
+    result = df.agg(aggs)
     expected = DataFrame(
         {
-            "item": ["123456", np.nan, 6, "1"],
             "att1": [21.0, 10.5, 6.0, 1.0],
             "att2": [18.0, 9.0, 6.0, 0.0],
             "att3": [17.0, 8.5, 6.0, 0.0],
         },
-        index=["sum", "foo", "count", "min"],
+        index=["sum", "sum_div2", "count", "min"],
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1545,13 +1548,13 @@ def test_nuisance_depr_passes_through_warnings():
     # sure if some other warnings were raised, they get passed through to
     # the user.
 
-    def foo(x):
+    def expected_warning(x):
         warnings.warn("Hello, World!")
         return x.sum()
 
     df = DataFrame({"a": [1, 2, 3]})
     with tm.assert_produces_warning(UserWarning, match="Hello, World!"):
-        df.agg([foo])
+        df.agg([expected_warning])
 
 
 def test_apply_type():

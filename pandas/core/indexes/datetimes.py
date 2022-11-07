@@ -429,18 +429,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return False
         return super()._can_range_setop(other)
 
-    def _maybe_utc_convert(self, other: Index) -> tuple[DatetimeIndex, Index]:
-        this = self
-
-        if isinstance(other, DatetimeIndex):
-            if (self.tz is None) ^ (other.tz is None):
-                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
-
-            if not timezones.tz_compare(self.tz, other.tz):
-                this = self.tz_convert("UTC")
-                other = other.tz_convert("UTC")
-        return this, other
-
     # --------------------------------------------------------------------
 
     def _get_time_micros(self) -> npt.NDArray[np.int64]:
@@ -1011,7 +999,7 @@ def date_range(
             "Deprecated argument `closed` cannot be passed"
             "if argument `inclusive` is not None"
         )
-    elif closed is not lib.no_default:
+    if closed is not lib.no_default:
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
