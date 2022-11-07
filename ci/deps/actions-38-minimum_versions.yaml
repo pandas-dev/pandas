@@ -36,6 +36,7 @@ dependencies:
   - numba=0.53.1
   - numexpr=2.7.3
   - odfpy=1.4.1
+  - qtpy=2.2.0
   - openpyxl=3.0.7
   - pandas-gbq=0.15.0
   - psycopg2=2.8.6
@@ -54,3 +55,6 @@ dependencies:
   - xlrd=2.0.1
   - xlsxwriter=1.4.3
   - zstandard=0.15.2
+
+  - pip:
+    - pyqt5==5.15.1

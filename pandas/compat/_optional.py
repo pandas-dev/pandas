@@ -46,6 +46,8 @@ VERSIONS = {
     "xlsxwriter": "1.4.3",
     "zstandard": "0.15.2",
     "tzdata": "2022.1",
+    "qtpy": "2.2.0",
+    "pyqt5": "5.15.1",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
@@ -141,8 +143,7 @@ def import_optional_dependency(
     except ImportError:
         if errors == "raise":
             raise ImportError(msg)
-        else:
-            return None
+        return None
 
     # Handle submodules: if we have submodule, grab parent module from sys.modules
     parent = name.split(".")[0]

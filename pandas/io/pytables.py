@@ -4964,14 +4964,14 @@ def _maybe_convert_for_string_atom(
 
     if inferred_type == "date":
         raise TypeError("[date] is not implemented as a table column")
-    elif inferred_type == "datetime":
+    if inferred_type == "datetime":
         # after GH#8260
         # this only would be hit for a multi-timezone dtype which is an error
         raise TypeError(
             "too many timezones in this block, create separate data columns"
         )
 
-    elif not (inferred_type == "string" or dtype_name == "object"):
+    if not (inferred_type == "string" or dtype_name == "object"):
         return bvalues
 
     mask = isna(bvalues)

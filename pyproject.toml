@@ -60,7 +60,6 @@ max-line-length = 88
 disable = [
   "abstract-class-instantiated",
   "import-error",
-  "invalid-repr-returned",
   "invalid-unary-operand-type",
   "no-member",
   "no-name-in-module",
@@ -78,7 +77,6 @@ disable = [
   "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
-  "consider-using-f-string",
   "import-outside-toplevel",
   "invalid-name",
   "line-too-long",
@@ -104,13 +102,11 @@ disable = [
   "chained-comparison",
   "comparison-with-itself",
   "consider-merging-isinstance",
-  "consider-using-min-builtin",
   "consider-using-ternary",
   "consider-using-with",
   "cyclic-import",
   "duplicate-code",
   "inconsistent-return-statements",
-  "no-else-raise",
   "no-else-return",
   "redefined-argument-from-local",
   "too-few-public-methods",
@@ -126,7 +122,6 @@ disable = [
   "too-many-statements",
   "unnecessary-comprehension",
   "unnecessary-list-index-lookup",
-  "use-a-generator",
   "useless-option-value",
 
   # pylint type "W": warning, for python specific problems
@@ -140,7 +135,6 @@ disable = [
   "confusing-with-statement",
   "dangerous-default-value",
   "deprecated-module",
-  "duplicate-value",
   "eval-used",
   "expression-not-assigned",
   "fixme",

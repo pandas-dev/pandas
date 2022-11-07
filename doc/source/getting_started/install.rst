@@ -417,7 +417,7 @@ Dependency                Minimum Version    optional_extra   Notes
 PyTables                  3.6.1              hdf5             HDF5-based reading / writing
 blosc                     1.21.0             hdf5             Compression for HDF5; only available on ``conda``
 zlib                                         hdf5             Compression for HDF5
-fastparquet               0.4.0              -                Parquet reading / writing (pyarrow is default)
+fastparquet               0.6.3              -                Parquet reading / writing (pyarrow is default)
 pyarrow                   6.0.0              parquet, feather Parquet, ORC, and feather reading / writing
 pyreadstat                1.1.2              spss             SPSS files (.sav) reading
 odfpy                     1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing
