@@ -1231,34 +1231,20 @@ def maybe_infer_to_datetimelike(
     if not len(v):
         return value
 
-    inferred_type = lib.infer_datetimelike_array(ensure_object(v))
-
-    if inferred_type in ["period", "interval", "timedelta", "datetime"]:
-        # Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "Union[ndarray, DatetimeArray, TimedeltaArray, PeriodArray,
-        # IntervalArray]")
-        return lib.maybe_convert_objects(  # type: ignore[return-value]
-            v,
-            convert_period=True,
-            convert_interval=True,
-            convert_timedelta=True,
-            convert_datetime=True,
-            dtype_if_all_nat=np.dtype("M8[ns]"),
-        )
-
-    elif inferred_type == "nat":
-        # if all NaT, return as datetime
-        # only reached if we have at least 1 NaT and the rest (NaT or None or np.nan)
-        # This is slightly different from what we'd get with maybe_convert_objects,
-        #  which only converts of all-NaT
-        from pandas.core.arrays.datetimes import sequence_to_datetimes
-
-        # Incompatible types in assignment (expression has type "DatetimeArray",
-        # variable has type "ndarray[Any, Any]")
-        value = sequence_to_datetimes(v)  # type: ignore[assignment]
-        assert value.dtype == "M8[ns]"
-
-    return value
+    out = lib.maybe_convert_objects(
+        v,
+        convert_period=True,
+        convert_interval=True,
+        convert_timedelta=True,
+        convert_datetime=True,
+        dtype_if_all_nat=np.dtype("M8[ns]"),
+    )
+    if out.dtype.kind in ["i", "u", "f", "b", "c"]:
+        # Here we do not convert numeric dtypes, as if we wanted that,
+        #  numpy would have done it for us.
+        #  See also _maybe_cast_data_without_dtype
+        return v
+    return out
 
 
 def maybe_cast_to_datetime(
