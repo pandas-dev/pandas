@@ -6622,9 +6622,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             in the dict/Series/DataFrame will not be filled. This value cannot
             be a list.
         method : {{'backfill', 'bfill', 'ffill', None}}, default None
-            Method to use for filling holes in reindexed Series
-            ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use next valid observation to fill gap.
+            Method to use for filling holes in reindexed Series:
+
+            * ffill: propagate last valid observation forward to next valid.
+            * backfill / bfill: use next valid observation to fill gap.
+
         axis : {axes_single_arg}
             Axis along which to fill missing values. For `Series`
             this parameter is unused and defaults to 0.
