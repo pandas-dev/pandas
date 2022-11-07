@@ -287,14 +287,11 @@ class TestInsertIndexCoercion(CoercionBase):
             assert expected.dtype == object
             tm.assert_index_equal(result, expected)
 
-            # mismatched tz --> cast to object (could reasonably cast to common tz)
             ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo")
-            with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
-                result = obj.insert(1, ts)
+            result = obj.insert(1, ts)
             # once deprecation is enforced:
-            # expected = obj.insert(1, ts.tz_convert(obj.dtype.tz))
-            # assert expected.dtype == obj.dtype
-            expected = obj.astype(object).insert(1, ts)
+            expected = obj.insert(1, ts.tz_convert(obj.dtype.tz))
+            assert expected.dtype == obj.dtype
             tm.assert_index_equal(result, expected)
 
         else:
@@ -652,7 +649,8 @@ class TestFillnaSeriesCoercion(CoercionBase):
         [
             (pd.Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[ns, US/Eastern]"),
             (pd.Timestamp("2012-01-01"), object),
-            (pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), object),
+            # pre-2.0 with a mismatched tz we would get object result
+            (pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), "datetime64[ns, US/Eastern]"),
             (1, object),
             ("x", object),
         ],
@@ -671,22 +669,19 @@ class TestFillnaSeriesCoercion(CoercionBase):
         )
         assert obj.dtype == "datetime64[ns, US/Eastern]"
 
+        if getattr(fill_val, "tz", None) is None:
+            fv = fill_val
+        else:
+            fv = fill_val.tz_convert(tz)
         exp = klass(
             [
                 pd.Timestamp("2011-01-01", tz=tz),
-                fill_val,
-                # Once deprecation is enforced, this becomes:
-                # fill_val.tz_convert(tz) if getattr(fill_val, "tz", None)
-                #  is not None else fill_val,
+                fv,
                 pd.Timestamp("2011-01-03", tz=tz),
                 pd.Timestamp("2011-01-04", tz=tz),
             ]
         )
-        warn = None
-        if getattr(fill_val, "tz", None) is not None and fill_val.tz != obj[0].tz:
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="mismatched timezone"):
-            self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
+        self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     @pytest.mark.parametrize(
         "fill_val",
@@ -914,23 +909,16 @@ class TestReplaceSeriesCoercion(CoercionBase):
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
 
-        warn = None
-        rep_ser = pd.Series(replacer)
-        if (
-            isinstance(obj.dtype, pd.DatetimeTZDtype)
-            and isinstance(rep_ser.dtype, pd.DatetimeTZDtype)
-            and obj.dtype != rep_ser.dtype
-        ):
-            # mismatched tz DatetimeArray behavior will change to cast
-            #  for setitem-like methods with mismatched tzs GH#44940
-            warn = FutureWarning
-
-        msg = "explicitly cast to object"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = obj.replace(replacer)
+        result = obj.replace(replacer)
 
         exp = pd.Series(self.rep[to_key], index=index, name="yyy")
-        assert exp.dtype == to_key
+        if isinstance(obj.dtype, pd.DatetimeTZDtype) and isinstance(
+            exp.dtype, pd.DatetimeTZDtype
+        ):
+            # with mismatched tzs, we retain the original dtype as of 2.0
+            exp = exp.astype(obj.dtype)
+        else:
+            assert exp.dtype == to_key
 
         tm.assert_series_equal(result, exp)
 

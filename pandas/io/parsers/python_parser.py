@@ -20,7 +20,6 @@ from typing import (
     Sequence,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -34,7 +33,6 @@ from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
@@ -536,10 +534,7 @@ class PythonParser(ParserBase):
             num_original_columns = ncols
 
             if not names:
-                if self.prefix:
-                    columns = [[f"{self.prefix}{i}" for i in range(ncols)]]
-                else:
-                    columns = [list(range(ncols))]
+                columns = [list(range(ncols))]
                 columns = self._handle_usecols(
                     columns, columns[0], num_original_columns
                 )
@@ -595,11 +590,9 @@ class PythonParser(ParserBase):
                     col for col in self.usecols if col >= num_original_columns
                 ]
                 if missing_usecols:
-                    warnings.warn(
-                        "Defining usecols with out of bounds indices is deprecated "
-                        "and will raise a ParserError in a future version.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
+                    raise ParserError(
+                        "Defining usecols without of bounds indices is not allowed. "
+                        f"{missing_usecols} are out of bounds.",
                     )
                 col_indices = self.usecols
 
@@ -763,7 +756,7 @@ class PythonParser(ParserBase):
         """
         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
             raise ParserError(msg)
-        elif self.on_bad_lines == self.BadLineHandleMethod.WARN:
+        if self.on_bad_lines == self.BadLineHandleMethod.WARN:
             base = f"Skipping line {row_num}: "
             sys.stderr.write(base + msg + "\n")
 

@@ -203,16 +203,16 @@ def test_is_list_like_disallow_sets(maybe_list_like):
 def test_is_list_like_recursion():
     # GH 33721
     # interpreter would crash with SIGABRT
-    def foo():
+    def list_like():
         inference.is_list_like([])
-        foo()
+        list_like()
 
     rec_limit = sys.getrecursionlimit()
     try:
         # Limit to avoid stack overflow on Windows CI
         sys.setrecursionlimit(100)
         with tm.external_error_raised(RecursionError):
-            foo()
+            list_like()
     finally:
         sys.setrecursionlimit(rec_limit)
 
@@ -1868,8 +1868,8 @@ class TestNumberScalar:
         assert is_timedelta64_ns_dtype(tdi.astype("timedelta64[ns]"))
 
         # Conversion to Int64Index:
-        assert not is_timedelta64_ns_dtype(tdi.astype("timedelta64"))
-        assert not is_timedelta64_ns_dtype(tdi.astype("timedelta64[h]"))
+        assert not is_timedelta64_ns_dtype(Index([], dtype=np.float64))
+        assert not is_timedelta64_ns_dtype(Index([], dtype=np.int64))
 
 
 class TestIsScalar:
