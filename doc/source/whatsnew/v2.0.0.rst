@@ -441,6 +441,7 @@ Removal of prior version deprecations/changes
 - Changed behavior of comparison of a :class:`Timestamp` with a ``datetime.date`` object; these now compare as un-equal and raise on inequality comparisons, matching the ``datetime.datetime`` behavior (:issue:`36131`)
 - Enforced deprecation of silently dropping columns that raised a ``TypeError`` in :class:`Series.transform` and :class:`DataFrame.transform` when used with a list or dictionary (:issue:`43740`)
 - Change behavior of :meth:`DataFrame.apply` with list-like so that any partial failure will raise an error (:issue:`43740`)
+- Removed ``na_sentinel`` argument from :func:`factorize`, :meth:`.Index.factorize`, and :meth:`.ExtensionArray.factorize` (:issue:`47157`)
 -
 
 .. ---------------------------------------------------------------------------
