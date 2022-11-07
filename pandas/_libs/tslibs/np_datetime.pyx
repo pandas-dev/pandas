@@ -278,8 +278,8 @@ cdef inline int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
-    format: str | None = None,
-    bint exact = True,
+    format: str | None=None,
+    bint exact=True,
 ) except? -1:
     cdef:
         Py_ssize_t length
