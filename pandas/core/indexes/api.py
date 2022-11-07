@@ -58,6 +58,7 @@ __all__ = [
     "CategoricalIndex",
     "IntervalIndex",
     "RangeIndex",
+    "NoIndex",
     "UInt64Index",
     "InvalidIndexError",
     "TimedeltaIndex",
