@@ -36,6 +36,9 @@ from pandas._libs.missing cimport (
     is_matching_na,
 )
 
+# Defines shift of MultiIndex codes to avoid negative codes (missing values)
+multiindex_nulls_shift = 2
+
 
 cdef inline bint is_definitely_invalid_key(object val):
     try:
@@ -648,10 +651,13 @@ cdef class BaseMultiIndexCodesEngine:
         self.levels = levels
         self.offsets = offsets
 
-        # Transform labels in a single array, and add 1 so that we are working
-        # with positive integers (-1 for NaN becomes 0):
-        codes = (np.array(labels, dtype='int64').T + 1).astype('uint64',
-                                                               copy=False)
+        # Transform labels in a single array, and add 2 so that we are working
+        # with positive integers (-1 for NaN becomes 1). This enables us to
+        # differentiate between values that are missing in other and matching
+        # NaNs. We will set values that are not found to 0 later:
+        labels_arr = np.array(labels, dtype='int64').T + multiindex_nulls_shift
+        codes = labels_arr.astype('uint64', copy=False)
+        self.level_has_nans = [-1 in lab for lab in labels]
 
         # Map each codes combination in the index to an integer unambiguously
         # (no collisions possible), based on the "offsets", which describe the
@@ -680,8 +686,13 @@ cdef class BaseMultiIndexCodesEngine:
             Integers representing one combination each
         """
         zt = [target._get_level_values(i) for i in range(target.nlevels)]
-        level_codes = [lev.get_indexer_for(codes) + 1 for lev, codes
-                       in zip(self.levels, zt)]
+        level_codes = []
+        for i, (lev, codes) in enumerate(zip(self.levels, zt)):
+            result = lev.get_indexer_for(codes) + 1
+            result[result > 0] += 1
+            if self.level_has_nans[i] and codes.hasnans:
+                result[codes.isna()] += 1
+            level_codes.append(result)
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
 
     def get_indexer(self, target: np.ndarray) -> np.ndarray:
@@ -792,7 +803,7 @@ cdef class BaseMultiIndexCodesEngine:
         if not isinstance(key, tuple):
             raise KeyError(key)
         try:
-            indices = [0 if checknull(v) else lev.get_loc(v) + 1
+            indices = [1 if checknull(v) else lev.get_loc(v) + multiindex_nulls_shift
                        for lev, v in zip(self.levels, key)]
         except KeyError:
             raise KeyError(key)

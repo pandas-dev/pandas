@@ -32,16 +32,16 @@ def test_drop(idx):
     tm.assert_index_equal(dropped, expected)
 
     index = MultiIndex.from_tuples([("bar", "two")])
-    with pytest.raises(KeyError, match=r"^10$"):
+    with pytest.raises(KeyError, match=r"^15$"):
         idx.drop([("bar", "two")])
-    with pytest.raises(KeyError, match=r"^10$"):
+    with pytest.raises(KeyError, match=r"^15$"):
         idx.drop(index)
     with pytest.raises(KeyError, match=r"^'two'$"):
         idx.drop(["foo", "two"])
 
     # partially correct argument
     mixed_index = MultiIndex.from_tuples([("qux", "one"), ("bar", "two")])
-    with pytest.raises(KeyError, match=r"^10$"):
+    with pytest.raises(KeyError, match=r"^15$"):
         idx.drop(mixed_index)
 
     # error='ignore'
