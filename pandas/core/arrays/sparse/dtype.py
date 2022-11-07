@@ -413,4 +413,4 @@ class SparseDtype(ExtensionDtype):
             )
 
         np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
-        return SparseDtype(np.find_common_type(np_dtypes, []), fill_value=fill_value)
+        return SparseDtype(np.result_type(*np_dtypes), fill_value=fill_value)

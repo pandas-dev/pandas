@@ -364,14 +364,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
         # TODO: shouldn't we exclude all EA dtypes here?
         numpy_dtypes = {x for x in dtypes if not is_categorical_dtype(x)}
         if len(numpy_dtypes) > 1:
-            # error: Argument 1 to "find_common_type" has incompatible type
-            # "Set[Any]"; expected "Sequence[Union[dtype[Any], None, type,
-            # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
-            # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]]"
-            common_type = np.find_common_type(
-                numpy_dtypes,  # type: ignore[arg-type]
-                [],
-            )
+            common_type = np.result_type(*numpy_dtypes)
             if common_type == np.dtype(object):
                 warning_columns.append(str(name))
 

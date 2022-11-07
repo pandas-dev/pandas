@@ -1517,7 +1517,7 @@ def find_common_type(types):
             if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
                 return np.dtype("object")
 
-    return np.find_common_type(types, [])
+    return np.result_type(*types)
 
 
 def construct_2d_arraylike_from_scalar(
