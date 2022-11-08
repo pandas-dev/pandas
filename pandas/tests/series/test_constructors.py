@@ -96,7 +96,7 @@ class TestSeriesConstructors:
             (lambda idx: Series(data=(_ for _ in []), index=idx), False),  # RangeIndex
         ],
     )
-    @pytest.mark.parametrize("empty_index", [None, None])
+    @pytest.mark.parametrize("empty_index", [None, []])
     def test_empty_constructor(self, constructor, check_index_type, empty_index):
         # TODO: share with frame test of the same name
         # GH 49573 (addition of empty_index parameter)
