@@ -1284,13 +1284,12 @@ cdef class Seen:
 
     @property
     def is_bool(self):
-        return not (self.datetime_ or self.numeric_ or self.timedelta_
-                    or self.nat_)
-
-    @property
-    def is_float_or_complex(self):
-        return not (self.bool_ or self.datetime_ or self.timedelta_
-                    or self.nat_)
+        # i.e. not (anything but bool)
+        return not (
+            self.datetime_ or self.datetimetz_ or self.timedelta_ or self.nat_
+            or self.period_ or self.interval_
+            or self.numeric_ or self.nan_ or self.null_ or self.object_
+        )
 
 
 cdef object _try_infer_map(object dtype):
@@ -2448,8 +2447,6 @@ def maybe_convert_objects(ndarray[object] objects,
         ndarray[int64_t] ints
         ndarray[uint64_t] uints
         ndarray[uint8_t] bools
-        int64_t[::1]  idatetimes
-        int64_t[::1] itimedeltas
         Seen seen = Seen()
         object val
         float64_t fnan = np.nan
@@ -2473,14 +2470,6 @@ def maybe_convert_objects(ndarray[object] objects,
     bools = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_UINT8, 0)
     mask = np.full(n, False)
 
-    if convert_datetime:
-        datetimes = np.empty(n, dtype='M8[ns]')
-        idatetimes = datetimes.view(np.int64)
-
-    if convert_timedelta:
-        timedeltas = np.empty(n, dtype='m8[ns]')
-        itimedeltas = timedeltas.view(np.int64)
-
     for i in range(n):
         val = objects[i]
         if itemsize_max != -1:
@@ -2494,10 +2483,6 @@ def maybe_convert_objects(ndarray[object] objects,
             mask[i] = True
         elif val is NaT:
             seen.nat_ = True
-            if convert_datetime:
-                idatetimes[i] = NPY_NAT
-            if convert_timedelta:
-                itimedeltas[i] = NPY_NAT
             if not (convert_datetime or convert_timedelta or convert_period):
                 seen.object_ = True
                 break
@@ -2515,7 +2500,7 @@ def maybe_convert_objects(ndarray[object] objects,
             if convert_timedelta:
                 seen.timedelta_ = True
                 try:
-                    itimedeltas[i] = convert_to_timedelta64(val, "ns").view("i8")
+                    convert_to_timedelta64(val, "ns")
                 except OutOfBoundsTimedelta:
                     seen.object_ = True
                     break
@@ -2556,8 +2541,7 @@ def maybe_convert_objects(ndarray[object] objects,
                 else:
                     seen.datetime_ = True
                     try:
-                        idatetimes[i] = convert_to_tsobject(
-                            val, None, None, 0, 0).value
+                        convert_to_tsobject(val, None, None, 0, 0)
                     except OutOfBoundsDatetime:
                         seen.object_ = True
                         break
@@ -2683,76 +2667,60 @@ def maybe_convert_objects(ndarray[object] objects,
         else:
             seen.object_ = True
 
+    if seen.bool_:
+        if seen.is_bool:
+            # is_bool property rules out everything else
+            return bools.view(np.bool_)
+        seen.object_ = True
+
     if not seen.object_:
         result = None
         if not safe:
             if seen.null_ or seen.nan_:
-                if seen.is_float_or_complex:
-                    if seen.complex_:
-                        result = complexes
-                    elif seen.float_:
-                        result = floats
-                    elif seen.int_:
-                        if convert_to_nullable_integer:
-                            from pandas.core.arrays import IntegerArray
-                            result = IntegerArray(ints, mask)
-                        else:
-                            result = floats
-                    elif seen.nan_:
-                        result = floats
-            else:
-                if not seen.bool_:
-                    if seen.datetime_:
-                        if not seen.numeric_ and not seen.timedelta_:
-                            result = datetimes
-                    elif seen.timedelta_:
-                        if not seen.numeric_:
-                            result = timedeltas
+                if seen.complex_:
+                    result = complexes
+                elif seen.float_:
+                    result = floats
+                elif seen.int_:
+                    if convert_to_nullable_integer:
+                        from pandas.core.arrays import IntegerArray
+                        result = IntegerArray(ints, mask)
                     else:
-                        if seen.complex_:
-                            result = complexes
-                        elif seen.float_:
-                            result = floats
-                        elif seen.int_:
-                            if seen.uint_:
-                                result = uints
-                            else:
-                                result = ints
-                elif seen.is_bool:
-                    result = bools.view(np.bool_)
+                        result = floats
+                elif seen.nan_:
+                    result = floats
+            else:
+                if seen.complex_:
+                    result = complexes
+                elif seen.float_:
+                    result = floats
+                elif seen.int_:
+                    if seen.uint_:
+                        result = uints
+                    else:
+                        result = ints
 
         else:
             # don't cast int to float, etc.
             if seen.null_:
-                if seen.is_float_or_complex:
-                    if seen.complex_:
-                        if not seen.int_:
-                            result = complexes
-                    elif seen.float_ or seen.nan_:
-                        if not seen.int_:
-                            result = floats
+                if seen.complex_:
+                    if not seen.int_:
+                        result = complexes
+                elif seen.float_ or seen.nan_:
+                    if not seen.int_:
+                        result = floats
             else:
-                if not seen.bool_:
-                    if seen.datetime_:
-                        if not seen.numeric_ and not seen.timedelta_:
-                            result = datetimes
-                    elif seen.timedelta_:
-                        if not seen.numeric_:
-                            result = timedeltas
+                if seen.complex_:
+                    if not seen.int_:
+                        result = complexes
+                elif seen.float_ or seen.nan_:
+                    if not seen.int_:
+                        result = floats
+                elif seen.int_:
+                    if seen.uint_:
+                        result = uints
                     else:
-                        if seen.complex_:
-                            if not seen.int_:
-                                result = complexes
-                        elif seen.float_ or seen.nan_:
-                            if not seen.int_:
-                                result = floats
-                        elif seen.int_:
-                            if seen.uint_:
-                                result = uints
-                            else:
-                                result = ints
-                elif seen.is_bool and not seen.nan_:
-                    result = bools.view(np.bool_)
+                        result = ints
 
         if result is uints or result is ints or result is floats or result is complexes:
             # cast to the largest itemsize when all values are NumPy scalars
