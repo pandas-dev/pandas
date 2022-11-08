@@ -52,6 +52,30 @@ from pandas.core.internals.blocks import NumericBlock
 
 
 class TestSeriesConstructors:
+    def test_infer_with_date_and_datetime(self):
+        # GH#49341 pre-2.0 we inferred datetime-and-date to datetime64, which
+        #  was inconsistent with Index behavior
+        ts = Timestamp(2016, 1, 1)
+        vals = [ts.to_pydatetime(), ts.date()]
+
+        ser = Series(vals)
+        expected = Series(vals, dtype=object)
+        tm.assert_series_equal(ser, expected)
+
+        idx = Index(vals)
+        expected = Index(vals, dtype=object)
+        tm.assert_index_equal(idx, expected)
+
+    def test_unparseable_strings_with_dt64_dtype(self):
+        # pre-2.0 these would be silently ignored and come back with object dtype
+        vals = ["aa"]
+        msg = "Unknown string format: aa present at position 0"
+        with pytest.raises(ValueError, match=msg):
+            Series(vals, dtype="datetime64[ns]")
+
+        with pytest.raises(ValueError, match=msg):
+            Series(np.array(vals, dtype=object), dtype="datetime64[ns]")
+
     @pytest.mark.parametrize(
         "constructor,check_index_type",
         [
@@ -74,9 +98,8 @@ class TestSeriesConstructors:
     )
     def test_empty_constructor(self, constructor, check_index_type):
         # TODO: share with frame test of the same name
-        with tm.assert_produces_warning(FutureWarning):
-            expected = Series()
-            result = constructor()
+        expected = Series()
+        result = constructor()
 
         assert len(result.index) == 0
         tm.assert_series_equal(result, expected, check_index_type=check_index_type)
@@ -119,8 +142,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
 
     def test_constructor(self, datetime_series):
-        with tm.assert_produces_warning(FutureWarning):
-            empty_series = Series()
+        empty_series = Series()
         assert datetime_series.index._is_all_dates
 
         # Pass in Series
@@ -134,11 +156,10 @@ class TestSeriesConstructors:
         # Mixed type Series
         mixed = Series(["hello", np.NaN], index=[0, 1])
         assert mixed.dtype == np.object_
-        assert mixed[1] is np.NaN
+        assert np.isnan(mixed[1])
 
         assert not empty_series.index._is_all_dates
-        with tm.assert_produces_warning(FutureWarning):
-            assert not Series().index._is_all_dates
+        assert not Series().index._is_all_dates
 
         # exception raised is of type ValueError GH35744
         with pytest.raises(ValueError, match="Data must be 1-dimensional"):
@@ -163,9 +184,8 @@ class TestSeriesConstructors:
 
     @pytest.mark.parametrize("input_class", [list, dict, OrderedDict])
     def test_constructor_empty(self, input_class):
-        with tm.assert_produces_warning(FutureWarning):
-            empty = Series()
-            empty2 = Series(input_class())
+        empty = Series()
+        empty2 = Series(input_class())
 
         # these are Index() and RangeIndex() which don't compare type equal
         # but are just .equals
@@ -183,9 +203,8 @@ class TestSeriesConstructors:
 
         if input_class is not list:
             # With index:
-            with tm.assert_produces_warning(FutureWarning):
-                empty = Series(index=range(10))
-                empty2 = Series(input_class(), index=range(10))
+            empty = Series(index=range(10))
+            empty2 = Series(input_class(), index=range(10))
             tm.assert_series_equal(empty, empty2)
 
             # With index and dtype float64:
@@ -217,8 +236,7 @@ class TestSeriesConstructors:
         assert len(result) == 0
 
     def test_constructor_no_data_index_order(self):
-        with tm.assert_produces_warning(FutureWarning):
-            result = Series(index=["b", "a", "c"])
+        result = Series(index=["b", "a", "c"])
         assert result.index.tolist() == ["b", "a", "c"]
 
     def test_constructor_no_data_string_type(self):
@@ -693,8 +711,7 @@ class TestSeriesConstructors:
         assert s._mgr.blocks[0].values is not index
 
     def test_constructor_pass_none(self):
-        with tm.assert_produces_warning(FutureWarning):
-            s = Series(None, index=range(5))
+        s = Series(None, index=range(5))
         assert s.dtype == np.float64
 
         s = Series(None, index=range(5), dtype=object)
@@ -702,9 +719,8 @@ class TestSeriesConstructors:
 
         # GH 7431
         # inference on the index
-        with tm.assert_produces_warning(FutureWarning):
-            s = Series(index=np.array([None]))
-            expected = Series(index=Index([None]))
+        s = Series(index=np.array([None]))
+        expected = Series(index=Index([None]))
         tm.assert_series_equal(s, expected)
 
     def test_constructor_pass_nan_nat(self):
@@ -1963,8 +1979,6 @@ class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
-        with tm.assert_produces_warning(FutureWarning):
-            assert ser.index.is_all_dates
         # as of 2.0, we no longer silently cast the object-dtype index
         #  to DatetimeIndex GH#39307, GH#23598
         assert not isinstance(ser.index, DatetimeIndex)

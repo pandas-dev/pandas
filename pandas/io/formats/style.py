@@ -16,13 +16,11 @@ from typing import (
     Sequence,
     overload,
 )
-import warnings
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import lib
 from pandas._typing import (
     Axis,
     AxisInt,
@@ -39,7 +37,6 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 from pandas import (
@@ -270,8 +267,6 @@ class Styler(StylerRenderer):
         formatter = formatter or get_option("styler.format.formatter")
         # precision is handled by superclass as default for performance
 
-        self.precision = precision  # can be removed on set_precision depr cycle
-        self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
         self.format(
             formatter=formatter,
             precision=precision,
@@ -389,72 +384,6 @@ class Styler(StylerRenderer):
         if get_option("styler.render.repr") == "latex":
             return self.to_latex()
         return None
-
-    def render(
-        self,
-        sparse_index: bool | None = None,
-        sparse_columns: bool | None = None,
-        **kwargs,
-    ) -> str:
-        """
-        Render the ``Styler`` including all applied styles to HTML.
-
-        .. deprecated:: 1.4.0
-
-        Parameters
-        ----------
-        sparse_index : bool, optional
-            Whether to sparsify the display of a hierarchical index. Setting to False
-            will display each explicit level element in a hierarchical key for each row.
-            Defaults to ``pandas.options.styler.sparse.index`` value.
-        sparse_columns : bool, optional
-            Whether to sparsify the display of a hierarchical index. Setting to False
-            will display each explicit level element in a hierarchical key for each row.
-            Defaults to ``pandas.options.styler.sparse.columns`` value.
-        **kwargs
-            Any additional keyword arguments are passed
-            through to ``self.template.render``.
-            This is useful when you need to provide
-            additional variables for a custom template.
-
-        Returns
-        -------
-        rendered : str
-            The rendered HTML.
-
-        Notes
-        -----
-        This method is deprecated in favour of ``Styler.to_html``.
-
-        Styler objects have defined the ``_repr_html_`` method
-        which automatically calls ``self.to_html()`` when it's the
-        last item in a Notebook cell.
-
-        When calling ``Styler.render()`` directly, wrap the result in
-        ``IPython.display.HTML`` to view the rendered HTML in the notebook.
-
-        Pandas uses the following keys in render. Arguments passed
-        in ``**kwargs`` take precedence, so think carefully if you want
-        to override them:
-
-        * head
-        * cellstyle
-        * body
-        * uuid
-        * table_styles
-        * caption
-        * table_attributes
-        """
-        warnings.warn(
-            "this method is deprecated in favour of `Styler.to_html()`",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        if sparse_index is None:
-            sparse_index = get_option("styler.sparse.index")
-        if sparse_columns is None:
-            sparse_columns = get_option("styler.sparse.columns")
-        return self._render_html(sparse_index, sparse_columns, **kwargs)
 
     def set_tooltips(
         self,
@@ -2063,108 +1992,6 @@ class Styler(StylerRenderer):
         )
         return self
 
-    @Substitution(subset=subset)
-    def where(
-        self,
-        cond: Callable,
-        value: str,
-        other: str | None = None,
-        subset: Subset | None = None,
-        **kwargs,
-    ) -> Styler:
-        """
-        Apply CSS-styles based on a conditional function elementwise.
-
-        .. deprecated:: 1.3.0
-
-        Updates the HTML representation with a style which is
-        selected in accordance with the return value of a function.
-
-        Parameters
-        ----------
-        cond : callable
-            ``cond`` should take a scalar, and optional keyword arguments, and return
-            a boolean.
-        value : str
-            Applied when ``cond`` returns true.
-        other : str
-            Applied when ``cond`` returns false.
-        %(subset)s
-        **kwargs : dict
-            Pass along to ``cond``.
-
-        Returns
-        -------
-        self : Styler
-
-        See Also
-        --------
-        Styler.applymap: Apply a CSS-styling function elementwise.
-        Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
-
-        Notes
-        -----
-        This method is deprecated.
-
-        This method is a convenience wrapper for :meth:`Styler.applymap`, which we
-        recommend using instead.
-
-        The example:
-
-        >>> df = pd.DataFrame([[1, 2], [3, 4]])
-        >>> def cond(v, limit=4):
-        ...     return v > 1 and v != limit
-        >>> df.style.where(cond, value='color:green;', other='color:red;')
-        ...  # doctest: +SKIP
-
-        should be refactored to:
-
-        >>> def style_func(v, value, other, limit=4):
-        ...     cond = v > 1 and v != limit
-        ...     return value if cond else other
-        >>> df.style.applymap(style_func, value='color:green;', other='color:red;')
-        ...  # doctest: +SKIP
-        """
-        warnings.warn(
-            "this method is deprecated in favour of `Styler.applymap()`",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        if other is None:
-            other = ""
-
-        return self.applymap(
-            lambda val: value if cond(val, **kwargs) else other,
-            subset=subset,
-        )
-
-    def set_precision(self, precision: int) -> StylerRenderer:
-        """
-        Set the precision used to display values.
-
-        .. deprecated:: 1.3.0
-
-        Parameters
-        ----------
-        precision : int
-
-        Returns
-        -------
-        self : Styler
-
-        Notes
-        -----
-        This method is deprecated see `Styler.format`.
-        """
-        warnings.warn(
-            "this method is deprecated in favour of `Styler.format(precision=..)`",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        self.precision = precision
-        return self.format(precision=precision, na_rep=self.na_rep)
-
     def set_table_attributes(self, attributes: str) -> Styler:
         """
         Set the table attributes added to the ``<table>`` HTML element.
@@ -2649,140 +2476,6 @@ class Styler(StylerRenderer):
             self.table_styles = table_styles
         return self
 
-    def set_na_rep(self, na_rep: str) -> StylerRenderer:
-        """
-        Set the missing data representation on a ``Styler``.
-
-        .. versionadded:: 1.0.0
-
-        .. deprecated:: 1.3.0
-
-        Parameters
-        ----------
-        na_rep : str
-
-        Returns
-        -------
-        self : Styler
-
-        Notes
-        -----
-        This method is deprecated. See `Styler.format()`
-        """
-        warnings.warn(
-            "this method is deprecated in favour of `Styler.format(na_rep=..)`",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        self.na_rep = na_rep
-        return self.format(na_rep=na_rep, precision=self.precision)
-
-    def hide_index(
-        self,
-        subset: Subset | None = None,
-        level: Level | list[Level] | None = None,
-        names: bool = False,
-    ) -> Styler:
-        """
-        Hide the entire index, or specific keys in the index from rendering.
-
-        This method has dual functionality:
-
-          - if ``subset`` is ``None`` then the entire index, or specified levels, will
-            be hidden whilst displaying all data-rows.
-          - if a ``subset`` is given then those specific rows will be hidden whilst the
-            index itself remains visible.
-
-        .. versionchanged:: 1.3.0
-
-        .. deprecated:: 1.4.0
-           This method should be replaced by ``hide(axis="index", **kwargs)``
-
-        Parameters
-        ----------
-        subset : label, array-like, IndexSlice, optional
-            A valid 1d input or single key along the index axis within
-            `DataFrame.loc[<subset>, :]`, to limit ``data`` to *before* applying
-            the function.
-        level : int, str, list
-            The level(s) to hide in a MultiIndex if hiding the entire index. Cannot be
-            used simultaneously with ``subset``.
-
-            .. versionadded:: 1.4.0
-        names : bool
-            Whether to hide the index name(s), in the case the index or part of it
-            remains visible.
-
-            .. versionadded:: 1.4.0
-
-        Returns
-        -------
-        self : Styler
-
-        See Also
-        --------
-        Styler.hide: Hide the entire index / columns, or specific rows / columns.
-        """
-        warnings.warn(
-            'this method is deprecated in favour of `Styler.hide(axis="index")`',
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.hide(axis="index", level=level, subset=subset, names=names)
-
-    def hide_columns(
-        self,
-        subset: Subset | None = None,
-        level: Level | list[Level] | None = None,
-        names: bool = False,
-    ) -> Styler:
-        """
-        Hide the column headers or specific keys in the columns from rendering.
-
-        This method has dual functionality:
-
-          - if ``subset`` is ``None`` then the entire column headers row, or
-            specific levels, will be hidden whilst the data-values remain visible.
-          - if a ``subset`` is given then those specific columns, including the
-            data-values will be hidden, whilst the column headers row remains visible.
-
-        .. versionchanged:: 1.3.0
-
-        ..deprecated:: 1.4.0
-          This method should be replaced by ``hide(axis="columns", **kwargs)``
-
-        Parameters
-        ----------
-        subset : label, array-like, IndexSlice, optional
-            A valid 1d input or single key along the columns axis within
-            `DataFrame.loc[:, <subset>]`, to limit ``data`` to *before* applying
-            the function.
-        level : int, str, list
-            The level(s) to hide in a MultiIndex if hiding the entire column headers
-            row. Cannot be used simultaneously with ``subset``.
-
-            .. versionadded:: 1.4.0
-        names : bool
-            Whether to hide the column index name(s), in the case all column headers,
-            or some levels, are visible.
-
-            .. versionadded:: 1.4.0
-
-        Returns
-        -------
-        self : Styler
-
-        See Also
-        --------
-        Styler.hide: Hide the entire index / columns, or specific rows / columns.
-        """
-        warnings.warn(
-            'this method is deprecated in favour of `Styler.hide(axis="columns")`',
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.hide(axis="columns", level=level, subset=subset, names=names)
-
     def hide(
         self,
         subset: Subset | None = None,
@@ -3209,7 +2902,7 @@ class Styler(StylerRenderer):
         return self.applymap(lambda x: values, subset=subset)
 
     @Substitution(subset=subset)
-    def bar(
+    def bar(  # pylint: disable=disallowed-name
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,
@@ -3309,7 +3002,7 @@ class Styler(StylerRenderer):
 
         if not 0 <= width <= 100:
             raise ValueError(f"`width` must be a value in [0, 100], got {width}")
-        elif not 0 <= height <= 100:
+        if not 0 <= height <= 100:
             raise ValueError(f"`height` must be a value in [0, 100], got {height}")
 
         if subset is None:
@@ -3334,10 +3027,9 @@ class Styler(StylerRenderer):
     @Substitution(subset=subset, props=props, color=color.format(default="red"))
     def highlight_null(
         self,
-        color: str | None = None,
+        color: str = "red",
         subset: Subset | None = None,
         props: str | None = None,
-        null_color: str | lib.NoDefault = lib.no_default,
     ) -> Styler:
         """
         Highlight missing values with a style.
@@ -3356,13 +3048,6 @@ class Styler(StylerRenderer):
 
             .. versionadded:: 1.3.0
 
-        null_color : str, default None
-            The background color for highlighting.
-
-            .. deprecated:: 1.5.0
-               Use ``color`` instead. If ``color`` is given ``null_color`` is
-               not used.
-
         Returns
         -------
         self : Styler
@@ -3378,17 +3063,6 @@ class Styler(StylerRenderer):
         def f(data: DataFrame, props: str) -> np.ndarray:
             return np.where(pd.isna(data).to_numpy(), props, "")
 
-        if null_color != lib.no_default:
-            warnings.warn(
-                "`null_color` is deprecated: use `color` instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        if color is None and null_color == lib.no_default:
-            color = "red"
-        elif color is None and null_color != lib.no_default:
-            color = null_color
         if props is None:
             props = f"background-color: {color};"
         return self.apply(f, axis=None, subset=subset, props=props)
@@ -3886,12 +3560,12 @@ def _validate_apply_axis_arg(
             f"'{arg_name}' is a Series but underlying data for operations "
             f"is a DataFrame since 'axis=None'"
         )
-    elif isinstance(arg, DataFrame) and isinstance(data, Series):
+    if isinstance(arg, DataFrame) and isinstance(data, Series):
         raise ValueError(
             f"'{arg_name}' is a DataFrame but underlying data for "
             f"operations is a Series with 'axis in [0,1]'"
         )
-    elif isinstance(arg, (Series, DataFrame)):  # align indx / cols to data
+    if isinstance(arg, (Series, DataFrame)):  # align indx / cols to data
         arg = arg.reindex_like(data, method=None).to_numpy(**dtype)
     else:
         arg = np.asarray(arg, **dtype)
@@ -3930,15 +3604,11 @@ def _background_gradient(
         rng = smax - smin
         # extend lower / upper bounds, compresses color range
         norm = mpl.colors.Normalize(smin - (rng * low), smax + (rng * high))
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
 
-        if mpl_ge_3_6_0():
-            if cmap is None:
-                rgbas = mpl.colormaps[mpl.rcParams["image.cmap"]](norm(gmap))
-            else:
-                rgbas = mpl.colormaps[cmap](norm(gmap))
+        if cmap is None:
+            rgbas = mpl.colormaps[mpl.rcParams["image.cmap"]](norm(gmap))
         else:
-            rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
+            rgbas = mpl.colormaps.get_cmap(cmap)(norm(gmap))
 
         def relative_luminance(rgba) -> float:
             """
@@ -4217,10 +3887,8 @@ def _bar(
     if cmap is not None:
         # use the matplotlib colormap input
         with _mpl(Styler.bar) as (plt, mpl):
-            from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
-
             cmap = (
-                (mpl.colormaps[cmap] if mpl_ge_3_6_0() else mpl.cm.get_cmap(cmap))
+                mpl.colormaps[cmap]
                 if isinstance(cmap, str)
                 else cmap  # assumed to be a Colormap instance as documented
             )
