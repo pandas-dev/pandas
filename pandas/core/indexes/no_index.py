@@ -53,6 +53,7 @@ class NoIndex(RangeIndex):
 
         if not com.is_bool_indexer(key):
             raise IndexError("Cannot use label-based indexing on NoIndex!")
+        return super().get_loc(key, method, tolerance)
 
     @property
     def _constructor(self):  # type: ignore[override]
