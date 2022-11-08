@@ -168,35 +168,11 @@ class TestDataFrameUpdate:
             tm.assert_frame_equal(result_view, expected)
 
     def test_update_dt_column_with_NaT_create_column(self):
-        df = DataFrame(
-            {
-                "A": [1, None],
-                "B": [
-                    pd.NaT,
-                    pd.to_datetime("2016-01-01"),
-                ],
-            }
-        )
+        # GH#16713
+        df = DataFrame({"A": [1, None], "B": [pd.NaT, pd.to_datetime("2016-01-01")]})
         df2 = DataFrame({"A": [2, 3]})
-
         df.update(df2, overwrite=False)
-
         expected = DataFrame(
             {"A": [1.0, 3.0], "B": [pd.NaT, pd.to_datetime("2016-01-01")]}
         )
-
-        tm.assert_frame_equal(df, expected)
-
-    def test_update_dt_column_with_NaT_create_row(self):
-
-        df = DataFrame({"A": [1, None], "B": [pd.to_datetime("2017-1-1"), pd.NaT]})
-
-        df2 = DataFrame({"A": [2], "B": [pd.to_datetime("2016-01-01")]})
-
-        df.update(df2, overwrite=False)
-
-        expected = DataFrame(
-            {"A": [1, None], "B": [pd.to_datetime("2017-1-1"), pd.NaT]}
-        )
-
         tm.assert_frame_equal(df, expected)
