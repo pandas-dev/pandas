@@ -142,8 +142,8 @@ interval_dtypes = [
 ]
 
 
-@pytest.mark.parametrize("left", interval_dtypes)
-@pytest.mark.parametrize("right", interval_dtypes)
+@pytest.mark.parametrize("left", interval_dtypes, ids=repr)
+@pytest.mark.parametrize("right", interval_dtypes, ids=repr)
 def test_interval_dtype(left, right):
     result = find_common_type([left, right])
 
