@@ -434,6 +434,7 @@ Removal of prior version deprecations/changes
 - Disallow passing abbreviations for ``orient`` in :meth:`DataFrame.to_dict` (:issue:`32516`)
 - Removed ``get_offset`` in favor of :func:`to_offset` (:issue:`30340`)
 - Removed the ``warn`` keyword in :func:`infer_freq` (:issue:`45947`)
+- Removed the ``include_start`` and ``include_end`` arguments in :meth:`DataFrame.between_time` in favor of ``inclusive`` (:issue:`43248`)
 - Removed the ``center`` keyword in :meth:`DataFrame.expanding` (:issue:`20647`)
 - Removed the ``truediv`` keyword from :func:`eval` (:issue:`29812`)
 - Removed the ``pandas.datetime`` submodule (:issue:`30489`)
