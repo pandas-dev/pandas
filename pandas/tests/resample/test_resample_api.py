@@ -99,11 +99,7 @@ def test_groupby_resample_on_api():
 
 def test_resample_group_keys():
     df = DataFrame({"A": 1, "B": 2}, index=date_range("2000", periods=10))
-    g = df.resample("5D")
     expected = df.copy()
-    with tm.assert_produces_warning(FutureWarning, match="Not prepending group keys"):
-        result = g.apply(lambda x: x)
-    tm.assert_frame_equal(result, expected)
 
     # no warning
     g = df.resample("5D", group_keys=False)
@@ -115,6 +111,10 @@ def test_resample_group_keys():
     expected.index = pd.MultiIndex.from_arrays(
         [pd.to_datetime(["2000-01-01", "2000-01-06"]).repeat(5), expected.index]
     )
+
+    g = df.resample("5D")
+    result = g.apply(lambda x: x)
+    tm.assert_frame_equal(result, expected)
 
     g = df.resample("5D", group_keys=True)
     with tm.assert_produces_warning(None):
