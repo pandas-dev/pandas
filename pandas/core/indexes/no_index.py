@@ -89,3 +89,18 @@ class NoIndex(RangeIndex):
         raise NotImplementedError(
             "Can't reindex a DataFrame without an index. First, give it an index."
         )
+
+    def join(
+        self,
+        other,
+        *,
+        how: str = "left",
+        level=None,
+        return_indexers: bool = False,
+        sort: bool = False,
+    ) -> NoIndex:
+        if not isinstance(other, NoIndex):
+            raise TypeError("Can't join NoIndex with Index")
+        if not len(self) == len(other):
+            raise TypeError("Can't join NoIndex of different lengths")
+        return super().join(other, how=how, return_indexers=return_indexers, sort=sort)

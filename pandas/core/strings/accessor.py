@@ -846,7 +846,6 @@ class StringMethods(NoNewAttributesMixin):
         expand: bool = False,
         regex: bool | None = None,
     ):
-        breakpoint()
         if regex is False and is_re(pat):
             raise ValueError(
                 "Cannot use a compiled regex as replacement pattern with regex=False"

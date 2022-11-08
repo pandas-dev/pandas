@@ -1686,8 +1686,8 @@ class TextFileReader(abc.Iterator):
                     # Any column is actually fine:
                     new_rows = len(next(iter(col_dict.values())))
                     from pandas.core.indexes.no_index import NoIndex
-                    if False:
-                        index = default_index(self._currow, self._currow + new_rows)
+                    if get_option('mode.no_default_index'):
+                        index = RangeIndex(self._currow, self._currow + new_rows)
                     else:
                         index = NoIndex(new_rows)
                 else:

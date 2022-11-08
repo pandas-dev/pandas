@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.common import ensure_platform_int
+from pandas._config import set_option, get_option, option_context
 
 import pandas as pd
 from pandas import (
@@ -45,68 +46,111 @@ F64 = Float64Index
 OI = Index
 
 
-class TestNoIndex(TestRangeIndex):
-    _index_cls = NoIndex
+# class TestNoIndex(TestRangeIndex):
+#     _index_cls = NoIndex
 
 
 @pytest.fixture
 def ser1():
-    yield pd.Series([1, 2, 3])
+    with option_context("mode.no_default_index", True):
+        res = pd.Series([1, 2, 3])
+    return res
+
+
+@pytest.fixture
+def ser2():
+    with option_context("mode.no_default_index", True):
+        res = pd.Series([4, 5, 6])
+    return res
+
+
+@pytest.fixture
+def df1():
+    with option_context("mode.no_default_index", True):
+        res = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    return res
+
+
+@pytest.fixture
+def df2():
+    with option_context("mode.no_default_index", True):
+        res = pd.DataFrame({"a": [6, 5, 4], "b": [1, 4, 2]})
+    return res
 
 
 def test_boolean_mask(ser1):
-    # we need to register an option here...
     mask = ser1 > 1
     result = ser1[mask]
     expected = pd.Series([2, 3], index=NoIndex(2))
+    tm.assert_series_equal(result, expected)
 
-    # ser1[mask] = 2
-    # print(ser1)
+    ser1[mask] = 4
+    expected = pd.Series([1, 4, 4], index=NoIndex(3))
+    tm.assert_series_equal(ser1, expected)
 
-    # df = pd.DataFrame({'a': [1,2,3]})
-    # try:
-    #     df.loc[0, 'a']  # raise!
-    # except TypeError as err:
-    #     print('error!')
-    #     print(repr(err))
-    #     pass
-    # else:
-    #     print('fail')
-    # try:
-    #     df.loc[0]  # raise!
-    # except TypeError as err:
-    #     print('error!')
-    #     print(repr(err))
-    #     pass
-    # else:
-    #     print('fail')
-    # print(df.loc[:, 'a'])  # work
-    # print()
-    # mask = df['a'] > 2
-    # print(df.loc[mask])
-    # print()
-    # print(df.loc[df['a']>2, 'a'])  # work!
 
-    # print(df.iloc[1:]) # work!
+def test_join(ser1, ser2, df1, df2):
+    result = df1.join(df2, lsuffix="_df1")
+    expected = pd.DataFrame(
+        {
+            "a_df1": [1, 2, 3],
+            "b_df1": [1, 2, 3],
+            "a": [6, 5, 4],
+            "b": [1, 4, 2],
+        },
+        index=NoIndex(3),
+    )
 
-    # try:
-    #     _sum =df + df.iloc[1:]
-    # except TypeError as err:
-    #     print(repr(err))
-    # else:
-    #     print('fail')
 
-    # df = pd.read_csv(io.StringIO('data\n1\n'))
-    # print(df.index)
-    # df = pd.DataFrame({'a': [1,2,3]*50})
-    # repr(df)
-    # print(df)
+# def test_loc(ser1):
 
-    # df = DataFrame({'a': [1,2,3]})
-    # concatted = pd.concat([df, df])
-    # print(concatted.index)
-    # print(concatted)
+# ser1[mask] = 2
+# print(ser1)
 
-    # print(df.merge(df, on='a'))
+# df = pd.DataFrame({'a': [1,2,3]})
+# try:
+#     df.loc[0, 'a']  # raise!
+# except TypeError as err:
+#     print('error!')
+#     print(repr(err))
+#     pass
+# else:
+#     print('fail')
+# try:
+#     df.loc[0]  # raise!
+# except TypeError as err:
+#     print('error!')
+#     print(repr(err))
+#     pass
+# else:
+#     print('fail')
+# print(df.loc[:, 'a'])  # work
+# print()
+# mask = df['a'] > 2
+# print(df.loc[mask])
+# print()
+# print(df.loc[df['a']>2, 'a'])  # work!
 
-    # pd.DataFrame([[1, 2, 3]])
+# print(df.iloc[1:]) # work!
+
+# try:
+#     _sum =df + df.iloc[1:]
+# except TypeError as err:
+#     print(repr(err))
+# else:
+#     print('fail')
+
+# df = pd.read_csv(io.StringIO('data\n1\n'))
+# print(df.index)
+# df = pd.DataFrame({'a': [1,2,3]*50})
+# repr(df)
+# print(df)
+
+# df = DataFrame({'a': [1,2,3]})
+# concatted = pd.concat([df, df])
+# print(concatted.index)
+# print(concatted)
+
+# print(df.merge(df, on='a'))
+
+# pd.DataFrame([[1, 2, 3]])

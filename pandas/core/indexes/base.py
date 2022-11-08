@@ -4388,13 +4388,6 @@ class Index(IndexOpsMixin, PandasObject):
         join_index, (left_indexer, right_indexer)
         """
         other = ensure_index(other)
-        from pandas.core.indexes.no_index import NoIndex
-
-        if isinstance(self, NoIndex) ^ isinstance(other, NoIndex):
-            raise TypeError("Can't join NoIndex with Index")
-        if isinstance(self, NoIndex) and isinstance(other, NoIndex):
-            if not len(self) == len(other):
-                raise TypeError("Can't join NoIndex of different lengths")
 
         if isinstance(self, ABCDatetimeIndex) and isinstance(other, ABCDatetimeIndex):
             if (self.tz is None) ^ (other.tz is None):
