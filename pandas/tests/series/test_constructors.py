@@ -101,6 +101,36 @@ class TestSeriesConstructors:
         expected = Series()
         result = constructor()
 
+        assert result.dtype == object
+        assert len(result.index) == 0
+        tm.assert_series_equal(result, expected, check_index_type=check_index_type)
+
+    @pytest.mark.parametrize(
+        "constructor,check_index_type",
+        [
+            # NOTE: some overlap with test_constructor_empty but that test does not
+            # test for None or an empty generator.
+            # test_constructor_pass_none tests None but only with the index also
+            # passed.
+            (lambda: Series(index=[]), True),
+            (lambda: Series(None, index=[]), True),
+            (lambda: Series({}, index=[]), True),
+            (lambda: Series((), index=[]), False),  # creates a RangeIndex
+            (lambda: Series([], index=[]), False),  # creates a RangeIndex
+            (lambda: Series((_ for _ in []), index=[]), False),  # creates a RangeIndex
+            (lambda: Series(data=None, index=[]), True),
+            (lambda: Series(data={}, index=[]), True),
+            (lambda: Series(data=(), index=[]), False),  # creates a RangeIndex
+            (lambda: Series(data=[], index=[]), False),  # creates a RangeIndex
+            (lambda: Series(data=(_ for _ in []), index=[]), False),  # RangeIndex
+        ],
+    )
+    def test_empty_constructor_with_index(self, constructor, check_index_type):
+        # GH 49573
+        expected = Series()
+        result = constructor()
+
+        assert result.dtype == object
         assert len(result.index) == 0
         tm.assert_series_equal(result, expected, check_index_type=check_index_type)
 
