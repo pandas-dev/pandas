@@ -511,7 +511,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
-            if len(index):
+            if len(index) or dtype is not None:
                 values = na_value_for_dtype(pandas_dtype(dtype), compat=False)
             else:
                 values = []
