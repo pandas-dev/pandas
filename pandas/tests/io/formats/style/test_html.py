@@ -841,9 +841,10 @@ def test_concat(styler):
 
 
 def test_concat_recursion(styler):
+    df = styler.data
     styler1 = styler
-    styler2 = styler.data.agg(["mean"]).style
-    styler3 = styler.data.agg(["mean"]).style
+    styler2 = Styler(df.agg(["mean"]), uuid_len=0, precision=3)
+    styler3 = Styler(df.agg(["mean"]), uuid_len=0, precision=4)
     styler1.concat(styler2.concat(styler3)).set_uuid("X")
     result = styler.to_html()
     # notice that the second concat (last <tr> of the output html),
@@ -857,11 +858,11 @@ def test_concat_recursion(styler):
     </tr>
     <tr>
       <th id="T_X_level0_foot_row0" class="foot_row_heading level0 foot_row0" >mean</th>
-      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.650000</td>
+      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.650</td>
     </tr>
     <tr>
       <th id="T_X_level0_{s}_row0" class="{s}_row_heading level0 {s}_row0" >mean</th>
-      <td id="T_X_{s}_row0_col0" class="{s}_data {s}_row0 col0" >2.650000</td>
+      <td id="T_X_{s}_row0_col0" class="{s}_data {s}_row0 col0" >2.6500</td>
     </tr>
   </tbody>
 </table>
@@ -871,9 +872,10 @@ def test_concat_recursion(styler):
 
 
 def test_concat_chain(styler):
+    df = styler.data
     styler1 = styler
-    styler2 = styler.data.agg(["mean"]).style
-    styler3 = styler.data.agg(["mean"]).style
+    styler2 = Styler(df.agg(["mean"]), uuid_len=0, precision=3)
+    styler3 = Styler(df.agg(["mean"]), uuid_len=0, precision=4)
     styler1.concat(styler2).concat(styler3).set_uuid("X")
     result = styler.to_html()
     expected = dedent(
@@ -884,11 +886,11 @@ def test_concat_chain(styler):
     </tr>
     <tr>
       <th id="T_X_level0_foot_row0" class="foot_row_heading level0 foot_row0" >mean</th>
-      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.650000</td>
+      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.650</td>
     </tr>
     <tr>
       <th id="T_X_level0_foot_row0" class="foot_row_heading level0 foot_row0" >mean</th>
-      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.650000</td>
+      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.6500</td>
     </tr>
   </tbody>
 </table>
