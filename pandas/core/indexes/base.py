@@ -89,6 +89,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
+    is_complex_dtype,
     is_dtype_equal,
     is_ea_or_datetimelike_dtype,
     is_extension_array_dtype,
@@ -1044,7 +1045,11 @@ class Index(IndexOpsMixin, PandasObject):
             # this block is needed so e.g. NumericIndex[int8].astype("int32") returns
             # NumericIndex[int32] and not Int64Index with dtype int64.
             # When Int64Index etc. are removed from the code base, removed this also.
-            if isinstance(dtype, np.dtype) and is_numeric_dtype(dtype):
+            if (
+                isinstance(dtype, np.dtype)
+                and is_numeric_dtype(dtype)
+                and not is_complex_dtype(dtype)
+            ):
                 return self._constructor(
                     new_values, name=self.name, dtype=dtype, copy=False
                 )
