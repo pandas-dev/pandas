@@ -3729,7 +3729,9 @@ class MultiIndex(Index):
     @doc(Index.isin)
     def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
         if level is None:
-            return MultiIndex.from_tuples(algos.unique(values)).get_indexer(self) != -1
+            if not isinstance(values, MultiIndex):
+                values = MultiIndex.from_tuples(values)
+            return values.unique().get_indexer_for(self) != -1
         else:
             num = self._get_level_number(level)
             levs = self.get_level_values(num)
