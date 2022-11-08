@@ -1192,17 +1192,15 @@ def maybe_infer_to_datetimelike(
     if not isinstance(value, np.ndarray) or value.dtype != object:
         # Caller is responsible for passing only ndarray[object]
         raise TypeError(type(value))  # pragma: no cover
+    if value.ndim != 1:
+        # Caller is responsible
+        raise ValueError(value.ndim)  # pragma: no cover
 
-    v = np.array(value, copy=False)
-
-    if v.ndim != 1:
-        v = v.ravel()
-
-    if not len(v):
+    if not len(value):
         return value
 
     out = lib.maybe_convert_objects(
-        v,
+        value,
         convert_period=True,
         convert_interval=True,
         convert_timedelta=True,
@@ -1213,7 +1211,7 @@ def maybe_infer_to_datetimelike(
         # Here we do not convert numeric dtypes, as if we wanted that,
         #  numpy would have done it for us.
         #  See also _maybe_cast_data_without_dtype
-        return v
+        return value
     # Incompatible return value type (got "Union[ExtensionArray, ndarray[Any, Any]]",
     # expected "Union[ndarray[Any, Any], DatetimeArray, TimedeltaArray, PeriodArray,
     # IntervalArray]")
