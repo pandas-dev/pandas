@@ -44,7 +44,7 @@ from pandas.core.computation.parsing import (
 )
 from pandas.core.computation.scope import Scope
 
-import pandas.io.formats.printing as printing
+from pandas.io.formats import printing
 
 
 def _rewrite_assign(tok: tuple[int, str]) -> tuple[int, str]:
@@ -410,7 +410,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     e.msg = "Python keyword not valid identifier in numexpr query"
                 raise e
 
-        method = "visit_" + type(node).__name__
+        method = f"visit_{type(node).__name__}"
         visitor = getattr(self, method)
         return visitor(node, **kwargs)
 

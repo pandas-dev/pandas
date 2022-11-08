@@ -325,7 +325,11 @@ def get_start_end_field(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_date_field(const int64_t[:] dtindex, str field, NPY_DATETIMEUNIT reso=NPY_FR_ns):
+def get_date_field(
+    const int64_t[:] dtindex,
+    str field,
+    NPY_DATETIMEUNIT reso=NPY_FR_ns,
+):
     """
     Given a int64-based datetime index, extract the year, month, etc.,
     field and return an array of these values.

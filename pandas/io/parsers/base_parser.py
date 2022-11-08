@@ -5,7 +5,6 @@ from copy import copy
 import csv
 import datetime
 from enum import Enum
-import inspect
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -27,9 +26,11 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import (
+    lib,
+    parsers,
+)
 import pandas._libs.ops as libops
-import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
 from pandas._typing import (
@@ -79,8 +80,6 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.date_converters import generic_parser
-
 if TYPE_CHECKING:
     from pandas import DataFrame
 
@@ -98,7 +97,6 @@ class ParserBase:
 
         self.names = kwds.get("names")
         self.orig_names: list | None = None
-        self.prefix = kwds.pop("prefix", None)
 
         self.index_col = kwds.get("index_col", None)
         self.unnamed_cols: set = set()
@@ -156,11 +154,6 @@ class ParserBase:
                         "index_col must only contain row numbers "
                         "when specifying a multi-index header"
                     )
-        elif self.header is not None and self.prefix is not None:
-            # GH 27394
-            raise ValueError(
-                "Argument prefix must be None if argument header is not None"
-            )
 
         self._name_processed = False
 
@@ -569,7 +562,7 @@ class ParserBase:
                             f"for column {c} - only the converter will be used."
                         ),
                         ParserWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        stacklevel=find_stack_level(),
                     )
 
                 try:
@@ -777,7 +770,10 @@ class ParserBase:
                     bool_mask = np.zeros(result.shape, dtype=np.bool_)
                 result = BooleanArray(result, bool_mask)
             elif result.dtype == np.object_ and use_nullable_dtypes:
-                result = StringDtype().construct_array_type()._from_sequence(values)
+                # read_excel sends array of datetime objects
+                inferred_type = lib.infer_datetimelike_array(result)
+                if inferred_type != "datetime":
+                    result = StringDtype().construct_array_type()._from_sequence(values)
 
         return result, na_count
 
@@ -907,7 +903,7 @@ class ParserBase:
                 "Length of header or names does not match length of data. This leads "
                 "to a loss of data with index_col=False.",
                 ParserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
     @overload
@@ -1136,17 +1132,14 @@ def _make_date_converter(
                     raise Exception("scalar parser")
                 return result
             except Exception:
-                try:
-                    return tools.to_datetime(
-                        parsing.try_parse_dates(
-                            parsing.concat_date_cols(date_cols),
-                            parser=date_parser,
-                            dayfirst=dayfirst,
-                        ),
-                        errors="ignore",
-                    )
-                except Exception:
-                    return generic_parser(date_parser, *date_cols)
+                return tools.to_datetime(
+                    parsing.try_parse_dates(
+                        parsing.concat_date_cols(date_cols),
+                        parser=date_parser,
+                        dayfirst=dayfirst,
+                    ),
+                    errors="ignore",
+                )
 
     return converter
 
@@ -1162,7 +1155,6 @@ parser_defaults = {
     "header": "infer",
     "index_col": None,
     "names": None,
-    "prefix": None,
     "skiprows": None,
     "skipfooter": 0,
     "nrows": None,
@@ -1186,15 +1178,12 @@ parser_defaults = {
     "chunksize": None,
     "verbose": False,
     "encoding": None,
-    "squeeze": None,
     "compression": None,
     "mangle_dupe_cols": True,
     "infer_datetime_format": False,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
     "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
-    "error_bad_lines": None,
-    "warn_bad_lines": None,
     "use_nullable_dtypes": False,
 }
 

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import inspect
 from typing import (
     Callable,
     Hashable,
 )
-import warnings
 
 import numpy as np
 
@@ -21,7 +19,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_dtype_equal,
@@ -234,10 +231,7 @@ class NumericIndex(Index):
         return super()._convert_slice_indexer(key, kind=kind, is_frame=is_frame)
 
     @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
-        assert kind in ["loc", "getitem", None, lib.no_default]
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
-
+    def _maybe_cast_slice_bound(self, label, side: str):
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
 
@@ -260,11 +254,11 @@ class NumericIndex(Index):
                     f"tolerance argument for {type(self).__name__} must contain "
                     "numeric elements if it is list type"
                 )
-            else:
-                raise ValueError(
-                    f"tolerance argument for {type(self).__name__} must be numeric "
-                    f"if it is a scalar: {repr(tolerance)}"
-                )
+
+            raise ValueError(
+                f"tolerance argument for {type(self).__name__} must be numeric "
+                f"if it is a scalar: {repr(tolerance)}"
+            )
         return tolerance
 
     @classmethod
@@ -359,16 +353,6 @@ class IntegerIndex(NumericIndex):
     """
 
     _is_backward_compat_public_numeric_index: bool = False
-
-    @property
-    def asi8(self) -> npt.NDArray[np.int64]:
-        # do not cache or you'll create a memory leak
-        warnings.warn(
-            "Index.asi8 is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self._values.view(self._default_dtype)
 
 
 class Int64Index(IntegerIndex):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable  # noqa: PDF001
+import functools
 import re
 import textwrap
 from typing import (
@@ -11,7 +12,7 @@ import unicodedata
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 from pandas._typing import (
@@ -380,9 +381,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         dummies = np.empty((len(arr), len(tags2)), dtype=np.int64)
 
+        def _isin(test_elements: str, element: str) -> bool:
+            return element in test_elements
+
         for i, t in enumerate(tags2):
             pat = sep + t + sep
-            dummies[:, i] = lib.map_infer(arr.to_numpy(), lambda x: pat in x)
+            dummies[:, i] = lib.map_infer(
+                arr.to_numpy(), functools.partial(_isin, element=pat)
+            )
         return dummies, tags2
 
     def _str_upper(self):

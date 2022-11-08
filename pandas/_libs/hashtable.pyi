@@ -36,6 +36,7 @@ class Int64Factorizer(Factorizer):
         sort: bool = ...,
         na_sentinel=...,
         na_value=...,
+        mask=...,
     ) -> npt.NDArray[np.intp]: ...
 
 class Int64Vector:
@@ -110,16 +111,18 @@ class ObjectVector:
 
 class HashTable:
     # NB: The base HashTable class does _not_ actually have these methods;
-    #  we are putting the here for the sake of mypy to avoid
+    #  we are putting them here for the sake of mypy to avoid
     #  reproducing them in each subclass below.
-    def __init__(self, size_hint: int = ...) -> None: ...
+    def __init__(self, size_hint: int = ..., uses_mask: bool = ...) -> None: ...
     def __len__(self) -> int: ...
     def __contains__(self, key: Hashable) -> bool: ...
     def sizeof(self, deep: bool = ...) -> int: ...
     def get_state(self) -> dict[str, int]: ...
     # TODO: `item` type is subclass-specific
     def get_item(self, item): ...  # TODO: return type?
-    def set_item(self, item) -> None: ...
+    def set_item(self, item, val) -> None: ...
+    def get_na(self): ...  # TODO: return type?
+    def set_na(self, val) -> None: ...
     def map_locations(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
@@ -135,6 +138,7 @@ class HashTable:
         count_prior: int = ...,
         na_sentinel: int = ...,
         na_value: object = ...,
+        mask=...,
     ) -> npt.NDArray[np.intp]: ...
     def unique(
         self,

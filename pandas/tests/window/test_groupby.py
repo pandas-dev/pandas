@@ -96,10 +96,7 @@ class TestRolling:
             "mean",
             "min",
             "max",
-            pytest.param(
-                "count",
-                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
-            ),
+            "count",
             "kurt",
             "skew",
         ],
@@ -280,11 +277,11 @@ class TestRolling:
     def test_groupby_rolling(self, expected_value, raw_value):
         # GH 31754
 
-        def foo(x):
+        def isnumpyarray(x):
             return int(isinstance(x, np.ndarray))
 
         df = DataFrame({"id": [1, 1, 1], "value": [1, 2, 3]})
-        result = df.groupby("id").value.rolling(1).apply(foo, raw=raw_value)
+        result = df.groupby("id").value.rolling(1).apply(isnumpyarray, raw=raw_value)
         expected = Series(
             [expected_value] * 3,
             index=MultiIndex.from_tuples(((1, 0), (1, 1), (1, 2)), names=["id", None]),
@@ -1165,7 +1162,11 @@ class TestEWM:
         halflife = "23 days"
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
             # GH#42738
-            result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+            result = (
+                times_frame.groupby("A")
+                .ewm(halflife=halflife, times=times_frame["C"])
+                .mean()
+            )
         expected = DataFrame(
             {
                 "B": [
@@ -1204,9 +1205,13 @@ class TestEWM:
         halflife = "23 days"
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
             # GH#42738
-            result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+            result = (
+                times_frame.groupby("A")
+                .ewm(halflife=halflife, times=times_frame["C"])
+                .mean()
+            )
             expected = times_frame.groupby("A", group_keys=True).apply(
-                lambda x: x.ewm(halflife=halflife, times="C").mean()
+                lambda x: x.ewm(halflife=halflife, times=x["C"]).mean()
             )
         tm.assert_frame_equal(result, expected)
 
@@ -1216,7 +1221,7 @@ class TestEWM:
         gb = times_frame.groupby("A")
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
             # GH#42738
-            result = gb.ewm(halflife=halflife, times="C").mean()
+            result = gb.ewm(halflife=halflife, times=times_frame["C"]).mean()
             expected = gb.ewm(halflife=halflife, times=times_frame["C"].values).mean()
         tm.assert_frame_equal(result, expected)
 

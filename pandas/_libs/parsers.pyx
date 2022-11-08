@@ -13,6 +13,7 @@ import sys
 import time
 import warnings
 
+from pandas.errors import ParserError
 from pandas.util._exceptions import find_stack_level
 
 from pandas import StringDtype
@@ -74,7 +75,7 @@ from pandas._libs.util cimport (
     UINT64_MAX,
 )
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 
 from pandas._libs.khash cimport (
     kh_destroy_float64,
@@ -744,6 +745,8 @@ cdef class TextReader:
         elif self.names is not None:
             # Names passed
             if self.parser.lines < 1:
+                if not self.has_usecols:
+                    self.parser.expected_fields = len(self.names)
                 self._tokenize_rows(1)
 
             header = [self.names]
@@ -756,6 +759,7 @@ cdef class TextReader:
             # Enforce this unless usecols
             if not self.has_usecols:
                 self.parser.expected_fields = max(field_count, len(self.names))
+
         else:
             # No header passed nor to be found in the file
             if self.parser.lines < 1:
@@ -968,11 +972,9 @@ cdef class TextReader:
                 all(isinstance(u, int) for u in self.usecols)):
             missing_usecols = [col for col in self.usecols if col >= num_cols]
             if missing_usecols:
-                warnings.warn(
-                    "Defining usecols with out of bounds indices is deprecated "
-                    "and will raise a ParserError in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                raise ParserError(
+                    "Defining usecols without of bounds indices is not allowed. "
+                    f"{missing_usecols} are out of bounds.",
                 )
 
         results = {}
@@ -1023,7 +1025,7 @@ cdef class TextReader:
                     warnings.warn((f"Both a converter and dtype were specified "
                                    f"for column {name} - only the converter will "
                                    f"be used."), ParserWarning,
-                                  stacklevel=find_stack_level(inspect.currentframe()))
+                                  stacklevel=find_stack_level())
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
@@ -1414,6 +1416,9 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
     -------
     The casted array.
     """
+    if is_extension_array_dtype(arr.dtype):
+        return arr
+
     na_value = na_values[arr.dtype]
 
     if issubclass(arr.dtype.type, np.integer):

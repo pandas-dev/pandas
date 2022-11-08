@@ -5,24 +5,22 @@ constructors before passing them to a BlockManager.
 from __future__ import annotations
 
 from collections import abc
-import inspect
 from typing import (
-    TYPE_CHECKING,
     Any,
     Hashable,
     Sequence,
-    cast,
 )
 import warnings
 
 import numpy as np
-import numpy.ma as ma
+from numpy import ma
 
 from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
     Manager,
+    npt,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -32,7 +30,6 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
-    maybe_upcast,
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
@@ -44,6 +41,7 @@ from pandas.core.dtypes.common import (
     is_named_tuple,
     is_object_dtype,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -89,10 +87,6 @@ from pandas.core.internals.managers import (
     create_block_manager_from_blocks,
     create_block_manager_from_column_arrays,
 )
-
-if TYPE_CHECKING:
-    from numpy.ma.mrecords import MaskedRecords
-
 
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -162,7 +156,7 @@ def arrays_to_mgr(
 
 
 def rec_array_to_mgr(
-    data: MaskedRecords | np.recarray | np.ndarray,
+    data: np.recarray | np.ndarray,
     index,
     columns,
     dtype: DtypeObj | None,
@@ -183,24 +177,9 @@ def rec_array_to_mgr(
         columns = ensure_index(columns)
     arrays, arr_columns = to_arrays(fdata, columns)
 
-    # fill if needed
-    if isinstance(data, np.ma.MaskedArray):
-        # GH#42200 we only get here with MaskedRecords, but check for the
-        #  parent class MaskedArray to avoid the need to import MaskedRecords
-        data = cast("MaskedRecords", data)
-        new_arrays = fill_masked_arrays(data, arr_columns)
-    else:
-        # error: Incompatible types in assignment (expression has type
-        # "List[ExtensionArray]", variable has type "List[ndarray]")
-        new_arrays = arrays  # type: ignore[assignment]
-
     # create the manager
 
-    # error: Argument 1 to "reorder_arrays" has incompatible type "List[ndarray]";
-    # expected "List[Union[ExtensionArray, ndarray]]"
-    arrays, arr_columns = reorder_arrays(
-        new_arrays, arr_columns, columns, len(index)  # type: ignore[arg-type]
-    )
+    arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns, len(index))
     if columns is None:
         columns = arr_columns
 
@@ -209,24 +188,6 @@ def rec_array_to_mgr(
     if copy:
         mgr = mgr.copy()
     return mgr
-
-
-def fill_masked_arrays(data: MaskedRecords, arr_columns: Index) -> list[np.ndarray]:
-    """
-    Convert numpy MaskedRecords to ensure mask is softened.
-    """
-    new_arrays = []
-
-    for col in arr_columns:
-        arr = data[col]
-        fv = arr.fill_value
-
-        mask = ma.getmaskarray(arr)
-        if mask.any():
-            arr, fv = maybe_upcast(arr, fill_value=fv, copy=True)
-            arr[mask] = fv
-        new_arrays.append(arr)
-    return new_arrays
 
 
 def mgr_to_mgr(mgr, typ: str, copy: bool = True):
@@ -331,14 +292,11 @@ def ndarray_to_mgr(
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
         # GH#40110 see similar check inside sanitize_array
-        rcf = not (is_integer_dtype(dtype) and values.dtype.kind == "f")
-
         values = sanitize_array(
             values,
             None,
             dtype=dtype,
             copy=copy_on_sanitize,
-            raise_cast_failure=rcf,
             allow_2d=True,
         )
 
@@ -603,7 +561,7 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
         else:
             if isinstance(val, dict):
                 # GH#41785 this _should_ be equivalent to (but faster than)
-                #  val = create_series_with_explicit_dtype(val, index=index)._values
+                #  val = Series(val, index=index)._values
                 if oindex is None:
                     oindex = index.astype("O")
 
@@ -615,9 +573,7 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
                     val = dict(val)
                 val = lib.fast_multiget(val, oindex._values, default=np.nan)
 
-            val = sanitize_array(
-                val, index, dtype=dtype, copy=False, raise_cast_failure=False
-            )
+            val = sanitize_array(val, index, dtype=dtype, copy=False)
             com.require_length_match(val, index)
 
         homogenized.append(val)
@@ -656,7 +612,7 @@ def _extract_index(data) -> Index:
         if not indexes and not raw_lengths:
             raise ValueError("If using all scalar values, you must pass an index")
 
-        elif have_series:
+        if have_series:
             index = union_indexes(indexes)
         elif have_dicts:
             index = union_indexes(indexes, sort=False)
@@ -845,7 +801,7 @@ def to_arrays(
             "To retain the old behavior, pass as a dictionary "
             "DataFrame({col: categorical, ..})",
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )
         if columns is None:
             columns = default_index(len(data))
@@ -1019,7 +975,7 @@ def _validate_or_indexify_columns(
                 f"{len(columns)} columns passed, passed data had "
                 f"{len(content)} columns"
             )
-        elif is_mi_list:
+        if is_mi_list:
 
             # check if nested list column, length of each sub-list should be equal
             if len({len(col) for col in columns}) > 1:
@@ -1028,7 +984,7 @@ def _validate_or_indexify_columns(
                 )
 
             # if columns is not empty and length of sublist is not equal to content
-            elif columns and len(columns[0]) != len(content):
+            if columns and len(columns[0]) != len(content):
                 raise ValueError(
                     f"{len(columns[0])} columns passed, passed data had "
                     f"{len(content)} columns"
@@ -1037,7 +993,7 @@ def _validate_or_indexify_columns(
 
 
 def _convert_object_array(
-    content: list[np.ndarray], dtype: DtypeObj | None
+    content: list[npt.NDArray[np.object_]], dtype: DtypeObj | None
 ) -> list[ArrayLike]:
     """
     Internal function to convert object array.
@@ -1055,7 +1011,25 @@ def _convert_object_array(
     def convert(arr):
         if dtype != np.dtype("O"):
             arr = lib.maybe_convert_objects(arr)
-            arr = maybe_cast_to_datetime(arr, dtype)
+
+            if dtype is None:
+                if arr.dtype == np.dtype("O"):
+                    # i.e. maybe_convert_objects didn't convert
+                    arr = maybe_infer_to_datetimelike(arr)
+            elif isinstance(dtype, ExtensionDtype):
+                # TODO: test(s) that get here
+                # TODO: try to de-duplicate this convert function with
+                #  core.construction functions
+                cls = dtype.construct_array_type()
+                arr = cls._from_sequence(arr, dtype=dtype, copy=False)
+            elif dtype.kind in ["m", "M"]:
+                # This restriction is harmless bc these are the only cases
+                #  where maybe_cast_to_datetime is not a no-op.
+                # Here we know:
+                #  1) dtype.kind in ["m", "M"] and
+                #  2) arr is either object or numeric dtype
+                arr = maybe_cast_to_datetime(arr, dtype)
+
         return arr
 
     arrays = [convert(arr) for arr in content]
