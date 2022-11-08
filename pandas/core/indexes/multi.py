@@ -2509,15 +2509,6 @@ class MultiIndex(Index):
             target.names = self.names
         return target
 
-    @cache_readonly
-    def _contains_na_any_level(self) -> bool:
-        """
-        Return True if any level of the index contains missing values.
-        """
-        if len(self) == 0:
-            return False
-        return any(c.min() == -1 for c in self.codes)
-
     # --------------------------------------------------------------------
     # Indexing Methods
 
