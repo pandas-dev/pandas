@@ -14,9 +14,10 @@ class NoIndex(RangeIndex):
         len: int,
         dtype: Dtype | None = None,
         copy: bool = False,
+        name=None,
     ):
         rng = range(0, len)
-        return cls._simple_new(rng)
+        return cls._simple_new(rng, name=name)
 
     @property
     def name(self):
