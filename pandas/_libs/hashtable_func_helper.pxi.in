@@ -141,32 +141,18 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first', cons
     if keep not in ('last', 'first', False):
         raise ValueError('keep must be either "first", "last" or False')
 
-    if keep == 'last':
+    {{for cond, keep in [('if', '"last"'), ('elif', '"first"')]}}
+    {{cond}} keep == {{keep}}:
         {{if dtype == 'object'}}
         if True:
         {{else}}
         with nogil:
         {{endif}}
+            {{if keep == '"last"'}}
             for i in range(n - 1, -1, -1):
-                # equivalent: range(n)[::-1], which cython doesn't like in nogil
-                if uses_mask and mask[i]:
-                    if seen_na:
-                        out[i] = True
-                    else:
-                        out[i] = False
-                        seen_na = True
-                else:
-                    value = {{to_c_type}}(values[i])
-                    kh_put_{{ttype}}(table, value, &ret)
-                    out[i] = ret == 0
-
-    elif keep == 'first':
-        {{if dtype == 'object'}}
-        if True:
-        {{else}}
-        with nogil:
-        {{endif}}
+            {{else}}
             for i in range(n):
+            {{endif}}
                 if uses_mask and mask[i]:
                     if seen_na:
                         out[i] = True
@@ -177,6 +163,7 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first', cons
                     value = {{to_c_type}}(values[i])
                     kh_put_{{ttype}}(table, value, &ret)
                     out[i] = ret == 0
+    {{endfor}}
 
     else:
         {{if dtype == 'object'}}

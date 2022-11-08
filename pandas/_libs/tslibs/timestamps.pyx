@@ -1303,24 +1303,20 @@ class Timestamp(_Timestamp):
         """
         Timestamp.utcfromtimestamp(ts)
 
-        Construct a naive UTC datetime from a POSIX timestamp.
+        Construct a timezone-aware UTC datetime from a POSIX timestamp.
+
+        Notes
+        -----
+        Timestamp.utcfromtimestamp behavior differs from datetime.utcfromtimestamp
+        in returning a timezone-aware object.
 
         Examples
         --------
         >>> pd.Timestamp.utcfromtimestamp(1584199972)
-        Timestamp('2020-03-14 15:32:52')
+        Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
         """
         # GH#22451
-        warnings.warn(
-            "The behavior of Timestamp.utcfromtimestamp is deprecated, in a "
-            "future version will return a timezone-aware Timestamp with UTC "
-            "timezone. To keep the old behavior, use "
-            "Timestamp.utcfromtimestamp(ts).tz_localize(None). "
-            "To get the future behavior, use Timestamp.fromtimestamp(ts, 'UTC')",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return cls(datetime.utcfromtimestamp(ts))
+        return cls.fromtimestamp(ts, tz="UTC")
 
     @classmethod
     def fromtimestamp(cls, ts, tz=None):

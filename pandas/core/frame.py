@@ -686,33 +686,22 @@ class DataFrame(NDFrame, OpsMixin):
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
-                mgr = rec_array_to_mgr(
-                    data,
-                    index,
-                    columns,
-                    dtype,
-                    copy,
-                    typ=manager,
-                )
-                warnings.warn(
-                    "Support for MaskedRecords is deprecated and will be "
-                    "removed in a future version.  Pass "
-                    "{name: data[name] for name in data.dtype.names} instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise TypeError(
+                    "MaskedRecords are not supported. Pass "
+                    "{name: data[name] for name in data.dtype.names} "
+                    "instead"
                 )
 
             # a masked array
-            else:
-                data = sanitize_masked_array(data)
-                mgr = ndarray_to_mgr(
-                    data,
-                    index,
-                    columns,
-                    dtype=dtype,
-                    copy=copy,
-                    typ=manager,
-                )
+            data = sanitize_masked_array(data)
+            mgr = ndarray_to_mgr(
+                data,
+                index,
+                columns,
+                dtype=dtype,
+                copy=copy,
+                typ=manager,
+            )
 
         elif isinstance(data, (np.ndarray, Series, Index, ExtensionArray)):
             if data.dtype.names:
@@ -1094,7 +1083,7 @@ class DataFrame(NDFrame, OpsMixin):
             # need to escape the <class>, should be the first line.
             val = buf.getvalue().replace("<", r"&lt;", 1)
             val = val.replace(">", r"&gt;", 1)
-            return "<pre>" + val + "</pre>"
+            return f"<pre>{val}</pre>"
 
         if get_option("display.notebook_repr_html"):
             max_rows = get_option("display.max_rows")
@@ -8843,8 +8832,7 @@ Parrot 2  Parrot       24.0
         if not self.columns.is_unique:
             duplicate_cols = self.columns[self.columns.duplicated()].tolist()
             raise ValueError(
-                "DataFrame columns must be unique. "
-                + f"Duplicate columns: {duplicate_cols}"
+                f"DataFrame columns must be unique. Duplicate columns: {duplicate_cols}"
             )
 
         columns: list[Hashable]
