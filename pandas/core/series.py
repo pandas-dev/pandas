@@ -1982,7 +1982,7 @@ Name: Max Speed, dtype: float64
         self,
         by=None,
         axis: Axis = 0,
-        level: Level = None,
+        level: IndexLabel = None,
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = no_default,
@@ -4611,7 +4611,7 @@ Keep all original rows and also all original values
         *,
         axis: Axis = 0,
         skipna: bool = True,
-        numeric_only=None,
+        numeric_only: bool = False,
         filter_type=None,
         **kwds,
     ):

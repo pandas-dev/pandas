@@ -1187,12 +1187,6 @@ is only interesting over one column (here ``colname``), it may be filtered
    If you do wish to include decimal or object columns in an aggregation with
    other non-nuisance data types, you must do so explicitly.
 
-.. warning::
-   The automatic dropping of nuisance columns has been deprecated and will be removed
-   in a future version of pandas. If columns are included that cannot be operated
-   on, pandas will instead raise an error. In order to avoid this, either select
-   the columns you wish to operate on or specify ``numeric_only=True``.
-
 .. ipython:: python
     :okwarning:
 

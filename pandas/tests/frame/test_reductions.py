@@ -331,9 +331,7 @@ class TestDataFrameAnalytics:
         assert df.values.dtype == np.object_
         result = getattr(df, method)(1)
         expected = getattr(df.astype("f8"), method)(1)
-
-        if method in ["sum", "prod"]:
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])
     def test_mixed_ops(self, op):
@@ -1757,6 +1755,7 @@ def test_fails_on_non_numeric(kernel):
             "argument must be a string or a number",
             "not supported between instances of",
             "unsupported operand type",
+            "argument must be a string or a real number",
         ]
     )
     with pytest.raises(TypeError, match=msg):
