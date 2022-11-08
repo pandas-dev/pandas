@@ -680,9 +680,26 @@ class TestToDatetime:
         # Localized value
         america_santiago = pytz.timezone("America/Santiago")
         result_no_format = to_datetime([america_santiago.localize(value)])
-        result_with_format = to_datetime([america_santiago.localize(value)], format="%m-%d-%Y")
+        result_with_format = to_datetime([america_santiago.localize(value)], format="%m-%d-%Y %z")
         tm.assert_equal(result_with_format.dtype.tz, america_santiago)
         tm.assert_equal(result_no_format, result_with_format)
+
+    @pytest.mark.parametrize("value", [datetime(2010, 1, 2, 12, 13, 16), Timestamp("2010-01-02 12:13:17")])
+    def test_to_datetime_mixing_naive_tzaware_raises(self, value):
+        # GH 49298
+        msg = "Cannot mix tz-aware with tz-naive values"
+        america_santiago = pytz.timezone("America/Santiago")
+        # Fail if format expects tz but input is not localized
+        with pytest.raises(ValueError, match=msg):
+            to_datetime([value], format="%m-%d-%Y %z")
+        # Fail if format does not expect tz but input is localized
+        with pytest.raises(ValueError, match=msg):
+            to_datetime([america_santiago.localize(value)], format="%m-%d-%Y")
+        # Mixed input should fail in both cases
+        with pytest.raises(ValueError, match=msg):
+            to_datetime([value, america_santiago.localize(value)], format="%m-%d-%Y %z")
+        with pytest.raises(ValueError, match=msg):
+            to_datetime([value, america_santiago.localize(value)], format="%m-%d-%Y")
 
     def test_to_datetime_pydatetime(self):
         actual = to_datetime(datetime(2008, 1, 15))

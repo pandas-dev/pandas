@@ -128,6 +128,7 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
     result_timezone = np.empty(n, dtype='object')
 
     dts.us = dts.ps = dts.as = 0
+    expect_tz_aware = "%z" in fmt or "%Z" in fmt
 
     for i in range(n):
         val = values[i]
@@ -144,6 +145,10 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
             else:
                 iresult[i] = pydatetime_to_dt64(val, &dts)
                 check_dts_bounds(&dts)
+            if val.tzinfo is None and expect_tz_aware:
+                raise ValueError("Cannot mix tz-aware with tz-naive values")
+            elif val.tzinfo is not None and not expect_tz_aware:
+                raise ValueError("Cannot mix tz-aware with tz-naive values")
             result_timezone[i] = val.tzinfo
             continue
         else:
