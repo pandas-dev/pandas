@@ -699,6 +699,7 @@ def _get_axes(
 ) -> tuple[Index, Index]:
     # helper to create the axes as indexes
     # return axes or defaults
+
     if index is None:
         index = RangeIndex(range(N))
     else:

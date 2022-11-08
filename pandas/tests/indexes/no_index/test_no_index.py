@@ -1,38 +1,15 @@
-# gosh, so much to update here...
-# prob, inherit from rangeindex tests?
+import io
 
-import numpy as np
 import pytest
 
-from pandas._config import (
-    get_option,
-    option_context,
-    set_option,
-)
-
-from pandas.core.dtypes.common import ensure_platform_int
+from pandas._config import option_context
 
 import pandas as pd
 from pandas import (
-    CategoricalIndex,
-    DatetimeIndex,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    PeriodIndex,
-    RangeIndex,
+    DataFrame,
     Series,
-    TimedeltaIndex,
-    isna,
 )
 import pandas._testing as tm
-from pandas.core.api import (  # noqa:F401
-    Float64Index,
-    Int64Index,
-    NumericIndex,
-    UInt64Index,
-)
-from pandas.core.arrays import BaseMaskedArray
 from pandas.core.indexes.api import (
     Float64Index,
     Index,
@@ -40,8 +17,6 @@ from pandas.core.indexes.api import (
     NoIndex,
     RangeIndex,
 )
-from pandas.tests.indexes.common import NumericBase
-from pandas.tests.indexes.ranges.test_range import TestRangeIndex
 
 # aliases to make some tests easier to read
 NI = NoIndex
@@ -58,104 +33,162 @@ OI = Index
 @pytest.fixture
 def ser1():
     with option_context("mode.no_default_index", True):
-        res = pd.Series([1, 2, 3])
+        res = Series([1, 2, 3])
     return res
 
 
 @pytest.fixture
 def ser2():
     with option_context("mode.no_default_index", True):
-        res = pd.Series([4, 5, 6])
+        res = Series([4, 5, 6])
     return res
 
 
 @pytest.fixture
 def df1():
     with option_context("mode.no_default_index", True):
-        res = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        res = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     return res
 
 
 @pytest.fixture
 def df2():
     with option_context("mode.no_default_index", True):
-        res = pd.DataFrame({"a": [6, 5, 4], "b": [1, 4, 2]})
+        res = DataFrame({"a": [6, 5, 4], "b": [1, 4, 2]})
     return res
 
 
 def test_boolean_mask(ser1):
     mask = ser1 > 1
     result = ser1[mask]
-    expected = pd.Series([2, 3], index=NoIndex(2))
+    expected = Series([2, 3], index=NoIndex(2))
     tm.assert_series_equal(result, expected)
 
     ser1[mask] = 4
-    expected = pd.Series([1, 4, 4], index=NoIndex(3))
+    expected = Series([1, 4, 4], index=NoIndex(3))
     tm.assert_series_equal(ser1, expected)
 
 
 def test_join(ser1, ser2, df1, df2):
     result = df1.join(df2, lsuffix="_df1")
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {
             "a_df1": [1, 2, 3],
-            "b_df1": [1, 2, 3],
+            "b_df1": [4, 5, 6],
             "a": [6, 5, 4],
             "b": [1, 4, 2],
         },
         index=NoIndex(3),
     )
+    tm.assert_frame_equal(result, expected)
 
 
-# def test_loc(ser1):
+def test_loc(df1):
+    with pytest.raises(IndexError, match="Cannot use label-based indexing on NoIndex!"):
+        df1.loc[0, "a"]
+    with pytest.raises(IndexError, match="Cannot use label-based indexing on NoIndex!"):
+        df1.loc[0]
 
-# ser1[mask] = 2
-# print(ser1)
+    result = df1.loc[:, "a"]
+    expected = Series([1, 2, 3], index=NoIndex(3), name="a")
+    tm.assert_series_equal(result, expected)
 
-# df = pd.DataFrame({'a': [1,2,3]})
-# try:
-#     df.loc[0, 'a']  # raise!
-# except TypeError as err:
-#     print('error!')
-#     print(repr(err))
-#     pass
-# else:
-#     print('fail')
-# try:
-#     df.loc[0]  # raise!
-# except TypeError as err:
-#     print('error!')
-#     print(repr(err))
-#     pass
-# else:
-#     print('fail')
-# print(df.loc[:, 'a'])  # work
-# print()
-# mask = df['a'] > 2
-# print(df.loc[mask])
-# print()
-# print(df.loc[df['a']>2, 'a'])  # work!
+    mask = df1["a"] > 2
+    result = df1.loc[mask]
+    expected = DataFrame({"a": [3], "b": [6]}, index=NoIndex(1))
+    tm.assert_frame_equal(result, expected)
 
-# print(df.iloc[1:]) # work!
+    result = df1.loc[df1["a"] > 2, "a"]
+    expected = Series([3], index=NoIndex(1), name="a")
+    tm.assert_series_equal(result, expected)
 
-# try:
-#     _sum =df + df.iloc[1:]
-# except TypeError as err:
-#     print(repr(err))
-# else:
-#     print('fail')
+    result = df1.iloc[1:]
+    expected = DataFrame(
+        {
+            "a": [
+                2,
+                3,
+            ],
+            "b": [5, 6],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
 
-# df = pd.read_csv(io.StringIO('data\n1\n'))
-# print(df.index)
-# df = pd.DataFrame({'a': [1,2,3]*50})
-# repr(df)
-# print(df)
 
-# df = DataFrame({'a': [1,2,3]})
-# concatted = pd.concat([df, df])
-# print(concatted.index)
-# print(concatted)
+def test_alignment(df1):
+    with pytest.raises(TypeError, match="Can't join NoIndex of different lengths"):
+        result = df1 + df1.iloc[1:]
+    result = df1 + df1
+    expected = DataFrame({"a": [2, 4, 6], "b": [8, 10, 12]}, index=NoIndex(3))
+    tm.assert_frame_equal(result, expected)
 
-# print(df.merge(df, on='a'))
 
-# pd.DataFrame([[1, 2, 3]])
+def test_reader():
+    with option_context("mode.no_default_index", True):
+        result = pd.read_csv(io.StringIO("data\n1\n"))
+    expected = DataFrame({"data": [1]}, index=NoIndex(1))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_repr():
+    with option_context("mode.no_default_index", True):
+        df = DataFrame({"a": [1, 2, 3] * 50})
+    result = repr(df)
+    expected = (
+        " a\n"
+        " 1\n"
+        " 2\n"
+        " 3\n"
+        " 1\n"
+        " 2\n"
+        "..\n"
+        " 2\n"
+        " 3\n"
+        " 1\n"
+        " 2\n"
+        " 3\n"
+        "\n[150 rows x 1 columns]"
+    )
+    assert result == expected
+
+    result = repr(df["a"])
+    expected = (
+        "1 \n"
+        "2 \n"
+        "3 \n"
+        "1 \n"
+        "2 \n"
+        "..\n"
+        "2 \n"
+        "3 \n"
+        "1 \n"
+        "2 \n"
+        "3 \n"
+        "Name: a, Length: 150, dtype: int64"
+    )
+    assert result == expected
+
+
+def test_concat(df1):
+    result = pd.concat([df1, df1])
+    expected = DataFrame(
+        {
+            "a": [1, 2, 3, 1, 2, 3],
+            "b": [4, 5, 6, 4, 5, 6],
+        },
+        index=NoIndex(6),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge(df1):
+    result = df1.merge(df1, on="a")
+    expected = DataFrame(
+        {
+            "a": [1, 2, 3],
+            "b_x": [4, 5, 6],
+            "b_y": [4, 5, 6],
+        },
+        index=NoIndex(3),
+    )
+    tm.assert_frame_equal(result, expected)
