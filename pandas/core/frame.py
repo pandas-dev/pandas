@@ -8190,12 +8190,9 @@ Keep all original rows and columns and also all original values
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
-        # reindex rows, non-matching columns get skipped
         other = other.reindex(self.index)
 
-        shared_cols = self.columns.intersection(other.columns)
-
-        for col in shared_cols:
+        for col in self.columns.intersection(other.columns):
             this = self[col]._values
             that = other[col]._values
 
