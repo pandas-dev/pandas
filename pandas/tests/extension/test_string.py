@@ -19,7 +19,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
-    pa_version_under2p0,
     pa_version_under6p0,
     pa_version_under7p0,
 )
@@ -27,6 +26,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
@@ -107,6 +107,11 @@ class TestDtype(base.BaseDtypeTests):
         assert dtype == f"string[{dtype.storage}]"
         super().test_eq_with_str(dtype)
 
+    def test_is_not_string_type(self, dtype):
+        # Different from BaseDtypeTests.test_is_not_string_type
+        # because StringDtype is a string type
+        assert is_string_dtype(dtype)
+
 
 class TestInterface(base.BaseInterfaceTests):
     def test_view(self, data, request):
@@ -120,6 +125,13 @@ class TestConstructors(base.BaseConstructorsTests):
     def test_from_dtype(self, data):
         # base test uses string representation of dtype
         pass
+
+    def test_constructor_from_list(self):
+        # GH 27673
+        pytest.importorskip("pyarrow", minversion="1.0.0")
+        result = pd.Series(["E"], dtype=StringDtype(storage="pyarrow"))
+        assert isinstance(result.dtype, StringDtype)
+        assert result.dtype.storage == "pyarrow"
 
 
 class TestReshaping(base.BaseReshapingTests):
@@ -319,26 +331,6 @@ class TestMethods(base.BaseMethodsTests):
             check_stacklevel=False,
         ):
             super().test_sort_values_frame(data_for_sorting, ascending)
-
-    @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
-    @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
-    def test_unique(self, data, box, method):
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under2p0 and getattr(data.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            super().test_unique(data, box, method)
-
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize_equivalence(self, data_for_grouping, na_sentinel):
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under2p0
-            and getattr(data_for_grouping.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            super().test_factorize_equivalence(data_for_grouping, na_sentinel)
 
 
 class TestCasting(base.BaseCastingTests):

@@ -118,11 +118,11 @@ bar2,12,13,14,15
                 assert os.path.expanduser(filename) == handles.handle.name
 
     def test_get_handle_with_buffer(self):
-        input_buffer = StringIO()
-        with icom.get_handle(input_buffer, "r") as handles:
-            assert handles.handle == input_buffer
-        assert not input_buffer.closed
-        input_buffer.close()
+        with StringIO() as input_buffer:
+            with icom.get_handle(input_buffer, "r") as handles:
+                assert handles.handle == input_buffer
+            assert not input_buffer.closed
+        assert input_buffer.closed
 
     # Test that BytesIOWrapper(get_handle) returns correct amount of bytes every time
     def test_bytesiowrapper_returns_correct_bytes(self):
@@ -317,9 +317,6 @@ Look,a snake,🐍"""
             ),
         ],
     )
-    @pytest.mark.filterwarnings(
-        "ignore:CategoricalBlock is deprecated:DeprecationWarning"
-    )
     @pytest.mark.filterwarnings(  # pytables np.object usage
         "ignore:`np.object` is a deprecated alias:DeprecationWarning"
     )
@@ -342,7 +339,7 @@ Look,a snake,🐍"""
         "writer_name, writer_kwargs, module",
         [
             ("to_csv", {}, "os"),
-            ("to_excel", {"engine": "xlwt"}, "xlwt"),
+            ("to_excel", {"engine": "openpyxl"}, "openpyxl"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
             ("to_json", {}, "os"),

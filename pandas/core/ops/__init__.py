@@ -5,7 +5,6 @@ This is not a public API.
 """
 from __future__ import annotations
 
-import inspect
 import operator
 from typing import TYPE_CHECKING
 import warnings
@@ -306,7 +305,7 @@ def align_method_FRAME(
                     "Do `left, right = left.align(right, axis=1, copy=False)` "
                     "before e.g. `left == right`",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
         left, right = left.align(
@@ -398,7 +397,7 @@ def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: AxisInt
     rvalues = series._values
     if not isinstance(rvalues, np.ndarray):
         # TODO(EA2D): no need to special-case with 2D EAs
-        if rvalues.dtype == "datetime64[ns]" or rvalues.dtype == "timedelta64[ns]":
+        if rvalues.dtype in ("datetime64[ns]", "timedelta64[ns]"):
             # We can losslessly+cheaply cast to ndarray
             rvalues = np.asarray(rvalues)
         else:

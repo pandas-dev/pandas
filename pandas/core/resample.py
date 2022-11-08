@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 from datetime import timedelta
-import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -12,7 +11,6 @@ from typing import (
     final,
     no_type_check,
 )
-import warnings
 
 import numpy as np
 
@@ -48,10 +46,8 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -93,7 +89,6 @@ from pandas.tseries.frequencies import (
     is_superperiod,
 )
 from pandas.tseries.offsets import (
-    DateOffset,
     Day,
     Nano,
     Tick,
@@ -143,7 +138,6 @@ class Resampler(BaseGroupBy, PandasObject):
         "closed",
         "label",
         "convention",
-        "loffset",
         "kind",
         "origin",
         "offset",
@@ -167,7 +161,6 @@ class Resampler(BaseGroupBy, PandasObject):
         # [int, Literal['index', 'columns', 'rows']]", variable has type "int")
         self.axis = axis  # type: ignore[assignment]
         self.kind = kind
-        self.squeeze = False
         self.group_keys = group_keys
         self.as_index = True
 
@@ -363,7 +356,6 @@ class Resampler(BaseGroupBy, PandasObject):
             how = func
             result = self._groupby_and_aggregate(how, *args, **kwargs)
 
-        result = self._apply_loffset(result)
         return result
 
     agg = aggregate
@@ -480,37 +472,7 @@ class Resampler(BaseGroupBy, PandasObject):
             # try to evaluate
             result = grouped.apply(how, *args, **kwargs)
 
-        result = self._apply_loffset(result)
         return self._wrap_result(result)
-
-    def _apply_loffset(self, result):
-        """
-        If loffset is set, offset the result index.
-
-        This is NOT an idempotent routine, it will be applied
-        exactly once to the result.
-
-        Parameters
-        ----------
-        result : Series or DataFrame
-            the result of resample
-        """
-        # error: Cannot determine type of 'loffset'
-        needs_offset = (
-            isinstance(
-                self.loffset,  # type: ignore[has-type]
-                (DateOffset, timedelta, np.timedelta64),
-            )
-            and isinstance(result.index, DatetimeIndex)
-            and len(result.index) > 0
-        )
-
-        if needs_offset:
-            # error: Cannot determine type of 'loffset'
-            result.index = result.index + self.loffset  # type: ignore[has-type]
-
-        self.loffset = None
-        return result
 
     def _get_resampler_for_grouping(self, groupby, key=None):
         """
@@ -522,11 +484,21 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Potentially wrap any results.
         """
+        # GH 47705
+        obj = self.obj
+        if (
+            isinstance(result, ABCDataFrame)
+            and result.empty
+            and not isinstance(result.index, PeriodIndex)
+        ):
+            result = result.set_index(
+                _asfreq_compat(obj.index[:0], freq=self.freq), append=True
+            )
+
         if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
-            obj = self.obj
             # When index is all NaT, result is empty but index is not
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
@@ -552,30 +524,6 @@ class Resampler(BaseGroupBy, PandasObject):
         DataFrame.fillna: Fill NA/NaN values using the specified method.
         """
         return self._upsample("ffill", limit=limit)
-
-    def pad(self, limit=None):
-        """
-        Forward fill the values.
-
-        .. deprecated:: 1.4
-            Use ffill instead.
-
-        Parameters
-        ----------
-        limit : int, optional
-            Limit of how many values to fill.
-
-        Returns
-        -------
-        An upsampled Series.
-        """
-        warnings.warn(
-            "pad is deprecated and will be removed in a future version. "
-            "Use ffill instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self.ffill(limit=limit)
 
     def nearest(self, limit=None):
         """
@@ -739,31 +687,6 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("bfill", limit=limit)
 
-    def backfill(self, limit=None):
-        """
-        Backward fill the values.
-
-        .. deprecated:: 1.4
-            Use bfill instead.
-
-        Parameters
-        ----------
-        limit : int, optional
-            Limit of how many values to fill.
-
-        Returns
-        -------
-        Series, DataFrame
-            An upsampled Series or DataFrame with backward filled NaN values.
-        """
-        warnings.warn(
-            "backfill is deprecated and will be removed in a future version. "
-            "Use bfill instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self.bfill(limit=limit)
-
     def fillna(self, method, limit=None):
         """
         Fill missing values introduced by upsampling.
@@ -924,11 +847,11 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample(method, limit=limit)
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     @doc(NDFrame.interpolate, **_shared_docs_kwargs)
     def interpolate(
         self,
         method: QuantileInterpolation = "linear",
+        *,
         axis: Axis = 0,
         limit=None,
         inplace: bool = False,
@@ -973,6 +896,28 @@ class Resampler(BaseGroupBy, PandasObject):
         DataFrame.asfreq: Convert TimeSeries to specified frequency.
         """
         return self._upsample("asfreq", fill_value=fill_value)
+
+    def mean(
+        self,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        *args,
+        **kwargs,
+    ):
+        """
+        Compute mean of groups, excluding missing values.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+        Returns
+        -------
+        DataFrame or Series
+            Mean of values within each group.
+        """
+        nv.validate_resampler_func("mean", args, kwargs)
+        return self._downsample("mean", numeric_only=numeric_only)
 
     def std(
         self,
@@ -1163,7 +1108,7 @@ def _add_downsample_kernel(
 
 for method in ["sum", "prod", "min", "max", "first", "last"]:
     _add_downsample_kernel(method, ("numeric_only", "min_count"))
-for method in ["mean", "median"]:
+for method in ["median"]:
     _add_downsample_kernel(method, ("numeric_only",))
 for method in ["sem"]:
     _add_downsample_kernel(method, ("ddof", "numeric_only"))
@@ -1317,7 +1262,6 @@ class DatetimeIndexResampler(Resampler):
         # we want to call the actual grouper method here
         result = obj.groupby(self.grouper, axis=self.axis).aggregate(how, **kwargs)
 
-        result = self._apply_loffset(result)
         return self._wrap_result(result)
 
     def _adjust_binner_for_upsample(self, binner):
@@ -1375,7 +1319,6 @@ class DatetimeIndexResampler(Resampler):
                 res_index, method=method, limit=limit, fill_value=fill_value
             )
 
-        result = self._apply_loffset(result)
         return self._wrap_result(result)
 
     def _wrap_result(self, result):
@@ -1419,11 +1362,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
                 "use .set_index(...) to explicitly set index"
             )
             raise NotImplementedError(msg)
-
-        if self.loffset is not None:
-            # Cannot apply loffset/timedelta to PeriodIndex -> convert to
-            # timestamps
-            self.kind = "timestamp"
 
         # convert to timestamp
         if self.kind == "timestamp":
@@ -1585,7 +1523,6 @@ class TimeGrouper(Grouper):
         "closed",
         "label",
         "how",
-        "loffset",
         "kind",
         "convention",
         "origin",
@@ -1603,10 +1540,8 @@ class TimeGrouper(Grouper):
         axis: Axis = 0,
         fill_method=None,
         limit=None,
-        loffset=None,
         kind: str | None = None,
         convention: Literal["start", "end", "e", "s"] | None = None,
-        base: int | None = None,
         origin: Literal["epoch", "start", "start_day", "end", "end_day"]
         | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
@@ -1685,22 +1620,6 @@ class TimeGrouper(Grouper):
 
         # always sort time groupers
         kwargs["sort"] = True
-
-        # Handle deprecated arguments since v1.1.0 of `base` and `loffset` (GH #31809)
-        if base is not None and offset is not None:
-            raise ValueError("'offset' and 'base' cannot be present at the same time")
-
-        if base and isinstance(freq, Tick):
-            # this conversion handle the default behavior of base and the
-            # special case of GH #10530. Indeed in case when dealing with
-            # a TimedeltaIndex base was treated as a 'pure' offset even though
-            # the default behavior of base was equivalent of a modulo on
-            # freq_nanos.
-            self.offset = Timedelta(base * freq.nanos // freq.n)
-
-        if isinstance(loffset, str):
-            loffset = to_offset(loffset)
-        self.loffset = loffset
 
         super().__init__(freq=freq, axis=axis, **kwargs)
 
@@ -1862,9 +1781,6 @@ class TimeGrouper(Grouper):
         if self.offset:
             # GH 10530 & 31809
             labels += self.offset
-        if self.loffset:
-            # GH 33498
-            labels += self.loffset
 
         return binner, bins, labels
 
@@ -2031,7 +1947,7 @@ def _get_timestamp_range_edges(
         index_tz = first.tz
         if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
-        elif origin == "epoch":
+        if origin == "epoch":
             # set the epoch based on the timezone to have similar bins results when
             # resampling on the same kind of indexes on different timezones
             origin = Timestamp("1970-01-01", tz=index_tz)

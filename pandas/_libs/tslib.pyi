@@ -16,6 +16,7 @@ def array_with_unit_to_datetime(
     unit: str,
     errors: str = ...,
 ) -> tuple[np.ndarray, tzinfo | None]: ...
+def first_non_null(values: np.ndarray) -> int: ...
 def array_to_datetime(
     values: npt.NDArray[np.object_],
     errors: str = ...,
@@ -27,3 +28,7 @@ def array_to_datetime(
 ) -> tuple[np.ndarray, tzinfo | None]: ...
 
 # returned ndarray may be object dtype or datetime64[ns]
+
+def array_to_datetime_with_tz(
+    values: npt.NDArray[np.object_], tz: tzinfo
+) -> npt.NDArray[np.int64]: ...

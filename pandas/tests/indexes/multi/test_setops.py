@@ -111,13 +111,11 @@ def test_symmetric_difference(idx, sort):
 def test_multiindex_symmetric_difference():
     # GH 13490
     idx = MultiIndex.from_product([["a", "b"], ["A", "B"]], names=["a", "b"])
-    with tm.assert_produces_warning(FutureWarning):
-        result = idx ^ idx
+    result = idx.symmetric_difference(idx)
     assert result.names == idx.names
 
     idx2 = idx.copy().rename(["A", "B"])
-    with tm.assert_produces_warning(FutureWarning):
-        result = idx ^ idx2
+    result = idx.symmetric_difference(idx2)
     assert result.names == [None, None]
 
 
@@ -550,12 +548,20 @@ def test_intersection_with_missing_values_on_both_sides(nulls_fixture):
     tm.assert_index_equal(result, expected)
 
 
-def test_union_nan_got_duplicated():
-    # GH#38977
-    mi1 = MultiIndex.from_arrays([[1.0, np.nan], [2, 3]])
-    mi2 = MultiIndex.from_arrays([[1.0, np.nan, 3.0], [2, 3, 4]])
-    result = mi1.union(mi2)
-    tm.assert_index_equal(result, mi2)
+@pytest.mark.parametrize("dtype", ["float64", "Float64"])
+@pytest.mark.parametrize("sort", [None, False])
+def test_union_nan_got_duplicated(dtype, sort):
+    # GH#38977, GH#49010
+    mi1 = MultiIndex.from_arrays([pd.array([1.0, np.nan], dtype=dtype), [2, 3]])
+    mi2 = MultiIndex.from_arrays([pd.array([1.0, np.nan, 3.0], dtype=dtype), [2, 3, 4]])
+    result = mi1.union(mi2, sort=sort)
+    if sort is None:
+        expected = MultiIndex.from_arrays(
+            [pd.array([1.0, 3.0, np.nan], dtype=dtype), [2, 4, 3]]
+        )
+    else:
+        expected = mi2
+    tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("val", [4, 1])
@@ -575,6 +581,31 @@ def test_union_keep_ea_dtype(any_numeric_ea_dtype, val):
         expected = MultiIndex.from_arrays(
             [Series([1, 2], dtype=any_numeric_ea_dtype), [1, 2]]
         )
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("dupe_val", [3, pd.NA])
+def test_union_with_duplicates_keep_ea_dtype(dupe_val, any_numeric_ea_dtype):
+    # GH48900
+    mi1 = MultiIndex.from_arrays(
+        [
+            Series([1, dupe_val, 2], dtype=any_numeric_ea_dtype),
+            Series([1, dupe_val, 2], dtype=any_numeric_ea_dtype),
+        ]
+    )
+    mi2 = MultiIndex.from_arrays(
+        [
+            Series([2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
+            Series([2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
+        ]
+    )
+    result = mi1.union(mi2)
+    expected = MultiIndex.from_arrays(
+        [
+            Series([1, 2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
+            Series([1, 2, dupe_val, dupe_val], dtype=any_numeric_ea_dtype),
+        ]
+    )
     tm.assert_index_equal(result, expected)
 
 
@@ -626,9 +657,8 @@ def test_union_keep_ea_dtype_with_na(any_numeric_ea_dtype):
     midx = MultiIndex.from_arrays([arr1, [2, 1]], names=["a", None])
     midx2 = MultiIndex.from_arrays([arr2, [1, 2]])
     result = midx.union(midx2)
-    # Expected is actually off and should contain (1, 1) too. See GH#37222
     expected = MultiIndex.from_arrays(
-        [Series([4, pd.NA, pd.NA], dtype=any_numeric_ea_dtype), [2, 1, 2]]
+        [Series([1, 4, pd.NA, pd.NA], dtype=any_numeric_ea_dtype), [1, 2, 1, 2]]
     )
     tm.assert_index_equal(result, expected)
 
@@ -650,9 +680,7 @@ def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
     mi1 = MultiIndex(levels=levels1, codes=codes1, names=names)
     mi2 = MultiIndex(levels=levels2, codes=codes2, names=names)
     mi_int = mi1.intersection(mi2)
-
-    with tm.assert_produces_warning(FutureWarning, match="MultiIndex.lexsort_depth"):
-        assert mi_int.lexsort_depth == 2
+    assert mi_int._lexsort_depth == 2
 
 
 @pytest.mark.parametrize("val", [pd.NA, 100])
