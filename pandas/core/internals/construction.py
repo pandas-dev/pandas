@@ -66,6 +66,7 @@ from pandas.core.construction import (
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
+    RangeIndex,
     TimedeltaIndex,
     default_index,
     ensure_index,
@@ -698,8 +699,6 @@ def _get_axes(
 ) -> tuple[Index, Index]:
     # helper to create the axes as indexes
     # return axes or defaults
-    from pandas.core.indexes.range import RangeIndex
-
     if index is None:
         index = RangeIndex(range(N))
     else:
@@ -805,7 +804,6 @@ def to_arrays(
             stacklevel=find_stack_level(),
         )
         if columns is None:
-            from pandas.core.indexes.range import RangeIndex
             columns = RangeIndex(range(len(data)))
         elif len(columns) > len(data):
             raise ValueError("len(columns) > len(data)")
@@ -963,7 +961,6 @@ def _validate_or_indexify_columns(
         not equal to length of content
     """
     if columns is None:
-        from pandas.core.indexes.range import RangeIndex
         columns = RangeIndex(range(len(content)))
     else:
 

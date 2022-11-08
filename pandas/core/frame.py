@@ -176,7 +176,9 @@ from pandas.core.indexers import check_key_length
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
+    NoIndex,
     PeriodIndex,
+    RangeIndex,
     default_index,
     ensure_index,
     ensure_index_from_sequences,
@@ -657,7 +659,6 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError("index cannot be a set")
         if columns is not None and isinstance(columns, set):
             raise ValueError("columns cannot be a set")
-        from pandas.core.indexes.no_index import NoIndex
 
         if columns is not None and isinstance(columns, NoIndex):
             raise ValueError("columns cannot be NoIndex")
@@ -3602,9 +3603,6 @@ class DataFrame(NDFrame, OpsMixin):
         # construct the args
 
         dtypes = list(self.dtypes)
-
-        from pandas.core.indexes.no_index import NoIndex
-        from pandas.core.indexes.range import RangeIndex
 
         if isinstance(self.index, NoIndex):
             # columns can't be NoIndex

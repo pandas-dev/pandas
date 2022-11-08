@@ -132,6 +132,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     PeriodIndex,
+    RangeIndex,
     default_index,
     ensure_index,
 )
@@ -1864,7 +1865,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             name = self.name
             if name is None:
                 # default to [0], same as we would get with DataFrame(self)
-                from pandas.core.indexes.range import RangeIndex
                 columns = RangeIndex(range(1))
             else:
                 columns = Index([name])

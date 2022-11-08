@@ -4,8 +4,13 @@
 import numpy as np
 import pytest
 
+from pandas._config import (
+    get_option,
+    option_context,
+    set_option,
+)
+
 from pandas.core.dtypes.common import ensure_platform_int
-from pandas._config import set_option, get_option, option_context
 
 import pandas as pd
 from pandas import (

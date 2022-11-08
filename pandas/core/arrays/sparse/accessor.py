@@ -15,6 +15,7 @@ from pandas.core.accessor import (
 )
 from pandas.core.arrays.sparse.array import SparseArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
+from pandas.core.indexes.range import RangeIndex
 
 if TYPE_CHECKING:
     from pandas import (
@@ -384,7 +385,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         else:
             index = ensure_index(index)
         if columns is None:
-            from pandas.core.indexes.range import RangeIndex
             columns = RangeIndex(range(K))
         else:
             columns = ensure_index(columns)
