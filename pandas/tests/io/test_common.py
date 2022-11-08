@@ -339,7 +339,7 @@ Look,a snake,🐍"""
         "writer_name, writer_kwargs, module",
         [
             ("to_csv", {}, "os"),
-            ("to_excel", {"engine": "xlsxwriter"}, "xlsxwriter"),
+            ("to_excel", {"engine": "openpyxl"}, "openpyxl"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
             ("to_json", {}, "os"),
