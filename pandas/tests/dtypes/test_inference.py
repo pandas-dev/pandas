@@ -203,16 +203,16 @@ def test_is_list_like_disallow_sets(maybe_list_like):
 def test_is_list_like_recursion():
     # GH 33721
     # interpreter would crash with SIGABRT
-    def foo():
+    def list_like():
         inference.is_list_like([])
-        foo()
+        list_like()
 
     rec_limit = sys.getrecursionlimit()
     try:
         # Limit to avoid stack overflow on Windows CI
         sys.setrecursionlimit(100)
         with tm.external_error_raised(RecursionError):
-            foo()
+            list_like()
     finally:
         sys.setrecursionlimit(rec_limit)
 
@@ -1340,7 +1340,6 @@ class TestTypeInference:
                 Timestamp("20170612", tz="US/Eastern"),
                 Timestamp("20170311", tz="US/Eastern"),
             ],
-            [date(2017, 6, 12), Timestamp("20170311", tz="US/Eastern")],
             [np.datetime64("2017-06-12"), np.datetime64("2017-03-11")],
             [np.datetime64("2017-06-12"), datetime(2017, 3, 11, 1, 15)],
         ],
@@ -1348,11 +1347,19 @@ class TestTypeInference:
     def test_infer_datetimelike_array_datetime(self, data):
         assert lib.infer_datetimelike_array(data) == "datetime"
 
+    def test_infer_datetimelike_array_date_mixed(self):
+        # GH49341 pre-2.0 we these were inferred as "datetime" and "timedelta",
+        #  respectively
+        data = [date(2017, 6, 12), Timestamp("20170311", tz="US/Eastern")]
+        assert lib.infer_datetimelike_array(data) == "mixed"
+
+        data = ([timedelta(2017, 6, 12), date(2017, 3, 11)],)
+        assert lib.infer_datetimelike_array(data) == "mixed"
+
     @pytest.mark.parametrize(
         "data",
         [
             [timedelta(2017, 6, 12), timedelta(2017, 3, 11)],
-            [timedelta(2017, 6, 12), date(2017, 3, 11)],
             [np.timedelta64(2017, "D"), np.timedelta64(6, "s")],
             [np.timedelta64(2017, "D"), timedelta(2017, 3, 11)],
         ],
@@ -1861,8 +1868,8 @@ class TestNumberScalar:
         assert is_timedelta64_ns_dtype(tdi.astype("timedelta64[ns]"))
 
         # Conversion to Int64Index:
-        assert not is_timedelta64_ns_dtype(tdi.astype("timedelta64"))
-        assert not is_timedelta64_ns_dtype(tdi.astype("timedelta64[h]"))
+        assert not is_timedelta64_ns_dtype(Index([], dtype=np.float64))
+        assert not is_timedelta64_ns_dtype(Index([], dtype=np.int64))
 
 
 class TestIsScalar:

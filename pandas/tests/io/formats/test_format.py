@@ -209,20 +209,6 @@ class TestDataFrameFormatting:
                 df.info(buf=buf, show_counts=show_counts)
                 assert ("non-null" in buf.getvalue()) is result
 
-    def test_show_null_counts_deprecation(self):
-        # GH37999
-        df = DataFrame(1, columns=range(10), index=range(10))
-        with tm.assert_produces_warning(
-            FutureWarning, match="null_counts is deprecated.+"
-        ):
-            buf = StringIO()
-            df.info(buf=buf, null_counts=True)
-            assert "non-null" in buf.getvalue()
-
-        # GH37999
-        with pytest.raises(ValueError, match=r"null_counts used with show_counts.+"):
-            df.info(null_counts=True, show_counts=True)
-
     def test_repr_truncation(self):
         max_len = 20
         with option_context("display.max_colwidth", max_len):
