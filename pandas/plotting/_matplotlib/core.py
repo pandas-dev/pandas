@@ -55,7 +55,6 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
@@ -257,7 +256,7 @@ class MPLPlot(ABC):
         # Probably better to accept either.
         if "cmap" in kwds and colormap:
             raise TypeError("Only specify one of `cmap` and `colormap`.")
-        elif "cmap" in kwds:
+        if "cmap" in kwds:
             self.colormap = kwds.pop("cmap")
         else:
             self.colormap = colormap
@@ -358,16 +357,15 @@ class MPLPlot(ABC):
                 raise ValueError(
                     f"Column label(s) {list(bad_labels)} not found in the DataFrame."
                 )
-            else:
-                unique_columns = set(group)
-                duplicates = seen_columns.intersection(unique_columns)
-                if duplicates:
-                    raise ValueError(
-                        "Each column should be in only one subplot. "
-                        f"Columns {duplicates} were found in multiple subplots."
-                    )
-                seen_columns = seen_columns.union(unique_columns)
-                out.append(tuple(idx_locs))
+            unique_columns = set(group)
+            duplicates = seen_columns.intersection(unique_columns)
+            if duplicates:
+                raise ValueError(
+                    "Each column should be in only one subplot. "
+                    f"Columns {duplicates} were found in multiple subplots."
+                )
+            seen_columns = seen_columns.union(unique_columns)
+            out.append(tuple(idx_locs))
 
         unseen_columns = columns.difference(seen_columns)
         for column in unseen_columns:
@@ -668,7 +666,6 @@ class MPLPlot(ABC):
 
     def _post_plot_logic(self, ax, data) -> None:
         """Post process for each axes. Overridden in child classes"""
-        pass
 
     def _adorn_subplots(self):
         """Common post process unrelated to data"""
@@ -1218,7 +1215,7 @@ class ScatterPlot(PlanePlot):
         color = self.kwds.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
-        elif c is None and color is None:
+        if c is None and color is None:
             c_values = self.plt.rcParams["patch.facecolor"]
         elif color is not None:
             c_values = color
@@ -1230,19 +1227,13 @@ class ScatterPlot(PlanePlot):
             c_values = c
 
         if self.colormap is not None:
-            if mpl_ge_3_6_0():
-                cmap = mpl.colormaps[self.colormap]
-            else:
-                cmap = self.plt.cm.get_cmap(self.colormap)
+            cmap = mpl.colormaps.get_cmap(self.colormap)
         else:
             # cmap is only used if c_values are integers, otherwise UserWarning
             if is_integer_dtype(c_values):
                 # pandas uses colormap, matplotlib uses cmap.
                 cmap = "Greys"
-                if mpl_ge_3_6_0():
-                    cmap = mpl.colormaps[cmap]
-                else:
-                    cmap = self.plt.cm.get_cmap(cmap)
+                cmap = mpl.colormaps[cmap]
             else:
                 cmap = None
 
@@ -1310,10 +1301,7 @@ class HexBinPlot(PlanePlot):
         ax = self.axes[0]
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "BuGn"
-        if mpl_ge_3_6_0():
-            cmap = mpl.colormaps[cmap]
-        else:
-            cmap = self.plt.cm.get_cmap(cmap)
+        cmap = mpl.colormaps.get_cmap(cmap)
         cb = self.kwds.pop("colorbar", True)
 
         if C is None:

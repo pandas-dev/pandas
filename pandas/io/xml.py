@@ -209,7 +209,7 @@ class _XMLFrameParser:
 
         if self.elems_only and self.attrs_only:
             raise ValueError("Either element or attributes can be parsed not both.")
-        elif self.elems_only:
+        if self.elems_only:
             if self.names:
                 dicts = [
                     {
@@ -482,9 +482,9 @@ class _EtreeFrameParser(_XMLFrameParser):
             if elems is not None:
                 if self.elems_only and children == []:
                     raise ValueError(msg)
-                elif self.attrs_only and attrs == {}:
+                if self.attrs_only and attrs == {}:
                     raise ValueError(msg)
-                elif children == [] and attrs == {}:
+                if children == [] and attrs == {}:
                     raise ValueError(msg)
 
         except (KeyError, SyntaxError):
@@ -595,9 +595,9 @@ class _LxmlFrameParser(_XMLFrameParser):
         if elems != []:
             if self.elems_only and children == []:
                 raise ValueError(msg)
-            elif self.attrs_only and attrs == {}:
+            if self.attrs_only and attrs == {}:
                 raise ValueError(msg)
-            elif children == [] and attrs == {}:
+            if children == [] and attrs == {}:
                 raise ValueError(msg)
 
         return elems

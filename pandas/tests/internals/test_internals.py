@@ -356,12 +356,6 @@ class TestBlock:
         for res, exp in zip(result, expected):
             assert_block_equal(res, exp)
 
-    def test_is_categorical_deprecated(self, fblock):
-        # GH#40571
-        blk = fblock
-        with tm.assert_produces_warning(DeprecationWarning):
-            blk.is_categorical
-
 
 class TestBlockManager:
     def test_attrs(self):
@@ -1432,11 +1426,3 @@ def test_make_block_no_pandas_array(block_maker):
         )
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False
-
-
-def test_single_block_manager_fastpath_deprecated():
-    # GH#33092
-    ser = Series(range(3))
-    blk = ser._data.blocks[0]
-    with tm.assert_produces_warning(FutureWarning):
-        SingleBlockManager(blk, ser.index, fastpath=True)

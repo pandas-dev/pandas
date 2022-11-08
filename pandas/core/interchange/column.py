@@ -329,7 +329,7 @@ class PandasColumn(Column):
             return buffer, dtype
 
         try:
-            msg = _NO_VALIDITY_BUFFER[null] + " so does not have a separate mask"
+            msg = f"{_NO_VALIDITY_BUFFER[null]} so does not have a separate mask"
         except KeyError:
             # TODO: implement for other bit/byte masks?
             raise NotImplementedError("See self.describe_null")

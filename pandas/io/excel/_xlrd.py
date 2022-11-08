@@ -30,7 +30,7 @@ class XlrdReader(BaseExcelReader):
             Object to be parsed.
         {storage_options}
         """
-        err_msg = "Install xlrd >= 1.0.0 for Excel support"
+        err_msg = "Install xlrd >= 2.0.1 for xls Excel support"
         import_optional_dependency("xlrd", extra=err_msg)
         super().__init__(filepath_or_buffer, storage_options=storage_options)
 
