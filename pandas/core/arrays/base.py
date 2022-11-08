@@ -8,7 +8,6 @@ An interface for extending pandas with custom arrays.
 """
 from __future__ import annotations
 
-import inspect
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -22,7 +21,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -49,7 +47,6 @@ from pandas.util._decorators import (
     Substitution,
     cache_readonly,
 )
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
@@ -81,7 +78,6 @@ from pandas.core.algorithms import (
     isin,
     mode,
     rank,
-    resolve_na_sentinel,
     unique,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
@@ -454,24 +450,6 @@ class ExtensionArray:
         """
         return ~(self == other)
 
-    def __init_subclass__(cls, **kwargs) -> None:
-        factorize = getattr(cls, "factorize")
-        if (
-            "use_na_sentinel" not in inspect.signature(factorize).parameters
-            # TimelikeOps uses old factorize args to ensure we don't break things
-            and cls.__name__ not in ("TimelikeOps", "DatetimeArray", "TimedeltaArray")
-        ):
-            # See GH#46910 for details on the deprecation
-            name = cls.__name__
-            warnings.warn(
-                f"The `na_sentinel` argument of `{name}.factorize` is deprecated. "
-                f"In the future, pandas will use the `use_na_sentinel` argument "
-                f"instead.  Add this argument to `{name}.factorize` to be compatible "
-                f"with future versions of pandas and silence this warning.",
-                DeprecationWarning,
-                stacklevel=find_stack_level(),
-            )
-
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -780,9 +758,11 @@ class ExtensionArray:
             Alternatively, an array-like 'value' can be given. It's expected
             that the array-like have the same length as 'self'.
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap.
+            Method to use for filling holes in reindexed Series:
+
+            * pad / ffill: propagate last valid observation forward to next valid.
+            * backfill / bfill: use NEXT valid observation to fill gap.
+
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
@@ -1009,7 +989,7 @@ class ExtensionArray:
         na_value : object
             The value in `values` to consider missing. This will be treated
             as NA in the factorization routines, so it will be coded as
-            `na_sentinel` and not included in `uniques`. By default,
+            `-1` and not included in `uniques`. By default,
             ``np.nan`` is used.
 
         Notes
@@ -1021,22 +1001,13 @@ class ExtensionArray:
 
     def factorize(
         self,
-        na_sentinel: int | lib.NoDefault = lib.no_default,
-        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool = True,
     ) -> tuple[np.ndarray, ExtensionArray]:
         """
         Encode the extension array as an enumerated type.
 
         Parameters
         ----------
-        na_sentinel : int, default -1
-            Value to use in the `codes` array to indicate missing values.
-
-            .. deprecated:: 1.5.0
-                The na_sentinel argument is deprecated and
-                will be removed in a future version of pandas. Specify use_na_sentinel
-                as either True or False.
-
         use_na_sentinel : bool, default True
             If True, the sentinel -1 will be used for NaN values. If False,
             NaN values will be encoded as non-negative integers and will not drop the
@@ -1074,11 +1045,10 @@ class ExtensionArray:
         #    original ExtensionArray.
         # 2. ExtensionArray.factorize.
         #    Complete control over factorization.
-        resolved_na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
         arr, na_value = self._values_for_factorize()
 
         codes, uniques = factorize_array(
-            arr, na_sentinel=resolved_na_sentinel, na_value=na_value
+            arr, use_na_sentinel=use_na_sentinel, na_value=na_value
         )
 
         uniques_ea = self._from_factorized(uniques, self)

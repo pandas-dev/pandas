@@ -1,7 +1,4 @@
 import collections
-import warnings
-
-from pandas.util._exceptions import find_stack_level
 
 cimport cython
 from cpython.object cimport (
@@ -688,11 +685,9 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
 
     unit = ''.join(unit)
     if unit in ["M", "Y", "y"]:
-        warnings.warn(
-            "Units 'M', 'Y' and 'y' do not represent unambiguous "
-            "timedelta values and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+        raise ValueError(
+            "Units 'M', 'Y' and 'y' do not represent unambiguous timedelta "
+            "values and are not supported."
         )
 
     if unit == 'M':
