@@ -5,6 +5,8 @@ from typing import cast
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     NaT,
     lib,
@@ -26,6 +28,7 @@ from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.interval import IntervalIndex
 from pandas.core.indexes.multi import MultiIndex
+from pandas.core.indexes.no_index import NoIndex
 from pandas.core.indexes.numeric import (
     Float64Index,
     Int64Index,
@@ -34,7 +37,6 @@ from pandas.core.indexes.numeric import (
 )
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.range import RangeIndex
-from pandas.core.indexes.no_index import NoIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 _sort_msg = textwrap.dedent(
@@ -377,4 +379,7 @@ def all_indexes_same(indexes) -> bool:
 
 
 def default_index(n: int) -> RangeIndex:
-    return NoIndex(n)
+    if get_option("mode.no_default_index"):
+        return NoIndex(n)
+    rng = range(0, n)
+    return RangeIndex._simple_new(rng, name=None)
