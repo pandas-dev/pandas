@@ -19,12 +19,42 @@ class NoIndex(RangeIndex):
         rng = range(0, len)
         return cls._simple_new(rng, name=name)
 
+    def __mul__(self, other):
+        raise NotImplementedError()
+
+    def __rmul__(self, other):
+        raise NotImplementedError()
+
+    def __add__(self, other):
+        raise NotImplementedError()
+
+    def __radd__(self, other):
+        raise NotImplementedError()
+
+    def __div__(self, other):
+        raise NotImplementedError()
+
+    def __rdiv__(self, other):
+        raise NotImplementedError()
+
+    def __sub__(self, other):
+        raise NotImplementedError()
+
+    def __rsub__(self, other):
+        raise NotImplementedError()
+
+    def __pow__(self, other):
+        raise NotImplementedError()
+
     @property
     def name(self):
         return None
 
     @name.setter
     def name(self, new_name):
+        raise ValueError("Can't set name of NoIndex!")
+
+    def _set_names(self, values, *, level=None) -> None:
         raise ValueError("Can't set name of NoIndex!")
 
     def __repr__(self) -> str:
@@ -84,7 +114,7 @@ class NoIndex(RangeIndex):
     def delete(self, loc):
         raise NotImplementedError()
 
-    def insert(self, loc):
+    def insert(self, loc, item):
         raise NotImplementedError()
 
     def reindex(self, *args, **kwargs):
