@@ -1035,6 +1035,37 @@ cdef class _Timedelta(timedelta):
 
     @property
     def seconds(self) -> int:  # TODO(cython3): make cdef property
+        """
+        Return the timedelta in number of seconds (n) converting hours and minutes in seconds.
+        
+        Timedelta.seconds = hours * 3600 + minutes * 60 + seconds.
+
+        Returns
+        -------
+        int
+            Number of seconds.
+
+        See Also
+        --------
+        Timedelta.components : Return all attributes with assigned values
+            (i.e. days, hours, minutes, seconds, milliseconds, microseconds,
+            nanoseconds).
+
+        Examples
+        --------
+        **Using string input**
+
+        >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
+
+        >>> td.seconds
+        120
+
+        **Using integer input**
+
+        >>> td = pd.Timedelta(42, unit='s')
+        >>> td.seconds
+        42
+        """
         # NB: using the python C-API PyDateTime_DELTA_GET_SECONDS will fail
         #  (or be incorrect)
         self._ensure_components()
