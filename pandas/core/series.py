@@ -368,8 +368,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # we are called internally, so short-circuit
         if fastpath:
-
-            # data is an ndarray, index is defined
+            # data is a ndarray, index is defined
             if not isinstance(data, (SingleBlockManager, SingleArrayManager)):
                 manager = get_option("mode.data_manager")
                 if manager == "block":
