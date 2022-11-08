@@ -200,7 +200,7 @@ class Dim2CompatTests(BaseExtensionTests):
             kwargs["ddof"] = 0
 
         try:
-            if method == "mean" and hasattr(data, "_mask"):
+            if method in ["mean", "var"] and hasattr(data, "_mask"):
                 # Empty slices produced by the mask cause RuntimeWarnings by numpy
                 with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
                     result = getattr(arr2d, method)(axis=0, **kwargs)
