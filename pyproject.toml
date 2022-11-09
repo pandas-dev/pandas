@@ -169,7 +169,6 @@ disable = [
   "unused-import",
   "unused-variable",
   "using-constant-test",
-  "useless-else-on-loop",
   "useless-parent-delegation"
 ]
 
