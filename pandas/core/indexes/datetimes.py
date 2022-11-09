@@ -11,7 +11,6 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Hashable,
-    Literal,
 )
 import warnings
 
@@ -37,7 +36,6 @@ from pandas._typing import (
     DtypeObj,
     Frequency,
     IntervalClosedType,
-    IntervalLeftRight,
     TimeAmbiguous,
     TimeNonexistent,
     npt,
@@ -829,8 +827,7 @@ def date_range(
     tz=None,
     normalize: bool = False,
     name: Hashable = None,
-    closed: Literal["left", "right"] | None | lib.NoDefault = lib.no_default,
-    inclusive: IntervalClosedType | None = None,
+    inclusive: IntervalClosedType = "both",
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -865,13 +862,6 @@ def date_range(
         Normalize start/end dates to midnight before generating date range.
     name : str, default None
         Name of the resulting DatetimeIndex.
-    closed : {None, 'left', 'right'}, optional
-        Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None, the default).
-
-        .. deprecated:: 1.4.0
-           Argument `closed` has been deprecated to standardize boundary inputs.
-           Use `inclusive` instead, to set each bound as closed or open.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
 
@@ -987,28 +977,6 @@ def date_range(
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
     """
-    if inclusive is not None and closed is not lib.no_default:
-        raise ValueError(
-            "Deprecated argument `closed` cannot be passed"
-            "if argument `inclusive` is not None"
-        )
-    if closed is not lib.no_default:
-        warnings.warn(
-            "Argument `closed` is deprecated in favor of `inclusive`.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        if closed is None:
-            inclusive = "both"
-        elif closed in ("left", "right"):
-            inclusive = closed
-        else:
-            raise ValueError(
-                "Argument `closed` has to be either 'left', 'right' or None"
-            )
-    elif inclusive is None:
-        inclusive = "both"
-
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
@@ -1035,8 +1003,7 @@ def bdate_range(
     name: Hashable = None,
     weekmask=None,
     holidays=None,
-    closed: IntervalLeftRight | lib.NoDefault | None = lib.no_default,
-    inclusive: IntervalClosedType | None = None,
+    inclusive: IntervalClosedType = "both",
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -1068,13 +1035,6 @@ def bdate_range(
         Dates to exclude from the set of valid business days, passed to
         ``numpy.busdaycalendar``, only used when custom frequency strings
         are passed.
-    closed : str, default None
-        Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None).
-
-        .. deprecated:: 1.4.0
-           Argument `closed` has been deprecated to standardize boundary inputs.
-           Use `inclusive` instead, to set each bound as closed or open.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
 
@@ -1131,7 +1091,6 @@ def bdate_range(
         tz=tz,
         normalize=normalize,
         name=name,
-        closed=closed,
         inclusive=inclusive,
         **kwargs,
     )
