@@ -130,6 +130,10 @@ wont_fail = ["ffill", "bfill", "fillna", "pad", "backfill", "shift"]
 frame_kernels_raise = [x for x in frame_transform_kernels if x not in wont_fail]
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Calling Series.rank with numeric_only:FutureWarning"
+)
+@pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
 @pytest.mark.parametrize("op", [*frame_kernels_raise, lambda x: x + 1])
 def test_transform_bad_dtype(op, frame_or_series, request):
     # GH 35964
@@ -162,6 +166,12 @@ def test_transform_bad_dtype(op, frame_or_series, request):
         obj.transform({"A": [op]})
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Dropping of nuisance columns in Series.rank:FutureWarning"
+)
+@pytest.mark.filterwarnings(
+    "ignore:Calling Series.rank with numeric_only:FutureWarning"
+)
 @pytest.mark.parametrize("op", frame_kernels_raise)
 def test_transform_failure_typeerror(request, op):
     # GH 35964

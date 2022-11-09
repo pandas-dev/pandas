@@ -133,8 +133,6 @@ class TestIndexing:
         assert index.name == index[1:].name
 
     @pytest.mark.parametrize("item", [101, "no_int", 2.5])
-    # FutureWarning from non-tuple sequence of nd indexing
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_getitem_error(self, index, item):
         msg = "|".join(
             [
@@ -145,8 +143,6 @@ class TestIndexing:
                     "are valid indices"
                 ),
                 "index out of bounds",  # string[pyarrow]
-                "Only integers, slices and integer or "
-                "boolean arrays are valid indices.",  # string[pyarrow]
             ]
         )
         with pytest.raises(IndexError, match=msg):

@@ -1730,6 +1730,7 @@ class TestTimedeltaArraylikeMulDivOps:
         result = np.asarray(left) // right
         tm.assert_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:invalid value encountered:RuntimeWarning")
     def test_td64arr_floordiv_tdscalar(self, box_with_array, scalar_td):
         # GH#18831, GH#19125
         box = box_with_array

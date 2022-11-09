@@ -751,7 +751,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         else:
             result = DatetimeArray._simple_new(result, dtype=result.dtype)
             if self.tz is not None:
-                # FIXME: tz_localize with non-nano
                 result = result.tz_localize(self.tz)
 
         return result

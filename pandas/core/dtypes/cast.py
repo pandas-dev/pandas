@@ -1029,15 +1029,12 @@ def soft_convert_objects(
     if datetime or timedelta:
         # GH 20380, when datetime is beyond year 2262, hence outside
         # bound of nanosecond-resolution 64-bit integers.
-        try:
-            converted = lib.maybe_convert_objects(
-                values,
-                convert_datetime=datetime,
-                convert_timedelta=timedelta,
-                convert_period=period,
-            )
-        except (OutOfBoundsDatetime, ValueError):
-            return values
+        converted = lib.maybe_convert_objects(
+            values,
+            convert_datetime=datetime,
+            convert_timedelta=timedelta,
+            convert_period=period,
+        )
         if converted is not values:
             return converted
 

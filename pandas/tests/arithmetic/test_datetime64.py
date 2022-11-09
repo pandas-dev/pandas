@@ -649,7 +649,6 @@ class TestDatetimeIndexComparisons:
     # Raising in __eq__ will fallback to NumPy, which warns, fails,
     # then re-raises the original exception. So we just need to ignore.
     @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
-    @pytest.mark.filterwarnings("ignore:Converting timezone-aware:FutureWarning")
     def test_scalar_comparison_tzawareness(
         self, comparison_op, other, tz_aware_fixture, box_with_array
     ):
