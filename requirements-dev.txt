@@ -44,7 +44,6 @@ tzdata>=2022.1
 xarray
 xlrd
 xlsxwriter
-xlwt
 zstandard
 aiobotocore<2.0.0
 botocore
@@ -101,4 +100,5 @@ requests
 jupyterlab >=3.4,<4
 jupyterlite==0.1.0b12
 sphinx-toggleprompt
-setuptools>=51.0.0
+git+https://github.com/mesonbuild/meson.git@master
+git+https://github.com/mesonbuild/meson-python.git@main

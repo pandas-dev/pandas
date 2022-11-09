@@ -3,14 +3,7 @@ _algos_take_helper = custom_target('algos_take_helper_pxi',
     input: 'algos_take_helper.pxi.in',
     command: [
         py, tempita, '@INPUT@', '-o', '@OUTDIR@'
-    ],
-    # TODO: remove these two below lines
-    # Weird bug in meson that only repros on my potato computer
-    # (possibly b/c of low number of threads)?
-    # The first custom_target is never built for some reason
-    # so algos.pyx will error out later in the build.
-    build_by_default: true,
-    build_always_stale: true
+    ]
 )
 _algos_common_helper = custom_target('algos_common_helper_pxi',
     output: 'algos_common_helper.pxi',
@@ -91,10 +84,12 @@ cython_sources_list = [
     'util.pxd',
 ]
 cython_sources = {}
+cython_sources_tgts = []
 
 foreach source: cython_sources_list
     source_pyx = fs.copyfile(source)
     cython_sources += {source: source_pyx}
+    cython_sources_tgts += source_pyx
 endforeach
 
 subdir('tslibs')

@@ -19,3 +19,6 @@ dependencies:
   - numpy
   - python-dateutil
   - pytz
+  - pip:
+      - "git+https://github.com/mesonbuild/meson.git@master"
+      - "git+https://github.com/mesonbuild/meson-python.git@main"

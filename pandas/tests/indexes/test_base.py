@@ -62,11 +62,11 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("index", ["datetime"], indirect=True)
     def test_new_axis(self, index):
-        with tm.assert_produces_warning(FutureWarning):
+        # TODO: a bunch of scattered tests check this deprecation is enforced.
+        #  de-duplicate/centralize them.
+        with pytest.raises(ValueError, match="Multi-dimensional indexing"):
             # GH#30588 multi-dimensional indexing deprecated
-            new_index = index[None, :]
-        assert new_index.ndim == 2
-        assert isinstance(new_index, np.ndarray)
+            index[None, :]
 
     def test_argsort(self, index):
         with tm.maybe_produces_warning(
@@ -250,9 +250,13 @@ class TestIndex(Base):
 
         if attr == "asi8":
             result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
+            tm.assert_index_equal(result, index)
+        elif klass is Index:
+            with pytest.raises(TypeError, match="unexpected keyword"):
+                klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(arg, tz=tz_naive_fixture)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
         if attr == "asi8":
             if err:
@@ -267,9 +271,13 @@ class TestIndex(Base):
 
         if attr == "asi8":
             result = DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
+            tm.assert_index_equal(result, index)
+        elif klass is Index:
+            with pytest.raises(TypeError, match="unexpected keyword"):
+                klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(list(arg), tz=tz_naive_fixture)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
         if attr == "asi8":
             if err:
@@ -655,23 +663,6 @@ class TestIndex(Base):
     )
     def test_is_object(self, index, expected):
         assert index.is_object() is expected
-
-    @pytest.mark.parametrize(
-        "index, expected",
-        [
-            ("string", False),
-            ("bool-object", False),
-            ("bool-dtype", False),
-            ("categorical", False),
-            ("int", False),
-            ("datetime", True),
-            ("float", False),
-        ],
-        indirect=["index"],
-    )
-    def test_is_all_dates(self, index, expected):
-        with tm.assert_produces_warning(FutureWarning):
-            assert index.is_all_dates is expected
 
     def test_summary(self, index):
         index._summary()
@@ -1524,15 +1515,15 @@ def test_deprecated_fastpath():
 
 
 def test_shape_of_invalid_index():
-    # Currently, it is possible to create "invalid" index objects backed by
+    # Pre-2.0, it was possible to create "invalid" index objects backed by
     # a multi-dimensional array (see https://github.com/pandas-dev/pandas/issues/27125
     # about this). However, as long as this is not solved in general,this test ensures
     # that the returned shape is consistent with this underlying array for
     # compat with matplotlib (see https://github.com/pandas-dev/pandas/issues/27775)
     idx = Index([0, 1, 2, 3])
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(ValueError, match="Multi-dimensional indexing"):
         # GH#30588 multi-dimensional indexing deprecated
-        assert idx[:, None].shape == (4, 1)
+        idx[:, None]
 
 
 def test_validate_1d_input():
@@ -1580,33 +1571,6 @@ def test_construct_from_memoryview(klass, extra_kwargs):
     result = klass(memoryview(np.arange(2000, 2005)), **extra_kwargs)
     expected = klass(list(range(2000, 2005)), **extra_kwargs)
     tm.assert_index_equal(result, expected, exact=True)
-
-
-def test_index_set_names_pos_args_deprecation():
-    # GH#41485
-    idx = Index([1, 2, 3, 4])
-    msg = (
-        "In a future version of pandas all arguments of Index.set_names "
-        "except for the argument 'names' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = idx.set_names("quarter", None)
-    expected = Index([1, 2, 3, 4], name="quarter")
-    tm.assert_index_equal(result, expected)
-
-
-def test_drop_duplicates_pos_args_deprecation():
-    # GH#41485
-    idx = Index([1, 2, 3, 1])
-    msg = (
-        "In a future version of pandas all arguments of "
-        "Index.drop_duplicates will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        idx.drop_duplicates("last")
-        result = idx.drop_duplicates("last")
-    expected = Index([2, 3, 1])
-    tm.assert_index_equal(expected, result)
 
 
 def test_get_attributes_dict_deprecated():

@@ -217,7 +217,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         raise AbstractMethodError(self)
 
     def _unbox_scalar(
-        self, value: DTScalarOrNaT, setitem: bool = False
+        self, value: DTScalarOrNaT
     ) -> np.int64 | np.datetime64 | np.timedelta64:
         """
         Unbox the integer value of a scalar `value`.
@@ -226,8 +226,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         ----------
         value : Period, Timestamp, Timedelta, or NaT
             Depending on subclass.
-        setitem : bool, default False
-            Whether to check compatibility with setitem strictness.
 
         Returns
         -------
@@ -240,9 +238,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         raise AbstractMethodError(self)
 
-    def _check_compatible_with(
-        self, other: DTScalarOrNaT, setitem: bool = False
-    ) -> None:
+    def _check_compatible_with(self, other: DTScalarOrNaT) -> None:
         """
         Verify that `self` and `other` are compatible.
 
@@ -255,9 +251,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Parameters
         ----------
         other
-        setitem : bool, default False
-            For __setitem__ we may have stricter compatibility restrictions than
-            for comparisons.
 
         Raises
         ------
@@ -438,7 +431,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 converted = ints_to_pydatetime(
                     i8data,
                     tz=self.tz,
-                    freq=self.freq,
                     box="timestamp",
                     reso=self._creso,
                 )
@@ -603,37 +595,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return other
 
-    def _validate_shift_value(self, fill_value):
-        # TODO(2.0): once this deprecation is enforced, use _validate_scalar
-        if is_valid_na_for_dtype(fill_value, self.dtype):
-            fill_value = NaT
-        elif isinstance(fill_value, self._recognized_scalars):
-            fill_value = self._scalar_type(fill_value)
-        else:
-            new_fill: DatetimeLikeScalar
-
-            # only warn if we're not going to raise
-            if self._scalar_type is Period and lib.is_integer(fill_value):
-                # kludge for #31971 since Period(integer) tries to cast to str
-                new_fill = Period._from_ordinal(fill_value, freq=self.freq)
-            else:
-                new_fill = self._scalar_type(fill_value)
-
-            # stacklevel here is chosen to be correct when called from
-            #  DataFrame.shift or Series.shift
-            warnings.warn(
-                f"Passing {type(fill_value)} to shift is deprecated and "
-                "will raise in a future version, pass "
-                f"{self._scalar_type.__name__} instead.",
-                FutureWarning,
-                # There is no way to hard-code the level since this might be
-                #  reached directly or called from the Index or Block method
-                stacklevel=find_stack_level(),
-            )
-            fill_value = new_fill
-
-        return self._unbox(fill_value, setitem=True)
-
     def _validate_scalar(
         self,
         value,
@@ -694,7 +655,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             #  this option exists to prevent a performance hit in
             #  TimedeltaIndex.get_loc
             return value
-        return self._unbox_scalar(value, setitem=setitem)
+        return self._unbox_scalar(value)
 
     def _validation_error_message(self, value, allow_listlike: bool = False) -> str:
         """
@@ -788,19 +749,18 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             return self._validate_scalar(value, allow_listlike=True)
 
-        return self._unbox(value, setitem=True)
+        return self._unbox(value)
 
-    def _unbox(
-        self, other, setitem: bool = False
-    ) -> np.int64 | np.datetime64 | np.timedelta64 | np.ndarray:
+    @final
+    def _unbox(self, other) -> np.int64 | np.datetime64 | np.timedelta64 | np.ndarray:
         """
         Unbox either a scalar with _unbox_scalar or an instance of our own type.
         """
         if lib.is_scalar(other):
-            other = self._unbox_scalar(other, setitem=setitem)
+            other = self._unbox_scalar(other)
         else:
             # same type as self
-            self._check_compatible_with(other, setitem=setitem)
+            self._check_compatible_with(other)
             other = other._ndarray
         return other
 
@@ -2303,7 +2263,7 @@ def validate_inferred_freq(
                 "values does not conform to passed frequency "
                 f"{freq.freqstr}"
             )
-        elif freq is None:
+        if freq is None:
             freq = inferred_freq
         freq_infer = False
 

@@ -95,7 +95,6 @@ from pandas._libs.util cimport (
     is_nan,
 )
 
-from pandas._libs.tslib import array_to_datetime
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -622,6 +621,8 @@ ctypedef fused ndarr_object:
 
 # TODO: get rid of this in StringArray and modify
 #  and go through ensure_string_array instead
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def convert_nans_to_NA(ndarr_object arr) -> ndarray:
@@ -766,9 +767,9 @@ def generate_bins_dt64(ndarray[int64_t, ndim=1] values, const int64_t[:] binner,
     Int64 (datetime64) version of generic python version in ``groupby.py``.
     """
     cdef:
-        Py_ssize_t lenidx, lenbin, i, j, bc, vc
+        Py_ssize_t lenidx, lenbin, i, j, bc
         ndarray[int64_t, ndim=1] bins
-        int64_t l_bin, r_bin, nat_count
+        int64_t r_bin, nat_count
         bint right_closed = closed == 'right'
 
     nat_count = 0
@@ -1583,25 +1584,19 @@ def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
     Returns
     -------
     str: {datetime, timedelta, date, nat, mixed}
-    bool
     """
     cdef:
         Py_ssize_t i, n = len(arr)
         bint seen_timedelta = False, seen_date = False, seen_datetime = False
         bint seen_tz_aware = False, seen_tz_naive = False
-        bint seen_nat = False, seen_str = False
+        bint seen_nat = False
         bint seen_period = False, seen_interval = False
-        list objs = []
         object v
 
     for i in range(n):
         v = arr[i]
         if isinstance(v, str):
-            objs.append(v)
-            seen_str = True
-
-            if len(objs) == 3:
-                break
+            return "mixed"
 
         elif v is None or util.is_nan(v):
             # nan or None
@@ -1619,7 +1614,7 @@ def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
                 seen_tz_aware = True
 
             if seen_tz_naive and seen_tz_aware:
-                return "mixed", seen_str
+                return "mixed"
         elif util.is_datetime64_object(v):
             # np.datetime64
             seen_datetime = True
@@ -1635,43 +1630,33 @@ def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
             seen_interval = True
             break
         else:
-            return "mixed", seen_str
+            return "mixed"
 
     if seen_period:
         if is_period_array(arr):
-            return "period", seen_str
-        return "mixed", seen_str
+            return "period"
+        return "mixed"
 
     if seen_interval:
         if is_interval_array(arr):
-            return "interval", seen_str
-        return "mixed", seen_str
+            return "interval"
+        return "mixed"
 
-    if seen_date and not (seen_datetime or seen_timedelta):
-        return "date", seen_str
+    if seen_date:
+        if not seen_datetime and not seen_timedelta:
+            return "date"
+        return "mixed"
+
     elif seen_datetime and not seen_timedelta:
-        return "datetime", seen_str
+        return "datetime"
     elif seen_timedelta and not seen_datetime:
-        return "timedelta", seen_str
+        return "timedelta"
+    elif seen_datetime and seen_timedelta:
+        return "mixed"
     elif seen_nat:
-        return "nat", seen_str
+        return "nat"
 
-    # short-circuit by trying to
-    # actually convert these strings
-    # this is for performance as we don't need to try
-    # convert *every* string array
-    if len(objs):
-        try:
-            # require_iso8601 as in maybe_infer_to_datetimelike
-            array_to_datetime(objs, errors="raise", require_iso8601=True)
-            return "datetime", seen_str
-        except (ValueError, TypeError):
-            pass
-
-        # we are *not* going to infer from strings
-        # for timedelta as too much ambiguity
-
-    return "mixed", seen_str
+    return "mixed"
 
 
 cdef inline bint is_timedelta(object o):
@@ -2232,14 +2217,24 @@ def maybe_convert_numeric(
 
     # Otherwise, iterate and do full inference.
     cdef:
-        int status, maybe_int
+        int maybe_int
         Py_ssize_t i, n = values.size
         Seen seen = Seen(coerce_numeric)
-        ndarray[float64_t, ndim=1] floats = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_FLOAT64, 0)
-        ndarray[complex128_t, ndim=1] complexes = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_COMPLEX128, 0)
-        ndarray[int64_t, ndim=1] ints = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_INT64, 0)
-        ndarray[uint64_t, ndim=1] uints = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_UINT64, 0)
-        ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_UINT8, 0)
+        ndarray[float64_t, ndim=1] floats = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_FLOAT64, 0
+        )
+        ndarray[complex128_t, ndim=1] complexes = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_COMPLEX128, 0
+        )
+        ndarray[int64_t, ndim=1] ints = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_INT64, 0
+        )
+        ndarray[uint64_t, ndim=1] uints = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_UINT64, 0
+        )
+        ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_UINT8, 0
+        )
         ndarray[uint8_t, ndim=1] mask = np.zeros(n, dtype="u1")
         float64_t fval
         bint allow_null_in_int = convert_to_masked_nullable
@@ -2318,7 +2313,7 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
-                status = floatify(val, &fval, &maybe_int)
+                floatify(val, &fval, &maybe_int)
 
                 if fval in na_values:
                     seen.saw_null()
@@ -2457,7 +2452,7 @@ def maybe_convert_objects(ndarray[object] objects,
         int64_t[::1] itimedeltas
         Seen seen = Seen()
         object val
-        float64_t fval, fnan = np.nan
+        float64_t fnan = np.nan
 
     n = len(objects)
 
@@ -2590,10 +2585,15 @@ def maybe_convert_objects(ndarray[object] objects,
     if seen.datetimetz_:
         if is_datetime_with_singletz_array(objects):
             from pandas import DatetimeIndex
-            dti = DatetimeIndex(objects)
 
-            # unbox to DatetimeArray
-            return dti._data
+            try:
+                dti = DatetimeIndex(objects)
+            except OutOfBoundsDatetime:
+                # e.g. test_to_datetime_cache_coerce_50_lines_outofbounds
+                pass
+            else:
+                # unbox to DatetimeArray
+                return dti._data
         seen.object_ = True
 
     elif seen.datetime_:
@@ -2937,7 +2937,7 @@ def to_object_array(rows: object, min_width: int = 0) -> ndarray:
 
 def tuples_to_object_array(ndarray[object] tuples):
     cdef:
-        Py_ssize_t i, j, n, k, tmp
+        Py_ssize_t i, j, n, k
         ndarray[object, ndim=2] result
         tuple tup
 
@@ -3065,7 +3065,9 @@ cpdef ndarray eq_NA_compat(ndarray[object] arr, object key):
     key is assumed to have `not isna(key)`
     """
     cdef:
-        ndarray[uint8_t, cast=True] result = cnp.PyArray_EMPTY(arr.ndim, arr.shape, cnp.NPY_BOOL, 0)
+        ndarray[uint8_t, cast=True] result = cnp.PyArray_EMPTY(
+            arr.ndim, arr.shape, cnp.NPY_BOOL, 0
+        )
         Py_ssize_t i
         object item
 

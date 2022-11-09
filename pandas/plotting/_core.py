@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import importlib
-import itertools
 import types
 from typing import (
     TYPE_CHECKING,
     Sequence,
 )
-import warnings
 
 from pandas._config import get_option
 
@@ -16,7 +14,6 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -760,13 +757,6 @@ class PlotAccessor(PandasObject):
         Equivalent to yerr.
     stacked : bool, default False in line and bar plots, and True in area plot
         If True, create stacked plot.
-    sort_columns : bool, default False
-        Sort column names to determine plot ordering.
-
-        .. deprecated:: 1.5.0
-            The `sort_columns` arguments is deprecated and will be removed in a
-            future version.
-
     secondary_y : bool or sequence, default False
         Whether to plot on the secondary y-axis if a list/tuple, which
         columns to plot on secondary y-axis.
@@ -877,7 +867,6 @@ class PlotAccessor(PandasObject):
                 ("yerr", None),
                 ("xerr", None),
                 ("secondary_y", False),
-                ("sort_columns", False),
                 ("xlabel", None),
                 ("ylabel", None),
             ]
@@ -885,14 +874,6 @@ class PlotAccessor(PandasObject):
             raise TypeError(
                 f"Called plot accessor for type {type(data).__name__}, "
                 "expected Series or DataFrame"
-            )
-
-        if "sort_columns" in itertools.chain(args, kwargs.keys()):
-            warnings.warn(
-                "`sort_columns` is deprecated and will be removed in a future "
-                "version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
             )
 
         if args and isinstance(data, ABCSeries):
@@ -955,7 +936,7 @@ class PlotAccessor(PandasObject):
                     raise ValueError(
                         f"{kind} requires either y column or 'subplots=True'"
                     )
-                elif y is not None:
+                if y is not None:
                     if is_integer(y) and not data.columns.holds_integer():
                         y = data.columns[y]
                     # converted to series actually. copy to not modify
@@ -1150,7 +1131,9 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def bar(self, x=None, y=None, **kwargs) -> PlotAccessor:
+    def bar(  # pylint: disable=disallowed-name
+        self, x=None, y=None, **kwargs
+    ) -> PlotAccessor:
         """
         Vertical bar plot.
 
@@ -1710,13 +1693,13 @@ class PlotAccessor(PandasObject):
         size = kwargs.pop("size", None)
         if s is not None and size is not None:
             raise TypeError("Specify exactly one of `s` and `size`")
-        elif s is not None or size is not None:
+        if s is not None or size is not None:
             kwargs["s"] = s if s is not None else size
 
         color = kwargs.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
-        elif c is not None or color is not None:
+        if c is not None or color is not None:
             kwargs["c"] = c if c is not None else color
 
         return self(kind="scatter", x=x, y=y, **kwargs)

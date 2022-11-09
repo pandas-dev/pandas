@@ -14,8 +14,8 @@ from typing import Iterator
 import warnings
 
 import numpy as np
-import numpy.ma as ma
-import numpy.ma.mrecords as mrecords
+from numpy import ma
+from numpy.ma import mrecords
 import pytest
 import pytz
 
@@ -141,13 +141,8 @@ class TestDataFrameConstructors:
         if frame_or_series is DataFrame:
             arr = arr.reshape(1, 1)
 
-        msg = "|".join(
-            [
-                "Could not convert object to NumPy timedelta",
-                "Invalid type for timedelta scalar: <class 'numpy.datetime64'>",
-            ]
-        )
-        with pytest.raises(ValueError, match=msg):
+        msg = "Invalid type for timedelta scalar: <class 'numpy.datetime64'>"
+        with pytest.raises(TypeError, match=msg):
             frame_or_series(arr, dtype="m8[ns]")
 
     @pytest.mark.parametrize("kind", ["m", "M"])
@@ -245,10 +240,11 @@ class TestDataFrameConstructors:
         assert float_string_frame["foo"].dtype == np.object_
 
     def test_constructor_cast_failure(self):
-        msg = "either all columns will be cast to that dtype, or a TypeError will"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            foo = DataFrame({"a": ["a", "b", "c"]}, dtype=np.float64)
-        assert foo["a"].dtype == object
+        # as of 2.0, we raise if we can't respect "dtype", previously we
+        #  silently ignored
+        msg = "could not convert string to float"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame({"a": ["a", "b", "c"]}, dtype=np.float64)
 
         # GH 3010, constructing with odd arrays
         df = DataFrame(np.ones((4, 2)))
@@ -717,7 +713,8 @@ class TestDataFrameConstructors:
         from collections import defaultdict
 
         data = {}
-        float_frame["B"][:10] = np.nan
+        float_frame.loc[: float_frame.index[10], "B"] = np.nan
+
         for k, v in float_frame.items():
             dct = defaultdict(dict)
             dct.update(v.to_dict())
@@ -753,13 +750,8 @@ class TestDataFrameConstructors:
             "A": dict(zip(range(20), tm.makeStringIndex(20))),
             "B": dict(zip(range(15), np.random.randn(15))),
         }
-        msg = "either all columns will be cast to that dtype, or a TypeError will"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            frame = DataFrame(test_data, dtype=float)
-
-        assert len(frame) == 20
-        assert frame["A"].dtype == np.object_
-        assert frame["B"].dtype == np.float64
+        with pytest.raises(ValueError, match="could not convert string"):
+            DataFrame(test_data, dtype=float)
 
     def test_constructor_dict_dont_upcast(self):
         d = {"Col1": {"Row1": "A String", "Row2": np.nan}}
@@ -2207,7 +2199,9 @@ class TestDataFrameConstructors:
         series = float_frame._series
 
         df = DataFrame({"A": series["A"]}, copy=True)
-        df["A"][:] = 5
+        # TODO can be replaced with `df.loc[:, "A"] = 5` after deprecation about
+        # inplace mutation is enforced
+        df.loc[df.index[0] : df.index[-1], "A"] = 5
 
         assert not (series["A"] == 5).all()
 
@@ -2788,13 +2782,14 @@ class TestDataFrameConstructorWithDtypeCoercion:
 
         arr = np.random.randn(10, 5)
 
-        msg = "if they cannot be cast losslessly"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            DataFrame(arr, dtype="i8")
+        # as of 2.0, we match Series behavior by retaining float dtype instead
+        #  of doing a lossy conversion here. Below we _do_ do the conversion
+        #  since it is lossless.
+        df = DataFrame(arr, dtype="i8")
+        assert (df.dtypes == "f8").all()
 
-        with tm.assert_produces_warning(None):
-            # if they can be cast losslessly, no warning
-            DataFrame(arr.round(), dtype="i8")
+        df = DataFrame(arr.round(), dtype="i8")
+        assert (df.dtypes == "i8").all()
 
         # with NaNs, we go through a different path with a different warning
         arr[0, 0] = np.nan

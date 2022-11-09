@@ -54,11 +54,7 @@ if pip list | grep -q ^pandas; then
     pip uninstall -y pandas || true
 fi
 
-echo "Build extensions"
-# GH 47305: Parallel build can causes flaky ImportError from pandas/_libs/tslibs
-python setup.py build_ext -q -j1
-
 echo "Install pandas"
-python -m pip install --no-build-isolation --no-use-pep517 -e .
+python -m pip install --no-build-isolation -v .
 
 echo "done"

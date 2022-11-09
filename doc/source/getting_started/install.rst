@@ -20,7 +20,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.8, 3.9 and 3.10.
+Officially Python 3.8, 3.9, 3.10 and 3.11.
 
 Installing pandas
 -----------------
@@ -310,7 +310,7 @@ Can be managed as optional_extra with ``pandas[plot, output_formatting]``, depen
 ========================= ================== ================== =============================================================
 Dependency                Minimum Version    optional_extra     Notes
 ========================= ================== ================== =============================================================
-matplotlib                3.3.2              plot               Plotting library
+matplotlib                3.6.1              plot               Plotting library
 Jinja2                    3.0.0              output_formatting  Conditional formatting with DataFrame.style
 tabulate                  0.8.9              output_formatting  Printing in Markdown-friendly format (see `tabulate`_)
 ========================= ================== ================== =============================================================
@@ -336,7 +336,6 @@ Can be managed as optional_extra with ``pandas[excel]``.
 Dependency                Minimum Version    optional_extra  Notes
 ========================= ================== =============== =============================================================
 xlrd                      2.0.1              excel           Reading Excel
-xlwt                      1.3.0              excel           Writing Excel
 xlsxwriter                1.4.3              excel           Writing Excel
 openpyxl                  3.0.7              excel           Reading / writing for xlsx files
 pyxlsb                    1.0.8              excel           Reading for xlsb files
@@ -418,7 +417,7 @@ Dependency                Minimum Version    optional_extra   Notes
 PyTables                  3.6.1              hdf5             HDF5-based reading / writing
 blosc                     1.21.0             hdf5             Compression for HDF5
 zlib                                         hdf5             Compression for HDF5
-fastparquet               0.4.0              -                Parquet reading / writing (pyarrow is default)
+fastparquet               0.6.3              -                Parquet reading / writing (pyarrow is default)
 pyarrow                   6.0.0              parquet, feather Parquet, ORC, and feather reading / writing
 pyreadstat                1.1.2              spss             SPSS files (.sav) reading
 odfpy                     1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing

@@ -479,7 +479,6 @@ class TestResetIndex:
         with pytest.raises(ValueError, match="expected type bool"):
             multiindex_df.reset_index(allow_duplicates=allow_duplicates)
 
-    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_reset_index_datetime(self, tz_naive_fixture):
         # GH#3950
         tz = tz_naive_fixture
@@ -727,19 +726,6 @@ def test_reset_index_multiindex_nat():
         {"id": range(3), "a": list("abc")},
         index=pd.DatetimeIndex(["2015-07-01", "2015-07-02", "NaT"], name="tstamp"),
     )
-    tm.assert_frame_equal(result, expected)
-
-
-def test_drop_pos_args_deprecation():
-    # https://github.com/pandas-dev/pandas/issues/41485
-    df = DataFrame({"a": [1, 2, 3]}).set_index("a")
-    msg = (
-        r"In a future version of pandas all arguments of DataFrame\.reset_index "
-        r"except for the argument 'level' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.reset_index("a", False)
-    expected = DataFrame({"a": [1, 2, 3]})
     tm.assert_frame_equal(result, expected)
 
 

@@ -15,7 +15,6 @@ top_level_py_list = [
     'api.py',
     'clipboards.py',
     'common.py',
-    'date_converters.py',
     'feather_format.py',
     'gbq.py',
     'html.py',

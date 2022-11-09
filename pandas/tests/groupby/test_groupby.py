@@ -28,7 +28,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -530,6 +529,54 @@ def test_frame_multi_key_function_list():
                 "two",
                 "one",
             ],
+            "D": np.random.randn(11),
+            "E": np.random.randn(11),
+            "F": np.random.randn(11),
+        }
+    )
+
+    grouped = data.groupby(["A", "B"])
+    funcs = [np.mean, np.std]
+    agged = grouped.agg(funcs)
+    expected = pd.concat(
+        [grouped["D"].agg(funcs), grouped["E"].agg(funcs), grouped["F"].agg(funcs)],
+        keys=["D", "E", "F"],
+        axis=1,
+    )
+    assert isinstance(agged.index, MultiIndex)
+    assert isinstance(expected.index, MultiIndex)
+    tm.assert_frame_equal(agged, expected)
+
+
+def test_frame_multi_key_function_list_partial_failure():
+    data = DataFrame(
+        {
+            "A": [
+                "foo",
+                "foo",
+                "foo",
+                "foo",
+                "bar",
+                "bar",
+                "bar",
+                "bar",
+                "foo",
+                "foo",
+                "foo",
+            ],
+            "B": [
+                "one",
+                "one",
+                "one",
+                "two",
+                "one",
+                "one",
+                "one",
+                "two",
+                "two",
+                "two",
+                "one",
+            ],
             "C": [
                 "dull",
                 "dull",
@@ -551,18 +598,8 @@ def test_frame_multi_key_function_list():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['C'\] did not aggregate successfully"
-    ):
-        agged = grouped.agg(funcs)
-    expected = pd.concat(
-        [grouped["D"].agg(funcs), grouped["E"].agg(funcs), grouped["F"].agg(funcs)],
-        keys=["D", "E", "F"],
-        axis=1,
-    )
-    assert isinstance(agged.index, MultiIndex)
-    assert isinstance(expected.index, MultiIndex)
-    tm.assert_frame_equal(agged, expected)
+    with pytest.raises(TypeError, match="Could not convert dullshinyshiny to numeric"):
+        grouped.agg(funcs)
 
 
 @pytest.mark.parametrize("op", [lambda x: x.sum(), lambda x: x.mean()])
@@ -981,8 +1018,7 @@ def test_wrap_aggregated_output_multindex(mframe):
     def aggfun(ser):
         if ser.name == ("foo", "one"):
             raise TypeError
-        else:
-            return ser.sum()
+        return ser.sum()
 
     with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
         agged2 = df.groupby(keys).aggregate(aggfun)
@@ -1579,7 +1615,7 @@ def test_set_group_name(df, grouper):
         assert group.name is not None
         return group.sum()
 
-    def foo(x):
+    def freducex(x):
         return freduce(x)
 
     grouped = df.groupby(grouper, group_keys=False)
@@ -1592,7 +1628,7 @@ def test_set_group_name(df, grouper):
 
     grouped["C"].apply(f)
     grouped["C"].aggregate(freduce)
-    grouped["C"].aggregate([freduce, foo])
+    grouped["C"].aggregate([freduce, freducex])
     grouped["C"].transform(f)
 
 
@@ -1873,6 +1909,7 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
+@pytest.mark.filterwarnings("ignore:The default value of numeric_only:FutureWarning")
 @pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
 @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_empty_groupby(columns, keys, values, method, op, request, using_array_manager):
@@ -2316,8 +2353,6 @@ def test_group_on_empty_multiindex(transformation_func, request):
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
         pytest.skip(f"Not applicable for {groupby_func}")
-    # TODO(2.0) Remove after pad/backfill deprecation enforced
-    groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
 
     df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
