@@ -81,7 +81,7 @@ class TestNonNano:
     def test_fields(self, unit, reso, field, dtype, dta_dti):
         dta, dti = dta_dti
 
-        # FIXME: assert (dti == dta).all()
+        assert (dti == dta).all()
 
         res = getattr(dta, field)
         expected = getattr(dti._data, field)

@@ -871,6 +871,14 @@ def value_counts(
             result.name = name
             counts = result._values
 
+        elif isinstance(values, ABCMultiIndex):
+            # GH49558
+            levels = list(range(values.nlevels))
+            result = Series(index=values).groupby(level=levels, dropna=dropna).size()
+            # TODO: allow index names to remain (see discussion in GH49497)
+            result.index.names = [None] * values.nlevels
+            counts = result._values
+
         else:
             values = _ensure_arraylike(values)
             keys, counts = value_counts_arraylike(values, dropna)
@@ -1247,7 +1255,7 @@ class SelectNSeries(SelectN):
             inds = inds[:n]
             findex = nbase
         else:
-            if len(inds) < nbase and len(nan_index) + len(inds) >= nbase:
+            if len(inds) < nbase <= len(nan_index) + len(inds):
                 findex = len(nan_index) + len(inds)
             else:
                 findex = len(inds)

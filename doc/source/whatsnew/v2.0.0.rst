@@ -291,7 +291,8 @@ Other API changes
 - Passing a sequence containing ``datetime`` objects and ``date`` objects to :class:`Series` constructor will return with ``object`` dtype instead of ``datetime64[ns]`` dtype, consistent with :class:`Index` behavior (:issue:`49341`)
 - Passing strings that cannot be parsed as datetimes to :class:`Series` or :class:`DataFrame` with ``dtype="datetime64[ns]"`` will raise instead of silently ignoring the keyword and returning ``object`` dtype (:issue:`24435`)
 - Passing a sequence containing a type that cannot be converted to :class:`Timedelta` to :func:`to_timedelta` or to the :class:`Series` or :class:`DataFrame` constructor with ``dtype="timedelta64[ns]"`` or to :class:`TimedeltaIndex` now raises ``TypeError`` instead of ``ValueError`` (:issue:`49525`)
-- Changed behavior of :class:`Index` construct with sequence containing at least one ``NaT`` and everything else either ``None`` or ``NaN`` to infer ``datetime64[ns]`` dtype instead of ``object``, matching :class:`Series` behavior (:issue:`49340`)
+- Changed behavior of :class:`Index` constructor with sequence containing at least one ``NaT`` and everything else either ``None`` or ``NaN`` to infer ``datetime64[ns]`` dtype instead of ``object``, matching :class:`Series` behavior (:issue:`49340`)
+- Changed behavior of :class:`Index` constructor with an object-dtype ``numpy.ndarray`` containing all-``bool`` values or all-complex values, this will now retain object dtype, consistent with the :class:`Series` behavior (:issue:`49594`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -434,6 +435,7 @@ Removal of prior version deprecations/changes
 - Disallow passing abbreviations for ``orient`` in :meth:`DataFrame.to_dict` (:issue:`32516`)
 - Removed ``get_offset`` in favor of :func:`to_offset` (:issue:`30340`)
 - Removed the ``warn`` keyword in :func:`infer_freq` (:issue:`45947`)
+- Removed the ``include_start`` and ``include_end`` arguments in :meth:`DataFrame.between_time` in favor of ``inclusive`` (:issue:`43248`)
 - Removed the ``center`` keyword in :meth:`DataFrame.expanding` (:issue:`20647`)
 - Removed the ``truediv`` keyword from :func:`eval` (:issue:`29812`)
 - Removed the ``pandas.datetime`` submodule (:issue:`30489`)
@@ -457,6 +459,7 @@ Removal of prior version deprecations/changes
 - Enforced disallowing :func:`merge` to produce duplicated columns through the ``suffixes`` keyword and already existing columns (:issue:`22818`)
 - Enforced disallowing using :func:`merge` or :func:`join` on a different number of levels (:issue:`34862`)
 - Enforced disallowing ``value_name`` argument in :func:`DataFrame.melt` to match an element in the :class:`DataFrame` columns (:issue:`35003`)
+- Enforced disallowing passing ``showindex`` into ``**kwargs`` in :func:`DataFrame.to_markdown` and :func:`Series.to_markdown` in favor of ``index`` (:issue:`33091`)
 - Removed setting Categorical._codes directly (:issue:`41429`)
 - Removed setting Categorical.categories directly (:issue:`47834`)
 - Removed argument ``inplace`` from :meth:`Categorical.add_categories`, :meth:`Categorical.remove_categories`, :meth:`Categorical.set_categories`, :meth:`Categorical.rename_categories`, :meth:`Categorical.reorder_categories`, :meth:`Categorical.set_ordered`, :meth:`Categorical.as_ordered`, :meth:`Categorical.as_unordered` (:issue:`37981`, :issue:`41118`, :issue:`41133`, :issue:`47834`)
@@ -475,7 +478,7 @@ Removal of prior version deprecations/changes
 - Changed the behavior of :meth:`Index.reindex`, :meth:`Series.reindex`, and :meth:`DataFrame.reindex` with a ``datetime64`` dtype and a ``datetime.date`` object for ``fill_value``; these are no longer considered equivalent to ``datetime.datetime`` objects so the reindex casts to object dtype (:issue:`39767`)
 - Changed behavior of :meth:`SparseArray.astype` when given a dtype that is not explicitly ``SparseDtype``, cast to the exact requested dtype rather than silently using a ``SparseDtype`` instead (:issue:`34457`)
 - Changed behavior of :meth:`Index.ravel` to return a view on the original :class:`Index` instead of a ``np.ndarray`` (:issue:`36900`)
-- Changed behavior of :meth:`Index.to_frame` with explicit ``name=None`` to use ``None`` for the column name instead of the index's name or default ``0`` (:issue:`45523`)
+- Changed behavior of :meth:`Series.to_frame` and :meth:`Index.to_frame` with explicit ``name=None`` to use ``None`` for the column name instead of the index's name or default ``0`` (:issue:`45523`)
 - Changed behavior of :class:`DataFrame` constructor given floating-point ``data`` and an integer ``dtype``, when the data cannot be cast losslessly, the floating point dtype is retained, matching :class:`Series` behavior (:issue:`41170`)
 - Changed behavior of :class:`Index` constructor when given a ``np.ndarray`` with object-dtype containing numeric entries; this now retains object dtype rather than inferring a numeric dtype, consistent with :class:`Series` behavior (:issue:`42870`)
 - Changed behavior of :meth:`Index.__and__`, :meth:`Index.__or__` and :meth:`Index.__xor__` to behave as logical operations (matching :class:`Series` behavior) instead of aliases for set operations (:issue:`37374`)
@@ -530,6 +533,7 @@ Performance improvements
 - Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47405`, :issue:`47656`, :issue:`48502`)
 - Memory improvement in :meth:`RangeIndex.sort_values` (:issue:`48801`)
 - Performance improvement in :class:`DataFrameGroupBy` and :class:`SeriesGroupBy` when ``by`` is a categorical type and ``sort=False`` (:issue:`48976`)
+- Performance improvement in :class:`DataFrameGroupBy` and :class:`SeriesGroupBy` when ``by`` is a categorical type and ``observed=False`` (:issue:`49596`)
 - Performance improvement in :func:`merge` when not merging on the index - the new index will now be :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`49478`)
 
 .. ---------------------------------------------------------------------------
@@ -614,6 +618,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.union` not sorting when sort=None and index contains missing values (:issue:`49010`)
 - Bug in :meth:`MultiIndex.append` not checking names for equality (:issue:`48288`)
 - Bug in :meth:`MultiIndex.symmetric_difference` losing extension array (:issue:`48607`)
+- Bug in :meth:`MultiIndex.value_counts` returning a :class:`Series` indexed by flat index of tuples instead of a :class:`MultiIndex` (:issue:`49558`)
 -
 
 I/O
