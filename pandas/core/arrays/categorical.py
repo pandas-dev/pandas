@@ -1019,7 +1019,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
         """
-        if set(self.dtype.categories) != set(new_categories):
+        if (
+            len(self.categories) != len(new_categories)
+            or not self.categories.difference(new_categories).empty
+        ):
             raise ValueError(
                 "items in new_categories are not the same as in old categories"
             )
