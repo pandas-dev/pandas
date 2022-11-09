@@ -700,7 +700,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         labels,
         *,
         axis: Axis = 0,
-        copy: bool_t = None,
+        copy: bool_t | None = None,
     ) -> NDFrameT:
         """
         Assign desired index to given axis.
@@ -734,7 +734,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._set_axis_nocheck(labels, axis, inplace=False, copy=copy)
 
     @final
-    def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool_t, copy: bool_t):
+    def _set_axis_nocheck(
+        self, labels, axis: Axis, inplace: bool_t, copy: bool_t | None
+    ):
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
