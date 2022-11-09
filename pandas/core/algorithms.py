@@ -1247,7 +1247,7 @@ class SelectNSeries(SelectN):
             inds = inds[:n]
             findex = nbase
         else:
-            if len(inds) < nbase and len(nan_index) + len(inds) >= nbase:
+            if len(inds) < nbase <= len(nan_index) + len(inds):
                 findex = len(nan_index) + len(inds)
             else:
                 findex = len(inds)

@@ -666,7 +666,7 @@ def range_to_ndarray(rng: range) -> np.ndarray:
         arr = np.arange(rng.start, rng.stop, rng.step, dtype="int64")
     except OverflowError:
         # GH#30173 handling for ranges that overflow int64
-        if (rng.start >= 0 and rng.step > 0) or (rng.stop >= 0 and rng.step < 0):
+        if (rng.start >= 0 and rng.step > 0) or (rng.step < 0 <= rng.stop):
             try:
                 arr = np.arange(rng.start, rng.stop, rng.step, dtype="uint64")
             except OverflowError:

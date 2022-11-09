@@ -116,7 +116,7 @@ def test_info_verbose_check_header_separator_body():
     assert len(lines) > 0
 
     for i, line in enumerate(lines):
-        if i >= start and i < start + size:
+        if start <= i < start + size:
             line_nr = f" {i - start} "
             assert line.startswith(line_nr)
 
