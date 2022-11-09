@@ -116,8 +116,6 @@ class CategoricalDtypeType(type):
     the type of CategoricalDtype, this metaclass determines subclass ability
     """
 
-    pass
-
 
 @register_extension_dtype
 class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
@@ -525,7 +523,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             raise TypeError(
                 f"Parameter 'categories' must be list-like, was {repr(categories)}"
             )
-        elif not isinstance(categories, ABCIndex):
+        if not isinstance(categories, ABCIndex):
             categories = Index._with_infer(categories, tupleize_cols=False)
 
         if not fastpath:
@@ -804,7 +802,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             if other.startswith("M8["):
-                other = "datetime64[" + other[3:]
+                other = f"datetime64[{other[3:]}"
             return other == self.name
 
         return (
@@ -986,10 +984,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
             # but doesn't regard freq str like "U" as dtype.
             if dtype.startswith("period[") or dtype.startswith("Period["):
                 try:
-                    if cls._parse_dtype_strict(dtype) is not None:
-                        return True
-                    else:
-                        return False
+                    return cls._parse_dtype_strict(dtype) is not None
                 except ValueError:
                     return False
             else:
@@ -1137,7 +1132,7 @@ class IntervalDtype(PandasExtensionDtype):
             )
             raise TypeError(msg)
 
-        key = str(subtype) + str(closed)
+        key = f"{subtype}{closed}"
         try:
             return cls._cache_dtypes[key]
         except KeyError:
@@ -1254,10 +1249,7 @@ class IntervalDtype(PandasExtensionDtype):
         if isinstance(dtype, str):
             if dtype.lower().startswith("interval"):
                 try:
-                    if cls.construct_from_string(dtype) is not None:
-                        return True
-                    else:
-                        return False
+                    return cls.construct_from_string(dtype) is not None
                 except (ValueError, TypeError):
                     return False
             else:

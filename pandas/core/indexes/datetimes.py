@@ -429,18 +429,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return False
         return super()._can_range_setop(other)
 
-    def _maybe_utc_convert(self, other: Index) -> tuple[DatetimeIndex, Index]:
-        this = self
-
-        if isinstance(other, DatetimeIndex):
-            if (self.tz is None) ^ (other.tz is None):
-                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
-
-            if not timezones.tz_compare(self.tz, other.tz):
-                this = self.tz_convert("UTC")
-                other = other.tz_convert("UTC")
-        return this, other
-
     # --------------------------------------------------------------------
 
     def _get_time_micros(self) -> npt.NDArray[np.int64]:
@@ -564,31 +552,24 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         end = self._maybe_cast_for_get_loc(end)
         return start, end
 
+    def _disallow_mismatched_indexing(self, key, one_way: bool = False) -> None:
+        """
+        Check for mismatched-tzawareness indexing and re-raise as KeyError.
+        """
+        try:
+            self._deprecate_mismatched_indexing(key, one_way=one_way)
+        except TypeError as err:
+            raise KeyError(key) from err
+
     def _deprecate_mismatched_indexing(self, key, one_way: bool = False) -> None:
         # GH#36148
         # we get here with isinstance(key, self._data._recognized_scalars)
-        try:
-            self._data._assert_tzawareness_compat(key)
-        except TypeError:
-            if self.tz is None:
-                msg = (
-                    "Indexing a timezone-naive DatetimeIndex with a "
-                    "timezone-aware datetime is deprecated and will "
-                    "raise KeyError in a future version.  "
-                    "Use a timezone-naive object instead."
-                )
-            elif one_way:
-                # we special-case timezone-naive strings and timezone-aware
-                #  DatetimeIndex
-                return
-            else:
-                msg = (
-                    "Indexing a timezone-aware DatetimeIndex with a "
-                    "timezone-naive datetime is deprecated and will "
-                    "raise KeyError in a future version. "
-                    "Use a timezone-aware object instead."
-                )
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        if self.tz is not None and one_way:
+            # we special-case timezone-naive strings and timezone-aware
+            #  DatetimeIndex
+            return
+
+        self._data._assert_tzawareness_compat(key)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -606,7 +587,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if isinstance(key, self._data._recognized_scalars):
             # needed to localize naive datetimes
-            self._deprecate_mismatched_indexing(key)
+            self._disallow_mismatched_indexing(key)
             key = self._maybe_cast_for_get_loc(key)
 
         elif isinstance(key, str):
@@ -615,7 +596,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 parsed, reso = self._parse_with_reso(key)
             except ValueError as err:
                 raise KeyError(key) from err
-            self._deprecate_mismatched_indexing(parsed, one_way=True)
+            self._disallow_mismatched_indexing(parsed, one_way=True)
 
             if self._can_partial_date_slice(reso):
                 try:
@@ -1011,7 +992,7 @@ def date_range(
             "Deprecated argument `closed` cannot be passed"
             "if argument `inclusive` is not None"
         )
-    elif closed is not lib.no_default:
+    if closed is not lib.no_default:
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,

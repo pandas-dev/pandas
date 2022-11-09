@@ -80,7 +80,6 @@ from pandas.core.apply import (
 )
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
-from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
@@ -96,6 +95,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     all_indexes_same,
+    default_index,
 )
 from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.series import Series
@@ -295,9 +295,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
                 # result is a dict whose keys are the elements of result_index
                 index = self.grouper.result_index
-                return create_series_with_explicit_dtype(
-                    result, index=index, dtype_if_empty=object
-                )
+                return Series(result, index=index)
 
     agg = aggregate
 
@@ -309,7 +307,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # GH 15931
             raise SpecificationError("nested renamer is not supported")
 
-        elif any(isinstance(x, (tuple, list)) for x in arg):
+        if any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
 
             # indicated column order
@@ -332,7 +330,7 @@ class SeriesGroupBy(GroupBy[Series]):
             from pandas import concat
 
             res_df = concat(
-                results.values(), axis=1, keys=[key.label for key in results.keys()]
+                results.values(), axis=1, keys=[key.label for key in results]
             )
             return res_df
 
@@ -360,7 +358,7 @@ class SeriesGroupBy(GroupBy[Series]):
         data: Series,
         values: list[Any],
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ) -> DataFrame | Series:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
@@ -402,7 +400,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self._concat_objects(
                 values,
                 not_indexed_same=not_indexed_same,
-                override_group_keys=override_group_keys,
+                is_transform=is_transform,
             )
             result.name = self.obj.name
             return result
@@ -1141,8 +1139,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     result = gba.agg()
 
                 except ValueError as err:
-                    if "no results" not in str(err):
-                        # raised directly by _aggregate_multiple_funcs
+                    if "No objects to concatenate" not in str(err):
                         raise
                     result = self._aggregate_frame(func)
 
@@ -1163,7 +1160,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
-            result.index = Index(range(len(result)))
+            result.index = default_index(len(result))
 
         return result
 
@@ -1232,7 +1229,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         data: DataFrame,
         values: list,
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ):
 
         if len(values) == 0:
@@ -1252,7 +1249,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self._concat_objects(
                 values,
                 not_indexed_same=not_indexed_same,
-                override_group_keys=override_group_keys,
+                is_transform=is_transform,
             )
 
         key_index = self.grouper.result_index if self.as_index else None
@@ -1283,7 +1280,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 not_indexed_same,
                 first_not_none,
                 key_index,
-                override_group_keys,
+                is_transform,
             )
 
     def _wrap_applied_output_series(
@@ -1292,12 +1289,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         not_indexed_same: bool,
         first_not_none,
         key_index,
-        override_group_keys: bool,
+        is_transform: bool,
     ) -> DataFrame | Series:
-        # this is to silence a DeprecationWarning
-        # TODO(2.0): Remove when default dtype of empty Series is object
         kwargs = first_not_none._construct_axes_dict()
-        backup = create_series_with_explicit_dtype(dtype_if_empty=object, **kwargs)
+        backup = Series(**kwargs)
         values = [x if (x is not None) else backup for x in values]
 
         all_indexed_same = all_indexes_same(x.index for x in values)
@@ -1307,7 +1302,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self._concat_objects(
                 values,
                 not_indexed_same=True,
-                override_group_keys=override_group_keys,
+                is_transform=is_transform,
             )
 
         # Combine values
@@ -1595,12 +1590,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # per GH 23566
         if isinstance(key, tuple) and len(key) > 1:
             # if len == 1, then it becomes a SeriesGroupBy and this is actually
-            # valid syntax, so don't raise warning
-            warnings.warn(
-                "Indexing with multiple keys (implicitly converted to a tuple "
-                "of keys) will be deprecated, use a list instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            # valid syntax, so don't raise
+            raise ValueError(
+                "Cannot subset columns with a tuple with more than one element. "
+                "Use a list instead."
             )
         return super().__getitem__(key)
 
@@ -1786,7 +1779,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         if not self.as_index:
-            results.index = Index(range(len(results)))
+            results.index = default_index(len(results))
             self._insert_inaxis_grouper_inplace(results)
 
         return results

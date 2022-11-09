@@ -217,7 +217,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         raise AbstractMethodError(self)
 
     def _unbox_scalar(
-        self, value: DTScalarOrNaT, setitem: bool = False
+        self, value: DTScalarOrNaT
     ) -> np.int64 | np.datetime64 | np.timedelta64:
         """
         Unbox the integer value of a scalar `value`.
@@ -226,8 +226,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         ----------
         value : Period, Timestamp, Timedelta, or NaT
             Depending on subclass.
-        setitem : bool, default False
-            Whether to check compatibility with setitem strictness.
 
         Returns
         -------
@@ -240,9 +238,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         raise AbstractMethodError(self)
 
-    def _check_compatible_with(
-        self, other: DTScalarOrNaT, setitem: bool = False
-    ) -> None:
+    def _check_compatible_with(self, other: DTScalarOrNaT) -> None:
         """
         Verify that `self` and `other` are compatible.
 
@@ -255,9 +251,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Parameters
         ----------
         other
-        setitem : bool, default False
-            For __setitem__ we may have stricter compatibility restrictions than
-            for comparisons.
 
         Raises
         ------
@@ -438,7 +431,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 converted = ints_to_pydatetime(
                     i8data,
                     tz=self.tz,
-                    freq=self.freq,
                     box="timestamp",
                     reso=self._creso,
                 )
@@ -603,43 +595,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return other
 
-    def _validate_shift_value(self, fill_value):
-        # TODO(2.0): once this deprecation is enforced, use _validate_scalar
-        if is_valid_na_for_dtype(fill_value, self.dtype):
-            fill_value = NaT
-        elif isinstance(fill_value, self._recognized_scalars):
-            fill_value = self._scalar_type(fill_value)
-        else:
-            new_fill: DatetimeLikeScalar
-
-            # only warn if we're not going to raise
-            if self._scalar_type is Period and lib.is_integer(fill_value):
-                # kludge for #31971 since Period(integer) tries to cast to str
-                new_fill = Period._from_ordinal(fill_value, freq=self.freq)
-            else:
-                new_fill = self._scalar_type(fill_value)
-
-            # stacklevel here is chosen to be correct when called from
-            #  DataFrame.shift or Series.shift
-            warnings.warn(
-                f"Passing {type(fill_value)} to shift is deprecated and "
-                "will raise in a future version, pass "
-                f"{self._scalar_type.__name__} instead.",
-                FutureWarning,
-                # There is no way to hard-code the level since this might be
-                #  reached directly or called from the Index or Block method
-                stacklevel=find_stack_level(),
-            )
-            fill_value = new_fill
-
-        return self._unbox(fill_value, setitem=True)
-
     def _validate_scalar(
         self,
         value,
         *,
         allow_listlike: bool = False,
-        setitem: bool = True,
         unbox: bool = True,
     ):
         """
@@ -651,8 +611,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         allow_listlike: bool, default False
             When raising an exception, whether the message should say
             listlike inputs are allowed.
-        setitem : bool, default True
-            Whether to check compatibility with setitem strictness.
         unbox : bool, default True
             Whether to unbox the result before returning.  Note: unbox=False
             skips the setitem compatibility check.
@@ -694,7 +652,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             #  this option exists to prevent a performance hit in
             #  TimedeltaIndex.get_loc
             return value
-        return self._unbox_scalar(value, setitem=setitem)
+        return self._unbox_scalar(value)
 
     def _validation_error_message(self, value, allow_listlike: bool = False) -> str:
         """
@@ -774,33 +732,24 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return value
 
-    def _validate_searchsorted_value(self, value):
-        if not is_list_like(value):
-            return self._validate_scalar(value, allow_listlike=True, setitem=False)
-        else:
-            value = self._validate_listlike(value)
-
-        return self._unbox(value)
-
     def _validate_setitem_value(self, value):
         if is_list_like(value):
             value = self._validate_listlike(value)
         else:
             return self._validate_scalar(value, allow_listlike=True)
 
-        return self._unbox(value, setitem=True)
+        return self._unbox(value)
 
-    def _unbox(
-        self, other, setitem: bool = False
-    ) -> np.int64 | np.datetime64 | np.timedelta64 | np.ndarray:
+    @final
+    def _unbox(self, other) -> np.int64 | np.datetime64 | np.timedelta64 | np.ndarray:
         """
         Unbox either a scalar with _unbox_scalar or an instance of our own type.
         """
         if lib.is_scalar(other):
-            other = self._unbox_scalar(other, setitem=setitem)
+            other = self._unbox_scalar(other)
         else:
             # same type as self
-            self._check_compatible_with(other, setitem=setitem)
+            self._check_compatible_with(other)
             other = other._ndarray
         return other
 
@@ -1403,10 +1352,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # Caller is responsible for broadcasting if necessary
         assert self.shape == other.shape, (self.shape, other.shape)
 
-        with warnings.catch_warnings():
-            # filter out warnings about Timestamp.freq
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            res_values = op(self.astype("O"), np.asarray(other))
+        res_values = op(self.astype("O"), np.asarray(other))
 
         result = pd_array(res_values.ravel())
         result = extract_array(result, extract_numpy=True).reshape(self.shape)
@@ -2184,10 +2130,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     # --------------------------------------------------------------
 
-    # GH#46910 - Keep old signature to test we don't break things for EA library authors
-    def factorize(  # type:ignore[override]
+    def factorize(
         self,
-        na_sentinel: int = -1,
+        use_na_sentinel: bool = True,
         sort: bool = False,
     ):
         if self.freq is not None:
@@ -2199,7 +2144,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 uniques = uniques[::-1]
             return codes, uniques
         # FIXME: shouldn't get here; we are ignoring sort
-        return super().factorize(na_sentinel=na_sentinel)
+        return super().factorize(use_na_sentinel=use_na_sentinel)
 
 
 # -------------------------------------------------------------------
@@ -2303,7 +2248,7 @@ def validate_inferred_freq(
                 "values does not conform to passed frequency "
                 f"{freq.freqstr}"
             )
-        elif freq is None:
+        if freq is None:
             freq = inferred_freq
         freq_infer = False
 

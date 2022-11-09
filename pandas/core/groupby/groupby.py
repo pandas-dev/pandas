@@ -88,9 +88,12 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import nanops
+from pandas.core import (
+    algorithms,
+    nanops,
+    sample,
+)
 from pandas.core._numba import executor
-import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
     BaseMaskedArray,
     BooleanArray,
@@ -121,7 +124,6 @@ from pandas.core.indexes.api import (
     RangeIndex,
 )
 from pandas.core.internals.blocks import ensure_block_shape
-import pandas.core.sample as sample
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import (
@@ -1118,7 +1120,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         values,
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ):
         from pandas.core.reshape.concat import concat
 
@@ -1130,7 +1132,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 ax._reset_identity()
             return values
 
-        if self.group_keys and not override_group_keys:
+        if self.group_keys and not is_transform:
 
             values = reset_identity(values)
             if self.as_index:
@@ -1308,7 +1310,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data,
         values: list,
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ):
         raise AbstractMethodError(self)
 
@@ -1531,9 +1533,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     with np.errstate(all="ignore"):
                         return func(g, *args, **kwargs)
 
-            elif hasattr(nanops, "nan" + func):
+            elif hasattr(nanops, f"nan{func}"):
                 # TODO: should we wrap this in to e.g. _is_builtin_func?
-                f = getattr(nanops, "nan" + func)
+                f = getattr(nanops, f"nan{func}")
 
             else:
                 raise ValueError(
@@ -1601,37 +1603,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         values, mutated = self.grouper.apply(f, data, self.axis)
         if not_indexed_same is None:
             not_indexed_same = mutated or self.mutated
-        override_group_keys = False
-
-        is_empty_agg = is_agg and len(values) == 0
-        if (not not_indexed_same and self.group_keys is lib.no_default) and not (
-            is_transform or is_empty_agg
-        ):
-            # We've detected value-dependent behavior: the result's index depends on
-            # whether the user's function `f` returned the same index or not.
-            msg = (
-                "Not prepending group keys to the result index of "
-                "transform-like apply. In the future, the group keys "
-                "will be included in the index, regardless of whether "
-                "the applied function returns a like-indexed object.\n"
-                "To preserve the previous behavior, use\n\n\t"
-                ">>> .groupby(..., group_keys=False)\n\n"
-                "To adopt the future behavior and silence this warning, use "
-                "\n\n\t>>> .groupby(..., group_keys=True)"
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-            # We want to behave as if `self.group_keys=False` when reconstructing
-            # the object. However, we don't want to mutate the stateful GroupBy
-            # object, so we just override it.
-            # When this deprecation is enforced then override_group_keys
-            # may be removed.
-            override_group_keys = True
 
         return self._wrap_applied_output(
             data,
             values,
             not_indexed_same,
-            override_group_keys=is_transform or override_group_keys,
+            is_transform,
         )
 
     @final
@@ -1757,7 +1734,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise NotImplementedError(
                     f"{type(self).__name__}.{how} does not implement {kwd_name}."
                 )
-            elif not is_ser:
+            if not is_ser:
                 data = data.get_numeric_data(copy=False)
 
         def array_func(values: ArrayLike) -> ArrayLike:

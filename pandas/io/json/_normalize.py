@@ -112,9 +112,9 @@ def nested_to_record(
                     v = new_d.pop(k)
                     new_d[newkey] = v
                 continue
-            else:
-                v = new_d.pop(k)
-                new_d.update(nested_to_record(v, newkey, sep, level + 1, max_level))
+
+            v = new_d.pop(k)
+            new_d.update(nested_to_record(v, newkey, sep, level + 1, max_level))
         new_ds.append(new_d)
 
     if singleton:
@@ -403,7 +403,7 @@ def _json_normalize(
                     f"Key {e} not found. If specifying a record_path, all elements of "
                     f"data should have the path."
                 ) from e
-            elif errors == "ignore":
+            if errors == "ignore":
                 return np.nan
             else:
                 raise KeyError(
