@@ -5,6 +5,10 @@ retrieval and to reduce dependency on DB-specific API.
 
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from contextlib import contextmanager
 from datetime import (
     date,
@@ -282,9 +286,7 @@ def read_sql_table(
     if not pandas_sql.has_table(table_name):
         raise ValueError(f"Table {table_name} not found")
 
-    # error: Item "SQLiteDatabase" of "Union[SQLDatabase, SQLiteDatabase]"
-    # has no attribute "read_table"
-    table = pandas_sql.read_table(  # type: ignore[union-attr]
+    table = pandas_sql.read_table(
         table_name,
         index_col=index_col,
         coerce_float=coerce_float,
@@ -578,7 +580,6 @@ def read_sql(
         _is_table_name = False
 
     if _is_table_name:
-        pandas_sql.meta.reflect(bind=pandas_sql.connectable, only=[sql])
         return pandas_sql.read_table(
             sql,
             index_col=index_col,
@@ -735,7 +736,7 @@ def has_table(table_name: str, con, schema: str | None = None) -> bool:
 table_exists = has_table
 
 
-def pandasSQL_builder(con, schema: str | None = None) -> SQLDatabase | SQLiteDatabase:
+def pandasSQL_builder(con, schema: str | None = None) -> PandasSQL:
     """
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters.
@@ -1252,17 +1253,37 @@ class SQLTable(PandasObject):
         return object
 
 
-class PandasSQL(PandasObject):
+class PandasSQL(PandasObject, ABC):
     """
-    Subclasses Should define read_sql and to_sql.
+    Subclasses Should define read_query and to_sql.
     """
 
-    def read_sql(self, *args, **kwargs):
-        raise ValueError(
-            "PandasSQL must be created with an SQLAlchemy "
-            "connectable or sqlite connection"
-        )
+    def read_table(
+        self,
+        table_name: str,
+        index_col: str | list[str] | None = None,
+        coerce_float: bool = True,
+        parse_dates=None,
+        columns=None,
+        schema: str | None = None,
+        chunksize: int | None = None,
+    ) -> DataFrame | Iterator[DataFrame]:
+        raise NotImplementedError
 
+    @abstractmethod
+    def read_query(
+        self,
+        sql: str,
+        index_col: str | list[str] | None = None,
+        coerce_float: bool = True,
+        parse_dates=None,
+        params=None,
+        chunksize: int | None = None,
+        dtype: DtypeArg | None = None,
+    ) -> DataFrame | Iterator[DataFrame]:
+        pass
+
+    @abstractmethod
     def to_sql(
         self,
         frame,
@@ -1274,11 +1295,29 @@ class PandasSQL(PandasObject):
         chunksize=None,
         dtype: DtypeArg | None = None,
         method=None,
+        engine: str = "auto",
+        **engine_kwargs,
     ) -> int | None:
-        raise ValueError(
-            "PandasSQL must be created with an SQLAlchemy "
-            "connectable or sqlite connection"
-        )
+        pass
+
+    @abstractmethod
+    def execute(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def has_table(self, name: str, schema: str | None = None) -> bool:
+        pass
+
+    @abstractmethod
+    def _create_sql_schema(
+        self,
+        frame: DataFrame,
+        table_name: str,
+        keys: list[str] | None = None,
+        dtype: DtypeArg | None = None,
+        schema: str | None = None,
+    ):
+        pass
 
 
 class BaseEngine:
@@ -2066,8 +2105,8 @@ class SQLiteDatabase(PandasSQL):
         sql,
         index_col=None,
         coerce_float: bool = True,
-        params=None,
         parse_dates=None,
+        params=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
     ) -> DataFrame | Iterator[DataFrame]:
@@ -2117,7 +2156,8 @@ class SQLiteDatabase(PandasSQL):
         chunksize=None,
         dtype: DtypeArg | None = None,
         method=None,
-        **kwargs,
+        engine: str = "auto",
+        **engine_kwargs,
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
