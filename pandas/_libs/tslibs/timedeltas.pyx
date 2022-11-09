@@ -1037,6 +1037,7 @@ cdef class _Timedelta(timedelta):
     def seconds(self) -> int:  # TODO(cython3): make cdef property
         """
         Return the total hours, minutes, and seconds of the timedelta as seconds.
+
         Timedelta.seconds = hours * 3600 + minutes * 60 + seconds.
 
         Returns
