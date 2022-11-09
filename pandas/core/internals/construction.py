@@ -6,11 +6,9 @@ from __future__ import annotations
 
 from collections import abc
 from typing import (
-    TYPE_CHECKING,
     Any,
     Hashable,
     Sequence,
-    cast,
 )
 import warnings
 
@@ -32,7 +30,6 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
-    maybe_upcast,
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
@@ -56,9 +53,7 @@ from pandas.core import (
 )
 from pandas.core.arrays import (
     Categorical,
-    DatetimeArray,
     ExtensionArray,
-    TimedeltaArray,
 )
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -90,10 +85,6 @@ from pandas.core.internals.managers import (
     create_block_manager_from_blocks,
     create_block_manager_from_column_arrays,
 )
-
-if TYPE_CHECKING:
-    from numpy.ma.mrecords import MaskedRecords
-
 
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -163,7 +154,7 @@ def arrays_to_mgr(
 
 
 def rec_array_to_mgr(
-    data: MaskedRecords | np.recarray | np.ndarray,
+    data: np.recarray | np.ndarray,
     index,
     columns,
     dtype: DtypeObj | None,
@@ -184,24 +175,9 @@ def rec_array_to_mgr(
         columns = ensure_index(columns)
     arrays, arr_columns = to_arrays(fdata, columns)
 
-    # fill if needed
-    if isinstance(data, np.ma.MaskedArray):
-        # GH#42200 we only get here with MaskedRecords, but check for the
-        #  parent class MaskedArray to avoid the need to import MaskedRecords
-        data = cast("MaskedRecords", data)
-        new_arrays = fill_masked_arrays(data, arr_columns)
-    else:
-        # error: Incompatible types in assignment (expression has type
-        # "List[ExtensionArray]", variable has type "List[ndarray]")
-        new_arrays = arrays  # type: ignore[assignment]
-
     # create the manager
 
-    # error: Argument 1 to "reorder_arrays" has incompatible type "List[ndarray]";
-    # expected "List[Union[ExtensionArray, ndarray]]"
-    arrays, arr_columns = reorder_arrays(
-        new_arrays, arr_columns, columns, len(index)  # type: ignore[arg-type]
-    )
+    arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns, len(index))
     if columns is None:
         columns = arr_columns
 
@@ -210,24 +186,6 @@ def rec_array_to_mgr(
     if copy:
         mgr = mgr.copy()
     return mgr
-
-
-def fill_masked_arrays(data: MaskedRecords, arr_columns: Index) -> list[np.ndarray]:
-    """
-    Convert numpy MaskedRecords to ensure mask is softened.
-    """
-    new_arrays = []
-
-    for col in arr_columns:
-        arr = data[col]
-        fv = arr.fill_value
-
-        mask = ma.getmaskarray(arr)
-        if mask.any():
-            arr, fv = maybe_upcast(arr, fill_value=fv, copy=True)
-            arr[mask] = fv
-        new_arrays.append(arr)
-    return new_arrays
 
 
 def mgr_to_mgr(mgr, typ: str, copy: bool = True):
@@ -317,13 +275,19 @@ def ndarray_to_mgr(
 
         return arrays_to_mgr(values, columns, index, dtype=dtype, typ=typ)
 
-    elif is_extension_array_dtype(vdtype) and not is_1d_only_ea_dtype(vdtype):
-        # i.e. Datetime64TZ, PeriodDtype
+    elif is_extension_array_dtype(vdtype):
+        # i.e. Datetime64TZ, PeriodDtype; cases with is_1d_only_ea_dtype(vdtype)
+        #  are already caught above
         values = extract_array(values, extract_numpy=True)
         if copy:
             values = values.copy()
         if values.ndim == 1:
             values = values.reshape(-1, 1)
+
+    elif isinstance(values, (np.ndarray, ExtensionArray, ABCSeries, Index)):
+        # drop subclass info
+        values = np.array(values, copy=copy_on_sanitize)
+        values = _ensure_2d(values)
 
     else:
         # by definition an array here
@@ -536,51 +500,50 @@ def treat_as_nested(data) -> bool:
 # ---------------------------------------------------------------------
 
 
-def _prep_ndarraylike(
-    values, copy: bool = True
-) -> np.ndarray | DatetimeArray | TimedeltaArray:
-    if isinstance(values, TimedeltaArray) or (
-        isinstance(values, DatetimeArray) and values.tz is None
-    ):
-        # By retaining DTA/TDA instead of unpacking, we end up retaining non-nano
-        pass
+def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
+    # values is specifically _not_ ndarray, EA, Index, or Series
+    # We only get here with `not treat_as_nested(values)`
 
-    elif not isinstance(values, (np.ndarray, ABCSeries, Index)):
-        if len(values) == 0:
-            return np.empty((0, 0), dtype=object)
-        elif isinstance(values, range):
-            arr = range_to_ndarray(values)
-            return arr[..., np.newaxis]
+    if len(values) == 0:
+        return np.empty((0, 0), dtype=object)
+    elif isinstance(values, range):
+        arr = range_to_ndarray(values)
+        return arr[..., np.newaxis]
 
-        def convert(v):
-            if not is_list_like(v) or isinstance(v, ABCDataFrame):
-                return v
+    def convert(v):
+        if not is_list_like(v) or isinstance(v, ABCDataFrame):
+            return v
 
-            v = extract_array(v, extract_numpy=True)
-            res = maybe_convert_platform(v)
-            return res
+        v = extract_array(v, extract_numpy=True)
+        res = maybe_convert_platform(v)
+        # We don't do maybe_infer_to_datetimelike here bc we will end up doing
+        #  it column-by-column in ndarray_to_mgr
+        return res
 
-        # we could have a 1-dim or 2-dim list here
-        # this is equiv of np.asarray, but does object conversion
-        # and platform dtype preservation
-        if is_list_like(values[0]):
-            values = np.array([convert(v) for v in values])
-        elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
-            # GH#21861 see test_constructor_list_of_lists
-            values = np.array([convert(v) for v in values])
-        else:
-            values = convert(values)
-
+    # we could have a 1-dim or 2-dim list here
+    # this is equiv of np.asarray, but does object conversion
+    # and platform dtype preservation
+    # does not convert e.g. [1, "a", True] to ["1", "a", "True"] like
+    #  np.asarray would
+    if is_list_like(values[0]):
+        values = np.array([convert(v) for v in values])
+    elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
+        # GH#21861 see test_constructor_list_of_lists
+        values = np.array([convert(v) for v in values])
     else:
+        values = convert(values)
 
-        # drop subclass info
-        values = np.array(values, copy=copy)
+    return _ensure_2d(values)
 
+
+def _ensure_2d(values: np.ndarray) -> np.ndarray:
+    """
+    Reshape 1D values, raise on anything else other than 2D.
+    """
     if values.ndim == 1:
         values = values.reshape((values.shape[0], 1))
     elif values.ndim != 2:
         raise ValueError(f"Must pass 2-d input. shape={values.shape}")
-
     return values
 
 
@@ -1052,13 +1015,22 @@ def _convert_object_array(
         if dtype != np.dtype("O"):
             arr = lib.maybe_convert_objects(arr)
 
-            if isinstance(dtype, ExtensionDtype):
+            if dtype is None:
+                if arr.dtype == np.dtype("O"):
+                    # i.e. maybe_convert_objects didn't convert
+                    arr = maybe_infer_to_datetimelike(arr)
+            elif isinstance(dtype, ExtensionDtype):
                 # TODO: test(s) that get here
                 # TODO: try to de-duplicate this convert function with
                 #  core.construction functions
                 cls = dtype.construct_array_type()
                 arr = cls._from_sequence(arr, dtype=dtype, copy=False)
-            else:
+            elif dtype.kind in ["m", "M"]:
+                # This restriction is harmless bc these are the only cases
+                #  where maybe_cast_to_datetime is not a no-op.
+                # Here we know:
+                #  1) dtype.kind in ["m", "M"] and
+                #  2) arr is either object or numeric dtype
                 arr = maybe_cast_to_datetime(arr, dtype)
 
         return arr

@@ -368,8 +368,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # we are called internally, so short-circuit
         if fastpath:
-
-            # data is an ndarray, index is defined
+            # data is a ndarray, index is defined
             if not isinstance(data, (SingleBlockManager, SingleArrayManager)):
                 manager = get_option("mode.data_manager")
                 if manager == "block":
@@ -378,103 +377,99 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     data = SingleArrayManager.from_array(data, index)
             if copy:
                 data = data.copy()
-            if index is None:
-                index = data.index
-
-        else:
-
-            name = ibase.maybe_extract_name(name, data, type(self))
-
-            if index is not None:
-                index = ensure_index(index)
-
-            if data is None:
-                data = {}
-            if dtype is not None:
-                dtype = self._validate_dtype(dtype)
-
-            if isinstance(data, MultiIndex):
-                raise NotImplementedError(
-                    "initializing a Series from a MultiIndex is not supported"
-                )
-            if isinstance(data, Index):
-
-                if dtype is not None:
-                    # astype copies
-                    data = data.astype(dtype)
-                else:
-                    # GH#24096 we need to ensure the index remains immutable
-                    data = data._values.copy()
-                copy = False
-
-            elif isinstance(data, np.ndarray):
-                if len(data.dtype):
-                    # GH#13296 we are dealing with a compound dtype, which
-                    #  should be treated as 2D
-                    raise ValueError(
-                        "Cannot construct a Series from an ndarray with "
-                        "compound dtype.  Use DataFrame instead."
-                    )
-            elif isinstance(data, Series):
-                if index is None:
-                    index = data.index
-                else:
-                    data = data.reindex(index, copy=copy)
-                    copy = False
-                data = data._mgr
-            elif is_dict_like(data):
-                data, index = self._init_dict(data, index, dtype)
-                dtype = None
-                copy = False
-            elif isinstance(data, (SingleBlockManager, SingleArrayManager)):
-                if index is None:
-                    index = data.index
-                elif not data.index.equals(index) or copy:
-                    # GH#19275 SingleBlockManager input should only be called
-                    # internally
-                    raise AssertionError(
-                        "Cannot pass both SingleBlockManager "
-                        "`data` argument and a different "
-                        "`index` argument. `copy` must be False."
-                    )
-
-            elif isinstance(data, ExtensionArray):
-                pass
-            else:
-                data = com.maybe_iterable_to_list(data)
-                if is_list_like(data) and not len(data) and dtype is None:
-                    # GH 29405: Pre-2.0, this defaulted to float.
-                    dtype = np.dtype(object)
-
-            if index is None:
-                if not is_list_like(data):
-                    data = [data]
-                index = default_index(len(data))
-            elif is_list_like(data):
-                com.require_length_match(data, index)
-
-            # create/copy the manager
-            if isinstance(data, (SingleBlockManager, SingleArrayManager)):
-                if dtype is not None:
-                    data = data.astype(dtype=dtype, errors="ignore", copy=copy)
-                elif copy:
-                    data = data.copy()
-            else:
-                data = sanitize_array(data, index, dtype, copy)
-
-                manager = get_option("mode.data_manager")
-                if manager == "block":
-                    data = SingleBlockManager.from_array(data, index)
-                elif manager == "array":
-                    data = SingleArrayManager.from_array(data, index)
-
-        NDFrame.__init__(self, data)
-        if fastpath:
             # skips validation of the name
             object.__setattr__(self, "_name", name)
+            NDFrame.__init__(self, data)
+            return
+
+        name = ibase.maybe_extract_name(name, data, type(self))
+
+        if index is not None:
+            index = ensure_index(index)
+
+        if data is None:
+            data = {}
+        if dtype is not None:
+            dtype = self._validate_dtype(dtype)
+
+        if isinstance(data, MultiIndex):
+            raise NotImplementedError(
+                "initializing a Series from a MultiIndex is not supported"
+            )
+        if isinstance(data, Index):
+
+            if dtype is not None:
+                # astype copies
+                data = data.astype(dtype)
+            else:
+                # GH#24096 we need to ensure the index remains immutable
+                data = data._values.copy()
+            copy = False
+
+        elif isinstance(data, np.ndarray):
+            if len(data.dtype):
+                # GH#13296 we are dealing with a compound dtype, which
+                #  should be treated as 2D
+                raise ValueError(
+                    "Cannot construct a Series from an ndarray with "
+                    "compound dtype.  Use DataFrame instead."
+                )
+        elif isinstance(data, Series):
+            if index is None:
+                index = data.index
+            else:
+                data = data.reindex(index, copy=copy)
+                copy = False
+            data = data._mgr
+        elif is_dict_like(data):
+            data, index = self._init_dict(data, index, dtype)
+            dtype = None
+            copy = False
+        elif isinstance(data, (SingleBlockManager, SingleArrayManager)):
+            if index is None:
+                index = data.index
+            elif not data.index.equals(index) or copy:
+                # GH#19275 SingleBlockManager input should only be called
+                # internally
+                raise AssertionError(
+                    "Cannot pass both SingleBlockManager "
+                    "`data` argument and a different "
+                    "`index` argument. `copy` must be False."
+                )
+
+        elif isinstance(data, ExtensionArray):
+            pass
         else:
-            self.name = name
-            self._set_axis(0, index)
+            data = com.maybe_iterable_to_list(data)
+            if is_list_like(data) and not len(data) and dtype is None:
+                # GH 29405: Pre-2.0, this defaulted to float.
+                dtype = np.dtype(object)
+
+        if index is None:
+            if not is_list_like(data):
+                data = [data]
+            index = default_index(len(data))
+        elif is_list_like(data):
+            com.require_length_match(data, index)
+
+        # create/copy the manager
+        if isinstance(data, (SingleBlockManager, SingleArrayManager)):
+            if dtype is not None:
+                data = data.astype(dtype=dtype, errors="ignore", copy=copy)
+            elif copy:
+                data = data.copy()
+        else:
+            data = sanitize_array(data, index, dtype, copy)
+
+            manager = get_option("mode.data_manager")
+            if manager == "block":
+                data = SingleBlockManager.from_array(data, index)
+            elif manager == "array":
+                data = SingleArrayManager.from_array(data, index)
+
+        NDFrame.__init__(self, data)
+        self.name = name
+        self._set_axis(0, index)
 
     def _init_dict(
         self, data, index: Index | None = None, dtype: DtypeObj | None = None
@@ -511,7 +506,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
-            values = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+            if len(index) or dtype is not None:
+                values = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+            else:
+                values = []
             keys = index
         else:
             keys, values = (), []
@@ -1073,21 +1071,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # We have a scalar (or for MultiIndex or object-dtype, scalar-like)
             #  key that is not present in self.index.
             if is_integer(key) and self.index.inferred_type != "integer":
-                # positional setter
                 if not self.index._should_fallback_to_positional:
                     # GH#33469
-                    warnings.warn(
-                        "Treating integers as positional in Series.__setitem__ "
-                        "with a Float64Index is deprecated. In a future version, "
-                        "`series[an_int] = val` will insert a new key into the "
-                        "Series. Use `series.iloc[an_int] = val` to treat the "
-                        "key as positional.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                # can't use _mgr.setitem_inplace yet bc could have *both*
-                #  KeyError and then ValueError, xref GH#45070
-                self._set_values(key, value)
+                    self.loc[key] = value
+                else:
+                    # positional setter
+                    # can't use _mgr.setitem_inplace yet bc could have *both*
+                    #  KeyError and then ValueError, xref GH#45070
+                    self._set_values(key, value)
             else:
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
@@ -1556,6 +1547,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return a string representation for a particular Series.
         """
+        # pylint: disable=invalid-repr-returned
         repr_params = fmt.get_series_repr_params()
         return self.to_string(**repr_params)
 
@@ -1854,17 +1846,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1    b
         2    c
         """
-        if name is None:
-            warnings.warn(
-                "Explicitly passing `name=None` currently preserves the Series' name "
-                "or uses a default name of 0. This behaviour is deprecated, and in "
-                "the future `None` will be used as the name of the resulting "
-                "DataFrame column.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            name = lib.no_default
-
         columns: Index
         if name is lib.no_default:
             name = self.name
@@ -5433,19 +5414,6 @@ Keep all original rows and also all original values
         3    False
         dtype: bool
         """
-        # error: Non-overlapping identity check (left operand type: "Literal['both',
-        # 'neither', 'left', 'right']", right operand type: "Literal[False]")
-        if inclusive is True or inclusive is False:  # type: ignore[comparison-overlap]
-            warnings.warn(
-                "Boolean inputs to the `inclusive` argument are deprecated in "
-                "favour of `both` or `neither`.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            if inclusive:
-                inclusive = "both"
-            else:
-                inclusive = "neither"
         if inclusive == "both":
             lmask = self >= left
             rmask = self <= right

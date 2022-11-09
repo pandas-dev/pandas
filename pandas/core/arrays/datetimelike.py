@@ -600,7 +600,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         value,
         *,
         allow_listlike: bool = False,
-        setitem: bool = True,
         unbox: bool = True,
     ):
         """
@@ -612,8 +611,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         allow_listlike: bool, default False
             When raising an exception, whether the message should say
             listlike inputs are allowed.
-        setitem : bool, default True
-            Whether to check compatibility with setitem strictness.
         unbox : bool, default True
             Whether to unbox the result before returning.  Note: unbox=False
             skips the setitem compatibility check.
@@ -734,14 +731,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise TypeError(msg)
 
         return value
-
-    def _validate_searchsorted_value(self, value):
-        if not is_list_like(value):
-            return self._validate_scalar(value, allow_listlike=True, setitem=False)
-        else:
-            value = self._validate_listlike(value)
-
-        return self._unbox(value)
 
     def _validate_setitem_value(self, value):
         if is_list_like(value):
@@ -1363,10 +1352,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # Caller is responsible for broadcasting if necessary
         assert self.shape == other.shape, (self.shape, other.shape)
 
-        with warnings.catch_warnings():
-            # filter out warnings about Timestamp.freq
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            res_values = op(self.astype("O"), np.asarray(other))
+        res_values = op(self.astype("O"), np.asarray(other))
 
         result = pd_array(res_values.ravel())
         result = extract_array(result, extract_numpy=True).reshape(self.shape)
@@ -2144,10 +2130,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     # --------------------------------------------------------------
 
-    # GH#46910 - Keep old signature to test we don't break things for EA library authors
-    def factorize(  # type:ignore[override]
+    def factorize(
         self,
-        na_sentinel: int = -1,
+        use_na_sentinel: bool = True,
         sort: bool = False,
     ):
         if self.freq is not None:
@@ -2159,7 +2144,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 uniques = uniques[::-1]
             return codes, uniques
         # FIXME: shouldn't get here; we are ignoring sort
-        return super().factorize(na_sentinel=na_sentinel)
+        return super().factorize(use_na_sentinel=use_na_sentinel)
 
 
 # -------------------------------------------------------------------

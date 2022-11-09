@@ -499,6 +499,9 @@ class TestBaseGroupby(base.BaseGroupbyTests):
             )
         super().test_in_numeric_groupby(data_for_grouping)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of numeric_only:FutureWarning"
+    )
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
@@ -871,8 +874,7 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_unique(data, box, method)
 
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize(self, data_for_grouping, na_sentinel, request):
+    def test_factorize(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
         if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
@@ -887,10 +889,9 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
-        super().test_factorize(data_for_grouping, na_sentinel)
+        super().test_factorize(data_for_grouping)
 
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize_equivalence(self, data_for_grouping, na_sentinel, request):
+    def test_factorize_equivalence(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
         if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
@@ -899,7 +900,7 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
                 )
             )
-        super().test_factorize_equivalence(data_for_grouping, na_sentinel)
+        super().test_factorize_equivalence(data_for_grouping)
 
     def test_factorize_empty(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype

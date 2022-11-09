@@ -4,7 +4,6 @@ intended for public consumption
 """
 from __future__ import annotations
 
-import inspect
 import operator
 from textwrap import dedent
 from typing import (
@@ -524,7 +523,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
 
 def factorize_array(
     values: np.ndarray,
-    na_sentinel: int | None = -1,
+    use_na_sentinel: bool = True,
     size_hint: int | None = None,
     na_value: object = None,
     mask: npt.NDArray[np.bool_] | None = None,
@@ -537,7 +536,10 @@ def factorize_array(
     Parameters
     ----------
     values : ndarray
-    na_sentinel : int, default -1
+    use_na_sentinel : bool, default True
+        If True, the sentinel -1 will be used for NaN values. If False,
+        NaN values will be encoded as non-negative integers and will not drop the
+        NaN from the uniques of the values.
     size_hint : int, optional
         Passed through to the hashtable's 'get_labels' method
     na_value : object, optional
@@ -555,10 +557,6 @@ def factorize_array(
     codes : ndarray[np.intp]
     uniques : ndarray
     """
-    ignore_na = na_sentinel is not None
-    if not ignore_na:
-        na_sentinel = -1
-
     original = values
     if values.dtype.kind in ["m", "M"]:
         # _get_hashtable_algo will cast dt64/td64 to i8 via _ensure_data, so we
@@ -572,10 +570,10 @@ def factorize_array(
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
         values,
-        na_sentinel=na_sentinel,
+        na_sentinel=-1,
         na_value=na_value,
         mask=mask,
-        ignore_na=ignore_na,
+        ignore_na=use_na_sentinel,
     )
 
     # re-cast e.g. i8->dt64/td64, uint8->bool
@@ -610,8 +608,7 @@ def factorize_array(
 def factorize(
     values,
     sort: bool = False,
-    na_sentinel: int | None | lib.NoDefault = lib.no_default,
-    use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+    use_na_sentinel: bool = True,
     size_hint: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray | Index]:
     """
@@ -625,17 +622,6 @@ def factorize(
     Parameters
     ----------
     {values}{sort}
-    na_sentinel : int or None, default -1
-        Value to mark "not found". If None, will not drop the NaN
-        from the uniques of the values.
-
-        .. deprecated:: 1.5.0
-            The na_sentinel argument is deprecated and
-            will be removed in a future version of pandas. Specify use_na_sentinel as
-            either True or False.
-
-        .. versionchanged:: 1.1.2
-
     use_na_sentinel : bool, default True
         If True, the sentinel -1 will be used for NaN values. If False,
         NaN values will be encoded as non-negative integers and will not drop the
@@ -748,12 +734,6 @@ def factorize(
     # Step 2 is dispatched to extension types (like Categorical). They are
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
-
-    # GH#46910 deprecated na_sentinel in favor of use_na_sentinel:
-    #   na_sentinel=None corresponds to use_na_sentinel=False
-    #   na_sentinel=-1 correspond to use_na_sentinel=True
-    # Other na_sentinel values will not be supported when the deprecation is enforced.
-    na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
     if isinstance(values, ABCRangeIndex):
         return values.factorize(sort=sort)
 
@@ -772,25 +752,12 @@ def factorize(
         return _re_wrap_factorize(original, uniques, codes)
 
     elif not isinstance(values.dtype, np.dtype):
-        if (
-            na_sentinel == -1 or na_sentinel is None
-        ) and "use_na_sentinel" in inspect.signature(values.factorize).parameters:
-            # Avoid using catch_warnings when possible
-            # GH#46910 - TimelikeOps has deprecated signature
-            codes, uniques = values.factorize(  # type: ignore[call-arg]
-                use_na_sentinel=na_sentinel is not None
-            )
-        else:
-            na_sentinel_arg = -1 if na_sentinel is None else na_sentinel
-            with warnings.catch_warnings():
-                # We've already warned above
-                warnings.filterwarnings("ignore", ".*use_na_sentinel.*", FutureWarning)
-                codes, uniques = values.factorize(na_sentinel=na_sentinel_arg)
+        codes, uniques = values.factorize(use_na_sentinel=use_na_sentinel)
 
     else:
         values = np.asarray(values)  # convert DTA/TDA/MultiIndex
 
-        if na_sentinel is None and is_object_dtype(values):
+        if not use_na_sentinel and is_object_dtype(values):
             # factorize can now handle differentiating various types of null values.
             # These can only occur when the array has object dtype.
             # However, for backwards compatibility we only use the null for the
@@ -803,68 +770,22 @@ def factorize(
 
         codes, uniques = factorize_array(
             values,
-            na_sentinel=na_sentinel,
+            use_na_sentinel=use_na_sentinel,
             size_hint=size_hint,
         )
 
     if sort and len(uniques) > 0:
         uniques, codes = safe_sort(
-            uniques, codes, na_sentinel=na_sentinel, assume_unique=True, verify=False
+            uniques,
+            codes,
+            use_na_sentinel=use_na_sentinel,
+            assume_unique=True,
+            verify=False,
         )
 
     uniques = _reconstruct_data(uniques, original.dtype, original)
 
     return _re_wrap_factorize(original, uniques, codes)
-
-
-def resolve_na_sentinel(
-    na_sentinel: int | None | lib.NoDefault,
-    use_na_sentinel: bool | lib.NoDefault,
-) -> int | None:
-    """
-    Determine value of na_sentinel for factorize methods.
-
-    See GH#46910 for details on the deprecation.
-
-    Parameters
-    ----------
-    na_sentinel : int, None, or lib.no_default
-        Value passed to the method.
-    use_na_sentinel : bool or lib.no_default
-        Value passed to the method.
-
-    Returns
-    -------
-    Resolved value of na_sentinel.
-    """
-    if na_sentinel is not lib.no_default and use_na_sentinel is not lib.no_default:
-        raise ValueError(
-            "Cannot specify both `na_sentinel` and `use_na_sentile`; "
-            f"got `na_sentinel={na_sentinel}` and `use_na_sentinel={use_na_sentinel}`"
-        )
-    if na_sentinel is lib.no_default:
-        result = -1 if use_na_sentinel is lib.no_default or use_na_sentinel else None
-    else:
-        if na_sentinel is None:
-            msg = (
-                "Specifying `na_sentinel=None` is deprecated, specify "
-                "`use_na_sentinel=False` instead."
-            )
-        elif na_sentinel == -1:
-            msg = (
-                "Specifying `na_sentinel=-1` is deprecated, specify "
-                "`use_na_sentinel=True` instead."
-            )
-        else:
-            msg = (
-                "Specifying the specific value to use for `na_sentinel` is "
-                "deprecated and will be removed in a future version of pandas. "
-                "Specify `use_na_sentinel=True` to use the sentinel value -1, and "
-                "`use_na_sentinel=False` to encode NaN values."
-            )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-        result = na_sentinel
-    return result
 
 
 def _re_wrap_factorize(original, uniques, codes: np.ndarray):
@@ -948,6 +869,14 @@ def value_counts(
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
             result.name = name
+            counts = result._values
+
+        elif isinstance(values, ABCMultiIndex):
+            # GH49558
+            levels = list(range(values.nlevels))
+            result = Series(index=values).groupby(level=levels, dropna=dropna).size()
+            # TODO: allow index names to remain (see discussion in GH49497)
+            result.index.names = [None] * values.nlevels
             counts = result._values
 
         else:
@@ -1326,7 +1255,7 @@ class SelectNSeries(SelectN):
             inds = inds[:n]
             findex = nbase
         else:
-            if len(inds) < nbase and len(nan_index) + len(inds) >= nbase:
+            if len(inds) < nbase <= len(nan_index) + len(inds):
                 findex = len(nan_index) + len(inds)
             else:
                 findex = len(inds)
@@ -1764,7 +1693,7 @@ def diff(arr, n: int, axis: AxisInt = 0):
 def safe_sort(
     values,
     codes=None,
-    na_sentinel: int | None = -1,
+    use_na_sentinel: bool = True,
     assume_unique: bool = False,
     verify: bool = True,
 ) -> AnyArrayLike | tuple[AnyArrayLike, np.ndarray]:
@@ -1780,16 +1709,17 @@ def safe_sort(
         Sequence; must be unique if ``codes`` is not None.
     codes : list_like, optional
         Indices to ``values``. All out of bound indices are treated as
-        "not found" and will be masked with ``na_sentinel``.
-    na_sentinel : int or None, default -1
-        Value in ``codes`` to mark "not found", or None to encode null values as normal.
-        Ignored when ``codes`` is None.
+        "not found" and will be masked with ``-1``.
+    use_na_sentinel : bool, default True
+        If True, the sentinel -1 will be used for NaN values. If False,
+        NaN values will be encoded as non-negative integers and will not drop the
+        NaN from the uniques of the values.
     assume_unique : bool, default False
         When True, ``values`` are assumed to be unique, which can speed up
         the calculation. Ignored when ``codes`` is None.
     verify : bool, default True
         Check if codes are out of bound for the values and put out of bound
-        codes equal to na_sentinel. If ``verify=False``, it is assumed there
+        codes equal to ``-1``. If ``verify=False``, it is assumed there
         are no out of bound codes. Ignored when ``codes`` is None.
 
         .. versionadded:: 0.25.0
@@ -1867,7 +1797,7 @@ def safe_sort(
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))
 
-    if na_sentinel == -1:
+    if use_na_sentinel:
         # take_nd is faster, but only works for na_sentinels of -1
         order2 = sorter.argsort()
         new_codes = take_nd(order2, codes, fill_value=-1)
@@ -1878,17 +1808,17 @@ def safe_sort(
     else:
         reverse_indexer = np.empty(len(sorter), dtype=np.int_)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
-        # Out of bound indices will be masked with `na_sentinel` next, so we
+        # Out of bound indices will be masked with `-1` next, so we
         # may deal with them here without performance loss using `mode='wrap'`
         new_codes = reverse_indexer.take(codes, mode="wrap")
 
-        if na_sentinel is not None:
-            mask = codes == na_sentinel
+        if use_na_sentinel:
+            mask = codes == -1
             if verify:
                 mask = mask | (codes < -len(values)) | (codes >= len(values))
 
-    if na_sentinel is not None and mask is not None:
-        np.putmask(new_codes, mask, na_sentinel)
+    if use_na_sentinel and mask is not None:
+        np.putmask(new_codes, mask, -1)
 
     return ordered, ensure_platform_int(new_codes)
 
