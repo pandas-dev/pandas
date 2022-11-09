@@ -697,8 +697,7 @@ class BaseArrayManager(DataManager):
         for left, right in zip(self.arrays, other.arrays):
             if not array_equals(left, right):
                 return False
-        else:
-            return True
+        return True
 
     # TODO
     # to_dict
