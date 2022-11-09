@@ -700,7 +700,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         labels,
         *,
         axis: Axis = 0,
-        copy: bool_t = True,
+        copy: bool_t = None,
     ) -> NDFrameT:
         """
         Assign desired index to given axis.
