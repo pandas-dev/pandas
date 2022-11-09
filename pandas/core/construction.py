@@ -14,7 +14,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 from numpy import ma
@@ -28,8 +27,6 @@ from pandas._typing import (
     DtypeObj,
     T,
 )
-from pandas.errors import IntCastingNaNError
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -48,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_float_dtype,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
@@ -566,39 +562,7 @@ def sanitize_array(
         if isinstance(data, np.matrix):
             data = data.A
 
-        if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
-            # possibility of nan -> garbage
-            try:
-                # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
-                # casting aligning with IntCastingNaNError below
-                with np.errstate(invalid="ignore"):
-                    # GH#15832: Check if we are requesting a numeric dtype and
-                    # that we can convert the data to the requested dtype.
-                    subarr = maybe_cast_to_integer_array(data, dtype)
-
-            except IntCastingNaNError:
-                warnings.warn(
-                    "In a future version, passing float-dtype values containing NaN "
-                    "and an integer dtype will raise IntCastingNaNError "
-                    "(subclass of ValueError) instead of silently ignoring the "
-                    "passed dtype. To retain the old behavior, call Series(arr) or "
-                    "DataFrame(arr) without passing a dtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                subarr = np.array(data, copy=copy)
-            except ValueError:
-                # Pre-2.0, we would have different behavior for Series vs DataFrame.
-                #  DataFrame would call np.array(data, dtype=dtype, copy=copy),
-                #  which would cast to the integer dtype even if the cast is lossy.
-                #  See GH#40110.
-
-                # We ignore the dtype arg and return floating values,
-                #  e.g. test_constructor_floating_data_int_dtype
-                # TODO: where is the discussion that documents the reason for this?
-                subarr = np.array(data, copy=copy)
-
-        elif dtype is None:
+        if dtype is None:
             subarr = data
             if data.dtype == object:
                 subarr = maybe_infer_to_datetimelike(data)
@@ -631,25 +595,8 @@ def sanitize_array(
             subarr = np.array([], dtype=np.float64)
 
         elif dtype is not None:
-            try:
-                subarr = _try_cast(data, dtype, copy)
-            except ValueError:
-                if is_integer_dtype(dtype):
-                    casted = np.array(data, copy=False)
-                    if casted.dtype.kind == "f":
-                        # GH#40110 match the behavior we have if we passed
-                        #  a ndarray[float] to begin with
-                        return sanitize_array(
-                            casted,
-                            index,
-                            dtype,
-                            copy=False,
-                            allow_2d=allow_2d,
-                        )
-                    else:
-                        raise
-                else:
-                    raise
+            subarr = _try_cast(data, dtype, copy)
+
         else:
             subarr = maybe_convert_platform(data)
             if subarr.dtype == object:
