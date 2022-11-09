@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Any,
     Optional,
     Sequence,
     Union,
@@ -598,6 +597,15 @@ def sanitize_array(
                 #  e.g. test_constructor_floating_data_int_dtype
                 # TODO: where is the discussion that documents the reason for this?
                 subarr = np.array(data, copy=copy)
+
+        elif dtype is None:
+            subarr = data
+            if data.dtype == object:
+                subarr = maybe_infer_to_datetimelike(data)
+
+            if subarr is data and copy:
+                subarr = subarr.copy()
+
         else:
             # we will try to copy by-definition here
             subarr = _try_cast(data, dtype, copy)
@@ -667,7 +675,7 @@ def range_to_ndarray(rng: range) -> np.ndarray:
         arr = np.arange(rng.start, rng.stop, rng.step, dtype="int64")
     except OverflowError:
         # GH#30173 handling for ranges that overflow int64
-        if (rng.start >= 0 and rng.step > 0) or (rng.stop >= 0 and rng.step < 0):
+        if (rng.start >= 0 and rng.step > 0) or (rng.step < 0 <= rng.stop):
             try:
                 arr = np.arange(rng.start, rng.stop, rng.step, dtype="uint64")
             except OverflowError:
@@ -699,7 +707,7 @@ def _sanitize_ndim(
     if getattr(result, "ndim", 0) == 0:
         raise ValueError("result should be arraylike with ndim > 0")
 
-    elif result.ndim == 1:
+    if result.ndim == 1:
         # the result that we want
         result = _maybe_repeat(result, index)
 
@@ -755,7 +763,7 @@ def _maybe_repeat(arr: ArrayLike, index: Index | None) -> ArrayLike:
 
 def _try_cast(
     arr: list | np.ndarray,
-    dtype: np.dtype | None,
+    dtype: np.dtype,
     copy: bool,
 ) -> ArrayLike:
     """
@@ -765,7 +773,7 @@ def _try_cast(
     ----------
     arr : ndarray or list
         Excludes: ExtensionArray, Series, Index.
-    dtype : np.dtype or None
+    dtype : np.dtype
     copy : bool
         If False, don't copy the data if not needed.
 
@@ -775,30 +783,7 @@ def _try_cast(
     """
     is_ndarray = isinstance(arr, np.ndarray)
 
-    if dtype is None:
-        # perf shortcut as this is the most common case
-        if is_ndarray:
-            arr = cast(np.ndarray, arr)
-            if arr.dtype != object:
-                if copy:
-                    return arr.copy()
-                return arr
-
-            out = maybe_infer_to_datetimelike(arr)
-            if out is arr and copy:
-                out = out.copy()
-            return out
-
-        else:
-            # i.e. list
-            varr = np.array(arr, copy=False)
-            # filter out cases that we _dont_ want to go through
-            #  maybe_infer_to_datetimelike
-            if varr.dtype != object or varr.size == 0:
-                return varr
-            return maybe_infer_to_datetimelike(varr)
-
-    elif is_object_dtype(dtype):
+    if is_object_dtype(dtype):
         if not is_ndarray:
             subarr = construct_1d_object_array_from_listlike(arr)
             return subarr
@@ -830,62 +815,3 @@ def _try_cast(
         subarr = np.array(arr, dtype=dtype, copy=copy)
 
     return subarr
-
-
-def is_empty_data(data: Any) -> bool:
-    """
-    Utility to check if a Series is instantiated with empty data,
-    which does not contain dtype information.
-
-    Parameters
-    ----------
-    data : array-like, Iterable, dict, or scalar value
-        Contains data stored in Series.
-
-    Returns
-    -------
-    bool
-    """
-    is_none = data is None
-    is_list_like_without_dtype = is_list_like(data) and not hasattr(data, "dtype")
-    is_simple_empty = is_list_like_without_dtype and not data
-    return is_none or is_simple_empty
-
-
-def create_series_with_explicit_dtype(
-    data: Any = None,
-    index: ArrayLike | Index | None = None,
-    dtype: Dtype | None = None,
-    name: str | None = None,
-    copy: bool = False,
-    fastpath: bool = False,
-    dtype_if_empty: Dtype = object,
-) -> Series:
-    """
-    Helper to pass an explicit dtype when instantiating an empty Series.
-
-    This silences a DeprecationWarning described in GitHub-17261.
-
-    Parameters
-    ----------
-    data : Mirrored from Series.__init__
-    index : Mirrored from Series.__init__
-    dtype : Mirrored from Series.__init__
-    name : Mirrored from Series.__init__
-    copy : Mirrored from Series.__init__
-    fastpath : Mirrored from Series.__init__
-    dtype_if_empty : str, numpy.dtype, or ExtensionDtype
-        This dtype will be passed explicitly if an empty Series will
-        be instantiated.
-
-    Returns
-    -------
-    Series
-    """
-    from pandas.core.series import Series
-
-    if is_empty_data(data) and dtype is None:
-        dtype = dtype_if_empty
-    return Series(
-        data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
-    )

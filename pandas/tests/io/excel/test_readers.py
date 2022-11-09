@@ -577,7 +577,7 @@ class TestReaders:
 
     @td.skip_if_no("pyarrow")
     @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-    def test_use_nullabla_dtypes_string(self, read_ext, storage):
+    def test_use_nullable_dtypes_string(self, read_ext, storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
@@ -1307,31 +1307,6 @@ class TestReaders:
             nrows=3,
         )
         tm.assert_frame_equal(actual, expected)
-
-    def test_read_excel_squeeze(self, read_ext):
-        # GH 12157
-        f = "test_squeeze" + read_ext
-
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match="The squeeze argument has been deprecated "
-            "and will be removed in a future version. "
-            'Append .squeeze\\("columns"\\) to the call to squeeze.\n\n',
-        ):
-            actual = pd.read_excel(
-                f, sheet_name="two_columns", index_col=0, squeeze=True
-            )
-            expected = Series([2, 3, 4], [4, 5, 6], name="b")
-            expected.index.name = "a"
-            tm.assert_series_equal(actual, expected)
-
-            actual = pd.read_excel(f, sheet_name="two_columns", squeeze=True)
-            expected = DataFrame({"a": [4, 5, 6], "b": [2, 3, 4]})
-            tm.assert_frame_equal(actual, expected)
-
-            actual = pd.read_excel(f, sheet_name="one_column", squeeze=True)
-            expected = Series([1, 2, 3], name="a")
-            tm.assert_series_equal(actual, expected)
 
     def test_deprecated_kwargs(self, read_ext):
         with pytest.raises(TypeError, match="but 3 positional arguments"):

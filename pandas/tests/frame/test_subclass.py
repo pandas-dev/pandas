@@ -138,11 +138,11 @@ class TestDataFrameSubclassing:
         # GH 11808
         class A(DataFrame):
             @property
-            def bar(self):
+            def nonexistence(self):
                 return self.i_dont_exist
 
         with pytest.raises(AttributeError, match=".*i_dont_exist.*"):
-            A().bar
+            A().nonexistence
 
     def test_subclass_align(self):
         # GH 12983
