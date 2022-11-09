@@ -156,7 +156,6 @@ def test_oo_optimized_datetime_index_unpickle():
 @pytest.mark.network
 @tm.network
 # Cython import warning
-@pytest.mark.filterwarnings("ignore:pandas.util.testing is deprecated")
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 @pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 @pytest.mark.filterwarnings(

@@ -81,6 +81,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     maybe_cast_pointwise_result,
+    maybe_infer_to_datetimelike,
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
@@ -503,9 +504,8 @@ class Index(IndexOpsMixin, PandasObject):
                 arr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
                 if dtype is None:
-                    arr = _maybe_cast_data_without_dtype(
-                        arr, cast_numeric_deprecated=True
-                    )
+                    arr = maybe_infer_to_datetimelike(arr)
+                    arr = ensure_wrapped_if_datetimelike(arr)
                     dtype = arr.dtype
 
             klass = cls._dtype_to_subclass(arr.dtype)
@@ -534,9 +534,7 @@ class Index(IndexOpsMixin, PandasObject):
             subarr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
             if dtype is None:
                 # with e.g. a list [1, 2, 3] casting to numeric is _not_ deprecated
-                subarr = _maybe_cast_data_without_dtype(
-                    subarr, cast_numeric_deprecated=False
-                )
+                subarr = _maybe_cast_data_without_dtype(subarr)
                 dtype = subarr.dtype
             return Index(subarr, dtype=dtype, copy=copy, name=name)
 
@@ -3500,13 +3498,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _convert_can_do_setop(self, other) -> tuple[Index, Hashable]:
         if not isinstance(other, Index):
-            # TODO(2.0): no need to special-case here once _with_infer
-            #  deprecation is enforced
-            if hasattr(other, "dtype"):
-                other = Index(other, name=self.name, dtype=other.dtype)
-            else:
-                # e.g. list
-                other = Index(other, name=self.name)
+            other = Index(other, name=self.name)
             result_name = self.name
         else:
             result_name = get_op_result_name(self, other)
@@ -7062,9 +7054,7 @@ def maybe_extract_name(name, obj, cls) -> Hashable:
     return name
 
 
-def _maybe_cast_data_without_dtype(
-    subarr: np.ndarray, cast_numeric_deprecated: bool = True
-) -> ArrayLike:
+def _maybe_cast_data_without_dtype(subarr: npt.NDArray[np.object_]) -> ArrayLike:
     """
     If we have an arraylike input but no passed dtype, try to infer
     a supported dtype.
@@ -7072,8 +7062,6 @@ def _maybe_cast_data_without_dtype(
     Parameters
     ----------
     subarr : np.ndarray[object]
-    cast_numeric_deprecated : bool, default True
-        Whether to issue a FutureWarning when inferring numeric dtypes.
 
     Returns
     -------
@@ -7088,12 +7076,6 @@ def _maybe_cast_data_without_dtype(
         convert_interval=True,
         dtype_if_all_nat=np.dtype("datetime64[ns]"),
     )
-    if result.dtype.kind in ["i", "u", "f"]:
-        if not cast_numeric_deprecated:
-            # i.e. we started with a list, not an ndarray[object]
-            return result
-        return subarr
-
     result = ensure_wrapped_if_datetimelike(result)
     return result
 

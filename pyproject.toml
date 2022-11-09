@@ -100,7 +100,6 @@ disable = [
   "wrong-import-position",
 
   # pylint type "R": refactor, for bad code smell
-  "chained-comparison",
   "comparison-with-itself",
   "consider-merging-isinstance",
   "consider-using-ternary",
@@ -141,7 +140,6 @@ disable = [
   "fixme",
   "global-statement",
   "global-variable-not-assigned",
-  "import-self",
   "invalid-envvar-default",
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
@@ -169,7 +167,6 @@ disable = [
   "unused-import",
   "unused-variable",
   "using-constant-test",
-  "useless-else-on-loop",
   "useless-parent-delegation"
 ]
 
