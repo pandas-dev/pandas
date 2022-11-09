@@ -1036,8 +1036,7 @@ cdef class _Timedelta(timedelta):
     @property
     def seconds(self) -> int:  # TODO(cython3): make cdef property
         """
-        Return timedelta in number of seconds converting hours and minutes in seconds.
-
+        Return the total hours, minutes, and seconds of the timedelta as seconds.
         Timedelta.seconds = hours * 3600 + minutes * 60 + seconds.
 
         Returns
@@ -1054,14 +1053,11 @@ cdef class _Timedelta(timedelta):
         Examples
         --------
         **Using string input**
-
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
-
         >>> td.seconds
         120
 
         **Using integer input**
-
         >>> td = pd.Timedelta(42, unit='s')
         >>> td.seconds
         42
