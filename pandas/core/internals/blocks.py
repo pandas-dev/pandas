@@ -1920,15 +1920,11 @@ def _catch_deprecated_value_error(err: Exception) -> None:
     which will no longer be raised in version.2.0.
     """
     if isinstance(err, ValueError):
-        # TODO(2.0): once DTA._validate_setitem_value deprecation
-        #  is enforced, stop catching ValueError here altogether
         if isinstance(err, IncompatibleFrequency):
             pass
         elif "'value.closed' is" in str(err):
             # IntervalDtype mismatched 'closed'
             pass
-        elif "Timezones don't match" not in str(err):
-            raise err
 
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):

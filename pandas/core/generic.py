@@ -6622,9 +6622,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             in the dict/Series/DataFrame will not be filled. This value cannot
             be a list.
         method : {{'backfill', 'bfill', 'ffill', None}}, default None
-            Method to use for filling holes in reindexed Series
-            ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use next valid observation to fill gap.
+            Method to use for filling holes in reindexed Series:
+
+            * ffill: propagate last valid observation forward to next valid.
+            * backfill / bfill: use next valid observation to fill gap.
+
         axis : {axes_single_arg}
             Axis along which to fill missing values. For `Series`
             this parameter is unused and defaults to 0.
@@ -8229,9 +8231,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         start_time,
         end_time,
-        include_start: bool_t | lib.NoDefault = lib.no_default,
-        include_end: bool_t | lib.NoDefault = lib.no_default,
-        inclusive: IntervalClosedType | None = None,
+        inclusive: IntervalClosedType = "both",
         axis: Axis | None = None,
     ) -> NDFrameT:
         """
@@ -8246,20 +8246,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Initial time as a time filter limit.
         end_time : datetime.time or str
             End time as a time filter limit.
-        include_start : bool, default True
-            Whether the start time needs to be included in the result.
-
-            .. deprecated:: 1.4.0
-               Arguments `include_start` and `include_end` have been deprecated
-               to standardize boundary inputs. Use `inclusive` instead, to set
-               each bound as closed or open.
-        include_end : bool, default True
-            Whether the end time needs to be included in the result.
-
-            .. deprecated:: 1.4.0
-               Arguments `include_start` and `include_end` have been deprecated
-               to standardize boundary inputs. Use `inclusive` instead, to set
-               each bound as closed or open.
         inclusive : {"both", "neither", "left", "right"}, default "both"
             Include boundaries; whether to set each bound as closed or open.
         axis : {0 or 'index', 1 or 'columns'}, default 0
@@ -8316,37 +8302,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(index, DatetimeIndex):
             raise TypeError("Index must be DatetimeIndex")
 
-        old_include_arg_used = (include_start != lib.no_default) or (
-            include_end != lib.no_default
-        )
-
-        if old_include_arg_used and inclusive is not None:
-            raise ValueError(
-                "Deprecated arguments `include_start` and `include_end` "
-                "cannot be passed if `inclusive` has been given."
-            )
-        # If any of the deprecated arguments ('include_start', 'include_end')
-        # have been passed
-        if old_include_arg_used:
-            warnings.warn(
-                "`include_start` and `include_end` are deprecated in "
-                "favour of `inclusive`.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            left = True if include_start is lib.no_default else include_start
-            right = True if include_end is lib.no_default else include_end
-
-            inc_dict: dict[tuple[bool_t, bool_t], IntervalClosedType] = {
-                (True, True): "both",
-                (True, False): "left",
-                (False, True): "right",
-                (False, False): "neither",
-            }
-            inclusive = inc_dict[(left, right)]
-        elif inclusive is None:
-            # On arg removal inclusive can default to "both"
-            inclusive = "both"
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
         indexer = index.indexer_between_time(
             start_time,

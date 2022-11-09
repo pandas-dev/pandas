@@ -378,7 +378,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         self,
         data,
         sparse_index=None,
-        index=None,
         fill_value=None,
         kind: SparseIndexKind = "integer",
         dtype: Dtype | None = None,
@@ -413,26 +412,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 fill_value = dtype.fill_value
             dtype = dtype.subtype
 
-        if index is not None:
-            warnings.warn(
-                "The index argument has been deprecated and will be "
-                "removed in a future version. Use a function like np.full "
-                "to construct an array with the desired repeats of the "
-                "scalar value instead.\n\n",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        if index is not None and not is_scalar(data):
-            raise Exception("must only pass scalars with an index")
-
         if is_scalar(data):
-            if index is not None and data is None:
-                data = np.nan
-
-            if index is not None:
-                npoints = len(index)
-            elif sparse_index is None:
+            if sparse_index is None:
                 npoints = 1
             else:
                 npoints = sparse_index.length
@@ -873,8 +854,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def factorize(
         self,
-        na_sentinel: int | lib.NoDefault = lib.no_default,
-        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool = True,
     ) -> tuple[np.ndarray, SparseArray]:
         # Currently, ExtensionArray.factorize -> Tuple[ndarray, EA]
         # The sparsity on this is backwards from what Sparse would want. Want
@@ -882,12 +862,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # Given that we have to return a dense array of codes, why bother
         # implementing an efficient factorize?
         codes, uniques = algos.factorize(
-            np.asarray(self), na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
+            np.asarray(self), use_na_sentinel=use_na_sentinel
         )
-        if na_sentinel is lib.no_default:
-            na_sentinel = -1
-        if use_na_sentinel is lib.no_default or use_na_sentinel:
-            codes[codes == -1] = na_sentinel
         uniques_sp = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques_sp
 

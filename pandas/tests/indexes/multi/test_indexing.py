@@ -471,6 +471,16 @@ class TestGetIndexer:
         with pytest.raises(ValueError, match=msg):
             mi.get_indexer(mi[:-1], tolerance="piano")
 
+    def test_get_indexer_nan(self):
+        # GH#37222
+        idx1 = MultiIndex.from_product([["A"], [1.0, 2.0]], names=["id1", "id2"])
+        idx2 = MultiIndex.from_product([["A"], [np.nan, 2.0]], names=["id1", "id2"])
+        expected = np.array([-1, 1])
+        result = idx2.get_indexer(idx1)
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+        result = idx1.get_indexer(idx2)
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
 
 def test_getitem(idx):
     # scalar
@@ -527,7 +537,7 @@ class TestGetLoc:
     def test_get_loc(self, idx):
         assert idx.get_loc(("foo", "two")) == 1
         assert idx.get_loc(("baz", "two")) == 3
-        with pytest.raises(KeyError, match=r"^10$"):
+        with pytest.raises(KeyError, match=r"^15$"):
             idx.get_loc(("bar", "two"))
         with pytest.raises(KeyError, match=r"^'quux'$"):
             idx.get_loc("quux")
