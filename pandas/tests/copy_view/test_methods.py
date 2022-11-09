@@ -227,7 +227,7 @@ def test_set_index(using_copy_on_write):
     else:
         assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
 
-    # mutating df2 triggers a copy-on-write for that column / block 
-    df2.iloc[0, 1] = 0 
+    # mutating df2 triggers a copy-on-write for that column / block
+    df2.iloc[0, 1] = 0
     assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
-    tm.assert_frame_equal(df, df_orig) 
+    tm.assert_frame_equal(df, df_orig)
