@@ -318,7 +318,7 @@ class Styler(StylerRenderer):
             original Styler
           - ``css`` will be inherited from the original Styler, and the value of
             keys ``data``, ``row_heading`` and ``row`` will be prepended with
-            ``foot_``. if several stylers are chained, they will all have only one
+            ``foot_``. If several stylers are chained, they will all have only one
             ``foot_`` prepended.
 
         A common use case is to concatenate user defined functions with
