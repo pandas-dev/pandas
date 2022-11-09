@@ -482,6 +482,9 @@ def test_finalize_called_eval_numexpr():
 # Binary operations
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Automatic reindexing on DataFrame vs Series:FutureWarning"
+)
 @pytest.mark.parametrize("annotate", ["left", "right", "both"])
 @pytest.mark.parametrize(
     "args",
