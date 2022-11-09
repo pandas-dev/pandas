@@ -10,7 +10,6 @@ from typing import (
     Hashable,
     Sequence,
 )
-import warnings
 
 import numpy as np
 from numpy import ma
@@ -22,7 +21,6 @@ from pandas._typing import (
     Manager,
     npt,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -52,7 +50,6 @@ from pandas.core import (
     common as com,
 )
 from pandas.core.arrays import (
-    Categorical,
     DatetimeArray,
     ExtensionArray,
     TimedeltaArray,
@@ -472,9 +469,6 @@ def nested_data_to_arrays(
     if index is None:
         if isinstance(data[0], ABCSeries):
             index = _get_names_from_index(data)
-        elif isinstance(data[0], Categorical):
-            # GH#38845 hit in test_constructor_categorical
-            index = default_index(len(data[0]))
         else:
             index = default_index(len(data))
 
@@ -791,26 +785,6 @@ def to_arrays(
 
                 return arrays, columns
         return [], ensure_index([])
-
-    elif isinstance(data[0], Categorical):
-        # GH#38845 deprecate special case
-        warnings.warn(
-            "The behavior of DataFrame([categorical, ...]) is deprecated and "
-            "in a future version will be changed to match the behavior of "
-            "DataFrame([any_listlike, ...]). "
-            "To retain the old behavior, pass as a dictionary "
-            "DataFrame({col: categorical, ..})",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        if columns is None:
-            columns = default_index(len(data))
-        elif len(columns) > len(data):
-            raise ValueError("len(columns) > len(data)")
-        elif len(columns) < len(data):
-            # doing this here is akin to a pre-emptive reindex
-            data = data[: len(columns)]
-        return data, columns
 
     elif isinstance(data, np.ndarray) and data.dtype.names is not None:
         # e.g. recarray
