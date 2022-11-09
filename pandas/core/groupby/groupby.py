@@ -1120,7 +1120,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         values,
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ):
         from pandas.core.reshape.concat import concat
 
@@ -1132,7 +1132,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 ax._reset_identity()
             return values
 
-        if self.group_keys and not override_group_keys:
+        if self.group_keys and not is_transform:
 
             values = reset_identity(values)
             if self.as_index:
@@ -1310,7 +1310,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data,
         values: list,
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ):
         raise AbstractMethodError(self)
 
@@ -1603,37 +1603,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         values, mutated = self.grouper.apply(f, data, self.axis)
         if not_indexed_same is None:
             not_indexed_same = mutated or self.mutated
-        override_group_keys = False
-
-        is_empty_agg = is_agg and len(values) == 0
-        if (not not_indexed_same and self.group_keys is lib.no_default) and not (
-            is_transform or is_empty_agg
-        ):
-            # We've detected value-dependent behavior: the result's index depends on
-            # whether the user's function `f` returned the same index or not.
-            msg = (
-                "Not prepending group keys to the result index of "
-                "transform-like apply. In the future, the group keys "
-                "will be included in the index, regardless of whether "
-                "the applied function returns a like-indexed object.\n"
-                "To preserve the previous behavior, use\n\n\t"
-                ">>> .groupby(..., group_keys=False)\n\n"
-                "To adopt the future behavior and silence this warning, use "
-                "\n\n\t>>> .groupby(..., group_keys=True)"
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-            # We want to behave as if `self.group_keys=False` when reconstructing
-            # the object. However, we don't want to mutate the stateful GroupBy
-            # object, so we just override it.
-            # When this deprecation is enforced then override_group_keys
-            # may be removed.
-            override_group_keys = True
 
         return self._wrap_applied_output(
             data,
             values,
             not_indexed_same,
-            override_group_keys=is_transform or override_group_keys,
+            is_transform,
         )
 
     @final
