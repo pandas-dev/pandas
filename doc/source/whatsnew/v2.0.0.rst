@@ -617,6 +617,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.union` not sorting when sort=None and index contains missing values (:issue:`49010`)
 - Bug in :meth:`MultiIndex.append` not checking names for equality (:issue:`48288`)
 - Bug in :meth:`MultiIndex.symmetric_difference` losing extension array (:issue:`48607`)
+- Bug in :meth:`MultiIndex.value_counts` returning a :class:`Series` indexed by flat index of tuples instead of a :class:`MultiIndex` (:issue:`49558`)
 -
 
 I/O
