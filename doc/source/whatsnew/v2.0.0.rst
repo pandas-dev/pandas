@@ -501,6 +501,7 @@ Removal of prior version deprecations/changes
 - Changed behavior of :meth:`Series.__setitem__` with an integer key and a :class:`Float64Index` when the key is not present in the index; previously we treated the key as positional (behaving like ``series.iloc[key] = val``), now we treat it is a label (behaving like ``series.loc[key] = val``), consistent with :meth:`Series.__getitem__`` behavior (:issue:`33469`)
 - Removed ``na_sentinel`` argument from :func:`factorize`, :meth:`.Index.factorize`, and :meth:`.ExtensionArray.factorize` (:issue:`47157`)
 - Changed behavior of :meth:`DataFrameGroupBy.apply` and :meth:`SeriesGroupBy.apply` so that ``group_keys`` is respected even if a transformer is detected (:issue:`34998`)
+- Enforced deprecation ``numeric_only=None`` (the default) in DataFrame reductions that would silently drop columns that raised; ``numeric_only`` now defaults to ``False`` (:issue:`41480`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -570,6 +571,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.add` cannot apply ufunc when inputs contain mixed DataFrame type and Series type (:issue:`39853`)
+- Bug in DataFrame reduction methods (e.g. :meth:`DataFrame.sum`) with object dtype, ``axis=1`` and ``numeric_only=False`` would not be coerced to float (:issue:`49551`)
 -
 
 Conversion

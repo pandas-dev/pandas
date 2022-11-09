@@ -139,8 +139,7 @@ class TestDataFrameQuantile:
         rs = df.quantile(
             0.5, numeric_only=True, interpolation=interpolation, method=method
         )
-        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-            xp = df.median().rename(0.5)
+        xp = df.median(numeric_only=True).rename(0.5)
         if interpolation == "nearest":
             xp = (xp + 0.5).astype(np.int64)
         if method == "table" and using_array_manager:
