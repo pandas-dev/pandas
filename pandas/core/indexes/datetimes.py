@@ -44,7 +44,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -697,24 +696,21 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return Index.slice_indexer(self, start, end, step)
 
         mask = np.array(True)
-        deprecation_mask = np.array(True)
+        raise_mask = np.array(True)
         if start is not None:
             start_casted = self._maybe_cast_slice_bound(start, "left")
             mask = start_casted <= self
-            deprecation_mask = start_casted == self
+            raise_mask = start_casted == self
 
         if end is not None:
             end_casted = self._maybe_cast_slice_bound(end, "right")
             mask = (self <= end_casted) & mask
-            deprecation_mask = (end_casted == self) | deprecation_mask
+            raise_mask = (end_casted == self) | raise_mask
 
-        if not deprecation_mask.any():
-            warnings.warn(
+        if not raise_mask.any():
+            raise KeyError(
                 "Value based partial slicing on non-monotonic DatetimeIndexes "
-                "with non-existing keys is deprecated and will raise a "
-                "KeyError in a future Version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+                "with non-existing keys is not allowed.",
             )
         indexer = mask.nonzero()[0][::step]
         if len(indexer) == len(self):
