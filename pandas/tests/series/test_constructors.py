@@ -83,24 +83,27 @@ class TestSeriesConstructors:
             # test for None or an empty generator.
             # test_constructor_pass_none tests None but only with the index also
             # passed.
-            (lambda: Series(), True),
-            (lambda: Series(None), True),
-            (lambda: Series({}), True),
-            (lambda: Series(()), False),  # creates a RangeIndex
-            (lambda: Series([]), False),  # creates a RangeIndex
-            (lambda: Series(_ for _ in []), False),  # creates a RangeIndex
-            (lambda: Series(data=None), True),
-            (lambda: Series(data={}), True),
-            (lambda: Series(data=()), False),  # creates a RangeIndex
-            (lambda: Series(data=[]), False),  # creates a RangeIndex
-            (lambda: Series(data=(_ for _ in [])), False),  # creates a RangeIndex
+            (lambda idx: Series(index=idx), True),
+            (lambda idx: Series(None, index=idx), True),
+            (lambda idx: Series({}, index=idx), True),
+            (lambda idx: Series((), index=idx), False),  # creates a RangeIndex
+            (lambda idx: Series([], index=idx), False),  # creates a RangeIndex
+            (lambda idx: Series((_ for _ in []), index=idx), False),  # RangeIndex
+            (lambda idx: Series(data=None, index=idx), True),
+            (lambda idx: Series(data={}, index=idx), True),
+            (lambda idx: Series(data=(), index=idx), False),  # creates a RangeIndex
+            (lambda idx: Series(data=[], index=idx), False),  # creates a RangeIndex
+            (lambda idx: Series(data=(_ for _ in []), index=idx), False),  # RangeIndex
         ],
     )
-    def test_empty_constructor(self, constructor, check_index_type):
+    @pytest.mark.parametrize("empty_index", [None, []])
+    def test_empty_constructor(self, constructor, check_index_type, empty_index):
         # TODO: share with frame test of the same name
-        expected = Series()
-        result = constructor()
+        # GH 49573 (addition of empty_index parameter)
+        expected = Series(index=empty_index)
+        result = constructor(empty_index)
 
+        assert result.dtype == object
         assert len(result.index) == 0
         tm.assert_series_equal(result, expected, check_index_type=check_index_type)
 
