@@ -2404,7 +2404,7 @@ def _sort_labels(
     llength = len(left)
     labels = np.concatenate([left, right])
 
-    _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
+    _, new_labels = algos.safe_sort(uniques, labels, use_na_sentinel=True)
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
     return new_left, new_right

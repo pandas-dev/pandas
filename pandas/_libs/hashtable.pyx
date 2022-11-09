@@ -129,7 +129,7 @@ cdef class Int64Factorizer(Factorizer):
         self.uniques = Int64Vector()
 
     def factorize(self, const int64_t[:] values,
-                  na_sentinel=-1, na_value=None) -> np.ndarray:
+                  na_sentinel=-1, na_value=None, object mask=None) -> np.ndarray:
         """
         Returns
         -------
@@ -152,6 +152,6 @@ cdef class Int64Factorizer(Factorizer):
             self.uniques = uniques
         labels = self.table.get_labels(values, self.uniques,
                                        self.count, na_sentinel,
-                                       na_value=na_value)
+                                       na_value=na_value, mask=mask)
         self.count = len(self.uniques)
         return labels

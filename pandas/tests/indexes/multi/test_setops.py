@@ -111,13 +111,11 @@ def test_symmetric_difference(idx, sort):
 def test_multiindex_symmetric_difference():
     # GH 13490
     idx = MultiIndex.from_product([["a", "b"], ["A", "B"]], names=["a", "b"])
-    with tm.assert_produces_warning(FutureWarning):
-        result = idx ^ idx
+    result = idx.symmetric_difference(idx)
     assert result.names == idx.names
 
     idx2 = idx.copy().rename(["A", "B"])
-    with tm.assert_produces_warning(FutureWarning):
-        result = idx ^ idx2
+    result = idx.symmetric_difference(idx2)
     assert result.names == [None, None]
 
 
@@ -659,9 +657,8 @@ def test_union_keep_ea_dtype_with_na(any_numeric_ea_dtype):
     midx = MultiIndex.from_arrays([arr1, [2, 1]], names=["a", None])
     midx2 = MultiIndex.from_arrays([arr2, [1, 2]])
     result = midx.union(midx2)
-    # Expected is actually off and should contain (1, 1) too. See GH#37222
     expected = MultiIndex.from_arrays(
-        [Series([4, pd.NA, pd.NA], dtype=any_numeric_ea_dtype), [2, 1, 2]]
+        [Series([1, 4, pd.NA, pd.NA], dtype=any_numeric_ea_dtype), [1, 2, 1, 2]]
     )
     tm.assert_index_equal(result, expected)
 

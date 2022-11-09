@@ -1073,21 +1073,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # We have a scalar (or for MultiIndex or object-dtype, scalar-like)
             #  key that is not present in self.index.
             if is_integer(key) and self.index.inferred_type != "integer":
-                # positional setter
                 if not self.index._should_fallback_to_positional:
                     # GH#33469
-                    warnings.warn(
-                        "Treating integers as positional in Series.__setitem__ "
-                        "with a Float64Index is deprecated. In a future version, "
-                        "`series[an_int] = val` will insert a new key into the "
-                        "Series. Use `series.iloc[an_int] = val` to treat the "
-                        "key as positional.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                # can't use _mgr.setitem_inplace yet bc could have *both*
-                #  KeyError and then ValueError, xref GH#45070
-                self._set_values(key, value)
+                    self.loc[key] = value
+                else:
+                    # positional setter
+                    # can't use _mgr.setitem_inplace yet bc could have *both*
+                    #  KeyError and then ValueError, xref GH#45070
+                    self._set_values(key, value)
             else:
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
@@ -1556,6 +1549,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return a string representation for a particular Series.
         """
+        # pylint: disable=invalid-repr-returned
         repr_params = fmt.get_series_repr_params()
         return self.to_string(**repr_params)
 
@@ -1854,17 +1848,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1    b
         2    c
         """
-        if name is None:
-            warnings.warn(
-                "Explicitly passing `name=None` currently preserves the Series' name "
-                "or uses a default name of 0. This behaviour is deprecated, and in "
-                "the future `None` will be used as the name of the resulting "
-                "DataFrame column.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            name = lib.no_default
-
         columns: Index
         if name is lib.no_default:
             name = self.name
@@ -5433,19 +5416,6 @@ Keep all original rows and also all original values
         3    False
         dtype: bool
         """
-        # error: Non-overlapping identity check (left operand type: "Literal['both',
-        # 'neither', 'left', 'right']", right operand type: "Literal[False]")
-        if inclusive is True or inclusive is False:  # type: ignore[comparison-overlap]
-            warnings.warn(
-                "Boolean inputs to the `inclusive` argument are deprecated in "
-                "favour of `both` or `neither`.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            if inclusive:
-                inclusive = "both"
-            else:
-                inclusive = "neither"
         if inclusive == "both":
             lmask = self >= left
             rmask = self <= right
