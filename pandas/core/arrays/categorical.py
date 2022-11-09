@@ -1304,8 +1304,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         else:
             return self._validate_scalar(value)
 
-    _validate_searchsorted_value = _validate_setitem_value
-
     def _validate_scalar(self, fill_value):
         """
         Convert a user-facing fill_value to a representation to use with our
