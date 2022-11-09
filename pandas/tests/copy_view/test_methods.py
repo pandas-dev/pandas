@@ -218,16 +218,16 @@ def test_chained_methods(request, method, idx, using_copy_on_write):
 
 def test_set_index(using_copy_on_write):
     # GH 49473
-    df = DataFrame(
-        {
-            "month": [1, 4, 7, 10],
-            "year": [2012, 2014, 2013, 2014],
-            "sale": [55, 40, 84, 31],
-        }
-    )
-    df2 = df.set_index("month")
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.set_index("a")
 
     if using_copy_on_write:
-        assert np.shares_memory(get_array(df2, "year"), get_array(df, "year"))
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     else:
-        assert not np.shares_memory(get_array(df2, "year"), get_array(df, "year"))
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    # mutating df2 triggers a copy-on-write for that column / block 
+    df2.iloc[0, 1] = 0 
+    assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    tm.assert_frame_equal(df, df_orig) 
