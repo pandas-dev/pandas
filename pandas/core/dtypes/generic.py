@@ -18,6 +18,7 @@ if TYPE_CHECKING:
         Int64Index,
         IntervalIndex,
         MultiIndex,
+        NoIndex,
         PeriodIndex,
         RangeIndex,
         Series,
@@ -72,6 +73,10 @@ ABCRangeIndex = cast(
     "Type[RangeIndex]",
     create_pandas_abc_type("ABCRangeIndex", "_typ", ("rangeindex",)),
 )
+ABCNoIndex = cast(
+    "Type[NoIndex]",
+    create_pandas_abc_type("ABCNoIndex", "_typ", ("noindex",)),
+)
 ABCFloat64Index = cast(
     "Type[Float64Index]",
     create_pandas_abc_type("ABCFloat64Index", "_typ", ("float64index",)),
@@ -109,6 +114,7 @@ ABCIndex = cast(
             "index",
             "int64index",
             "rangeindex",
+            "noindex",
             "float64index",
             "uint64index",
             "numericindex",

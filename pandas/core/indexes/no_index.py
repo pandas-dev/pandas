@@ -9,6 +9,8 @@ from pandas.core.indexes.range import RangeIndex
 
 
 class NoIndex(RangeIndex):
+    _typ = "noindex"
+
     def __new__(
         cls,
         len: int,
@@ -52,10 +54,11 @@ class NoIndex(RangeIndex):
 
     @name.setter
     def name(self, new_name):
-        raise ValueError("Can't set name of NoIndex!")
+        if new_name is not None:
+            raise TypeError("Can't set name of NoIndex!")
 
     def _set_names(self, values, *, level=None) -> None:
-        raise ValueError("Can't set name of NoIndex!")
+        raise TypeError("Can't set name of NoIndex!")
 
     def __repr__(self) -> str:
         return f"NoIndex(len={self.stop})"
@@ -99,6 +102,7 @@ class NoIndex(RangeIndex):
 
         result._range = values
         result._cache = {}
+        result.name = name
         result._reset_identity()
         return result
 

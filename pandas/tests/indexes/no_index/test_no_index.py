@@ -40,13 +40,13 @@ class TestNoIndex(TestRangeIndex):
         # See also same-named test in tests.series.test_constructors
         idx = simple_index
         with pytest.raises(TypeError, match="Can't set name of NoIndex!"):
-            type(idx)(idx, name="Joe")
+            type(idx)(10, name="Joe")
 
     def test_create_index_existing_name(self, simple_index):
         # GH11193, when an existing index is passed, and a new name is not
         # specified, the new index should inherit the previous object name
         expected = simple_index
-        with pytest.raises(ValueError, match="Can't set name of NoIndex!"):
+        with pytest.raises(TypeError, match="Can't set name of NoIndex!"):
             expected.name = "foo"
 
     def test_repeat(self, simple_index):
@@ -122,35 +122,90 @@ class TestNoIndex(TestRangeIndex):
         tm.assert_series_equal(series_a == item, Series(expected3))
 
     def test_is_unique(self, simple_index):
-        assert simple_index.is_unique()
+        assert simple_index.is_unique
 
     def test_arithmetic_explicit_conversions(self):
         # GH 8608
         # add/sub are overridden explicitly for Float/Int Index
         index_cls = self._index_cls
-        if index_cls is RangeIndex:
-            idx = RangeIndex(5)
-        else:
-            idx = index_cls(np.arange(5, dtype="int64"))
+        idx = index_cls(5)
 
         # float conversions
-        arr = np.arange(5, dtype="int64") * 3.2
-        expected = Float64Index(arr)
-        fidx = idx * 3.2
-        tm.assert_index_equal(fidx, expected)
-        fidx = 3.2 * idx
-        tm.assert_index_equal(fidx, expected)
+        with pytest.raises(NotImplementedError, match=None):
+            idx * 3.2
+        with pytest.raises(NotImplementedError, match=None):
+            3.2 * idx
 
         # interops with numpy arrays
-        expected = Float64Index(arr)
         a = np.zeros(5, dtype="float64")
-        result = fidx - a
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(NotImplementedError, match=None):
+            idx - a
+        with pytest.raises(NotImplementedError, match=None):
+            a - idx
 
-        expected = Float64Index(-arr)
-        a = np.zeros(5, dtype="float64")
-        result = a - fidx
-        tm.assert_index_equal(result, expected)
+    def test_invalid_dtype(self, invalid_dtype):
+        # GH 29539
+        dtype = invalid_dtype
+        self._index_cls(3, dtype=dtype)
+
+    def test_constructor_unwraps_index(self, dtype):
+        result = self._index_cls(1)
+        expected = np.array([0], dtype=dtype)
+        tm.assert_numpy_array_equal(result._data, expected)
+
+    def test_slice_specialised(self, simple_index):
+        index = simple_index
+
+        # scalar indexing
+        res = index[1]
+        expected = 1
+        assert res == expected
+
+        res = index[-1]
+        expected = 9
+        assert res == expected
+
+        # slicing
+        # slice value completion
+        index_slice = index[:]
+        expected = index
+        tm.assert_index_equal(index_slice, expected)
+
+        # positive slice values
+        index_slice = index[7:10:2]
+        expected = Index(np.array([0, 1]))
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
+
+        # negative slice values
+        index_slice = index[-1:-5:-2]
+        expected = Index(np.array([0, 1]))
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
+
+        # stop overshoot
+        index_slice = index[2:100:4]
+        expected = Index(np.array([0, 1]))
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
+
+        # reverse
+        index_slice = index[::-1]
+        expected = Index(index.values)
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
+
+        index_slice = index[-8::-1]
+        expected = Index(np.array([0, 1, 2]))
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
+
+        index_slice = index[-40::-1]
+        expected = Index(np.array([], dtype=np.int64))
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
+
+        index_slice = index[40::-1]
+        expected = Index(range(10))
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
+
+        index_slice = index[10::-1]
+        expected = Index(range(10))
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
 
 
 class TestCommon:
