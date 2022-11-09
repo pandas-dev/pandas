@@ -2781,12 +2781,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> str | None:
         if "showindex" in kwargs:
-            warnings.warn(
-                "'showindex' is deprecated. Only 'index' will be used "
-                "in a future version. Use 'index' to silence this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            raise ValueError("Pass 'index' instead of 'showindex")
 
         kwargs.setdefault("headers", "keys")
         kwargs.setdefault("tablefmt", "pipe")
