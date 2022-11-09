@@ -1,13 +1,11 @@
 # Doing a local shallow clone - keeps the container secure
 # and much slimmer than using COPY directly or making a
 # remote clone
-ARG BASE_CONTAINER="pandas/pandas-dev:latest"
+ARG BASE_CONTAINER="pythonpandas/pandas-dev:latest"
 FROM gitpod/workspace-base:latest as clone
 
-COPY --chown=gitpod . /tmp/pandas_repo
-
 # the clone should be deep enough for versioneer to work
-RUN git clone --shallow-since=2022-01-01 file:////tmp/pandas_repo /tmp/pandas
+RUN git clone https://github.com/pandas-dev/pandas --depth 12 /tmp/pandas
 
 # -----------------------------------------------------------------------------
 # Using the pandas-dev Docker image as a base
@@ -24,7 +22,7 @@ USER root
 ENV WORKSPACE=/workspace/pandas/ \
     CONDA_ENV=pandas-dev
 
-# Allows this Dockerfile to activate conda environments
+# Allows this micromamba.Dockerfile to activate conda environments
 SHELL ["/bin/bash", "--login", "-o", "pipefail", "-c"]
 
 # Copy over the shallow clone
@@ -35,8 +33,6 @@ WORKDIR ${WORKSPACE}
 
 # Build pandas to populate the cache used by ccache
 RUN git config --global --add safe.directory /workspace/pandas
-# chained RUN failed to activate. trying separate run commands
-RUN git submodule update --init --depth=1 -- pandas/core/src/umath/svml
 RUN conda activate ${CONDA_ENV} && \
     python setup.py build_ext --inplace && \
     ccache -s

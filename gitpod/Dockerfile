@@ -1,11 +1,11 @@
 #
-# Dockerfile for pandas development
+# micromamba.Dockerfile for pandas development
 #
 # Usage:
 # -------
 #
 # To make a local build of the container, from the 'Docker-dev' directory:
-# docker build  --rm -f "Dockerfile" -t <build-tag> "."
+# docker build  --rm -f "micromamba.Dockerfile" -t <build-tag> "."
 #
 # To use the container use the following command. It assumes that you are in
 # the root folder of the pandas git repository, making it available as
@@ -37,7 +37,6 @@ ENV CONDA_DIR=/home/gitpod/mambaforge3 \
     SHELL=/bin/bash
 ENV PATH=${CONDA_DIR}/bin:$PATH \
     WORKSPACE=/workspace/pandas
-
 
 # -----------------------------------------------------------------------------
 # ---- Creating as root - note: make sure to change to gitpod in the end ----
@@ -84,15 +83,12 @@ COPY ./gitpod/workspace_config /usr/local/bin/workspace_config
 RUN chmod a+rx /usr/local/bin/workspace_config && \
     workspace_config
 
-# Copy conda environment file into the container - this needs to exists inside
 # the container to create a conda environment from it
 COPY environment.yml /tmp/environment.yml
 
-# -----------------------------------------------------------------------------
-# ---- Create conda environment ----
-# Install pandas dependencies
 RUN mamba env create -f /tmp/environment.yml
-RUN conda activate ${CONDA_ENV} && \
+# ---- Create conda environment ----
+RUN conda activate $CONDA_ENV && \
     mamba install ccache -y && \
     # needed for docs rendering later on
     python -m pip install --no-cache-dir sphinx-autobuild && \
