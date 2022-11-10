@@ -6004,8 +6004,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        dtype : string, data type, Series or Mapping of column name -> data type
-            Use a string, numpy.dtype, pandas.ExtensionDtype or Python type to
+        dtype : str, data type, Series or Mapping of column name -> data type
+            Use a str, numpy.dtype, pandas.ExtensionDtype or Python type to
             cast entire pandas object to the same type. Alternatively, use a
             mapping, e.g. {col: dtype, ...}, where col is a column label and dtype is
             a numpy.dtype or Python type to cast one or more of the DataFrame's
