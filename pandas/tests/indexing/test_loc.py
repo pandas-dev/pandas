@@ -2460,7 +2460,9 @@ class TestLabelSlicing:
             [1, 2, 3],
             index=[Timestamp("2016"), Timestamp("2019"), Timestamp("2017")],
         )
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(
+            KeyError, match="Value based partial slicing on non-monotonic"
+        ):
             obj.loc[start:"2022"]
 
     @pytest.mark.parametrize("value", [1, 1.5])

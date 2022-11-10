@@ -455,15 +455,10 @@ class TestGetitemSlice:
                 ]
             ),
         )
-        with tm.assert_produces_warning(FutureWarning):
-            result = df["2011-01-01":"2011-11-01"]
-        expected = DataFrame(
-            {"a": 0},
-            index=DatetimeIndex(
-                ["11.01.2011 22:00", "11.01.2011 23:00", "2011-01-13 00:00"]
-            ),
-        )
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(
+            KeyError, match="Value based partial slicing on non-monotonic"
+        ):
+            df["2011-01-01":"2011-11-01"]
 
 
 class TestGetitemDeprecatedIndexers:

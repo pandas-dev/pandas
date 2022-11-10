@@ -385,7 +385,7 @@ def test_indexing_unordered():
         tm.assert_series_equal(result, expected)
 
     compare(slice("2011-01-01", "2011-01-15"))
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(KeyError, match="Value based partial slicing on non-monotonic"):
         compare(slice("2010-12-30", "2011-01-15"))
     compare(slice("2011-01-01", "2011-01-16"))
 
