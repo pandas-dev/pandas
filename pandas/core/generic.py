@@ -10775,25 +10775,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return rs.__finalize__(self, method="pct_change")
 
     @final
-    def _agg_by_level(
-        self,
-        name: str,
-        axis: Axis = 0,
-        level: Level = 0,
-        skipna: bool_t = True,
-        **kwargs,
-    ):
-        if axis is None:
-            raise ValueError("Must specify 'axis' when aggregating by level.")
-        grouped = self.groupby(level=level, axis=axis, sort=False)
-        if hasattr(grouped, name) and skipna:
-            return getattr(grouped, name)(**kwargs)
-        axis = self._get_axis_number(axis)
-        method = getattr(type(self), name)
-        applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwargs)
-        return grouped.aggregate(applyf)
-
-    @final
     def _logical_func(
         self,
         name: str,
@@ -10801,24 +10782,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = 0,
         bool_only: bool_t = False,
         skipna: bool_t = True,
-        level: Level | None = None,
         **kwargs,
     ) -> Series | bool_t:
         nv.validate_logical_func((), kwargs, fname=name)
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
-        if level is not None:
-            warnings.warn(
-                "Using the level keyword in DataFrame and Series aggregations is "
-                "deprecated and will be removed in a future version. Use groupby "
-                "instead. df.any(level=1) should use df.groupby(level=1).any()",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            if bool_only:
-                raise NotImplementedError(
-                    "Option bool_only is not implemented with option level."
-                )
-            return self._agg_by_level(name, axis=axis, level=level, skipna=skipna)
 
         if self.ndim > 1 and axis is None:
             # Reduce along one dimension then the other, to simplify DataFrame._reduce
@@ -10855,11 +10822,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = 0,
         bool_only: bool_t = False,
         skipna: bool_t = True,
-        level: Level | None = None,
         **kwargs,
     ) -> DataFrame | Series | bool_t:
         return self._logical_func(
-            "any", nanops.nanany, axis, bool_only, skipna, level, **kwargs
+            "any", nanops.nanany, axis, bool_only, skipna, **kwargs
         )
 
     def all(
@@ -10867,11 +10833,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = 0,
         bool_only: bool_t = False,
         skipna: bool_t = True,
-        level: Level | None = None,
         **kwargs,
     ) -> Series | bool_t:
         return self._logical_func(
-            "all", nanops.nanall, axis, bool_only, skipna, level, **kwargs
+            "all", nanops.nanall, axis, bool_only, skipna, **kwargs
         )
 
     @final
@@ -10930,7 +10895,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         func,
         axis: Axis | None = None,
         skipna: bool_t = True,
-        level: Level | None = None,
         ddof: int = 1,
         numeric_only: bool_t = False,
         **kwargs,
@@ -10939,17 +10903,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         if axis is None:
             axis = self._stat_axis_number
-        if level is not None:
-            warnings.warn(
-                "Using the level keyword in DataFrame and Series aggregations is "
-                "deprecated and will be removed in a future version. Use groupby "
-                "instead. df.var(level=1) should use df.groupby(level=1).var().",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return self._agg_by_level(
-                name, axis=axis, level=level, skipna=skipna, ddof=ddof
-            )
+
         return self._reduce(
             func, name, axis=axis, numeric_only=numeric_only, skipna=skipna, ddof=ddof
         )
@@ -10958,39 +10912,36 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         axis: Axis | None = None,
         skipna: bool_t = True,
-        level: Level | None = None,
         ddof: int = 1,
         numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function_ddof(
-            "sem", nanops.nansem, axis, skipna, level, ddof, numeric_only, **kwargs
+            "sem", nanops.nansem, axis, skipna, ddof, numeric_only, **kwargs
         )
 
     def var(
         self,
         axis: Axis | None = None,
         skipna: bool_t = True,
-        level: Level | None = None,
         ddof: int = 1,
         numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function_ddof(
-            "var", nanops.nanvar, axis, skipna, level, ddof, numeric_only, **kwargs
+            "var", nanops.nanvar, axis, skipna, ddof, numeric_only, **kwargs
         )
 
     def std(
         self,
         axis: Axis | None = None,
         skipna: bool_t = True,
-        level: Level | None = None,
         ddof: int = 1,
         numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function_ddof(
-            "std", nanops.nanstd, axis, skipna, level, ddof, numeric_only, **kwargs
+            "std", nanops.nanstd, axis, skipna, ddof, numeric_only, **kwargs
         )
 
     @final
@@ -11000,7 +10951,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         func,
         axis: Axis | None | lib.NoDefault = None,
         skipna: bool_t = True,
-        level: Level | None = None,
         numeric_only: bool_t = False,
         **kwargs,
     ):
@@ -11011,7 +10961,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
 
-        if axis is None and level is None and self.ndim > 1:
+        if axis is None and self.ndim > 1:
             # user must have explicitly passed axis=None
             # GH#21597
             warnings.warn(
@@ -11026,17 +10976,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if axis is None:
             axis = self._stat_axis_number
-        if level is not None:
-            warnings.warn(
-                "Using the level keyword in DataFrame and Series aggregations is "
-                "deprecated and will be removed in a future version. Use groupby "
-                "instead. df.median(level=1) should use df.groupby(level=1).median().",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return self._agg_by_level(
-                name, axis=axis, level=level, skipna=skipna, numeric_only=numeric_only
-            )
+
         return self._reduce(
             func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
         )
@@ -11045,7 +10985,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
-        level: Level | None = None,
         numeric_only: bool_t = False,
         **kwargs,
     ):
@@ -11054,7 +10993,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             nanops.nanmin,
             axis,
             skipna,
-            level,
             numeric_only,
             **kwargs,
         )
@@ -11063,7 +11001,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
-        level: Level | None = None,
         numeric_only: bool_t = False,
         **kwargs,
     ):
@@ -11072,7 +11009,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             nanops.nanmax,
             axis,
             skipna,
-            level,
             numeric_only,
             **kwargs,
         )
@@ -11081,48 +11017,44 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
-        level: Level | None = None,
         numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function(
-            "mean", nanops.nanmean, axis, skipna, level, numeric_only, **kwargs
+            "mean", nanops.nanmean, axis, skipna, numeric_only, **kwargs
         )
 
     def median(
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
-        level: Level | None = None,
         numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function(
-            "median", nanops.nanmedian, axis, skipna, level, numeric_only, **kwargs
+            "median", nanops.nanmedian, axis, skipna, numeric_only, **kwargs
         )
 
     def skew(
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
-        level: Level | None = None,
         numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function(
-            "skew", nanops.nanskew, axis, skipna, level, numeric_only, **kwargs
+            "skew", nanops.nanskew, axis, skipna, numeric_only, **kwargs
         )
 
     def kurt(
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
-        level: Level | None = None,
         numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function(
-            "kurt", nanops.nankurt, axis, skipna, level, numeric_only, **kwargs
+            "kurt", nanops.nankurt, axis, skipna, numeric_only, **kwargs
         )
 
     kurtosis = kurt
@@ -11134,7 +11066,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         func,
         axis: Axis | None = None,
         skipna: bool_t = True,
-        level: Level | None = None,
         numeric_only: bool_t = False,
         min_count: int = 0,
         **kwargs,
@@ -11150,22 +11081,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if axis is None:
             axis = self._stat_axis_number
-        if level is not None:
-            warnings.warn(
-                "Using the level keyword in DataFrame and Series aggregations is "
-                "deprecated and will be removed in a future version. Use groupby "
-                "instead. df.sum(level=1) should use df.groupby(level=1).sum().",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return self._agg_by_level(
-                name,
-                axis=axis,
-                level=level,
-                skipna=skipna,
-                min_count=min_count,
-                numeric_only=numeric_only,
-            )
 
         return self._reduce(
             func,
@@ -11180,20 +11095,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         axis: Axis | None = None,
         skipna: bool_t = True,
-        level: Level | None = None,
         numeric_only: bool_t = False,
         min_count: int = 0,
         **kwargs,
     ):
         return self._min_count_stat_function(
-            "sum", nanops.nansum, axis, skipna, level, numeric_only, min_count, **kwargs
+            "sum", nanops.nansum, axis, skipna, numeric_only, min_count, **kwargs
         )
 
     def prod(
         self,
         axis: Axis | None = None,
         skipna: bool_t = True,
-        level: Level | None = None,
         numeric_only: bool_t = False,
         min_count: int = 0,
         **kwargs,
@@ -11203,7 +11116,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             nanops.nanprod,
             axis,
             skipna,
-            level,
             numeric_only,
             min_count,
             **kwargs,
@@ -11234,7 +11146,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: Axis = 0,
             bool_only=None,
             skipna: bool_t = True,
-            level=None,
             **kwargs,
         ):
             return NDFrame.any(
@@ -11242,7 +11153,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 axis=axis,
                 bool_only=bool_only,
                 skipna=skipna,
-                level=level,
                 **kwargs,
             )
 
@@ -11263,10 +11173,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: Axis = 0,
             bool_only=None,
             skipna: bool_t = True,
-            level=None,
             **kwargs,
         ):
-            return NDFrame.all(self, axis, bool_only, skipna, level, **kwargs)
+            return NDFrame.all(self, axis, bool_only, skipna, **kwargs)
 
         setattr(cls, "all", all)
 
@@ -11285,12 +11194,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self,
             axis: Axis | None = None,
             skipna: bool_t = True,
-            level=None,
             ddof: int = 1,
             numeric_only: bool_t = False,
             **kwargs,
         ):
-            return NDFrame.sem(self, axis, skipna, level, ddof, numeric_only, **kwargs)
+            return NDFrame.sem(self, axis, skipna, ddof, numeric_only, **kwargs)
 
         setattr(cls, "sem", sem)
 
@@ -11308,12 +11216,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self,
             axis: Axis | None = None,
             skipna: bool_t = True,
-            level=None,
             ddof: int = 1,
             numeric_only: bool_t = False,
             **kwargs,
         ):
-            return NDFrame.var(self, axis, skipna, level, ddof, numeric_only, **kwargs)
+            return NDFrame.var(self, axis, skipna, ddof, numeric_only, **kwargs)
 
         setattr(cls, "var", var)
 
@@ -11332,12 +11239,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self,
             axis: Axis | None = None,
             skipna: bool_t = True,
-            level=None,
             ddof: int = 1,
             numeric_only: bool_t = False,
             **kwargs,
         ):
-            return NDFrame.std(self, axis, skipna, level, ddof, numeric_only, **kwargs)
+            return NDFrame.std(self, axis, skipna, ddof, numeric_only, **kwargs)
 
         setattr(cls, "std", std)
 
@@ -11421,14 +11327,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self,
             axis: Axis | None = None,
             skipna: bool_t = True,
-            level=None,
             numeric_only: bool_t = False,
             min_count: int = 0,
             **kwargs,
         ):
-            return NDFrame.sum(
-                self, axis, skipna, level, numeric_only, min_count, **kwargs
-            )
+            return NDFrame.sum(self, axis, skipna, numeric_only, min_count, **kwargs)
 
         setattr(cls, "sum", sum)
 
@@ -11446,14 +11349,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self,
             axis: Axis | None = None,
             skipna: bool_t = True,
-            level=None,
             numeric_only: bool_t = False,
             min_count: int = 0,
             **kwargs,
         ):
-            return NDFrame.prod(
-                self, axis, skipna, level, numeric_only, min_count, **kwargs
-            )
+            return NDFrame.prod(self, axis, skipna, numeric_only, min_count, **kwargs)
 
         setattr(cls, "prod", prod)
         cls.product = prod
@@ -11472,11 +11372,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self,
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
-            level=None,
             numeric_only: bool_t = False,
             **kwargs,
         ):
-            return NDFrame.mean(self, axis, skipna, level, numeric_only, **kwargs)
+            return NDFrame.mean(self, axis, skipna, numeric_only, **kwargs)
 
         setattr(cls, "mean", mean)
 
@@ -11494,11 +11393,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self,
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
-            level=None,
             numeric_only: bool_t = False,
             **kwargs,
         ):
-            return NDFrame.skew(self, axis, skipna, level, numeric_only, **kwargs)
+            return NDFrame.skew(self, axis, skipna, numeric_only, **kwargs)
 
         setattr(cls, "skew", skew)
 
@@ -11519,11 +11417,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self,
             axis: Axis | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
-            level=None,
             numeric_only: bool_t = False,
             **kwargs,
         ):
-            return NDFrame.kurt(self, axis, skipna, level, numeric_only, **kwargs)
+            return NDFrame.kurt(self, axis, skipna, numeric_only, **kwargs)
 
         setattr(cls, "kurt", kurt)
         cls.kurtosis = kurt
@@ -11542,11 +11439,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self,
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
-            level=None,
             numeric_only: bool_t = False,
             **kwargs,
         ):
-            return NDFrame.median(self, axis, skipna, level, numeric_only, **kwargs)
+            return NDFrame.median(self, axis, skipna, numeric_only, **kwargs)
 
         setattr(cls, "median", median)
 
@@ -11566,11 +11462,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self,
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
-            level=None,
             numeric_only: bool_t = False,
             **kwargs,
         ):
-            return NDFrame.max(self, axis, skipna, level, numeric_only, **kwargs)
+            return NDFrame.max(self, axis, skipna, numeric_only, **kwargs)
 
         setattr(cls, "max", max)
 
@@ -11590,11 +11485,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self,
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
-            level=None,
             numeric_only: bool_t = False,
             **kwargs,
         ):
-            return NDFrame.min(self, axis, skipna, level, numeric_only, **kwargs)
+            return NDFrame.min(self, axis, skipna, numeric_only, **kwargs)
 
         setattr(cls, "min", min)
 
@@ -11820,12 +11714,6 @@ axis : {axis_descr}
     For `Series` this parameter is unused and defaults to 0.
 skipna : bool, default True
     Exclude NA/null values when computing the result.
-level : int or level name, default None
-    If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a {name1}.
-
-    .. deprecated:: 1.3.0
-        The level keyword is deprecated. Use groupby instead.
 numeric_only : bool, default False
     Include only float, int, boolean columns. Not implemented for Series.
 
@@ -11850,12 +11738,6 @@ axis : {axis_descr}
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
-level : int or level name, default None
-    If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a {name1}.
-
-    .. deprecated:: 1.3.0
-        The level keyword is deprecated. Use groupby instead.
 ddof : int, default 1
     Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
     where N represents the number of elements.
@@ -11953,12 +11835,6 @@ skipna : bool, default True
     True, then the result will be {empty_value}, as for an empty row/column.
     If skipna is False, then NA are treated as True, because these are not
     equal to zero.
-level : int or level name, default None
-    If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a {name1}.
-
-    .. deprecated:: 1.3.0
-        The level keyword is deprecated. Use groupby instead.
 **kwargs : any, default None
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.

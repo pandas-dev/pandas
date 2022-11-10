@@ -421,6 +421,7 @@ Removal of prior version deprecations/changes
 - Removed :meth:`.Rolling.validate`, :meth:`.Expanding.validate`, and :meth:`.ExponentialMovingWindow.validate` (:issue:`43665`)
 - Removed :attr:`Rolling.win_type` returning ``"freq"`` (:issue:`38963`)
 - Removed :attr:`Rolling.is_datetimelike` (:issue:`38963`)
+- Removed the ``level`` keyword in :class:`DataFrame` and :class:`Series` aggregations; use ``groupby`` instead (:issue:`39983`)
 - Removed deprecated :meth:`Timedelta.delta`, :meth:`Timedelta.is_populated`, and :attr:`Timedelta.freq` (:issue:`46430`, :issue:`46476`)
 - Removed deprecated :attr:`NaT.freq` (:issue:`45071`)
 - Removed deprecated :meth:`Categorical.replace`, use :meth:`Series.replace` instead (:issue:`44929`)
