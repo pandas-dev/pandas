@@ -1457,6 +1457,17 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
+    @doc(Index._get_grouper_for_level)
+    def _get_grouper_for_level(
+        self,
+        mapper,
+        *,
+        level=None,
+        dropna: bool = True,
+    ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
+        raise NotImplementedError
+
+
     @cache_readonly
     def inferred_type(self) -> str:
         return "mixed"
