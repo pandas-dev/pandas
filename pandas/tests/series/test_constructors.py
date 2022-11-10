@@ -15,6 +15,7 @@ from pandas._libs import (
     lib,
 )
 from pandas.compat import is_numpy_dev
+from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -670,10 +671,9 @@ class TestSeriesConstructors:
         s = Series(np.array([1.0, 1.0, 8.0]), dtype="i8")
         assert s.dtype == np.dtype("i8")
 
-        msg = "float-dtype values containing NaN and an integer dtype"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series(np.array([1.0, 1.0, np.nan]), copy=True, dtype="i8")
-        assert ser.dtype == np.dtype("f8")
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+        with pytest.raises(IntCastingNaNError, match=msg):
+            Series(np.array([1.0, 1.0, np.nan]), copy=True, dtype="i8")
 
     def test_constructor_copy(self):
         # GH15125
@@ -809,18 +809,17 @@ class TestSeriesConstructors:
         res = frame_or_series(list(arr), dtype="i8")
         tm.assert_equal(res, expected)
 
-        # When we have NaNs, we silently ignore the integer dtype
+        # pre-2.0, when we had NaNs, we silently ignored the integer dtype
         arr[0] = np.nan
         expected = frame_or_series(arr)
-        msg = "passing float-dtype values containing NaN and an integer dtype"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj = frame_or_series(arr, dtype="i8")
-        tm.assert_equal(obj, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+        with pytest.raises(IntCastingNaNError, match=msg):
+            frame_or_series(arr, dtype="i8")
+
+        with pytest.raises(IntCastingNaNError, match=msg):
             # same behavior if we pass list instead of the ndarray
-            obj = frame_or_series(list(arr), dtype="i8")
-        tm.assert_equal(obj, expected)
+            frame_or_series(list(arr), dtype="i8")
 
         # float array that can be losslessly cast to integers
         arr = np.array([1.0, 2.0], dtype="float64")
@@ -854,13 +853,13 @@ class TestSeriesConstructors:
         # Updated: make sure we treat this list the same as we would treat the
         # equivalent ndarray
         vals = [1, 2, np.nan]
-        msg = "In a future version, passing float-dtype values containing NaN"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = Series(vals, dtype=any_int_numpy_dtype)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = Series(np.array(vals), dtype=any_int_numpy_dtype)
-        tm.assert_series_equal(res, expected)
-        assert np.isnan(expected.iloc[-1])
+        # pre-2.0 this would return with a float dtype, in 2.0 we raise
+
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+        with pytest.raises(IntCastingNaNError, match=msg):
+            Series(vals, dtype=any_int_numpy_dtype)
+        with pytest.raises(IntCastingNaNError, match=msg):
+            Series(np.array(vals), dtype=any_int_numpy_dtype)
 
     def test_constructor_dtype_no_cast(self):
         # see gh-1572
