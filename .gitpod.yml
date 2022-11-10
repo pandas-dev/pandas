@@ -29,7 +29,6 @@ ports:
 # some useful extensions to have
 vscode:
   extensions:
-    - njpwerner.autodocstring
     - ms-python.python
     - yzhang.markdown-all-in-one
     - eamodio.gitlens
