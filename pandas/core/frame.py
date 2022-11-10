@@ -9964,6 +9964,9 @@ Parrot 2  Parrot       24.0
 
             .. versionadded:: 1.5.0
 
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
+
         Returns
         -------
         DataFrame
@@ -10085,6 +10088,9 @@ Parrot 2  Parrot       24.0
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
 
         Returns
         -------
@@ -10211,6 +10217,9 @@ Parrot 2  Parrot       24.0
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
 
         Returns
         -------
@@ -10815,6 +10824,9 @@ Parrot 2  Parrot       24.0
             Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
+
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
 
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             This optional parameter specifies the interpolation method to use,
