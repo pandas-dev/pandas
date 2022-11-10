@@ -134,7 +134,6 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_numeric_dtype,
-    is_object_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -10563,12 +10562,6 @@ Parrot 2  Parrot       24.0
         if hasattr(result, "dtype"):
             if filter_type == "bool" and notna(result).all():
                 result = result.astype(np.bool_)
-            elif filter_type is None and is_object_dtype(result.dtype):
-                try:
-                    result = result.astype(np.float64)
-                except (ValueError, TypeError):
-                    # try to coerce to the original dtypes item by item if we can
-                    pass
 
         labels = self._get_agg_axis(axis)
         result = self._constructor_sliced(result, index=labels)
