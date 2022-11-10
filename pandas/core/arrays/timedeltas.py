@@ -268,10 +268,10 @@ class TimedeltaArray(dtl.TimelikeOps):
             )
 
         if start is not None:
-            start = Timedelta(start)._as_unit("ns")
+            start = Timedelta(start).as_unit("ns")
 
         if end is not None:
-            end = Timedelta(end)._as_unit("ns")
+            end = Timedelta(end).as_unit("ns")
 
         left_closed, right_closed = validate_endpoints(closed)
 
@@ -298,7 +298,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if value is NaT:
             return np.timedelta64(value.value, "ns")
         else:
-            return value._as_unit(self._unit).asm8
+            return value.as_unit(self.unit).asm8
 
     def _scalar_from_string(self, value) -> Timedelta | NaTType:
         return Timedelta(value)

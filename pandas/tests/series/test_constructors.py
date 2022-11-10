@@ -1582,7 +1582,7 @@ class TestSeriesConstructors:
         assert ser.dtype == arr.dtype
 
         tdi = timedelta_range("00:00:01", periods=3, freq="s")
-        tda = tdi._data._as_unit("s")
+        tda = tdi._data.as_unit("s")
         expected = Series(tda)
         assert expected.dtype == arr.dtype
         tm.assert_series_equal(ser, expected)

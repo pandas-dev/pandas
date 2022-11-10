@@ -1195,6 +1195,22 @@ default 'raise'
     def tzinfo(self) -> None:
         return None
 
+    def as_unit(self, str unit, bint round_ok=True) -> "NaTType":
+        """
+        Convert the underlying int64 representaton to the given unit.
+
+        Parameters
+        ----------
+        unit : {"ns", "us", "ms", "s"}
+        round_ok : bool, default True
+            If False and the conversion requires rounding, raise.
+
+        Returns
+        -------
+        Timestamp
+        """
+        return c_NaT
+
 
 c_NaT = NaTType()  # C-visible
 NaT = c_NaT        # Python-visible

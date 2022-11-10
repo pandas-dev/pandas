@@ -931,7 +931,7 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
         else:
             return False
     return tipo == DT64NS_DTYPE or (
-        isinstance(tipo, DatetimeTZDtype) and tipo._unit == "ns"
+        isinstance(tipo, DatetimeTZDtype) and tipo.unit == "ns"
     )
 
 

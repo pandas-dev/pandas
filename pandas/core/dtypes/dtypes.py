@@ -676,7 +676,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     # error: Signature of "str" incompatible with supertype "PandasExtensionDtype"
     @cache_readonly
     def str(self) -> str:  # type: ignore[override]
-        return f"|M8[{self._unit}]"
+        return f"|M8[{self.unit}]"
 
     def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None) -> None:
         if isinstance(unit, DatetimeTZDtype):
@@ -720,7 +720,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
             "ms": dtypes.NpyDatetimeUnit.NPY_FR_ms,
             "us": dtypes.NpyDatetimeUnit.NPY_FR_us,
             "ns": dtypes.NpyDatetimeUnit.NPY_FR_ns,
-        }[self._unit]
+        }[self.unit]
         return reso.value
 
     @property
