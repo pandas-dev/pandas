@@ -4116,7 +4116,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # "ndarray[Any, dtype[floating[_64Bit]]]"; expected "Index"
             levels_list.append(qs)  # type: ignore[arg-type]
             names = names + [None]
-        index, _ = MultiIndex.from_product(levels_list, names=names).sortlevel()
+        index = MultiIndex.from_product(levels_list, names=names)
+        if self.sort:
+            index = index.sortlevel()[0]
 
         if self.as_index:
             # Always holds for SeriesGroupBy unless GH#36507 is implemented

@@ -818,12 +818,14 @@ def test_preserve_categories():
 
     # ordered=True
     df = DataFrame({"A": Categorical(list("ba"), categories=categories, ordered=True)})
-    index = CategoricalIndex(categories, categories, ordered=True, name="A")
+    sort_index = CategoricalIndex(categories, categories, ordered=True, name="A")
+    nosort_index = CategoricalIndex(list("bac"), categories, ordered=True, name="A")
     tm.assert_index_equal(
-        df.groupby("A", sort=True, observed=False).first().index, index
+        df.groupby("A", sort=True, observed=False).first().index, sort_index
     )
+    # GH#42482 - don't sort result when sort=False, even when ordered=True
     tm.assert_index_equal(
-        df.groupby("A", sort=False, observed=False).first().index, index
+        df.groupby("A", sort=False, observed=False).first().index, nosort_index
     )
 
     # ordered=False
@@ -972,8 +974,11 @@ def test_sort():
     tm.assert_series_equal(res, exp)
 
 
-def test_sort2():
+@pytest.mark.parametrize("ordered", [True, False])
+def test_sort2(sort, ordered):
     # dataframe groupby sort was being ignored # GH 8868
+    # GH#48749 - don't change order of categories
+    # GH#42482 - don't sort result when sort=False, even when ordered=True
     df = DataFrame(
         [
             ["(7.5, 10]", 10, 10],
@@ -986,53 +991,28 @@ def test_sort2():
         ],
         columns=["range", "foo", "bar"],
     )
-    df["range"] = Categorical(df["range"], ordered=True)
-    index = CategoricalIndex(
-        ["(0, 2.5]", "(2.5, 5]", "(5, 7.5]", "(7.5, 10]"], name="range", ordered=True
-    )
-    expected_sort = DataFrame(
-        [[1, 60], [5, 30], [6, 40], [10, 10]], columns=["foo", "bar"], index=index
-    )
+    df["range"] = Categorical(df["range"], ordered=ordered)
+    result = df.groupby("range", sort=sort, observed=False).first()
 
-    col = "range"
-    result_sort = df.groupby(col, sort=True, observed=False).first()
-    tm.assert_frame_equal(result_sort, expected_sort)
-
-    # when categories is ordered, group is ordered by category's order
-    expected_sort = result_sort
-    result_sort = df.groupby(col, sort=False, observed=False).first()
-    tm.assert_frame_equal(result_sort, expected_sort)
-
-    df["range"] = Categorical(df["range"], ordered=False)
-    index = CategoricalIndex(
-        ["(0, 2.5]", "(2.5, 5]", "(5, 7.5]", "(7.5, 10]"], name="range"
-    )
-    expected_sort = DataFrame(
-        [[1, 60], [5, 30], [6, 40], [10, 10]], columns=["foo", "bar"], index=index
+    if sort:
+        data_values = [[1, 60], [5, 30], [6, 40], [10, 10]]
+        index_values = ["(0, 2.5]", "(2.5, 5]", "(5, 7.5]", "(7.5, 10]"]
+    else:
+        data_values = [[10, 10], [5, 30], [6, 40], [1, 60]]
+        index_values = ["(7.5, 10]", "(2.5, 5]", "(5, 7.5]", "(0, 2.5]"]
+    expected = DataFrame(
+        data_values,
+        columns=["foo", "bar"],
+        index=CategoricalIndex(index_values, name="range", ordered=ordered),
     )
 
-    index = CategoricalIndex(
-        ["(7.5, 10]", "(2.5, 5]", "(5, 7.5]", "(0, 2.5]"],
-        # GH#48749 - don't change order of categories
-        categories=["(0, 2.5]", "(2.5, 5]", "(5, 7.5]", "(7.5, 10]"],
-        name="range",
-    )
-    expected_nosort = DataFrame(
-        [[10, 10], [5, 30], [6, 40], [1, 60]], index=index, columns=["foo", "bar"]
-    )
-
-    col = "range"
-
-    # this is an unordered categorical, but we allow this ####
-    result_sort = df.groupby(col, sort=True, observed=False).first()
-    tm.assert_frame_equal(result_sort, expected_sort)
-
-    result_nosort = df.groupby(col, sort=False, observed=False).first()
-    tm.assert_frame_equal(result_nosort, expected_nosort)
+    tm.assert_frame_equal(result, expected)
 
 
-def test_sort_datetimelike():
+@pytest.mark.parametrize("ordered", [True, False])
+def test_sort_datetimelike(sort, ordered):
     # GH10505
+    # GH#42482 - don't sort result when sort=False, even when ordered=True
 
     # use same data as test_groupby_sort_categorical, which category is
     # corresponding to datetime.month
@@ -1054,80 +1034,30 @@ def test_sort_datetimelike():
     )
 
     # ordered=True
-    df["dt"] = Categorical(df["dt"], ordered=True)
-    index = [
-        datetime(2011, 1, 1),
-        datetime(2011, 2, 1),
-        datetime(2011, 5, 1),
-        datetime(2011, 7, 1),
-    ]
-    result_sort = DataFrame(
-        [[1, 60], [5, 30], [6, 40], [10, 10]], columns=["foo", "bar"]
-    )
-    result_sort.index = CategoricalIndex(index, name="dt", ordered=True)
-
-    index = [
-        datetime(2011, 7, 1),
-        datetime(2011, 2, 1),
-        datetime(2011, 5, 1),
-        datetime(2011, 1, 1),
-    ]
-    result_nosort = DataFrame(
-        [[10, 10], [5, 30], [6, 40], [1, 60]], columns=["foo", "bar"]
-    )
-    result_nosort.index = CategoricalIndex(
-        index, categories=index, name="dt", ordered=True
-    )
-
-    col = "dt"
-    tm.assert_frame_equal(
-        result_sort, df.groupby(col, sort=True, observed=False).first()
-    )
-
-    # when categories is ordered, group is ordered by category's order
-    tm.assert_frame_equal(
-        result_sort, df.groupby(col, sort=False, observed=False).first()
-    )
-
-    # ordered = False
-    df["dt"] = Categorical(df["dt"], ordered=False)
-    sort_index = CategoricalIndex(
-        [
+    df["dt"] = Categorical(df["dt"], ordered=ordered)
+    if sort:
+        data_values = [[1, 60], [5, 30], [6, 40], [10, 10]]
+        index_values = [
             datetime(2011, 1, 1),
             datetime(2011, 2, 1),
             datetime(2011, 5, 1),
             datetime(2011, 7, 1),
-        ],
-        name="dt",
-    )
-    result_sort = DataFrame(
-        [[1, 60], [5, 30], [6, 40], [10, 10]], columns=["foo", "bar"], index=sort_index
-    )
-
-    nosort_index = CategoricalIndex(
-        [
+        ]
+    else:
+        data_values = [[10, 10], [5, 30], [6, 40], [1, 60]]
+        index_values = [
             datetime(2011, 7, 1),
             datetime(2011, 2, 1),
             datetime(2011, 5, 1),
             datetime(2011, 1, 1),
-        ],
-        # GH#48749 - don't change order of categories
-        categories=sort_index.categories,
-        name="dt",
-    )
-    result_nosort = DataFrame(
-        [[10, 10], [5, 30], [6, 40], [1, 60]],
+        ]
+    expected = DataFrame(
+        data_values,
         columns=["foo", "bar"],
-        index=nosort_index,
+        index=CategoricalIndex(index_values, name="dt", ordered=ordered),
     )
-
-    col = "dt"
-    tm.assert_frame_equal(
-        result_sort, df.groupby(col, sort=True, observed=False).first()
-    )
-    tm.assert_frame_equal(
-        result_nosort, df.groupby(col, sort=False, observed=False).first()
-    )
+    result = df.groupby("dt", sort=sort, observed=False).first()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_empty_sum():
@@ -2055,13 +1985,10 @@ def test_category_order_apply(as_index, sort, observed, method, index_kind, orde
 
 
 @pytest.mark.parametrize("index_kind", ["range", "single", "multi"])
-def test_many_categories(request, as_index, sort, index_kind, ordered):
+def test_many_categories(as_index, sort, index_kind, ordered):
     # GH#48749 - Test when the grouper has many categories
     if index_kind != "range" and not as_index:
         pytest.skip(reason="Result doesn't have categories, nothing to test")
-    if index_kind == "multi" and as_index and not sort and ordered:
-        msg = "GH#48749 - values are unsorted even though the Categorical is ordered"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
     categories = np.arange(9999, -1, -1)
     grouper = Categorical([2, 1, 2, 3], categories=categories, ordered=ordered)
     df = DataFrame({"a": grouper, "b": range(4)})
@@ -2078,7 +2005,7 @@ def test_many_categories(request, as_index, sort, index_kind, ordered):
     result = gb.sum()
 
     # Test is setup so that data and index are the same values
-    data = [3, 2, 1] if sort or ordered else [2, 1, 3]
+    data = [3, 2, 1] if sort else [2, 1, 3]
 
     index = CategoricalIndex(
         data, categories=grouper.categories, ordered=ordered, name="a"

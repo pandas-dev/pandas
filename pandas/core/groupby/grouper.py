@@ -655,7 +655,7 @@ class Grouping:
             if self._observed:
                 ucodes = algorithms.unique1d(cat.codes)
                 ucodes = ucodes[ucodes != -1]
-                if self._sort or cat.ordered:
+                if self._sort:
                     ucodes = np.sort(ucodes)
             else:
                 ucodes = np.arange(len(categories))
