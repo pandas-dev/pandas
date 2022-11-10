@@ -24,7 +24,8 @@ from pandas.tests.base.common import allow_na_ops
 def test_value_counts(index_or_series_obj):
     obj = index_or_series_obj
     obj = np.repeat(obj, range(1, len(obj) + 1))
-    result = obj.value_counts()
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = obj.value_counts()
 
     counter = collections.Counter(obj)
     expected = Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
@@ -75,7 +76,8 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     expected = Series(dict(counter.most_common()), dtype=np.int64)
     expected.index = expected.index.astype(obj.dtype)
 
-    result = obj.value_counts()
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = obj.value_counts()
     if obj.duplicated().any():
         # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
@@ -97,7 +99,8 @@ def test_value_counts_null(null_obj, index_or_series_obj):
 
     expected[null_obj] = 3
 
-    result = obj.value_counts(dropna=False)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = obj.value_counts(dropna=False)
     if obj.duplicated().any():
         # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
@@ -119,7 +122,8 @@ def test_value_counts_inferred(index_or_series):
     s_values = ["a", "b", "b", "b", "b", "c", "d", "d", "a", "a"]
     s = klass(s_values)
     expected = Series([4, 3, 2, 1], index=["b", "a", "d", "c"])
-    tm.assert_series_equal(s.value_counts(), expected)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        tm.assert_series_equal(s.value_counts(), expected)
 
     if isinstance(s, Index):
         exp = Index(np.unique(np.array(s_values, dtype=np.object_)))
@@ -131,17 +135,20 @@ def test_value_counts_inferred(index_or_series):
     assert s.nunique() == 4
     # don't sort, have to sort after the fact as not sorting is
     # platform-dep
-    hist = s.value_counts(sort=False).sort_values()
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        hist = s.value_counts(sort=False).sort_values()
     expected = Series([3, 1, 4, 2], index=list("acbd")).sort_values()
     tm.assert_series_equal(hist, expected)
 
     # sort ascending
-    hist = s.value_counts(ascending=True)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        hist = s.value_counts(ascending=True)
     expected = Series([1, 2, 3, 4], index=list("cdab"))
     tm.assert_series_equal(hist, expected)
 
     # relative histogram.
-    hist = s.value_counts(normalize=True)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        hist = s.value_counts(normalize=True)
     expected = Series([0.4, 0.3, 0.2, 0.1], index=["b", "a", "d", "c"])
     tm.assert_series_equal(hist, expected)
 
@@ -153,14 +160,17 @@ def test_value_counts_bins(index_or_series):
 
     # bins
     msg = "bins argument only works with numeric data"
-    with pytest.raises(TypeError, match=msg):
-        s.value_counts(bins=1)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        with pytest.raises(TypeError, match=msg):
+            s.value_counts(bins=1)
 
     s1 = Series([1, 1, 2, 3])
-    res1 = s1.value_counts(bins=1)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        res1 = s1.value_counts(bins=1)
     exp1 = Series({Interval(0.997, 3.0): 4})
     tm.assert_series_equal(res1, exp1)
-    res1n = s1.value_counts(bins=1, normalize=True)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        res1n = s1.value_counts(bins=1, normalize=True)
     exp1n = Series({Interval(0.997, 3.0): 1.0})
     tm.assert_series_equal(res1n, exp1n)
 
@@ -173,17 +183,20 @@ def test_value_counts_bins(index_or_series):
     assert s1.nunique() == 3
 
     # these return the same
-    res4 = s1.value_counts(bins=4, dropna=True)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        res4 = s1.value_counts(bins=4, dropna=True)
     intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
     exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]))
     tm.assert_series_equal(res4, exp4)
 
-    res4 = s1.value_counts(bins=4, dropna=False)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        res4 = s1.value_counts(bins=4, dropna=False)
     intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
     exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]))
     tm.assert_series_equal(res4, exp4)
 
-    res4n = s1.value_counts(bins=4, normalize=True)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        res4n = s1.value_counts(bins=4, normalize=True)
     exp4n = Series([0.5, 0.25, 0.25, 0], index=intervals.take([0, 1, 3, 2]))
     tm.assert_series_equal(res4n, exp4n)
 
@@ -191,7 +204,8 @@ def test_value_counts_bins(index_or_series):
     s_values = ["a", "b", "b", "b", np.nan, np.nan, "d", "d", "a", "a", "b"]
     s = klass(s_values)
     expected = Series([4, 3, 2], index=["b", "a", "d"])
-    tm.assert_series_equal(s.value_counts(), expected)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        tm.assert_series_equal(s.value_counts(), expected)
 
     if isinstance(s, Index):
         exp = Index(["a", "b", np.nan, "d"])
@@ -203,7 +217,8 @@ def test_value_counts_bins(index_or_series):
 
     s = klass({}) if klass is dict else klass({}, dtype=object)
     expected = Series([], dtype=np.int64)
-    tm.assert_series_equal(s.value_counts(), expected, check_index_type=False)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        tm.assert_series_equal(s.value_counts(), expected, check_index_type=False)
     # returned dtype differs depending on original
     if isinstance(s, Index):
         tm.assert_index_equal(s.unique(), Index([]), exact=False)
@@ -241,7 +256,8 @@ def test_value_counts_datetime64(index_or_series):
         ["2010-01-01 00:00:00", "2008-09-09 00:00:00", "2009-01-01 00:00:00"]
     )
     expected_s = Series([3, 2, 1], index=idx)
-    tm.assert_series_equal(s.value_counts(), expected_s)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        tm.assert_series_equal(s.value_counts(), expected_s)
 
     expected = pd.array(
         np.array(
@@ -260,11 +276,13 @@ def test_value_counts_datetime64(index_or_series):
     s = df["dt"].copy()
     s = klass(list(s.values) + [pd.NaT] * 4)
 
-    result = s.value_counts()
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = s.value_counts()
     assert result.index.dtype == "datetime64[ns]"
     tm.assert_series_equal(result, expected_s)
 
-    result = s.value_counts(dropna=False)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = s.value_counts(dropna=False)
     expected_s = pd.concat([Series([4], index=DatetimeIndex([pd.NaT])), expected_s])
     tm.assert_series_equal(result, expected_s)
 
@@ -287,7 +305,8 @@ def test_value_counts_datetime64(index_or_series):
     td = df.dt - df.dt + timedelta(1)
     td = klass(td, name="dt")
 
-    result = td.value_counts()
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = td.value_counts()
     expected_s = Series([6], index=[Timedelta("1day")], name="dt")
     tm.assert_series_equal(result, expected_s)
 
@@ -299,7 +318,8 @@ def test_value_counts_datetime64(index_or_series):
 
     td2 = timedelta(1) + (df.dt - df.dt)
     td2 = klass(td2, name="dt")
-    result2 = td2.value_counts()
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result2 = td2.value_counts()
     tm.assert_series_equal(result2, expected_s)
 
 
@@ -309,9 +329,17 @@ def test_value_counts_with_nan(dropna, index_or_series):
     klass = index_or_series
     values = [True, pd.NA, np.nan]
     obj = klass(values)
-    res = obj.value_counts(dropna=dropna)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        res = obj.value_counts(dropna=dropna)
     if dropna is True:
         expected = Series([1], index=Index([True], dtype=obj.dtype))
     else:
         expected = Series([1, 1, 1], index=[True, pd.NA, np.nan])
     tm.assert_series_equal(res, expected)
+
+
+def test_value_counts_with_name(index_or_series):
+    # GH49497
+    result = index_or_series(["a", "a", "b"]).value_counts(name="count")
+    expected = Series([2, 1], index=["a", "b"], name="count")
+    tm.assert_series_equal(result, expected)

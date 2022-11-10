@@ -33,7 +33,7 @@ Bug fixes
 
 Other
 ~~~~~
--
+- Introduced ``FutureWarning`` notifying about behaviour change in :meth:`DataFrame.value_counts`, :meth:`Series.value_counts`, :meth:`DataFrameGroupBy.value_counts`, :meth:`SeriesGroupBy.value_counts` - the resulting series will by default now be named ``'counts'`` (or ``'proportion'`` if ``normalize=True``), and the index (if present) will be taken from the original object's name (:issue:`49497`)
 -
 
 .. ---------------------------------------------------------------------------

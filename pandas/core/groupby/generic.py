@@ -604,7 +604,19 @@ class SeriesGroupBy(GroupBy[Series]):
         ascending: bool = False,
         bins=None,
         dropna: bool = True,
+        *,
+        name: Hashable | None = None,
     ) -> Series:
+        if name is None:
+            result_name = "proportion" if normalize else "count"
+            warnings.warn(
+                "In pandas 2.0.0, the name of the resulting Series will be "
+                "'count' (or 'proportion' if `normalize=True`). Specify "
+                f"`name='{result_name}'` to silence this warning.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            name = self.obj.name
 
         from pandas.core.reshape.merge import get_join_indexers
         from pandas.core.reshape.tile import cut
@@ -626,6 +638,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 sort=sort,
                 ascending=ascending,
                 bins=bins,
+                name=name,
             )
             ser.index.names = names
             return ser
@@ -741,7 +754,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if is_integer_dtype(out.dtype):
             out = ensure_int64(out)
-        return self.obj._constructor(out, index=mi, name=self.obj.name)
+        return self.obj._constructor(out, index=mi, name=name)
 
     def fillna(
         self,
@@ -1875,6 +1888,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         sort: bool = True,
         ascending: bool = False,
         dropna: bool = True,
+        *,
+        name: Hashable | None = None,
     ) -> DataFrame | Series:
         """
         Return a Series or DataFrame containing counts of unique rows.
@@ -1979,6 +1994,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3    male       low      US        0.25
         4    male    medium      FR        0.25
         """
+        if name is None and self.as_index:
+            result_name = "proportion" if normalize else "count"
+            warnings.warn(
+                "In pandas 2.0.0, the name of the resulting Series will be "
+                "'count' (or 'proportion' if `normalize=True`). Specify "
+                f"`name='{result_name}'` to silence this warning.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         if self.axis == 1:
             raise NotImplementedError(
                 "DataFrameGroupBy.value_counts only handles axis=0"
@@ -1991,8 +2016,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 grouping.name for grouping in self.grouper.groupings if grouping.in_axis
             }
             if isinstance(self._selected_obj, Series):
-                name = self._selected_obj.name
-                keys = [] if name in in_axis_names else [self._selected_obj]
+                keys = (
+                    []
+                    if self._selected_obj.name in in_axis_names
+                    else [self._selected_obj]
+                )
             else:
                 unique_cols = set(self._selected_obj.columns)
                 if subset is not None:
@@ -2015,8 +2043,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 keys = [
                     # Can't use .values because the column label needs to be preserved
                     self._selected_obj.iloc[:, idx]
-                    for idx, name in enumerate(self._selected_obj.columns)
-                    if name not in in_axis_names and name in subsetted
+                    for idx, _name in enumerate(self._selected_obj.columns)
+                    if _name not in in_axis_names and _name in subsetted
                 ]
 
             groupings = list(self.grouper.groupings)
@@ -2038,7 +2066,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 observed=self.observed,
                 dropna=self.dropna,
             )
-            result_series = cast(Series, gb.size())
+            result_series = cast(Series, gb.size()).rename(name)
 
             # GH-46357 Include non-observed categories
             # of non-grouping columns regardless of `observed`
@@ -2082,7 +2110,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = result_series
             else:
                 # Convert to frame
-                name = "proportion" if normalize else "count"
+                if name is None:
+                    name = "proportion" if normalize else "count"
                 index = result_series.index
                 columns = com.fill_missing_names(index.names)
                 if name in columns:

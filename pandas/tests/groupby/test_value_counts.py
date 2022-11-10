@@ -14,12 +14,19 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     Grouper,
+    Index,
+    Interval,
     MultiIndex,
     Series,
     date_range,
     to_datetime,
 )
 import pandas._testing as tm
+
+VALUE_COUNTS_NAME_MSG = (
+    r"In pandas 2.0.0, the name of the resulting Series will be 'count' "
+    r"\(or 'proportion' if `normalize=True`\)"
+)
 
 
 def tests_value_counts_index_names_category_column():
@@ -31,7 +38,8 @@ def tests_value_counts_index_names_category_column():
         }
     )
     df["gender"] = df["gender"].astype("category")
-    result = df.groupby("country")["gender"].value_counts()
+    with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+        result = df.groupby("country")["gender"].value_counts()
 
     # Construct expected, very specific multiindex
     df_mi_expected = DataFrame([["US", "female"]], columns=["country", "gender"])
@@ -103,10 +111,12 @@ def test_series_groupby_value_counts(
     }
 
     gr = df.groupby(keys, sort=isort)
-    left = gr["3rd"].value_counts(**kwargs)
+    with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+        left = gr["3rd"].value_counts(**kwargs)
 
     gr = df.groupby(keys, sort=isort)
-    right = gr["3rd"].apply(Series.value_counts, **kwargs)
+    with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+        right = gr["3rd"].apply(Series.value_counts, **kwargs)
     right.index.names = right.index.names[:-1] + ["3rd"]
 
     # have to sort on index because of unstable sort on values
@@ -135,8 +145,9 @@ def test_series_groupby_value_counts_with_grouper():
     dfg = df.groupby(Grouper(freq="1D", key="Datetime"))
 
     # have to sort on index because of unstable sort on values xref GH9212
-    result = dfg["Food"].value_counts().sort_index()
-    expected = dfg["Food"].apply(Series.value_counts).sort_index()
+    with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+        result = dfg["Food"].value_counts().sort_index()
+        expected = dfg["Food"].apply(Series.value_counts).sort_index()
     expected.index.names = result.index.names
 
     tm.assert_series_equal(result, expected)
@@ -148,7 +159,8 @@ def test_series_groupby_value_counts_empty(columns):
     df = DataFrame(columns=columns)
     dfg = df.groupby(columns[:-1])
 
-    result = dfg[columns[-1]].value_counts()
+    with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+        result = dfg[columns[-1]].value_counts()
     expected = Series([], name=columns[-1], dtype=result.dtype)
     expected.index = MultiIndex.from_arrays([[]] * len(columns), names=columns)
 
@@ -161,8 +173,9 @@ def test_series_groupby_value_counts_one_row(columns):
     df = DataFrame(data=[range(len(columns))], columns=columns)
     dfg = df.groupby(columns[:-1])
 
-    result = dfg[columns[-1]].value_counts()
-    expected = df.value_counts().rename(columns[-1])
+    with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+        result = dfg[columns[-1]].value_counts()
+        expected = df.value_counts().rename(columns[-1])
 
     tm.assert_series_equal(result, expected)
 
@@ -171,7 +184,8 @@ def test_series_groupby_value_counts_on_categorical():
     # GH38672
 
     s = Series(Categorical(["a"], categories=["a", "b"]))
-    result = s.groupby([0]).value_counts()
+    with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+        result = s.groupby([0]).value_counts()
 
     expected = Series(
         data=[1, 0],
@@ -191,3 +205,26 @@ def test_series_groupby_value_counts_on_categorical():
     # dtype: int64
 
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_value_counts_name():
+    # https://github.com/pandas-dev/pandas/issues/49497
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    result = df.groupby("a")["b"].value_counts(name="count")
+    expected_idx = MultiIndex.from_arrays(([1, 2, 3], [4, 5, 6]), names=["a", "b"])
+    expected = Series([1, 1, 1], name="count", index=expected_idx)
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("a").value_counts(name="count")
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("a")["b"].value_counts(name="count", bins=[2, 7])
+    expected_idx = MultiIndex.from_arrays(
+        [Index([1, 2, 3], name="a"), Index([Interval(1.999, 7)] * 3, name="b")]
+    )
+    expected = Series([1, 1, 1], index=expected_idx, name="count")
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("a", as_index=False)["b"].value_counts(name="count")
+    expected = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "count": [1, 1, 1]})
+    tm.assert_frame_equal(result, expected)

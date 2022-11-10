@@ -10,7 +10,8 @@ def test_data_frame_value_counts_unsorted():
         index=["falcon", "dog", "cat", "ant"],
     )
 
-    result = df.value_counts(sort=False)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = df.value_counts(sort=False)
     expected = pd.Series(
         data=[1, 2, 1],
         index=pd.MultiIndex.from_arrays(
@@ -27,7 +28,8 @@ def test_data_frame_value_counts_ascending():
         index=["falcon", "dog", "cat", "ant"],
     )
 
-    result = df.value_counts(ascending=True)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = df.value_counts(ascending=True)
     expected = pd.Series(
         data=[1, 1, 2],
         index=pd.MultiIndex.from_arrays(
@@ -44,7 +46,8 @@ def test_data_frame_value_counts_default():
         index=["falcon", "dog", "cat", "ant"],
     )
 
-    result = df.value_counts()
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = df.value_counts()
     expected = pd.Series(
         data=[2, 1, 1],
         index=pd.MultiIndex.from_arrays(
@@ -61,7 +64,8 @@ def test_data_frame_value_counts_normalize():
         index=["falcon", "dog", "cat", "ant"],
     )
 
-    result = df.value_counts(normalize=True)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = df.value_counts(normalize=True)
     expected = pd.Series(
         data=[0.5, 0.25, 0.25],
         index=pd.MultiIndex.from_arrays(
@@ -75,7 +79,8 @@ def test_data_frame_value_counts_normalize():
 def test_data_frame_value_counts_single_col_default():
     df = pd.DataFrame({"num_legs": [2, 4, 4, 6]})
 
-    result = df.value_counts()
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = df.value_counts()
     expected = pd.Series(
         data=[2, 1, 1],
         index=pd.MultiIndex.from_arrays([[4, 2, 6]], names=["num_legs"]),
@@ -87,7 +92,8 @@ def test_data_frame_value_counts_single_col_default():
 def test_data_frame_value_counts_empty():
     df_no_cols = pd.DataFrame()
 
-    result = df_no_cols.value_counts()
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = df_no_cols.value_counts()
     expected = pd.Series([], dtype=np.int64)
 
     tm.assert_series_equal(result, expected)
@@ -96,7 +102,8 @@ def test_data_frame_value_counts_empty():
 def test_data_frame_value_counts_empty_normalize():
     df_no_cols = pd.DataFrame()
 
-    result = df_no_cols.value_counts(normalize=True)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = df_no_cols.value_counts(normalize=True)
     expected = pd.Series([], dtype=np.float64)
 
     tm.assert_series_equal(result, expected)
@@ -110,7 +117,8 @@ def test_data_frame_value_counts_dropna_true(nulls_fixture):
             "middle_name": ["Smith", nulls_fixture, nulls_fixture, "Louise"],
         },
     )
-    result = df.value_counts()
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = df.value_counts()
     expected = pd.Series(
         data=[1, 1],
         index=pd.MultiIndex.from_arrays(
@@ -130,7 +138,8 @@ def test_data_frame_value_counts_dropna_false(nulls_fixture):
         },
     )
 
-    result = df.value_counts(dropna=False)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = df.value_counts(dropna=False)
     expected = pd.Series(
         data=[1, 1, 1, 1],
         index=pd.MultiIndex(
@@ -143,4 +152,12 @@ def test_data_frame_value_counts_dropna_false(nulls_fixture):
         ),
     )
 
+    tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_name():
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    result = df.value_counts(name="counts")
+    expected_idx = pd.MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
+    expected = pd.Series([1, 1, 1], name="counts", index=expected_idx)
     tm.assert_series_equal(result, expected)

@@ -9,6 +9,11 @@ from pandas import (
 )
 import pandas._testing as tm
 
+VALUE_COUNTS_NAME_MSG = (
+    r"In pandas 2.0.0, the name of the resulting Series will be 'count' "
+    r"\(or 'proportion' if `normalize=True`\)"
+)
+
 
 class TestSeriesValueCounts:
     def test_value_counts_datetime(self):
@@ -28,15 +33,18 @@ class TestSeriesValueCounts:
         exp = Series([3, 2, 1], index=exp_idx, name="xxx")
 
         ser = Series(values, name="xxx")
-        tm.assert_series_equal(ser.value_counts(), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(ser.value_counts(), exp)
         # check DatetimeIndex outputs the same result
         idx = pd.DatetimeIndex(values, name="xxx")
-        tm.assert_series_equal(idx.value_counts(), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(idx.value_counts(), exp)
 
         # normalize
         exp = Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
-        tm.assert_series_equal(ser.value_counts(normalize=True), exp)
-        tm.assert_series_equal(idx.value_counts(normalize=True), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(ser.value_counts(normalize=True), exp)
+            tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
     def test_value_counts_datetime_tz(self):
         values = [
@@ -55,13 +63,16 @@ class TestSeriesValueCounts:
         exp = Series([3, 2, 1], index=exp_idx, name="xxx")
 
         ser = Series(values, name="xxx")
-        tm.assert_series_equal(ser.value_counts(), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(ser.value_counts(), exp)
         idx = pd.DatetimeIndex(values, name="xxx")
-        tm.assert_series_equal(idx.value_counts(), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(idx.value_counts(), exp)
 
         exp = Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
-        tm.assert_series_equal(ser.value_counts(normalize=True), exp)
-        tm.assert_series_equal(idx.value_counts(normalize=True), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(ser.value_counts(normalize=True), exp)
+            tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
     def test_value_counts_period(self):
         values = [
@@ -77,15 +88,18 @@ class TestSeriesValueCounts:
         exp = Series([3, 2, 1], index=exp_idx, name="xxx")
 
         ser = Series(values, name="xxx")
-        tm.assert_series_equal(ser.value_counts(), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(ser.value_counts(), exp)
         # check DatetimeIndex outputs the same result
         idx = pd.PeriodIndex(values, name="xxx")
-        tm.assert_series_equal(idx.value_counts(), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(idx.value_counts(), exp)
 
         # normalize
         exp = Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
-        tm.assert_series_equal(ser.value_counts(normalize=True), exp)
-        tm.assert_series_equal(idx.value_counts(normalize=True), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(ser.value_counts(normalize=True), exp)
+            tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
     def test_value_counts_categorical_ordered(self):
         # most dtypes are tested in tests/base
@@ -95,15 +109,18 @@ class TestSeriesValueCounts:
         exp = Series([3, 2, 1], index=exp_idx, name="xxx")
 
         ser = Series(values, name="xxx")
-        tm.assert_series_equal(ser.value_counts(), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(ser.value_counts(), exp)
         # check CategoricalIndex outputs the same result
         idx = CategoricalIndex(values, name="xxx")
-        tm.assert_series_equal(idx.value_counts(), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(idx.value_counts(), exp)
 
         # normalize
         exp = Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
-        tm.assert_series_equal(ser.value_counts(normalize=True), exp)
-        tm.assert_series_equal(idx.value_counts(normalize=True), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(ser.value_counts(normalize=True), exp)
+            tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
     def test_value_counts_categorical_not_ordered(self):
         values = Categorical([1, 2, 3, 1, 1, 3], ordered=False)
@@ -112,27 +129,32 @@ class TestSeriesValueCounts:
         exp = Series([3, 2, 1], index=exp_idx, name="xxx")
 
         ser = Series(values, name="xxx")
-        tm.assert_series_equal(ser.value_counts(), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(ser.value_counts(), exp)
         # check CategoricalIndex outputs the same result
         idx = CategoricalIndex(values, name="xxx")
-        tm.assert_series_equal(idx.value_counts(), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(idx.value_counts(), exp)
 
         # normalize
         exp = Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
-        tm.assert_series_equal(ser.value_counts(normalize=True), exp)
-        tm.assert_series_equal(idx.value_counts(normalize=True), exp)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            tm.assert_series_equal(ser.value_counts(normalize=True), exp)
+            tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
     def test_value_counts_categorical(self):
         # GH#12835
         cats = Categorical(list("abcccb"), categories=list("cabd"))
         ser = Series(cats, name="xxx")
-        res = ser.value_counts(sort=False)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            res = ser.value_counts(sort=False)
 
         exp_index = CategoricalIndex(list("cabd"), categories=cats.categories)
         exp = Series([3, 1, 2, 0], name="xxx", index=exp_index)
         tm.assert_series_equal(res, exp)
 
-        res = ser.value_counts(sort=True)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            res = ser.value_counts(sort=True)
 
         exp_index = CategoricalIndex(list("cbad"), categories=cats.categories)
         exp = Series([3, 2, 1, 0], name="xxx", index=exp_index)
@@ -141,7 +163,8 @@ class TestSeriesValueCounts:
         # check object dtype handles the Series.name as the same
         # (tested in tests/base)
         ser = Series(["a", "b", "c", "c", "c", "b"], name="xxx")
-        res = ser.value_counts()
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            res = ser.value_counts()
         exp = Series([3, 2, 1], name="xxx", index=["c", "b", "a"])
         tm.assert_series_equal(res, exp)
 
@@ -152,10 +175,12 @@ class TestSeriesValueCounts:
         ser = Series(["a", "b", "a"], dtype="category")
         exp = Series([2, 1], index=CategoricalIndex(["a", "b"]))
 
-        res = ser.value_counts(dropna=True)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            res = ser.value_counts(dropna=True)
         tm.assert_series_equal(res, exp)
 
-        res = ser.value_counts(dropna=True)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            res = ser.value_counts(dropna=True)
         tm.assert_series_equal(res, exp)
 
         # same Series via two different constructions --> same behaviour
@@ -169,18 +194,21 @@ class TestSeriesValueCounts:
         for ser in series:
             # None is a NaN value, so we exclude its count here
             exp = Series([2, 1], index=CategoricalIndex(["a", "b"]))
-            res = ser.value_counts(dropna=True)
+            with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+                res = ser.value_counts(dropna=True)
             tm.assert_series_equal(res, exp)
 
             # we don't exclude the count of None and sort by counts
             exp = Series([3, 2, 1], index=CategoricalIndex([np.nan, "a", "b"]))
-            res = ser.value_counts(dropna=False)
+            with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+                res = ser.value_counts(dropna=False)
             tm.assert_series_equal(res, exp)
 
             # When we aren't sorting by counts, and np.nan isn't a
             # category, it should be last.
             exp = Series([2, 1, 3], index=CategoricalIndex(["a", "b", np.nan]))
-            res = ser.value_counts(dropna=False, sort=False)
+            with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+                res = ser.value_counts(dropna=False, sort=False)
             tm.assert_series_equal(res, exp)
 
     @pytest.mark.parametrize(
@@ -205,7 +233,8 @@ class TestSeriesValueCounts:
     )
     def test_value_counts_bool_with_nan(self, ser, dropna, exp):
         # GH32146
-        out = ser.value_counts(dropna=dropna)
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            out = ser.value_counts(dropna=dropna)
         tm.assert_series_equal(out, exp)
 
     @pytest.mark.parametrize(
@@ -223,5 +252,13 @@ class TestSeriesValueCounts:
     )
     def test_value_counts_complex_numbers(self, input_array, expected):
         # GH 17927
-        result = Series(input_array).value_counts()
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            result = Series(input_array).value_counts()
+        tm.assert_series_equal(result, expected)
+
+    def test_value_counts_name(self):
+        # https://github.com/pandas-dev/pandas/issues/49497
+        ser = Series([1, 2, 3], name="foo")
+        result = ser.value_counts(name="count")
+        expected = Series([1, 1, 1], index=[1, 2, 3], name="count")
         tm.assert_series_equal(result, expected)
