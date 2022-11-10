@@ -323,11 +323,26 @@ class TestDataFrameAnalytics:
             DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object),
         ],
     )
-    def test_stat_operators_attempt_obj_array(self, method, df):
+    def test_stat_operators_attempt_obj_array(
+        self, method, df, using_array_manager, axis
+    ):
         # GH#676
         assert df.values.dtype == np.object_
-        result = getattr(df, method)(1)
-        expected = getattr(df.astype("f8"), method)(1)
+        result = getattr(df, method)(axis=axis)
+        expected = getattr(df.astype("f8"), method)(axis=axis)
+        # With values an np.array with dtype object:
+        #   - When using blocks, `values.sum(axis=1, ...)` returns a np.array of dim 1
+        #     and this remains object dtype
+        #   - When using arrays, `values.sum(axis=0, ...)` returns a Python float
+        if not using_array_manager and method in ("sum", "prod", "min", "max"):
+            expected = expected.astype(object)
+        elif (
+            using_array_manager
+            and axis in (0, "index")
+            and method in ("min", "max")
+            and 0 in df.columns
+        ):
+            expected = expected.astype(int)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])
@@ -699,6 +714,42 @@ class TestDataFrameAnalytics:
         assert isinstance(axis1, Series)
         assert len(axis0) == 0
         assert len(axis1) == 0
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            tm.makeRangeIndex(0),
+            tm.makeDateIndex(0),
+            tm.makeNumericIndex(0, dtype=int),
+            tm.makeNumericIndex(0, dtype=float),
+            tm.makeDateIndex(0, freq="M"),
+            tm.makePeriodIndex(0),
+        ],
+    )
+    def test_axis_1_empty(self, all_reductions, index, using_array_manager):
+        df = DataFrame(columns=["a"], index=index)
+        result = getattr(df, all_reductions)(axis=1)
+        expected_dtype = {
+            "any": "bool",
+            "all": "bool",
+            "count": "intp",
+            "sum": "float",
+            "prod": "float",
+            "skew": "float",
+            "kurt": "float",
+            "sem": "float",
+        }.get(all_reductions, "object")
+        if using_array_manager and all_reductions in (
+            "max",
+            "min",
+            "mean",
+            "std",
+            "var",
+            "median",
+        ):
+            expected_dtype = "float"
+        expected = Series([], index=index, dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
     @pytest.mark.parametrize("numeric_only", [None, True, False])
@@ -1360,13 +1411,11 @@ class TestDataFrameReductions:
         res = df.min(axis=1, skipna=False)
         expected = Series([df.loc[0, "a"], pd.NaT])
         assert expected.dtype == df["a"].dtype
-
         tm.assert_series_equal(res, expected)
 
         res = df.max(axis=1, skipna=False)
         expected = Series([df.loc[0, "b"], pd.NaT])
         assert expected.dtype == df["a"].dtype
-
         tm.assert_series_equal(res, expected)
 
     def test_min_max_dt64_api_consistency_with_NaT(self):

@@ -622,7 +622,7 @@ def nansum(
     3.0
     """
     values, mask, dtype, dtype_max, _ = _get_values(
-        values, skipna, fill_value=0, mask=mask
+        values, skipna, fill_value=0.0, mask=mask
     )
     dtype_sum = dtype_max
     if is_float_dtype(dtype):
@@ -1389,7 +1389,7 @@ def nanprod(
 
     if skipna and mask is not None:
         values = values.copy()
-        values[mask] = 1
+        values[mask] = 1.0
     result = values.prod(axis)
     # error: Incompatible return value type (got "Union[ndarray, float]", expected
     # "float")
@@ -1500,7 +1500,12 @@ def _maybe_null_out(
                 result[null_mask] = None
     elif result is not NaT:
         if check_below_min_count(shape, mask, min_count):
-            result = np.nan
+            result_dtype = getattr(result, "dtype", None)
+            if is_float_dtype(result_dtype):
+                # Preserve dtype when possible
+                result = getattr(np, f"float{8 * result_dtype.itemsize}")
+            else:
+                result = np.nan
 
     return result
 

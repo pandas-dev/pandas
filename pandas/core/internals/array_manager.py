@@ -986,8 +986,9 @@ class ArrayManager(BaseArrayManager):
             else:
                 # error: Argument 1 to "append" of "list" has incompatible type
                 # "ExtensionArray"; expected "ndarray"
+                dtype = arr.dtype if res is NaT else None
                 result_arrays.append(
-                    sanitize_array([res], None)  # type: ignore[arg-type]
+                    sanitize_array([res], None, dtype=dtype)  # type: ignore[arg-type]
                 )
 
         index = Index._simple_new(np.array([None], dtype=object))  # placeholder
