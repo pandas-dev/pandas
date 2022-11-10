@@ -146,7 +146,7 @@ class TestPivotTable:
         df = DataFrame(
             {"rows": ["a", "b", "c"], "cols": ["x", "y", "z"], "values": [1, 2, 3]}
         )
-        msg = "The default value of numeric_only"
+        msg = "pivot_table dropped a column because it failed to aggregate"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             rs = df.pivot_table(columns="cols", aggfunc=np.sum)
             xp = df.pivot_table(index="cols", aggfunc=np.sum).T
@@ -907,7 +907,7 @@ class TestPivotTable:
 
         # to help with a buglet
         self.data.columns = [k * 2 for k in self.data.columns]
-        msg = "The default value of numeric_only"
+        msg = "pivot_table dropped a column because it failed to aggregate"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             table = self.data.pivot_table(
                 index=["AA", "BB"], margins=True, aggfunc=np.mean
@@ -975,7 +975,7 @@ class TestPivotTable:
             }
         )
 
-        msg = "The default value of numeric_only"
+        msg = "pivot_table dropped a column because it failed to aggregate"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
         expected = DataFrame(values, index=Index(["D", "E"]), columns=expected_columns)
@@ -2004,7 +2004,7 @@ class TestPivotTable:
         # GH #18713
         # for consistency purposes
 
-        msg = "The default value of numeric_only"
+        msg = "pivot_table dropped a column because it failed to aggregate"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = pivot_table(self.data, index="A", columns="B", aggfunc=f)
             expected = pivot_table(self.data, index="A", columns="B", aggfunc=f_numpy)
