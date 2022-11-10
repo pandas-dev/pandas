@@ -57,7 +57,7 @@ def rewrite_warning(
     target_category: type[Warning],
     new_message: str,
     new_category: type[Warning] | None = None,
-) -> None:
+) -> Generator[None, None, None]:
     """
     Rewrite the message of a warning.
 
@@ -82,7 +82,8 @@ def rewrite_warning(
             if warning.category is target_category and re.search(
                 match, str(warning.message)
             ):
-                category, message = new_category, new_message
+                category = new_category
+                message: Warning | str = new_message
             else:
                 category, message = warning.category, warning.message
             warnings.warn_explicit(
