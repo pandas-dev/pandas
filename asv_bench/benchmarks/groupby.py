@@ -600,37 +600,35 @@ class GroupByCythonAggEaDtypes:
 
 
 class Cumulative:
-    param_names = ["dtype", "method"]
+    param_names = ["dtype", "method", "with_nans"]
     params = [
         ["float64", "int64", "Float64", "Int64"],
         ["cummin", "cummax", "cumsum"],
+        [True, False],
     ]
 
-    def setup(self, dtype, method):
+    def setup(self, dtype, method, with_nans):
+        if with_nans and dtype == "int64":
+            raise NotImplementedError("Construction of df would raise")
+
         N = 500_000
         keys = np.random.randint(0, 100, size=N)
         vals = np.random.randint(-10, 10, (N, 5))
-        null_vals = vals.astype(float, copy=True)
-        null_vals[::2, :] = np.nan
-        null_vals[::3, :] = np.nan
-        df = DataFrame(vals, columns=list("abcde"), dtype=dtype)
-        df["key"] = keys
-        self.df = df
 
-        if dtype != "int64":
-            # Would raise on DataFrame construction with int64
-            null_df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
-            null_df["key"] = keys
-            self.null_df = null_df
+        if with_nans:
+            null_vals = vals.astype(float, copy=True)
+            null_vals[::2, :] = np.nan
+            null_vals[::3, :] = np.nan
+            df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
+            df["key"] = keys
+            self.df = df
+        else:
+            df = DataFrame(vals, columns=list("abcde")).astype(dtype, copy=False)
+            df["key"] = keys
+            self.df = df
 
-    def time_frame_transform(self, dtype, method):
+    def time_frame_transform(self, dtype, method, with_nans):
         self.df.groupby("key").transform(method)
-
-    def time_frame_transform_many_nulls(self, dtype, method):
-        if dtype == "int64":
-            # We can't instantiate null_df, so skip this case
-            return
-        self.null_df.groupby("key").transform(method)
 
 
 class RankWithTies:
