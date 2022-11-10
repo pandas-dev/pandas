@@ -228,13 +228,7 @@ excel_border_styles = [
 )
 @pytest.mark.parametrize("border_style", excel_border_styles)
 def test_styler_to_excel_border_style(engine, border_style):
-    css = "; ".join(
-        (
-            f"border-left-style: {border_style}",
-            "border-left-color: black",
-            "border-left-width: thin",
-        )
-    )
+    css = f"border-left: {border_style} black thin"
     attrs = ["border", "left", "style"]
     expected = border_style
 
