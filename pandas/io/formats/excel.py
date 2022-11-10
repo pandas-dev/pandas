@@ -321,7 +321,7 @@ class CSSToExcelConverter:
             warnings.warn(
                 f"Unhandled border style format: {repr(style)}",
                 CSSWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             return "none"
 
