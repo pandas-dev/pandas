@@ -133,7 +133,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
-    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_sequence,
@@ -10523,12 +10522,6 @@ Parrot 2  Parrot       24.0
                 #  float64, see test_apply_funcs_over_empty
                 out = out.astype(np.float64)
 
-            if numeric_only is None and out.shape[0] != df.shape[1]:
-                # columns have been dropped GH#41480
-                com.deprecate_numeric_only_default(
-                    type(self), name, deprecate_none=True
-                )
-
             return out
 
         assert not numeric_only and axis == 1
@@ -10893,9 +10886,6 @@ Parrot 2  Parrot       24.0
         """
         validate_percentile(q)
         axis = self._get_axis_number(axis)
-        any_not_numeric = any(not is_numeric_dtype(x) for x in self.dtypes)
-        if numeric_only is no_default and any_not_numeric:
-            com.deprecate_numeric_only_default(type(self), "quantile")
 
         if not is_list_like(q):
             # BlockManager.quantile expects listlike, so we wrap and unwrap here
