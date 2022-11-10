@@ -492,6 +492,7 @@ Removal of prior version deprecations/changes
 - Changed behavior of :class:`Index` constructor when passed a ``SparseArray`` or ``SparseDtype`` to retain that dtype instead of casting to ``numpy.ndarray`` (:issue:`43930`)
 - Changed behavior of setitem-like operations (``__setitem__``, ``fillna``, ``where``, ``mask``, ``replace``, ``insert``, fill_value for ``shift``) on an object with :class:`DatetimeTZDtype` when using a value with a non-matching timezone, the value will be cast to the object's timezone instead of casting both to object-dtype (:issue:`44243`)
 - Changed behavior of :class:`Index`, :class:`Series`, :class:`DataFrame` constructors with floating-dtype data and a :class:`DatetimeTZDtype`, the data are now interpreted as UTC-times instead of wall-times, consistent with how integer-dtype data are treated (:issue:`45573`)
+- Changed behavior of :class:`Series` and :class:`DataFrame` constructors with integer dtype and floating-point data containing ``NaN``, this now raises ``IntCastingNaNError`` (:issue:`40110`)
 - Removed the deprecated ``base`` and ``loffset`` arguments from :meth:`pandas.DataFrame.resample`, :meth:`pandas.Series.resample` and :class:`pandas.Grouper`. Use ``offset`` or ``origin`` instead (:issue:`31809`)
 - Changed behavior of :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtype and an incompatible ``fill_value``; this now casts to ``object`` dtype instead of raising, consistent with the behavior with other dtypes (:issue:`45746`)
 - Change the default argument of ``regex`` for :meth:`Series.str.replace` from ``True`` to ``False``. Additionally, a single character ``pat`` with ``regex=True`` is now treated as a regular expression instead of a string literal. (:issue:`36695`, :issue:`24804`)
@@ -651,6 +652,8 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.resample` produces inconsistent results when passing empty DataFrame (:issue:`47705`)
 - Bug in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` would not include unobserved categories in result when grouping by categorical indexes (:issue:`49354`)
 - Bug in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` would change result order depending on the input index when grouping by categoricals (:issue:`49223`)
+- Bug in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` when grouping on categorical data would sort result values even when used with ``sort=False`` (:issue:`42482`)
+-
 
 Reshaping
 ^^^^^^^^^
