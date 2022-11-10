@@ -628,7 +628,8 @@ class Cumulative:
 
     def time_frame_transform_many_nulls(self, dtype, method):
         if dtype == "int64":
-            raise NotImplementedError
+            # We can't instantiate null_df, so skip this case
+            return
         self.null_df.groupby("key").transform(method)
 
 
