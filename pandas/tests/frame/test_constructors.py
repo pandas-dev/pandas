@@ -2212,47 +2212,34 @@ class TestDataFrameConstructors:
         tm.assert_series_equal(df[0], expected)
 
     def test_construct_from_1item_list_of_categorical(self):
+        # pre-2.0 this behaved as DataFrame({0: cat}), in 2.0 we remove
+        #  Categorical special case
         # ndim != 1
-        msg = "will be changed to match the behavior"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df = DataFrame([Categorical(list("abc"))])
-        expected = DataFrame({0: Series(list("abc"), dtype="category")})
+        cat = Categorical(list("abc"))
+        df = DataFrame([cat])
+        expected = DataFrame([cat.astype(object)])
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_list_of_categoricals(self):
-        msg = "will be changed to match the behavior"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
-        expected = DataFrame(
-            {
-                0: Series(list("abc"), dtype="category"),
-                1: Series(list("abd"), dtype="category"),
-            },
-            columns=[0, 1],
-        )
+        # pre-2.0 this behaved as DataFrame({0: cat}), in 2.0 we remove
+        #  Categorical special case
+
+        df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
+        expected = DataFrame([["a", "b", "c"], ["a", "b", "d"]])
         tm.assert_frame_equal(df, expected)
 
     def test_from_nested_listlike_mixed_types(self):
+        # pre-2.0 this behaved as DataFrame({0: cat}), in 2.0 we remove
+        #  Categorical special case
         # mixed
-        msg = "will be changed to match the behavior"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df = DataFrame([Categorical(list("abc")), list("def")])
-        expected = DataFrame(
-            {0: Series(list("abc"), dtype="category"), 1: list("def")}, columns=[0, 1]
-        )
+        df = DataFrame([Categorical(list("abc")), list("def")])
+        expected = DataFrame([["a", "b", "c"], ["d", "e", "f"]])
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_listlikes_mismatched_lengths(self):
-        # invalid (shape)
-        msg = "|".join(
-            [
-                r"Length of values \(6\) does not match length of index \(3\)",
-            ]
-        )
-        msg2 = "will be changed to match the behavior"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
+        df = DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
+        expected = DataFrame([list("abc"), list("abdefg")])
+        tm.assert_frame_equal(df, expected)
 
     def test_constructor_categorical_series(self):
 

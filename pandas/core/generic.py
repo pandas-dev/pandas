@@ -10799,7 +10799,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         name: str,
         func,
         axis: Axis = 0,
-        bool_only: bool_t | None = None,
+        bool_only: bool_t = False,
         skipna: bool_t = True,
         level: Level | None = None,
         **kwargs,
@@ -10814,7 +10814,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            if bool_only is not None:
+            if bool_only:
                 raise NotImplementedError(
                     "Option bool_only is not implemented with option level."
                 )
@@ -10833,7 +10833,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and len(self._mgr.arrays) > 1
             # TODO(EA2D): special-case not needed
             and all(x.ndim == 2 for x in self._mgr.arrays)
-            and bool_only is not None
             and not kwargs
         ):
             # Fastpath avoiding potentially expensive transpose
@@ -10854,7 +10853,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def any(
         self,
         axis: Axis = 0,
-        bool_only: bool_t | None = None,
+        bool_only: bool_t = False,
         skipna: bool_t = True,
         level: Level | None = None,
         **kwargs,
@@ -10866,7 +10865,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def all(
         self,
         axis: Axis = 0,
-        bool_only: bool_t | None = None,
+        bool_only: bool_t = False,
         skipna: bool_t = True,
         level: Level | None = None,
         **kwargs,
@@ -10933,7 +10932,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         skipna: bool_t = True,
         level: Level | None = None,
         ddof: int = 1,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         nv.validate_stat_ddof_func((), kwargs, fname=name)
@@ -10961,7 +10960,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         skipna: bool_t = True,
         level: Level | None = None,
         ddof: int = 1,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function_ddof(
@@ -10974,7 +10973,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         skipna: bool_t = True,
         level: Level | None = None,
         ddof: int = 1,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function_ddof(
@@ -10987,7 +10986,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         skipna: bool_t = True,
         level: Level | None = None,
         ddof: int = 1,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function_ddof(
@@ -11002,7 +11001,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None | lib.NoDefault = None,
         skipna: bool_t = True,
         level: Level | None = None,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         **kwargs,
     ):
         if name == "median":
@@ -11047,7 +11046,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         **kwargs,
     ):
         return self._stat_function(
@@ -11065,7 +11064,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         **kwargs,
     ):
         return self._stat_function(
@@ -11083,7 +11082,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function(
@@ -11095,7 +11094,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function(
@@ -11107,7 +11106,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function(
@@ -11119,7 +11118,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         **kwargs,
     ) -> Series | float:
         return self._stat_function(
@@ -11136,7 +11135,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
         skipna: bool_t = True,
         level: Level | None = None,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         min_count: int = 0,
         **kwargs,
     ):
@@ -11182,7 +11181,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
         skipna: bool_t = True,
         level: Level | None = None,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         min_count: int = 0,
         **kwargs,
     ):
@@ -11195,7 +11194,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
         skipna: bool_t = True,
         level: Level | None = None,
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t = False,
         min_count: int = 0,
         **kwargs,
     ):
@@ -11288,7 +11287,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             skipna: bool_t = True,
             level=None,
             ddof: int = 1,
-            numeric_only=None,
+            numeric_only: bool_t = False,
             **kwargs,
         ):
             return NDFrame.sem(self, axis, skipna, level, ddof, numeric_only, **kwargs)
@@ -11311,7 +11310,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             skipna: bool_t = True,
             level=None,
             ddof: int = 1,
-            numeric_only=None,
+            numeric_only: bool_t = False,
             **kwargs,
         ):
             return NDFrame.var(self, axis, skipna, level, ddof, numeric_only, **kwargs)
@@ -11335,7 +11334,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             skipna: bool_t = True,
             level=None,
             ddof: int = 1,
-            numeric_only=None,
+            numeric_only: bool_t = False,
             **kwargs,
         ):
             return NDFrame.std(self, axis, skipna, level, ddof, numeric_only, **kwargs)
@@ -11423,7 +11422,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: Axis | None = None,
             skipna: bool_t = True,
             level=None,
-            numeric_only=None,
+            numeric_only: bool_t = False,
             min_count: int = 0,
             **kwargs,
         ):
@@ -11448,7 +11447,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: Axis | None = None,
             skipna: bool_t = True,
             level=None,
-            numeric_only=None,
+            numeric_only: bool_t = False,
             min_count: int = 0,
             **kwargs,
         ):
@@ -11474,7 +11473,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
             level=None,
-            numeric_only=None,
+            numeric_only: bool_t = False,
             **kwargs,
         ):
             return NDFrame.mean(self, axis, skipna, level, numeric_only, **kwargs)
@@ -11496,7 +11495,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
             level=None,
-            numeric_only=None,
+            numeric_only: bool_t = False,
             **kwargs,
         ):
             return NDFrame.skew(self, axis, skipna, level, numeric_only, **kwargs)
@@ -11521,7 +11520,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: Axis | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
             level=None,
-            numeric_only=None,
+            numeric_only: bool_t = False,
             **kwargs,
         ):
             return NDFrame.kurt(self, axis, skipna, level, numeric_only, **kwargs)
@@ -11544,7 +11543,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
             level=None,
-            numeric_only=None,
+            numeric_only: bool_t = False,
             **kwargs,
         ):
             return NDFrame.median(self, axis, skipna, level, numeric_only, **kwargs)
@@ -11568,7 +11567,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
             level=None,
-            numeric_only=None,
+            numeric_only: bool_t = False,
             **kwargs,
         ):
             return NDFrame.max(self, axis, skipna, level, numeric_only, **kwargs)
@@ -11592,7 +11591,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
             level=None,
-            numeric_only=None,
+            numeric_only: bool_t = False,
             **kwargs,
         ):
             return NDFrame.min(self, axis, skipna, level, numeric_only, **kwargs)
@@ -11827,13 +11826,8 @@ level : int or level name, default None
 
     .. deprecated:: 1.3.0
         The level keyword is deprecated. Use groupby instead.
-numeric_only : bool, default None
-    Include only float, int, boolean columns. If None, will attempt to use
-    everything, then use only numeric data. Not implemented for Series.
-
-    .. deprecated:: 1.5.0
-        Specifying ``numeric_only=None`` is deprecated. The default value will be
-        ``False`` in a future version of pandas.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
 
 {min_count}\
 **kwargs
@@ -11865,13 +11859,8 @@ level : int or level name, default None
 ddof : int, default 1
     Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
     where N represents the number of elements.
-numeric_only : bool, default None
-    Include only float, int, boolean columns. If None, will attempt to use
-    everything, then use only numeric data. Not implemented for Series.
-
-    .. deprecated:: 1.5.0
-        Specifying ``numeric_only=None`` is deprecated. The default value will be
-        ``False`` in a future version of pandas.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
 
 Returns
 -------
