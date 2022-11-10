@@ -608,22 +608,27 @@ class Cumulative:
 
     def setup(self, dtype, method):
         N = 500_000
+        keys = np.random.randint(0, 100, size=N)
         vals = np.random.randint(-10, 10, (N, 5))
         null_vals = vals.astype(float, copy=True)
         null_vals[::2, :] = np.nan
         null_vals[::3, :] = np.nan
         df = DataFrame(vals, columns=list("abcde"), dtype=dtype)
-        null_df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
-        keys = np.random.randint(0, 100, size=N)
         df["key"] = keys
-        null_df["key"] = keys
         self.df = df
-        self.null_df = null_df
+
+        if dtype != "int64":
+            # Would raise on DataFrame construction with int64
+            null_df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
+            null_df["key"] = keys
+            self.null_df = null_df
 
     def time_frame_transform(self, dtype, method):
         self.df.groupby("key").transform(method)
 
     def time_frame_transform_many_nulls(self, dtype, method):
+        if dtype == "int64":
+            raise NotImplementedError
         self.null_df.groupby("key").transform(method)
 
 
