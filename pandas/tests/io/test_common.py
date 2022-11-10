@@ -361,7 +361,7 @@ Look,a snake,🐍"""
             writer(string, **writer_kwargs)
             writer(mypath, **writer_kwargs)
             with open(string, "rb") as f_str, open(fspath, "rb") as f_path:
-                if writer == "to_excel":
+                if writer_name == "to_excel":
                     # binary representation of excel contains time creation
                     # data that causes flaky CI failures
                     result = pd.read_excel(f_str, **writer_kwargs)
