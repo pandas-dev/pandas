@@ -397,13 +397,7 @@ def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
             if docstring is None:
                 continue
             if hasattr(docstring, "_docstring_components"):
-                # error: Item "str" of "Union[str, Callable[..., Any]]" has no attribute
-                # "_docstring_components"
-                # error: Item "function" of "Union[str, Callable[..., Any]]" has no
-                # attribute "_docstring_components"
-                docstring_components.extend(
-                    docstring._docstring_components  # type: ignore[union-attr]
-                )
+                docstring_components.extend(docstring._docstring_components)
             elif isinstance(docstring, str) or docstring.__doc__:
                 docstring_components.append(docstring)
 

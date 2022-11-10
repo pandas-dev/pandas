@@ -5446,9 +5446,8 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "fillna" incompatible with supertype "NDFrame"
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
-    def fillna(  # type: ignore[override]
+    def fillna(
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
         *,
@@ -5537,9 +5536,8 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    # error: Signature of "replace" incompatible with supertype "NDFrame"
     @doc(NDFrame.replace, **_shared_doc_kwargs)
-    def replace(  # type: ignore[override]
+    def replace(
         self,
         to_replace=None,
         value=lib.no_default,
@@ -6684,10 +6682,9 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     # TODO: Just move the sort_values doc here.
-    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
-    def sort_values(  # type: ignore[override]
+    def sort_values(
         self,
         by: IndexLabel,
         *,
@@ -9204,8 +9201,9 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | Series:
         ...
 
+    # error: Missing return statement
     @doc(NDFrame.any, **_shared_doc_kwargs)
-    def any(
+    def any(  # type: ignore[empty-body]
         self,
         axis: Axis = 0,
         bool_only: bool | None = None,
