@@ -14,7 +14,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 from numpy import ma
@@ -29,7 +28,6 @@ from pandas._typing import (
     T,
 )
 from pandas.errors import IntCastingNaNError
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -577,16 +575,7 @@ def sanitize_array(
                     subarr = maybe_cast_to_integer_array(data, dtype)
 
             except IntCastingNaNError:
-                warnings.warn(
-                    "In a future version, passing float-dtype values containing NaN "
-                    "and an integer dtype will raise IntCastingNaNError "
-                    "(subclass of ValueError) instead of silently ignoring the "
-                    "passed dtype. To retain the old behavior, call Series(arr) or "
-                    "DataFrame(arr) without passing a dtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                subarr = np.array(data, copy=copy)
+                raise
             except ValueError:
                 # Pre-2.0, we would have different behavior for Series vs DataFrame.
                 #  DataFrame would call np.array(data, dtype=dtype, copy=copy),

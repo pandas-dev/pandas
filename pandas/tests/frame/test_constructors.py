@@ -18,6 +18,7 @@ from numpy.ma import mrecords
 import pytest
 import pytz
 
+from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -105,16 +106,13 @@ class TestDataFrameConstructors:
     def test_construct_ndarray_with_nas_and_int_dtype(self):
         # GH#26919 match Series by not casting np.nan to meaningless int
         arr = np.array([[1, np.nan], [2, 3]])
-        with tm.assert_produces_warning(FutureWarning):
-            df = DataFrame(arr, dtype="i8")
-        assert df.values.dtype == arr.dtype
-        assert isna(df.iloc[0, 1])
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+        with pytest.raises(IntCastingNaNError, match=msg):
+            DataFrame(arr, dtype="i8")
 
         # check this matches Series behavior
-        with tm.assert_produces_warning(FutureWarning):
-            ser = Series(arr[0], dtype="i8", name=0)
-        expected = df.iloc[0]
-        tm.assert_series_equal(ser, expected)
+        with pytest.raises(IntCastingNaNError, match=msg):
+            Series(arr[0], dtype="i8", name=0)
 
     def test_construct_from_list_of_datetimes(self):
         df = DataFrame([datetime.now(), datetime.now()])
@@ -966,21 +964,16 @@ class TestDataFrameConstructors:
         assert len(frame.index) == 3
         assert len(frame.columns) == 1
 
-        warn = None if empty is np.ones else FutureWarning
-        with tm.assert_produces_warning(warn):
+        if empty is not np.ones:
+            msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+            with pytest.raises(IntCastingNaNError, match=msg):
+                DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
+            return
+        else:
             frame = DataFrame(
                 mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64
             )
-        if empty is np.ones:
-            # passing dtype casts
             assert frame.values.dtype == np.int64
-        else:
-            # i.e. ma.masked_all
-            # Since we have NaNs, refuse to cast to int dtype, which would take NaN
-            #  to meaningless integers.  This matches Series behavior.  GH#26919
-            assert frame.isna().all().all()
-            assert frame.values.dtype == np.float64
-            assert isna(frame.values).all()
 
         # wrong size axis labels
         msg = r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)"
@@ -1741,11 +1734,10 @@ class TestDataFrameConstructors:
             DataFrame({"A": float_frame["A"], "B": list(float_frame["B"])[:-2]})
 
     def test_constructor_miscast_na_int_dtype(self):
-        msg = "float-dtype values containing NaN and an integer dtype"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df = DataFrame([[np.nan, 1], [1, 0]], dtype=np.int64)
-        expected = DataFrame([[np.nan, 1], [1, 0]])
-        tm.assert_frame_equal(df, expected)
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+
+        with pytest.raises(IntCastingNaNError, match=msg):
+            DataFrame([[np.nan, 1], [1, 0]], dtype=np.int64)
 
     def test_constructor_column_duplicates(self):
         # it works! #2079
@@ -2722,16 +2714,16 @@ class TestDataFrameConstructorWithDtypeCoercion:
 
         # with NaNs, we go through a different path with a different warning
         arr[0, 0] = np.nan
-        msg = "passing float-dtype values containing NaN"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+        with pytest.raises(IntCastingNaNError, match=msg):
             DataFrame(arr, dtype="i8")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(IntCastingNaNError, match=msg):
             Series(arr[0], dtype="i8")
         # The future (raising) behavior matches what we would get via astype:
         msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(IntCastingNaNError, match=msg):
             DataFrame(arr).astype("i8")
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(IntCastingNaNError, match=msg):
             Series(arr[0]).astype("i8")
 
 
