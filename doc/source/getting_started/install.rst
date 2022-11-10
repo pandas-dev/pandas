@@ -324,7 +324,7 @@ Can be managed as optional_extra with ``pandas[computation]``.
 Dependency                Minimum Version    optional_extra  Notes
 ========================= ================== =============== =============================================================
 SciPy                     1.7.1              computation     Miscellaneous statistical functions
-xarray                    0.19.0             computation     pandas-like API for N-dimensional data
+xarray                    0.21.0             computation     pandas-like API for N-dimensional data
 ========================= ================== =============== =============================================================
 
 Excel files

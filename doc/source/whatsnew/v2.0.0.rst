@@ -440,6 +440,7 @@ Removal of prior version deprecations/changes
 - Removed the ``closed`` argument in :meth:`date_range` and :meth:`bdate_range` in favor of ``inclusive`` argument (:issue:`40245`)
 - Removed the ``center`` keyword in :meth:`DataFrame.expanding` (:issue:`20647`)
 - Removed the ``truediv`` keyword from :func:`eval` (:issue:`29812`)
+- Removed the ``method`` and ``tolerance`` arguments in :meth:`Index.get_loc`. Use ``index.get_indexer([label], method=..., tolerance=...)`` instead (:issue:`42269`)
 - Removed the ``pandas.datetime`` submodule (:issue:`30489`)
 - Removed the ``pandas.np`` submodule (:issue:`30296`)
 - Removed ``pandas.util.testing`` in favor of ``pandas.testing`` (:issue:`30745`)

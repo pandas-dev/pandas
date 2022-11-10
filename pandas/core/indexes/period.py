@@ -375,7 +375,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         return tolerance
 
-    def get_loc(self, key, method=None, tolerance=None):
+    def get_loc(self, key):
         """
         Get integer location for requested label.
 
@@ -421,14 +421,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 # the reso < self._resolution_obj case goes
                 #  through _get_string_slice
                 key = self._cast_partial_indexing_scalar(key)
-                loc = self.get_loc(key, method=method, tolerance=tolerance)
+                loc = self.get_loc(key)
                 # Recursing instead of falling through matters for the exception
                 #  message in test_get_loc3 (though not clear if that really matters)
                 return loc
-            elif method is None:
-                raise KeyError(key)
             else:
-                key = self._cast_partial_indexing_scalar(parsed)
+                raise KeyError(key)
 
         elif isinstance(key, Period):
             key = self._maybe_cast_for_get_loc(key)
@@ -441,7 +439,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             raise KeyError(key)
 
         try:
-            return Index.get_loc(self, key, method, tolerance)
+            return Index.get_loc(self, key)
         except KeyError as err:
             raise KeyError(orig_key) from err
 

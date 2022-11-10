@@ -1,7 +1,4 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
 import re
 
 import numpy as np
@@ -330,62 +327,6 @@ class TestGetLoc:
         pi2 = dti.to_period("Y")  # duplicates, ordinals are all 46
         with pytest.raises(KeyError, match="46"):
             pi2.get_loc(46)
-
-    # TODO: This method came from test_period; de-dup with version above
-    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
-    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
-    def test_get_loc_method(self, method):
-        idx = period_range("2000-01-01", periods=3)
-
-        assert idx.get_loc(idx[1], method) == 1
-        assert idx.get_loc(idx[1].to_timestamp(), method) == 1
-        assert idx.get_loc(idx[1].to_timestamp().to_pydatetime(), method) == 1
-        assert idx.get_loc(str(idx[1]), method) == 1
-
-        key = idx[1].asfreq("H", how="start")
-        with pytest.raises(KeyError, match=str(key)):
-            idx.get_loc(key, method=method)
-
-    # TODO: This method came from test_period; de-dup with version above
-    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
-    def test_get_loc3(self):
-
-        idx = period_range("2000-01-01", periods=5)[::2]
-        assert idx.get_loc("2000-01-02T12", method="nearest", tolerance="1 day") == 1
-        assert (
-            idx.get_loc("2000-01-02T12", method="nearest", tolerance=Timedelta("1D"))
-            == 1
-        )
-        assert (
-            idx.get_loc(
-                "2000-01-02T12", method="nearest", tolerance=np.timedelta64(1, "D")
-            )
-            == 1
-        )
-        assert (
-            idx.get_loc("2000-01-02T12", method="nearest", tolerance=timedelta(1)) == 1
-        )
-
-        msg = "unit abbreviation w/o a number"
-        with pytest.raises(ValueError, match=msg):
-            idx.get_loc("2000-01-10", method="nearest", tolerance="foo")
-
-        msg = "Input has different freq=None from PeriodArray\\(freq=D\\)"
-        with pytest.raises(ValueError, match=msg):
-            idx.get_loc("2000-01-10", method="nearest", tolerance="1 hour")
-        with pytest.raises(KeyError, match=r"^Period\('2000-01-10', 'D'\)$"):
-            idx.get_loc("2000-01-10", method="nearest", tolerance="1 day")
-        with pytest.raises(
-            ValueError, match="list-like tolerance size must match target index size"
-        ):
-            idx.get_loc(
-                "2000-01-10",
-                method="nearest",
-                tolerance=[
-                    Timedelta("1 day").to_timedelta64(),
-                    Timedelta("1 day").to_timedelta64(),
-                ],
-            )
 
     def test_get_loc_invalid_string_raises_keyerror(self):
         # GH#34240
