@@ -39,6 +39,138 @@ class Int64Factorizer(Factorizer):
         mask=...,
     ) -> npt.NDArray[np.intp]: ...
 
+class UInt64Factorizer(Factorizer):
+    table: UInt64HashTable
+    uniques: UInt64Vector
+    def factorize(
+        self,
+        values: np.ndarray,  # const uint64_t[:]
+        sort: bool = ...,
+        na_sentinel=...,
+        na_value=...,
+        mask=...,
+    ) -> npt.NDArray[np.intp]: ...
+
+class Int32Factorizer(Factorizer):
+    table: Int32HashTable
+    uniques: Int32Vector
+    def factorize(
+        self,
+        values: np.ndarray,  # const int32_t[:]
+        sort: bool = ...,
+        na_sentinel=...,
+        na_value=...,
+        mask=...,
+    ) -> npt.NDArray[np.intp]: ...
+
+class UInt32Factorizer(Factorizer):
+    table: UInt32HashTable
+    uniques: UInt32Vector
+    def factorize(
+        self,
+        values: np.ndarray,  # const uint32_t[:]
+        sort: bool = ...,
+        na_sentinel=...,
+        na_value=...,
+        mask=...,
+    ) -> npt.NDArray[np.intp]: ...
+
+class Int16Factorizer(Factorizer):
+    table: Int16HashTable
+    uniques: Int16Vector
+    def factorize(
+        self,
+        values: np.ndarray,  # const int16_t[:]
+        sort: bool = ...,
+        na_sentinel=...,
+        na_value=...,
+        mask=...,
+    ) -> npt.NDArray[np.intp]: ...
+
+class UInt16Factorizer(Factorizer):
+    table: UInt16HashTable
+    uniques: UInt16Vector
+    def factorize(
+        self,
+        values: np.ndarray,  # const uint16_t[:]
+        sort: bool = ...,
+        na_sentinel=...,
+        na_value=...,
+        mask=...,
+    ) -> npt.NDArray[np.intp]: ...
+
+class Int8Factorizer(Factorizer):
+    table: Int8HashTable
+    uniques: Int8Vector
+    def factorize(
+        self,
+        values: np.ndarray,  # const int8_t[:]
+        sort: bool = ...,
+        na_sentinel=...,
+        na_value=...,
+        mask=...,
+    ) -> npt.NDArray[np.intp]: ...
+
+class UInt8Factorizer(Factorizer):
+    table: UInt8HashTable
+    uniques: UInt8Vector
+    def factorize(
+        self,
+        values: np.ndarray,  # const uint8_t[:]
+        sort: bool = ...,
+        na_sentinel=...,
+        na_value=...,
+        mask=...,
+    ) -> npt.NDArray[np.intp]: ...
+
+class Float64Factorizer(Factorizer):
+    table: Float64HashTable
+    uniques: Float64Vector
+    def factorize(
+        self,
+        values: np.ndarray,  # const float64_t[:]
+        sort: bool = ...,
+        na_sentinel=...,
+        na_value=...,
+        mask=...,
+    ) -> npt.NDArray[np.intp]: ...
+
+class Float32Factorizer(Factorizer):
+    table: Float32HashTable
+    uniques: Float32Vector
+    def factorize(
+        self,
+        values: np.ndarray,  # const float32_t[:]
+        sort: bool = ...,
+        na_sentinel=...,
+        na_value=...,
+        mask=...,
+    ) -> npt.NDArray[np.intp]: ...
+
+class Complex64Factorizer(Factorizer):
+    table: Complex64HashTable
+    uniques: Complex64Vector
+    def factorize(
+        self,
+        values: np.ndarray,  # const complex64_t[:]
+        sort: bool = ...,
+        na_sentinel=...,
+        na_value=...,
+        mask=...,
+    ) -> npt.NDArray[np.intp]: ...
+
+class Complex128Factorizer(Factorizer):
+    table: Complex128HashTable
+    uniques: Complex128Vector
+    def factorize(
+        self,
+        values: np.ndarray,  # const complex128_t[:]
+        sort: bool = ...,
+        na_sentinel=...,
+        na_value=...,
+        mask=...,
+    ) -> npt.NDArray[np.intp]: ...
+
 class Int64Vector:
     def __init__(self, *args) -> None: ...
     def __len__(self) -> int: ...

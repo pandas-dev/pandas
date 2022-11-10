@@ -69,17 +69,6 @@ else:
     raise ValueError(np.dtype(np.intp))
 
 
-cdef class Factorizer:
-    cdef readonly:
-        Py_ssize_t count
-
-    def __cinit__(self, size_hint: int):
-        self.count = 0
-
-    def get_count(self) -> int:
-        return self.count
-
-
 cdef class ObjectFactorizer(Factorizer):
     cdef public:
         PyObjectHashTable table
@@ -115,43 +104,5 @@ cdef class ObjectFactorizer(Factorizer):
             self.uniques = uniques
         labels = self.table.get_labels(values, self.uniques,
                                        self.count, na_sentinel, na_value)
-        self.count = len(self.uniques)
-        return labels
-
-
-cdef class Int64Factorizer(Factorizer):
-    cdef public:
-        Int64HashTable table
-        Int64Vector uniques
-
-    def __cinit__(self, size_hint: int):
-        self.table = Int64HashTable(size_hint)
-        self.uniques = Int64Vector()
-
-    def factorize(self, const int64_t[:] values,
-                  na_sentinel=-1, na_value=None, object mask=None) -> np.ndarray:
-        """
-        Returns
-        -------
-        ndarray[intp_t]
-
-        Examples
-        --------
-        Factorize values with nans replaced by na_sentinel
-
-        >>> fac = Int64Factorizer(3)
-        >>> fac.factorize(np.array([1,2,3]), na_sentinel=20)
-        array([0, 1, 2])
-        """
-        cdef:
-            ndarray[intp_t] labels
-
-        if self.uniques.external_view_exists:
-            uniques = Int64Vector()
-            uniques.extend(self.uniques.to_array())
-            self.uniques = uniques
-        labels = self.table.get_labels(values, self.uniques,
-                                       self.count, na_sentinel,
-                                       na_value=na_value, mask=mask)
         self.count = len(self.uniques)
         return labels
