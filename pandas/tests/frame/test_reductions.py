@@ -331,6 +331,8 @@ class TestDataFrameAnalytics:
         assert df.values.dtype == np.object_
         result = getattr(df, method)(1)
         expected = getattr(df.astype("f8"), method)(1)
+        if method in ("sum", "prod", "min", "max"):
+            expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])
@@ -717,6 +719,33 @@ class TestDataFrameAnalytics:
         assert isinstance(axis1, Series)
         assert len(axis0) == 0
         assert len(axis1) == 0
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            tm.makeRangeIndex(0),
+            tm.makeDateIndex(0),
+            tm.makeNumericIndex(0, dtype=int),
+            tm.makeNumericIndex(0, dtype=float),
+            tm.makeDateIndex(0, freq="M"),
+            tm.makePeriodIndex(0),
+        ],
+    )
+    def test_axis_1_empty(self, reduction_functions, index):
+        df = DataFrame(columns=["a"], index=index)
+        result = getattr(df, reduction_functions)(axis=1)
+        expected_dtype = {
+            "any": "bool",
+            "all": "bool",
+            "count": "int",
+            "sum": "float",
+            "prod": "float",
+            "skew": "float",
+            "kurt": "float",
+            "sem": "float",
+        }.get(reduction_functions, "object")
+        expected = Series([], index=index, dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
     @pytest.mark.parametrize("numeric_only", [None, True, False])

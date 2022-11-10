@@ -134,7 +134,6 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_numeric_dtype,
-    is_object_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -10522,57 +10521,41 @@ Parrot 2  Parrot       24.0
                 data = self._get_bool_data()
             return data
 
-        if numeric_only or axis == 0:
-            # For numeric_only non-None and axis non-None, we know
-            #  which blocks to use and no try/except is needed.
-            #  For numeric_only=None only the case with axis==0 and no object
-            #  dtypes are unambiguous can be handled with BlockManager.reduce
-            # Case with EAs see GH#35881
-            df = self
-            if numeric_only:
-                df = _get_data()
-            if axis == 1:
-                df = df.T
-                axis = 0
+        # Case with EAs see GH#35881
+        df = self
+        if numeric_only:
+            df = _get_data()
+        if axis == 1:
+            if len(df.index) == 0:
+                # Taking a transpose would result in no columns, losing the dtype.
+                # In the empty case, reducing along axis 0 or 1 gives the same
+                # result dtype, so reduce with axis=0 and ignore values
+                result = df._reduce(
+                    op,
+                    name,
+                    axis=0,
+                    skipna=skipna,
+                    numeric_only=False,
+                    filter_type=filter_type,
+                    **kwds,
+                ).iloc[:0]
+                result.index = df.index
+                return result
+            df = df.T
+            axis = 0
 
-            # After possibly _get_data and transposing, we are now in the
-            #  simple case where we can use BlockManager.reduce
-            res, _ = df._mgr.reduce(blk_func, ignore_failures=False)
-            out = df._constructor(res).iloc[0]
-            if out_dtype is not None:
-                out = out.astype(out_dtype)
-            if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
-                # Even if we are object dtype, follow numpy and return
-                #  float64, see test_apply_funcs_over_empty
-                out = out.astype(np.float64)
+        # After possibly _get_data and transposing, we are now in the
+        #  simple case where we can use BlockManager.reduce
+        res, _ = df._mgr.reduce(blk_func, ignore_failures=False)
+        out = df._constructor(res).iloc[0]
+        if out_dtype is not None:
+            out = out.astype(out_dtype)
+        if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
+            # Even if we are object dtype, follow numpy and return
+            #  float64, see test_apply_funcs_over_empty
+            out = out.astype(np.float64)
 
-            if numeric_only is None and out.shape[0] != df.shape[1]:
-                # columns have been dropped GH#41480
-                com.deprecate_numeric_only_default(
-                    type(self), name, deprecate_none=True
-                )
-
-            return out
-
-        assert not numeric_only and axis == 1
-
-        data = self
-        values = data.values
-        result = func(values)
-
-        if hasattr(result, "dtype"):
-            if filter_type == "bool" and notna(result).all():
-                result = result.astype(np.bool_)
-            elif filter_type is None and is_object_dtype(result.dtype):
-                try:
-                    result = result.astype(np.float64)
-                except (ValueError, TypeError):
-                    # try to coerce to the original dtypes item by item if we can
-                    pass
-
-        labels = self._get_agg_axis(axis)
-        result = self._constructor_sliced(result, index=labels)
-        return result
+        return out
 
     def _reduce_axis1(self, name: str, func, skipna: bool) -> Series:
         """
