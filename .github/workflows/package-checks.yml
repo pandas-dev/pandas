@@ -38,12 +38,12 @@ jobs:
         with:
           python-version: '3.8'
 
-      # Can take a significant amount of time while this should only check that
-      # the extras are installed
-      - name: Disable building ext_modules
-        run: |
-          sed -i '/ext_modules=/d' setup.py
-        shell: bash -el {0}
+#      # Can take a significant amount of time while this should only check that
+#      # the extras are installed
+#      - name: Disable building ext_modules
+#        run: |
+#          sed -i '/ext_modules=/d' setup.py
+#        shell: bash -el {0}
 
       - name: Install required dependencies
         run: |
@@ -52,5 +52,5 @@ jobs:
 
       - name: Pip install with extra
         run: |
-          python -m pip install -e .[${{ matrix.extra }}] --no-build-isolation
+          python -m pip install -e .[${{ matrix.extra }}] --no-build-isolation --install-option="no-extensions"
         shell: bash -el {0}
