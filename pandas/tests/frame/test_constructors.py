@@ -8,7 +8,6 @@ from datetime import (
     timedelta,
 )
 import functools
-import itertools
 import re
 from typing import Iterator
 import warnings
@@ -141,13 +140,8 @@ class TestDataFrameConstructors:
         if frame_or_series is DataFrame:
             arr = arr.reshape(1, 1)
 
-        msg = "|".join(
-            [
-                "Could not convert object to NumPy timedelta",
-                "Invalid type for timedelta scalar: <class 'numpy.datetime64'>",
-            ]
-        )
-        with pytest.raises(ValueError, match=msg):
+        msg = "Invalid type for timedelta scalar: <class 'numpy.datetime64'>"
+        with pytest.raises(TypeError, match=msg):
             frame_or_series(arr, dtype="m8[ns]")
 
     @pytest.mark.parametrize("kind", ["m", "M"])
@@ -718,7 +712,8 @@ class TestDataFrameConstructors:
         from collections import defaultdict
 
         data = {}
-        float_frame["B"][:10] = np.nan
+        float_frame.loc[: float_frame.index[10], "B"] = np.nan
+
         for k, v in float_frame.items():
             dct = defaultdict(dict)
             dct.update(v.to_dict())
@@ -1141,66 +1136,9 @@ class TestDataFrameConstructors:
             np.ma.zeros(5, dtype=[("date", "<f8"), ("price", "<f8")]), mask=[False] * 5
         )
         data = data.view(mrecords.mrecarray)
-
-        with tm.assert_produces_warning(FutureWarning):
-            # Support for MaskedRecords deprecated
-            result = DataFrame(data, dtype=int)
-
-        expected = DataFrame(np.zeros((5, 2), dtype=int), columns=["date", "price"])
-        tm.assert_frame_equal(result, expected)
-
-        # GH#40363 check that the alternative suggested in the deprecation
-        #  warning behaves as expected
-        alt = DataFrame({name: data[name] for name in data.dtype.names}, dtype=int)
-        tm.assert_frame_equal(result, alt)
-
-    @pytest.mark.slow
-    def test_constructor_mrecarray(self):
-        # Ensure mrecarray produces frame identical to dict of masked arrays
-        # from GH3479
-
-        assert_fr_equal = functools.partial(
-            tm.assert_frame_equal, check_index_type=True, check_column_type=True
-        )
-        arrays = [
-            ("float", np.array([1.5, 2.0])),
-            ("int", np.array([1, 2])),
-            ("str", np.array(["abc", "def"])),
-        ]
-        for name, arr in arrays[:]:
-            arrays.append(
-                ("masked1_" + name, np.ma.masked_array(arr, mask=[False, True]))
-            )
-        arrays.append(("masked_all", np.ma.masked_all((2,))))
-        arrays.append(("masked_none", np.ma.masked_array([1.0, 2.5], mask=False)))
-
-        # call assert_frame_equal for all selections of 3 arrays
-        for comb in itertools.combinations(arrays, 3):
-            names, data = zip(*comb)
-            mrecs = mrecords.fromarrays(data, names=names)
-
-            # fill the comb
-            comb = {k: (v.filled() if hasattr(v, "filled") else v) for k, v in comb}
-
-            with tm.assert_produces_warning(FutureWarning):
-                # Support for MaskedRecords deprecated
-                result = DataFrame(mrecs)
-            expected = DataFrame(comb, columns=names)
-            assert_fr_equal(result, expected)
-
-            # specify columns
-            with tm.assert_produces_warning(FutureWarning):
-                # Support for MaskedRecords deprecated
-                result = DataFrame(mrecs, columns=names[::-1])
-            expected = DataFrame(comb, columns=names[::-1])
-            assert_fr_equal(result, expected)
-
-            # specify index
-            with tm.assert_produces_warning(FutureWarning):
-                # Support for MaskedRecords deprecated
-                result = DataFrame(mrecs, index=[1, 2])
-            expected = DataFrame(comb, columns=names, index=[1, 2])
-            assert_fr_equal(result, expected)
+        with pytest.raises(TypeError, match=r"Pass \{name: data\[name\]"):
+            # Support for MaskedRecords deprecated GH#40363
+            DataFrame(data, dtype=int)
 
     def test_constructor_corner_shape(self):
         df = DataFrame(index=[])
@@ -2203,7 +2141,9 @@ class TestDataFrameConstructors:
         series = float_frame._series
 
         df = DataFrame({"A": series["A"]}, copy=True)
-        df["A"][:] = 5
+        # TODO can be replaced with `df.loc[:, "A"] = 5` after deprecation about
+        # inplace mutation is enforced
+        df.loc[df.index[0] : df.index[-1], "A"] = 5
 
         assert not (series["A"] == 5).all()
 
@@ -2280,47 +2220,34 @@ class TestDataFrameConstructors:
         tm.assert_series_equal(df[0], expected)
 
     def test_construct_from_1item_list_of_categorical(self):
+        # pre-2.0 this behaved as DataFrame({0: cat}), in 2.0 we remove
+        #  Categorical special case
         # ndim != 1
-        msg = "will be changed to match the behavior"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df = DataFrame([Categorical(list("abc"))])
-        expected = DataFrame({0: Series(list("abc"), dtype="category")})
+        cat = Categorical(list("abc"))
+        df = DataFrame([cat])
+        expected = DataFrame([cat.astype(object)])
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_list_of_categoricals(self):
-        msg = "will be changed to match the behavior"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
-        expected = DataFrame(
-            {
-                0: Series(list("abc"), dtype="category"),
-                1: Series(list("abd"), dtype="category"),
-            },
-            columns=[0, 1],
-        )
+        # pre-2.0 this behaved as DataFrame({0: cat}), in 2.0 we remove
+        #  Categorical special case
+
+        df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
+        expected = DataFrame([["a", "b", "c"], ["a", "b", "d"]])
         tm.assert_frame_equal(df, expected)
 
     def test_from_nested_listlike_mixed_types(self):
+        # pre-2.0 this behaved as DataFrame({0: cat}), in 2.0 we remove
+        #  Categorical special case
         # mixed
-        msg = "will be changed to match the behavior"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df = DataFrame([Categorical(list("abc")), list("def")])
-        expected = DataFrame(
-            {0: Series(list("abc"), dtype="category"), 1: list("def")}, columns=[0, 1]
-        )
+        df = DataFrame([Categorical(list("abc")), list("def")])
+        expected = DataFrame([["a", "b", "c"], ["d", "e", "f"]])
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_listlikes_mismatched_lengths(self):
-        # invalid (shape)
-        msg = "|".join(
-            [
-                r"Length of values \(6\) does not match length of index \(3\)",
-            ]
-        )
-        msg2 = "will be changed to match the behavior"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
+        df = DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
+        expected = DataFrame([list("abc"), list("abdefg")])
+        tm.assert_frame_equal(df, expected)
 
     def test_constructor_categorical_series(self):
 

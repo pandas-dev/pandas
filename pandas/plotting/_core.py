@@ -936,7 +936,7 @@ class PlotAccessor(PandasObject):
                     raise ValueError(
                         f"{kind} requires either y column or 'subplots=True'"
                     )
-                elif y is not None:
+                if y is not None:
                     if is_integer(y) and not data.columns.holds_integer():
                         y = data.columns[y]
                     # converted to series actually. copy to not modify
@@ -1131,7 +1131,9 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def bar(self, x=None, y=None, **kwargs) -> PlotAccessor:
+    def bar(  # pylint: disable=disallowed-name
+        self, x=None, y=None, **kwargs
+    ) -> PlotAccessor:
         """
         Vertical bar plot.
 
@@ -1691,13 +1693,13 @@ class PlotAccessor(PandasObject):
         size = kwargs.pop("size", None)
         if s is not None and size is not None:
             raise TypeError("Specify exactly one of `s` and `size`")
-        elif s is not None or size is not None:
+        if s is not None or size is not None:
             kwargs["s"] = s if s is not None else size
 
         color = kwargs.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
-        elif c is not None or color is not None:
+        if c is not None or color is not None:
             kwargs["c"] = c if c is not None else color
 
         return self(kind="scatter", x=x, y=y, **kwargs)

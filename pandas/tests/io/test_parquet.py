@@ -53,11 +53,6 @@ except ImportError:
     _HAVE_FASTPARQUET = False
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
-)
-
-
 # TODO(ArrayManager) fastparquet relies on BlockManager internals
 
 # setup engines & skips
@@ -688,7 +683,6 @@ class TestBasic(Base):
         )
 
 
-@pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
 

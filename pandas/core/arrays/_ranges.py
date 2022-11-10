@@ -121,12 +121,12 @@ def _generate_range_overflow_safe(
         return _generate_range_overflow_safe_signed(endpoint, periods, stride, side)
 
     elif (endpoint > 0 and side == "start" and stride > 0) or (
-        endpoint < 0 and side == "end" and stride > 0
+        endpoint < 0 < stride and side == "end"
     ):
         # no chance of not-overflowing
         raise OutOfBoundsDatetime(msg)
 
-    elif side == "end" and endpoint > i64max and endpoint - stride <= i64max:
+    elif side == "end" and endpoint - stride <= i64max < endpoint:
         # in _generate_regular_range we added `stride` thereby overflowing
         #  the bounds.  Adjust to fix this.
         return _generate_range_overflow_safe(
