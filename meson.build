@@ -25,8 +25,8 @@ add_global_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')
 
 # This is a cython bug
 # TODO: Remove once cython/cython#4804 addressed
-#add_global_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'c')
-#add_global_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')
+add_global_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'c')
+add_global_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')
 
 py_mod = import('python')
 fs = import('fs')

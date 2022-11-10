@@ -609,6 +609,9 @@ def assert_numpy_array_equal(
     check_same=None,
     obj: str = "numpy array",
     index_values=None,
+    check_exact: bool = True,
+    rtol: float = 1e-5,
+    atol: float = 1e-8,
 ) -> None:
     """
     Check that 'np.ndarray' is equivalent.
@@ -630,6 +633,18 @@ def assert_numpy_array_equal(
         assertion message.
     index_values : numpy.ndarray, default None
         optional index (shared by both left and right), used in output.
+    check_exact : bool, default False
+        Whether to compare number exactly.
+
+        .. versionadded:: 2.0.0
+    rtol : float, default 1e-5
+        Relative tolerance. Only used when check_exact is False.
+
+        .. versionadded:: 2.0.0
+    atol : float, default 1e-8
+        Absolute tolerance. Only used when check_exact is False.
+
+        .. versionadded:: 2.0.0
     """
     __tracebackhide__ = True
 
@@ -672,8 +687,19 @@ def assert_numpy_array_equal(
         raise AssertionError(err_msg)
 
     # compare shape and values
-    if not array_equivalent(left, right, strict_nan=strict_nan):
-        _raise(left, right, err_msg)
+    if check_exact:
+        if not array_equivalent(left, right, strict_nan=strict_nan):
+            _raise(left, right, err_msg)
+    else:
+        _testing.assert_almost_equal(
+            left,
+            right,
+            check_dtype=bool(check_dtype),
+            rtol=rtol,
+            atol=atol,
+            obj="numpy array",
+            index_values=index_values,
+        )
 
     if check_dtype:
         if isinstance(left, np.ndarray) and isinstance(right, np.ndarray):

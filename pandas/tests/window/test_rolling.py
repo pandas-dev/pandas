@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
+    IS64,
     is_platform_arm,
     is_platform_mac,
 )
@@ -1190,7 +1191,9 @@ def test_rolling_sem(frame_or_series):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(is_platform_arm() and not is_platform_mac(), reason="GH 38921")
+@pytest.mark.xfail(
+    is_platform_arm() or not IS64 and not is_platform_mac(), reason="GH 38921"
+)
 @pytest.mark.parametrize(
     ("func", "third_value", "values"),
     [
@@ -1707,7 +1710,7 @@ def test_rolling_quantile_interpolation_options(quantile, interpolation, data):
     if np.isnan(q1):
         assert np.isnan(q2)
     else:
-        assert q1 == q2
+        assert np.allclose([q1], [q2])
 
 
 def test_invalid_quantile_value():
