@@ -13,7 +13,7 @@ tasks:
       cp gitpod/settings.json .vscode/settings.json
       conda activate pandas-dev
       git pull --unshallow  # need to force this else the prebuild fails
-      git fetch --tags 
+      git fetch --tags
       python setup.py build_ext -j 4
       python -m pip install -e . --no-build-isolation
       echo "🛠 Completed rebuilding Pandas!! 🛠 "
@@ -38,15 +38,15 @@ vscode:
     # avoid adding too many. they each open a pop-up window
 
 # --------------------------------------------------------
-# using prebuilds for the container 
-# With this configuration the prebuild will happen on push to main 
+# using prebuilds for the container
+# With this configuration the prebuild will happen on push to main
 github:
   prebuilds:
     # enable for main/default branch
     main: true
-    # enable for other branches (defaults to false) 
-    branches: false 
-    # enable for pull requests coming from this repo (defaults to true) 
+    # enable for other branches (defaults to false)
+    branches: false
+    # enable for pull requests coming from this repo (defaults to true)
     pullRequests: false
     # enable for pull requests coming from forks (defaults to false)
     pullRequestsFromForks: false
