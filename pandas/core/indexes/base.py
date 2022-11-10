@@ -2136,7 +2136,7 @@ class Index(IndexOpsMixin, PandasObject):
             Index of unique values for level.
         """
         if self._is_multi:
-            raise NotImplementedError("Index grouper by level isn't supported for MultiIndex")
+            raise NotImplementedError("Index grouper isn't supported for MultiIndex")
 
         assert level is None or level == 0
         if mapper is None:
