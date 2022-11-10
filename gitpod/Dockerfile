@@ -27,7 +27,7 @@
 # OS/ARCH: linux/amd64
 FROM gitpod/workspace-base:latest
 
-ARG MAMBAFORGE_VERSION="4.11.0-0"
+ARG MAMBAFORGE_VERSION="22.9.0-1"
 ARG CONDA_ENV=pandas-dev
 ARG PANDAS_HOME="/home/pandas"
 
