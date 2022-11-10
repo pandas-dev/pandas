@@ -619,6 +619,7 @@ class Cumulative:
         self.df = df
 
         if dtype != "int64":
+            # Would raise on DataFrame construction with int64
             null_df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
             null_df["key"] = keys
             self.null_df = null_df
@@ -628,7 +629,8 @@ class Cumulative:
 
     def time_frame_transform_many_nulls(self, dtype, method):
         if dtype == "int64":
-            raise NotImplementedError
+            # We can't instantiate null_df, so skip this case
+            return
         self.null_df.groupby("key").transform(method)
 
 
