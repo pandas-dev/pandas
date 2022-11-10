@@ -318,11 +318,11 @@ class TestDataFrameAnalytics:
             DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object),
         ],
     )
-    def test_stat_operators_attempt_obj_array(self, method, df):
+    def test_stat_operators_attempt_obj_array(self, method, df, axis):
         # GH#676
         assert df.values.dtype == np.object_
-        result = getattr(df, method)(1)
-        expected = getattr(df.astype("f8"), method)(1)
+        result = getattr(df, method)(axis=axis)
+        expected = getattr(df.astype("f8"), method)(axis=axis).astype(object)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])
@@ -425,7 +425,7 @@ class TestDataFrameAnalytics:
         with pytest.raises(TypeError, match="unsupported operand type"):
             df.mean()
         result = df[["A", "C"]].mean()
-        expected = Series([2.7, 681.6], index=["A", "C"])
+        expected = Series([2.7, 681.6], index=["A", "C"], dtype=object)
         tm.assert_series_equal(result, expected)
 
     def test_var_std(self, datetime_frame):
@@ -698,6 +698,29 @@ class TestDataFrameAnalytics:
         assert isinstance(axis1, Series)
         assert len(axis0) == 0
         assert len(axis1) == 0
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            tm.makeRangeIndex(0),
+            tm.makeDateIndex(0),
+            tm.makeNumericIndex(0, dtype=int),
+            tm.makeNumericIndex(0, dtype=float),
+            tm.makeDateIndex(0, freq="M"),
+            tm.makePeriodIndex(0),
+        ],
+    )
+    def test_axis_1_empty(self, all_reductions, index, using_array_manager):
+        df = DataFrame(columns=["a"], index=index)
+        result = getattr(df, all_reductions)(axis=1)
+        if all_reductions in ("any", "all"):
+            expected_dtype = "bool"
+        elif all_reductions == "count":
+            expected_dtype = "int"
+        else:
+            expected_dtype = "object"
+        expected = Series([], index=index, dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
     @pytest.mark.parametrize("numeric_only", [None, True, False])
@@ -1421,6 +1444,21 @@ class TestDataFrameReductions:
         expected = Series([initial_dt])
         df = DataFrame([expected])
         result = getattr(df, method)(axis=1)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_minmax_tzaware_skipna_axis_1(self, method, skipna):
+        # GH#51242
+        val = to_datetime("1900-01-01", utc=True)
+        df = DataFrame(
+            {"a": Series([pd.NaT, pd.NaT, val]), "b": Series([pd.NaT, val, val])}
+        )
+        op = getattr(df, method)
+        result = op(axis=1, skipna=skipna)
+        if skipna:
+            expected = Series([pd.NaT, val, val])
+        else:
+            expected = Series([pd.NaT, pd.NaT, val])
         tm.assert_series_equal(result, expected)
 
     def test_frame_any_with_timedelta(self):

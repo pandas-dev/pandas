@@ -1533,7 +1533,15 @@ def _maybe_null_out(
                 result[null_mask] = None
     elif result is not NaT:
         if check_below_min_count(shape, mask, min_count):
-            result = np.nan
+            result_dtype = getattr(result, "dtype", None)
+            if is_float_dtype(result_dtype):
+                # Preserve dtype when possible
+                # mypy doesn't infer result_dtype is not None
+                result = getattr(
+                    np, f"float{8 * result_dtype.itemsize}"  # type: ignore[union-attr]
+                )("nan")
+            else:
+                result = np.nan
 
     return result
 

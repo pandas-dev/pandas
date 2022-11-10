@@ -293,6 +293,14 @@ def ordered(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def skipna(request):
+    """
+    Boolean 'skipna' parameter.
+    """
+    return request.param
+
+
 @pytest.fixture(params=["first", "last", False])
 def keep(request):
     """
