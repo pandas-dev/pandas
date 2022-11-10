@@ -90,7 +90,7 @@ def test_regression_allowlist_methods(raw_frame, op, axis, skipna, sort):
         grouped = frame.groupby("first", axis=axis, sort=sort)
         result = getattr(grouped, op)()
     # Previously compared to frame.op(level=...), but level removed in 2.0
-    # TODO: Assert something better
+    # TODO(GH 49629): Assert something better
     assert isinstance(result, DataFrame)
 
 
