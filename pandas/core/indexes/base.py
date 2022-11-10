@@ -2106,6 +2106,7 @@ class Index(IndexOpsMixin, PandasObject):
                 verify_integrity=False,
             )
 
+    @final
     def _get_grouper_for_level(
         self,
         mapper,
@@ -2134,6 +2135,9 @@ class Index(IndexOpsMixin, PandasObject):
         uniques : Index or None
             Index of unique values for level.
         """
+        if self._is_multi:
+            raise NotImplementedError("Index grouper by level isn't supported for MultiIndex")
+
         assert level is None or level == 0
         if mapper is None:
             grouper = self
