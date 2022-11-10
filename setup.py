@@ -407,10 +407,6 @@ def maybe_cythonize(extensions, *args, **kwargs):
         # See https://github.com/cython/cython/issues/1495
         return extensions
 
-    elif "no-extensions" in sys.argv:
-        # For pip install extras CI job in .github/workflows/package-checks.yml
-        return []
-
     elif not _CYTHON_INSTALLED:
         # GH#28836 raise a helfpul error message
         if _CYTHON_VERSION:
