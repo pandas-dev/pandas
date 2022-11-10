@@ -17,7 +17,6 @@ from typing import (
     final,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -38,7 +37,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -1063,27 +1061,6 @@ class IndexOpsMixin(OpsMixin):
         return self.nunique(dropna=False) == len(self)
 
     @property
-    def is_monotonic(self) -> bool:
-        """
-        Return boolean if values in the object are monotonically increasing.
-
-        .. deprecated:: 1.5.0
-            is_monotonic is deprecated and will be removed in a future version.
-            Use is_monotonic_increasing instead.
-
-        Returns
-        -------
-        bool
-        """
-        warnings.warn(
-            "is_monotonic is deprecated and will be removed in a future version. "
-            "Use is_monotonic_increasing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.is_monotonic_increasing
-
-    @property
     def is_monotonic_increasing(self) -> bool:
         """
         Return boolean if values in the object are monotonically increasing.
@@ -1161,12 +1138,9 @@ class IndexOpsMixin(OpsMixin):
     def factorize(
         self,
         sort: bool = False,
-        na_sentinel: int | lib.NoDefault = lib.no_default,
-        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool = True,
     ):
-        return algorithms.factorize(
-            self, sort=sort, na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
-        )
+        return algorithms.factorize(self, sort=sort, use_na_sentinel=use_na_sentinel)
 
     _shared_docs[
         "searchsorted"

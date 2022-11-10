@@ -139,8 +139,7 @@ class TestDataFrameQuantile:
         rs = df.quantile(
             0.5, numeric_only=True, interpolation=interpolation, method=method
         )
-        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-            xp = df.median().rename(0.5)
+        xp = df.median(numeric_only=True).rename(0.5)
         if interpolation == "nearest":
             xp = (xp + 0.5).astype(np.int64)
         if method == "table" and using_array_manager:
@@ -751,9 +750,6 @@ class TestDataFrameQuantile:
         exp = Series([np.nan, np.nan], index=["a", "b"], name=0.5)
         tm.assert_series_equal(res, exp)
 
-    @pytest.mark.filterwarnings(
-        "ignore:The behavior of DatetimeArray._from_sequence:FutureWarning"
-    )
     def test_quantile_empty_no_rows_dt64(self, interp_method):
         interpolation, method = interp_method
         # datetimes

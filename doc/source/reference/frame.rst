@@ -66,7 +66,6 @@ Indexing, iteration
    DataFrame.keys
    DataFrame.iterrows
    DataFrame.itertuples
-   DataFrame.lookup
    DataFrame.pop
    DataFrame.tail
    DataFrame.xs
@@ -250,7 +249,6 @@ Combining / comparing / joining / merging
 .. autosummary::
    :toctree: api/
 
-   DataFrame.append
    DataFrame.assign
    DataFrame.compare
    DataFrame.join
