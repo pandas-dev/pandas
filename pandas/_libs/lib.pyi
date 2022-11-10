@@ -169,9 +169,6 @@ def ensure_string_array(
     copy: bool = ...,
     skipna: bool = ...,
 ) -> npt.NDArray[np.object_]: ...
-def infer_datetimelike_array(
-    arr: npt.NDArray[np.object_],
-) -> str: ...
 def convert_nans_to_NA(
     arr: npt.NDArray[np.object_],
 ) -> npt.NDArray[np.object_]: ...
