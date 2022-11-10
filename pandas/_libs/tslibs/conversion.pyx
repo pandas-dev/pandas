@@ -302,8 +302,9 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         return convert_datetime_to_tsobject(ts, tz, nanos, reso=reso)
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
+        # For date object we give the lowest supporte resolution, ie. "s"
         ts = datetime.combine(ts, time())
-        return convert_datetime_to_tsobject(ts, tz, nanos=0, reso=NPY_FR_us)  # TODO: or lower?
+        return convert_datetime_to_tsobject(ts, tz, nanos=0, reso=NPY_FR_s)
     else:
         from .period import Period
         if isinstance(ts, Period):
