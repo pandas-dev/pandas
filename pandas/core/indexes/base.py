@@ -844,12 +844,12 @@ class Index(IndexOpsMixin, PandasObject):
         # For base class (object dtype) we get ObjectEngine
         target_values = self._get_engine_target()
         if isinstance(target_values, ExtensionArray):
-            is_masked = hasattr(target_values, "_mask")
-            #  error: "ExtensionArray" has no attribute "_data"
-            if is_masked:
+            from pandas.core.arrays import BaseMaskedArray
+
+            if isinstance(target_values, BaseMaskedArray):
                 return _masked_engines[target_values.dtype.name](
-                    target_values._data,  # type: ignore[attr-defined]
-                    target_values._mask,  # type: ignore[attr-defined]
+                    target_values._data,
+                    target_values._mask,
                 )
             elif self._engine_type is libindex.ObjectEngine:
                 return libindex.ExtensionEngine(target_values)
@@ -3893,7 +3893,9 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 tgt_values = target._get_engine_target()
 
-            if is_extension_array_dtype(tgt_values):
+            from pandas.core.arrays import BaseMaskedArray
+
+            if isinstance(tgt_values, BaseMaskedArray):
                 # Too many arguments for "get_indexer_non_unique" of "IndexEngine"
                 indexer = self._engine.get_indexer(  # type: ignore[call-arg]
                     tgt_values._data,

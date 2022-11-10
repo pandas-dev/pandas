@@ -166,10 +166,10 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
         if not self.unique:
             return self._get_loc_duplicates(val)
+        if self.mask is not None and val is C_NA:
+            return self.mapping.get_na()
 
         try:
-            if self.mask is not None and val is C_NA:
-                return self.mapping.get_na()
             return self.mapping.get_item(val)
         except OverflowError as err:
             # GH#41775 OverflowError e.g. if we are uint64 and val is -1
