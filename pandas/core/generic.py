@@ -8853,7 +8853,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         axis: Axis = 0,
         method: str = "average",
-        numeric_only: bool_t | None | lib.NoDefault = lib.no_default,
+        numeric_only: bool_t = False,
         na_option: str = "keep",
         ascending: bool_t = True,
         pct: bool_t = False,
@@ -8878,7 +8878,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * first: ranks assigned in order they appear in the array
             * dense: like 'min', but rank always increases by 1 between groups.
 
-        numeric_only : bool, optional
+        numeric_only : bool, default False
             For DataFrame objects, rank only numeric columns if set to True.
         na_option : {'keep', 'top', 'bottom'}, default 'keep'
             How to rank NaN values:
@@ -8953,20 +8953,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   spider          8.0           4.0       4.0        4.0     1.000
         4    snake          NaN           NaN       NaN        5.0       NaN
         """
-        warned = False
-        if numeric_only is None:
-            # GH#45036
-            warnings.warn(
-                f"'numeric_only=None' in {type(self).__name__}.rank is deprecated "
-                "and will raise in a future version. Pass either 'True' or "
-                "'False'. 'False' will be the default.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            warned = True
-        elif numeric_only is lib.no_default:
-            numeric_only = None
-
         axis_int = self._get_axis_number(axis)
 
         if na_option not in {"keep", "top", "bottom"}:
@@ -9001,24 +8987,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
             return ranks_obj.__finalize__(self, method="rank")
-
-        # if numeric_only is None, and we can't get anything, we try with
-        # numeric_only=True
-        if numeric_only is None:
-            try:
-                return ranker(self)
-            except TypeError:
-                numeric_only = True
-                if not warned:
-                    # Only warn here if we didn't already issue a warning above
-                    # GH#45036
-                    warnings.warn(
-                        f"Dropping of nuisance columns in {type(self).__name__}.rank "
-                        "is deprecated; in a future version this will raise TypeError. "
-                        "Select only valid columns before calling rank.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
 
         if numeric_only:
             if self.ndim == 1 and not is_numeric_dtype(self.dtype):

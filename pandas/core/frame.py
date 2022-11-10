@@ -9939,7 +9939,7 @@ Parrot 2  Parrot       24.0
         self,
         method: CorrelationMethod = "pearson",
         min_periods: int = 1,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
@@ -9960,14 +9960,10 @@ Parrot 2  Parrot       24.0
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for Pearson
             and Spearman correlation.
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
-
-            .. deprecated:: 1.5.0
-                The default value of ``numeric_only`` will be ``False`` in a future
-                version of pandas.
 
         Returns
         -------
@@ -10007,11 +10003,7 @@ Parrot 2  Parrot       24.0
         dogs   1.0   NaN
         cats   NaN   1.0
         """  # noqa:E501
-        numeric_only_bool = com.resolve_numeric_only(numeric_only)
-        data = self._get_numeric_data() if numeric_only_bool else self
-        if numeric_only is lib.no_default and len(data.columns) < len(self.columns):
-            com.deprecate_numeric_only_default(type(self), "corr")
-
+        data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
         idx = cols.copy()
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
@@ -10058,7 +10050,7 @@ Parrot 2  Parrot       24.0
         self,
         min_periods: int | None = None,
         ddof: int | None = 1,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ) -> DataFrame:
         """
         Compute pairwise covariance of columns, excluding NA/null values.
@@ -10090,14 +10082,10 @@ Parrot 2  Parrot       24.0
 
             .. versionadded:: 1.1.0
 
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
-
-            .. deprecated:: 1.5.0
-                The default value of ``numeric_only`` will be ``False`` in a future
-                version of pandas.
 
         Returns
         -------
@@ -10168,11 +10156,7 @@ Parrot 2  Parrot       24.0
         b       NaN  1.248003  0.191417
         c -0.150812  0.191417  0.895202
         """
-        numeric_only_bool = com.resolve_numeric_only(numeric_only)
-        data = self._get_numeric_data() if numeric_only_bool else self
-        if numeric_only is lib.no_default and len(data.columns) < len(self.columns):
-            com.deprecate_numeric_only_default(type(self), "cov")
-
+        data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
         idx = cols.copy()
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
@@ -10196,7 +10180,7 @@ Parrot 2  Parrot       24.0
         axis: Axis = 0,
         drop: bool = False,
         method: CorrelationMethod = "pearson",
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ) -> Series:
         """
         Compute pairwise correlation.
@@ -10224,14 +10208,10 @@ Parrot 2  Parrot       24.0
             * callable: callable with input two 1d ndarrays
                 and returning a float.
 
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
-
-            .. deprecated:: 1.5.0
-                The default value of ``numeric_only`` will be ``False`` in a future
-                version of pandas.
 
         Returns
         -------
@@ -10264,15 +10244,12 @@ Parrot 2  Parrot       24.0
         dtype: float64
         """  # noqa:E501
         axis = self._get_axis_number(axis)
-        numeric_only_bool = com.resolve_numeric_only(numeric_only)
-        this = self._get_numeric_data() if numeric_only_bool else self
-        if numeric_only is lib.no_default and len(this.columns) < len(self.columns):
-            com.deprecate_numeric_only_default(type(self), "corrwith")
+        this = self._get_numeric_data() if numeric_only else self
 
         if isinstance(other, Series):
             return this.apply(lambda x: other.corr(x, method=method), axis=axis)
 
-        if numeric_only_bool:
+        if numeric_only:
             other = other._get_numeric_data()
         left, right = this.align(other, join="inner", copy=False)
 
@@ -10286,14 +10263,14 @@ Parrot 2  Parrot       24.0
             right = right + left * 0
 
             # demeaned data
-            ldem = left - left.mean(numeric_only=numeric_only_bool)
-            rdem = right - right.mean(numeric_only=numeric_only_bool)
+            ldem = left - left.mean(numeric_only=numeric_only)
+            rdem = right - right.mean(numeric_only=numeric_only)
 
             num = (ldem * rdem).sum()
             dom = (
                 (left.count() - 1)
-                * left.std(numeric_only=numeric_only_bool)
-                * right.std(numeric_only=numeric_only_bool)
+                * left.std(numeric_only=numeric_only)
+                * right.std(numeric_only=numeric_only)
             )
 
             correl = num / dom
@@ -10801,7 +10778,7 @@ Parrot 2  Parrot       24.0
         self,
         q: float = ...,
         axis: Axis = ...,
-        numeric_only: bool | lib.NoDefault = ...,
+        numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
     ) -> Series:
         ...
@@ -10811,7 +10788,7 @@ Parrot 2  Parrot       24.0
         self,
         q: AnyArrayLike | Sequence[float],
         axis: Axis = ...,
-        numeric_only: bool | lib.NoDefault = ...,
+        numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
     ) -> Series | DataFrame:
         ...
@@ -10821,7 +10798,7 @@ Parrot 2  Parrot       24.0
         self,
         q: float | AnyArrayLike | Sequence[float] = ...,
         axis: Axis = ...,
-        numeric_only: bool | lib.NoDefault = ...,
+        numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
     ) -> Series | DataFrame:
         ...
@@ -10830,7 +10807,7 @@ Parrot 2  Parrot       24.0
         self,
         q: float | AnyArrayLike | Sequence[float] = 0.5,
         axis: Axis = 0,
-        numeric_only: bool | lib.NoDefault = no_default,
+        numeric_only: bool = False,
         interpolation: QuantileInterpolation = "linear",
         method: Literal["single", "table"] = "single",
     ) -> Series | DataFrame:
@@ -10843,13 +10820,8 @@ Parrot 2  Parrot       24.0
             Value between 0 <= q <= 1, the quantile(s) to compute.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-        numeric_only : bool, default True
-            If False, the quantile of datetime and timedelta data will be
-            computed as well.
-
-            .. deprecated:: 1.5.0
-                The default value of ``numeric_only`` will be ``False`` in a future
-                version of pandas.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
 
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             This optional parameter specifies the interpolation method to use,
@@ -10924,7 +10896,6 @@ Parrot 2  Parrot       24.0
         any_not_numeric = any(not is_numeric_dtype(x) for x in self.dtypes)
         if numeric_only is no_default and any_not_numeric:
             com.deprecate_numeric_only_default(type(self), "quantile")
-        numeric_only = com.resolve_numeric_only(numeric_only)
 
         if not is_list_like(q):
             # BlockManager.quantile expects listlike, so we wrap and unwrap here
