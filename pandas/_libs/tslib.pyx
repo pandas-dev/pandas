@@ -551,7 +551,7 @@ cpdef array_to_datetime(
                             raise ValueError('Cannot mix tz-aware with '
                                              'tz-naive values')
                         if isinstance(val, _Timestamp):
-                            iresult[i] = val._as_unit("ns").value
+                            iresult[i] = val.as_unit("ns").value
                         else:
                             iresult[i] = pydatetime_to_dt64(val, &dts)
                             check_dts_bounds(&dts)
@@ -906,7 +906,7 @@ def array_to_datetime_with_tz(ndarray values, tzinfo tz):
                 else:
                     # datetime64, tznaive pydatetime, int, float
                     ts = ts.tz_localize(tz)
-                ts = ts._as_unit("ns")
+                ts = ts.as_unit("ns")
                 ival = ts.value
 
         # Analogous to: result[i] = ival
