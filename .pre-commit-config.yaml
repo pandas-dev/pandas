@@ -104,13 +104,6 @@ repos:
         stages: [manual]
         additional_dependencies: &pyright_dependencies
         - pyright@1.1.276
-    -   id: stdlib-imports
-        # note: assumes python env is setup and activated
-        name: Place standard library imports at top of file
-        entry: python visitor.py
-        language: python
-        types: [python]
-        exclude: ^versionneer\.py$
     -   id: pyright_reportGeneralTypeIssues
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
@@ -296,3 +289,9 @@ repos:
         - autotyping==22.9.0
         - black==22.6.0
         - libcst==0.4.7
+    -   id: stdlib-imports
+        name: Place standard library imports at top of file
+        entry: python -m scripts.standard_library_imports_should_be_global
+        language: python
+        types: [python]
+        exclude: ^versionneer\.py$

@@ -44,15 +44,12 @@ if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
     python -W error -c "
 import sys
 import pandas
-
-blocklist = {'bs4', 'gcsfs', 'html5lib', 'http', 'ipython', 'jinja2', 'hypothesis',
-             'lxml', 'matplotlib', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
-             'tables', 'urllib.request', 'xlrd', 'xlsxwriter'}
+from scripts.standard_library_imports_should_be_global import BLOCKLIST
 
 # GH#28227 for some of these check for top-level modules, while others are
 #  more specific (e.g. urllib.request)
 import_mods = set(m.split('.')[0] for m in sys.modules) | set(sys.modules)
-mods = blocklist & import_mods
+mods = BLOCKLIST & import_mods
 if mods:
     sys.stderr.write('err: pandas should not import: {}\n'.format(', '.join(mods)))
     sys.exit(len(mods))
