@@ -75,7 +75,7 @@ class TestAstype:
         idx = Float64Index([0, 1.1, 2])
 
         msg = (
-            f"Cannot convert Float64Index to dtype {pandas_dtype(dtype)}; "
+            f"Cannot convert dtype=float64 to dtype {pandas_dtype(dtype)}; "
             f"integer values are required for conversion"
         )
         with pytest.raises(TypeError, match=re.escape(msg)):
