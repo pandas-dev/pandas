@@ -72,7 +72,7 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_200.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_200.notable_bug_fixes.cumsum_cumprod_overflow:
 
 :meth:`.GroupBy.cumsum` and :meth:`.GroupBy.cumprod` overflow instead of lossy casting to float
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -102,10 +102,58 @@ We return incorrect results with the 6th value.
 
 We overflow with the 7th value, but the 6th value is still correct.
 
-.. _whatsnew_200.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_200.notable_bug_fixes.groupby_nth_filter:
 
-notable_bug_fix2
-^^^^^^^^^^^^^^^^
+:meth:`.DataFrameGroupBy.nth` and :meth:`.SeriesGroupBy.nth` now behave as filtrations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions of pandas, :meth:`.DataFrameGroupBy.nth` and
+:meth:`.SeriesGroupBy.nth` acted as if they were aggregations. However, for most
+inputs ``n``, they may return either zero or multiple rows per group. This means
+that they are filtrations, similar to e.g. :meth:`.DataFrameGroupBy.head`. pandas
+now treats them as filtrations (:issue:`13666`).
+
+.. ipython:: python
+
+    df = pd.DataFrame({"a": [1, 1, 2, 1, 2], "b": [np.nan, 2.0, 3.0, 4.0, 5.0]})
+    gb = df.groupby("a")
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [5]: gb.nth(n=1)
+    Out[5]:
+       A    B
+    1  1  2.0
+    4  2  5.0
+
+*New Behavior*
+
+.. ipython:: python
+
+    gb.nth(n=1)
+
+In particular, the index of the result is derived from the input by selecting
+the appropriate rows. Also, when ``n`` is larger than the group, no rows instead of
+``NaN`` is returned.
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [5]: gb.nth(n=3, dropna="any")
+    Out[5]:
+        B
+    A
+    1 NaN
+    2 NaN
+
+*New Behavior*
+
+.. ipython:: python
+
+    gb.nth(n=3, dropna="any")
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.api_breaking:

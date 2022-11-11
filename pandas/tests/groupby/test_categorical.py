@@ -563,11 +563,7 @@ def test_observed_nth():
     df = DataFrame({"cat": cat, "ser": ser})
 
     result = df.groupby("cat", observed=False)["ser"].nth(0)
-
-    index = Categorical(["a", "b", "c"], categories=["a", "b", "c"])
-    expected = Series([1, np.nan, np.nan], index=index, name="ser")
-    expected.index.name = "cat"
-
+    expected = df["ser"].iloc[[0]]
     tm.assert_series_equal(result, expected)
 
 
