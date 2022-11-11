@@ -40,7 +40,6 @@ from pandas._typing import (
     CorrelationMethod,
     FillnaOptions,
     IndexLabel,
-    Level,
     Manager,
     Manager2D,
     SingleManager,
@@ -870,7 +869,6 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         axis: Axis | lib.NoDefault = lib.no_default,
         skipna: bool = True,
-        level: Level | None = None,
         numeric_only: bool | None = None,
         **kwargs,
     ) -> Series:
@@ -878,7 +876,6 @@ class SeriesGroupBy(GroupBy[Series]):
             "skew",
             axis=axis,
             skipna=skipna,
-            level=level,
             numeric_only=numeric_only,
             **kwargs,
         )
@@ -2261,7 +2258,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
-        level: Level | None = None,
         numeric_only: bool | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> DataFrame:
@@ -2269,7 +2265,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             "skew",
             axis=axis,
             skipna=skipna,
-            level=level,
             numeric_only=numeric_only,
             **kwargs,
         )

@@ -118,7 +118,6 @@ from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
-    ensure_platform_int,
     infer_dtype_from_object,
     is_1d_only_ea_dtype,
     is_bool_dtype,
@@ -10337,7 +10336,7 @@ Parrot 2  Parrot       24.0
     # ----------------------------------------------------------------------
     # ndarray-like stats methods
 
-    def count(self, axis: Axis = 0, level: Level = None, numeric_only: bool = False):
+    def count(self, axis: Axis = 0, numeric_only: bool = False):
         """
         Count non-NA cells for each column or row.
 
@@ -10349,10 +10348,6 @@ Parrot 2  Parrot       24.0
         axis : {0 or 'index', 1 or 'columns'}, default 0
             If 0 or 'index' counts are generated for each column.
             If 1 or 'columns' counts are generated for each row.
-        level : int or str, optional
-            If the axis is a `MultiIndex` (hierarchical), count along a
-            particular `level`, collapsing into a `DataFrame`.
-            A `str` specifies the level name.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -10406,16 +10401,6 @@ Parrot 2  Parrot       24.0
         dtype: int64
         """
         axis = self._get_axis_number(axis)
-        if level is not None:
-            warnings.warn(
-                "Using the level keyword in DataFrame and Series aggregations is "
-                "deprecated and will be removed in a future version. Use groupby "
-                "instead. df.count(level=1) should use df.groupby(level=1).count().",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            res = self._count_level(level, axis=axis, numeric_only=numeric_only)
-            return res.__finalize__(self, method="count")
 
         if numeric_only:
             frame = self._get_numeric_data()
@@ -10439,53 +10424,6 @@ Parrot 2  Parrot       24.0
                 )
 
         return result.astype("int64").__finalize__(self, method="count")
-
-    def _count_level(self, level: Level, axis: AxisInt = 0, numeric_only: bool = False):
-        if numeric_only:
-            frame = self._get_numeric_data()
-        else:
-            frame = self
-
-        count_axis = frame._get_axis(axis)
-        agg_axis = frame._get_agg_axis(axis)
-
-        if not isinstance(count_axis, MultiIndex):
-            raise TypeError(
-                f"Can only count levels on hierarchical {self._get_axis_name(axis)}."
-            )
-
-        # Mask NaNs: Mask rows or columns where the index level is NaN, and all
-        # values in the DataFrame that are NaN
-        if frame._is_mixed_type:
-            # Since we have mixed types, calling notna(frame.values) might
-            # upcast everything to object
-            values_mask = notna(frame).values
-        else:
-            # But use the speedup when we have homogeneous dtypes
-            values_mask = notna(frame.values)
-
-        index_mask = notna(count_axis.get_level_values(level=level))
-        if axis == 1:
-            mask = index_mask & values_mask
-        else:
-            mask = index_mask.reshape(-1, 1) & values_mask
-
-        if isinstance(level, int):
-            level_number = level
-        else:
-            level_number = count_axis._get_level_number(level)
-
-        level_name = count_axis._names[level_number]
-        level_index = count_axis.levels[level_number]._rename(name=level_name)
-        level_codes = ensure_platform_int(count_axis.codes[level_number])
-        counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=axis)
-
-        if axis == 1:
-            result = self._constructor(counts, index=agg_axis, columns=level_index)
-        else:
-            result = self._constructor(counts, index=level_index, columns=agg_axis)
-
-        return result
 
     def _reduce(
         self,
