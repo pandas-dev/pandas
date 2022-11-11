@@ -810,7 +810,6 @@ def value_counts(
     normalize: bool = False,
     bins=None,
     dropna: bool = True,
-    name: Hashable | None = None,
 ) -> Series:
     """
     Compute a histogram of the counts of non-null values.
@@ -839,8 +838,7 @@ def value_counts(
         Series,
     )
 
-    if name is None:
-        name = getattr(values, "name", None)
+    name = getattr(values, "name", None)
 
     if bins is not None:
         from pandas.core.reshape.tile import cut
@@ -852,7 +850,7 @@ def value_counts(
             raise TypeError("bins argument only works with numeric data.") from err
 
         # count, remove nulls (from the index), and but the bins
-        result = ii.value_counts(dropna=dropna, name=name)
+        result = ii.value_counts(dropna=dropna)
         result = result[result.index.notna()]
         result.index = result.index.astype("interval")
         result = result.sort_index()

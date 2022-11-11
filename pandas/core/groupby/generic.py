@@ -746,7 +746,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if is_integer_dtype(out.dtype):
             out = ensure_int64(out)
-        return self.obj._constructor(out, index=mi)
+        return self.obj._constructor(out, index=mi, name=self.obj.name)
 
     def fillna(
         self,
@@ -1878,8 +1878,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         sort: bool = True,
         ascending: bool = False,
         dropna: bool = True,
-        *,
-        name: Hashable | None = None,
     ) -> DataFrame | Series:
         """
         Return a Series or DataFrame containing counts of unique rows.
@@ -2003,11 +2001,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 grouping.name for grouping in self.grouper.groupings if grouping.in_axis
             }
             if isinstance(self._selected_obj, Series):
-                keys = (
-                    []
-                    if self._selected_obj.name in in_axis_names
-                    else [self._selected_obj]
-                )
+                name = self._selected_obj.name
+                keys = [] if name in in_axis_names else [self._selected_obj]
             else:
                 unique_cols = set(self._selected_obj.columns)
                 if subset is not None:
@@ -2030,8 +2025,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 keys = [
                     # Can't use .values because the column label needs to be preserved
                     self._selected_obj.iloc[:, idx]
-                    for idx, _name in enumerate(self._selected_obj.columns)
-                    if _name not in in_axis_names and _name in subsetted
+                    for idx, name in enumerate(self._selected_obj.columns)
+                    if name not in in_axis_names and name in subsetted
                 ]
 
             groupings = list(self.grouper.groupings)
@@ -2053,7 +2048,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 observed=self.observed,
                 dropna=self.dropna,
             )
-            result_series = cast(Series, gb.size()).rename(name)
+            result_series = cast(Series, gb.size())
 
             # GH-46357 Include non-observed categories
             # of non-grouping columns regardless of `observed`
@@ -2097,8 +2092,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = result_series
             else:
                 # Convert to frame
-                if name is None:
-                    name = "proportion" if normalize else "count"
+                name = "proportion" if normalize else "count"
                 index = result_series.index
                 columns = com.fill_missing_names(index.names)
                 if name in columns:
