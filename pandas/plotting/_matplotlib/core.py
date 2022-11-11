@@ -1222,7 +1222,7 @@ class ScatterPlot(PlanePlot):
 
         if self.colormap is not None:
             if mpl_ge_3_6_0():
-                cmap = mpl.colormaps[self.colormap]
+                cmap = mpl.colormaps.get_cmap(self.colormap)
             else:
                 cmap = self.plt.cm.get_cmap(self.colormap)
         else:
@@ -1302,7 +1302,7 @@ class HexBinPlot(PlanePlot):
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "BuGn"
         if mpl_ge_3_6_0():
-            cmap = mpl.colormaps[cmap]
+            cmap = mpl.colormaps.get_cmap(cmap)
         else:
             cmap = self.plt.cm.get_cmap(cmap)
         cb = self.kwds.pop("colorbar", True)

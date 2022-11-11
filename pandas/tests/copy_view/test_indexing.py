@@ -462,6 +462,158 @@ def test_subset_set_with_column_indexer(
         tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda df: df[["a", "b"]][0:2],
+        lambda df: df[0:2][["a", "b"]],
+        lambda df: df[["a", "b"]].iloc[0:2],
+        lambda df: df[["a", "b"]].loc[0:1],
+        lambda df: df[0:2].iloc[:, 0:2],
+        lambda df: df[0:2].loc[:, "a":"b"],  # type: ignore[misc]
+    ],
+    ids=[
+        "row-getitem-slice",
+        "column-getitem",
+        "row-iloc-slice",
+        "row-loc-slice",
+        "column-iloc-slice",
+        "column-loc-slice",
+    ],
+)
+@pytest.mark.parametrize(
+    "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
+)
+def test_subset_chained_getitem(
+    request, method, dtype, using_copy_on_write, using_array_manager
+):
+    # Case: creating a subset using multiple, chained getitem calls using views
+    # still needs to guarantee proper CoW behaviour
+    df = DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+    )
+    df_orig = df.copy()
+
+    # when not using CoW, it depends on whether we have a single block or not
+    # and whether we are slicing the columns -> in that case we have a view
+    subset_is_view = request.node.callspec.id in (
+        "single-block-column-iloc-slice",
+        "single-block-column-loc-slice",
+    ) or (
+        request.node.callspec.id
+        in ("mixed-block-column-iloc-slice", "mixed-block-column-loc-slice")
+        and using_array_manager
+    )
+
+    # modify subset -> don't modify parent
+    subset = method(df)
+    subset.iloc[0, 0] = 0
+    if using_copy_on_write or (not subset_is_view):
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        assert df.iloc[0, 0] == 0
+
+    # modify parent -> don't modify subset
+    subset = method(df)
+    df.iloc[0, 0] = 0
+    expected = DataFrame({"a": [1, 2], "b": [4, 5]})
+    if using_copy_on_write or not subset_is_view:
+        tm.assert_frame_equal(subset, expected)
+    else:
+        assert subset.iloc[0, 0] == 0
+
+
+@pytest.mark.parametrize(
+    "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
+)
+def test_subset_chained_getitem_column(dtype, using_copy_on_write):
+    # Case: creating a subset using multiple, chained getitem calls using views
+    # still needs to guarantee proper CoW behaviour
+    df = DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+    )
+    df_orig = df.copy()
+
+    # modify subset -> don't modify parent
+    subset = df[:]["a"][0:2]
+    df._clear_item_cache()
+    subset.iloc[0] = 0
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        assert df.iloc[0, 0] == 0
+
+    # modify parent -> don't modify subset
+    subset = df[:]["a"][0:2]
+    df._clear_item_cache()
+    df.iloc[0, 0] = 0
+    expected = Series([1, 2], name="a")
+    if using_copy_on_write:
+        tm.assert_series_equal(subset, expected)
+    else:
+        assert subset.iloc[0] == 0
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda s: s["a":"c"]["a":"b"],  # type: ignore[misc]
+        lambda s: s.iloc[0:3].iloc[0:2],
+        lambda s: s.loc["a":"c"].loc["a":"b"],  # type: ignore[misc]
+        lambda s: s.loc["a":"c"]  # type: ignore[misc]
+        .iloc[0:3]
+        .iloc[0:2]
+        .loc["a":"b"]  # type: ignore[misc]
+        .iloc[0:1],
+    ],
+    ids=["getitem", "iloc", "loc", "long-chain"],
+)
+def test_subset_chained_getitem_series(method, using_copy_on_write):
+    # Case: creating a subset using multiple, chained getitem calls using views
+    # still needs to guarantee proper CoW behaviour
+    s = Series([1, 2, 3], index=["a", "b", "c"])
+    s_orig = s.copy()
+
+    # modify subset -> don't modify parent
+    subset = method(s)
+    subset.iloc[0] = 0
+    if using_copy_on_write:
+        tm.assert_series_equal(s, s_orig)
+    else:
+        assert s.iloc[0] == 0
+
+    # modify parent -> don't modify subset
+    subset = s.iloc[0:3].iloc[0:2]
+    s.iloc[0] = 0
+    expected = Series([1, 2], index=["a", "b"])
+    if using_copy_on_write:
+        tm.assert_series_equal(subset, expected)
+    else:
+        assert subset.iloc[0] == 0
+
+
+def test_subset_chained_single_block_row(using_copy_on_write, using_array_manager):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+    df_orig = df.copy()
+
+    # modify subset -> don't modify parent
+    subset = df[:].iloc[0].iloc[0:2]
+    subset.iloc[0] = 0
+    if using_copy_on_write or using_array_manager:
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        assert df.iloc[0, 0] == 0
+
+    # modify parent -> don't modify subset
+    subset = df[:].iloc[0].iloc[0:2]
+    df.iloc[0, 0] = 0
+    expected = Series([1, 4], index=["a", "b"], name=0)
+    if using_copy_on_write or using_array_manager:
+        tm.assert_series_equal(subset, expected)
+    else:
+        assert subset.iloc[0] == 0
+
+
 # TODO add more tests modifying the parent
 
 
