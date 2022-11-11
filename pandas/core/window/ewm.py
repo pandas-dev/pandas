@@ -123,7 +123,7 @@ def _calculate_deltas(
     """
     _times = np.asarray(times.view(np.int64), dtype=np.float64)
     # TODO: generalize to non-nano?
-    _halflife = float(Timedelta(halflife)._as_unit("ns").value)
+    _halflife = float(Timedelta(halflife).as_unit("ns").value)
     return np.diff(_times) / _halflife
 
 
