@@ -250,6 +250,7 @@ class TestMethods(base.BaseMethodsTests):
         )
 
     @pytest.mark.parametrize("dropna", [True, False])
+    @pytest.mark.filterwarnings(f"ignore:{VALUE_COUNTS_NAME_MSG}:FutureWarning")
     def test_value_counts(self, all_data, dropna, request):
         all_data = all_data[:10]
         if dropna:
@@ -262,16 +263,14 @@ class TestMethods(base.BaseMethodsTests):
             and getattr(all_data.dtype, "storage", "") == "pyarrow"
             and not (dropna and "data_missing" in request.node.nodeid),
         ):
-            with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
-                result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
+            result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
         with tm.maybe_produces_warning(
             PerformanceWarning,
             pa_version_under7p0
             and getattr(other.dtype, "storage", "") == "pyarrow"
             and not (dropna and "data_missing" in request.node.nodeid),
         ):
-            with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
-                expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+            expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
 
         self.assert_series_equal(result, expected)
 
