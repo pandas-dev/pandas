@@ -13,6 +13,7 @@ from typing import (
     Mapping,
     Sequence,
 )
+import warnings
 
 from pandas._config import get_option
 
@@ -1097,5 +1098,8 @@ def _get_dataframe_dtype_counts(df: DataFrame) -> Mapping[str, int]:
     """
     Create mapping between datatypes and their number of occurrences.
     """
-    # groupby dtype.name to collect e.g. Categorical columns
-    return df.dtypes.value_counts().groupby(lambda x: x.name).sum()
+    with warnings.catch_warnings():
+        msg = "In pandas 2.0.0, the name of the resulting Series"
+        warnings.filterwarnings("ignore", msg, FutureWarning)
+        # groupby dtype.name to collect e.g. Categorical columns
+        return df.dtypes.value_counts().groupby(lambda x: x.name).sum()

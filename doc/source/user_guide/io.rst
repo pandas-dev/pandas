@@ -418,6 +418,7 @@ For instance, you can use the ``converters`` argument
 of :func:`~pandas.read_csv`:
 
 .. ipython:: python
+   :okwarning:
 
     data = "col_1\n1\n2\n'A'\n4.22"
     df = pd.read_csv(StringIO(data), converters={"col_1": str})
@@ -428,6 +429,7 @@ Or you can use the :func:`~pandas.to_numeric` function to coerce the
 dtypes after reading in the data,
 
 .. ipython:: python
+   :okwarning:
 
     df2 = pd.read_csv(StringIO(data))
     df2["col_1"] = pd.to_numeric(df2["col_1"], errors="coerce")
@@ -4329,6 +4331,7 @@ nan representation on disk (which converts to/from ``np.nan``), this
 defaults to ``nan``.
 
 .. ipython:: python
+   :okwarning:
 
     df_mixed = pd.DataFrame(
         {

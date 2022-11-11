@@ -325,6 +325,7 @@ behavior is now consistent with ``unique``, ``isin`` and others
 (:issue:`42688`).
 
 .. ipython:: python
+    :okwarning:
 
     s = pd.Series([True, None, pd.NaT, None, pd.NaT, None])
     res = s.value_counts(dropna=False)

@@ -102,6 +102,7 @@ sentinel value that can be represented by NumPy in a singular dtype (datetime64[
 pandas objects provide compatibility between ``NaT`` and ``NaN``.
 
 .. ipython:: python
+   :okwarning:
 
    df2 = df.copy()
    df2["timestamp"] = pd.Timestamp("20120101")

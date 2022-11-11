@@ -561,6 +561,7 @@ integer dtype for the values.
 *pandas 1.0.0*
 
 .. ipython:: python
+   :okwarning:
 
    pd.Series([2, 1, 1, None], dtype="Int64").value_counts().dtype
 

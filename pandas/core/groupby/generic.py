@@ -625,13 +625,16 @@ class SeriesGroupBy(GroupBy[Series]):
             # scalar bins cannot be done at top level
             # in a backward compatible way
             # GH38672 relates to categorical dtype
-            ser = self.apply(
-                Series.value_counts,
-                normalize=normalize,
-                sort=sort,
-                ascending=ascending,
-                bins=bins,
-            )
+            with warnings.catch_warnings():
+                msg = "In pandas 2.0.0, the name of the resulting Series"
+                warnings.filterwarnings("ignore", msg, FutureWarning)
+                ser = self.apply(
+                    Series.value_counts,
+                    normalize=normalize,
+                    sort=sort,
+                    ascending=ascending,
+                    bins=bins,
+                )
             ser.index.names = names
             return ser
 
@@ -1982,12 +1985,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3    male       low      US        0.25
         4    male    medium      FR        0.25
         """
-        warnings.warn(
-            "In pandas 2.0.0, the name of the resulting Series will be "
-            "'count' (or 'proportion' if `normalize=True`).",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
+        if self.as_index:
+            warnings.warn(
+                "In pandas 2.0.0, the name of the resulting Series will be "
+                "'count' (or 'proportion' if `normalize=True`).",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         if self.axis == 1:
             raise NotImplementedError(

@@ -611,6 +611,7 @@ following operations are possible with categorical data:
 even if some categories are not present in the data:
 
 .. ipython:: python
+    :okwarning:
 
     s = pd.Series(pd.Categorical(["a", "b", "c", "c"], categories=["c", "a", "b", "d"]))
     s.value_counts()

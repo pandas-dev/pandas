@@ -220,6 +220,7 @@ counts up to this point. As long as each individual file fits in memory, this wi
 work for arbitrary-sized datasets.
 
 .. ipython:: python
+   :okwarning:
 
    %%time
    files = pathlib.Path("data/timeseries/").glob("ts*.parquet")
@@ -302,6 +303,7 @@ returns a Dask Series with the same dtype and the same name.
 To get the actual result you can call ``.compute()``.
 
 .. ipython:: python
+   :okwarning:
 
    %time ddf["name"].value_counts().compute()
 

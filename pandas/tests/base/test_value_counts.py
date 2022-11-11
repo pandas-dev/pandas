@@ -336,10 +336,3 @@ def test_value_counts_with_nan(dropna, index_or_series):
     else:
         expected = Series([1, 1, 1], index=[True, pd.NA, np.nan])
     tm.assert_series_equal(res, expected)
-
-
-def test_value_counts_with_name(index_or_series):
-    # GH49497
-    result = index_or_series(["a", "a", "b"]).value_counts(name="count")
-    expected = Series([2, 1], index=["a", "b"], name="count")
-    tm.assert_series_equal(result, expected)

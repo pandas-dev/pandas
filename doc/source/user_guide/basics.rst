@@ -689,6 +689,7 @@ The :meth:`~Series.value_counts` Series method and top-level function computes a
 of a 1D array of values. It can also be used as a function on regular arrays:
 
 .. ipython:: python
+   :okwarning:
 
    data = np.random.randint(0, 7, size=50)
    data
@@ -702,6 +703,7 @@ The :meth:`~DataFrame.value_counts` method can be used to count combinations acr
 By default all columns are used but a subset can be selected using the ``subset`` argument.
 
 .. ipython:: python
+   :okwarning:
 
     data = {"a": [1, 2, 3, 4], "b": ["x", "x", "y", "y"]}
     frame = pd.DataFrame(data)
@@ -741,6 +743,7 @@ and :func:`qcut` (bins based on sample quantiles) functions:
 normally distributed data into equal-size quartiles like so:
 
 .. ipython:: python
+   :okwarning:
 
    arr = np.random.randn(30)
    factor = pd.qcut(arr, [0, 0.25, 0.5, 0.75, 1])
@@ -2102,6 +2105,7 @@ The number of columns of each type in a ``DataFrame`` can be found by calling
 ``DataFrame.dtypes.value_counts()``.
 
 .. ipython:: python
+   :okwarning:
 
    dft.dtypes.value_counts()
 

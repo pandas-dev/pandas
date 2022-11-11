@@ -430,6 +430,7 @@ Histogramming
 See more at :ref:`Histogramming and Discretization <basics.discretization>`.
 
 .. ipython:: python
+   :okwarning:
 
    s = pd.Series(np.random.randint(0, 7, size=10))
    s

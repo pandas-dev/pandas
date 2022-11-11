@@ -224,6 +224,7 @@ Count number of records by category
 What is the number of passengers in each of the cabin classes?
 
 .. ipython:: python
+    :okwarning:
 
     titanic["Pclass"].value_counts()
 

@@ -14,8 +14,6 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     Grouper,
-    Index,
-    Interval,
     MultiIndex,
     Series,
     date_range,
@@ -205,26 +203,3 @@ def test_series_groupby_value_counts_on_categorical():
     # dtype: int64
 
     tm.assert_series_equal(result, expected)
-
-
-def test_groupby_value_counts_name():
-    # https://github.com/pandas-dev/pandas/issues/49497
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    result = df.groupby("a")["b"].value_counts(name="count")
-    expected_idx = MultiIndex.from_arrays(([1, 2, 3], [4, 5, 6]), names=["a", "b"])
-    expected = Series([1, 1, 1], name="count", index=expected_idx)
-    tm.assert_series_equal(result, expected)
-
-    result = df.groupby("a").value_counts(name="count")
-    tm.assert_series_equal(result, expected)
-
-    result = df.groupby("a")["b"].value_counts(name="count", bins=[2, 7])
-    expected_idx = MultiIndex.from_arrays(
-        [Index([1, 2, 3], name="a"), Index([Interval(1.999, 7)] * 3, name="b")]
-    )
-    expected = Series([1, 1, 1], index=expected_idx, name="count")
-    tm.assert_series_equal(result, expected)
-
-    result = df.groupby("a", as_index=False)["b"].value_counts(name="count")
-    expected = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "count": [1, 1, 1]})
-    tm.assert_frame_equal(result, expected)
