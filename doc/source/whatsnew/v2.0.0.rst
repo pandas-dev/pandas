@@ -452,6 +452,7 @@ Removal of prior version deprecations/changes
 - Enforced disallowing using ``usecols`` with out of bounds indices for ``read_csv`` with ``engine="c"`` (:issue:`25623`)
 - Enforced disallowing the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
 - Enforced disallowing a tuple of column labels into :meth:`.DataFrameGroupBy.__getitem__` (:issue:`30546`)
+- Enforced disallowing missing labels when indexing with a sequence of labels on a level of a :class:`MultiIndex`. This now raises a ``KeyError`` (:issue:`42351`)
 - Enforced disallowing setting values with ``.loc`` using a positional slice. Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
 - Enforced disallowing positional indexing with a ``float`` key even if that key is a round number, manually cast to integer instead (:issue:`34193`)
 - Enforced disallowing using a :class:`DataFrame` indexer with ``.iloc``, use ``.loc`` instead for automatic alignment (:issue:`39022`)
