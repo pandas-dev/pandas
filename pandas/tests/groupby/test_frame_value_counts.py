@@ -812,12 +812,3 @@ def test_subset_duplicate_columns():
         ),
     )
     tm.assert_series_equal(result, expected)
-
-
-def test_name():
-    # https://github.com/pandas-dev/pandas/issues/49497
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    result = df.groupby("a").value_counts(subset=["b"], name="count")
-    expected_idx = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
-    expected = Series([1, 1, 1], index=expected_idx, name="count")
-    tm.assert_series_equal(result, expected)

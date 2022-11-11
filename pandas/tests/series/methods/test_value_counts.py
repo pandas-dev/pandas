@@ -255,10 +255,3 @@ class TestSeriesValueCounts:
         with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
             result = Series(input_array).value_counts()
         tm.assert_series_equal(result, expected)
-
-    def test_value_counts_name(self):
-        # https://github.com/pandas-dev/pandas/issues/49497
-        ser = Series([1, 2, 3], name="foo")
-        result = ser.value_counts(name="count")
-        expected = Series([1, 1, 1], index=[1, 2, 3], name="count")
-        tm.assert_series_equal(result, expected)

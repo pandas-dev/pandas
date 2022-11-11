@@ -153,11 +153,3 @@ def test_data_frame_value_counts_dropna_false(nulls_fixture):
     )
 
     tm.assert_series_equal(result, expected)
-
-
-def test_value_counts_name():
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    result = df.value_counts(name="counts")
-    expected_idx = pd.MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
-    expected = pd.Series([1, 1, 1], name="counts", index=expected_idx)
-    tm.assert_series_equal(result, expected)
