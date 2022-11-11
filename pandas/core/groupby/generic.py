@@ -604,19 +604,13 @@ class SeriesGroupBy(GroupBy[Series]):
         ascending: bool = False,
         bins=None,
         dropna: bool = True,
-        *,
-        name: Hashable | None = None,
     ) -> Series:
-        if name is None:
-            result_name = "proportion" if normalize else "count"
-            warnings.warn(
-                "In pandas 2.0.0, the name of the resulting Series will be "
-                "'count' (or 'proportion' if `normalize=True`). Specify "
-                f"`name='{result_name}'` to silence this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            name = self.obj.name
+        warnings.warn(
+            "In pandas 2.0.0, the name of the resulting Series will be "
+            "'count' (or 'proportion' if `normalize=True`).",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
         from pandas.core.reshape.merge import get_join_indexers
         from pandas.core.reshape.tile import cut
@@ -638,7 +632,6 @@ class SeriesGroupBy(GroupBy[Series]):
                 sort=sort,
                 ascending=ascending,
                 bins=bins,
-                name=name,
             )
             ser.index.names = names
             return ser
@@ -754,7 +747,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if is_integer_dtype(out.dtype):
             out = ensure_int64(out)
-        return self.obj._constructor(out, index=mi, name=name)
+        return self.obj._constructor(out, index=mi)
 
     def fillna(
         self,
@@ -1994,15 +1987,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3    male       low      US        0.25
         4    male    medium      FR        0.25
         """
-        if name is None and self.as_index:
-            result_name = "proportion" if normalize else "count"
-            warnings.warn(
-                "In pandas 2.0.0, the name of the resulting Series will be "
-                "'count' (or 'proportion' if `normalize=True`). Specify "
-                f"`name='{result_name}'` to silence this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+        warnings.warn(
+            "In pandas 2.0.0, the name of the resulting Series will be "
+            "'count' (or 'proportion' if `normalize=True`).",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
         if self.axis == 1:
             raise NotImplementedError(

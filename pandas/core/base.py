@@ -914,8 +914,6 @@ class IndexOpsMixin(OpsMixin):
         ascending: bool = False,
         bins=None,
         dropna: bool = True,
-        *,
-        name: Hashable | None = None,
     ) -> Series:
         """
         Return a Series containing counts of unique values.
@@ -995,16 +993,13 @@ class IndexOpsMixin(OpsMixin):
         NaN    1
         dtype: int64
         """
-        if name is None:
-            result_name = "proportion" if normalize else "count"
-            warnings.warn(
-                "In pandas 2.0.0, the name of the resulting Series will be "
-                "'count' (or 'proportion' if `normalize=True`), and the index "
-                "will inherit the original object's name. Specify "
-                f"`name='{result_name}'` to silence this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+        warnings.warn(
+            "In pandas 2.0.0, the name of the resulting Series will be "
+            "'count' (or 'proportion' if `normalize=True`), and the index "
+            "will inherit the original object's name.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return value_counts(
             self,
             sort=sort,
@@ -1012,7 +1007,6 @@ class IndexOpsMixin(OpsMixin):
             normalize=normalize,
             bins=bins,
             dropna=dropna,
-            name=name,
         )
 
     def unique(self):
