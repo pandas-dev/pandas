@@ -7453,7 +7453,8 @@ class DataFrame(NDFrame, OpsMixin):
             #  fails in cases with empty columns reached via
             #  _frame_arith_method_with_reindex
 
-            # TODO operate_blockwise expects a manager of the same type
+            if type(self._mgr) is not type(right._mgr):
+                raise ValueError("Expected DataFrames have managers of the same type.")
             with np.errstate(all="ignore"):
                 bm = self._mgr.operate_blockwise(
                     # error: Argument 1 to "operate_blockwise" of "ArrayManager" has

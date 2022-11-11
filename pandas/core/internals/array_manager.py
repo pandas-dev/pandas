@@ -694,7 +694,18 @@ class BaseArrayManager(DataManager):
         Used in .equals defined in base class. Only check the column values
         assuming shape and indexes have already been checked.
         """
-        for left, right in zip(self.arrays, other.arrays):
+        from pandas.core.internals import BlockManager  # to avoid circular import
+
+        if isinstance(other, BlockManager):
+            # Because BlockManager exposes it's array in a list of multi-column NDArray, whereas ArrayManager exposes
+            # arrays as a list of single-column NDArray. Therefore, we have to flatten BlockManager's array list
+            flattened_block_arrays = []
+            for multiarray in other.arrays:
+                for single_array in multiarray:
+                    flattened_block_arrays.append(single_array)
+        else:
+            flattened_block_arrays = other.arrays
+        for left, right in zip(self.arrays, flattened_block_arrays):
             if not array_equals(left, right):
                 return False
         return True

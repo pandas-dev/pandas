@@ -1,6 +1,8 @@
 """
 Testing interaction between the different managers (BlockManager, ArrayManager)
 """
+import pytest
+
 from pandas.core.dtypes.missing import array_equivalent
 
 import pandas as pd
@@ -11,6 +13,27 @@ from pandas.core.internals import (
     SingleArrayManager,
     SingleBlockManager,
 )
+
+
+def test_equality_comparison_different_dataframe_managers():
+    with pd.option_context("mode.data_manager", "array"):
+        df_array = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+        df_array1 = df_array.copy()
+    with pd.option_context("mode.data_manager", "block"):
+        df_block = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+
+    with pytest.raises(ValueError):
+        # Cannot compare two dataframes of different manager types using ==
+        _a = df_array == df_block
+    with pytest.raises(ValueError):
+        # Cannot compare two dataframes of different manager types using ==
+        _a = df_block == df_array
+
+    assert df_array.equals(df_block)
+    assert df_array.equals(df_array1)
+
+    # TODO: this direction doesn't work right now
+    # assert df_block.equals(df_array)
 
 
 def test_dataframe_creation():
