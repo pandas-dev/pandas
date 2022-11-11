@@ -62,7 +62,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas import StringDtype
@@ -70,6 +73,7 @@ from pandas.core import algorithms
 from pandas.core.arrays import (
     BooleanArray,
     Categorical,
+    ExtensionArray,
     FloatingArray,
     IntegerArray,
 )
@@ -809,11 +813,13 @@ class ParserBase:
             )
 
         # use the EA's implementation of casting
-        elif is_extension_array_dtype(cast_type):
+        elif isinstance(cast_type, ExtensionDtype):
             array_type = cast_type.construct_array_type()
             try:
                 if is_bool_dtype(cast_type):
-                    return array_type._from_sequence_of_strings(
+                    # error: Unexpected keyword argument "true_values" for
+                    # "_from_sequence_of_strings" of "ExtensionArray"
+                    return array_type._from_sequence_of_strings(  # type: ignore[call-arg]  # noqa:E501
                         values,
                         dtype=cast_type,
                         true_values=self.true_values,
@@ -827,6 +833,8 @@ class ParserBase:
                     "_from_sequence_of_strings in order to be used in parser methods"
                 ) from err
 
+        elif isinstance(values, ExtensionArray):
+            values = values.astype(cast_type, copy=False)
         else:
             try:
                 values = astype_nansafe(values, cast_type, copy=True, skipna=True)
