@@ -37,8 +37,9 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             other = all_data
 
-        result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
-        expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
+            expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
 
         self.assert_series_equal(result, expected)
 
