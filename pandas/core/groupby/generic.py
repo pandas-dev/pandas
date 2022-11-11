@@ -626,6 +626,8 @@ class SeriesGroupBy(GroupBy[Series]):
             # in a backward compatible way
             # GH38672 relates to categorical dtype
             with warnings.catch_warnings():
+                # The warning has already been emitted above,
+                # no need to re-emit it for each group.
                 msg = "In pandas 2.0.0, the name of the resulting Series"
                 warnings.filterwarnings("ignore", msg, FutureWarning)
                 ser = self.apply(
