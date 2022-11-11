@@ -119,6 +119,12 @@ class DataManager(PandasObject):
         """
         Implementation for DataFrame.equals
         """
+        # prevent circular import
+        from pandas.core.internals import (
+            ArrayManager,
+            BlockManager,
+        )
+
         if not isinstance(other, DataManager):
             return False
 
@@ -128,6 +134,8 @@ class DataManager(PandasObject):
         if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
             return False
 
+        if isinstance(self, BlockManager) and isinstance(other, ArrayManager):
+            raise ValueError("BlockManager -> ArrayManager operators don't work.")
         return self._equal_values(other)
 
     def apply(

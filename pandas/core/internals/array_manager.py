@@ -697,18 +697,23 @@ class BaseArrayManager(DataManager):
         from pandas.core.internals import BlockManager  # to avoid circular import
 
         if isinstance(other, BlockManager):
-            # Because BlockManager exposes it's array in a list of multi-column NDArray, whereas ArrayManager exposes
-            # arrays as a list of single-column NDArray. Therefore, we have to flatten BlockManager's array list
-            flattened_block_arrays = []
-            for multiarray in other.arrays:
-                for single_array in multiarray:
-                    flattened_block_arrays.append(single_array)
+            # Because BlockManager exposes it's array in a list of multi-column NDArray
+            # but ArrayManager exposes arrays as a list of single-column NDArray.
+            # Therefore, we have to flatten BlockManager's array list
+            flattened_block_arrays = self._flatten_block_manager_arrays(other.arrays)
         else:
             flattened_block_arrays = other.arrays
         for left, right in zip(self.arrays, flattened_block_arrays):
             if not array_equals(left, right):
                 return False
         return True
+
+    def _flatten_block_manager_arrays(self, other):
+        flattened_block_arrays = []
+        for multiarray in other:
+            for single_array in multiarray:
+                flattened_block_arrays.append(single_array)
+        return flattened_block_arrays
 
     # TODO
     # to_dict
@@ -1055,7 +1060,13 @@ class ArrayManager(BaseArrayManager):
         """
         # TODO what if `other` is BlockManager ?
         left_arrays = self.arrays
-        right_arrays = other.arrays
+
+        from pandas.core.internals import BlockManager
+
+        if isinstance(other, BlockManager):
+            right_arrays = self._flatten_block_manager_arrays(other.arrays)
+        else:
+            right_arrays = other.arrays
         result_arrays = [
             array_op(left, right) for left, right in zip(left_arrays, right_arrays)
         ]

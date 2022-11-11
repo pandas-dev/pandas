@@ -22,15 +22,24 @@ def test_equality_comparison_different_dataframe_managers():
     with pd.option_context("mode.data_manager", "block"):
         df_block = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="BlockManager -> ArrayManager operators don't work."
+    ):
         # Cannot compare two dataframes of different manager types using ==
-        _a = df_array == df_block
-    with pytest.raises(ValueError):
-        # Cannot compare two dataframes of different manager types using ==
-        _a = df_block == df_array
+        df_block == df_array
+    with pytest.raises(
+        ValueError, match="BlockManager -> ArrayManager operators don't work."
+    ):
+        df_block.equals(df_array)
 
     assert df_array.equals(df_block)
     assert df_array.equals(df_array1)
+
+    # Test that most comparison operators work
+    assert (df_array == df_block).all().all()
+    assert (df_array >= df_block).all().all()
+    assert not (df_array > df_block).any().any()
+    assert not (df_array < df_block).any().any()
 
     # TODO: this direction doesn't work right now
     # assert df_block.equals(df_array)
