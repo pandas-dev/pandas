@@ -4,9 +4,7 @@ project(
     'c', 'cpp', 'cython',
     version: '2.0.0.dev0',
     license: 'BSD-3',
-    # TODO: bump when meson 0.64.0 comes out,
-    # we are relying on 0.64.0 features
-    meson_version: '>=0.63',
+    meson_version: '>=0.64',
     default_options: [
         # TODO: investigate, does meson try to compile against debug Python
         # when buildtype = debug, this seems to be causing problems on CI

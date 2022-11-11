@@ -46,6 +46,10 @@ jobs:
 
     - name: Install dependencies
       run: |
+        # TODO: Remove once meson-python releases 0.11.0, also remove
+        # no-isolation from build flag, in step below
+        pip install git+https://github.com/mesonbuild/meson.git@master
+        pip install git+https://github.com/mesonbuild/meson-python.git@main
         python -m pip install --upgrade pip setuptools wheel build
 
         # GH 39416
@@ -54,7 +58,7 @@ jobs:
     - name: Build pandas sdist
       run: |
         pip list
-        python -m build --sdist
+        python -m build --sdist --no-isolation
 
     - name: Upload sdist artifact
       uses: actions/upload-artifact@v3

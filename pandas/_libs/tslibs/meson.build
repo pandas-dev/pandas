@@ -1,4 +1,3 @@
-# TODO: can this be removed, I wish meson copied .pyx source to the build dir automatically
 tslibs_pxd_sources_list = [
     # List of cython sources e.g. .pyx, .pxd & __init__.py
     # Does NOT include .pxi.in
@@ -20,11 +19,7 @@ tslibs_pxd_sources_list = [
 ]
 
 foreach source: tslibs_pxd_sources_list
-    source_pxd = configure_file(
-        input: source,
-        output: source,
-        copy: true
-    )
+    source_pxd = fs.copyfile(source)
 endforeach
 
 tslibs_sources = {

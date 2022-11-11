@@ -50,7 +50,9 @@ jobs:
         - [ubuntu-20.04, manylinux_x86_64]
         - [macos-11, macosx_*]
         - [windows-2019, win_amd64]
-        - [windows-2019, win32]
+        # Turn off for now
+        # TODO: Re-enable after mesonbuild/meson-python#167 goes in
+        #- [windows-2019, win32]
         # TODO: support PyPy?
         python: [["cp38", "3.8"], ["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11"]]# "pp38", "pp39"]
     env:
@@ -67,11 +69,20 @@ jobs:
           # https://github.com/actions/checkout/issues/338
           fetch-depth: 0
 
+      - name: Remove other compilers
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          # TODO: This is a bug in meson, where it will look for other compilers
+          # if it can't find cl.exe in path, before trying harder to find MSVC
+          # Remove once meson patches this.
+          choco uninstall mingw -y
+          choco uninstall strawberryperl -y
+          choco uninstall llvm -y
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.9.0
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          CIBW_BEFORE_BUILD_WINDOWS: call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
 
       # Used to test(Windows-only) and push the built wheels
       # You might need to use setup-python separately
@@ -156,8 +167,12 @@ jobs:
 
       - name: Build sdist
         run: |
+          # TODO: Remove once meson-python releases 0.11.0, also remove
+          # no-isolation from build flag
+          pip install git+https://github.com/mesonbuild/meson.git@master
+          pip install git+https://github.com/mesonbuild/meson-python.git@main
           pip install build
-          python -m build --sdist
+          python -m build --sdist --no-isolation
       - name: Test the sdist
         shell: bash -el {0}
         run: |
@@ -171,7 +186,9 @@ jobs:
           python -c "import pandas; print(pandas.__version__);
           pandas.test(extra_args=['-m not clipboard and not single_cpu', '--skip-slow', '--skip-network', '--skip-db', '-n=2']);
           pandas.test(extra_args=['-m not clipboard and single_cpu', '--skip-slow', '--skip-network', '--skip-db'])"
+
       - uses: actions/upload-artifact@v3
+        if: ${{ always() }}
         with:
           name: sdist
           path: ./dist/*
