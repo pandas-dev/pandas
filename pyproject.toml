@@ -92,7 +92,6 @@ disable = [
   "unnecessary-dunder-call",
   "unnecessary-lambda-assignment",
   "unneeded-not",
-  "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
   "use-sequence-for-iteration",
   "useless-import-alias",

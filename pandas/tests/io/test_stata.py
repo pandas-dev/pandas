@@ -601,7 +601,7 @@ class TestStata:
         # predates supporting value labels.
         dpath = datapath("io", "data", "stata", "S4_EDUC1.dta")
         with StataReader(dpath) as reader:
-            assert reader.value_labels() == {}
+            assert not reader.value_labels()
 
     def test_date_export_formats(self):
         columns = ["tc", "td", "tw", "tm", "tq", "th", "ty"]

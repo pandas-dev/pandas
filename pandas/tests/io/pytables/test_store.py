@@ -104,7 +104,7 @@ def test_iter_empty(setup_path):
 
     with ensure_clean_store(setup_path) as store:
         # GH 12221
-        assert list(store) == []
+        assert not list(store)
 
 
 def test_repr(setup_path):

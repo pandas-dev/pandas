@@ -315,7 +315,7 @@ class TestDataFrameMisc:
 
     def test_attrs(self):
         df = DataFrame({"A": [2, 3]})
-        assert df.attrs == {}
+        assert not df.attrs
         df.attrs["version"] = 1
 
         result = df.rename(columns=str)

@@ -1244,10 +1244,10 @@ def assert_equal(left, right, **kwargs) -> None:
     elif isinstance(left, np.ndarray):
         assert_numpy_array_equal(left, right, **kwargs)
     elif isinstance(left, str):
-        assert kwargs == {}
+        assert not kwargs
         assert left == right
     else:
-        assert kwargs == {}
+        assert not kwargs
         assert_almost_equal(left, right)
 
 
