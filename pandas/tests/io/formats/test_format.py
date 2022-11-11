@@ -5,6 +5,7 @@ from contextlib import nullcontext
 from datetime import (
     datetime,
     time,
+    timedelta,
 )
 from io import StringIO
 import itertools
@@ -994,12 +995,10 @@ class TestDataFrameFormatting:
         # when truncated the dtypes of the splits can differ
 
         # 11594
-        import datetime
-
         s = Series(
-            [datetime.datetime(2012, 1, 1)] * 10
-            + [datetime.datetime(1012, 1, 2)]
-            + [datetime.datetime(2012, 1, 3)] * 10
+            [datetime(2012, 1, 1)] * 10
+            + [datetime(1012, 1, 2)]
+            + [datetime(2012, 1, 3)] * 10
         )
 
         with option_context("display.max_rows", 8):
@@ -1249,8 +1248,6 @@ class TestDataFrameFormatting:
             index=[f"s{x:04d}" for x in range(n)],
             dtype="int64",
         )
-
-        import re
 
         str_rep = str(s)
         nmatches = len(re.findall("dtype", str_rep))
@@ -2445,12 +2442,6 @@ class TestSeriesFormatting:
         assert start_date in result
 
     def test_timedelta64(self):
-
-        from datetime import (
-            datetime,
-            timedelta,
-        )
-
         Series(np.array([1100, 20], dtype="timedelta64[ns]")).to_string()
 
         s = Series(date_range("2012-1-1", periods=3, freq="D"))

@@ -632,12 +632,6 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
     def test_valid_dt_with_missing_values(self):
-
-        from datetime import (
-            date,
-            time,
-        )
-
         # GH 8689
         ser = Series(date_range("20130101", periods=5, freq="D"))
         ser.iloc[2] = pd.NaT

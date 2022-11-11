@@ -393,8 +393,6 @@ class TestGrouping:
 
     def test_groupby_dict_mapping(self):
         # GH #679
-        from pandas import Series
-
         s = Series({"T1": 5})
         result = s.groupby({"T1": "T2"}).agg(sum)
         expected = s.groupby(["T2"]).agg(sum)

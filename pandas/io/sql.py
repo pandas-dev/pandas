@@ -741,7 +741,6 @@ def pandasSQL_builder(con, schema: str | None = None) -> SQLDatabase | SQLiteDat
     provided parameters.
     """
     import sqlite3
-    import warnings
 
     if isinstance(con, sqlite3.Connection) or con is None:
         return SQLiteDatabase(con)

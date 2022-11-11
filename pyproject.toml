@@ -153,7 +153,6 @@ disable = [
   "raise-missing-from",
   "redefined-builtin",
   "redefined-outer-name",
-  "reimported",
   "self-assigning-variable",
   "self-cls-assignment",
   "signature-differs",

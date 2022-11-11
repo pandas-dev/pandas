@@ -9018,8 +9018,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         keep_equal: bool_t = False,
         result_names: Suffixes = ("self", "other"),
     ):
-        from pandas.core.reshape.concat import concat
-
         if type(self) is not type(other):
             cls_self, cls_other = type(self).__name__, type(other).__name__
             raise TypeError(

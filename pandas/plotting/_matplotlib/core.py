@@ -1655,8 +1655,6 @@ class BarPlot(MPLPlot):
         return self.bottom
 
     def _make_plot(self) -> None:
-        import matplotlib as mpl
-
         colors = self._get_colors()
         ncolors = len(colors)
 
