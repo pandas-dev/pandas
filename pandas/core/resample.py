@@ -89,7 +89,6 @@ from pandas.tseries.frequencies import (
     is_superperiod,
 )
 from pandas.tseries.offsets import (
-    DateOffset,
     Day,
     Nano,
     Tick,
@@ -139,7 +138,6 @@ class Resampler(BaseGroupBy, PandasObject):
         "closed",
         "label",
         "convention",
-        "loffset",
         "kind",
         "origin",
         "offset",
@@ -358,7 +356,6 @@ class Resampler(BaseGroupBy, PandasObject):
             how = func
             result = self._groupby_and_aggregate(how, *args, **kwargs)
 
-        result = self._apply_loffset(result)
         return result
 
     agg = aggregate
@@ -475,37 +472,7 @@ class Resampler(BaseGroupBy, PandasObject):
             # try to evaluate
             result = grouped.apply(how, *args, **kwargs)
 
-        result = self._apply_loffset(result)
         return self._wrap_result(result)
-
-    def _apply_loffset(self, result):
-        """
-        If loffset is set, offset the result index.
-
-        This is NOT an idempotent routine, it will be applied
-        exactly once to the result.
-
-        Parameters
-        ----------
-        result : Series or DataFrame
-            the result of resample
-        """
-        # error: Cannot determine type of 'loffset'
-        needs_offset = (
-            isinstance(
-                self.loffset,  # type: ignore[has-type]
-                (DateOffset, timedelta, np.timedelta64),
-            )
-            and isinstance(result.index, DatetimeIndex)
-            and len(result.index) > 0
-        )
-
-        if needs_offset:
-            # error: Cannot determine type of 'loffset'
-            result.index = result.index + self.loffset  # type: ignore[has-type]
-
-        self.loffset = None
-        return result
 
     def _get_resampler_for_grouping(self, groupby, key=None):
         """
@@ -1295,7 +1262,6 @@ class DatetimeIndexResampler(Resampler):
         # we want to call the actual grouper method here
         result = obj.groupby(self.grouper, axis=self.axis).aggregate(how, **kwargs)
 
-        result = self._apply_loffset(result)
         return self._wrap_result(result)
 
     def _adjust_binner_for_upsample(self, binner):
@@ -1353,7 +1319,6 @@ class DatetimeIndexResampler(Resampler):
                 res_index, method=method, limit=limit, fill_value=fill_value
             )
 
-        result = self._apply_loffset(result)
         return self._wrap_result(result)
 
     def _wrap_result(self, result):
@@ -1397,11 +1362,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
                 "use .set_index(...) to explicitly set index"
             )
             raise NotImplementedError(msg)
-
-        if self.loffset is not None:
-            # Cannot apply loffset/timedelta to PeriodIndex -> convert to
-            # timestamps
-            self.kind = "timestamp"
 
         # convert to timestamp
         if self.kind == "timestamp":
@@ -1563,7 +1523,6 @@ class TimeGrouper(Grouper):
         "closed",
         "label",
         "how",
-        "loffset",
         "kind",
         "convention",
         "origin",
@@ -1581,10 +1540,8 @@ class TimeGrouper(Grouper):
         axis: Axis = 0,
         fill_method=None,
         limit=None,
-        loffset=None,
         kind: str | None = None,
         convention: Literal["start", "end", "e", "s"] | None = None,
-        base: int | None = None,
         origin: Literal["epoch", "start", "start_day", "end", "end_day"]
         | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
@@ -1663,22 +1620,6 @@ class TimeGrouper(Grouper):
 
         # always sort time groupers
         kwargs["sort"] = True
-
-        # Handle deprecated arguments since v1.1.0 of `base` and `loffset` (GH #31809)
-        if base is not None and offset is not None:
-            raise ValueError("'offset' and 'base' cannot be present at the same time")
-
-        if base and isinstance(freq, Tick):
-            # this conversion handle the default behavior of base and the
-            # special case of GH #10530. Indeed in case when dealing with
-            # a TimedeltaIndex base was treated as a 'pure' offset even though
-            # the default behavior of base was equivalent of a modulo on
-            # freq_nanos.
-            self.offset = Timedelta(base * freq.nanos // freq.n)
-
-        if isinstance(loffset, str):
-            loffset = to_offset(loffset)
-        self.loffset = loffset
 
         super().__init__(freq=freq, axis=axis, **kwargs)
 
@@ -1840,9 +1781,6 @@ class TimeGrouper(Grouper):
         if self.offset:
             # GH 10530 & 31809
             labels += self.offset
-        if self.loffset:
-            # GH 33498
-            labels += self.loffset
 
         return binner, bins, labels
 
@@ -2009,7 +1947,7 @@ def _get_timestamp_range_edges(
         index_tz = first.tz
         if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
-        elif origin == "epoch":
+        if origin == "epoch":
             # set the epoch based on the timezone to have similar bins results when
             # resampling on the same kind of indexes on different timezones
             origin = Timestamp("1970-01-01", tz=index_tz)

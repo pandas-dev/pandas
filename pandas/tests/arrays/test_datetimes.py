@@ -81,7 +81,7 @@ class TestNonNano:
     def test_fields(self, unit, reso, field, dtype, dta_dti):
         dta, dti = dta_dti
 
-        # FIXME: assert (dti == dta).all()
+        assert (dti == dta).all()
 
         res = getattr(dta, field)
         expected = getattr(dti._data, field)
@@ -215,12 +215,12 @@ class TestNonNano:
         # https://github.com/pandas-dev/pandas/pull/48748#issuecomment-1260181008
         td = pd.Timedelta(microseconds=1)
         dti = pd.date_range("2016-01-01", periods=3) - td
-        dta = dti._data._as_unit("us")
+        dta = dti._data.as_unit("us")
 
-        res = dta + td._as_unit("us")
+        res = dta + td.as_unit("us")
         # even though the result is an even number of days
         #  (so we _could_ downcast to unit="s"), we do not.
-        assert res._unit == "us"
+        assert res.unit == "us"
 
     @pytest.mark.parametrize(
         "scalar",
@@ -240,32 +240,32 @@ class TestNonNano:
         exp_reso = max(dta._creso, td._creso)
         exp_unit = npy_unit_to_abbrev(exp_reso)
 
-        expected = (dti + td)._data._as_unit(exp_unit)
+        expected = (dti + td)._data.as_unit(exp_unit)
         result = dta + scalar
         tm.assert_extension_array_equal(result, expected)
 
         result = scalar + dta
         tm.assert_extension_array_equal(result, expected)
 
-        expected = (dti - td)._data._as_unit(exp_unit)
+        expected = (dti - td)._data.as_unit(exp_unit)
         result = dta - scalar
         tm.assert_extension_array_equal(result, expected)
 
     def test_sub_datetimelike_scalar_mismatch(self):
         dti = pd.date_range("2016-01-01", periods=3)
-        dta = dti._data._as_unit("us")
+        dta = dti._data.as_unit("us")
 
-        ts = dta[0]._as_unit("s")
+        ts = dta[0].as_unit("s")
 
         result = dta - ts
-        expected = (dti - dti[0])._data._as_unit("us")
+        expected = (dti - dti[0])._data.as_unit("us")
         assert result.dtype == "m8[us]"
         tm.assert_extension_array_equal(result, expected)
 
     def test_sub_datetime64_reso_mismatch(self):
         dti = pd.date_range("2016-01-01", periods=3)
-        left = dti._data._as_unit("s")
-        right = left._as_unit("ms")
+        left = dti._data.as_unit("s")
+        right = left.as_unit("ms")
 
         result = left - right
         exp_values = np.array([0, 0, 0], dtype="m8[ms]")
@@ -429,19 +429,16 @@ class TestDatetimeArray:
         tm.assert_equal(arr, expected)
 
     def test_setitem_different_tz_raises(self):
+        # pre-2.0 we required exact tz match, in 2.0 we require only
+        #  tzawareness-match
         data = np.array([1, 2, 3], dtype="M8[ns]")
         arr = DatetimeArray(data, copy=False, dtype=DatetimeTZDtype(tz="US/Central"))
         with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             arr[0] = pd.Timestamp("2000")
 
         ts = pd.Timestamp("2000", tz="US/Eastern")
-        with pytest.raises(ValueError, match="US/Central"):
-            with tm.assert_produces_warning(
-                FutureWarning, match="mismatched timezones"
-            ):
-                arr[0] = ts
-        # once deprecation is enforced
-        # assert arr[0] == ts.tz_convert("US/Central")
+        arr[0] = ts
+        assert arr[0] == ts.tz_convert("US/Central")
 
     def test_setitem_clears_freq(self):
         a = DatetimeArray(pd.date_range("2000", periods=2, freq="D", tz="US/Central"))
@@ -688,23 +685,16 @@ class TestDatetimeArray:
                 dta.shift(1, fill_value=invalid)
 
     def test_shift_requires_tzmatch(self):
-        # since filling is setitem-like, we require a matching timezone,
-        #  not just matching tzawawreness
+        # pre-2.0 we required exact tz match, in 2.0 we require just
+        #  matching tzawareness
         dti = pd.date_range("2016-01-01", periods=3, tz="UTC")
         dta = dti._data
 
         fill_value = pd.Timestamp("2020-10-18 18:44", tz="US/Pacific")
 
-        msg = "Timezones don't match. 'UTC' != 'US/Pacific'"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(
-                FutureWarning, match="mismatched timezones"
-            ):
-                dta.shift(1, fill_value=fill_value)
-
-        # once deprecation is enforced
-        # expected = dta.shift(1, fill_value=fill_value.tz_convert("UTC"))
-        # tm.assert_equal(result, expected)
+        result = dta.shift(1, fill_value=fill_value)
+        expected = dta.shift(1, fill_value=fill_value.tz_convert("UTC"))
+        tm.assert_equal(result, expected)
 
     def test_tz_localize_t2d(self):
         dti = pd.date_range("1994-05-12", periods=12, tz="US/Pacific")

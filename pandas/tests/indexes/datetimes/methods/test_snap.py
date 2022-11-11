@@ -26,7 +26,6 @@ def astype_non_nano(dti_nano, unit):
     return dti
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.parametrize("tz", [None, "Asia/Shanghai", "Europe/Berlin"])
 @pytest.mark.parametrize("name", [None, "my_dti"])
 @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])

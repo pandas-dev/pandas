@@ -74,14 +74,13 @@ def assert_stat_op_calc(
     f = getattr(frame, opname)
 
     if check_dates:
-        expected_warning = FutureWarning if opname in ["mean", "median"] else None
         df = DataFrame({"b": date_range("1/1/2001", periods=2)})
-        with tm.assert_produces_warning(expected_warning):
+        with tm.assert_produces_warning(None):
             result = getattr(df, opname)()
         assert isinstance(result, Series)
 
         df["a"] = range(len(df))
-        with tm.assert_produces_warning(expected_warning):
+        with tm.assert_produces_warning(None):
             result = getattr(df, opname)()
         assert isinstance(result, Series)
         assert len(result)
@@ -170,15 +169,23 @@ class TestDataFrameAnalytics:
         ],
     )
     def test_stat_op_api_float_string_frame(self, float_string_frame, axis, opname):
-        if opname in ["sum", "min", "max"] and axis == 0:
-            warn = None
-        elif opname not in ["count", "nunique"]:
-            warn = FutureWarning
-        else:
-            warn = None
-        msg = "nuisance columns|default value of numeric_only"
-        with tm.assert_produces_warning(warn, match=msg):
+        if (opname in ("sum", "min", "max") and axis == 0) or opname in (
+            "count",
+            "nunique",
+        ):
             getattr(float_string_frame, opname)(axis=axis)
+        else:
+            msg = "|".join(
+                [
+                    "Could not convert",
+                    "could not convert",
+                    "can't multiply sequence by non-int",
+                    "unsupported operand type",
+                    "not supported between instances of",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
             getattr(float_string_frame, opname)(axis=axis, numeric_only=True)
 
@@ -229,8 +236,7 @@ class TestDataFrameAnalytics:
             check_dates=True,
         )
 
-        # GH#32571 check_less_precise is needed on apparently-random
-        #  py37-npdev builds and OSX-PY36-min_version builds
+        # GH#32571: rol needed for flaky CI builds
         # mixed types (with upcasting happening)
         assert_stat_op_calc(
             "sum",
@@ -325,9 +331,7 @@ class TestDataFrameAnalytics:
         assert df.values.dtype == np.object_
         result = getattr(df, method)(1)
         expected = getattr(df.astype("f8"), method)(1)
-
-        if method in ["sum", "prod"]:
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])
     def test_mixed_ops(self, op):
@@ -339,18 +343,26 @@ class TestDataFrameAnalytics:
                 "str": ["a", "b", "c", "d"],
             }
         )
-        with tm.assert_produces_warning(
-            FutureWarning, match="Select only valid columns"
-        ):
-            result = getattr(df, op)()
-        assert len(result) == 2
+        msg = "|".join(
+            [
+                "Could not convert",
+                "could not convert",
+                "can't multiply sequence by non-int",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            getattr(df, op)()
 
         with pd.option_context("use_bottleneck", False):
-            with tm.assert_produces_warning(
-                FutureWarning, match="Select only valid columns"
-            ):
-                result = getattr(df, op)()
-            assert len(result) == 2
+            msg = "|".join(
+                [
+                    "Could not convert",
+                    "could not convert",
+                    "can't multiply sequence by non-int",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                getattr(df, op)()
 
     def test_reduce_mixed_frame(self):
         # GH 6806
@@ -384,21 +396,19 @@ class TestDataFrameAnalytics:
     def test_mean_mixed_datetime_numeric(self, tz):
         # https://github.com/pandas-dev/pandas/issues/24752
         df = DataFrame({"A": [1, 1], "B": [Timestamp("2000", tz=tz)] * 2})
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.mean()
-        expected = Series([1.0], index=["A"])
+        result = df.mean()
+        expected = Series([1.0, Timestamp("2000", tz=tz)], index=["A", "B"])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [None, "UTC"])
-    def test_mean_excludes_datetimes(self, tz):
+    def test_mean_includes_datetimes(self, tz):
         # https://github.com/pandas-dev/pandas/issues/24752
-        # Our long-term desired behavior is unclear, but the behavior in
-        # 0.24.0rc1 was buggy.
+        # Behavior in 0.24.0rc1 was buggy.
+        # As of 2.0 with numeric_only=None we do *not* drop datetime columns
         df = DataFrame({"A": [Timestamp("2000", tz=tz)] * 2})
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.mean()
+        result = df.mean()
 
-        expected = Series(dtype=np.float64)
+        expected = Series([Timestamp("2000", tz=tz)], index=["A"])
         tm.assert_series_equal(result, expected)
 
     def test_mean_mixed_string_decimal(self):
@@ -420,10 +430,9 @@ class TestDataFrameAnalytics:
 
         df = DataFrame(d)
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Select only valid columns"
-        ):
-            result = df.mean()
+        with pytest.raises(TypeError, match="unsupported operand type"):
+            df.mean()
+        result = df[["A", "C"]].mean()
         expected = Series([2.7, 681.6], index=["A", "C"])
         tm.assert_series_equal(result, expected)
 
@@ -652,9 +661,8 @@ class TestDataFrameAnalytics:
         )
         tm.assert_series_equal(result, expected)
 
-        # excludes numeric
-        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-            result = mixed.min(axis=1)
+        # excludes non-numeric
+        result = mixed.min(axis=1, numeric_only=True)
         expected = Series([1, 1, 1.0], index=[0, 1, 2])
         tm.assert_series_equal(result, expected)
 
@@ -823,25 +831,17 @@ class TestDataFrameAnalytics:
         df = DataFrame({"A": date_range("2000", periods=4), "B": [1, 2, 3, 4]}).reindex(
             [2, 3, 4]
         )
-        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-            result = df.sum()
-
-        expected = Series({"B": 7.0})
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="does not support reduction 'sum'"):
+            df.sum()
 
     def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data
-        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-            the_mean = float_string_frame.mean(axis=0)
-        the_sum = float_string_frame.sum(axis=0, numeric_only=True)
-        tm.assert_index_equal(the_sum.index, the_mean.index)
-        assert len(the_mean.index) < len(float_string_frame.columns)
+        with pytest.raises(TypeError, match="Could not convert"):
+            float_string_frame.mean(axis=0)
 
         # xs sum mixed type, just want to know it works...
-        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-            the_mean = float_string_frame.mean(axis=1)
-        the_sum = float_string_frame.sum(axis=1, numeric_only=True)
-        tm.assert_index_equal(the_sum.index, the_mean.index)
+        with pytest.raises(TypeError, match="unsupported operand type"):
+            float_string_frame.mean(axis=1)
 
         # take mean of boolean column
         float_frame["bool"] = float_frame["A"] > 0
@@ -851,6 +851,7 @@ class TestDataFrameAnalytics:
     def test_mean_datetimelike(self):
         # GH#24757 check that datetimelike are excluded by default, handled
         #  correctly with numeric_only=True
+        #  As of 2.0, datetimelike are *not* excluded with numeric_only=None
 
         df = DataFrame(
             {
@@ -864,11 +865,8 @@ class TestDataFrameAnalytics:
         expected = Series({"A": 1.0})
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            # in the future datetime columns will be included
-            result = df.mean()
-        expected = Series({"A": 1.0, "C": df.loc[1, "C"]})
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="mean is not implemented for PeriodArray"):
+            df.mean()
 
     def test_mean_datetimelike_numeric_only_false(self):
         df = DataFrame(
@@ -899,13 +897,13 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
     def test_stats_mixed_type(self, float_string_frame):
-        # don't blow up
-        with tm.assert_produces_warning(
-            FutureWarning, match="Select only valid columns"
-        ):
+        with pytest.raises(TypeError, match="could not convert"):
             float_string_frame.std(1)
+        with pytest.raises(TypeError, match="could not convert"):
             float_string_frame.var(1)
+        with pytest.raises(TypeError, match="unsupported operand type"):
             float_string_frame.mean(1)
+        with pytest.raises(TypeError, match="could not convert"):
             float_string_frame.skew(1)
 
     def test_sum_bools(self):
@@ -1254,24 +1252,26 @@ class TestDataFrameAnalytics:
         # GH 19976
         data = DataFrame(data)
 
-        warn = None
         if any(is_categorical_dtype(x) for x in data.dtypes):
-            warn = FutureWarning
+            with pytest.raises(
+                TypeError, match="dtype category does not support reduction"
+            ):
+                func(data)
 
-        with tm.assert_produces_warning(
-            warn, match="Select only valid columns", check_stacklevel=False
-        ):
+            # method version
+            with pytest.raises(
+                TypeError, match="dtype category does not support reduction"
+            ):
+                getattr(DataFrame(data), func.__name__)(axis=None)
+        else:
             result = func(data)
-        assert isinstance(result, np.bool_)
-        assert result.item() is expected
+            assert isinstance(result, np.bool_)
+            assert result.item() is expected
 
-        # method version
-        with tm.assert_produces_warning(
-            warn, match="Select only valid columns", check_stacklevel=False
-        ):
+            # method version
             result = getattr(DataFrame(data), func.__name__)(axis=None)
-        assert isinstance(result, np.bool_)
-        assert result.item() is expected
+            assert isinstance(result, np.bool_)
+            assert result.item() is expected
 
     def test_any_all_object(self):
         # GH 19976
@@ -1516,20 +1516,11 @@ class TestNuisanceColumns:
         with pytest.raises(TypeError, match="does not support reduction"):
             getattr(df, method)(bool_only=False)
 
-        # With bool_only=None, operating on this column raises and is ignored,
-        #  so we expect an empty result.
-        with tm.assert_produces_warning(
-            FutureWarning, match="Select only valid columns"
-        ):
-            result = getattr(df, method)(bool_only=None)
-        expected = Series([], index=Index([]), dtype=bool)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="does not support reduction"):
+            getattr(df, method)(bool_only=None)
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Select only valid columns", check_stacklevel=False
-        ):
-            result = getattr(np, method)(df, axis=0)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="does not support reduction"):
+            getattr(np, method)(df, axis=0)
 
     def test_median_categorical_dtype_nuisance_column(self):
         # GH#21020 DataFrame.median should match Series.median
@@ -1543,12 +1534,8 @@ class TestNuisanceColumns:
         with pytest.raises(TypeError, match="does not support reduction"):
             df.median(numeric_only=False)
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Select only valid columns"
-        ):
-            result = df.median()
-        expected = Series([], index=Index([]), dtype=np.float64)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="does not support reduction"):
+            df.median()
 
         # same thing, but with an additional non-categorical column
         df["B"] = df["A"].astype(int)
@@ -1556,12 +1543,8 @@ class TestNuisanceColumns:
         with pytest.raises(TypeError, match="does not support reduction"):
             df.median(numeric_only=False)
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Select only valid columns"
-        ):
-            result = df.median()
-        expected = Series([2.0], index=["B"])
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="does not support reduction"):
+            df.median()
 
         # TODO: np.median(df, axis=0) gives np.array([2.0, 2.0]) instead
         #  of expected.values
@@ -1583,58 +1566,19 @@ class TestNuisanceColumns:
         with pytest.raises(TypeError, match="is not ordered for operation"):
             getattr(df, method)(numeric_only=False)
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Select only valid columns"
-        ):
-            result = getattr(df, method)()
-        expected = Series([], index=Index([]), dtype=np.float64)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="is not ordered for operation"):
+            getattr(df, method)()
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Select only valid columns", check_stacklevel=False
-        ):
-            result = getattr(np, method)(df)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="is not ordered for operation"):
+            getattr(np, method)(df)
 
         # same thing, but with an additional non-categorical column
         df["B"] = df["A"].astype(object)
-        with tm.assert_produces_warning(
-            FutureWarning, match="Select only valid columns"
-        ):
-            result = getattr(df, method)()
-        if method == "min":
-            expected = Series(["a"], index=["B"])
-        else:
-            expected = Series(["c"], index=["B"])
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="is not ordered for operation"):
+            getattr(df, method)()
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Select only valid columns", check_stacklevel=False
-        ):
-            result = getattr(np, method)(df)
-        tm.assert_series_equal(result, expected)
-
-    def test_reduction_object_block_splits_nuisance_columns(self):
-        # GH#37827
-        df = DataFrame({"A": [0, 1, 2], "B": ["a", "b", "c"]}, dtype=object)
-
-        # We should only exclude "B", not "A"
-        with tm.assert_produces_warning(
-            FutureWarning, match="Select only valid columns"
-        ):
-            result = df.mean()
-        expected = Series([1.0], index=["A"])
-        tm.assert_series_equal(result, expected)
-
-        # Same behavior but heterogeneous dtype
-        df["C"] = df["A"].astype(int) + 4
-
-        with tm.assert_produces_warning(
-            FutureWarning, match="Select only valid columns"
-        ):
-            result = df.mean()
-        expected = Series([1.0, 5.0], index=["A", "C"])
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="is not ordered for operation"):
+            getattr(np, method)(df)
 
 
 def test_sum_timedelta64_skipna_false(using_array_manager, request):
@@ -1714,12 +1658,8 @@ def test_groupby_regular_arithmetic_equivalent(meth):
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
     df = DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
-    with tm.assert_produces_warning(
-        FutureWarning, match="The default value of numeric_only"
-    ):
-        result = df.sum()
-    expected = Series([1, 1.1, "foo"], index=list("abc"))
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(TypeError, match="does not support reduction"):
+        df.sum()
 
 
 def test_prod_sum_min_count_mixed_object():
@@ -1759,23 +1699,8 @@ def test_reduction_axis_none_deprecation(method):
         "corrwith",
         "count",
         "cov",
-        "idxmax",
-        "idxmin",
-        "kurt",
-        "kurt",
-        "max",
-        "mean",
-        "median",
-        "min",
         "mode",
-        "prod",
-        "prod",
         "quantile",
-        "sem",
-        "skew",
-        "std",
-        "sum",
-        "var",
     ],
 )
 def test_numeric_only_deprecation(kernel):
@@ -1786,24 +1711,52 @@ def test_numeric_only_deprecation(kernel):
     default = signature.parameters["numeric_only"].default
     assert default is not True
 
-    if kernel in ("idxmax", "idxmin"):
-        # kernels that default to numeric_only=False and fail on nuisance columns
-        assert default is False
-        with pytest.raises(TypeError, match="not allowed for this dtype"):
-            getattr(df, kernel)(*args)
+    if default is None or default is lib.no_default:
+        expected = getattr(df[["a"]], kernel)(*args)
+        warn = FutureWarning
     else:
-        if default is None or default is lib.no_default:
-            expected = getattr(df[["a"]], kernel)(*args)
-            warn = FutureWarning
+        # default must be False and works on any nuisance columns
+        expected = getattr(df, kernel)(*args)
+        if kernel == "mode":
+            assert "b" in expected.columns
         else:
-            # default must be False and works on any nuisance columns
-            expected = getattr(df, kernel)(*args)
-            if kernel == "mode":
-                assert "b" in expected.columns
-            else:
-                assert "b" in expected.index
-            warn = None
-        msg = f"The default value of numeric_only in DataFrame.{kernel}"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = getattr(df, kernel)(*args)
-        tm.assert_equal(result, expected)
+            assert "b" in expected.index
+        warn = None
+    msg = f"The default value of numeric_only in DataFrame.{kernel}"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(df, kernel)(*args)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kernel",
+    [
+        "idxmax",
+        "idxmin",
+        "kurt",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "prod",
+        "sem",
+        "skew",
+        "std",
+        "sum",
+        "var",
+    ],
+)
+def test_fails_on_non_numeric(kernel):
+    # GH#46852
+    df = DataFrame({"a": [1, 2, 3], "b": object})
+    msg = "|".join(
+        [
+            "not allowed for this dtype",
+            "argument must be a string or a number",
+            "not supported between instances of",
+            "unsupported operand type",
+            "argument must be a string or a real number",
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
+        getattr(df, kernel)()

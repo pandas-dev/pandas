@@ -315,7 +315,6 @@ generated/pandas.DataFrame.aggregate,../reference/api/pandas.DataFrame.aggregate
 generated/pandas.DataFrame.align,../reference/api/pandas.DataFrame.align
 generated/pandas.DataFrame.all,../reference/api/pandas.DataFrame.all
 generated/pandas.DataFrame.any,../reference/api/pandas.DataFrame.any
-generated/pandas.DataFrame.append,../reference/api/pandas.DataFrame.append
 generated/pandas.DataFrame.apply,../reference/api/pandas.DataFrame.apply
 generated/pandas.DataFrame.applymap,../reference/api/pandas.DataFrame.applymap
 generated/pandas.DataFrame.as_blocks,../reference/api/pandas.DataFrame.as_blocks
@@ -408,7 +407,6 @@ generated/pandas.DataFrame.last,../reference/api/pandas.DataFrame.last
 generated/pandas.DataFrame.last_valid_index,../reference/api/pandas.DataFrame.last_valid_index
 generated/pandas.DataFrame.le,../reference/api/pandas.DataFrame.le
 generated/pandas.DataFrame.loc,../reference/api/pandas.DataFrame.loc
-generated/pandas.DataFrame.lookup,../reference/api/pandas.DataFrame.lookup
 generated/pandas.DataFrame.lt,../reference/api/pandas.DataFrame.lt
 generated/pandas.DataFrame.mask,../reference/api/pandas.DataFrame.mask
 generated/pandas.DataFrame.max,../reference/api/pandas.DataFrame.max
@@ -661,7 +659,6 @@ generated/pandas.Index.identical,../reference/api/pandas.Index.identical
 generated/pandas.Index.inferred_type,../reference/api/pandas.Index.inferred_type
 generated/pandas.Index.insert,../reference/api/pandas.Index.insert
 generated/pandas.Index.intersection,../reference/api/pandas.Index.intersection
-generated/pandas.Index.is_all_dates,../reference/api/pandas.Index.is_all_dates
 generated/pandas.Index.is_boolean,../reference/api/pandas.Index.is_boolean
 generated/pandas.Index.is_categorical,../reference/api/pandas.Index.is_categorical
 generated/pandas.Index.is_floating,../reference/api/pandas.Index.is_floating
@@ -671,7 +668,6 @@ generated/pandas.Index.is_integer,../reference/api/pandas.Index.is_integer
 generated/pandas.Index.is_interval,../reference/api/pandas.Index.is_interval
 generated/pandas.Index.is_lexsorted_for_tuple,../reference/api/pandas.Index.is_lexsorted_for_tuple
 generated/pandas.Index.is_monotonic_decreasing,../reference/api/pandas.Index.is_monotonic_decreasing
-generated/pandas.Index.is_monotonic,../reference/api/pandas.Index.is_monotonic
 generated/pandas.Index.is_monotonic_increasing,../reference/api/pandas.Index.is_monotonic_increasing
 generated/pandas.Index.isna,../reference/api/pandas.Index.isna
 generated/pandas.Index.isnull,../reference/api/pandas.Index.isnull
@@ -919,7 +915,6 @@ generated/pandas.Series.aggregate,../reference/api/pandas.Series.aggregate
 generated/pandas.Series.align,../reference/api/pandas.Series.align
 generated/pandas.Series.all,../reference/api/pandas.Series.all
 generated/pandas.Series.any,../reference/api/pandas.Series.any
-generated/pandas.Series.append,../reference/api/pandas.Series.append
 generated/pandas.Series.apply,../reference/api/pandas.Series.apply
 generated/pandas.Series.argmax,../reference/api/pandas.Series.argmax
 generated/pandas.Series.argmin,../reference/api/pandas.Series.argmin
@@ -1068,7 +1063,6 @@ generated/pandas.Series.interpolate,../reference/api/pandas.Series.interpolate
 generated/pandas.Series.is_copy,../reference/api/pandas.Series.is_copy
 generated/pandas.Series.isin,../reference/api/pandas.Series.isin
 generated/pandas.Series.is_monotonic_decreasing,../reference/api/pandas.Series.is_monotonic_decreasing
-generated/pandas.Series.is_monotonic,../reference/api/pandas.Series.is_monotonic
 generated/pandas.Series.is_monotonic_increasing,../reference/api/pandas.Series.is_monotonic_increasing
 generated/pandas.Series.isna,../reference/api/pandas.Series.isna
 generated/pandas.Series.isnull,../reference/api/pandas.Series.isnull
@@ -1324,8 +1318,6 @@ generated/pandas.Timestamp.daysinmonth,../reference/api/pandas.Timestamp.daysinm
 generated/pandas.Timestamp.dst,../reference/api/pandas.Timestamp.dst
 generated/pandas.Timestamp.floor,../reference/api/pandas.Timestamp.floor
 generated/pandas.Timestamp.fold,../reference/api/pandas.Timestamp.fold
-generated/pandas.Timestamp.freq,../reference/api/pandas.Timestamp.freq
-generated/pandas.Timestamp.freqstr,../reference/api/pandas.Timestamp.freqstr
 generated/pandas.Timestamp.fromisoformat,../reference/api/pandas.Timestamp.fromisoformat
 generated/pandas.Timestamp.fromordinal,../reference/api/pandas.Timestamp.fromordinal
 generated/pandas.Timestamp.fromtimestamp,../reference/api/pandas.Timestamp.fromtimestamp
