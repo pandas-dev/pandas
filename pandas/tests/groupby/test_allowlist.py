@@ -70,13 +70,11 @@ def raw_frame(multiindex_dataframe_random_data):
 
 
 @pytest.mark.parametrize("op", AGG_FUNCTIONS)
-@pytest.mark.parametrize("level", [0, 1])
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("sort", [True, False])
-@pytest.mark.filterwarnings("ignore:Using the level keyword:FutureWarning")
 @pytest.mark.filterwarnings("ignore:The default value of numeric_only:FutureWarning")
-def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
+def test_regression_allowlist_methods(raw_frame, op, axis, skipna, sort):
     # GH6944
     # GH 17537
     # explicitly test the allowlist methods
@@ -86,19 +84,14 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
         frame = raw_frame.T
 
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
-        grouped = frame.groupby(level=level, axis=axis, sort=sort)
+        grouped = frame.groupby("first", axis=axis, sort=sort)
         result = getattr(grouped, op)(skipna=skipna)
-        expected = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
-        if sort:
-            expected = expected.sort_index(axis=axis, level=level)
-        tm.assert_frame_equal(result, expected)
     else:
-        grouped = frame.groupby(level=level, axis=axis, sort=sort)
+        grouped = frame.groupby("first", axis=axis, sort=sort)
         result = getattr(grouped, op)()
-        expected = getattr(frame, op)(level=level, axis=axis)
-        if sort:
-            expected = expected.sort_index(axis=axis, level=level)
-        tm.assert_frame_equal(result, expected)
+    # Previously compared to frame.op(level=...), but level removed in 2.0
+    # TODO(GH 49629): Assert something better
+    assert isinstance(result, DataFrame)
 
 
 def test_groupby_blocklist(df_letters):
