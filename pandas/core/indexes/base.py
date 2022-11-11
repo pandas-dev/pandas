@@ -1031,12 +1031,8 @@ class Index(IndexOpsMixin, PandasObject):
             new_values = cls._from_sequence(self, dtype=dtype, copy=copy)
 
         else:
-            if dtype == str:
-                # GH#38607 see test_astype_str_from_bytes
-                new_values = values.astype(dtype, copy=copy)
-            else:
-                # GH#13149 specifically use astype_nansafe instead of astype
-                new_values = astype_nansafe(values, dtype=dtype, copy=copy)
+            # GH#13149 specifically use astype_nansafe instead of astype
+            new_values = astype_nansafe(values, dtype=dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the astype above
         if self._is_backward_compat_public_numeric_index:

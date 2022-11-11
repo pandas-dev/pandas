@@ -34,6 +34,7 @@ from pandas.compat import (
     pa_version_under9p0,
 )
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -233,6 +234,29 @@ class TestBaseCasting(base.BaseCastingTests):
                 )
             )
         super().test_astype_str(data)
+
+    @pytest.mark.parametrize(
+        "nullable_string_dtype",
+        [
+            "string[python]",
+            pytest.param(
+                "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+            ),
+        ],
+    )
+    def test_astype_string(self, data, nullable_string_dtype):
+        # with binary dtype
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_binary(pa_dtype):
+            # in this case we end up doing val.decode() instead of str(val)
+            #  so get e.g. "a" instead of "b'a'"
+            result = pd.Series(data[:5]).astype(nullable_string_dtype)
+            expected = pd.Series(
+                [x.decode() for x in data[:5]], dtype=nullable_string_dtype
+            )
+            self.assert_series_equal(result, expected)
+        else:
+            super().test_astype_string(data, nullable_string_dtype)
 
 
 class TestConstructors(base.BaseConstructorsTests):

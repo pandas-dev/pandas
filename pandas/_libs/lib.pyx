@@ -715,7 +715,10 @@ cpdef ndarray[object] ensure_string_array(
             continue
 
         if not checknull(val):
-            if not util.is_float_object(val):
+            if isinstance(val, bytes):
+                # GH#?? see test_astype_str_from_bytes
+                result[i] = val.decode()
+            elif not util.is_float_object(val):
                 # f"{val}" is faster than str(val)
                 result[i] = f"{val}"
             else:
