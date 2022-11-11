@@ -104,6 +104,13 @@ repos:
         stages: [manual]
         additional_dependencies: &pyright_dependencies
         - pyright@1.1.276
+    -   id: stdlib-imports
+        # note: assumes python env is setup and activated
+        name: Place standard library imports at top of file
+        entry: python visitor.py
+        language: python
+        types: [python]
+        exclude: ^versionneer\.py$
     -   id: pyright_reportGeneralTypeIssues
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
