@@ -397,3 +397,14 @@ def test_read_multiindex_header_no_index_names(datapath, ext):
         index=pd.MultiIndex.from_tuples([("A", "AA", "AAA"), ("A", "BB", "BBB")]),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_large_floating_points(datapath, ext):
+    path = datapath("io", "data", "excel", f"large-float{ext}")
+    df = pd.read_excel(path, dtype=str)
+
+    # Large floats are represented as floats instead of converted to ints
+    assert df.iloc[0, 0] == "1e+50"
+
+    # Small floats are converted to ints if they are integers.
+    assert df.iloc[1, 0] == "1000"

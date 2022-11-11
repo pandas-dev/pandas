@@ -586,6 +586,8 @@ class OpenpyxlReader(BaseExcelReader):
         elif cell.data_type == TYPE_ERROR:
             return np.nan
         elif cell.data_type == TYPE_NUMERIC:
+            # If we try to convert a large float to an integer, weird issues arise because of precision limitation of
+            # floating point numbers
             if abs(cell.value) < 1e22:
                 val = int(cell.value)
                 if val == cell.value:
