@@ -17,6 +17,7 @@ from typing import (
     Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -252,7 +253,10 @@ def describe_categorical_1d(
         Ignored, but in place to unify interface.
     """
     names = ["count", "unique", "top", "freq"]
-    objcounts = data.value_counts()
+    with warnings.catch_warnings():
+        msg = "In pandas 2.0.0, the name of the resulting Series"
+        warnings.filterwarnings("ignore", msg, FutureWarning)
+        objcounts = data.value_counts()
     count_unique = len(objcounts[objcounts != 0])
     if count_unique > 0:
         top, freq = objcounts.index[0], objcounts.iloc[0]

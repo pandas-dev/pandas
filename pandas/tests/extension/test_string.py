@@ -31,6 +31,11 @@ from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
 
+VALUE_COUNTS_NAME_MSG = (
+    r"In pandas 2.0.0, the name of the resulting Series will be 'count' "
+    r"\(or 'proportion' if `normalize=True`\)"
+)
+
 
 def split_array(arr):
     if arr.dtype.storage != "pyarrow":
@@ -257,14 +262,16 @@ class TestMethods(base.BaseMethodsTests):
             and getattr(all_data.dtype, "storage", "") == "pyarrow"
             and not (dropna and "data_missing" in request.node.nodeid),
         ):
-            result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
+            with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+                result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
         with tm.maybe_produces_warning(
             PerformanceWarning,
             pa_version_under7p0
             and getattr(other.dtype, "storage", "") == "pyarrow"
             and not (dropna and "data_missing" in request.node.nodeid),
         ):
-            expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+            with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+                expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
 
         self.assert_series_equal(result, expected)
 

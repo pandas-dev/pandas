@@ -12,6 +12,11 @@ import pandas._testing as tm
 from pandas.core.sorting import nargsort
 from pandas.tests.extension.base.base import BaseExtensionTests
 
+VALUE_COUNTS_NAME_MSG = (
+    r"In pandas 2.0.0, the name of the resulting Series will be 'count' "
+    r"\(or 'proportion' if `normalize=True`\)"
+)
+
 
 class BaseMethodsTests(BaseExtensionTests):
     """Various Series and DataFrame methods."""
@@ -43,7 +48,8 @@ class BaseMethodsTests(BaseExtensionTests):
         values = np.array(data[~data.isna()])
         ser = pd.Series(data, dtype=data.dtype)
 
-        result = ser.value_counts(normalize=True).sort_index()
+        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+            result = ser.value_counts(normalize=True).sort_index()
 
         if not isinstance(data, pd.Categorical):
             expected = pd.Series([1 / len(values)] * len(values), index=result.index)
