@@ -25,8 +25,8 @@ add_global_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')
 
 # This is a cython bug
 # TODO: Remove once cython/cython#4804 addressed
-add_global_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'c')
-add_global_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')
+add_global_arguments('-DNDEBUG', language : 'c')
+add_global_arguments('-DNDEBUG', language : 'cpp')
 
 py_mod = import('python')
 fs = import('fs')
@@ -36,7 +36,7 @@ tempita = files('generate_pxi.py')
 versioneer = files('generate_version.py')
 
 if fs.exists('_version_meson.py')
-    py.install_sources('_version_meson.py', subdir: 'pandas')
+    py.install_sources('_version_meson.py', pure: false, subdir: 'pandas')
 else
     custom_target('write_version_file',
         output: '_version_meson.py',
