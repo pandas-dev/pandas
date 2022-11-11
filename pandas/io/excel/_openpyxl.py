@@ -586,9 +586,10 @@ class OpenpyxlReader(BaseExcelReader):
         elif cell.data_type == TYPE_ERROR:
             return np.nan
         elif cell.data_type == TYPE_NUMERIC:
-            val = int(cell.value)
-            if val == cell.value:
-                return val
+            if abs(cell.value) < 1e22:
+                val = int(cell.value)
+                if val == cell.value:
+                    return val
             return float(cell.value)
 
         return cell.value
