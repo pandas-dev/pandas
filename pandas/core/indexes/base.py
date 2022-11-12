@@ -2108,9 +2108,9 @@ class Index(IndexOpsMixin, PandasObject):
     def _get_grouper_for_level(
         self,
         mapper
-    ) -> Index:
+    ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
         """
-        Get index grouper
+        Get index grouper corresponding to an index level
 
         Parameters
         ----------
@@ -2126,9 +2126,11 @@ class Index(IndexOpsMixin, PandasObject):
             raise NotImplementedError("Index grouper isn't supported for MultiIndex")
 
         if mapper is None:
-            return self
+            grouper = self
         else:
-            return self.map(mapper)
+            grouper = self.map(mapper)
+
+        return grouper, None, None
 
     # --------------------------------------------------------------------
     # Introspection Methods
