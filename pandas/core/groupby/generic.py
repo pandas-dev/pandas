@@ -1362,8 +1362,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 arr_func, ignore_failures=numeric_only is lib.no_default
             )
         except NotImplementedError as err:
-            msg = f"{how} is not supported for at least one provided dtype"
-            raise TypeError(msg) from err
+            # For NotImplementedError, args[0] is the error message
+            raise TypeError(err.args[0]) from err
         res_mgr.set_axis(1, mgr.axes[1])
 
         if len(res_mgr) < orig_mgr_len:

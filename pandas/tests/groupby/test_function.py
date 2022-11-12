@@ -255,7 +255,7 @@ class TestNumericOnly:
             msg = "|".join(
                 [
                     "Categorical is not ordered",
-                    "is not supported for at least one provided dtype",
+                    "function is not implemented for this dtype",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -271,7 +271,7 @@ class TestNumericOnly:
                     "Categorical is not ordered",
                     "category type does not support",
                     "can't multiply sequence",
-                    "is not supported for at least one provided dtype",
+                    "function is not implemented for this dtype",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -1419,7 +1419,7 @@ def test_deprecate_numeric_only(
                 "must be a string or a real number",
                 "unsupported operand type",
                 "not supported between instances of",
-                "is not supported for at least one provided dtype",
+                "function is not implemented for this dtype",
             ]
         )
         with pytest.raises(TypeError, match=msg):
