@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import copy
+import copy as _copy_
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -691,7 +691,7 @@ def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
     else:
         extra_block = join_unit.block
 
-        extra_indexers = copy.copy(join_unit.indexers)
+        extra_indexers = _copy_.copy(join_unit.indexers)
         extra_indexers[0] = extra_indexers[0][length:]
         join_unit.indexers[0] = join_unit.indexers[0][:length]
 
