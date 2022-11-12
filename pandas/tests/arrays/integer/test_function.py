@@ -133,7 +133,8 @@ def test_value_counts_empty():
 def test_value_counts_with_normalize():
     # GH 33172
     ser = pd.Series([1, 2, 1, pd.NA], dtype="Int64")
-    result = ser.value_counts(normalize=True)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = ser.value_counts(normalize=True)
     expected = pd.Series([2, 1], index=ser[:2], dtype="Float64") / 3
     assert expected.index.dtype == ser.dtype
     tm.assert_series_equal(result, expected)

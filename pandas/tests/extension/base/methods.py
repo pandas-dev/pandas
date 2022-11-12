@@ -29,6 +29,9 @@ class BaseMethodsTests(BaseExtensionTests):
         kwarg = sig.parameters["dropna"]
         assert kwarg.default is True
 
+    @pytest.mark.filterwarnings(
+        "ignore:In pandas 2.0.0, the name of the resulting Series:FutureWarning"
+    )
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
@@ -37,20 +40,21 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             other = all_data
 
-        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
-            result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
-            expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+        result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
+        expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
 
         self.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:In pandas 2.0.0, the name of the resulting Series:FutureWarning"
+    )
     def test_value_counts_with_normalize(self, data):
         # GH 33172
         data = data[:10].unique()
         values = np.array(data[~data.isna()])
         ser = pd.Series(data, dtype=data.dtype)
 
-        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
-            result = ser.value_counts(normalize=True).sort_index()
+        result = ser.value_counts(normalize=True).sort_index()
 
         if not isinstance(data, pd.Categorical):
             expected = pd.Series([1 / len(values)] * len(values), index=result.index)

@@ -104,7 +104,8 @@ def test_value_counts_na():
 
 def test_value_counts_with_normalize():
     ser = pd.Series([True, False, pd.NA], dtype="boolean")
-    result = ser.value_counts(normalize=True)
+    with tm.assert_produces_warning(FutureWarning, match="In pandas 2.0.0, the name"):
+        result = ser.value_counts(normalize=True)
     expected = pd.Series([1, 1], index=ser[:-1], dtype="Float64") / 2
     assert expected.index.dtype == "boolean"
     tm.assert_series_equal(result, expected)
