@@ -417,8 +417,8 @@ def is_dataclass(item):
 
     """
     try:
-        from dataclasses import is_dataclass
-
-        return is_dataclass(item) and not isinstance(item, type)
+        import dataclasses as dcs
+        
+        return dcs.is_dataclass(item) and not isinstance(item, type)
     except ImportError:
         return False

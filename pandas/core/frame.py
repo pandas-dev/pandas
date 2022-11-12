@@ -6493,9 +6493,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
-        duplicated = self.duplicated(subset, keep=keep)
+        duplicate = self.duplicated(subset, keep=keep)
 
-        result = self[-duplicated]
+        result = self[-duplicate]
         if ignore_index:
             result.index = default_index(len(result))
 
