@@ -72,7 +72,7 @@ class TestAstype:
 
     @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
     def test_astype_float_to_datetimelike(self, dtype):
-        # pre-2.0 Index.astype from floating to M8/m8/Period raised,
+        # GH#49660 pre-2.0 Index.astype from floating to M8/m8/Period raised,
         #  inconsistent with Series.astype
         idx = Float64Index([0, 1.1, 2])
 
