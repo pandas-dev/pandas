@@ -134,8 +134,8 @@ from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
 )
-from pandas.core.missing import clean_reindex_fill_method
 from pandas.core import (
+    missing as missing_func,
     arraylike,
     ops,
 )
@@ -3649,7 +3649,7 @@ class Index(IndexOpsMixin, PandasObject):
         limit: int | None = None,
         tolerance=None,
     ) -> npt.NDArray[np.intp]:
-        method = clean_reindex_fill_method(method)
+        method = missing_func.clean_reindex_fill_method(method)
         orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
 
