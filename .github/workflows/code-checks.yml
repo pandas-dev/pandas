@@ -68,15 +68,15 @@ jobs:
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run checks on imported code
-      run: cd ci && code_checks.sh code
+      run: cd ci && ./code_checks.sh code
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run doctests
-      run: cd ci && code_checks.sh doctests
+      run: cd ci && ./code_checks.sh doctests
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run docstring validation
-      run: cd ci && code_checks.sh docstrings
+      run: cd ci && ./code_checks.sh docstrings
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Use existing environment for type checking
@@ -93,7 +93,7 @@ jobs:
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run docstring validation script tests
-      run: pytest scripts
+      run: pytest scripts --import-mode=importlib
       if: ${{ steps.build.outcome == 'success' && always() }}
 
   asv-benchmarks:
