@@ -29,7 +29,11 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
     from pandas.core.generic import NDFrame
-    from pandas.core.indexes.api import Float64Index, Int64Index, UInt64Index
+    from pandas.core.indexes.api import (
+        Float64Index,
+        Int64Index,
+        UInt64Index,
+    )
 
 
 # define abstract base classes to enable isinstance type checking on our
