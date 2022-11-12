@@ -376,7 +376,7 @@ Missing
 - Bug in :meth:`Index.equals` raising ``TypeError`` when :class:`Index` consists of tuples that contain ``NA`` (:issue:`48446`)
 - Bug in :meth:`Series.map` caused incorrect result when data has NaNs and defaultdict mapping was used (:issue:`48813`)
 - Bug in :class:`NA` raising a ``TypeError`` instead of return :class:`NA` when performing a binary operation with a ``bytes`` object (:issue:`49108`)
-- Bug in :meth:`Dataframe.update` raising ``TypeError`` when column has NaT values (:issue:`16713`)
+- Bug in :meth:`DataFrame.update` with overwrite=False raising ``TypeError`` when self has column with ``NaT`` values and column not present in other DataFrame (:issue:`16713`)
 
 MultiIndex
 ^^^^^^^^^^
