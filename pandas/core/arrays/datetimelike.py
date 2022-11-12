@@ -1354,8 +1354,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         res_values = op(self.astype("O"), np.asarray(other))
 
-        result = pd_array(res_values.ravel())
-        result = extract_array(result, extract_numpy=True).reshape(self.shape)
+        ext_arr = pd_array(res_values.ravel())
+        result = cast(np.ndarray, extract_array(ext_arr, extract_numpy=True))
+        result = result.reshape(self.shape)
         return result
 
     def _time_shift(
