@@ -882,10 +882,7 @@ class TestReaders:
         tm.assert_frame_equal(url_table, local_table)
 
     def test_read_from_pathlib_path(self, read_ext):
-
         # GH12655
-        from pathlib import Path
-
         str_path = "test1" + read_ext
         expected = pd.read_excel(str_path, sheet_name="Sheet1", index_col=0)
 
