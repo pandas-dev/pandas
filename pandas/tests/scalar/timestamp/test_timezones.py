@@ -62,7 +62,7 @@ class TestTimestampTZOperations:
     def test_tz_localize_ambiguous_bool(self, unit):
         # make sure that we are correctly accepting bool values as ambiguous
         # GH#14402
-        ts = Timestamp("2015-11-01 01:00:03")._as_unit(unit)
+        ts = Timestamp("2015-11-01 01:00:03").as_unit(unit)
         expected0 = Timestamp("2015-11-01 01:00:03-0500", tz="US/Central")
         expected1 = Timestamp("2015-11-01 01:00:03-0600", tz="US/Central")
 
@@ -257,7 +257,7 @@ class TestTimestampTZOperations:
         tz = tz_type + tz
         if isinstance(shift, str):
             shift = "shift_" + shift
-        ts = Timestamp(start_ts)._as_unit(unit)
+        ts = Timestamp(start_ts).as_unit(unit)
         result = ts.tz_localize(tz, nonexistent=shift)
         expected = Timestamp(end_ts).tz_localize(tz)
 
@@ -286,7 +286,7 @@ class TestTimestampTZOperations:
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_timestamp_tz_localize_nonexistent_NaT(self, tz, unit):
         # GH 8917
-        ts = Timestamp("2015-03-29 02:20:00")._as_unit(unit)
+        ts = Timestamp("2015-03-29 02:20:00").as_unit(unit)
         result = ts.tz_localize(tz, nonexistent="NaT")
         assert result is NaT
 
@@ -294,7 +294,7 @@ class TestTimestampTZOperations:
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_timestamp_tz_localize_nonexistent_raise(self, tz, unit):
         # GH 8917
-        ts = Timestamp("2015-03-29 02:20:00")._as_unit(unit)
+        ts = Timestamp("2015-03-29 02:20:00").as_unit(unit)
         msg = "2015-03-29 02:20:00"
         with pytest.raises(pytz.NonExistentTimeError, match=msg):
             ts.tz_localize(tz, nonexistent="raise")

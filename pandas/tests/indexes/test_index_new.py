@@ -39,6 +39,24 @@ from pandas.core.api import (
 
 
 class TestIndexConstructorInference:
+    def test_object_all_bools(self):
+        # GH#49594 match Series behavior on ndarray[object] of all bools
+        arr = np.array([True, False], dtype=object)
+        res = Index(arr)
+        assert res.dtype == object
+
+        # since the point is matching Series behavior, let's double check
+        assert Series(arr).dtype == object
+
+    def test_object_all_complex(self):
+        # GH#49594 match Series behavior on ndarray[object] of all complex
+        arr = np.array([complex(1), complex(2)], dtype=object)
+        res = Index(arr)
+        assert res.dtype == object
+
+        # since the point is matching Series behavior, let's double check
+        assert Series(arr).dtype == object
+
     @pytest.mark.parametrize("val", [NaT, None, np.nan, float("nan")])
     def test_infer_nat(self, val):
         # GH#49340 all NaT/None/nan and at least 1 NaT -> datetime64[ns],
