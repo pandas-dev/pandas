@@ -122,7 +122,6 @@ disable = [
   "too-many-statements",
   "unnecessary-comprehension",
   "unnecessary-list-index-lookup",
-  "useless-option-value",
 
   # pylint type "W": warning, for python specific problems
   "abstract-method",
