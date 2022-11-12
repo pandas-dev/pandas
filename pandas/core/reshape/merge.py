@@ -3,7 +3,7 @@ SQL-style merge routines
 """
 from __future__ import annotations
 
-import copy as _copy_
+import copy as stdlib_copy
 import datetime
 from functools import partial
 import string
@@ -1637,7 +1637,7 @@ def get_join_indexers(
 
     lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
-    kwargs = _copy_.copy(kwargs)
+    kwargs = stdlib_copy.copy(kwargs)
     if how in ("left", "right"):
         kwargs["sort"] = sort
     join_func = {
