@@ -2107,42 +2107,28 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _get_grouper_for_level(
         self,
-        mapper,
-        *,
-        level=None,
-        dropna: bool = True,
-    ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
+        mapper
+    ) -> Index:
         """
-        Get index grouper corresponding to an index level
+        Get index grouper
 
         Parameters
         ----------
         mapper: Group mapping function or None
             Function mapping index values to groups
-        level : int or None
-            Index level, positional
-        dropna : bool
-            dropna from groupby
 
         Returns
         -------
         grouper : Index
             Index of values to group on.
-        labels : ndarray of int or None
-            Array of locations in level_index.
-        uniques : Index or None
-            Index of unique values for level.
         """
         if self._is_multi:
             raise NotImplementedError("Index grouper isn't supported for MultiIndex")
 
-        assert level is None or level == 0
         if mapper is None:
-            grouper = self
+            return self
         else:
-            grouper = self.map(mapper)
-
-        return grouper, None, None
+            return self.map(mapper)
 
     # --------------------------------------------------------------------
     # Introspection Methods
