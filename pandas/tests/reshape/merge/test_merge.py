@@ -2714,3 +2714,55 @@ def test_merge_different_index_names():
     result = merge(left, right, left_on="c", right_on="d")
     expected = DataFrame({"a_x": [1], "a_y": 1})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, index, how, left_index, right_index",
+    [
+        (
+            {
+                "a": [1, 1, 2, 3],
+                "b": [
+                    1,
+                    2,
+                    3,
+                    4,
+                ],
+            },
+            [1, 1, 2, 3],
+            "leftsemi",
+            False,
+            False,
+        ),
+        (
+            {"a": [1, 2, 3, 3], "c": [5, 6, 7, 8]},
+            [1, 2, 3, 4],
+            "rightsemi",
+            False,
+            False,
+        ),
+        (
+            {"a": [1, 1, 2, 3, 4], "b": [1, 2, 3, 4, 5]},
+            [1, 1, 2, 3, 4],
+            "leftsemi",
+            True,
+            True,
+        ),
+        (
+            {"a": [1, 2, 3, 3], "c": [5, 6, 7, 8]},
+            [1, 2, 3, 4],
+            "rightsemi",
+            False,
+            False,
+        ),
+    ],
+)
+def test_merge_semi(how, data, index, left_index, right_index):
+    # GH 42784
+    left = DataFrame(
+        {"a": [1, 1, 2, 3, 4], "b": [1, 2, 3, 4, 5]}, index=[1, 1, 2, 3, 4]
+    )
+    right = DataFrame({"a": [0, 1, 2, 3, 3], "c": [4, 5, 6, 7, 8]})
+    result = left.merge(right, how=how, left_index=left_index, right_index=right_index)
+    expected = DataFrame(data, index=index)
+    tm.assert_frame_equal(result, expected)

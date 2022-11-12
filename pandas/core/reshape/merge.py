@@ -774,6 +774,30 @@ class _MergeOperation:
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
+        if self.how in ["leftsemi", "rightsemi"]:
+            _leftdf = None
+            if self.how == "leftsemi":
+                _leftdf = self.left
+            if self.left_index and self.right_index:
+                _left = self.left.index
+                _right = self.right.index
+            elif self.on is not None or (
+                None not in self.left_on and None not in self.right_on
+            ):
+                _left = self.left[self.left_on]
+                _right = self.right[self.right_on]
+            elif self.left_index and self.right_on is not None:
+                _left = self.left.index
+                _right = self.right[self.right_on]
+            elif self.right_index and self.left_on is not None:
+                _left = self.left[self.left_on]
+                _right = self.right.index
+            return (
+                _semi_helper(_leftdf, _left, _right)
+                if _leftdf is not None
+                else _semi_helper(self.right, _right, _left)
+            )
+
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         result = self._reindex_and_concat(
@@ -891,7 +915,6 @@ class _MergeOperation:
                 and left_key == right_key
                 and name not in result.index.names
             ):
-
                 names_to_restore.append(name)
 
         if names_to_restore:
@@ -1234,11 +1257,12 @@ class _MergeOperation:
             else:
                 left_keys = [self.left.index._values]
 
-        if left_drop:
-            self.left = self.left._drop_labels_or_levels(left_drop)
+        if self.how not in ["leftsemi", "rightsemi"]:
+            if left_drop:
+                self.left = self.left._drop_labels_or_levels(left_drop)
 
-        if right_drop:
-            self.right = self.right._drop_labels_or_levels(right_drop)
+            if right_drop:
+                self.right = self.right._drop_labels_or_levels(right_drop)
 
         return left_keys, right_keys, join_names
 
@@ -1581,6 +1605,15 @@ class _MergeOperation:
                 '- "many_to_one"\n'
                 '- "many_to_many"'
             )
+
+
+def _semi_helper(leftdf, left, right):
+    if not isinstance(left, Index):
+        left = Index(left.values.flatten())
+    if not isinstance(right, Index):
+        right = Index(right.values.flatten())
+    subset = left.isin(right)
+    return leftdf.loc[subset]
 
 
 def get_join_indexers(
@@ -2145,7 +2178,6 @@ class _AsOfMerge(_OrderedMerge):
 def _get_multiindex_indexer(
     join_keys, index: MultiIndex, sort: bool
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-
     # left & right join labels and num. of levels at each location
     mapped = (
         _factorize_keys(index.levels[n], join_keys[n], sort=sort)
@@ -2400,7 +2432,6 @@ def _factorize_keys(
 def _sort_labels(
     uniques: np.ndarray, left: npt.NDArray[np.intp], right: npt.NDArray[np.intp]
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-
     llength = len(left)
     labels = np.concatenate([left, right])
 
@@ -2416,7 +2447,6 @@ def _get_join_keys(
     shape: Shape,
     sort: bool,
 ) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
-
     # how many levels can be done without overflow
     nlev = next(
         lev
