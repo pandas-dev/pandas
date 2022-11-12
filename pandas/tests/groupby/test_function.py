@@ -163,14 +163,12 @@ class TestNumericOnly:
                 "int",
                 "float",
                 "category_int",
-                "datetime",
-                "datetimetz",
-                "timedelta",
             ],
         )
 
-        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
-            result = getattr(gb, method)(numeric_only=False)
+        with pytest.raises(TypeError, match="[Cc]ould not convert"):
+            getattr(gb, method)(numeric_only=False)
+        result = getattr(gb, method)()
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         expected_columns = expected.columns
@@ -252,30 +250,37 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
-        # cummin, cummax dont have numeric_only kwarg, always use False
-        warn = None
-        if method in ["cummin", "cummax"]:
-            # these dont have numeric_only kwarg, always use False
-            warn = FutureWarning
-        elif method in ["min", "max"]:
-            # these have numeric_only kwarg, but default to False
-            warn = FutureWarning
-
-        with tm.assert_produces_warning(
-            warn, match="Dropping invalid columns", raise_on_extra_warnings=False
-        ):
+        if method in ("min", "max"):
+            # The methods default to numeric_only=False and raise TypeError
+            with pytest.raises(TypeError, match="Categorical is not ordered"):
+                getattr(gb, method)()
+        elif method in ("cummin", "cummax"):
+            # The methods default to numeric_only=False and raise NotImplementedError
+            msg = "function is not implemented for this dtype"
+            with pytest.raises(NotImplementedError, match=msg):
+                getattr(gb, method)()
+        else:
             result = getattr(gb, method)()
+            tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        tm.assert_index_equal(result.columns, expected_columns_numeric)
-
-        # GH#41475 deprecated silently ignoring nuisance columns
-        warn = None
-        if len(expected_columns) < len(gb._obj_with_exclusions.columns):
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+        if method in ("cumsum", "cumprod", "cummin", "cummax"):
+            msg = "function is not implemented for this dtype"
+            with pytest.raises(NotImplementedError, match=msg):
+                getattr(gb, method)(numeric_only=False)
+        elif method not in ("first", "last"):
+            msg = "|".join(
+                [
+                    "[Cc]ould not convert",
+                    "Categorical is not ordered",
+                    "category type does not support",
+                    "can't multiply sequence",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                getattr(gb, method)(numeric_only=False)
+        else:
             result = getattr(gb, method)(numeric_only=False)
-
-        tm.assert_index_equal(result.columns, expected_columns)
+            tm.assert_index_equal(result.columns, expected_columns)
 
 
 class TestGroupByNonCythonPaths:
@@ -1323,45 +1328,45 @@ def test_groupby_sum_timedelta_with_nat():
 
 
 @pytest.mark.parametrize(
-    "kernel, numeric_only_default, drops_nuisance, has_arg",
+    "kernel, numeric_only_default, has_arg",
     [
-        ("all", False, False, False),
-        ("any", False, False, False),
-        ("bfill", False, False, False),
-        ("corr", True, False, True),
-        ("corrwith", True, False, True),
-        ("cov", True, False, True),
-        ("cummax", False, True, True),
-        ("cummin", False, True, True),
-        ("cumprod", True, True, True),
-        ("cumsum", True, True, True),
-        ("diff", False, False, False),
-        ("ffill", False, False, False),
-        ("fillna", False, False, False),
-        ("first", False, False, True),
-        ("idxmax", True, False, True),
-        ("idxmin", True, False, True),
-        ("last", False, False, True),
-        ("max", False, True, True),
-        ("mean", True, True, True),
-        ("median", True, True, True),
-        ("min", False, True, True),
-        ("nth", False, False, False),
-        ("nunique", False, False, False),
-        ("pct_change", False, False, False),
-        ("prod", True, True, True),
-        ("quantile", True, False, True),
-        ("sem", True, True, True),
-        ("skew", True, False, True),
-        ("std", True, True, True),
-        ("sum", True, True, True),
-        ("var", True, False, True),
+        ("all", False, False),
+        ("any", False, False),
+        ("bfill", False, False),
+        ("corr", True, True),
+        ("corrwith", True, True),
+        ("cov", True, True),
+        ("cummax", False, True),
+        ("cummin", False, True),
+        ("cumprod", True, True),
+        ("cumsum", True, True),
+        ("diff", False, False),
+        ("ffill", False, False),
+        ("fillna", False, False),
+        ("first", False, True),
+        ("idxmax", True, True),
+        ("idxmin", True, True),
+        ("last", False, True),
+        ("max", False, True),
+        ("mean", True, True),
+        ("median", True, True),
+        ("min", False, True),
+        ("nth", False, False),
+        ("nunique", False, False),
+        ("pct_change", False, False),
+        ("prod", True, True),
+        ("quantile", True, True),
+        ("sem", True, True),
+        ("skew", True, True),
+        ("std", True, True),
+        ("sum", True, True),
+        ("var", True, True),
     ],
 )
 @pytest.mark.parametrize("numeric_only", [True, False, lib.no_default])
 @pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
 def test_deprecate_numeric_only(
-    kernel, numeric_only_default, drops_nuisance, has_arg, numeric_only, keys
+    kernel, numeric_only_default, has_arg, numeric_only, keys
 ):
     # GH#46072
     # drops_nuisance: Whether the op drops nuisance columns even when numeric_only=False
@@ -1380,10 +1385,9 @@ def test_deprecate_numeric_only(
             # Cases where b does not appear in the result
             numeric_only is True
             or (numeric_only is lib.no_default and numeric_only_default)
-            or drops_nuisance
         )
     ):
-        if numeric_only is True or (not numeric_only_default and not drops_nuisance):
+        if numeric_only is True or not numeric_only_default:
             warn = None
         else:
             warn = FutureWarning
@@ -1408,17 +1412,24 @@ def test_deprecate_numeric_only(
         assert "b" in result.columns
     elif has_arg or kernel in ("idxmax", "idxmin"):
         assert numeric_only is not True
-        assert not drops_nuisance
         # kernels that are successful on any dtype were above; this will fail
-        msg = (
-            "(not allowed for this dtype"
-            "|must be a string or a number"
-            "|cannot be performed against 'object' dtypes"
-            "|must be a string or a real number"
-            "|unsupported operand type)"
-        )
-        with pytest.raises(TypeError, match=msg):
-            method(*args, **kwargs)
+        if kernel in ("cummax", "cummin", "cumprod", "cumsum"):
+            msg = "function is not implemented for this dtype"
+            with pytest.raises(NotImplementedError, match=msg):
+                method(*args, **kwargs)
+        else:
+            msg = "|".join(
+                [
+                    "not allowed for this dtype",
+                    "must be a string or a number",
+                    "cannot be performed against 'object' dtypes",
+                    "must be a string or a real number",
+                    "unsupported operand type",
+                    "not supported between instances of",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:
         with pytest.raises(
             TypeError, match="got an unexpected keyword argument 'numeric_only'"
