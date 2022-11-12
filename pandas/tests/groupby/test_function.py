@@ -250,30 +250,28 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
-        if method in ("min", "max"):
+        if method in ("min", "max", "cummin", "cummax"):
             # The methods default to numeric_only=False and raise TypeError
-            with pytest.raises(TypeError, match="Categorical is not ordered"):
-                getattr(gb, method)()
-        elif method in ("cummin", "cummax"):
-            # The methods default to numeric_only=False and raise NotImplementedError
-            msg = "function is not implemented for this dtype"
-            with pytest.raises(NotImplementedError, match=msg):
+            msg = "|".join(
+                [
+                    "Categorical is not ordered",
+                    "is not supported for at least one provided dtype",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
                 getattr(gb, method)()
         else:
             result = getattr(gb, method)()
             tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        if method in ("cumsum", "cumprod", "cummin", "cummax"):
-            msg = "function is not implemented for this dtype"
-            with pytest.raises(NotImplementedError, match=msg):
-                getattr(gb, method)(numeric_only=False)
-        elif method not in ("first", "last"):
+        if method not in ("first", "last"):
             msg = "|".join(
                 [
                     "[Cc]ould not convert",
                     "Categorical is not ordered",
                     "category type does not support",
                     "can't multiply sequence",
+                    "is not supported for at least one provided dtype",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -1413,23 +1411,19 @@ def test_deprecate_numeric_only(
     elif has_arg or kernel in ("idxmax", "idxmin"):
         assert numeric_only is not True
         # kernels that are successful on any dtype were above; this will fail
-        if kernel in ("cummax", "cummin", "cumprod", "cumsum"):
-            msg = "function is not implemented for this dtype"
-            with pytest.raises(NotImplementedError, match=msg):
-                method(*args, **kwargs)
-        else:
-            msg = "|".join(
-                [
-                    "not allowed for this dtype",
-                    "must be a string or a number",
-                    "cannot be performed against 'object' dtypes",
-                    "must be a string or a real number",
-                    "unsupported operand type",
-                    "not supported between instances of",
-                ]
-            )
-            with pytest.raises(TypeError, match=msg):
-                method(*args, **kwargs)
+        msg = "|".join(
+            [
+                "not allowed for this dtype",
+                "must be a string or a number",
+                "cannot be performed against 'object' dtypes",
+                "must be a string or a real number",
+                "unsupported operand type",
+                "not supported between instances of",
+                "is not supported for at least one provided dtype",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:
         with pytest.raises(
             TypeError, match="got an unexpected keyword argument 'numeric_only'"
