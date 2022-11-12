@@ -4,6 +4,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 from pandas.core.dtypes.common import is_bool_dtype
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -49,7 +51,13 @@ class BaseMethodsTests(BaseExtensionTests):
         values = np.array(data[~data.isna()])
         ser = pd.Series(data, dtype=data.dtype)
 
-        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+        # PerformanceWarning may be raised if pyarrow version is less
+        # than 7.0.0. The subclass uses pytest.mark.filterwarnings to
+        # silence it, but that doesn't work with tm.assert_produces_warning,
+        # so we need to catch that here as well.
+        with tm.assert_produces_warning(
+            (FutureWarning, PerformanceWarning), match=VALUE_COUNTS_NAME_MSG
+        ):
             result = ser.value_counts(normalize=True).sort_index()
 
         if not isinstance(data, pd.Categorical):
