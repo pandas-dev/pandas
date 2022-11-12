@@ -623,7 +623,7 @@ def test_categorical_transformers(
         else:
             expected.iloc[iloc, 0] = value
     if transformation_func not in ("rank", "diff", "pct_change", "shift"):
-        expected = expected.astype(int)
+        expected = expected.astype("intp")
     if transformation_func == "ngroup":
         expected[df["x"].notnull() & expected.ge(na_group)] += 1
 
