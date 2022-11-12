@@ -112,13 +112,13 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import (
+    algorithms,
     nanops,
     ops,
 )
 from pandas.core.algorithms import (
     checked_add_with_arr,
     isin,
-    mode,
     unique1d,
 )
 from pandas.core.arraylike import OpsMixin
@@ -1690,7 +1690,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if dropna:
             mask = self.isna()
 
-        i8modes = mode(self.view("i8"), mask=mask)
+        i8modes = algorithms.algos.mode(self.view("i8"), mask=mask)
         npmodes = i8modes.view(self._ndarray.dtype)
         npmodes = cast(np.ndarray, npmodes)
         return self._from_backing_data(npmodes)
