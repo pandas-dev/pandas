@@ -72,7 +72,7 @@ jobs:
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run doctests
-      run: ci/code_checks.sh doctests
+      run: cd ci && ./code_checks.sh doctests
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run docstring validation
