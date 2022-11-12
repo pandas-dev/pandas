@@ -953,11 +953,7 @@ class TestLocBaseIndependent:
 
     def test_loc_coercion2(self):
         # GH#12045
-        import datetime
-
-        df = DataFrame(
-            {"date": [datetime.datetime(2012, 1, 1), datetime.datetime(1012, 1, 2)]}
-        )
+        df = DataFrame({"date": [datetime(2012, 1, 1), datetime(1012, 1, 2)]})
         expected = df.dtypes
 
         result = df.iloc[[0]]
@@ -2460,7 +2456,9 @@ class TestLabelSlicing:
             [1, 2, 3],
             index=[Timestamp("2016"), Timestamp("2019"), Timestamp("2017")],
         )
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(
+            KeyError, match="Value based partial slicing on non-monotonic"
+        ):
             obj.loc[start:"2022"]
 
     @pytest.mark.parametrize("value", [1, 1.5])

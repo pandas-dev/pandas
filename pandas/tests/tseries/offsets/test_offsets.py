@@ -583,8 +583,8 @@ class TestCommon:
         exp_unit = unit
         if isinstance(off, Tick) and off._creso > dta._creso:
             # cast to higher reso like we would with Timedelta scalar
-            exp_unit = Timedelta(off)._unit
-        expected = expected._as_unit(exp_unit)
+            exp_unit = Timedelta(off).unit
+        expected = expected.as_unit(exp_unit)
 
         if len(w):
             # PerformanceWarning was issued bc _apply_array raised, so we

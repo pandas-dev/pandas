@@ -137,6 +137,7 @@ want to clone your fork to your machine::
     git clone https://github.com/your-user-name/pandas.git pandas-yourname
     cd pandas-yourname
     git remote add upstream https://github.com/pandas-dev/pandas.git
+    git fetch upstream
 
 This creates the directory ``pandas-yourname`` and connects your repository to
 the upstream (main project) *pandas* repository.
