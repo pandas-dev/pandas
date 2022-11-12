@@ -21,7 +21,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs.json import loads, dumps
+from pandas._libs.json import (
+    loads,
+    dumps,
+)
 from pandas._libs.tslibs import iNaT
 from pandas._typing import (
     CompressionOptions,
