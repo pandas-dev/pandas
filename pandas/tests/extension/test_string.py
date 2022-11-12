@@ -14,6 +14,7 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
 import string
+import warnings
 
 import numpy as np
 import pytest
@@ -245,7 +246,6 @@ class TestMethods(base.BaseMethodsTests):
         )
 
     @pytest.mark.parametrize("dropna", [True, False])
-    @pytest.mark.filterwarnings("ignore:.*name of the resulting Series:FutureWarning")
     def test_value_counts(self, all_data, dropna, request):
         all_data = all_data[:10]
         if dropna:
@@ -258,14 +258,25 @@ class TestMethods(base.BaseMethodsTests):
             and getattr(all_data.dtype, "storage", "") == "pyarrow"
             and not (dropna and "data_missing" in request.node.nodeid),
         ):
-            result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
+            # TODO pytest.mark.filterwarnings doesn't seem to work if there's
+            # a tm.maybe_produces_warning as well - for now, we can catch the
+            # warnings like this, but it'd be good to update the pandas testing
+            # machinery to be able to combine pytest.mark.filterwarnings and
+            # tm.maybe_produces_warning
+            with warnings.catch_warnings():
+                msg = "In pandas 2.0.0, the name of the resulting Series"
+                warnings.filterwarnings("ignore", msg, FutureWarning)
+                result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
         with tm.maybe_produces_warning(
             PerformanceWarning,
             pa_version_under7p0
             and getattr(other.dtype, "storage", "") == "pyarrow"
             and not (dropna and "data_missing" in request.node.nodeid),
         ):
-            expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+            with warnings.catch_warnings():
+                msg = "In pandas 2.0.0, the name of the resulting Series"
+                warnings.filterwarnings("ignore", msg, FutureWarning)
+                expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
 
         self.assert_series_equal(result, expected)
 

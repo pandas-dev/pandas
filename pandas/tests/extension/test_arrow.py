@@ -21,6 +21,7 @@ from io import (
     StringIO,
 )
 import pickle
+import warnings
 
 import numpy as np
 import pytest
@@ -740,7 +741,15 @@ class TestBaseMethods(base.BaseMethodsTests):
         with tm.maybe_produces_warning(
             PerformanceWarning, pa_version_under7p0, check_stacklevel=False
         ):
-            super().test_value_counts_with_normalize(data)
+            # TODO pytest.mark.filterwarnings doesn't seem to work if there's
+            # a tm.maybe_produces_warning as well - for now, we can catch the
+            # warnings like this, but it'd be good to update the pandas testing
+            # machinery to be able to combine pytest.mark.filterwarnings and
+            # tm.maybe_produces_warning
+            with warnings.catch_warnings():
+                msg = "In pandas 2.0.0, the name of the resulting Series"
+                warnings.filterwarnings("ignore", msg, FutureWarning)
+                super().test_value_counts_with_normalize(data)
 
     @pytest.mark.xfail(
         pa_version_under6p0,
