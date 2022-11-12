@@ -1614,3 +1614,10 @@ def test_any_apply_keyword_non_zero_axis_regression():
 
     result = df.apply("any", 1)
     tm.assert_series_equal(result, expected)
+
+
+def test_agg_list_aggregated():
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    result = df.agg(list)
+    expected = Series({"a": [1, 2, 3], "b": [4, 5, 6]})
+    tm.assert_series_equal(result, expected)
