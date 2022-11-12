@@ -29,8 +29,6 @@ def test_value_counts(index_or_series_obj):
     counter = collections.Counter(obj)
     expected = Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
     expected.index = expected.index.astype(obj.dtype)
-    if isinstance(obj, pd.MultiIndex):
-        expected.index = Index(expected.index)
 
     if not isinstance(result.dtype, np.dtype):
         # i.e IntegerDtype

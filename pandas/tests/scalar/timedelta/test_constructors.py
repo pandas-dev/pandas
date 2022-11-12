@@ -313,7 +313,7 @@ def test_construction_out_of_bounds_td64ns(val, unit):
     assert td.asm8.dtype == "m8[s]"
     msg = r"Cannot cast 1067\d\d days .* to unit='ns' without overflow"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        td._as_unit("ns")
+        td.as_unit("ns")
 
     # But just back in bounds and we are OK
     assert Timedelta(td64 - 1) == td64 - 1
@@ -324,7 +324,7 @@ def test_construction_out_of_bounds_td64ns(val, unit):
     td2 = Timedelta(td64)
     msg = r"Cannot cast -1067\d\d days .* to unit='ns' without overflow"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        td2._as_unit("ns")
+        td2.as_unit("ns")
 
     # But just back in bounds and we are OK
     assert Timedelta(td64 + 1) == td64 + 1

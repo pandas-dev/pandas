@@ -454,10 +454,10 @@ class Count:
         )
 
     def time_count_level_multi(self, axis):
-        self.df.count(axis=axis, level=1)
+        self.df.count(axis=axis)
 
     def time_count_level_mixed_dtypes_multi(self, axis):
-        self.df_mixed.count(axis=axis, level=1)
+        self.df_mixed.count(axis=axis)
 
 
 class Apply:

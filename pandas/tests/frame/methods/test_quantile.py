@@ -26,37 +26,6 @@ def interp_method(request):
 
 class TestDataFrameQuantile:
     @pytest.mark.parametrize(
-        "non_num_col",
-        [
-            pd.date_range("2014-01-01", periods=3, freq="m"),
-            ["a", "b", "c"],
-            [DataFrame, Series, Timestamp],
-        ],
-    )
-    def test_numeric_only_default_false_warning(
-        self, non_num_col, interp_method, request, using_array_manager
-    ):
-        # GH #7308
-        interpolation, method = interp_method
-        df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]})
-        df["C"] = non_num_col
-
-        expected = Series(
-            [2.0, 3.0],
-            index=["A", "B"],
-            name=0.5,
-        )
-        if interpolation == "nearest":
-            expected = expected.astype(np.int64)
-        if method == "table" and using_array_manager:
-            request.node.add_marker(
-                pytest.mark.xfail(reason="Axis name incorrectly set.")
-            )
-        with tm.assert_produces_warning(FutureWarning, match="numeric_only"):
-            result = df.quantile(0.5, interpolation=interpolation, method=method)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
         "df,expected",
         [
             [
@@ -139,8 +108,7 @@ class TestDataFrameQuantile:
         rs = df.quantile(
             0.5, numeric_only=True, interpolation=interpolation, method=method
         )
-        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-            xp = df.median().rename(0.5)
+        xp = df.median(numeric_only=True).rename(0.5)
         if interpolation == "nearest":
             xp = (xp + 0.5).astype(np.int64)
         if method == "table" and using_array_manager:
@@ -751,9 +719,6 @@ class TestDataFrameQuantile:
         exp = Series([np.nan, np.nan], index=["a", "b"], name=0.5)
         tm.assert_series_equal(res, exp)
 
-    @pytest.mark.filterwarnings(
-        "ignore:The behavior of DatetimeArray._from_sequence:FutureWarning"
-    )
     def test_quantile_empty_no_rows_dt64(self, interp_method):
         interpolation, method = interp_method
         # datetimes
