@@ -737,7 +737,7 @@ class TestDataFrameAnalytics:
         expected_dtype = {
             "any": "bool",
             "all": "bool",
-            "count": "int",
+            "count": "intp",
             "sum": "float",
             "prod": "float",
             "skew": "float",
