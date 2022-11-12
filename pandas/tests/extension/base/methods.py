@@ -13,11 +13,6 @@ import pandas._testing as tm
 from pandas.core.sorting import nargsort
 from pandas.tests.extension.base.base import BaseExtensionTests
 
-VALUE_COUNTS_NAME_MSG = (
-    r"In pandas 2.0.0, the name of the resulting Series will be 'count' "
-    r"\(or 'proportion' if `normalize=True`\)"
-)
-
 
 class BaseMethodsTests(BaseExtensionTests):
     """Various Series and DataFrame methods."""
