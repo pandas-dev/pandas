@@ -1065,8 +1065,6 @@ def test_consistency_for_boxed(box, int_frame_const_col):
 
 
 def test_agg_transform(axis, float_frame):
-    other_axis = 1 if axis in {0, "index"} else 0
-
     with np.errstate(all="ignore"):
 
         f_abs = np.abs(float_frame)
@@ -1080,25 +1078,17 @@ def test_agg_transform(axis, float_frame):
         # list-like
         result = float_frame.apply([np.sqrt], axis=axis)
         expected = f_sqrt.copy()
-        if axis in {0, "index"}:
-            expected.columns = MultiIndex.from_product([float_frame.columns, ["sqrt"]])
-        else:
-            expected.index = MultiIndex.from_product([float_frame.index, ["sqrt"]])
+        expected.columns = MultiIndex.from_product([float_frame.columns, ["sqrt"]])
         tm.assert_frame_equal(result, expected)
 
         # multiple items in list
         # these are in the order as if we are applying both
         # functions per series and then concatting
         result = float_frame.apply([np.abs, np.sqrt], axis=axis)
-        expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
-        if axis in {0, "index"}:
-            expected.columns = MultiIndex.from_product(
-                [float_frame.columns, ["absolute", "sqrt"]]
-            )
-        else:
-            expected.index = MultiIndex.from_product(
-                [float_frame.index, ["absolute", "sqrt"]]
-            )
+        expected = zip_frames([f_abs, f_sqrt], axis=1)
+        expected.columns = MultiIndex.from_product(
+            [float_frame.columns, ["absolute", "sqrt"]]
+        )
         tm.assert_frame_equal(result, expected)
 
 
@@ -1486,10 +1476,10 @@ def test_apply_empty_list_reduce():
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_no_suffix_index():
+def test_agg_no_suffix_index():
     # GH36189
     pdf = DataFrame([[4, 9]] * 3, columns=["A", "B"])
-    result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    result = pdf.agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
     expected = DataFrame(
         {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
     )

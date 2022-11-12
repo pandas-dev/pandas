@@ -14,6 +14,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Literal,
     Sequence,
     cast,
 )
@@ -158,18 +159,74 @@ class Apply(metaclass=abc.ABCMeta):
             return self.apply_str()
 
         if is_dict_like(arg):
-            return self.agg_dict_like()
+            return self.dict_like("agg")
         elif is_list_like(arg):
             # we require a list, but not a 'str'
-            return self.agg_list_like()
+            return self.list_like("agg")
 
         if callable(arg):
             f = com.get_cython_func(arg)
             if f and not args and not kwargs:
                 return getattr(obj, f)()
+            elif not isinstance(obj, SelectionMixin):
+                # i.e. obj is Series or DataFrame
+                return self.agg_udf()
 
         # caller can react
         return None
+
+    def agg_udf(self):
+        from pandas.core.reshape.concat import concat
+
+        obj = self.obj
+        arg = cast(Callable, self.f)
+
+        if not isinstance(obj, SelectionMixin):
+            # i.e. obj is Series or DataFrame
+            selected_obj = obj
+        elif obj._selected_obj.ndim == 1:
+            # For SeriesGroupBy this matches _obj_with_exclusions
+            selected_obj = obj._selected_obj
+        else:
+            selected_obj = obj._obj_with_exclusions
+
+        results = []
+
+        if selected_obj.ndim == 1:
+            colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
+            return arg(colg)
+
+        indices = []
+        for index, col in enumerate(selected_obj):
+            colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
+            new_res = arg(colg)
+            results.append(new_res)
+            indices.append(index)
+        keys = selected_obj.columns.take(indices)
+
+        try:
+            concatenated = concat(results, keys=keys, axis=1, sort=False)
+        except TypeError as err:
+            # we are concatting non-NDFrame objects,
+            # e.g. a list of scalars
+            from pandas import Series
+
+            result = Series(results, index=keys)
+            if is_nested_object(result):
+                raise ValueError(
+                    "cannot combine transform and aggregation operations"
+                ) from err
+            return result
+        else:
+            # Concat uses the first index to determine the final indexing order.
+            # The union of a shorter first index with the other indices causes
+            # the index sorting to be different from the order of the aggregating
+            # functions. Reindex if this is the case.
+            index_size = concatenated.index.size
+            full_ordered_index = next(
+                result.index for result in results if result.index.size == index_size
+            )
+            return concatenated.reindex(full_ordered_index, copy=False)
 
     def transform(self) -> DataFrame | Series:
         """
@@ -284,7 +341,7 @@ class Apply(metaclass=abc.ABCMeta):
         except Exception:
             return func(obj, *args, **kwargs)
 
-    def agg_list_like(self) -> DataFrame | Series:
+    def list_like(self, method: Literal["agg", "apply"]) -> DataFrame | Series:
         """
         Compute aggregation in the case of a list-like argument.
 
@@ -316,7 +373,7 @@ class Apply(metaclass=abc.ABCMeta):
         if selected_obj.ndim == 1:
             for a in arg:
                 colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                new_res = colg.aggregate(a)
+                new_res = getattr(colg, method)(a)
                 results.append(new_res)
 
                 # make sure we find a good name
@@ -328,7 +385,7 @@ class Apply(metaclass=abc.ABCMeta):
             indices = []
             for index, col in enumerate(selected_obj):
                 colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                new_res = colg.aggregate(arg)
+                new_res = getattr(colg, method)(arg)
                 results.append(new_res)
                 indices.append(index)
             keys = selected_obj.columns.take(indices)
@@ -357,7 +414,7 @@ class Apply(metaclass=abc.ABCMeta):
             )
             return concatenated.reindex(full_ordered_index, copy=False)
 
-    def agg_dict_like(self) -> DataFrame | Series:
+    def dict_like(self, method: Literal["agg", "apply"]) -> DataFrame | Series:
         """
         Compute aggregation in the case of a dict-like argument.
 
@@ -382,16 +439,17 @@ class Apply(metaclass=abc.ABCMeta):
             selected_obj = obj._selected_obj
             selection = obj._selection
 
-        arg = self.normalize_dictlike_arg("agg", selected_obj, arg)
+        arg = self.normalize_dictlike_arg(method, selected_obj, arg)
 
         if selected_obj.ndim == 1:
             # key only used for output
             colg = obj._gotitem(selection, ndim=1)
-            results = {key: colg.agg(how) for key, how in arg.items()}
+            results = {key: getattr(colg, method)(how) for key, how in arg.items()}
         else:
             # key used for column selection and output
             results = {
-                key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
+                key: getattr(obj._gotitem(key, ndim=1), method)(how)
+                for key, how in arg.items()
             }
 
         # set the final keys
@@ -412,7 +470,7 @@ class Apply(metaclass=abc.ABCMeta):
                 ktu._set_names(selected_obj.columns.names)
                 keys_to_use = ktu
 
-            axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
+            axis: AxisInt = 0 if isinstance(obj, ABCSeries) and method == "agg" else 1
             result = concat(
                 {k: results[k] for k in keys_to_use},  # type: ignore[misc]
                 axis=axis,
@@ -477,7 +535,10 @@ class Apply(metaclass=abc.ABCMeta):
         result: Series, DataFrame, or None
             Result when self.f is a list-like or dict-like, None otherwise.
         """
-        return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
+        if is_dict_like(self.f):
+            return self.dict_like("apply")
+        else:
+            return self.list_like("apply")
 
     def normalize_dictlike_arg(
         self, how: str, obj: DataFrame | Series, func: AggFuncTypeDict
@@ -675,9 +736,6 @@ class FrameApply(NDFrameApply):
 
         if axis == 1:
             result = result.T if result is not None else result
-
-        if result is None:
-            result = self.obj.apply(self.orig_f, axis, args=self.args, **self.kwargs)
 
         return result
 
@@ -1026,14 +1084,7 @@ class SeriesApply(NDFrameApply):
             # row-by-row; however if the lambda is expected a Series
             # expression, e.g.: lambda x: x-x.quantile(0.25)
             # this will fail, so we can try a vectorized evaluation
-
-            # we cannot FIRST try the vectorized evaluation, because
-            # then .agg and .apply would have different semantics if the
-            # operation is actually defined on the Series, e.g. str
-            try:
-                result = self.obj.apply(f)
-            except (ValueError, AttributeError, TypeError):
-                result = f(self.obj)
+            result = f(self.obj)
 
         return result
 

@@ -269,10 +269,9 @@ def test_transform(string_series):
         # dict, provide renaming
         expected = concat([f_sqrt, f_abs], axis=1)
         expected.columns = ["foo", "bar"]
-        expected = expected.unstack().rename("series")
 
         result = string_series.apply({"foo": np.sqrt, "bar": np.abs})
-        tm.assert_series_equal(result.reindex_like(expected), expected)
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("op", series_transform_kernels)
@@ -348,16 +347,24 @@ def test_demo():
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_apply_evaluate_lambdas_the_same(string_series):
+def test_apply_evaluate_lambdas_the_same(string_series):
     # test that we are evaluating row-by-row first
     # before vectorized evaluation
     result = string_series.apply(lambda x: str(x))
-    expected = string_series.agg(lambda x: str(x))
+    expected = string_series.astype(str)
     tm.assert_series_equal(result, expected)
 
     result = string_series.apply(str)
-    expected = string_series.agg(str)
     tm.assert_series_equal(result, expected)
+
+
+def test_agg_evaluate_lambdas_the_same(string_series):
+    result = string_series.agg(lambda x: str(x))
+    expected = str(string_series)
+    assert result == expected
+
+    result = string_series.agg(str)
+    assert result == expected
 
 
 def test_with_nested_series(datetime_series):
@@ -368,13 +375,14 @@ def test_with_nested_series(datetime_series):
     tm.assert_frame_equal(result, expected)
 
     result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
-    tm.assert_frame_equal(result, expected)
+    expected = Series([datetime_series, datetime_series**2], index=["x", "x^2"])
+    tm.assert_series_equal(result, expected)
 
 
 def test_replicate_describe(string_series):
     # this also tests a result set that is all scalars
     expected = string_series.describe()
-    result = string_series.apply(
+    result = string_series.agg(
         {
             "count": "count",
             "mean": "mean",
@@ -417,10 +425,10 @@ def test_non_callable_aggregates(how):
     tm.assert_series_equal(result, expected)
 
 
-def test_series_apply_no_suffix_index():
+def test_series_agg_no_suffix_index():
     # GH36189
     s = Series([4] * 3)
-    result = s.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    result = s.agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
     expected = Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"])
 
     tm.assert_series_equal(result, expected)
@@ -860,12 +868,27 @@ def test_apply_to_timedelta():
         (np.array([np.sum, np.mean]), ["sum", "mean"]),
     ],
 )
-@pytest.mark.parametrize("how", ["agg", "apply"])
-def test_apply_listlike_reducer(string_series, ops, names, how):
+def test_apply_listlike_reducer(string_series, ops, names):
+    # GH 39140
+    expected = DataFrame({name: string_series for name, op in zip(names, ops)})
+    result = string_series.apply(ops)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops, names",
+    [
+        ([np.sum], ["sum"]),
+        ([np.sum, np.mean], ["sum", "mean"]),
+        (np.array([np.sum]), ["sum"]),
+        (np.array([np.sum, np.mean]), ["sum", "mean"]),
+    ],
+)
+def test_agg_listlike_reducer(string_series, ops, names):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in zip(names, ops)})
     expected.name = "series"
-    result = getattr(string_series, how)(ops)
+    result = string_series.agg(ops)
     tm.assert_series_equal(result, expected)
 
 
@@ -878,12 +901,27 @@ def test_apply_listlike_reducer(string_series, ops, names, how):
         Series({"A": np.sum, "B": np.mean}),
     ],
 )
-@pytest.mark.parametrize("how", ["agg", "apply"])
-def test_apply_dictlike_reducer(string_series, ops, how):
+def test_apply_dictlike_reducer(string_series, ops):
+    # GH 39140
+    expected = DataFrame({name: string_series for name, op in ops.items()})
+    result = string_series.apply(ops)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        {"A": np.sum},
+        {"A": np.sum, "B": np.mean},
+        Series({"A": np.sum}),
+        Series({"A": np.sum, "B": np.mean}),
+    ],
+)
+def test_agg_dictlike_reducer(string_series, ops):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in ops.items()})
     expected.name = string_series.name
-    result = getattr(string_series, how)(ops)
+    result = string_series.agg(ops)
     tm.assert_series_equal(result, expected)
 
 
@@ -917,10 +955,9 @@ def test_apply_listlike_transformer(string_series, ops, names):
 def test_apply_dictlike_transformer(string_series, ops):
     # GH 39140
     with np.errstate(all="ignore"):
-        expected = concat({name: op(string_series) for name, op in ops.items()})
-        expected.name = string_series.name
+        expected = DataFrame({name: op(string_series) for name, op in ops.items()})
         result = string_series.apply(ops)
-        tm.assert_series_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_apply_retains_column_name():
