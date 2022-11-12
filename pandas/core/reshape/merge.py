@@ -915,6 +915,7 @@ class _MergeOperation:
                 and left_key == right_key
                 and name not in result.index.names
             ):
+
                 names_to_restore.append(name)
 
         if names_to_restore:
@@ -2178,6 +2179,7 @@ class _AsOfMerge(_OrderedMerge):
 def _get_multiindex_indexer(
     join_keys, index: MultiIndex, sort: bool
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+
     # left & right join labels and num. of levels at each location
     mapped = (
         _factorize_keys(index.levels[n], join_keys[n], sort=sort)
@@ -2432,6 +2434,7 @@ def _factorize_keys(
 def _sort_labels(
     uniques: np.ndarray, left: npt.NDArray[np.intp], right: npt.NDArray[np.intp]
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+
     llength = len(left)
     labels = np.concatenate([left, right])
 
@@ -2447,6 +2450,7 @@ def _get_join_keys(
     shape: Shape,
     sort: bool,
 ) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+
     # how many levels can be done without overflow
     nlev = next(
         lev
