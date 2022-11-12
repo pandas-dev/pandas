@@ -17,8 +17,6 @@ import pytz
 from pandas._libs import missing as libmissing
 from pandas._libs.interval import Interval
 from pandas._libs.properties import cache_readonly
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas._libs.tslibs.dtypes import PeriodDtypeBase
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -28,6 +26,10 @@ from pandas._libs.tslibs import (
     timezones,
     to_offset,
     tz_compare,
+)
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+    PeriodDtypeBase,
 )
 from pandas._typing import (
     Dtype,

@@ -134,7 +134,7 @@ from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
 )
-from pandas.core.missing import clean_reindex_fill_method
+
 from pandas.core import (
     arraylike,
     ops,
@@ -162,6 +162,7 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import disallow_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
+from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
