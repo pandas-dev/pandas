@@ -66,7 +66,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests' ; echo $MSG
     # Ignore test_*.py files or else the unit tests will run
-    python -m pytest --doctest-modules --ignore-glob="../**/tests*.py" ../pandas --import-mode=importlib
+    python -c 'import pandas as pd; pd.test(extra_args=["--doctest-modules", "--ignore-glob='../\*\*/test_\*.py'"])'
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # TODO: Rework pytest-cython to support out-of-tree extension modules
