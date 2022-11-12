@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import (
     date,
     datetime,
-    time,
+    time as dt_time,
     timedelta,
     tzinfo,
 )
@@ -610,7 +610,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 f"Cannot index {type(self).__name__} with {type(key).__name__}"
             )
 
-        elif isinstance(key, time):
+        elif isinstance(key, dt_time):
             if method is not None:
                 raise NotImplementedError(
                     "cannot yet lookup inexact labels when key is a time object"
@@ -674,12 +674,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # For historical reasons DatetimeIndex supports slices between two
         # instances of datetime.time as if it were applying a slice mask to
         # an array of (self.hour, self.minute, self.seconds, self.microsecond).
-        if isinstance(start, time) and isinstance(end, time):
+        if isinstance(start, dt_time) and isinstance(end, dt_time):
             if step is not None and step != 1:
                 raise ValueError("Must have step size of 1 with time slices")
             return self.indexer_between_time(start, end)
 
-        if isinstance(start, time) or isinstance(end, time):
+        if isinstance(start, dt_time) or isinstance(end, dt_time):
             raise KeyError("Cannot mix time and non-time slice keys")
 
         def check_str_or_none(point) -> bool:
@@ -1092,6 +1092,6 @@ def bdate_range(
     )
 
 
-def _time_to_micros(time_obj: time) -> int:
+def _time_to_micros(time_obj: dt_time) -> int:
     seconds = time_obj.hour * 60 * 60 + 60 * time_obj.minute + time_obj.second
     return 1_000_000 * seconds + time_obj.microsecond

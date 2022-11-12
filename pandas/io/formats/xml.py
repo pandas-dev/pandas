@@ -419,13 +419,13 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         """
         decl = f'<?xml version="1.0" encoding="{self.encoding}"?>\n'
 
-        doc = (
+        docs = (
             self.out_xml
             if self.out_xml.startswith(b"<?xml")
             else decl.encode(self.encoding) + self.out_xml
         )
 
-        return doc
+        return docs
 
     def remove_declaration(self) -> bytes:
         """
