@@ -64,7 +64,7 @@ jobs:
 
     # The following checks are independent of each other and should still be run if one fails
     - name: Check for no warnings when building single-page docs
-      run: cd ci && code_checks.sh single-docs
+      run: cd ci && ./code_checks.sh single-docs
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run checks on imported code
@@ -72,11 +72,11 @@ jobs:
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run doctests
-      run: cd ci && ./code_checks.sh doctests
+      run: ci/code_checks.sh doctests
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run docstring validation
-      run: cd ci && ./code_checks.sh docstrings
+      run: ci/code_checks.sh docstrings
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Use existing environment for type checking
@@ -93,7 +93,7 @@ jobs:
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run docstring validation script tests
-      run: pytest scripts --import-mode=importlib
+      run: pytest scripts --import-mode=append
       if: ${{ steps.build.outcome == 'success' && always() }}
 
   asv-benchmarks:
