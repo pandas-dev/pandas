@@ -164,7 +164,6 @@ def test_compound(
 ):
     # Multiple groupby keys and as_index=False
     gp = education_df.groupby(["country", "gender"], as_index=False, sort=False)
-    # with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
     result = gp["education"].value_counts(
         normalize=normalize, sort=sort, ascending=ascending
     )

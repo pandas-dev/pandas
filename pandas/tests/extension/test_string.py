@@ -31,11 +31,6 @@ from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
 
-VALUE_COUNTS_NAME_MSG = (
-    r"In pandas 2.0.0, the name of the resulting Series will be 'count' "
-    r"\(or 'proportion' if `normalize=True`\)"
-)
-
 
 def split_array(arr):
     if arr.dtype.storage != "pyarrow":
