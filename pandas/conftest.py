@@ -56,13 +56,13 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas import (
-    compat,
     DataFrame,
     Interval,
     Period,
     Series,
     Timedelta,
     Timestamp,
+    compat,
 )
 import pandas._testing as tm
 from pandas.core import ops
