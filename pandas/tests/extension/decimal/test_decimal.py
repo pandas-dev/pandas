@@ -140,8 +140,9 @@ class TestMethods(base.BaseMethodsTests):
         else:
             other = all_data
 
-        vcs = pd.Series(all_data).value_counts(dropna=dropna)
-        vcs_ex = pd.Series(other).value_counts(dropna=dropna)
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            vcs = pd.Series(all_data).value_counts(dropna=dropna)
+            vcs_ex = pd.Series(other).value_counts(dropna=dropna)
 
         with decimal.localcontext() as ctx:
             # avoid raising when comparing Decimal("NAN") < Decimal(2)

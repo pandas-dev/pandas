@@ -1150,11 +1150,13 @@ class TestValueCounts:
 
     def test_value_counts_bins(self):
         s = [1, 2, 3, 4]
-        result = algos.value_counts(s, bins=1)
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = algos.value_counts(s, bins=1)
         expected = Series([4], index=IntervalIndex.from_tuples([(0.996, 4.0)]))
         tm.assert_series_equal(result, expected)
 
-        result = algos.value_counts(s, bins=2, sort=False)
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = algos.value_counts(s, bins=2, sort=False)
         expected = Series(
             [2, 2], index=IntervalIndex.from_tuples([(0.996, 2.5), (2.5, 4.0)])
         )
@@ -1164,7 +1166,8 @@ class TestValueCounts:
         result = algos.value_counts([1, 1.0])
         assert len(result) == 1
 
-        result = algos.value_counts([1, 1.0], bins=1)
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = algos.value_counts([1, 1.0], bins=1)
         assert len(result) == 1
 
         result = algos.value_counts(Series([1, 1.0, "1"]))  # object
@@ -1200,7 +1203,8 @@ class TestValueCounts:
                 datetime(3000, 1, 1),
             ]
         )
-        res = s.value_counts()
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            res = s.value_counts()
 
         exp_index = Index(
             [datetime(3000, 1, 1), datetime(5000, 1, 1), datetime(6000, 1, 1)],
@@ -1216,27 +1220,31 @@ class TestValueCounts:
 
     def test_categorical(self):
         s = Series(Categorical(list("aaabbc")))
-        result = s.value_counts()
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = s.value_counts()
         expected = Series([3, 2, 1], index=CategoricalIndex(["a", "b", "c"]))
 
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         # preserve order?
         s = s.cat.as_ordered()
-        result = s.value_counts()
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = s.value_counts()
         expected.index = expected.index.as_ordered()
         tm.assert_series_equal(result, expected, check_index_type=True)
 
     def test_categorical_nans(self):
         s = Series(Categorical(list("aaaaabbbcc")))  # 4,3,2,1 (nan)
         s.iloc[1] = np.nan
-        result = s.value_counts()
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = s.value_counts()
         expected = Series(
             [4, 3, 2],
             index=CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c"]),
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
-        result = s.value_counts(dropna=False)
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = s.value_counts(dropna=False)
         expected = Series([4, 3, 2, 1], index=CategoricalIndex(["a", "b", "c", np.nan]))
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -1245,7 +1253,8 @@ class TestValueCounts:
             Categorical(list("aaaaabbbcc"), ordered=True, categories=["b", "a", "c"])
         )
         s.iloc[1] = np.nan
-        result = s.value_counts()
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = s.value_counts()
         expected = Series(
             [4, 3, 2],
             index=CategoricalIndex(
@@ -1254,7 +1263,8 @@ class TestValueCounts:
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
-        result = s.value_counts(dropna=False)
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = s.value_counts(dropna=False)
         expected = Series(
             [4, 3, 2, 1],
             index=CategoricalIndex(
@@ -1266,7 +1276,8 @@ class TestValueCounts:
     def test_categorical_zeroes(self):
         # keep the `d` category with 0
         s = Series(Categorical(list("bbbaac"), categories=list("abcd"), ordered=True))
-        result = s.value_counts()
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = s.value_counts()
         expected = Series(
             [3, 2, 1, 0],
             index=Categorical(
@@ -1278,38 +1289,43 @@ class TestValueCounts:
     def test_dropna(self):
         # https://github.com/pandas-dev/pandas/issues/9443#issuecomment-73719328
 
-        tm.assert_series_equal(
-            Series([True, True, False]).value_counts(dropna=True),
-            Series([2, 1], index=[True, False]),
-        )
-        tm.assert_series_equal(
-            Series([True, True, False]).value_counts(dropna=False),
-            Series([2, 1], index=[True, False]),
-        )
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            tm.assert_series_equal(
+                Series([True, True, False]).value_counts(dropna=True),
+                Series([2, 1], index=[True, False]),
+            )
+            tm.assert_series_equal(
+                Series([True, True, False]).value_counts(dropna=False),
+                Series([2, 1], index=[True, False]),
+            )
 
-        tm.assert_series_equal(
-            Series([True] * 3 + [False] * 2 + [None] * 5).value_counts(dropna=True),
-            Series([3, 2], index=Index([True, False], dtype=object)),
-        )
-        tm.assert_series_equal(
-            Series([True] * 5 + [False] * 3 + [None] * 2).value_counts(dropna=False),
-            Series([5, 3, 2], index=[True, False, np.nan]),
-        )
-        tm.assert_series_equal(
-            Series([10.3, 5.0, 5.0]).value_counts(dropna=True),
-            Series([2, 1], index=[5.0, 10.3]),
-        )
-        tm.assert_series_equal(
-            Series([10.3, 5.0, 5.0]).value_counts(dropna=False),
-            Series([2, 1], index=[5.0, 10.3]),
-        )
+            tm.assert_series_equal(
+                Series([True] * 3 + [False] * 2 + [None] * 5).value_counts(dropna=True),
+                Series([3, 2], index=Index([True, False], dtype=object)),
+            )
+            tm.assert_series_equal(
+                Series([True] * 5 + [False] * 3 + [None] * 2).value_counts(
+                    dropna=False
+                ),
+                Series([5, 3, 2], index=[True, False, np.nan]),
+            )
+            tm.assert_series_equal(
+                Series([10.3, 5.0, 5.0]).value_counts(dropna=True),
+                Series([2, 1], index=[5.0, 10.3]),
+            )
+            tm.assert_series_equal(
+                Series([10.3, 5.0, 5.0]).value_counts(dropna=False),
+                Series([2, 1], index=[5.0, 10.3]),
+            )
 
-        tm.assert_series_equal(
-            Series([10.3, 5.0, 5.0, None]).value_counts(dropna=True),
-            Series([2, 1], index=[5.0, 10.3]),
-        )
+            tm.assert_series_equal(
+                Series([10.3, 5.0, 5.0, None]).value_counts(dropna=True),
+                Series([2, 1], index=[5.0, 10.3]),
+            )
 
-        result = Series([10.3, 10.3, 5.0, 5.0, 5.0, None]).value_counts(dropna=False)
+            result = Series([10.3, 10.3, 5.0, 5.0, 5.0, None]).value_counts(
+                dropna=False
+            )
         expected = Series([3, 2, 1], index=[5.0, 10.3, np.nan])
         tm.assert_series_equal(result, expected)
 
@@ -1318,13 +1334,15 @@ class TestValueCounts:
         # GH12558
         s = Series([1] * 2 + [2] * 3 + [np.nan] * 5)
         s_typed = s.astype(dtype)
-        result = s_typed.value_counts(normalize=True, dropna=False)
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = s_typed.value_counts(normalize=True, dropna=False)
         expected = Series(
             [0.5, 0.3, 0.2], index=Series([np.nan, 2.0, 1.0], dtype=dtype)
         )
         tm.assert_series_equal(result, expected)
 
-        result = s_typed.value_counts(normalize=True, dropna=True)
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = s_typed.value_counts(normalize=True, dropna=True)
         expected = Series([0.6, 0.4], index=Series([2.0, 1.0], dtype=dtype))
         tm.assert_series_equal(result, expected)
 

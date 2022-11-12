@@ -1,10 +1,9 @@
 import inspect
 import operator
+import warnings
 
 import numpy as np
 import pytest
-
-from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_bool_dtype
 from pandas.core.dtypes.missing import na_value_for_dtype
@@ -39,7 +38,14 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             other = all_data
 
-        with tm.assert_produces_warning(FutureWarning, match=VALUE_COUNTS_NAME_MSG):
+        # TODO pytest.mark.filterwarnings doesn't seem to work if there's
+        # a tm.maybe_produces_warning as well - for now, we can catch the
+        # warnings like this, but it'd be good to update the pandas testing
+        # machinery to be able to combine pytest.mark.filterwarnings and
+        # tm.maybe_produces_warning
+        with warnings.catch_warnings():
+            msg = "In pandas 2.0.0, the name of the resulting Series"
+            warnings.filterwarnings("ignore", msg, FutureWarning)
             result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
             expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
 
@@ -55,9 +61,9 @@ class BaseMethodsTests(BaseExtensionTests):
         # than 7.0.0. The subclass uses pytest.mark.filterwarnings to
         # silence it, but that doesn't work with tm.assert_produces_warning,
         # so we need to catch that here as well.
-        with tm.assert_produces_warning(
-            (FutureWarning, PerformanceWarning), match=VALUE_COUNTS_NAME_MSG
-        ):
+        with warnings.catch_warnings():
+            msg = "In pandas 2.0.0, the name of the resulting Series"
+            warnings.filterwarnings("ignore", msg, FutureWarning)
             result = ser.value_counts(normalize=True).sort_index()
 
         if not isinstance(data, pd.Categorical):

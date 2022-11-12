@@ -218,7 +218,8 @@ class TestDataFrameMisc:
         )
         t = df.T
 
-        result = t.dtypes.value_counts()
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = t.dtypes.value_counts()
         expected = Series({np.dtype("object"): 10})
         tm.assert_series_equal(result, expected)
 

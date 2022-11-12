@@ -443,7 +443,8 @@ class TestFrameFlexComparisons:
         df = DataFrame({"x": [1, 2, 3], "y": [1.0, 2.0, 3.0]})
         const = 2
 
-        result = getattr(df, opname)(const).dtypes.value_counts()
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = getattr(df, opname)(const).dtypes.value_counts()
         tm.assert_series_equal(result, Series([2], index=[np.dtype(bool)]))
 
     @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
@@ -453,7 +454,8 @@ class TestFrameFlexComparisons:
         const = 2
 
         empty = df.iloc[:0]
-        result = getattr(empty, opname)(const).dtypes.value_counts()
+        with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+            result = getattr(empty, opname)(const).dtypes.value_counts()
         tm.assert_series_equal(result, Series([2], index=[np.dtype(bool)]))
 
     def test_df_flex_cmp_ea_dtype_with_ndarray_series(self):

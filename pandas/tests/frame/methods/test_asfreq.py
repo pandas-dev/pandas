@@ -48,7 +48,8 @@ class TestAsFreq:
 
         if frame_or_series is Series:
             daily_ts = ts.asfreq("D", fill_value=-1)
-            result = daily_ts.value_counts().sort_index()
+            with tm.assert_produces_warning(FutureWarning, match="name of the result"):
+                result = daily_ts.value_counts().sort_index()
             expected = Series([60, 1, 1, 1], index=[-1.0, 2.0, 1.0, 0.0]).sort_index()
             tm.assert_series_equal(result, expected)
 
