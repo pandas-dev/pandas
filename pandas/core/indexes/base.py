@@ -4438,7 +4438,8 @@ class Index(IndexOpsMixin, PandasObject):
                 return join_index, None, rindexer
 
         if self._join_precedence < other._join_precedence:
-            how = {"right": "left", "left": "right"}.get(how, how)
+            flip: dict[JoinHow, JoinHow] = {"right": "left", "left": "right"}
+            how = flip.get(how, how)
             join_index, lidx, ridx = other.join(
                 self, how=how, level=level, return_indexers=True
             )
@@ -4590,7 +4591,8 @@ class Index(IndexOpsMixin, PandasObject):
             self, other = other, self
             flip_order = True
             # flip if join method is right or left
-            how = {"right": "left", "left": "right"}.get(how, how)
+            flip: dict[JoinHow, JoinHow] = {"right": "left", "left": "right"}
+            how = flip.get(how, how)
 
         level = other.names.index(jl)
         result = self._join_level(other, level, how=how)
@@ -4684,7 +4686,8 @@ class Index(IndexOpsMixin, PandasObject):
         flip_order = not isinstance(self, MultiIndex)
         if flip_order:
             left, right = right, left
-            how = {"right": "left", "left": "right"}.get(how, how)
+            flip: dict[JoinHow, JoinHow] = {"right": "left", "left": "right"}
+            how = flip.get(how, how)
 
         assert isinstance(left, MultiIndex)
 

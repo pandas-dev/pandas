@@ -31,6 +31,7 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     JoinHow,
+    Literal,
     MergeHow,
     Shape,
     Suffixes,
@@ -614,7 +615,7 @@ class _MergeOperation:
     """
 
     _merge_type = "merge"
-    how: MergeHow
+    how: MergeHow | Literal["asof"]
     on: IndexLabel | None
     # left_on/right_on may be None when passed, but in validate_specification
     #  get replaced with non-None.
@@ -637,7 +638,7 @@ class _MergeOperation:
         self,
         left: DataFrame | Series,
         right: DataFrame | Series,
-        how: MergeHow = "inner",
+        how: MergeHow | Literal["asof"] = "inner",
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
@@ -1408,7 +1409,7 @@ class _MergeOperation:
 
     def _create_cross_configuration(
         self, left: DataFrame, right: DataFrame
-    ) -> tuple[DataFrame, DataFrame, str, str]:
+    ) -> tuple[DataFrame, DataFrame, JoinHow, str]:
         """
         Creates the configuration to dispatch the cross operation to inner join,
         e.g. adding a join column and resetting parameters. Join column is added
@@ -1426,7 +1427,7 @@ class _MergeOperation:
             to join over.
         """
         cross_col = f"_cross_{uuid.uuid4()}"
-        how = "inner"
+        how: JoinHow = "inner"
         return (
             left.assign(**{cross_col: 1}),
             right.assign(**{cross_col: 1}),
@@ -1586,7 +1587,11 @@ class _MergeOperation:
 
 
 def get_join_indexers(
-    left_keys, right_keys, sort: bool = False, how: JoinHow = "inner", **kwargs
+    left_keys,
+    right_keys,
+    sort: bool = False,
+    how: MergeHow | Literal["asof"] = "inner",
+    **kwargs,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     """
 
@@ -1759,7 +1764,7 @@ class _OrderedMerge(_MergeOperation):
         axis: AxisInt = 1,
         suffixes: Suffixes = ("_x", "_y"),
         fill_method: str | None = None,
-        how: JoinHow = "outer",
+        how: JoinHow | Literal["asof"] = "outer",
     ) -> None:
 
         self.fill_method = fill_method
@@ -1849,7 +1854,7 @@ class _AsOfMerge(_OrderedMerge):
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
         fill_method: str | None = None,
-        how: str = "asof",
+        how: Literal["asof"] = "asof",
         tolerance=None,
         allow_exact_matches: bool = True,
         direction: str = "backward",
@@ -2258,7 +2263,10 @@ def _left_join_on_index(
 
 
 def _factorize_keys(
-    lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: JoinHow = "inner"
+    lk: ArrayLike,
+    rk: ArrayLike,
+    sort: bool = True,
+    how: MergeHow | Literal["asof"] = "inner",
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
     """
     Encode left and right keys as enumerated types.
