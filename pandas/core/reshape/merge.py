@@ -1608,11 +1608,21 @@ class _MergeOperation:
             )
 
 
-def _semi_helper(leftdf, left, right):
+def _semi_helper(
+    leftdf: DataFrame,
+    left: Index | DataFrame,
+    right: Index | DataFrame,
+) -> DataFrame:
     if not isinstance(left, Index):
-        left = Index(left.values.flatten())
+        if len(left.columns) == 1:
+            left = Index(left.values.flatten())
+        else:
+            left = MultiIndex.from_frame(left)
     if not isinstance(right, Index):
-        right = Index(right.values.flatten())
+        if len(right.columns) == 1:
+            right = Index(right.values.flatten())
+        else:
+            right = MultiIndex.from_frame(right)
     subset = left.isin(right)
     return leftdf.loc[subset]
 

@@ -2766,3 +2766,21 @@ def test_merge_semi(how, data, index, left_index, right_index):
     result = left.merge(right, how=how, left_index=left_index, right_index=right_index)
     expected = DataFrame(data, index=index)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "expected, how",
+    [
+        (DataFrame({"a": [1, 2], "b": [2, 3], "c": [2, 3]}, index=[1, 2]), "leftsemi"),
+        (DataFrame({"a": [1, 2], "c": [2, 3]}, index=[1, 2]), "rightsemi"),
+    ],
+)
+def test_merge_semi_multicol(expected, how):
+    # GH 42784
+    left = DataFrame(
+        {"a": [1, 1, 2, 3, 4], "b": [1, 2, 3, 4, 5], "c": [1, 2, 3, 4, 5]},
+        index=[1, 1, 2, 3, 4],
+    )
+    right = DataFrame({"a": [0, 1, 2, 3, 3], "c": [1, 2, 3, 2, 1]})
+    result = left.merge(right, how=how)
+    tm.assert_frame_equal(result, expected)
