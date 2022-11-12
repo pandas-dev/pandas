@@ -5,8 +5,8 @@ Routines for casting.
 from __future__ import annotations
 
 from datetime import (
-    datetime,
-    timedelta,
+    datetime as datetime_func,
+    timedelta as timedelta_func,
 )
 import functools
 from typing import (
@@ -73,7 +73,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
-    pandas_dtype,
+    pandas_dtype as pandas_dtype_func,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -170,9 +170,9 @@ def maybe_box_datetimelike(value: Scalar, dtype: Dtype | None = None) -> Scalar:
     """
     if dtype == _dtype_obj:
         pass
-    elif isinstance(value, (np.datetime64, datetime)):
+    elif isinstance(value, (np.datetime64, datetime_func)):
         value = Timestamp(value)
-    elif isinstance(value, (np.timedelta64, timedelta)):
+    elif isinstance(value, (np.timedelta64, timedelta_func)):
         value = Timedelta(value)
 
     return value
@@ -761,7 +761,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
 
         dtype = _dtype_obj
 
-    elif isinstance(val, (np.datetime64, datetime)):
+    elif isinstance(val, (np.datetime64, datetime_func)):
         try:
             val = Timestamp(val)
         except OutOfBoundsDatetime:
@@ -781,7 +781,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
                 # return datetimetz as object
                 return _dtype_obj, val
 
-    elif isinstance(val, (np.timedelta64, timedelta)):
+    elif isinstance(val, (np.timedelta64, timedelta_func)):
         try:
             val = Timedelta(val)
         except (OutOfBoundsTimedelta, OverflowError):
@@ -1096,10 +1096,10 @@ def convert_dtypes(
             if not convert_string or inferred_dtype == "bytes":
                 return input_array.dtype
             else:
-                return pandas_dtype("string")
+                return pandas_dtype_func("string")
 
         if convert_integer:
-            target_int_dtype = pandas_dtype("Int64")
+            target_int_dtype = pandas_dtype_func("Int64")
 
             if is_integer_dtype(input_array.dtype):
                 from pandas.core.arrays.integer import INT_STR_TO_DTYPE
@@ -1128,7 +1128,7 @@ def convert_dtypes(
                 from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
 
                 inferred_float_dtype: DtypeObj = FLOAT_STR_TO_DTYPE.get(
-                    input_array.dtype.name, pandas_dtype("Float64")
+                    input_array.dtype.name, pandas_dtype_func("Float64")
                 )
                 # if we could also convert to integer, check if all floats
                 # are actually integers
@@ -1136,7 +1136,7 @@ def convert_dtypes(
                     # TODO: de-dup with maybe_cast_to_integer_array?
                     arr = input_array[notna(input_array)]
                     if (arr.astype(int) == arr).all():
-                        inferred_dtype = pandas_dtype("Int64")
+                        inferred_dtype = pandas_dtype_func("Int64")
                     else:
                         inferred_dtype = inferred_float_dtype
                 else:
@@ -1146,13 +1146,13 @@ def convert_dtypes(
                 and is_object_dtype(input_array.dtype)
                 and inferred_dtype == "mixed-integer-float"
             ):
-                inferred_dtype = pandas_dtype("Float64")
+                inferred_dtype = pandas_dtype_func("Float64")
 
         if convert_boolean:
             if is_bool_dtype(input_array.dtype):
-                inferred_dtype = pandas_dtype("boolean")
+                inferred_dtype = pandas_dtype_func("boolean")
             elif isinstance(inferred_dtype, str) and inferred_dtype == "boolean":
-                inferred_dtype = pandas_dtype("boolean")
+                inferred_dtype = pandas_dtype_func("boolean")
 
         if isinstance(inferred_dtype, str):
             # If we couldn't do anything else, then we retain the dtype
@@ -1578,7 +1578,7 @@ def construct_1d_arraylike_from_scalar(
 def _maybe_box_and_unbox_datetimelike(value: Scalar, dtype: DtypeObj):
     # Caller is responsible for checking dtype.kind in ["m", "M"]
 
-    if isinstance(value, datetime):
+    if isinstance(value, datetime_func):
         # we dont want to box dt64, in particular datetime64("NaT")
         value = maybe_box_datetimelike(value, dtype)
 
