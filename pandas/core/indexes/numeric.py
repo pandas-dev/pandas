@@ -178,7 +178,7 @@ class NumericIndex(Index):
         subarr = np.asarray(subarr)
         if subarr.dtype == "float16":
             # float16 not supported (no indexing engine)
-            subarr = subarr.astype("float32")
+            raise TypeError("float16 indexes are not supported")
 
         return subarr
 
@@ -209,6 +209,9 @@ class NumericIndex(Index):
         if dtype == np.float16:
             # float16 not supported (no indexing engine)
             dtype = np.dtype(np.float32)
+        if dtype == "float16":
+            # float16 not supported (no indexing engine)
+            raise TypeError("float16 indexes are not supported")
 
         if cls._is_backward_compat_public_numeric_index:
             # dtype for NumericIndex

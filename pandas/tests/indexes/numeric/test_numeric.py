@@ -476,13 +476,8 @@ class TestFloat16Index:
     # GH 49535
     def test_array(self):
         arr = np.array([1, 2, 3], dtype=np.float16)
-        result = NumericIndex(arr)
-
-        expected = NumericIndex([1, 2, 3], dtype=np.float32)
-        tm.assert_index_equal(result, expected, check_exact=True)
-
-        result = NumericIndex([1, 2, 3], dtype=np.float16)
-        tm.assert_index_equal(result, expected, check_exact=True)
+        with pytest.raises(TypeError, match="float16 indexes are not supported"):
+            result = NumericIndex(arr)
 
 
 class TestUIntNumericIndex(NumericInt):
