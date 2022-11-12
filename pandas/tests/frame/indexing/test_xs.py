@@ -54,7 +54,7 @@ class TestXS:
         assert xs["B"] == "1"
 
         with pytest.raises(
-            KeyError, match=re.escape("Timestamp('1999-12-31 00:00:00', freq='B')")
+            KeyError, match=re.escape("Timestamp('1999-12-31 00:00:00')")
         ):
             datetime_frame.xs(datetime_frame.index[0] - BDay())
 
@@ -107,8 +107,7 @@ class TestXS:
         expected = df[:1]
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.xs([2008, "sat"], level=["year", "day"], drop_level=False)
+        result = df.xs((2008, "sat"), level=["year", "day"], drop_level=False)
         tm.assert_frame_equal(result, expected)
 
     def test_xs_view(self, using_array_manager, using_copy_on_write):
@@ -225,8 +224,7 @@ class TestXSWithMultiIndex:
         expected = concat([frame.xs("one", level="second")] * 2)
 
         if isinstance(key, list):
-            with tm.assert_produces_warning(FutureWarning):
-                result = df.xs(key, level=level)
+            result = df.xs(tuple(key), level=level)
         else:
             result = df.xs(key, level=level)
         tm.assert_frame_equal(result, expected)
@@ -412,6 +410,5 @@ class TestXSWithMultiIndex:
         # GH#41760
         mi = MultiIndex.from_tuples([("x", "m", "a"), ("x", "n", "b"), ("y", "o", "c")])
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
-        with tm.assert_produces_warning(FutureWarning):
-            with pytest.raises(KeyError, match="y"):
-                df.xs(["x", "y"], drop_level=False, axis=1)
+        with pytest.raises(KeyError, match="y"):
+            df.xs(("x", "y"), drop_level=False, axis=1)

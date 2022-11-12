@@ -5,7 +5,7 @@ requires = [
     "setuptools>=51.0.0",
     "wheel",
     "Cython>=0.29.32,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    "oldest-supported-numpy>=0.10"
+    "oldest-supported-numpy>=2022.8.16"
 ]
 # uncomment to enable pep517 after versioneer problem is fixed.
 # https://github.com/python-versioneer/python-versioneer/issues/193
@@ -59,9 +59,8 @@ exclude = '''
 max-line-length = 88
 disable = [
   "abstract-class-instantiated",
-  "access-member-before-definition",
+  "c-extension-no-member",
   "import-error",
-  "invalid-repr-returned",
   "invalid-unary-operand-type",
   "no-member",
   "no-name-in-module",
@@ -79,8 +78,6 @@ disable = [
   "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
-  "consider-using-f-string",
-  "disallowed-name",
   "import-outside-toplevel",
   "invalid-name",
   "line-too-long",
@@ -103,23 +100,14 @@ disable = [
   "wrong-import-position",
 
   # pylint type "R": refactor, for bad code smell
-  "chained-comparison",
-  "comparison-of-constants",
   "comparison-with-itself",
   "consider-merging-isinstance",
-  "consider-using-min-builtin",
-  "consider-using-sys-exit",
   "consider-using-ternary",
   "consider-using-with",
   "cyclic-import",
   "duplicate-code",
   "inconsistent-return-statements",
-  "invalid-sequence-index",
-  "literal-comparison",
-  "no-else-continue",
-  "no-else-raise",
   "no-else-return",
-  "no-self-use",
   "redefined-argument-from-local",
   "too-few-public-methods",
   "too-many-ancestors",
@@ -134,9 +122,7 @@ disable = [
   "too-many-statements",
   "unnecessary-comprehension",
   "unnecessary-list-index-lookup",
-  "use-a-generator",
   "useless-option-value",
-  "useless-return",
 
   # pylint type "W": warning, for python specific problems
   "abstract-method",
@@ -145,23 +131,19 @@ disable = [
   "arguments-renamed",
   "attribute-defined-outside-init",
   "broad-except",
-  "cell-var-from-loop",
   "comparison-with-callable",
   "confusing-with-statement",
   "dangerous-default-value",
   "deprecated-module",
-  "duplicate-value",
   "eval-used",
   "expression-not-assigned",
   "fixme",
   "global-statement",
   "global-variable-not-assigned",
-  "import-self",
   "invalid-envvar-default",
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
   "method-cache-max-size-none",
-  "nan-comparison",
   "non-parent-init-called",
   "overridden-final-method",
   "pointless-statement",
@@ -171,7 +153,6 @@ disable = [
   "raise-missing-from",
   "redefined-builtin",
   "redefined-outer-name",
-  "reimported",
   "self-assigning-variable",
   "self-cls-assignment",
   "signature-differs",
@@ -180,16 +161,12 @@ disable = [
   "try-except-raise",
   "undefined-loop-variable",
   "unnecessary-lambda",
-  "unnecessary-pass",
   "unspecified-encoding",
   "unused-argument",
   "unused-import",
   "unused-variable",
-  "unused-wildcard-import",
   "using-constant-test",
-  "useless-else-on-loop",
-  "useless-parent-delegation",
-  "wildcard-import"
+  "useless-parent-delegation"
 ]
 
 [tool.pytest.ini_options]
