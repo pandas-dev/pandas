@@ -56,6 +56,7 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas import (
+    compat,
     DataFrame,
     Interval,
     Period,
@@ -79,7 +80,7 @@ else:
     has_pyarrow = True
 
 zoneinfo = None
-if pd.compat.PY39:
+if compat.PY39:
     # Import "zoneinfo" could not be resolved (reportMissingImports)
     import zoneinfo  # type: ignore[no-redef]
 
