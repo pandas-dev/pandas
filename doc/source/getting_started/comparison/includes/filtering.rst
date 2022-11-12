@@ -9,7 +9,7 @@ The above statement is simply passing a ``Series`` of ``True``/``False`` objects
 returning all rows with ``True``.
 
 .. ipython:: python
-   :okwarning:
+    :okwarning:
 
     is_dinner = tips["time"] == "Dinner"
     is_dinner

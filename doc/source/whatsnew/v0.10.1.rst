@@ -83,7 +83,7 @@ Retrieving unique values in an indexable or data column.
 You can now store ``datetime64`` in data columns
 
 .. ipython:: python
-   :okwarning:
+    :okwarning:
 
     df_mixed = df.copy()
     df_mixed["datetime64"] = pd.Timestamp("20010102")

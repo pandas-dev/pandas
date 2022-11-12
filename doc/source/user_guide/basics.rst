@@ -703,7 +703,7 @@ The :meth:`~DataFrame.value_counts` method can be used to count combinations acr
 By default all columns are used but a subset can be selected using the ``subset`` argument.
 
 .. ipython:: python
-   :okwarning:
+    :okwarning:
 
     data = {"a": [1, 2, 3, 4], "b": ["x", "x", "y", "y"]}
     frame = pd.DataFrame(data)

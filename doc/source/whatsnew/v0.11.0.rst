@@ -289,7 +289,7 @@ Furthermore ``datetime64[ns]`` columns are created by default, when passed datet
 (:issue:`2809`, :issue:`2810`)
 
 .. ipython:: python
-  :okwarning:
+   :okwarning:
 
    df = pd.DataFrame(np.random.randn(6, 2), pd.date_range('20010102', periods=6),
                      columns=['A', ' B'])
