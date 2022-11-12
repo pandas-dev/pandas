@@ -196,7 +196,6 @@ class BaseArrayManager(DataManager):
         self: T,
         f,
         align_keys: list[str] | None = None,
-        ignore_failures: bool = False,
         **kwargs,
     ) -> T:
         """
@@ -207,7 +206,6 @@ class BaseArrayManager(DataManager):
         f : str or callable
             Name of the Array method to apply.
         align_keys: List[str] or None, default None
-        ignore_failures: bool, default False
         **kwargs
             Keywords to pass to `f`
 
@@ -215,11 +213,10 @@ class BaseArrayManager(DataManager):
         -------
         ArrayManager
         """
-        assert "filter" not in kwargs
+        assert "filter" not in kwargs and "ignore_failures" not in kwargs
 
         align_keys = align_keys or []
         result_arrays: list[np.ndarray] = []
-        result_indices: list[int] = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
 
         aligned_args = {k: kwargs[k] for k in align_keys}
@@ -243,27 +240,17 @@ class BaseArrayManager(DataManager):
                         # otherwise we have an array-like
                         kwargs[k] = obj[i]
 
-            try:
-                if callable(f):
-                    applied = f(arr, **kwargs)
-                else:
-                    applied = getattr(arr, f)(**kwargs)
-            except (TypeError, NotImplementedError):
-                if not ignore_failures:
-                    raise
-                continue
+            if callable(f):
+                applied = f(arr, **kwargs)
+            else:
+                applied = getattr(arr, f)(**kwargs)
+
             # if not isinstance(applied, ExtensionArray):
             #     # TODO not all EA operations return new EAs (eg astype)
             #     applied = array(applied)
             result_arrays.append(applied)
-            result_indices.append(i)
 
-        new_axes: list[Index]
-        if ignore_failures:
-            # TODO copy?
-            new_axes = [self._axes[0], self._axes[1][result_indices]]
-        else:
-            new_axes = self._axes
+        new_axes = self._axes
 
         # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
         # expected "List[Union[ndarray, ExtensionArray]]"
