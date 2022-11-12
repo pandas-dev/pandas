@@ -58,10 +58,10 @@ def test_apply_axis1_with_ea():
     "data, dtype",
     [(1, None), (1, CategoricalDtype([1])), (Timestamp("2013-01-01", tz="UTC"), None)],
 )
-def test_agg_axis1_duplicate_index(data, dtype):
+def test_apply_axis1_duplicate_index(data, dtype):
     # GH 42380
     expected = DataFrame([[data], [data]], index=["a", "a"], dtype=dtype)
-    result = expected.agg(lambda x: x, axis=1)
+    result = expected.apply(lambda x: x, axis=1)
     tm.assert_frame_equal(result, expected)
 
 

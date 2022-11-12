@@ -176,8 +176,6 @@ class Apply(metaclass=abc.ABCMeta):
         return None
 
     def agg_udf(self):
-        from pandas.core.reshape.concat import concat
-
         obj = self.obj
         arg = cast(Callable, self.f)
 
@@ -204,29 +202,10 @@ class Apply(metaclass=abc.ABCMeta):
             indices.append(index)
         keys = selected_obj.columns.take(indices)
 
-        try:
-            concatenated = concat(results, keys=keys, axis=1, sort=False)
-        except TypeError as err:
-            # we are concatting non-NDFrame objects,
-            # e.g. a list of scalars
-            from pandas import Series
+        from pandas import Series
 
-            result = Series(results, index=keys)
-            if is_nested_object(result):
-                raise ValueError(
-                    "cannot combine transform and aggregation operations"
-                ) from err
-            return result
-        else:
-            # Concat uses the first index to determine the final indexing order.
-            # The union of a shorter first index with the other indices causes
-            # the index sorting to be different from the order of the aggregating
-            # functions. Reindex if this is the case.
-            index_size = concatenated.index.size
-            full_ordered_index = next(
-                result.index for result in results if result.index.size == index_size
-            )
-            return concatenated.reindex(full_ordered_index, copy=False)
+        result = Series(results, index=keys)
+        return result
 
     def transform(self) -> DataFrame | Series:
         """
