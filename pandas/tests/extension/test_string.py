@@ -250,9 +250,7 @@ class TestMethods(base.BaseMethodsTests):
         )
 
     @pytest.mark.parametrize("dropna", [True, False])
-    @pytest.mark.filterwarnings(
-        "ignore:In pandas 2.0.0, the name of the resulting Series:FutureWarning"
-    )
+    @pytest.mark.filterwarnings("ignore:.*name of the resulting Series:FutureWarning")
     def test_value_counts(self, all_data, dropna, request):
         all_data = all_data[:10]
         if dropna:
