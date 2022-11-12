@@ -3,11 +3,7 @@ Routines for casting.
 """
 
 from __future__ import annotations
-
-from datetime import (
-    datetime as datetime_func,
-    timedelta as timedelta_func,
-)
+import datetime as dt
 import functools
 from typing import (
     TYPE_CHECKING,
@@ -170,9 +166,9 @@ def maybe_box_datetimelike(value: Scalar, dtype: Dtype | None = None) -> Scalar:
     """
     if dtype == _dtype_obj:
         pass
-    elif isinstance(value, (np.datetime64, datetime_func)):
+    elif isinstance(value, (np.datetime64, dt.datetime)):
         value = Timestamp(value)
-    elif isinstance(value, (np.timedelta64, timedelta_func)):
+    elif isinstance(value, (np.timedelta64, dt.timedelta)):
         value = Timedelta(value)
 
     return value
@@ -761,7 +757,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
 
         dtype = _dtype_obj
 
-    elif isinstance(val, (np.datetime64, datetime_func)):
+    elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
             val = Timestamp(val)
         except OutOfBoundsDatetime:
@@ -781,7 +777,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
                 # return datetimetz as object
                 return _dtype_obj, val
 
-    elif isinstance(val, (np.timedelta64, timedelta_func)):
+    elif isinstance(val, (np.timedelta64, dt.timedelta)):
         try:
             val = Timedelta(val)
         except (OutOfBoundsTimedelta, OverflowError):
@@ -1578,7 +1574,7 @@ def construct_1d_arraylike_from_scalar(
 def _maybe_box_and_unbox_datetimelike(value: Scalar, dtype: DtypeObj):
     # Caller is responsible for checking dtype.kind in ["m", "M"]
 
-    if isinstance(value, datetime_func):
+    if isinstance(value, dt.datetime):
         # we dont want to box dt64, in particular datetime64("NaT")
         value = maybe_box_datetimelike(value, dtype)
 
