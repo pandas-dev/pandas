@@ -1046,27 +1046,6 @@ class SeriesApply(NDFrameApply):
         # self.f is Callable
         return self.apply_standard()
 
-    def agg(self):
-        result = super().agg()
-        if result is None:
-            f = self.f
-            kwargs = self.kwargs
-
-            # string, list-like, and dict-like are entirely handled in super
-            assert callable(f)
-
-            # we can be called from an inner function which
-            # passes this meta-data
-            kwargs.pop("_level", None)
-
-            # try a regular apply, this evaluates lambdas
-            # row-by-row; however if the lambda is expected a Series
-            # expression, e.g.: lambda x: x-x.quantile(0.25)
-            # this will fail, so we can try a vectorized evaluation
-            result = f(self.obj)
-
-        return result
-
     def apply_empty_result(self) -> Series:
         obj = self.obj
         return obj._constructor(dtype=obj.dtype, index=obj.index).__finalize__(
