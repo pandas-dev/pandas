@@ -50,7 +50,7 @@ jobs:
         # no-isolation from build flag, in step below
         pip install git+https://github.com/mesonbuild/meson.git@master
         pip install git+https://github.com/mesonbuild/meson-python.git@main
-        python -m pip install --upgrade pip setuptools wheel build
+        python -m pip install --upgrade pip setuptools wheel build Cython oldest-supported-numpy
 
         # GH 39416
         pip install numpy
