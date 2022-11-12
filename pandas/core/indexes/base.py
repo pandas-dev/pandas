@@ -53,6 +53,7 @@ from pandas._typing import (
     F,
     IgnoreRaise,
     IndexLabel,
+    JoinHow,
     Level,
     Shape,
     npt,
@@ -218,7 +219,7 @@ def _maybe_return_indexers(meth: F) -> F:
         self,
         other: Index,
         *,
-        how: str_t = "left",
+        how: JoinHow = "left",
         level=None,
         return_indexers: bool = False,
         sort: bool = False,
@@ -4325,7 +4326,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         other: Index,
         *,
-        how: str_t = ...,
+        how: JoinHow = ...,
         level: Level = ...,
         return_indexers: Literal[True],
         sort: bool = ...,
@@ -4337,7 +4338,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         other: Index,
         *,
-        how: str_t = ...,
+        how: JoinHow = ...,
         level: Level = ...,
         return_indexers: Literal[False] = ...,
         sort: bool = ...,
@@ -4349,7 +4350,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         other: Index,
         *,
-        how: str_t = ...,
+        how: JoinHow = ...,
         level: Level = ...,
         return_indexers: bool = ...,
         sort: bool = ...,
@@ -4362,7 +4363,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         other: Index,
         *,
-        how: str_t = "left",
+        how: JoinHow = "left",
         level: Level = None,
         return_indexers: bool = False,
         sort: bool = False,
@@ -4483,7 +4484,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _join_via_get_indexer(
-        self, other: Index, how: str_t, sort: bool
+        self, other: Index, how: JoinHow, sort: bool
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         # Fallback if we do not have any fastpaths available based on
         #  uniqueness/monotonicity
@@ -4517,7 +4518,7 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, lindexer, rindexer
 
     @final
-    def _join_multi(self, other: Index, how: str_t):
+    def _join_multi(self, other: Index, how: JoinHow):
         from pandas.core.indexes.multi import MultiIndex
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
@@ -4600,7 +4601,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _join_non_unique(
-        self, other: Index, how: str_t = "left"
+        self, other: Index, how: JoinHow = "left"
     ) -> tuple[Index, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         from pandas.core.reshape.merge import get_join_indexers
 
@@ -4632,7 +4633,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _join_level(
-        self, other: Index, level, how: str_t = "left", keep_order: bool = True
+        self, other: Index, level, how: JoinHow = "left", keep_order: bool = True
     ) -> tuple[MultiIndex, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         """
         The join method *only* affects the level of the resulting
@@ -4780,7 +4781,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _join_monotonic(
-        self, other: Index, how: str_t = "left"
+        self, other: Index, how: JoinHow = "left"
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         # We only get here with matching dtypes and both monotonic increasing
         assert other.dtype == self.dtype

@@ -30,6 +30,8 @@ from pandas._typing import (
     AxisInt,
     DtypeObj,
     IndexLabel,
+    JoinHow,
+    MergeHow,
     Shape,
     Suffixes,
     npt,
@@ -98,7 +100,7 @@ if TYPE_CHECKING:
 def merge(
     left: DataFrame | Series,
     right: DataFrame | Series,
-    how: str = "inner",
+    how: MergeHow = "inner",
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,
@@ -197,7 +199,7 @@ def merge_ordered(
     right_by=None,
     fill_method: str | None = None,
     suffixes: Suffixes = ("_x", "_y"),
-    how: str = "outer",
+    how: JoinHow = "outer",
 ) -> DataFrame:
     """
     Perform a merge for ordered data with optional filling/interpolation.
@@ -612,7 +614,7 @@ class _MergeOperation:
     """
 
     _merge_type = "merge"
-    how: str
+    how: MergeHow
     on: IndexLabel | None
     # left_on/right_on may be None when passed, but in validate_specification
     #  get replaced with non-None.
@@ -635,7 +637,7 @@ class _MergeOperation:
         self,
         left: DataFrame | Series,
         right: DataFrame | Series,
-        how: str = "inner",
+        how: MergeHow = "inner",
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
@@ -1072,7 +1074,7 @@ class _MergeOperation:
         index: Index,
         other_index: Index,
         indexer: npt.NDArray[np.intp],
-        how: str = "left",
+        how: JoinHow = "left",
     ) -> Index:
         """
         Create a join index by rearranging one index to match another
@@ -1584,7 +1586,7 @@ class _MergeOperation:
 
 
 def get_join_indexers(
-    left_keys, right_keys, sort: bool = False, how: str = "inner", **kwargs
+    left_keys, right_keys, sort: bool = False, how: JoinHow = "inner", **kwargs
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     """
 
@@ -1757,7 +1759,7 @@ class _OrderedMerge(_MergeOperation):
         axis: AxisInt = 1,
         suffixes: Suffixes = ("_x", "_y"),
         fill_method: str | None = None,
-        how: str = "outer",
+        how: JoinHow = "outer",
     ) -> None:
 
         self.fill_method = fill_method
@@ -2256,7 +2258,7 @@ def _left_join_on_index(
 
 
 def _factorize_keys(
-    lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
+    lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: JoinHow = "inner"
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
     """
     Encode left and right keys as enumerated types.
