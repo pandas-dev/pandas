@@ -948,9 +948,8 @@ class TestIteration:
         grouped = df.groupby(["k1", "k2"])
         # calling `dict` on a DataFrameGroupBy leads to a TypeError,
         # we need to use a dictionary comprehension here
-        groups = {
-            key: gp for key, gp in grouped
-        }  # pylint: disable=unnecessary-comprehension
+        # pylint: disable-next=unnecessary-comprehension
+        groups = {key: gp for key, gp in grouped}
         assert len(groups) == 2
 
         # axis = 1
