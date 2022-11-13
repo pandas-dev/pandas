@@ -3,6 +3,7 @@ Tests for DatetimeArray
 """
 from datetime import timedelta
 import operator
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pytest
@@ -706,3 +707,31 @@ class TestDatetimeArray:
 
         roundtrip = expected.tz_localize("US/Pacific")
         tm.assert_datetime_array_equal(roundtrip, dta)
+
+    @pytest.mark.parametrize(
+        "tz", [ZoneInfo("US/Eastern"), "US/Eastern", "dateutil/US/Eastern"]
+    )
+    def test_iter_zoneinfo_fold(self, tz):
+        utc_vals = np.array(
+            [1320552000, 1320555600, 1320559200, 1320562800], dtype=np.int64
+        )
+        utc_vals *= 1_000_000_000
+
+        dta = DatetimeArray(utc_vals).tz_localize("UTC").tz_convert(tz)
+
+        left = dta[2]
+        right = list(dta)[2]
+        assert str(left) == str(right)
+        # previously there was a bug where with non-pytz right would be
+        #  Timestamp('2011-11-06 01:00:00-0400', tz='US/Eastern')
+        # while left would be
+        #  Timestamp('2011-11-06 01:00:00-0500', tz='US/Eastern')
+        # The .value's would match (so they would compare as equal),
+        #  but the folds would not
+        assert left.utcoffset() == right.utcoffset()
+
+        # The same bug in ints_to_pydatetime affected .astype, so we test
+        #  that here.
+        right2 = dta.astype(object)[2]
+        assert str(left) == str(right2)
+        assert left.utcoffset() == right2.utcoffset()
