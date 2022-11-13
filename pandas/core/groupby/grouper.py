@@ -621,7 +621,7 @@ class Grouping:
             return self.result_index._values
 
         elif self._passed_categorical:
-            return self.group_index
+            return self.group_index._values
 
         return self._codes_and_uniques[1]
 
