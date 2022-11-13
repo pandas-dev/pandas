@@ -70,7 +70,7 @@ This file implements string parsing and creation for NumPy datetime.
 // This function will advance the pointer on format
 // and decrement characters_remaining by n on success
 // On failure will return -1 without incrementing
-int compare_format(const char **format, int *characters_remaining,
+static int compare_format(const char **format, int *characters_remaining,
                  const char *compare_to, int n, const int exact) {
   if (*characters_remaining < n) {
     if (exact) {
@@ -202,8 +202,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         ++substr;
         --sublen;
 
-        const char tmp[1] = {ymd_sep};
-        if (compare_format(&format, &format_len, tmp, 1, exact)) {
+        if (compare_format(&format, &format_len, &ymd_sep, 1, exact)) {
             goto parse_error;
         }
         /* Cannot have trailing separator */
@@ -259,8 +258,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         }
         ++substr;
         --sublen;
-        const char tmp[1] = {ymd_sep};
-        if (compare_format(&format, &format_len, tmp, 1, exact)) {
+        if (compare_format(&format, &format_len, &ymd_sep, 1, exact)) {
             goto parse_error;
         }
     }
@@ -308,8 +306,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     if ((*substr != 'T' && *substr != ' ') || sublen == 1) {
         goto parse_error;
     }
-        const char tmp[1] = {*substr};
-        if (compare_format(&format, &format_len, tmp, 1, exact)) {
+        if (compare_format(&format, &format_len, substr, 1, exact)) {
             goto parse_error;
         }
     ++substr;
