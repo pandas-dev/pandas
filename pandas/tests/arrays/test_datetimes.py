@@ -3,7 +3,11 @@ Tests for DatetimeArray
 """
 from datetime import timedelta
 import operator
-from zoneinfo import ZoneInfo
+
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
 
 import numpy as np
 import pytest
@@ -708,9 +712,11 @@ class TestDatetimeArray:
         roundtrip = expected.tz_localize("US/Pacific")
         tm.assert_datetime_array_equal(roundtrip, dta)
 
-    @pytest.mark.parametrize(
-        "tz", [ZoneInfo("US/Eastern"), "US/Eastern", "dateutil/US/Eastern"]
-    )
+    easts = ["US/Eastern", "dateutil/US/Eastern"]
+    if ZoneInfo is not None:
+        easts.append(ZoneInfo("US/Eastern"))
+
+    @pytest.mark.parametrize("tz", easts)
     def test_iter_zoneinfo_fold(self, tz):
         # GH#49684
         utc_vals = np.array(
