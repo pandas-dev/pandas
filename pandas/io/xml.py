@@ -345,21 +345,7 @@ class _XMLFrameParser:
                     row = {}
 
             if row is not None:
-                if self.names:
-                    for col, nm in zip(self.iterparse[row_node], self.names):
-                        if curr_elem == col:
-                            elem_val = elem.text.strip() if elem.text else None
-                            if row.get(nm) != elem_val and nm not in row:
-                                row[nm] = elem_val
-                        if col in elem.attrib:
-                            if elem.attrib[col] not in row.values() and nm not in row:
-                                row[nm] = elem.attrib[col]
-                else:
-                    for col in self.iterparse[row_node]:
-                        if curr_elem == col:
-                            row[col] = elem.text.strip() if elem.text else None
-                        if col in elem.attrib:
-                            row[col] = elem.attrib[col]
+                self._iterparse_nodes_action(curr_elem, row, row_node, elem)
 
             if event == "end":
                 if curr_elem == row_node and row is not None:
@@ -383,6 +369,23 @@ class _XMLFrameParser:
             dicts = [dict(zip(self.names, d.values())) for d in dicts]
 
         return dicts
+
+    def _iterparse_nodes_action(self, curr_elem, row, row_node, elem) -> None:
+        if self.names:
+            for col, nm in zip(self.iterparse[row_node], self.names):
+                if curr_elem == col:
+                    elem_val = elem.text.strip() if elem.text else None
+                    if row.get(nm) != elem_val and nm not in row:
+                        row[nm] = elem_val
+                if col in elem.attrib:
+                    if elem.attrib[col] not in row.values() and nm not in row:
+                        row[nm] = elem.attrib[col]
+        else:
+            for col in self.iterparse[row_node]:
+                if curr_elem == col:
+                    row[col] = elem.text.strip() if elem.text else None
+                if col in elem.attrib:
+                    row[col] = elem.attrib[col]
 
     def _validate_path(self) -> list[Any]:
         """
