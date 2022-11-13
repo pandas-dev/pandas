@@ -81,7 +81,7 @@ class TestNonNano:
     def test_fields(self, unit, reso, field, dtype, dta_dti):
         dta, dti = dta_dti
 
-        # FIXME: assert (dti == dta).all()
+        assert (dti == dta).all()
 
         res = getattr(dta, field)
         expected = getattr(dti._data, field)
@@ -215,12 +215,12 @@ class TestNonNano:
         # https://github.com/pandas-dev/pandas/pull/48748#issuecomment-1260181008
         td = pd.Timedelta(microseconds=1)
         dti = pd.date_range("2016-01-01", periods=3) - td
-        dta = dti._data._as_unit("us")
+        dta = dti._data.as_unit("us")
 
-        res = dta + td._as_unit("us")
+        res = dta + td.as_unit("us")
         # even though the result is an even number of days
         #  (so we _could_ downcast to unit="s"), we do not.
-        assert res._unit == "us"
+        assert res.unit == "us"
 
     @pytest.mark.parametrize(
         "scalar",
@@ -240,32 +240,32 @@ class TestNonNano:
         exp_reso = max(dta._creso, td._creso)
         exp_unit = npy_unit_to_abbrev(exp_reso)
 
-        expected = (dti + td)._data._as_unit(exp_unit)
+        expected = (dti + td)._data.as_unit(exp_unit)
         result = dta + scalar
         tm.assert_extension_array_equal(result, expected)
 
         result = scalar + dta
         tm.assert_extension_array_equal(result, expected)
 
-        expected = (dti - td)._data._as_unit(exp_unit)
+        expected = (dti - td)._data.as_unit(exp_unit)
         result = dta - scalar
         tm.assert_extension_array_equal(result, expected)
 
     def test_sub_datetimelike_scalar_mismatch(self):
         dti = pd.date_range("2016-01-01", periods=3)
-        dta = dti._data._as_unit("us")
+        dta = dti._data.as_unit("us")
 
-        ts = dta[0]._as_unit("s")
+        ts = dta[0].as_unit("s")
 
         result = dta - ts
-        expected = (dti - dti[0])._data._as_unit("us")
+        expected = (dti - dti[0])._data.as_unit("us")
         assert result.dtype == "m8[us]"
         tm.assert_extension_array_equal(result, expected)
 
     def test_sub_datetime64_reso_mismatch(self):
         dti = pd.date_range("2016-01-01", periods=3)
-        left = dti._data._as_unit("s")
-        right = left._as_unit("ms")
+        left = dti._data.as_unit("s")
+        right = left.as_unit("ms")
 
         result = left - right
         exp_values = np.array([0, 0, 0], dtype="m8[ms]")

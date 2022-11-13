@@ -1180,11 +1180,7 @@ class PlanePlot(MPLPlot, ABC):
         # use the last one which contains the latest information
         # about the ax
         img = ax.collections[-1]
-        with warnings.catch_warnings():
-            # https://github.com/matplotlib/matplotlib/issues/23614
-            # False positive deprecation warning until matplotlib=3.6
-            warnings.filterwarnings("ignore", "Auto-removal of grids")
-            return self.fig.colorbar(img, ax=ax, **kwds)
+        return self.fig.colorbar(img, ax=ax, **kwds)
 
 
 class ScatterPlot(PlanePlot):
@@ -1659,8 +1655,6 @@ class BarPlot(MPLPlot):
         return self.bottom
 
     def _make_plot(self) -> None:
-        import matplotlib as mpl
-
         colors = self._get_colors()
         ncolors = len(colors)
 

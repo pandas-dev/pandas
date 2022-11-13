@@ -400,8 +400,6 @@ class TestCustomBusinessMonthEnd:
 
     @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_datetimeindex(self):
-        from pandas.tseries.holiday import USFederalHolidayCalendar
-
         hcal = USFederalHolidayCalendar()
         freq = CBMonthEnd(calendar=hcal)
 

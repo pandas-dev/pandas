@@ -339,7 +339,7 @@ cdef convert_to_timedelta64(object ts, str unit):
     elif isinstance(ts, _Timedelta):
         # already in the proper format
         if ts._creso != NPY_FR_ns:
-            ts = ts._as_unit("ns").asm8
+            ts = ts.as_unit("ns").asm8
         else:
             ts = np.timedelta64(ts.value, "ns")
     elif is_timedelta64_object(ts):
@@ -1035,6 +1035,34 @@ cdef class _Timedelta(timedelta):
 
     @property
     def seconds(self) -> int:  # TODO(cython3): make cdef property
+        """
+        Return the total hours, minutes, and seconds of the timedelta as seconds.
+
+        Timedelta.seconds = hours * 3600 + minutes * 60 + seconds.
+
+        Returns
+        -------
+        int
+            Number of seconds.
+
+        See Also
+        --------
+        Timedelta.components : Return all attributes with assigned values
+            (i.e. days, hours, minutes, seconds, milliseconds, microseconds,
+            nanoseconds).
+
+        Examples
+        --------
+        **Using string input**
+        >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
+        >>> td.seconds
+        120
+
+        **Using integer input**
+        >>> td = pd.Timedelta(42, unit='s')
+        >>> td.seconds
+        42
+        """
         # NB: using the python C-API PyDateTime_DELTA_GET_SECONDS will fail
         #  (or be incorrect)
         self._ensure_components()
@@ -1052,6 +1080,10 @@ cdef class _Timedelta(timedelta):
         # We need to override bc we overrided days/seconds/microseconds
         # TODO: add nanos/1e9?
         return self.days * 24 * 3600 + self.seconds + self.microseconds / 1_000_000
+
+    @property
+    def unit(self) -> str:
+        return npy_unit_to_abbrev(self._creso)
 
     def __hash__(_Timedelta self):
         if self._has_ns():
@@ -1472,7 +1504,20 @@ cdef class _Timedelta(timedelta):
         # exposing as classmethod for testing
         return _timedelta_from_value_and_reso(value, reso)
 
-    def _as_unit(self, str unit, bint round_ok=True):
+    def as_unit(self, str unit, bint round_ok=True):
+        """
+        Convert the underlying int64 representaton to the given unit.
+
+        Parameters
+        ----------
+        unit : {"ns", "us", "ms", "s"}
+        round_ok : bool, default True
+            If False and the conversion requires rounding, raise.
+
+        Returns
+        -------
+        Timedelta
+        """
         dtype = np.dtype(f"m8[{unit}]")
         reso = get_unit_from_dtype(dtype)
         return self._as_creso(reso, round_ok=round_ok)

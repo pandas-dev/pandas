@@ -301,27 +301,19 @@ class TestGroupByNonCythonPaths:
         return gni
 
     # TODO: non-unique columns, as_index=False
-    def test_idxmax(self, gb):
-        # object dtype so idxmax goes through _aggregate_item_by_item
-        # GH#5610
-        # non-cython calls should not include the grouper
+    def test_idxmax_nuisance_raises(self, gb):
+        # GH#5610, GH#41480
         expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
-        msg = "The default value of numeric_only in DataFrameGroupBy.idxmax"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = gb.idxmax()
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match="not allowed for this dtype"):
+            gb.idxmax()
 
-    def test_idxmin(self, gb):
-        # object dtype so idxmax goes through _aggregate_item_by_item
-        # GH#5610
-        # non-cython calls should not include the grouper
+    def test_idxmin_nuisance_raises(self, gb):
+        # GH#5610, GH#41480
         expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
-        msg = "The default value of numeric_only in DataFrameGroupBy.idxmin"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = gb.idxmin()
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match="not allowed for this dtype"):
+            gb.idxmin()
 
     def test_describe(self, df, gb, gni):
         # describe
@@ -413,7 +405,6 @@ def test_median_empty_bins(observed):
         ("last", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 4}]}),
         ("min", {"df": [{"a": 1, "b": 1}, {"a": 2, "b": 3}]}),
         ("max", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 4}]}),
-        ("nth", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 4}], "args": [1]}),
         ("count", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 2}], "out_type": "int64"}),
     ],
 )
@@ -1382,11 +1373,15 @@ def test_deprecate_numeric_only(
 
     gb = df.groupby(keys)
     method = getattr(gb, kernel)
-    if has_arg and (
-        # Cases where b does not appear in the result
-        numeric_only is True
-        or (numeric_only is lib.no_default and numeric_only_default)
-        or drops_nuisance
+    if (
+        has_arg
+        and (kernel not in ("idxmax", "idxmin") or numeric_only is True)
+        and (
+            # Cases where b does not appear in the result
+            numeric_only is True
+            or (numeric_only is lib.no_default and numeric_only_default)
+            or drops_nuisance
+        )
     ):
         if numeric_only is True or (not numeric_only_default and not drops_nuisance):
             warn = None
@@ -1411,9 +1406,8 @@ def test_deprecate_numeric_only(
     ):
         result = method(*args, **kwargs)
         assert "b" in result.columns
-    elif has_arg:
+    elif has_arg or kernel in ("idxmax", "idxmin"):
         assert numeric_only is not True
-        assert numeric_only is not lib.no_default or numeric_only_default is False
         assert not drops_nuisance
         # kernels that are successful on any dtype were above; this will fail
         msg = (

@@ -256,14 +256,7 @@ class TestSeriesStatReductions:
         alt = lambda x: kurtosis(x, bias=False)
         self._check_stat_op("kurt", alt, string_series)
 
-        index = pd.MultiIndex(
-            levels=[["bar"], ["one", "two", "three"], [0, 1]],
-            codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
-        )
-        s = Series(np.random.randn(6), index=index)
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_almost_equal(s.kurt(), s.kurt(level=0)["bar"])
-
+    def test_kurt_corner(self):
         # test corner cases, kurt() returns NaN unless there's at least 4
         # values
         min_N = 4
