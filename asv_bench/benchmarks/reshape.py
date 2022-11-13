@@ -112,9 +112,7 @@ class Unstack:
             values = np.take(list(string.ascii_letters), indices)
             values = [pd.Categorical(v) for v in values.T]
 
-            self.df = DataFrame(
-                {i: cat for i, cat in enumerate(values)}, index, columns
-            )
+            self.df = DataFrame(dict(enumerate(values)), index, columns)
 
         self.df2 = self.df.iloc[:-1]
 

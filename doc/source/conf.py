@@ -374,7 +374,7 @@ header = f"""\
 
 
 html_context = {
-    "redirects": {old: new for old, new in moved_api_pages},
+    "redirects": dict(moved_api_pages),
     "header": header,
 }
 
