@@ -55,6 +55,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._matplotlib import tools
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
@@ -66,7 +67,6 @@ from pandas.plotting._matplotlib.timeseries import (
     maybe_resample,
     use_dynamic_x,
 )
-from pandas.plotting._matplotlib import tools
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     flatten_axes,

@@ -123,7 +123,9 @@ def register() -> None:
     pairs = get_pairs()
     for type_, cls in pairs:
         # Cache previous converter if present
-        if type_ in mpl.units.registry and not isinstance(mpl.units.registry[type_], cls):
+        if type_ in mpl.units.registry and not isinstance(
+            mpl.units.registry[type_], cls
+        ):
             previous = mpl.units.registry[type_]
             _mpl_units[type_] = previous
         # Replace with pandas converter
