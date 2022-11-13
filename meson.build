@@ -49,4 +49,6 @@ else
     meson.add_dist_script(py, versioneer, '-o', '_version_meson.py')
 endif
 
+# Needed by pandas.test() when it looks for the pytest ini options
+py.install_sources('pyproject.toml', pure: false, subdir: 'pandas')
 subdir('pandas')

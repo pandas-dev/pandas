@@ -68,7 +68,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     # Ignore test_*.py files or else the unit tests will run
     # cd out of pandas directory, otherwise regular unit tests will also be collected
     # TODO: fix?
-    cd ../..
+    cd ~
     python -c 'import pandas as pd; pd.test(extra_args=["--doctest-modules", "--ignore-glob=**/test_*.py", "-v"])'
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
