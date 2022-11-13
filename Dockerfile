@@ -38,5 +38,4 @@ RUN mamba env create -f "$pandas_home/environment.yml"
 SHELL ["mamba", "run", "--no-capture-output", "-n", "pandas-dev", "/bin/bash", "-c"]
 RUN cd "$pandas_home" \
     && export \
-    && python setup.py build_ext -j 4 \
     && python -m pip install --no-build-isolation -e .

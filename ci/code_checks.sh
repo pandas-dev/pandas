@@ -72,7 +72,6 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     python -c 'import pandas as pd; pd.test(extra_args=["--doctest-modules", "--ignore-glob=**/test_*.py", "-v"])'
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    # TODO: Rework pytest-cython to support out-of-tree extension modules
     MSG='Cython Doctests' ; echo $MSG
     python -c 'import pandas as pd; pd.test(extra_args=["--doctest-cython", "--ignore-glob=**/test_*.py", "-v"])'
     RET=$(($RET + $?)) ; echo $MSG "DONE"

@@ -4,7 +4,7 @@ runs:
   steps:
     - name: Test
       if : ${{ runner.os == 'Linux' }}
-      run: catchsegv ci/run_tests.sh
+      run: ci/run_tests.sh
       shell: bash -el {0}
 
     - name: Test
