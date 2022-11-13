@@ -78,17 +78,18 @@ def test_apply_iteration():
 
 
 @pytest.mark.parametrize(
-    "name, func",
+    "func",
     [
-        ("Int64Index", tm.makeIntIndex),
-        ("Index", tm.makeStringIndex),
-        ("Float64Index", tm.makeFloatIndex),
-        ("MultiIndex", lambda m: tm.makeCustomIndex(m, 2)),
+        tm.makeIntIndex,
+        tm.makeStringIndex,
+        tm.makeFloatIndex,
+        (lambda m: tm.makeCustomIndex(m, 2)),
     ],
 )
-def test_fails_on_no_datetime_index(name, func):
+def test_fails_on_no_datetime_index(func):
     n = 2
     index = func(n)
+    name = type(index).__name__
     df = DataFrame({"a": np.random.randn(n)}, index=index)
 
     msg = (
