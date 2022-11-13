@@ -10,7 +10,6 @@ from typing import (
     Hashable,
     Sequence,
 )
-import warnings
 
 import numpy as np
 from numpy import ma
@@ -22,7 +21,6 @@ from pandas._typing import (
     Manager,
     npt,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -51,12 +49,7 @@ from pandas.core import (
     algorithms,
     common as com,
 )
-from pandas.core.arrays import (
-    Categorical,
-    DatetimeArray,
-    ExtensionArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -278,13 +271,19 @@ def ndarray_to_mgr(
 
         return arrays_to_mgr(values, columns, index, dtype=dtype, typ=typ)
 
-    elif is_extension_array_dtype(vdtype) and not is_1d_only_ea_dtype(vdtype):
-        # i.e. Datetime64TZ, PeriodDtype
+    elif is_extension_array_dtype(vdtype):
+        # i.e. Datetime64TZ, PeriodDtype; cases with is_1d_only_ea_dtype(vdtype)
+        #  are already caught above
         values = extract_array(values, extract_numpy=True)
         if copy:
             values = values.copy()
         if values.ndim == 1:
             values = values.reshape(-1, 1)
+
+    elif isinstance(values, (np.ndarray, ExtensionArray, ABCSeries, Index)):
+        # drop subclass info
+        values = np.array(values, copy=copy_on_sanitize)
+        values = _ensure_2d(values)
 
     else:
         # by definition an array here
@@ -473,9 +472,6 @@ def nested_data_to_arrays(
     if index is None:
         if isinstance(data[0], ABCSeries):
             index = _get_names_from_index(data)
-        elif isinstance(data[0], Categorical):
-            # GH#38845 hit in test_constructor_categorical
-            index = default_index(len(data[0]))
         else:
             index = default_index(len(data))
 
@@ -497,51 +493,50 @@ def treat_as_nested(data) -> bool:
 # ---------------------------------------------------------------------
 
 
-def _prep_ndarraylike(
-    values, copy: bool = True
-) -> np.ndarray | DatetimeArray | TimedeltaArray:
-    if isinstance(values, TimedeltaArray) or (
-        isinstance(values, DatetimeArray) and values.tz is None
-    ):
-        # By retaining DTA/TDA instead of unpacking, we end up retaining non-nano
-        pass
+def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
+    # values is specifically _not_ ndarray, EA, Index, or Series
+    # We only get here with `not treat_as_nested(values)`
 
-    elif not isinstance(values, (np.ndarray, ABCSeries, Index)):
-        if len(values) == 0:
-            return np.empty((0, 0), dtype=object)
-        elif isinstance(values, range):
-            arr = range_to_ndarray(values)
-            return arr[..., np.newaxis]
+    if len(values) == 0:
+        return np.empty((0, 0), dtype=object)
+    elif isinstance(values, range):
+        arr = range_to_ndarray(values)
+        return arr[..., np.newaxis]
 
-        def convert(v):
-            if not is_list_like(v) or isinstance(v, ABCDataFrame):
-                return v
+    def convert(v):
+        if not is_list_like(v) or isinstance(v, ABCDataFrame):
+            return v
 
-            v = extract_array(v, extract_numpy=True)
-            res = maybe_convert_platform(v)
-            return res
+        v = extract_array(v, extract_numpy=True)
+        res = maybe_convert_platform(v)
+        # We don't do maybe_infer_to_datetimelike here bc we will end up doing
+        #  it column-by-column in ndarray_to_mgr
+        return res
 
-        # we could have a 1-dim or 2-dim list here
-        # this is equiv of np.asarray, but does object conversion
-        # and platform dtype preservation
-        if is_list_like(values[0]):
-            values = np.array([convert(v) for v in values])
-        elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
-            # GH#21861 see test_constructor_list_of_lists
-            values = np.array([convert(v) for v in values])
-        else:
-            values = convert(values)
-
+    # we could have a 1-dim or 2-dim list here
+    # this is equiv of np.asarray, but does object conversion
+    # and platform dtype preservation
+    # does not convert e.g. [1, "a", True] to ["1", "a", "True"] like
+    #  np.asarray would
+    if is_list_like(values[0]):
+        values = np.array([convert(v) for v in values])
+    elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
+        # GH#21861 see test_constructor_list_of_lists
+        values = np.array([convert(v) for v in values])
     else:
+        values = convert(values)
 
-        # drop subclass info
-        values = np.array(values, copy=copy)
+    return _ensure_2d(values)
 
+
+def _ensure_2d(values: np.ndarray) -> np.ndarray:
+    """
+    Reshape 1D values, raise on anything else other than 2D.
+    """
     if values.ndim == 1:
         values = values.reshape((values.shape[0], 1))
     elif values.ndim != 2:
         raise ValueError(f"Must pass 2-d input. shape={values.shape}")
-
     return values
 
 
@@ -792,26 +787,6 @@ def to_arrays(
 
                 return arrays, columns
         return [], ensure_index([])
-
-    elif isinstance(data[0], Categorical):
-        # GH#38845 deprecate special case
-        warnings.warn(
-            "The behavior of DataFrame([categorical, ...]) is deprecated and "
-            "in a future version will be changed to match the behavior of "
-            "DataFrame([any_listlike, ...]). "
-            "To retain the old behavior, pass as a dictionary "
-            "DataFrame({col: categorical, ..})",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        if columns is None:
-            columns = RangeIndex(range(len(data)))
-        elif len(columns) > len(data):
-            raise ValueError("len(columns) > len(data)")
-        elif len(columns) < len(data):
-            # doing this here is akin to a pre-emptive reindex
-            data = data[: len(columns)]
-        return data, columns
 
     elif isinstance(data, np.ndarray) and data.dtype.names is not None:
         # e.g. recarray

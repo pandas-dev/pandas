@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 from pandas import (
     CategoricalIndex,
+    DataFrame,
     Index,
     IntervalIndex,
     MultiIndex,
@@ -548,6 +549,15 @@ def test_intersection_with_missing_values_on_both_sides(nulls_fixture):
     tm.assert_index_equal(result, expected)
 
 
+def test_union_with_missing_values_on_both_sides(nulls_fixture):
+    # GH#38623
+    mi1 = MultiIndex.from_arrays([[1, nulls_fixture]])
+    mi2 = MultiIndex.from_arrays([[1, nulls_fixture, 3]])
+    result = mi1.union(mi2)
+    expected = MultiIndex.from_arrays([[1, 3, nulls_fixture]])
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize("dtype", ["float64", "Float64"])
 @pytest.mark.parametrize("sort", [None, False])
 def test_union_nan_got_duplicated(dtype, sort):
@@ -651,7 +661,6 @@ def test_union_keep_dtype_precision(any_real_numeric_dtype):
 
 def test_union_keep_ea_dtype_with_na(any_numeric_ea_dtype):
     # GH#48498
-
     arr1 = Series([4, pd.NA], dtype=any_numeric_ea_dtype)
     arr2 = Series([1, pd.NA], dtype=any_numeric_ea_dtype)
     midx = MultiIndex.from_arrays([arr1, [2, 1]], names=["a", None])
@@ -695,3 +704,12 @@ def test_intersection_keep_ea_dtypes(val, any_numeric_ea_dtype):
     result = midx.intersection(midx2)
     expected = MultiIndex.from_arrays([Series([2], dtype=any_numeric_ea_dtype), [1]])
     tm.assert_index_equal(result, expected)
+
+
+def test_union_with_na_when_constructing_dataframe():
+    # GH43222
+    series1 = Series((1,), index=MultiIndex.from_tuples(((None, None),)))
+    series2 = Series((10, 20), index=MultiIndex.from_tuples(((None, None), ("a", "b"))))
+    result = DataFrame([series1, series2])
+    expected = DataFrame({(np.nan, np.nan): [1.0, 10.0], ("a", "b"): [np.nan, 20.0]})
+    tm.assert_frame_equal(result, expected)
