@@ -712,6 +712,7 @@ class TestDatetimeArray:
         "tz", [ZoneInfo("US/Eastern"), "US/Eastern", "dateutil/US/Eastern"]
     )
     def test_iter_zoneinfo_fold(self, tz):
+        # GH#49684
         utc_vals = np.array(
             [1320552000, 1320555600, 1320559200, 1320562800], dtype=np.int64
         )
