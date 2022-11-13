@@ -325,6 +325,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 - The ``freq``, ``tz``, ``nanosecond``, and ``unit`` keywords in the :class:`Timestamp` constructor are now keyword-only (:issue:`45307`)
 - Passing ``nanoseconds`` greater than 999 or less than 0 in :class:`Timestamp` now raises a ``ValueError`` (:issue:`48538`, :issue:`48255`)
+- When inferring a fixed-offset ``tzinfo`` from a string or integer ``tz``, a standard-library ``datetime.timezone`` object is returned instead of a ``pytz`` object (:issue:`34916`)
 - :func:`read_csv`: specifying an incorrect number of columns with ``index_col`` of now raises ``ParserError`` instead of ``IndexError`` when using the c parser.
 - Default value of ``dtype`` in :func:`get_dummies` is changed to ``bool`` from ``uint8`` (:issue:`45848`)
 - :meth:`DataFrame.astype`, :meth:`Series.astype`, and :meth:`DatetimeIndex.astype` casting datetime64 data to any of "datetime64[s]", "datetime64[ms]", "datetime64[us]" will return an object with the given resolution instead of coercing back to "datetime64[ns]" (:issue:`48928`)

@@ -171,7 +171,7 @@ cpdef inline tzinfo maybe_get_tz(object tz):
         else:
             tz = pytz.timezone(tz)
     elif is_integer_object(tz):
-        tz = pytz.FixedOffset(tz / 60)
+        tz = timezone(timedelta(seconds=tz))
     elif isinstance(tz, tzinfo):
         pass
     elif tz is None:

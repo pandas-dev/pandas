@@ -1,7 +1,10 @@
 """Strptime-related classes and functions.
 """
+from datetime import timezone
+
 from cpython.datetime cimport (
     date,
+    timedelta,
     tzinfo,
 )
 
@@ -488,7 +491,7 @@ cdef (int, int) _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday)
 
 cdef tzinfo parse_timezone_directive(str z):
     """
-    Parse the '%z' directive and return a pytz.FixedOffset
+    Parse the '%z' directive and return a datetime.timezone object.
 
     Parameters
     ----------
@@ -496,7 +499,7 @@ cdef tzinfo parse_timezone_directive(str z):
 
     Returns
     -------
-    pytz.FixedOffset
+    datetime.timezone
 
     Notes
     -----
@@ -510,7 +513,7 @@ cdef tzinfo parse_timezone_directive(str z):
         object gmtoff_remainder, gmtoff_remainder_padding
 
     if z == 'Z':
-        return pytz.FixedOffset(0)
+        return timezone(timedelta(0))
     if z[3] == ':':
         z = z[:3] + z[4:]
         if len(z) > 5:
@@ -530,4 +533,4 @@ cdef tzinfo parse_timezone_directive(str z):
     total_minutes = ((hours * 60) + minutes + (seconds // 60) +
                      (microseconds // 60_000_000))
     total_minutes = -total_minutes if z.startswith("-") else total_minutes
-    return pytz.FixedOffset(total_minutes)
+    return timezone(timedelta(minutes=total_minutes))

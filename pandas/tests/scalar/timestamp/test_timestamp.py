@@ -4,6 +4,7 @@ import calendar
 from datetime import (
     datetime,
     timedelta,
+    timezone,
 )
 import locale
 import unicodedata
@@ -12,10 +13,7 @@ from dateutil.tz import tzutc
 import numpy as np
 import pytest
 import pytz
-from pytz import (
-    timezone,
-    utc,
-)
+from pytz import utc
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
@@ -233,7 +231,7 @@ class TestTimestamp:
         assert conv.hour == 19
 
     def test_utc_z_designator(self):
-        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is utc
+        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is timezone.utc
 
     def test_asm8(self):
         np.random.seed(7_960_929)
@@ -251,7 +249,7 @@ class TestTimestamp:
             assert int((Timestamp(x).value - Timestamp(y).value) / 1e9) == 0
 
         compare(Timestamp.now(), datetime.now())
-        compare(Timestamp.now("UTC"), datetime.now(timezone("UTC")))
+        compare(Timestamp.now("UTC"), datetime.now(pytz.timezone("UTC")))
         compare(Timestamp.utcnow(), datetime.utcnow())
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
