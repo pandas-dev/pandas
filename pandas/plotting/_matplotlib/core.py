@@ -66,6 +66,7 @@ from pandas.plotting._matplotlib.timeseries import (
     maybe_resample,
     use_dynamic_x,
 )
+from pandas.plotting._matplotlib import tools
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     flatten_axes,
@@ -73,7 +74,6 @@ from pandas.plotting._matplotlib.tools import (
     get_all_lines,
     get_xlim,
     handle_shared_axes,
-    table,
 )
 
 if TYPE_CHECKING:
@@ -644,7 +644,7 @@ class MPLPlot(ABC):
         else:
             data = self.table
         ax = self._get_ax(0)
-        table(ax, data)
+        tools.table(ax, data)
 
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
