@@ -164,7 +164,7 @@ def infer_freq(index) -> str | None:
     if isinstance(index, Index) and not isinstance(index, DatetimeIndex):
         if is_numeric_dtype(index):
             raise TypeError(
-                f"cannot infer freq from a non-convertible index with dtype {index.dtype}"
+                f"cannot infer freq from a non-convertible index of dtype {index.dtype}"
             )
         index = index._values
 
