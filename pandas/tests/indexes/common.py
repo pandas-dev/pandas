@@ -828,6 +828,12 @@ class NumericBase(Base):
     def test_numeric_compat(self):
         pass  # override Base method
 
+    def test_to_numpy(self, simple_index):
+        # GH49663
+        index = simple_index
+        result = index.to_numpy()
+        assert result is not index._data
+
     def test_insert_non_na(self, simple_index):
         # GH#43921 inserting an element that we know we can hold should
         #  not change dtype or type (except for RangeIndex)
