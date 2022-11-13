@@ -1,12 +1,6 @@
 from __future__ import annotations
 
-from datetime import (
-    date,
-    datetime,
-    time,
-    timedelta,
-    tzinfo,
-)
+import datetime as dt
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -257,7 +251,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     _data: DatetimeArray
     inferred_freq: str | None
-    tz: tzinfo | None
+    tz: dt.tzinfo | None
 
     # --------------------------------------------------------------------
     # methods that dispatch to DatetimeArray and wrap result
@@ -514,7 +508,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: dt.datetime):
         """
         Calculate datetime bounds for parsed time string and its resolution.
 
@@ -604,13 +598,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
             key = self._maybe_cast_for_get_loc(key)
 
-        elif isinstance(key, timedelta):
+        elif isinstance(key, dt.timedelta):
             # GH#20464
             raise TypeError(
                 f"Cannot index {type(self).__name__} with {type(key).__name__}"
             )
 
-        elif isinstance(key, time):
+        elif isinstance(key, dt.time):
             if method is not None:
                 raise NotImplementedError(
                     "cannot yet lookup inexact labels when key is a time object"
@@ -648,7 +642,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def _maybe_cast_slice_bound(self, label, side: str):
 
         # GH#42855 handle date here instead of get_slice_bound
-        if isinstance(label, date) and not isinstance(label, datetime):
+        if isinstance(label, dt.date) and not isinstance(label, dt.datetime):
             # Pandas supports slicing with dates, treated as datetimes at midnight.
             # https://github.com/pandas-dev/pandas/issues/31501
             label = Timestamp(label).to_pydatetime()
@@ -674,12 +668,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # For historical reasons DatetimeIndex supports slices between two
         # instances of datetime.time as if it were applying a slice mask to
         # an array of (self.hour, self.minute, self.seconds, self.microsecond).
-        if isinstance(start, time) and isinstance(end, time):
+        if isinstance(start, dt.time) and isinstance(end, dt.time):
             if step is not None and step != 1:
                 raise ValueError("Must have step size of 1 with time slices")
             return self.indexer_between_time(start, end)
 
-        if isinstance(start, time) or isinstance(end, time):
+        if isinstance(start, dt.time) or isinstance(end, dt.time):
             raise KeyError("Cannot mix time and non-time slice keys")
 
         def check_str_or_none(point) -> bool:
@@ -1092,6 +1086,6 @@ def bdate_range(
     )
 
 
-def _time_to_micros(time_obj: time) -> int:
+def _time_to_micros(time_obj: dt.time) -> int:
     seconds = time_obj.hour * 60 * 60 + 60 * time_obj.minute + time_obj.second
     return 1_000_000 * seconds + time_obj.microsecond
