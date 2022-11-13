@@ -946,6 +946,9 @@ class TestIteration:
         df["k1"] = np.array(["b", "b", "b", "a", "a", "a"])
         df["k2"] = np.array(["1", "1", "1", "2", "2", "2"])
         grouped = df.groupby(["k1", "k2"])
+        # calling `dict` on a DataFrameGroupBy leads to a TypeError,
+        # we need to use a dictionary comprehension here
+        # pylint: disable-next=unnecessary-comprehension
         groups = {key: gp for key, gp in grouped}
         assert len(groups) == 2
 

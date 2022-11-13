@@ -344,7 +344,7 @@ class TestDataFrameConstructors:
 
         for d, a in zip(dtypes, arrays):
             assert a.dtype == d
-        ad.update({d: a for d, a in zip(dtypes, arrays)})
+        ad.update(dict(zip(dtypes, arrays)))
         df = DataFrame(ad)
 
         dtypes = MIXED_FLOAT_DTYPES + MIXED_INT_DTYPES
