@@ -508,7 +508,7 @@ cdef _get_utc_bounds_zoneinfo(ndarray vals, tz, NPY_DATETIMEUNIT creso):
     cdef:
         Py_ssize_t i, n = vals.size
         npy_datetimestruct dts
-        datetime dt, left, right, aware, as_utc
+        datetime dt, rt, left, right, aware, as_utc
         int64_t val, pps = periods_per_second(creso)
         ndarray result_a, result_b
 
