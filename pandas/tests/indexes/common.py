@@ -10,6 +10,7 @@ from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
+    is_extension_array_dtype,
     is_integer_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -716,6 +717,23 @@ class Base:
             with pytest.raises(IndexError, match=msg):
                 idx[False]
 
+    @pytest.mark.parametrize("copy", [True, False])
+    def test_to_numpy(self, simple_index, copy):
+        # GH49663
+        index = simple_index
+
+        result = index.to_numpy(copy=copy)
+
+        assert result is not index._data
+        assert result is not index._values
+
+        if copy or is_extension_array_dtype(index.dtype):
+            assert not np.shares_memory(result, index._values)
+            assert result.flags.writeable is True
+        else:
+            assert np.shares_memory(result, index._values)
+            assert result.flags.writeable is False
+
     def test_copy_shares_cache(self, simple_index):
         # GH32898, GH36840
         idx = simple_index
@@ -827,12 +845,6 @@ class NumericBase(Base):
 
     def test_numeric_compat(self):
         pass  # override Base method
-
-    def test_to_numpy(self, simple_index):
-        # GH49663
-        index = simple_index
-        result = index.to_numpy()
-        assert result is not index._data
 
     def test_insert_non_na(self, simple_index):
         # GH#43921 inserting an element that we know we can hold should

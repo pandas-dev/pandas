@@ -441,7 +441,9 @@ class IndexOpsMixin(OpsMixin):
             Whether to ensure that the returned value is not a view on
             another array. Note that ``copy=False`` does not *ensure* that
             ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
-            a copy is made, even if not strictly necessary.
+            a copy is made, even if not strictly necessary, while ``copy=False`` means
+            that a copy is returned is the underlying data is an ExtensionArray, else
+            a non-writeable *view* on the index's underlying data is returned.
         na_value : Any, optional
             The value to use for missing values. The default value depends
             on `dtype` and the type of the array.
@@ -532,10 +534,14 @@ class IndexOpsMixin(OpsMixin):
 
         result = np.asarray(self._values, dtype=dtype)
         # TODO(GH-24345): Avoid potential double copy
-        if copy or result is self._values or na_value is not lib.no_default:
+        if copy or na_value is not lib.no_default:
             result = result.copy()
             if na_value is not lib.no_default:
                 result[np.asanyarray(self.isna())] = na_value
+        else:
+            result = result.view()
+            result.flags.writeable = False
+
         return result
 
     @final

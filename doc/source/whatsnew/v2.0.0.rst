@@ -653,7 +653,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` coercing dtypes when setting values with a list indexer (:issue:`49159`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` when right hand side is :class:`DataFrame` with :class:`MultiIndex` columns (:issue:`49121`)
 - Bug in :meth:`DataFrame.reindex` casting dtype to ``object`` when :class:`DataFrame` has single extension array column when re-indexing ``columns`` and ``index`` (:issue:`48190`)
-- Bug in :meth:`Index.to_numpy` where the index' underlying data wasn't copied to the new array (:class:`49663`)
+- Bug in :meth:`Index.to_numpy` where the index' underlying data returned writeable (:class:`49663`)
 - Bug in :func:`~DataFrame.describe` when formatting percentiles in the resulting index showed more decimals than needed (:issue:`46362`)
 - Bug in :meth:`DataFrame.compare` does not recognize differences when comparing ``NA`` with value in nullable dtypes (:issue:`48939`)
 -
