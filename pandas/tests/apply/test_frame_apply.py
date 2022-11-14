@@ -858,6 +858,19 @@ def test_with_dictlike_columns_with_infer():
     tm.assert_frame_equal(result, expected)
 
 
+def test_with_dictlike_functions():
+    # GH 18919
+
+    df = DataFrame({"a": [1, 2, 3], "b": list("abc"), "c": [3, 4, 5]})
+    functions = {"b": "mean", "a": "std", "c": [DataFrame.mean, "sum"]}
+    result = df.agg(functions, numeric_only=True)
+    expected = DataFrame(
+        index=["mean", "sum", "std"],
+        data={"c": [4.0, 12.0, np.nan], "a": [np.nan, np.nan, 1.0]},
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_with_listlike_columns():
     # GH 17348
     df = DataFrame(
@@ -885,6 +898,24 @@ def test_with_listlike_columns_returning_list():
     result = df.apply(lambda row: [el for el in row["x"] if el in row["y"]], axis=1)
     expected = Series([[], ["q"]], index=df.index)
     tm.assert_series_equal(result, expected)
+
+
+def test_with_listlike_functions():
+    # GH 18919
+
+    df = DataFrame({"a": [1, 2, 3], "b": list("abc"), "c": [3, 4, 5]})
+    functions = [DataFrame.mean, "std"]
+    result = df.agg(functions, numeric_only=True)
+    expected = DataFrame(index=["mean", "std"], data={"a": [2.0, 1.0], "c": [4.0, 1.0]})
+    tm.assert_frame_equal(result, expected)
+
+    expected = df.agg("mean", numeric_only=True)
+    expected.name = "mean"
+    tm.assert_series_equal(result.loc["mean"], expected)
+
+    expected = df.agg("std", numeric_only=True)
+    expected.name = "std"
+    tm.assert_series_equal(result.loc["std"], expected)
 
 
 def test_infer_output_shape_columns():

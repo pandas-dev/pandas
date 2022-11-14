@@ -284,6 +284,14 @@ class Apply(metaclass=abc.ABCMeta):
         except Exception:
             return func(obj, *args, **kwargs)
 
+    def _filter_numeric_only(self) -> list[Any]:
+        if "numeric_only" in self.kwargs and self.kwargs["numeric_only"] is True:
+            obj = self.obj._get_numeric_data()
+            filtered_cols = list(set(self.obj.columns) - set(obj.columns))
+            self.obj = obj
+            return filtered_cols
+        return []
+
     def agg_list_like(self) -> DataFrame | Series:
         """
         Compute aggregation in the case of a list-like argument.
@@ -294,6 +302,7 @@ class Apply(metaclass=abc.ABCMeta):
         """
         from pandas.core.reshape.concat import concat
 
+        self._filter_numeric_only()
         obj = self.obj
         arg = cast(List[AggFuncTypeBase], self.f)
 
@@ -368,8 +377,11 @@ class Apply(metaclass=abc.ABCMeta):
         from pandas import Index
         from pandas.core.reshape.concat import concat
 
+        filtered_col = self._filter_numeric_only()
+
         obj = self.obj
         arg = cast(AggFuncTypeDict, self.f)
+        arg = {k: arg[k] for k in arg.keys() - filtered_col}
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -652,10 +664,6 @@ class FrameApply(NDFrameApply):
 
         return self.apply_standard()
 
-    def _filter_numeric_only(self) -> None:
-        if "numeric_only" in self.kwargs and self.kwargs["numeric_only"] is True:
-            self.obj = self.obj._get_numeric_data()
-
     def agg(self):
         obj = self.obj
         axis = self.axis
@@ -663,7 +671,6 @@ class FrameApply(NDFrameApply):
         # TODO: Avoid having to change state
         self.obj = self.obj if self.axis == 0 else self.obj.T
         self.axis = 0
-        self._filter_numeric_only()
 
         result = None
         try:
