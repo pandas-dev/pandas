@@ -14,7 +14,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 from numpy import ma
@@ -29,7 +28,6 @@ from pandas._typing import (
     T,
 )
 from pandas.errors import IntCastingNaNError
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -577,16 +575,7 @@ def sanitize_array(
                     subarr = maybe_cast_to_integer_array(data, dtype)
 
             except IntCastingNaNError:
-                warnings.warn(
-                    "In a future version, passing float-dtype values containing NaN "
-                    "and an integer dtype will raise IntCastingNaNError "
-                    "(subclass of ValueError) instead of silently ignoring the "
-                    "passed dtype. To retain the old behavior, call Series(arr) or "
-                    "DataFrame(arr) without passing a dtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                subarr = np.array(data, copy=copy)
+                raise
             except ValueError:
                 # Pre-2.0, we would have different behavior for Series vs DataFrame.
                 #  DataFrame would call np.array(data, dtype=dtype, copy=copy),
@@ -597,6 +586,15 @@ def sanitize_array(
                 #  e.g. test_constructor_floating_data_int_dtype
                 # TODO: where is the discussion that documents the reason for this?
                 subarr = np.array(data, copy=copy)
+
+        elif dtype is None:
+            subarr = data
+            if data.dtype == object:
+                subarr = maybe_infer_to_datetimelike(data)
+
+            if subarr is data and copy:
+                subarr = subarr.copy()
+
         else:
             # we will try to copy by-definition here
             subarr = _try_cast(data, dtype, copy)
@@ -666,7 +664,7 @@ def range_to_ndarray(rng: range) -> np.ndarray:
         arr = np.arange(rng.start, rng.stop, rng.step, dtype="int64")
     except OverflowError:
         # GH#30173 handling for ranges that overflow int64
-        if (rng.start >= 0 and rng.step > 0) or (rng.stop >= 0 and rng.step < 0):
+        if (rng.start >= 0 and rng.step > 0) or (rng.step < 0 <= rng.stop):
             try:
                 arr = np.arange(rng.start, rng.stop, rng.step, dtype="uint64")
             except OverflowError:
@@ -754,7 +752,7 @@ def _maybe_repeat(arr: ArrayLike, index: Index | None) -> ArrayLike:
 
 def _try_cast(
     arr: list | np.ndarray,
-    dtype: np.dtype | None,
+    dtype: np.dtype,
     copy: bool,
 ) -> ArrayLike:
     """
@@ -764,7 +762,7 @@ def _try_cast(
     ----------
     arr : ndarray or list
         Excludes: ExtensionArray, Series, Index.
-    dtype : np.dtype or None
+    dtype : np.dtype
     copy : bool
         If False, don't copy the data if not needed.
 
@@ -774,30 +772,7 @@ def _try_cast(
     """
     is_ndarray = isinstance(arr, np.ndarray)
 
-    if dtype is None:
-        # perf shortcut as this is the most common case
-        if is_ndarray:
-            arr = cast(np.ndarray, arr)
-            if arr.dtype != object:
-                if copy:
-                    return arr.copy()
-                return arr
-
-            out = maybe_infer_to_datetimelike(arr)
-            if out is arr and copy:
-                out = out.copy()
-            return out
-
-        else:
-            # i.e. list
-            varr = np.array(arr, copy=False)
-            # filter out cases that we _dont_ want to go through
-            #  maybe_infer_to_datetimelike
-            if varr.dtype != object or varr.size == 0:
-                return varr
-            return maybe_infer_to_datetimelike(varr)
-
-    elif is_object_dtype(dtype):
+    if is_object_dtype(dtype):
         if not is_ndarray:
             subarr = construct_1d_object_array_from_listlike(arr)
             return subarr

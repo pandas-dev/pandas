@@ -672,30 +672,6 @@ class TestSeriesReductions:
             result = getattr(s, method)(min_count=2)
             assert isna(result)
 
-    @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
-    def test_empty_multi(self, method, unit):
-        s = Series(
-            [1, np.nan, np.nan, np.nan],
-            index=pd.MultiIndex.from_product([("a", "b"), (0, 1)]),
-        )
-        # 1 / 0 by default
-        with tm.assert_produces_warning(FutureWarning):
-            result = getattr(s, method)(level=0)
-        expected = Series([1, unit], index=["a", "b"])
-        tm.assert_series_equal(result, expected)
-
-        # min_count=0
-        with tm.assert_produces_warning(FutureWarning):
-            result = getattr(s, method)(level=0, min_count=0)
-        expected = Series([1, unit], index=["a", "b"])
-        tm.assert_series_equal(result, expected)
-
-        # min_count=1
-        with tm.assert_produces_warning(FutureWarning):
-            result = getattr(s, method)(level=0, min_count=1)
-        expected = Series([1, np.nan], index=["a", "b"])
-        tm.assert_series_equal(result, expected)
-
     @pytest.mark.parametrize("method", ["mean", "var"])
     @pytest.mark.parametrize("dtype", ["Float64", "Int64", "boolean"])
     def test_ops_consistency_on_empty_nullable(self, method, dtype):
@@ -890,8 +866,6 @@ class TestSeriesReductions:
         allna = string_series * np.nan
         assert isna(allna.idxmax())
 
-        from pandas import date_range
-
         s = Series(date_range("20130102", periods=6))
         result = s.idxmax()
         assert result == 5
@@ -932,7 +906,7 @@ class TestSeriesReductions:
         idx = Index([1, 2, 3])
         assert np.all(idx)
 
-    def test_all_any_params(self):
+    def test_all_any_skipna(self):
         # Check skipna, with implicit 'object' dtype.
         s1 = Series([np.nan, True])
         s2 = Series([np.nan, False])
@@ -941,20 +915,8 @@ class TestSeriesReductions:
         assert s2.any(skipna=False)
         assert not s2.any(skipna=True)
 
-        # Check level.
+    def test_all_any_bool_only(self):
         s = Series([False, False, True, True, False, True], index=[0, 0, 1, 1, 2, 2])
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
-
-        msg = "Option bool_only is not implemented with option level"
-        with pytest.raises(NotImplementedError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                s.any(bool_only=True, level=0)
-        with pytest.raises(NotImplementedError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                s.all(bool_only=True, level=0)
 
         # GH#47500 - test bool_only works
         assert s.any(bool_only=True)
@@ -1008,22 +970,6 @@ class TestSeriesReductions:
 
         result = getattr(ser, bool_agg_func)(skipna=skipna)
         assert (result is pd.NA and expected is pd.NA) or result == expected
-
-    @pytest.mark.parametrize(
-        "bool_agg_func,expected",
-        [("all", [False, True, False]), ("any", [False, True, True])],
-    )
-    def test_any_all_boolean_level(self, bool_agg_func, expected):
-        # GH#33449
-        ser = Series(
-            [False, False, True, True, False, True],
-            index=[0, 0, 1, 1, 2, 2],
-            dtype="boolean",
-        )
-        with tm.assert_produces_warning(FutureWarning):
-            result = getattr(ser, bool_agg_func)(level=0)
-        expected = Series(expected, dtype="boolean")
-        tm.assert_series_equal(result, expected)
 
     def test_any_axis1_bool_only(self):
         # GH#32432
