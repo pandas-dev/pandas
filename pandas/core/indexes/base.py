@@ -484,12 +484,11 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(data, ABCMultiIndex):
                 data = data._values
 
-            # we need to avoid having numpy coerce
-            # things that look like ints/floats to ints unless
-            # they are actually ints, e.g. '0' and 0.0
-            # should not be coerced
-            # GH 11836
             if data.dtype.kind not in ["i", "u", "f", "b", "c", "m", "M"]:
+                # GH#11836 we need to avoid having numpy coerce
+                # things that look like ints/floats to ints unless
+                # they are actually ints, e.g. '0' and 0.0
+                # should not be coerced
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
             arr = _wrapped_sanitize(cls, data, dtype, copy)
 
@@ -521,9 +520,10 @@ class Index(IndexOpsMixin, PandasObject):
                     return MultiIndex.from_tuples(data, names=name)
             # other iterable of some kind
 
-            # we allow set/frozenset, which Series/sanitize_array does not, so
-            #  cast to list here
-            data = list(data)
+            if not isinstance(data, (list, tuple)):
+                # we allow set/frozenset, which Series/sanitize_array does not, so
+                #  cast to list here
+                data = list(data)
             if len(data) == 0:
                 # unlike Series, we default to object dtype:
                 data = np.array(data, dtype=object)
