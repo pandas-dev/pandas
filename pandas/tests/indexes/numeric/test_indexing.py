@@ -280,12 +280,16 @@ class TestGetIndexer:
         actual = index.get_indexer([0.2, 1.8, 8.5], method=method)
         tm.assert_numpy_array_equal(actual, np.array(expected, dtype=np.intp))
 
-    @pytest.mark.parametrize("idx_dtype", [np.int64, np.float64, np.uint64])
+    @pytest.mark.parametrize("idx_dtype", ["int64", "float64", "uint64", "range"])
     @pytest.mark.parametrize("method", ["get_indexer", "get_indexer_non_unique"])
     def test_get_indexer_numeric_index_boolean_target(self, method, idx_dtype):
         # GH 16877
 
-        numeric_index = Index(RangeIndex(4), dtype=idx_dtype)
+        if idx_dtype == "range":
+            numeric_index = RangeIndex(4)
+        else:
+            numeric_index = Index(np.arange(4, dtype=idx_dtype))
+
         other = Index([True, False, True])
 
         result = getattr(numeric_index, method)(other)
