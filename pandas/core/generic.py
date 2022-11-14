@@ -7254,8 +7254,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               values of the index.  Both 'polynomial' and 'spline' require that
               you also specify an `order` (int), e.g.
               ``df.interpolate(method='polynomial', order=5)``. Note that,
-              `slinear` method in Pandas refers to the Scipy first order `spline` instead
-              of Pandas first order `spline`.
+              `slinear` method in Pandas refers to the Scipy first order `spline`
+              instead of Pandas first order `spline`.
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
               'cubicspline': Wrappers around the SciPy interpolation methods of
               similar names. See `Notes`.
