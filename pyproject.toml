@@ -101,7 +101,6 @@ disable = [
 
   # pylint type "R": refactor, for bad code smell
   "comparison-with-itself",
-  "consider-merging-isinstance",
   "consider-using-ternary",
   "consider-using-with",
   "cyclic-import",
@@ -120,9 +119,7 @@ disable = [
   "too-many-public-methods",
   "too-many-return-statements",
   "too-many-statements",
-  "unnecessary-comprehension",
   "unnecessary-list-index-lookup",
-  "useless-option-value",
 
   # pylint type "W": warning, for python specific problems
   "abstract-method",
@@ -153,7 +150,6 @@ disable = [
   "raise-missing-from",
   "redefined-builtin",
   "redefined-outer-name",
-  "reimported",
   "self-assigning-variable",
   "self-cls-assignment",
   "signature-differs",
