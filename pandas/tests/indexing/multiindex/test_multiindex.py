@@ -184,24 +184,28 @@ class TestMultiIndexBasic:
             ),
         ],
     )
-    def test_subtracting_two_series_with_unordered_index_and_all_nan_index(
-        self, data_result, data_expected
+
+    def generate_result(
+        self, data_result
     ):
         # GH 38439
-        # TODO: Refactor. This is impossible to understand GH#49443
         a_index_result = MultiIndex.from_tuples(data_result[0])
         b_index_result = MultiIndex.from_tuples(data_result[1])
         a_series_result = Series(data_result[2], index=a_index_result)
         b_series_result = Series(data_result[3], index=b_index_result)
-        result = a_series_result.align(b_series_result)
+        return a_series_result.align(b_series_result)
 
+    def generate_series_expected(
+        self, data_expected
+    ):
+        # GH 38439
         a_index_expected = MultiIndex.from_arrays(data_expected[0])
         b_index_expected = MultiIndex.from_arrays(data_expected[1])
-        a_series_expected = Series(data_expected[2], index=a_index_expected)
-        b_series_expected = Series(data_expected[3], index=b_index_expected)
+        return Series(data_expected[2], index=a_index_expected).align(Series(data_expected[3], index=b_index_expected))
 
-        tm.assert_series_equal(result[0], a_series_expected)
-        tm.assert_series_equal(result[1], b_series_expected)
+    def test_result_and_series(self):
+        tm.assert_series_equal(TestMultiIndexBasic.generate_result[0], TestMultiIndexBasic.generate_series_expected[0])
+        tm.assert_series_equal(TestMultiIndexBasic.generate_result[1], TestMultiIndexBasic.generate_series_expected[1])
 
     def test_nunique_smoke(self):
         # GH 34019
