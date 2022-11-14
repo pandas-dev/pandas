@@ -442,7 +442,7 @@ class IndexOpsMixin(OpsMixin):
             another array. Note that ``copy=False`` does not *ensure* that
             ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
             a copy is made, even if not strictly necessary, while ``copy=False`` means
-            that a copy is returned is the underlying data is an ExtensionArray, else
+            that a copy is returned if the underlying data is an ExtensionArray and else
             a non-writeable *view* on the index's underlying data is returned.
         na_value : Any, optional
             The value to use for missing values. The default value depends
