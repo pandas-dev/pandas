@@ -65,6 +65,7 @@ class TestPDApi(Base):
         "Period",
         "PeriodIndex",
         "RangeIndex",
+        "NoIndex",
         "UInt64Index",
         "Series",
         "SparseDtype",
