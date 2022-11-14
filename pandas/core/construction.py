@@ -499,6 +499,7 @@ def sanitize_array(
     copy: bool = False,
     *,
     allow_2d: bool = False,
+    strict_ints: bool = False,
 ) -> ArrayLike:
     """
     Sanitize input data to an ndarray or ExtensionArray, copy if specified,
@@ -512,6 +513,8 @@ def sanitize_array(
     copy : bool, default False
     allow_2d : bool, default False
         If False, raise if we have a 2D Arraylike.
+    strict_ints : bool, default False
+        If False, silently ignore failures to cast float data to int dtype.
 
     Returns
     -------
@@ -581,6 +584,8 @@ def sanitize_array(
                 #  DataFrame would call np.array(data, dtype=dtype, copy=copy),
                 #  which would cast to the integer dtype even if the cast is lossy.
                 #  See GH#40110.
+                if strict_ints:
+                    raise
 
                 # We ignore the dtype arg and return floating values,
                 #  e.g. test_constructor_floating_data_int_dtype
@@ -624,6 +629,8 @@ def sanitize_array(
                 subarr = _try_cast(data, dtype, copy)
             except ValueError:
                 if is_integer_dtype(dtype):
+                    if strict_ints:
+                        raise
                     casted = np.array(data, copy=False)
                     if casted.dtype.kind == "f":
                         # GH#40110 match the behavior we have if we passed

@@ -212,7 +212,7 @@ def _wrapped_sanitize(cls, data, dtype: DtypeObj | None, copy: bool):
     Call sanitize_array with wrapping for differences between Index/Series.
     """
     try:
-        arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+        arr = sanitize_array(data, None, dtype=dtype, copy=copy, strict_ints=True)
     except ValueError as err:
         if "index must be specified when data is not list-like" in str(err):
             raise cls._raise_scalar_data_error(data) from err
@@ -521,11 +521,18 @@ class Index(IndexOpsMixin, PandasObject):
                     return MultiIndex.from_tuples(data, names=name)
             # other iterable of some kind
 
-            subarr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
-            if dtype is None:
-                # with e.g. a list [1, 2, 3] casting to numeric is _not_ deprecated
-                subarr = _maybe_cast_data_without_dtype(subarr)
-                dtype = subarr.dtype
+            # we allow set/frozenset, which Series/sanitize_array does not, so
+            #  cast to list here
+            data = list(data)
+            if len(data) == 0:
+                # unlike Series, we default to object dtype:
+                data = np.array(data, dtype=object)
+
+            if len(data) and isinstance(data[0], tuple):
+                # Ensure we get 1-D array of tuples instead of 2D array.
+                data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
+            subarr = _wrapped_sanitize(cls, data, dtype, copy)
+            dtype = subarr.dtype
             return Index(subarr, dtype=dtype, copy=copy, name=name)
 
     @classmethod
@@ -7044,32 +7051,6 @@ def maybe_extract_name(name, obj, cls) -> Hashable:
         raise TypeError(f"{cls.__name__}.name must be a hashable type")
 
     return name
-
-
-def _maybe_cast_data_without_dtype(subarr: npt.NDArray[np.object_]) -> ArrayLike:
-    """
-    If we have an arraylike input but no passed dtype, try to infer
-    a supported dtype.
-
-    Parameters
-    ----------
-    subarr : np.ndarray[object]
-
-    Returns
-    -------
-    np.ndarray or ExtensionArray
-    """
-
-    result = lib.maybe_convert_objects(
-        subarr,
-        convert_datetime=True,
-        convert_timedelta=True,
-        convert_period=True,
-        convert_interval=True,
-        dtype_if_all_nat=np.dtype("datetime64[ns]"),
-    )
-    result = ensure_wrapped_if_datetimelike(result)
-    return result
 
 
 def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:
