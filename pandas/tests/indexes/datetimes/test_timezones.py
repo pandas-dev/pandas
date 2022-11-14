@@ -362,7 +362,13 @@ class TestDatetimeIndexTimezones:
 
     easts = [pytz.timezone("US/Eastern"), gettz("US/Eastern")]
     if ZoneInfo is not None:
-        easts.append(ZoneInfo("US/Eastern"))
+        try:
+            tz = ZoneInfo("US/Eastern")
+        except KeyError:
+            # no tzdata
+            pass
+        else:
+            easts.append(tz)
 
     @pytest.mark.parametrize("tz", easts)
     def test_dti_tz_localize_ambiguous_infer(self, tz):

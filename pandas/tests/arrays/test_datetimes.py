@@ -714,7 +714,13 @@ class TestDatetimeArray:
 
     easts = ["US/Eastern", "dateutil/US/Eastern"]
     if ZoneInfo is not None:
-        easts.append(ZoneInfo("US/Eastern"))
+        try:
+            tz = ZoneInfo("US/Eastern")
+        except KeyError:
+            # no tzdata
+            pass
+        else:
+            easts.append(tz)
 
     @pytest.mark.parametrize("tz", easts)
     def test_iter_zoneinfo_fold(self, tz):
