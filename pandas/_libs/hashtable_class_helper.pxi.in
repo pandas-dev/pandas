@@ -910,7 +910,7 @@ cdef class {{name}}Factorizer(Factorizer):
         Factorize values with nans replaced by na_sentinel
 
         >>> fac = {{name}}Factorizer(3)
-        >>> fac.factorize(np.array([1,2,3], dtype={{dtype}}), na_sentinel=20)
+        >>> fac.factorize(np.array([1,2,3], dtype="{{dtype}}"), na_sentinel=20)
         array([0, 1, 2])
         """
         cdef:
