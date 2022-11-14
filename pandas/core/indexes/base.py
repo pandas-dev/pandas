@@ -81,7 +81,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     maybe_cast_pointwise_result,
-    maybe_infer_to_datetimelike,
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
@@ -206,6 +205,22 @@ str_t = str
 
 
 _dtype_obj = np.dtype("object")
+
+
+def _wrapped_sanitize(cls, data, dtype: DtypeObj | None, copy: bool):
+    """
+    Call sanitize_array with wrapping for differences between Index/Series.
+    """
+    try:
+        arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+    except ValueError as err:
+        if "index must be specified when data is not list-like" in str(err):
+            raise cls._raise_scalar_data_error(data) from err
+        elif "Data must be 1-dimensional" in str(err):
+            raise ValueError("Index data must be 1-dimensional") from err
+        raise
+    arr = ensure_wrapped_if_datetimelike(arr)
+    return arr
 
 
 def _maybe_return_indexers(meth: F) -> F:
@@ -448,21 +463,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif is_ea_or_datetimelike_dtype(dtype):
             # non-EA dtype indexes have special casting logic, so we punt here
-            try:
-                arr = sanitize_array(data, None, dtype=dtype, copy=copy)
-            except ValueError as err:
-                if "index must be specified when data is not list-like" in str(err):
-                    raise cls._raise_scalar_data_error(data) from err
-                elif "Data must be 1-dimensional" in str(err):
-                    raise ValueError("Index data must be 1-dimensional") from err
-                raise
-            arr = ensure_wrapped_if_datetimelike(arr)
+            arr = _wrapped_sanitize(cls, data, dtype, copy)
             klass = cls._dtype_to_subclass(arr.dtype)
             return klass._simple_new(arr, name=name)
 
         elif is_ea_or_datetimelike_dtype(data_dtype):
-            arr = sanitize_array(data, None, dtype=dtype, copy=copy)
-            arr = ensure_wrapped_if_datetimelike(arr)
+            arr = _wrapped_sanitize(cls, data, dtype, copy)
             klass = cls._dtype_to_subclass(arr.dtype)
             return klass._simple_new(arr, name=name)
 
@@ -485,21 +491,12 @@ class Index(IndexOpsMixin, PandasObject):
             # GH 11836
             if data.dtype.kind not in ["i", "u", "f", "b", "c", "m", "M"]:
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
-            try:
-                data = sanitize_array(data, None, dtype=dtype, copy=copy)
-            except ValueError as err:
-                if "index must be specified when data is not list-like" in str(err):
-                    raise cls._raise_scalar_data_error(data) from err
-                elif "Data must be 1-dimensional" in str(err):
-                    raise ValueError("Index data must be 1-dimensional") from err
-                raise
-
-            arr = ensure_wrapped_if_datetimelike(data)
+            arr = _wrapped_sanitize(cls, data, dtype, copy)
 
             klass = cls._dtype_to_subclass(arr.dtype)
 
             # _ensure_array _may_ be unnecessary once Int64Index etc are gone
-            arr = klass._ensure_array(arr, data.dtype, copy)
+            arr = klass._ensure_array(arr, arr.dtype, copy)
             return klass._simple_new(arr, name)
 
         elif is_scalar(data):
