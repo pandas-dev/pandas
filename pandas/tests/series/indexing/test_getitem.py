@@ -269,19 +269,10 @@ class TestSeriesGetitemSlices:
 
     def test_getitem_slice_2d(self, datetime_series):
         # GH#30588 multi-dimensional indexing deprecated
-
-        with tm.assert_produces_warning(
-            FutureWarning, match="Support for multi-dimensional indexing"
-        ):
-            # GH#30867 Don't want to support this long-term, but
-            # for now ensure that the warning from Index
-            # doesn't comes through via Series.__getitem__.
-            result = datetime_series[:, np.newaxis]
-        expected = datetime_series.values[:, np.newaxis]
-        tm.assert_almost_equal(result, expected)
+        with pytest.raises(ValueError, match="Multi-dimensional indexing"):
+            datetime_series[:, np.newaxis]
 
     # FutureWarning from NumPy.
-    @pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
     def test_getitem_median_slice_bug(self):
         index = date_range("20090415", "20090519", freq="2B")
         ser = Series(np.random.randn(13), index=index)
@@ -291,6 +282,10 @@ class TestSeriesGetitemSlices:
         with pytest.raises(ValueError, match=msg):
             # GH#31299
             ser[indexer]
+        # but we're OK with a single-element tuple
+        result = ser[(indexer[0],)]
+        expected = ser[indexer[0]]
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "slc, positions",
@@ -554,14 +549,8 @@ def test_getitem_generator(string_series):
     ],
 )
 def test_getitem_ndim_deprecated(series):
-    with tm.assert_produces_warning(
-        FutureWarning,
-        match="Support for multi-dimensional indexing",
-    ):
-        result = series[:, None]
-
-    expected = np.asarray(series)[:, None]
-    tm.assert_numpy_array_equal(result, expected)
+    with pytest.raises(ValueError, match="Multi-dimensional indexing"):
+        series[:, None]
 
 
 def test_getitem_multilevel_scalar_slice_not_implemented(
@@ -646,7 +635,7 @@ def test_getitem_with_integer_labels():
 def test_getitem_missing(datetime_series):
     # missing
     d = datetime_series.index[0] - BDay()
-    msg = r"Timestamp\('1999-12-31 00:00:00', freq='B'\)"
+    msg = r"Timestamp\('1999-12-31 00:00:00'\)"
     with pytest.raises(KeyError, match=msg):
         datetime_series[d]
 
@@ -702,14 +691,14 @@ def test_duplicated_index_getitem_positional_indexer(index_vals):
 class TestGetitemDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser[key]
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
-    def test_setitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed(self, key):
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser[key] = 1

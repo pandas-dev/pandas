@@ -165,26 +165,6 @@ _all_methods = [
         (
             pd.DataFrame,
             frame_data,
-            operator.methodcaller("append", pd.DataFrame({"A": [1]})),
-        ),
-        marks=pytest.mark.filterwarnings(
-            "ignore:.*append method is deprecated.*:FutureWarning"
-        ),
-    ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
-            operator.methodcaller("append", pd.DataFrame({"B": [1]})),
-        ),
-        marks=pytest.mark.filterwarnings(
-            "ignore:.*append method is deprecated.*:FutureWarning"
-        ),
-    ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
             operator.methodcaller("merge", pd.DataFrame({"A": [1]})),
         ),
         marks=not_implemented_mark,
@@ -209,12 +189,6 @@ _all_methods = [
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("count")),
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("count", level="A")),
-        marks=[
-            pytest.mark.filterwarnings("ignore:Using the level keyword:FutureWarning"),
-        ],
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("nunique")),
@@ -502,6 +476,9 @@ def test_finalize_called_eval_numexpr():
 # Binary operations
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Automatic reindexing on DataFrame vs Series:FutureWarning"
+)
 @pytest.mark.parametrize("annotate", ["left", "right", "both"])
 @pytest.mark.parametrize(
     "args",

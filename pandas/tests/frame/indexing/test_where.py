@@ -1009,20 +1009,6 @@ def test_where_dt64_2d():
     _check_where_equivalences(df, mask, other, expected)
 
 
-def test_where_mask_deprecated(frame_or_series):
-    # GH 47728
-    obj = DataFrame(np.random.randn(4, 3))
-    obj = tm.get_obj(obj, frame_or_series)
-
-    mask = obj > 0
-
-    with tm.assert_produces_warning(FutureWarning):
-        obj.where(mask, -1, errors="raise")
-
-    with tm.assert_produces_warning(FutureWarning):
-        obj.mask(mask, -1, errors="raise")
-
-
 def test_where_producing_ea_cond_for_np_dtype():
     # GH#44014
     df = DataFrame({"a": Series([1, pd.NA, 2], dtype="Int64"), "b": [1, 2, 3]})

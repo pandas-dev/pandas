@@ -1120,7 +1120,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         values,
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ):
         from pandas.core.reshape.concat import concat
 
@@ -1132,7 +1132,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 ax._reset_identity()
             return values
 
-        if self.group_keys and not override_group_keys:
+        if self.group_keys and not is_transform:
 
             values = reset_identity(values)
             if self.as_index:
@@ -1310,7 +1310,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data,
         values: list,
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ):
         raise AbstractMethodError(self)
 
@@ -1533,9 +1533,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     with np.errstate(all="ignore"):
                         return func(g, *args, **kwargs)
 
-            elif hasattr(nanops, "nan" + func):
+            elif hasattr(nanops, f"nan{func}"):
                 # TODO: should we wrap this in to e.g. _is_builtin_func?
-                f = getattr(nanops, "nan" + func)
+                f = getattr(nanops, f"nan{func}")
 
             else:
                 raise ValueError(
@@ -1603,37 +1603,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         values, mutated = self.grouper.apply(f, data, self.axis)
         if not_indexed_same is None:
             not_indexed_same = mutated or self.mutated
-        override_group_keys = False
-
-        is_empty_agg = is_agg and len(values) == 0
-        if (not not_indexed_same and self.group_keys is lib.no_default) and not (
-            is_transform or is_empty_agg
-        ):
-            # We've detected value-dependent behavior: the result's index depends on
-            # whether the user's function `f` returned the same index or not.
-            msg = (
-                "Not prepending group keys to the result index of "
-                "transform-like apply. In the future, the group keys "
-                "will be included in the index, regardless of whether "
-                "the applied function returns a like-indexed object.\n"
-                "To preserve the previous behavior, use\n\n\t"
-                ">>> .groupby(..., group_keys=False)\n\n"
-                "To adopt the future behavior and silence this warning, use "
-                "\n\n\t>>> .groupby(..., group_keys=True)"
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-            # We want to behave as if `self.group_keys=False` when reconstructing
-            # the object. However, we don't want to mutate the stateful GroupBy
-            # object, so we just override it.
-            # When this deprecation is enforced then override_group_keys
-            # may be removed.
-            override_group_keys = True
 
         return self._wrap_applied_output(
             data,
             values,
             not_indexed_same,
-            override_group_keys=is_transform or override_group_keys,
+            is_transform,
         )
 
     @final
@@ -1759,7 +1734,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise NotImplementedError(
                     f"{type(self).__name__}.{how} does not implement {kwd_name}."
                 )
-            elif not is_ser:
+            if not is_ser:
                 data = data.get_numeric_data(copy=False)
 
         def array_func(values: ArrayLike) -> ArrayLike:
@@ -3003,97 +2978,68 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ...                    'B': [np.nan, 2, 3, 4, 5]}, columns=['A', 'B'])
         >>> g = df.groupby('A')
         >>> g.nth(0)
-             B
-        A
-        1  NaN
-        2  3.0
+           A   B
+        0  1 NaN
+        2  2 3.0
         >>> g.nth(1)
-             B
-        A
-        1  2.0
-        2  5.0
+           A   B
+        1  1 2.0
+        4  2 5.0
         >>> g.nth(-1)
-             B
-        A
-        1  4.0
-        2  5.0
+           A   B
+        3  1 4.0
+        4  2 5.0
         >>> g.nth([0, 1])
-             B
-        A
-        1  NaN
-        1  2.0
-        2  3.0
-        2  5.0
+           A   B
+        0  1 NaN
+        1  1 2.0
+        2  2 3.0
+        4  2 5.0
         >>> g.nth(slice(None, -1))
-             B
-        A
-        1  NaN
-        1  2.0
-        2  3.0
+           A   B
+        0  1 NaN
+        1  1 2.0
+        2  2 3.0
 
         Index notation may also be used
 
         >>> g.nth[0, 1]
-             B
-        A
-        1  NaN
-        1  2.0
-        2  3.0
-        2  5.0
+           A   B
+        0  1 NaN
+        1  1 2.0
+        2  2 3.0
+        4  2 5.0
         >>> g.nth[:-1]
-             B
-        A
-        1  NaN
-        1  2.0
-        2  3.0
+           A   B
+        0  1 NaN
+        1  1 2.0
+        2  2 3.0
 
-        Specifying `dropna` allows count ignoring ``NaN``
+        Specifying `dropna` allows ignoring ``NaN`` values
 
         >>> g.nth(0, dropna='any')
-             B
-        A
-        1  2.0
-        2  3.0
+           A   B
+        1  1 2.0
+        2  2 3.0
 
-        NaNs denote group exhausted when using dropna
+        When the specified ``n`` is larger than any of the groups, an
+        empty DataFrame is returned
 
         >>> g.nth(3, dropna='any')
-            B
-        A
-        1 NaN
-        2 NaN
-
-        Specifying `as_index=False` in `groupby` keeps the original index.
-
-        >>> df.groupby('A', as_index=False).nth(1)
-           A    B
-        1  1  2.0
-        4  2  5.0
+        Empty DataFrame
+        Columns: [A, B]
+        Index: []
         """
         if not dropna:
-            with self._group_selection_context():
-                mask = self._make_mask_from_positional_indexer(n)
+            mask = self._make_mask_from_positional_indexer(n)
 
-                ids, _, _ = self.grouper.group_info
+            ids, _, _ = self.grouper.group_info
 
-                # Drop NA values in grouping
-                mask = mask & (ids != -1)
+            # Drop NA values in grouping
+            mask = mask & (ids != -1)
 
-                out = self._mask_selected_obj(mask)
-                if not self.as_index:
-                    return out
-
-                result_index = self.grouper.result_index
-                if self.axis == 0:
-                    out.index = result_index[ids[mask]]
-                    if not self.observed and isinstance(result_index, CategoricalIndex):
-                        out = out.reindex(result_index)
-
-                    out = self._reindex_output(out)
-                else:
-                    out.columns = result_index[ids[mask]]
-
-                return out.sort_index(axis=self.axis) if self.sort else out
+            out = self._mask_selected_obj(mask)
+            return out
 
         # dropna is truthy
         if not is_integer(n):
@@ -3110,7 +3056,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # old behaviour, but with all and any support for DataFrames.
         # modified in GH 7559 to have better perf
         n = cast(int, n)
-        max_len = n if n >= 0 else -1 - n
         dropped = self.obj.dropna(how=dropna, axis=self.axis)
 
         # get a new grouper for our dropped obj
@@ -3140,22 +3085,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         grb = dropped.groupby(
             grouper, as_index=self.as_index, sort=self.sort, axis=self.axis
         )
-        sizes, result = grb.size(), grb.nth(n)
-        mask = (sizes < max_len)._values
-
-        # set the results which don't meet the criteria
-        if len(result) and mask.any():
-            result.loc[mask] = np.nan
-
-        # reset/reindex to the original groups
-        if len(self.obj) == len(dropped) or len(result) == len(
-            self.grouper.result_index
-        ):
-            result.index = self.grouper.result_index
-        else:
-            result = result.reindex(self.grouper.result_index)
-
-        return result
+        return grb.nth(n)
 
     @final
     def quantile(
@@ -4141,7 +4071,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # "ndarray[Any, dtype[floating[_64Bit]]]"; expected "Index"
             levels_list.append(qs)  # type: ignore[arg-type]
             names = names + [None]
-        index, _ = MultiIndex.from_product(levels_list, names=names).sortlevel()
+        index = MultiIndex.from_product(levels_list, names=names)
+        if self.sort:
+            index = index.sortlevel()[0]
 
         if self.as_index:
             # Always holds for SeriesGroupBy unless GH#36507 is implemented

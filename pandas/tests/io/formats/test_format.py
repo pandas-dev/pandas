@@ -5,6 +5,7 @@ from contextlib import nullcontext
 from datetime import (
     datetime,
     time,
+    timedelta,
 )
 from io import StringIO
 import itertools
@@ -208,20 +209,6 @@ class TestDataFrameFormatting:
             with StringIO() as buf:
                 df.info(buf=buf, show_counts=show_counts)
                 assert ("non-null" in buf.getvalue()) is result
-
-    def test_show_null_counts_deprecation(self):
-        # GH37999
-        df = DataFrame(1, columns=range(10), index=range(10))
-        with tm.assert_produces_warning(
-            FutureWarning, match="null_counts is deprecated.+"
-        ):
-            buf = StringIO()
-            df.info(buf=buf, null_counts=True)
-            assert "non-null" in buf.getvalue()
-
-        # GH37999
-        with pytest.raises(ValueError, match=r"null_counts used with show_counts.+"):
-            df.info(null_counts=True, show_counts=True)
 
     def test_repr_truncation(self):
         max_len = 20
@@ -1008,12 +995,10 @@ class TestDataFrameFormatting:
         # when truncated the dtypes of the splits can differ
 
         # 11594
-        import datetime
-
         s = Series(
-            [datetime.datetime(2012, 1, 1)] * 10
-            + [datetime.datetime(1012, 1, 2)]
-            + [datetime.datetime(2012, 1, 3)] * 10
+            [datetime(2012, 1, 1)] * 10
+            + [datetime(1012, 1, 2)]
+            + [datetime(2012, 1, 3)] * 10
         )
 
         with option_context("display.max_rows", 8):
@@ -1263,8 +1248,6 @@ class TestDataFrameFormatting:
             index=[f"s{x:04d}" for x in range(n)],
             dtype="int64",
         )
-
-        import re
 
         str_rep = str(s)
         nmatches = len(re.findall("dtype", str_rep))
@@ -2459,12 +2442,6 @@ class TestSeriesFormatting:
         assert start_date in result
 
     def test_timedelta64(self):
-
-        from datetime import (
-            datetime,
-            timedelta,
-        )
-
         Series(np.array([1100, 20], dtype="timedelta64[ns]")).to_string()
 
         s = Series(date_range("2012-1-1", periods=3, freq="D"))
