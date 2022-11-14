@@ -35,6 +35,7 @@ class TestABCClasses:
         ("ABCMultiIndex", multi_index),
         ("ABCDatetimeIndex", datetime_index),
         ("ABCRangeIndex", pd.RangeIndex(3)),
+        ("ABCNoIndex", pd.NoIndex(3)),
         ("ABCTimedeltaIndex", timedelta_index),
         ("ABCIntervalIndex", pd.interval_range(start=0, end=3)),
         ("ABCPeriodArray", pd.arrays.PeriodArray([2000, 2001, 2002], freq="D")),

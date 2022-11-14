@@ -9,6 +9,7 @@ from pandas.core.indexes.api import (
     Float64Index,
     Index,
     Int64Index,
+    NoIndex,
     RangeIndex,
 )
 from pandas.tests.indexes.common import NumericBase
@@ -18,6 +19,7 @@ RI = RangeIndex
 I64 = Int64Index
 F64 = Float64Index
 OI = Index
+NI = NoIndex
 
 
 class TestRangeIndex(NumericBase):

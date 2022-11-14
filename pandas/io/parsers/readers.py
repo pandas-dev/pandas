@@ -1689,9 +1689,9 @@ class TextFileReader(abc.Iterator):
                     # Any column is actually fine:
                     new_rows = len(next(iter(col_dict.values())))
                     if get_option("mode.no_default_index"):
-                        index = RangeIndex(self._currow, self._currow + new_rows)
-                    else:
                         index = NoIndex(new_rows)
+                    else:
+                        index = RangeIndex(self._currow, self._currow + new_rows)
                 else:
                     new_rows = 0
             else:
