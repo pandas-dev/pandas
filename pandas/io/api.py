@@ -3,6 +3,7 @@ Data IO api
 """
 
 from pandas.io.clipboards import read_clipboard
+from pandas.io.deltalake import read_deltalake
 from pandas.io.excel import (
     ExcelFile,
     ExcelWriter,
@@ -46,6 +47,7 @@ __all__ = [
     "read_excel",
     "read_feather",
     "read_fwf",
+    "read_deltalake",
     "read_gbq",
     "read_hdf",
     "read_html",

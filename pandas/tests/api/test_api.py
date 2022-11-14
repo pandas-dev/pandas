@@ -149,6 +149,7 @@ class TestPDApi(Base):
         "read_csv",
         "read_excel",
         "read_fwf",
+        "read_deltalake",
         "read_gbq",
         "read_hdf",
         "read_html",

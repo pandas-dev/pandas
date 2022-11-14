@@ -36,6 +36,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
     binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
     SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
+    SQL;`Delta Lake <https://en.wikipedia.org/wiki/Delta_Lake_(Software)>`__;:ref:`read_deltalake<io.deltalake>`;
     SQL;`Google BigQuery <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
@@ -5895,6 +5896,17 @@ And then issue the following queries:
    data.to_sql("data", con)
    pd.read_sql_query("SELECT * FROM data", con)
 
+.. _io.deltalake:
+
+Delta Lake
+----------
+The ``deltalake`` package provides functionality to read/write from Delta Lake.
+
+pandas integrates with this external package. if ``deltalake`` is installed, you can
+use the pandas methods ``pd.read_deltalake``, which will call the
+respective functions from ``deltalake``.
+
+Full documentation can be found `here <https://delta-io.github.io/delta-rs/python/>`__.
 
 .. _io.bigquery:
 
