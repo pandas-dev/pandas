@@ -546,7 +546,7 @@ class BaseArrayManager(DataManager):
         axis: AxisInt,
         fill_value=None,
         allow_dups: bool = False,
-        copy: bool = True,
+        copy: bool | None = True,
         # ignored keywords
         only_slice: bool = False,
         # ArrayManager specific keywords
@@ -570,7 +570,7 @@ class BaseArrayManager(DataManager):
         axis: AxisInt,
         fill_value=None,
         allow_dups: bool = False,
-        copy: bool = True,
+        copy: bool | None = True,
         use_na_proxy: bool = False,
     ) -> T:
         """
