@@ -859,7 +859,7 @@ def test_with_dictlike_columns_with_infer():
 
 
 def test_with_dictlike_functions():
-    # GH 18919
+    # GH 49352
 
     df = DataFrame({"a": [1, 2, 3], "b": list("abc"), "c": [3, 4, 5]})
     functions = {"b": "mean", "a": "std", "c": [DataFrame.mean, "sum"]}
@@ -901,7 +901,7 @@ def test_with_listlike_columns_returning_list():
 
 
 def test_with_listlike_functions():
-    # GH 18919
+    # GH 49352
 
     df = DataFrame({"a": [1, 2, 3], "b": list("abc"), "c": [3, 4, 5]})
     functions = [DataFrame.mean, "std"]
