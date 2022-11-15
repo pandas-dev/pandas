@@ -20,6 +20,7 @@ from typing import (
 
 import numpy as np
 
+import pandas as pd
 from pandas._libs import lib
 from pandas._typing import (
     Axis,
@@ -1269,6 +1270,13 @@ class IndexOpsMixin(OpsMixin):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
+
+        if isinstance(value, pd.DataFrame):
+            msg = (
+                "Value must be array-like or scalar, "
+                f"{type(value).__name__} is not supported"
+            )
+            raise ValueError(msg)
 
         values = self._values
         if not isinstance(values, np.ndarray):
