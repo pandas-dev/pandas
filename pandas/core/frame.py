@@ -9213,6 +9213,24 @@ Parrot 2  Parrot       24.0
     2    8.0
     3    NaN
     dtype: float64
+
+    Aggregate functions on DataFrames with mixed non-numeric and numeric columns.
+
+    >>> df = pd.DataFrame([['a', 1, 4],
+    ...                    ['b', 2, 5],
+    ...                    ['c', 3, 6]],
+    ...                   columns=['A', 'B', 'C'])
+
+    Works equivalently as above. Add argument `numeric_only=True` to avoid
+    exceptions or warnings.
+
+    >>> df.agg({'A': 'mean', 'B': [pd.DataFrame.mean, 'std'], 'C': ['sum', 'mean']},
+    ...   numeric_only=True)
+
+            B     C
+    mean  2.0   5.0
+    std   1.0   NaN
+    sum   NaN  15.0
     """
     )
 
