@@ -739,7 +739,7 @@ Metadata
 
 Other
 ^^^^^
-
+- Bug in :meth:`Series.searchsorted` inconsistent behavior when accepting `DataFrame` as parameter `value` (:issue:`49620`)
 .. ***DO NOT USE THIS SECTION***
 
 -
