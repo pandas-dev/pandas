@@ -740,6 +740,8 @@ Metadata
 Other
 ^^^^^
 - Bug in :meth:`Series.searchsorted` inconsistent behavior when accepting :class:`DataFrame` as parameter ``value`` (:issue:`49620`)
+-
+
 .. ***DO NOT USE THIS SECTION***
 
 -
