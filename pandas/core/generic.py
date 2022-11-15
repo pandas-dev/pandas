@@ -31,6 +31,7 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import lib
+from pandas._libs import json
 from pandas._libs.tslibs import (
     Period,
     Tick,
@@ -138,13 +139,12 @@ from pandas.core import (
     sample,
 )
 from pandas.core.common import (
-    pipe,
-    random_state,
-    count_not_none,
-    maybe_make_list,
     apply_if_callable,
-    index_labels_to_array,
+    count_not_none,
     get_rename_function,
+    index_labels_to_array,
+    maybe_make_list,
+    pipe,
 )
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
@@ -6351,7 +6351,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self._mgr.convert(
                 datetime=datetime,
                 numeric=numeric,
-                timedelta=timedelta,
+                timedelta=dt.timedelta,
                 copy=True,
             )
         ).__finalize__(self)
@@ -10324,7 +10324,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not isinstance(
-            nonexistent, dt.timedelta
+            nonexistent, timedelta
         ):
             raise ValueError(
                 "The nonexistent argument must be one of 'raise', "
@@ -11477,7 +11477,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(Rolling)
     def rolling(
         self,
-        window: int | timedelta | str | BaseOffset | BaseIndexer,
+        window: int | dt.timedelta | str | BaseOffset | BaseIndexer,
         min_periods: int | None = None,
         center: bool_t = False,
         win_type: str | None = None,
