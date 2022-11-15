@@ -9225,8 +9225,7 @@ Parrot 2  Parrot       24.0
     exceptions or warnings.
 
     >>> df.agg({'A': 'mean', 'B': [pd.DataFrame.mean, 'std'], 'C': ['sum', 'mean']},
-    ...   numeric_only=True)
-
+    ...                    numeric_only=True)
             B     C
     mean  2.0   5.0
     std   1.0   NaN
