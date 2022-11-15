@@ -20,7 +20,6 @@ from typing import (
 
 import numpy as np
 
-import pandas as pd
 from pandas._libs import lib
 from pandas._typing import (
     Axis,
@@ -56,6 +55,7 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
+import pandas as pd
 from pandas.core import (
     algorithms,
     nanops,
