@@ -476,7 +476,8 @@ class TestFloat16Index:
     # GH 49535
     def test_array(self):
         arr = np.array([1, 2, 3], dtype=np.float16)
-        with pytest.raises(TypeError, match="float16 indexes are not supported"):
+        msg = "float16 indexes are not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
             NumericIndex(arr)
 
 
