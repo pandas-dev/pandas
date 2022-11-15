@@ -37,7 +37,6 @@ reduction_kernels = frozenset(
         "mean",
         "median",
         "min",
-        "nth",
         "nunique",
         "prod",
         # as long as `quantile`'s signature accepts only
@@ -100,6 +99,7 @@ groupby_other_methods = frozenset(
         "indices",
         "ndim",
         "ngroups",
+        "nth",
         "ohlc",
         "pipe",
         "plot",

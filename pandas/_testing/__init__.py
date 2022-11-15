@@ -610,8 +610,6 @@ def makeCustomIndex(
     for i in range(nlevels):
 
         def keyfunc(x):
-            import re
-
             numeric_tuple = re.sub(r"[^\d_]_?", "", x).split("_")
             return [int(num) for num in numeric_tuple]
 
