@@ -287,7 +287,7 @@ class Apply(metaclass=abc.ABCMeta):
     def _filter_numeric_only(self) -> list[Any]:
         if "numeric_only" in self.kwargs and self.kwargs["numeric_only"] is True:
             obj = self.obj._get_numeric_data()
-            filtered_cols = list(set(self.obj.columns) - set(obj.columns))
+            filtered_cols = list(set(self.obj) - set(obj))
             self.obj = obj
             return filtered_cols
         return []
