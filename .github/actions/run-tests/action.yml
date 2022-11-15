@@ -3,12 +3,6 @@ runs:
   using: composite
   steps:
     - name: Test
-      if : ${{ runner.os == 'Linux' }}
-      run: ci/run_tests.sh
-      shell: bash -el {0}
-
-    - name: Test
-      if : ${{ runner.os != 'Linux' }}
       run: ci/run_tests.sh
       shell: bash -el {0}
 
