@@ -30,10 +30,8 @@ import numpy as np
 
 from pandas._config import config
 
-from pandas._libs import (
-    json,
-    lib,
-)
+from pandas._libs import lib
+import json
 from pandas._libs.tslibs import (
     Period,
     Tick,
@@ -132,6 +130,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas.core import common  # noqa: PDF018
 from pandas.core import (
     algorithms as algos,
     arraylike,
@@ -6353,7 +6352,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self._mgr.convert(
                 datetime=datetime,
                 numeric=numeric,
-                timedelta=dt.timedelta,
+                timedelta=timedelta,
                 copy=True,
             )
         ).__finalize__(self)
