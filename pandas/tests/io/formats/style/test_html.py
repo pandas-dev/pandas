@@ -843,8 +843,8 @@ def test_concat(styler):
 def test_concat_recursion(styler):
     df = styler.data
     styler1 = styler
-    styler2 = Styler(df.agg(["mean"]), uuid_len=0, precision=3)
-    styler3 = Styler(df.agg(["mean"]), uuid_len=0, precision=4)
+    styler2 = Styler(df.agg(["mean"]), precision=3)
+    styler3 = Styler(df.agg(["mean"]), precision=4)
     styler1.concat(styler2.concat(styler3)).set_uuid("X")
     result = styler.to_html()
     # notice that the second concat (last <tr> of the output html),
@@ -874,8 +874,8 @@ def test_concat_recursion(styler):
 def test_concat_chain(styler):
     df = styler.data
     styler1 = styler
-    styler2 = Styler(df.agg(["mean"]), uuid_len=0, precision=3)
-    styler3 = Styler(df.agg(["mean"]), uuid_len=0, precision=4)
+    styler2 = Styler(df.agg(["mean"]), precision=3)
+    styler3 = Styler(df.agg(["mean"]), precision=4)
     styler1.concat(styler2).concat(styler3).set_uuid("X")
     result = styler.to_html()
     expected = dedent(
