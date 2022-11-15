@@ -1013,12 +1013,15 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
                 found_attrs.update(attrs)
                 break
 
-    # Only consider it a valid guess if we have a year, month and day,
-    # unless it's %Y or %Y-%m which conform with ISO8601. Note that we don't
-    # make an exception for %Y%m because it's explicitly not considered ISO8601.
+    # Only consider it a valid guess if we have a year, month and day.
+    # We make exceptions for %Y and %Y-%m (only with the `-` separator)
+    # as they conform with ISO8601.
     if (
         len({'year', 'month', 'day'} & found_attrs) != 3
-        and format_guess not in (['%Y'], ['%Y', None, '%m'])
+        and format_guess != ['%Y']
+        and not (
+            format_guess == ['%Y', None, '%m'] and tokens[1] == '-'
+        )
     ):
         return None
 
