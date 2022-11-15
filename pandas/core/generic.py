@@ -143,7 +143,7 @@ from pandas.core import (
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
-from pandas.core.common import ( # noqa: PDF018
+from pandas.core.common import (  # noqa: PDF018
     apply_if_callable,
     count_not_none,
     get_rename_function,
