@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import collections
-import datetime as dt
+import datetime as _dt
 import gc
 import operator
 import pickle
@@ -143,7 +143,7 @@ from pandas.core import (
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
-from pandas.core.common import (
+from pandas.core.common import ( # noqa: PDF018
     apply_if_callable,
     count_not_none,
     get_rename_function,
@@ -6353,7 +6353,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self._mgr.convert(
                 datetime=datetime,
                 numeric=numeric,
-                timedelta=dt.timedelta,
+                timedelta=_dt.timedelta,
                 copy=True,
             )
         ).__finalize__(self)
@@ -10326,7 +10326,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not isinstance(
-            nonexistent, dt.timedelta
+            nonexistent, _dt.timedelta
         ):
             raise ValueError(
                 "The nonexistent argument must be one of 'raise', "
@@ -11479,7 +11479,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(Rolling)
     def rolling(
         self,
-        window: int | dt.timedelta | str | BaseOffset | BaseIndexer,
+        window: int | _dt.timedelta | str | BaseOffset | BaseIndexer,
         min_periods: int | None = None,
         center: bool_t = False,
         win_type: str | None = None,
