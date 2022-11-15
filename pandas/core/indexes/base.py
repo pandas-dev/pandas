@@ -115,7 +115,6 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
-    PandasDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -437,20 +436,12 @@ class Index(IndexOpsMixin, PandasObject):
         tupleize_cols: bool = True,
     ) -> Index:
 
-        from pandas.core.arrays import PandasArray
         from pandas.core.indexes.range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
-
-        if type(data) is PandasArray:
-            # ensure users don't accidentally put a PandasArray in an index,
-            #  but don't unpack StringArray
-            data = data.to_numpy()
-        if isinstance(dtype, PandasDtype):
-            dtype = dtype.numpy_dtype
 
         data_dtype = getattr(data, "dtype", None)
 
@@ -463,14 +454,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif is_ea_or_datetimelike_dtype(dtype):
             # non-EA dtype indexes have special casting logic, so we punt here
-            arr = _wrapped_sanitize(cls, data, dtype, copy)
-            klass = cls._dtype_to_subclass(arr.dtype)
-            return klass._simple_new(arr, name=name)
+            pass
 
         elif is_ea_or_datetimelike_dtype(data_dtype):
-            arr = _wrapped_sanitize(cls, data, dtype, copy)
-            klass = cls._dtype_to_subclass(arr.dtype)
-            return klass._simple_new(arr, name=name)
+            pass
 
         # index-like
         elif (
@@ -490,13 +477,6 @@ class Index(IndexOpsMixin, PandasObject):
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
-            arr = _wrapped_sanitize(cls, data, dtype, copy)
-
-            klass = cls._dtype_to_subclass(arr.dtype)
-
-            # _ensure_array _may_ be unnecessary once Int64Index etc are gone
-            arr = klass._ensure_array(arr, arr.dtype, copy)
-            return klass._simple_new(arr, name)
 
         elif is_scalar(data):
             raise cls._raise_scalar_data_error(data)
@@ -531,9 +511,13 @@ class Index(IndexOpsMixin, PandasObject):
             if len(data) and isinstance(data[0], tuple):
                 # Ensure we get 1-D array of tuples instead of 2D array.
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
-            subarr = _wrapped_sanitize(cls, data, dtype, copy)
-            dtype = subarr.dtype
-            return Index(subarr, dtype=dtype, copy=copy, name=name)
+
+        arr = _wrapped_sanitize(cls, data, dtype, copy)
+        klass = cls._dtype_to_subclass(arr.dtype)
+
+        # _ensure_array _may_ be unnecessary once Int64Index etc are gone
+        arr = klass._ensure_array(arr, arr.dtype, copy)
+        return klass._simple_new(arr, name)
 
     @classmethod
     def _ensure_array(cls, data, dtype, copy: bool):
