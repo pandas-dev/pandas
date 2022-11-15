@@ -823,15 +823,16 @@ def test_concat(styler):
     other = styler.data.agg(["mean"]).style
     styler.concat(other).set_uuid("X")
     result = styler.to_html()
+    fp = "foot0_"
     expected = dedent(
-        """\
+        f"""\
     <tr>
       <th id="T_X_level0_row1" class="row_heading level0 row1" >b</th>
       <td id="T_X_row1_col0" class="data row1 col0" >2.690000</td>
     </tr>
     <tr>
-      <th id="T_X_level0_foot_row0" class="foot_row_heading level0 foot_row0" >mean</th>
-      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.650000</td>
+      <th id="T_X_level0_{fp}row0" class="{fp}row_heading level0 {fp}row0" >mean</th>
+      <td id="T_X_{fp}row0_col0" class="{fp}data {fp}row0 col0" >2.650000</td>
     </tr>
   </tbody>
 </table>
@@ -849,7 +850,8 @@ def test_concat_recursion(styler):
     result = styler.to_html()
     # notice that the second concat (last <tr> of the output html),
     # there are two `foot_` in the id and class
-    s = "foot_foot"
+    fp1 = "foot0_"
+    fp2 = "foot0_foot0_"
     expected = dedent(
         f"""\
     <tr>
@@ -857,12 +859,12 @@ def test_concat_recursion(styler):
       <td id="T_X_row1_col0" class="data row1 col0" >2.690000</td>
     </tr>
     <tr>
-      <th id="T_X_level0_foot_row0" class="foot_row_heading level0 foot_row0" >mean</th>
-      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.650</td>
+      <th id="T_X_level0_{fp1}row0" class="{fp1}row_heading level0 {fp1}row0" >mean</th>
+      <td id="T_X_{fp1}row0_col0" class="{fp1}data {fp1}row0 col0" >2.650</td>
     </tr>
     <tr>
-      <th id="T_X_level0_{s}_row0" class="{s}_row_heading level0 {s}_row0" >mean</th>
-      <td id="T_X_{s}_row0_col0" class="{s}_data {s}_row0 col0" >2.6500</td>
+      <th id="T_X_level0_{fp2}row0" class="{fp2}row_heading level0 {fp2}row0" >mean</th>
+      <td id="T_X_{fp2}row0_col0" class="{fp2}data {fp2}row0 col0" >2.6500</td>
     </tr>
   </tbody>
 </table>
@@ -878,19 +880,21 @@ def test_concat_chain(styler):
     styler3 = Styler(df.agg(["mean"]), precision=4)
     styler1.concat(styler2).concat(styler3).set_uuid("X")
     result = styler.to_html()
+    fp1 = "foot0_"
+    fp2 = "foot1_"
     expected = dedent(
-        """\
+        f"""\
     <tr>
       <th id="T_X_level0_row1" class="row_heading level0 row1" >b</th>
       <td id="T_X_row1_col0" class="data row1 col0" >2.690000</td>
     </tr>
     <tr>
-      <th id="T_X_level0_foot_row0" class="foot_row_heading level0 foot_row0" >mean</th>
-      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.650</td>
+      <th id="T_X_level0_{fp1}row0" class="{fp1}row_heading level0 {fp1}row0" >mean</th>
+      <td id="T_X_{fp1}row0_col0" class="{fp1}data {fp1}row0 col0" >2.650</td>
     </tr>
     <tr>
-      <th id="T_X_level0_foot_row0" class="foot_row_heading level0 foot_row0" >mean</th>
-      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.6500</td>
+      <th id="T_X_level0_{fp2}row0" class="{fp2}row_heading level0 {fp2}row0" >mean</th>
+      <td id="T_X_{fp2}row0_col0" class="{fp2}data {fp2}row0 col0" >2.6500</td>
     </tr>
   </tbody>
 </table>

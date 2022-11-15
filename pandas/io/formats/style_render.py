@@ -163,15 +163,16 @@ class StylerRenderer:
         self._compute()
         dxs = []
         ctx_len = len(self.index)
-        for concatenated in self.concatenated:
+        for i, concatenated in enumerate(self.concatenated):
             concatenated.hide_index_ = self.hide_index_
             concatenated.hidden_columns = self.hidden_columns
+            foot = f"{self.css['foot']}{i}"
             concatenated.css = {
                 **self.css,
-                "data": f"{self.css['foot']}_{self.css['data']}",
-                "row_heading": f"{self.css['foot']}_{self.css['row_heading']}",
-                "row": f"{self.css['foot']}_{self.css['row']}",
-                "foot": self.css["foot"],
+                "data": f"{foot}_data",
+                "row_heading": f"{foot}_row_heading",
+                "row": f"{foot}_row",
+                "foot": f"{foot}_foot",
             }
             dx = concatenated._render(
                 sparse_index, sparse_columns, max_rows, max_cols, blank
