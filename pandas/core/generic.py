@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 import collections
-from datetime import timedelta
+from datetime import timedelta as td
 import gc
-import json
 import operator
 import pickle
 import re
@@ -133,7 +132,7 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms as algos,
     arraylike,
-    common as com,
+    common,
     indexing,
     missing,
     nanops,
@@ -6318,6 +6317,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         datetime: bool_t = False,
         numeric: bool_t = False,
+        # td: bool_t = False,
         timedelta: bool_t = False,
     ) -> NDFrameT:
         """
@@ -11538,7 +11538,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         return ExponentialMovingWindow(
             self,
-            com=com,
+            com=commmon,
             span=span,
             halflife=halflife,
             alpha=alpha,
