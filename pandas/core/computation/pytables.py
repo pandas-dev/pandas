@@ -218,7 +218,7 @@ class BinOp(ops.BinOp):
             v = ensure_decoded(v)
             v = Timestamp(v)
             if v is not NaT:
-                v = v._as_unit("ns")  # pyright: ignore[reportGeneralTypeIssues]
+                v = v.as_unit("ns")  # pyright: ignore[reportGeneralTypeIssues]
             if v.tz is not None:
                 v = v.tz_convert("UTC")
             return TermValue(v, v.value, kind)

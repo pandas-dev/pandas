@@ -654,7 +654,7 @@ class TestToDatetime:
             pdtoday2 = to_datetime(["today"])[0]
 
             tstoday = Timestamp("today")
-            tstoday2 = Timestamp.today()._as_unit("ns")
+            tstoday2 = Timestamp.today().as_unit("ns")
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds

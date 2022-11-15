@@ -580,8 +580,7 @@ class TestTimestampConversion:
             pydt_max = Timestamp.max.to_pydatetime()
 
         assert (
-            Timestamp(pydt_max)._as_unit("ns").value / 1000
-            == Timestamp.max.value / 1000
+            Timestamp(pydt_max).as_unit("ns").value / 1000 == Timestamp.max.value / 1000
         )
 
         exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
@@ -594,7 +593,7 @@ class TestTimestampConversion:
         assert pydt_min + tdus > Timestamp.min
 
         assert (
-            Timestamp(pydt_min + tdus)._as_unit("ns").value / 1000
+            Timestamp(pydt_min + tdus).as_unit("ns").value / 1000
             == Timestamp.min.value / 1000
         )
 

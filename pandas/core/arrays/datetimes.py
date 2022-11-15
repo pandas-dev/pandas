@@ -403,9 +403,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             raise ValueError("Neither `start` nor `end` can be NaT")
 
         if start is not None:
-            start = start._as_unit("ns")
+            start = start.as_unit("ns")
         if end is not None:
-            end = end._as_unit("ns")
+            end = end.as_unit("ns")
 
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
         start, end = _maybe_normalize_endpoints(start, end, normalize)
@@ -494,9 +494,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             raise ValueError("'value' should be a Timestamp.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.datetime64(value.value, self._unit)
+            return np.datetime64(value.value, self.unit)
         else:
-            return value._as_unit(self._unit).asm8
+            return value.as_unit(self.unit).asm8
 
     def _scalar_from_string(self, value) -> Timestamp | NaTType:
         return Timestamp(value, tz=self.tz)
@@ -2511,7 +2511,7 @@ def _generate_range(
     # Non-overlapping identity check (left operand type: "Timestamp", right
     # operand type: "NaTType")
     if start is not NaT:  # type: ignore[comparison-overlap]
-        start = start._as_unit("ns")
+        start = start.as_unit("ns")
     else:
         start = None
 
@@ -2521,7 +2521,7 @@ def _generate_range(
     # Non-overlapping identity check (left operand type: "Timestamp", right
     # operand type: "NaTType")
     if end is not NaT:  # type: ignore[comparison-overlap]
-        end = end._as_unit("ns")
+        end = end.as_unit("ns")
     else:
         end = None
 
@@ -2564,7 +2564,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)._as_unit("ns")
+            next_date = offset._apply(cur).as_unit("ns")
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
             cur = next_date
@@ -2578,7 +2578,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)._as_unit("ns")
+            next_date = offset._apply(cur).as_unit("ns")
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")
             cur = next_date

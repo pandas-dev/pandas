@@ -293,7 +293,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     elif PyDateTime_Check(ts):
         if nanos == 0:
             if isinstance(ts, ABCTimestamp):
-                reso = abbrev_to_npy_unit(ts._unit)  # TODO: faster way to do this?
+                reso = abbrev_to_npy_unit(ts.unit)  # TODO: faster way to do this?
             else:
                 # TODO: what if user explicitly passes nanos=0?
                 reso = NPY_FR_us

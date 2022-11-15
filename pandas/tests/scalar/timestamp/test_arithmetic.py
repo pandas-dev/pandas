@@ -198,7 +198,7 @@ class TestTimestampArithmetic:
     )
     def test_timestamp_add_timedelta64_unit(self, other, expected_difference):
         now = datetime.utcnow()
-        ts = Timestamp(now)._as_unit("ns")
+        ts = Timestamp(now).as_unit("ns")
         result = ts + other
         valdiff = result.value - ts.value
         assert valdiff == expected_difference

@@ -99,9 +99,7 @@ class TestTimestampConstructors:
 
         for date_str, date, expected in tests:
             for result in [Timestamp(date_str), Timestamp(date)]:
-                result = result._as_unit(
-                    "ns"
-                )  # test originally written before non-nano
+                result = result.as_unit("ns")  # test originally written before non-nano
                 # only with timestring
                 assert result.value == expected
 
@@ -112,7 +110,7 @@ class TestTimestampConstructors:
             # with timezone
             for tz, offset in timezones:
                 for result in [Timestamp(date_str, tz=tz), Timestamp(date, tz=tz)]:
-                    result = result._as_unit(
+                    result = result.as_unit(
                         "ns"
                     )  # test originally written before non-nano
                     expected_tz = expected - offset * 3600 * 1_000_000_000
