@@ -876,13 +876,13 @@ def test_copy():
     with catch_warnings(record=True):
 
         def do_copy(f, new_f=None, keys=None, propindexes=True, **kwargs):
+            if new_f is None:
+                import tempfile
+
+                fd, new_f = tempfile.mkstemp()
+
             try:
                 store = HDFStore(f, "r")
-
-                if new_f is None:
-                    import tempfile
-
-                    fd, new_f = tempfile.mkstemp()
                 tstore = store.copy(new_f, keys=keys, propindexes=propindexes, **kwargs)
 
                 # check keys
