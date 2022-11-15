@@ -1996,6 +1996,96 @@ class Timedelta(_Timedelta):
         return div, other - div * self
 
 
+def truediv_object_array(ndarray left, ndarray right):
+    cdef:
+        ndarray[object] result = np.empty((<object>left).shape, dtype=object)
+        object td64  # really timedelta64 if we find a way to declare that
+        object obj, res_value
+        _Timedelta td
+        Py_ssize_t i
+        bint seen_numeric = False, seen_td = False
+
+    for i in range(len(left)):
+        td64 = left[i]
+        obj = right[i]
+
+        if get_timedelta64_value(td64) == NPY_NAT:
+            # td here should be interpreted as a td64 NaT
+            if _should_cast_to_timedelta(obj):
+                res_value = np.nan
+                seen_numeric = True
+            else:
+                # if its a number then let numpy handle division, otherwise
+                #  numpy will raise
+                res_value = td64 / obj
+                seen_td = True
+        else:
+            td = Timedelta(td64)
+            res_value = td / obj
+            if is_float_object(res_value) or is_integer_object(res_value):
+                seen_numeric = True
+            else:
+                seen_td = True
+
+        result[i] = res_value
+
+    if not seen_numeric:
+        # if we haven't seen any numeric results, we have all-td64, so we
+        #  can cast back
+        return result.astype(left.dtype)
+    elif not seen_td:
+        # if we haven't seen any timedelta results, we have all-numeric, and
+        #  can cast
+        return result.astype(np.float64)
+    return result
+
+
+def floordiv_object_array(ndarray left, ndarray right):
+    cdef:
+        ndarray[object] result = np.empty((<object>left).shape, dtype=object)
+        object td64  # really timedelta64 if we find a way to declare that
+        object obj, res_value
+        _Timedelta td
+        Py_ssize_t i
+        bint seen_numeric = False, seen_td = False
+
+    for i in range(len(left)):
+        td64 = left[i]
+        obj = right[i]
+
+        if get_timedelta64_value(td64) == NPY_NAT:
+            # td here should be interpreted as a td64 NaT
+            if _should_cast_to_timedelta(obj):
+                res_value = np.nan
+                seen_numeric = True
+            else:
+                # if its a number then let numpy handle division, otherwise
+                #  numpy will raise
+                res_value = td64 // obj
+                seen_td = True
+        else:
+            td = Timedelta(td64)
+            res_value = td // obj
+            if is_float_object(res_value) or is_integer_object(res_value):
+                seen_numeric = True
+            else:
+                seen_td = True
+
+        result[i] = res_value
+
+    # We can't leave this inference to numpy because it will see [td64, int]
+    #  and cast that to all-td64
+    if not seen_numeric:
+        # if we haven't seen any numeric results, we have all-td64, so we
+        #  can cast back
+        return result.astype(left.dtype)
+    elif not seen_td:
+        # if we haven't seen any timedelta results, we have all-numeric, and
+        #  can cast
+        return result.astype(np.int64)
+    return result
+
+
 cdef bint is_any_td_scalar(object obj):
     """
     Cython equivalent for `isinstance(obj, (timedelta, np.timedelta64, Tick))`

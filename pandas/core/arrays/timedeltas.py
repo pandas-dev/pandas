@@ -32,8 +32,10 @@ from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
+    floordiv_object_array,
     ints_to_pytimedelta,
     parse_timedelta_unit,
+    truediv_object_array,
 )
 from pandas._typing import (
     AxisInt,
@@ -57,12 +59,14 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
@@ -495,31 +499,16 @@ class TimedeltaArray(dtl.TimelikeOps):
             return self._ndarray / other
 
         elif is_object_dtype(other.dtype):
-            # We operate on raveled arrays to avoid problems in inference
-            #  on NaT
-            # TODO: tests with non-nano
-            srav = self.ravel()
-            orav = other.ravel()
-            result_list = [srav[n] / orav[n] for n in range(len(srav))]
-            result = np.array(result_list).reshape(self.shape)
+            other = extract_array(other, extract_numpy=True)
+            if self.ndim > 1:
+                res_cols = [left / right for left, right in zip(self, other)]
+                res_cols2 = [x.reshape(1, -1) for x in res_cols]
+                result = concat_compat(res_cols2, axis=0)
+            else:
+                result = truediv_object_array(self._ndarray, other)
 
-            # We need to do dtype inference in order to keep DataFrame ops
-            #  behavior consistent with Series behavior
-            inferred = lib.infer_dtype(result, skipna=False)
-            if inferred == "timedelta":
-                flat = result.ravel()
-                result = type(self)._from_sequence(flat).reshape(result.shape)
-            elif inferred == "floating":
-                result = result.astype(float)
-            elif inferred == "datetime":
-                # GH#39750 this occurs when result is all-NaT, in which case
-                #  we want to interpret these NaTs as td64.
-                #  We construct an all-td64NaT result.
-                # error: Incompatible types in assignment (expression has type
-                # "TimedeltaArray", variable has type "ndarray[Any,
-                # dtype[floating[_64Bit]]]")
-                result = self * np.nan  # type: ignore[assignment]
-
+            if result.dtype.kind == "m":
+                result = type(self)(result)
             return result
 
         else:
@@ -619,24 +608,16 @@ class TimedeltaArray(dtl.TimelikeOps):
             return result
 
         elif is_object_dtype(other.dtype):
+            other = extract_array(other, extract_numpy=True)
             # error: Incompatible types in assignment (expression has type
             # "List[Any]", variable has type "ndarray")
-            srav = self.ravel()
-            orav = other.ravel()
-            res_list = [srav[n] // orav[n] for n in range(len(srav))]
-            result_flat = np.asarray(res_list)
-            inferred = lib.infer_dtype(result_flat, skipna=False)
+            if self.ndim > 1:
+                result = np.array([left // right for left, right in zip(self, other)])
+            else:
+                result = floordiv_object_array(self._ndarray, other)
 
-            result = result_flat.reshape(self.shape)
-
-            if inferred == "timedelta":
-                result, _ = sequence_to_td64ns(result)
-                return type(self)(result)
-            if inferred == "datetime":
-                # GH#39750 occurs when result is all-NaT, which in this
-                #  case should be interpreted as td64nat. This can only
-                #  occur when self is all-td64nat
-                return self * np.nan
+            if result.dtype.kind == "m":
+                result = type(self)(result)
             return result
 
         elif is_integer_dtype(other.dtype) or is_float_dtype(other.dtype):

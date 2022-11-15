@@ -31,6 +31,7 @@ from pandas.core.api import (
     Int64Index,
     UInt64Index,
 )
+from pandas.core.arrays import PandasArray
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,
@@ -1413,7 +1414,8 @@ class TestTimedeltaArraylikeAddSubOps:
         expected = pd.Index(
             [Timedelta(days=2), Timedelta(days=4), Timestamp("2000-01-07")]
         )
-        expected = tm.box_expected(expected, xbox)
+        # as of 2.0 we preserve object dtype in the DataFrame case
+        expected = tm.box_expected(expected, xbox).astype(object)
         tm.assert_equal(result, expected)
 
         msg = "unsupported operand type|cannot subtract a datelike"
@@ -1425,7 +1427,8 @@ class TestTimedeltaArraylikeAddSubOps:
             result = other - tdarr
 
         expected = pd.Index([Timedelta(0), Timedelta(0), Timestamp("2000-01-01")])
-        expected = tm.box_expected(expected, xbox)
+        # as of 2.0 we preserve object dtype in the DataFrame case
+        expected = tm.box_expected(expected, xbox).astype(object)
         tm.assert_equal(result, expected)
 
 
@@ -1697,6 +1700,39 @@ class TestTimedeltaArraylikeMulDivOps:
                     rng / other
                 with pytest.raises(ValueError, match=msg):
                     other / rng
+
+    def test_td64_div_object_mixed_result(self, box_with_array):
+        # Case where we having a NaT in the result inseat of timedelta64("NaT")
+        #  is misleading
+        orig = timedelta_range("1 Day", periods=3).insert(1, NaT)
+        tdi = tm.box_expected(orig, box_with_array, transpose=False)
+
+        other = np.array([orig[0], 1.5, 2.0, orig[2]], dtype=object)
+        other = tm.box_expected(other, box_with_array, transpose=False)
+
+        res = tdi / other
+
+        expected = pd.Index(
+            [1.0, np.timedelta64("NaT", "ns"), orig[0], 1.5], dtype=object
+        )
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
+        if isinstance(expected, PandasArray):
+            expected = expected.to_numpy()
+        tm.assert_equal(res, expected)
+        if box_with_array is DataFrame:
+            # We have a np.timedelta64(NaT), not pd.NaT
+            assert isinstance(res.iloc[1, 0], np.timedelta64)
+
+        res = tdi // other
+
+        expected = pd.Index([1, np.timedelta64("NaT", "ns"), orig[0], 1], dtype=object)
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
+        if isinstance(expected, PandasArray):
+            expected = expected.to_numpy()
+        tm.assert_equal(res, expected)
+        if box_with_array is DataFrame:
+            # We have a np.timedelta64(NaT), not pd.NaT
+            assert isinstance(res.iloc[1, 0], np.timedelta64)
 
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
@@ -1991,9 +2027,8 @@ class TestTimedeltaArraylikeMulDivOps:
             expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
         else:
             expected = [tdser[n] / vector[n] for n in range(len(tdser))]
-        expected = pd.Index(expected)  # do dtype inference
+        expected = pd.Index(expected)
         expected = tm.box_expected(expected, xbox)
-        assert tm.get_dtype(expected) == "m8[ns]"
 
         tm.assert_equal(result, expected)
 
@@ -2061,11 +2096,14 @@ class TestTimedeltaArraylikeMulDivOps:
         left = tm.box_expected(tdi, box_with_array)
         right = np.array([2, 2.0], dtype=object)
 
+        expected = tdi
+        expected = tm.box_expected(expected, box_with_array)
+
         result = left / right
-        tm.assert_equal(result, left)
+        tm.assert_equal(result, expected)
 
         result = left // right
-        tm.assert_equal(result, left)
+        tm.assert_equal(result, expected)
 
 
 class TestTimedelta64ArrayLikeArithmetic:

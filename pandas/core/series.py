@@ -2996,9 +2996,10 @@ Name: Max Speed, dtype: float64
             assert isinstance(res2, Series)
             return (res1, res2)
 
-        # We do not pass dtype to ensure that the Series constructor
-        #  does inference in the case where `result` has object-dtype.
-        out = self._constructor(result, index=self.index)
+        # We pass dtype to ensure the constructor does not do dtype inference
+        out = self._constructor(
+            result, index=self.index, dtype=getattr(result, "dtype", None)
+        )
         out = out.__finalize__(self)
 
         # Set the result's name after __finalize__ is called because __finalize__
