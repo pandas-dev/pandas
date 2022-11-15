@@ -75,7 +75,6 @@ disable = [
   "unsubscriptable-object",
   "unsupported-assignment-operation",
   "unsupported-membership-test",
-  "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
   "import-outside-toplevel",
@@ -101,7 +100,6 @@ disable = [
 
   # pylint type "R": refactor, for bad code smell
   "comparison-with-itself",
-  "consider-merging-isinstance",
   "consider-using-ternary",
   "consider-using-with",
   "cyclic-import",
@@ -120,7 +118,6 @@ disable = [
   "too-many-public-methods",
   "too-many-return-statements",
   "too-many-statements",
-  "unnecessary-comprehension",
   "unnecessary-list-index-lookup",
 
   # pylint type "W": warning, for python specific problems
