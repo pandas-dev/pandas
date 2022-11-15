@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import collections
-from datetime ad dt
+import datetime as dt
 import gc
 import operator
 import pickle
@@ -137,7 +137,15 @@ from pandas.core import (
     nanops,
     sample,
 )
-from pandas.core.common import get_rename_function as com
+from pandas.core.common import (
+    pipe,
+    random_state,
+    count_not_none,
+    maybe_make_list,
+    apply_if_callable,
+    index_labels_to_array,
+    get_rename_function,
+)
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
@@ -1008,7 +1016,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 continue
 
             ax = self._get_axis(axis_no)
-            f = com.get_rename_function(replacements)
+            f = get_rename_function(replacements)
 
             if level is not None:
                 level = ax._get_level_number(level)
@@ -1239,7 +1247,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if non_mapper:
                     newnames = v
                 else:
-                    f = com.get_rename_function(v)
+                    f = get_rename_function(v)
                     curnames = self._get_axis(axis).names
                     newnames = [f(name) for name in curnames]
                 result._set_axis_name(newnames, axis=axis, inplace=True)
@@ -1825,7 +1833,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         # Validate keys
-        keys = com.maybe_make_list(keys)
+        keys = maybe_make_list(keys)
         invalid_keys = [
             k for k in keys if not self._is_label_or_level_reference(k, axis=axis)
         ]
@@ -4444,7 +4452,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Case for non-unique axis
         else:
             is_tuple_labels = is_nested_list_like(labels) or isinstance(labels, tuple)
-            labels = ensure_object(com.index_labels_to_array(labels))
+            labels = ensure_object(index_labels_to_array(labels))
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError("axis must be a MultiIndex")
@@ -5235,7 +5243,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _needs_reindex_multi(self, axes, method, level) -> bool_t:
         """Check if we do need a multi reindex."""
         return (
-            (com.count_not_none(*axes.values()) == self._AXIS_LEN)
+            (count_not_none(*axes.values()) == self._AXIS_LEN)
             and method is None
             and level is None
             and not self._is_mixed_type
@@ -5358,7 +5366,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                  one  two  three
         rabbit    4    5      6
         """
-        nkw = com.count_not_none(items, like, regex)
+        nkw = count_not_none(items, like, regex)
         if nkw > 1:
             raise TypeError(
                 "Keyword arguments `items`, `like`, or `regex` "
@@ -5683,7 +5691,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         obj_len = self.shape[axis]
 
         # Process random_state argument
-        rs = com.random_state(random_state)
+        rs = random_state(random_state)
 
         size = sample.process_sampling_size(n, frac, replace)
         if size is None:
@@ -5759,7 +5767,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
         ...  )  # doctest: +SKIP
         """
-        return com.pipe(self, func, *args, **kwargs)
+        return pipe(self, func, *args, **kwargs)
 
     # ----------------------------------------------------------------------
     # Attribute access
@@ -6317,8 +6325,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         datetime: bool_t = False,
         numeric: bool_t = False,
-        # td: bool_t = False,
-        dt.timedelta: bool_t = False,
+        timedelta: bool_t = False,
     ) -> NDFrameT:
         """
         Attempt to infer better dtype for object columns.
@@ -9445,7 +9452,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = self._get_axis_number(axis)
 
         # align the cond to same shape as myself
-        cond = com.apply_if_callable(cond, self)
+        cond = apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
             cond, _ = cond.align(self, join="right", broadcast_axis=1, copy=False)
         else:
@@ -9747,7 +9754,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3  True  True
         4  True  True
         """
-        other = com.apply_if_callable(other, self)
+        other = apply_if_callable(other, self)
         return self._where(cond, other, inplace, axis, level)
 
     @overload
@@ -9805,7 +9812,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        cond = com.apply_if_callable(cond, self)
+        cond = apply_if_callable(cond, self)
 
         # see gh-21891
         if not hasattr(cond, "__invert__"):
