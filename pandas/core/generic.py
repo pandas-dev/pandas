@@ -30,8 +30,10 @@ import numpy as np
 
 from pandas._config import config
 
-from pandas._libs import lib
-from pandas._libs import json
+from pandas._libs import (
+    json,
+    lib,
+)
 from pandas._libs.tslibs import (
     Period,
     Tick,
@@ -138,6 +140,9 @@ from pandas.core import (
     nanops,
     sample,
 )
+from pandas.core.array_algos.replace import should_use_regex
+from pandas.core.arrays import ExtensionArray
+from pandas.core.base import PandasObject
 from pandas.core.common import (
     apply_if_callable,
     count_not_none,
@@ -146,9 +151,6 @@ from pandas.core.common import (
     maybe_make_list,
     pipe,
 )
-from pandas.core.array_algos.replace import should_use_regex
-from pandas.core.arrays import ExtensionArray
-from pandas.core.base import PandasObject
 from pandas.core.construction import extract_array
 from pandas.core.describe import describe_ndframe
 from pandas.core.flags import Flags
