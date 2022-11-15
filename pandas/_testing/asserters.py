@@ -571,20 +571,12 @@ def raise_assert_detail(
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif (
-        isinstance(left, CategoricalDtype)
-        or isinstance(left, PandasDtype)
-        or isinstance(left, StringDtype)
-    ):
+    elif isinstance(left, (CategoricalDtype, PandasDtype, StringDtype)):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif (
-        isinstance(right, CategoricalDtype)
-        or isinstance(right, PandasDtype)
-        or isinstance(right, StringDtype)
-    ):
+    elif isinstance(right, (CategoricalDtype, PandasDtype, StringDtype)):
         right = repr(right)
 
     msg += f"""

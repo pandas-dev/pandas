@@ -283,7 +283,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
+            dicts = [dict(zip(self.names, d.values())) for d in dicts]
 
         return dicts
 
@@ -380,7 +380,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
+            dicts = [dict(zip(self.names, d.values())) for d in dicts]
 
         return dicts
 
