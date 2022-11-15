@@ -9,6 +9,10 @@ from typing import Callable
 from pandas._libs.lib import item_from_zerodim
 from pandas._libs.missing import is_matching_na
 from pandas._typing import F
+from pandas.util._str_methods import (
+    removeprefix,
+    removesuffix,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -52,7 +56,8 @@ def _unpack_zerodim_and_defer(method, name: str):
     -------
     method
     """
-    is_cmp = name.strip("__") in {"eq", "ne", "lt", "le", "gt", "ge"}
+    stripped_name = removesuffix(removeprefix(name, "__"), "__")
+    is_cmp = stripped_name in {"eq", "ne", "lt", "le", "gt", "ge"}
 
     @wraps(method)
     def new_method(self, other):
