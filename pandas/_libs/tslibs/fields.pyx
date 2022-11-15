@@ -419,6 +419,17 @@ def get_date_field(
                 out[i] = dts.us
         return out
 
+    elif field == 'ms':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT:
+                    out[i] = -1
+                    continue
+
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
+                out[i] = dts.us // 1000
+        return out
+		
     elif field == 'ns':
         with nogil:
             for i in range(count):

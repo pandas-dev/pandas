@@ -224,6 +224,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "quarter",
         "days_in_month",
         "daysinmonth",
+        "millisecond",
         "microsecond",
         "nanosecond",
     ]
@@ -1475,6 +1476,29 @@ default 'raise'
         dtype: int64
         """,
     )
+    millisecond = _field_accessor(
+        "millisecond",
+        "ms",
+        """
+        The milliseconds of the datetime.
+
+        Examples
+        --------
+        >>> datetime_series = pd.Series(
+        ...     pd.date_range("2000-01-01", periods=3, freq="us")
+        ... )
+        >>> datetime_series
+        0   2000-01-01 00:00:00.000
+        1   2000-01-01 00:00:00.001
+        2   2000-01-01 00:00:00.002
+        dtype: datetime64[ns]
+        >>> datetime_series.dt.millisecond
+        0       0
+        1       1
+        2       2
+        dtype: int64
+        """,
+    )
     microsecond = _field_accessor(
         "microsecond",
         "us",
@@ -1874,6 +1898,7 @@ default 'raise'
                 self.hour
                 + self.minute / 60
                 + self.second / 3600
+                + self.millisecond / 3600 / 10**3
                 + self.microsecond / 3600 / 10**6
                 + self.nanosecond / 3600 / 10**9
             )
