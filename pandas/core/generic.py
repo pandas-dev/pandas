@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import collections
-import datetime as _dt
+import datetime as dt
 import gc
 import operator
 import pickle
@@ -6353,7 +6353,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self._mgr.convert(
                 datetime=datetime,
                 numeric=numeric,
-                timedelta=_dt.timedelta,
+                timedelta=dt.timedelta,
                 copy=True,
             )
         ).__finalize__(self)
@@ -9476,9 +9476,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if not is_bool_dtype(cond):
                     raise ValueError(msg.format(dtype=cond.dtype))
             else:
-                for dt in cond.dtypes:
-                    if not is_bool_dtype(dt):
-                        raise ValueError(msg.format(dtype=dt))
+                for _dt in cond.dtypes:
+                    if not is_bool_dtype(_dt):
+                        raise ValueError(msg.format(dtype=_dt))
         else:
             # GH#21947 we have an empty DataFrame/Series, could be object-dtype
             cond = cond.astype(bool)
@@ -10326,7 +10326,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not isinstance(
-            nonexistent, _dt.timedelta
+            nonexistent, dt.timedelta
         ):
             raise ValueError(
                 "The nonexistent argument must be one of 'raise', "
@@ -11479,7 +11479,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(Rolling)
     def rolling(
         self,
-        window: int | _dt.timedelta | str | BaseOffset | BaseIndexer,
+        window: int | dt.timedelta | str | BaseOffset | BaseIndexer,
         min_periods: int | None = None,
         center: bool_t = False,
         win_type: str | None = None,
