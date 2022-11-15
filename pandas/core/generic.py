@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import collections
-from datetime import timedelta as td
+from datetime ad dt
 import gc
 import operator
 import pickle
@@ -132,12 +132,12 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms as algos,
     arraylike,
-    common,
     indexing,
     missing,
     nanops,
     sample,
 )
+from pandas.core.common import get_rename_function as com
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
@@ -6318,7 +6318,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         datetime: bool_t = False,
         numeric: bool_t = False,
         # td: bool_t = False,
-        timedelta: bool_t = False,
+        dt.timedelta: bool_t = False,
     ) -> NDFrameT:
         """
         Attempt to infer better dtype for object columns.
@@ -11538,7 +11538,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         return ExponentialMovingWindow(
             self,
-            com=commmon,
+            com=com,
             span=span,
             halflife=halflife,
             alpha=alpha,
