@@ -342,8 +342,10 @@ class TestMultiIndexLoc:
             for indexer_type, k in zip(types, keys)
         )
         if indexer_type_1 is set or indexer_type_2 is set:
-            with tm.assert_produces_warning(FutureWarning):
-                result = df.loc[indexer, "Data"]
+            with pytest.raises(TypeError, match="as an indexer is not supported"):
+                df.loc[indexer, "Data"]
+
+            return
         else:
             result = df.loc[indexer, "Data"]
         expected = Series(
@@ -441,15 +443,12 @@ def test_loc_getitem_duplicates_multiindex_missing_indexers(indexer, pos):
     if expected.size == 0 and indexer != []:
         with pytest.raises(KeyError, match=str(indexer)):
             ser.loc[indexer]
+    elif indexer == (slice(None), ["foo", "bah"]):
+        # "bah" is not in idx.levels[1], raising KeyError enforced in 2.0
+        with pytest.raises(KeyError, match="'bah'"):
+            ser.loc[indexer]
     else:
-        warn = None
-        msg = "MultiIndex with a nested sequence"
-        if indexer == (slice(None), ["foo", "bah"]):
-            # "bah" is not in idx.levels[1], so is ignored, will raise KeyError
-            warn = FutureWarning
-
-        with tm.assert_produces_warning(warn, match=msg):
-            result = ser.loc[indexer]
+        result = ser.loc[indexer]
         tm.assert_series_equal(result, expected)
 
 

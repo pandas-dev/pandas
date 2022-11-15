@@ -13,7 +13,6 @@ from pandas._typing import Axis
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.cast import find_common_type
-from pandas.core.dtypes.common import is_dtype_equal
 
 from pandas.core.algorithms import safe_sort
 from pandas.core.indexes.base import (
@@ -190,6 +189,9 @@ def safe_sort_index(index: Index) -> Index:
     except TypeError:
         pass
     else:
+        if isinstance(array_sorted, Index):
+            return array_sorted
+
         array_sorted = cast(np.ndarray, array_sorted)
         if isinstance(index, MultiIndex):
             index = MultiIndex.from_tuples(array_sorted, names=index.names)
@@ -273,7 +275,6 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
 
     if kind == "special":
         result = indexes[0]
-        first = result
 
         dtis = [x for x in indexes if isinstance(x, DatetimeIndex)]
         dti_tzs = [x for x in dtis if x.tz is not None]
@@ -286,12 +287,6 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
 
         if len(dtis) == len(indexes):
             sort = True
-            if not all(is_dtype_equal(x.dtype, first.dtype) for x in indexes):
-                # i.e. timezones mismatch
-                # TODO(2.0): once deprecation is enforced, this union will
-                #  cast to UTC automatically.
-                indexes = [x.tz_convert("UTC") for x in indexes]
-
             result = indexes[0]
 
         elif len(dtis) > 1:

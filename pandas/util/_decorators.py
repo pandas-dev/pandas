@@ -206,8 +206,7 @@ def deprecate_kwarg(
                         f"or {repr(new_arg_name)}, not both."
                     )
                     raise TypeError(msg)
-                else:
-                    kwargs[new_arg_name] = new_arg_value
+                kwargs[new_arg_name] = new_arg_value
             return func(*args, **kwargs)
 
         return cast(F, wrapper)
@@ -326,7 +325,7 @@ def deprecate_nonkeyword_arguments(
                 warnings.warn(
                     msg.format(arguments=_format_argument_list(allow_args)),
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
             return func(*args, **kwargs)
 

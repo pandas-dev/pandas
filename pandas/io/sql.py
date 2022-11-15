@@ -5,6 +5,10 @@ retrieval and to reduce dependency on DB-specific API.
 
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from contextlib import contextmanager
 from datetime import (
     date,
@@ -12,7 +16,6 @@ from datetime import (
     time,
 )
 from functools import partial
-import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -26,7 +29,7 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._typing import (
     DateTimeErrorChoices,
     DtypeArg,
@@ -283,9 +286,7 @@ def read_sql_table(
     if not pandas_sql.has_table(table_name):
         raise ValueError(f"Table {table_name} not found")
 
-    # error: Item "SQLiteDatabase" of "Union[SQLDatabase, SQLiteDatabase]"
-    # has no attribute "read_table"
-    table = pandas_sql.read_table(  # type: ignore[union-attr]
+    table = pandas_sql.read_table(
         table_name,
         index_col=index_col,
         coerce_float=coerce_float,
@@ -579,7 +580,6 @@ def read_sql(
         _is_table_name = False
 
     if _is_table_name:
-        pandas_sql.meta.reflect(bind=pandas_sql.connectable, only=[sql])
         return pandas_sql.read_table(
             sql,
             index_col=index_col,
@@ -736,13 +736,12 @@ def has_table(table_name: str, con, schema: str | None = None) -> bool:
 table_exists = has_table
 
 
-def pandasSQL_builder(con, schema: str | None = None) -> SQLDatabase | SQLiteDatabase:
+def pandasSQL_builder(con, schema: str | None = None) -> PandasSQL:
     """
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters.
     """
     import sqlite3
-    import warnings
 
     if isinstance(con, sqlite3.Connection) or con is None:
         return SQLiteDatabase(con)
@@ -752,8 +751,7 @@ def pandasSQL_builder(con, schema: str | None = None) -> SQLDatabase | SQLiteDat
     if isinstance(con, str):
         if sqlalchemy is None:
             raise ImportError("Using URI string without sqlalchemy installed.")
-        else:
-            con = sqlalchemy.create_engine(con)
+        con = sqlalchemy.create_engine(con)
 
     if sqlalchemy is not None and isinstance(con, sqlalchemy.engine.Connectable):
         return SQLDatabase(con, schema=schema)
@@ -763,7 +761,7 @@ def pandasSQL_builder(con, schema: str | None = None) -> SQLDatabase | SQLiteDat
         "database string URI or sqlite3 DBAPI2 connection. "
         "Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.",
         UserWarning,
-        stacklevel=find_stack_level(inspect.currentframe()),
+        stacklevel=find_stack_level(),
     )
     return SQLiteDatabase(con)
 
@@ -829,7 +827,7 @@ class SQLTable(PandasObject):
         if self.exists():
             if self.if_exists == "fail":
                 raise ValueError(f"Table '{self.name}' already exists.")
-            elif self.if_exists == "replace":
+            if self.if_exists == "replace":
                 self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
             elif self.if_exists == "append":
@@ -972,18 +970,18 @@ class SQLTable(PandasObject):
                         [], columns=columns, coerce_float=coerce_float
                     )
                 break
-            else:
-                has_read_data = True
-                self.frame = DataFrame.from_records(
-                    data, columns=columns, coerce_float=coerce_float
-                )
 
-                self._harmonize_columns(parse_dates=parse_dates)
+            has_read_data = True
+            self.frame = DataFrame.from_records(
+                data, columns=columns, coerce_float=coerce_float
+            )
 
-                if self.index is not None:
-                    self.frame.set_index(self.index, inplace=True)
+            self._harmonize_columns(parse_dates=parse_dates)
 
-                yield self.frame
+            if self.index is not None:
+                self.frame.set_index(self.index, inplace=True)
+
+            yield self.frame
 
     def read(
         self,
@@ -1039,8 +1037,7 @@ class SQLTable(PandasObject):
                         "Length of 'index_label' should match number of "
                         f"levels, which is {nlevels}"
                     )
-                else:
-                    return index_label
+                return index_label
             # return the used column labels for the index columns
             if (
                 nlevels == 1
@@ -1179,7 +1176,7 @@ class SQLTable(PandasObject):
             Time,
         )
 
-        if col_type == "datetime64" or col_type == "datetime":
+        if col_type in ("datetime64", "datetime"):
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
             try:
@@ -1196,7 +1193,7 @@ class SQLTable(PandasObject):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             return BigInteger
         elif col_type == "floating":
@@ -1255,17 +1252,37 @@ class SQLTable(PandasObject):
         return object
 
 
-class PandasSQL(PandasObject):
+class PandasSQL(PandasObject, ABC):
     """
-    Subclasses Should define read_sql and to_sql.
+    Subclasses Should define read_query and to_sql.
     """
 
-    def read_sql(self, *args, **kwargs):
-        raise ValueError(
-            "PandasSQL must be created with an SQLAlchemy "
-            "connectable or sqlite connection"
-        )
+    def read_table(
+        self,
+        table_name: str,
+        index_col: str | list[str] | None = None,
+        coerce_float: bool = True,
+        parse_dates=None,
+        columns=None,
+        schema: str | None = None,
+        chunksize: int | None = None,
+    ) -> DataFrame | Iterator[DataFrame]:
+        raise NotImplementedError
 
+    @abstractmethod
+    def read_query(
+        self,
+        sql: str,
+        index_col: str | list[str] | None = None,
+        coerce_float: bool = True,
+        parse_dates=None,
+        params=None,
+        chunksize: int | None = None,
+        dtype: DtypeArg | None = None,
+    ) -> DataFrame | Iterator[DataFrame]:
+        pass
+
+    @abstractmethod
     def to_sql(
         self,
         frame,
@@ -1277,11 +1294,29 @@ class PandasSQL(PandasObject):
         chunksize=None,
         dtype: DtypeArg | None = None,
         method=None,
+        engine: str = "auto",
+        **engine_kwargs,
     ) -> int | None:
-        raise ValueError(
-            "PandasSQL must be created with an SQLAlchemy "
-            "connectable or sqlite connection"
-        )
+        pass
+
+    @abstractmethod
+    def execute(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def has_table(self, name: str, schema: str | None = None) -> bool:
+        pass
+
+    @abstractmethod
+    def _create_sql_schema(
+        self,
+        frame: DataFrame,
+        table_name: str,
+        keys: list[str] | None = None,
+        dtype: DtypeArg | None = None,
+        schema: str | None = None,
+    ):
+        pass
 
 
 class BaseEngine:
@@ -1333,8 +1368,7 @@ class SQLAlchemyEngine(BaseEngine):
             err_text = str(err.orig)
             if re.search(msg, err_text):
                 raise ValueError("inf cannot be used with MySQL") from err
-            else:
-                raise err
+            raise err
 
 
 def get_engine(engine: str) -> BaseEngine:
@@ -1363,7 +1397,7 @@ def get_engine(engine: str) -> BaseEngine:
             f"{error_msgs}"
         )
 
-    elif engine == "sqlalchemy":
+    if engine == "sqlalchemy":
         return SQLAlchemyEngine()
 
     raise ValueError("engine must be one of 'auto', 'sqlalchemy'")
@@ -1490,16 +1524,16 @@ class SQLDatabase(PandasSQL):
                         parse_dates=parse_dates,
                     )
                 break
-            else:
-                has_read_data = True
-                yield _wrap_result(
-                    data,
-                    columns,
-                    index_col=index_col,
-                    coerce_float=coerce_float,
-                    parse_dates=parse_dates,
-                    dtype=dtype,
-                )
+
+            has_read_data = True
+            yield _wrap_result(
+                data,
+                columns,
+                index_col=index_col,
+                coerce_float=coerce_float,
+                parse_dates=parse_dates,
+                dtype=dtype,
+            )
 
     def read_query(
         self,
@@ -1660,7 +1694,7 @@ class SQLDatabase(PandasSQL):
                 warnings.warn(
                     msg,
                     UserWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
     def to_sql(
@@ -1969,7 +2003,7 @@ class SQLiteTable(SQLTable):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             col_type = "integer"
 
@@ -2054,24 +2088,24 @@ class SQLiteDatabase(PandasSQL):
                         [], columns=columns, coerce_float=coerce_float
                     )
                 break
-            else:
-                has_read_data = True
-                yield _wrap_result(
-                    data,
-                    columns,
-                    index_col=index_col,
-                    coerce_float=coerce_float,
-                    parse_dates=parse_dates,
-                    dtype=dtype,
-                )
+
+            has_read_data = True
+            yield _wrap_result(
+                data,
+                columns,
+                index_col=index_col,
+                coerce_float=coerce_float,
+                parse_dates=parse_dates,
+                dtype=dtype,
+            )
 
     def read_query(
         self,
         sql,
         index_col=None,
         coerce_float: bool = True,
-        params=None,
         parse_dates=None,
+        params=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
     ) -> DataFrame | Iterator[DataFrame]:
@@ -2121,7 +2155,8 @@ class SQLiteDatabase(PandasSQL):
         chunksize=None,
         dtype: DtypeArg | None = None,
         method=None,
-        **kwargs,
+        engine: str = "auto",
+        **engine_kwargs,
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.

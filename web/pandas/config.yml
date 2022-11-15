@@ -88,6 +88,7 @@ maintainers:
   - twoertwein
   - lithomas1
   - mzeitlin11
+  - lukemanley
   inactive:
   - lodagro
   - jseabold
@@ -101,11 +102,10 @@ maintainers:
   - charlesdong1991
   - dsaxton
   coc:
-  - Safia Abdalla
+  - Bijay Regmi
+  - Wuraola Oyewusi
+  - Мария Чакчурина
   - Tom Augspurger
-  - Joris Van den Bossche
-  - Camille Scott
-  - Nathaniel Smith
   numfocus:
   - Wes McKinney
   - Jeff Reback
