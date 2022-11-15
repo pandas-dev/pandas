@@ -27,7 +27,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in the Copy-on-Write implementation losing track of views in certain chained indexing cases (:issue:`48996`)
-- Bug when chaining several :meth:`.Styler.concat` calls only the last styler was concated (:issue:`49207`)
+- Bug when chaining several :meth:`.Styler.concat` calls, only the last styler was concatenated (:issue:`49207`)
 -
 
 .. ---------------------------------------------------------------------------
