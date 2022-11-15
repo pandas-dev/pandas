@@ -381,7 +381,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
         arg = cast(AggFuncTypeDict, self.f)
-        arg = {k: arg[k] for k in arg.keys() - filtered_col}
+        arg = {k: arg[k] for k in arg.keys() if k not in filtered_col}
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")

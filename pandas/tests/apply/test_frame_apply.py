@@ -865,8 +865,11 @@ def test_with_dictlike_functions():
     functions = {"b": "mean", "a": "std", "c": [DataFrame.mean, "sum"]}
     result = df.agg(functions, numeric_only=True)
     expected = DataFrame(
-        index=["mean", "sum", "std"],
-        data={"c": [4.0, 12.0, np.nan], "a": [np.nan, np.nan, 1.0]},
+        index=["std", "mean", "sum"],
+        data={
+            "a": [1.0, np.nan, np.nan],
+            "c": [np.nan, 4.0, 12.0],
+        },
     )
     tm.assert_frame_equal(result, expected)
 
