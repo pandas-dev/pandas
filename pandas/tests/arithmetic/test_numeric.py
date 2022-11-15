@@ -7,7 +7,6 @@ from collections import abc
 from datetime import timedelta
 from decimal import Decimal
 import operator
-from typing import Any
 
 import numpy as np
 import pytest
