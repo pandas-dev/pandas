@@ -982,15 +982,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             f"'{type(self).__name__}' object has no attribute '{attr}'"
         )
 
-    def __getattribute__(self, attr: str):
-        # Intercept nth to allow both call and index
-        if attr == "nth":
-            return GroupByNthSelector(self)
-        elif attr == "nth_actual":
-            return super().__getattribute__("nth")
-        else:
-            return super().__getattribute__(attr)
-
     @final
     def _make_wrapper(self, name: str) -> Callable:
         assert name in self._apply_allowlist
@@ -3016,13 +3007,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self.bfill(limit=limit)
 
     @final
+    @property
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def nth(
-        self,
-        n: PositionalIndexer | tuple,
-        dropna: Literal["any", "all", None] = None,
-    ) -> NDFrameT:
+    def nth(self) -> GroupByNthSelector:
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
 
@@ -3125,6 +3113,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  1  2.0
         4  2  5.0
         """
+        return GroupByNthSelector(self)
+
+    def _nth(
+        self,
+        n: PositionalIndexer | tuple,
+        dropna: Literal["any", "all", None] = None,
+    ) -> NDFrameT:
         if not dropna:
             with self._group_selection_context():
                 mask = self._make_mask_from_positional_indexer(n)
