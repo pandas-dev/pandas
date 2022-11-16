@@ -18,7 +18,11 @@ import itertools
 from numbers import Number
 import re
 import sys
-from typing import Iterator
+from typing import (
+    Generic,
+    Iterator,
+    TypeVar,
+)
 
 import numpy as np
 import pytest
@@ -227,6 +231,23 @@ def test_is_list_like_iter_is_none():
         __iter__ = None
 
     assert not inference.is_list_like(NotListLike())
+
+
+def test_is_list_like_generic():
+    # GH 49649
+    # is_list_like was yielding false positives for Generic classes in python 3.11
+    T = TypeVar("T")
+
+    class Base:
+        def __init__(self, x: int):
+            self._x = x
+
+    class Gen(Base, Generic[T]):
+        ...
+
+    fooc = Gen[float]
+
+    assert not inference.is_list_like(fooc)
 
 
 def test_is_sequence():
