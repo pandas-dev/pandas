@@ -1020,7 +1020,7 @@ class Index(IndexOpsMixin, PandasObject):
             # NB: this must come before the ExtensionDtype check below
             # TODO: this differs from Series behavior; can/should we align them?
             raise TypeError(
-                f"Cannot convert Float64Index to dtype {dtype}; integer "
+                f"Cannot convert dtype={self.dtype} to dtype {dtype}; integer "
                 "values are required for conversion"
             )
 

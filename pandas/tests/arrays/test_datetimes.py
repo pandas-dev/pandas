@@ -373,7 +373,7 @@ class TestDatetimeArray:
 
         if err:
             if dtype == "datetime64[ns]":
-                msg = "Use ser.dt.tz_localize instead"
+                msg = "Use obj.tz_localize instead or series.dt.tz_localize instead"
             else:
                 msg = "from timezone-aware dtype to timezone-naive dtype"
             with pytest.raises(TypeError, match=msg):

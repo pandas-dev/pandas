@@ -641,10 +641,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         elif self.tz is None and isinstance(dtype, DatetimeTZDtype):
             # pre-2.0 this did self.tz_localize(dtype.tz), which did not match
-            #  the Series behavior
+            #  the Series behavior which did
+            #  values.tz_localize("UTC").tz_convert(dtype.tz)
             raise TypeError(
                 "Cannot use .astype to convert from timezone-naive dtype to "
-                "timezone-aware dtype. Use obj.tz_localize instead."
+                "timezone-aware dtype. Use obj.tz_localize instead or "
+                "series.dt.tz_localize instead"
             )
 
         elif self.tz is not None and is_datetime64_dtype(dtype):
