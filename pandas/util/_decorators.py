@@ -397,7 +397,9 @@ def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
             if docstring is None:
                 continue
             if hasattr(docstring, "_docstring_components"):
-                docstring_components.extend(docstring._docstring_components)
+                docstring_components.extend(
+                    docstring._docstring_components  # pyright: ignore[reportGeneralTypeIssues] # noqa: E501
+                )
             elif isinstance(docstring, str) or docstring.__doc__:
                 docstring_components.append(docstring)
 

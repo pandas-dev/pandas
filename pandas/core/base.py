@@ -1107,7 +1107,9 @@ class IndexOpsMixin(OpsMixin):
         are not components of the array if deep=False or if used on PyPy
         """
         if hasattr(self.array, "memory_usage"):
-            return self.array.memory_usage(deep=deep)
+            return self.array.memory_usage(  # pyright: ignore[reportGeneralTypeIssues]
+                deep=deep,
+            )
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
