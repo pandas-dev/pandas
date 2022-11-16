@@ -94,7 +94,6 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
 def ints_to_pydatetime(
     ndarray stamps,
     tzinfo tz=None,
-    bint fold=False,
     str box="datetime",
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ) -> np.ndarray:
@@ -136,6 +135,7 @@ def ints_to_pydatetime(
         tzinfo new_tz
         bint use_date = False, use_ts = False, use_pydt = False
         object res_val
+        bint fold = 0
 
         # Note that `result` (and thus `result_flat`) is C-order and
         #  `it` iterates C-order as well, so the iteration matches
@@ -168,7 +168,7 @@ def ints_to_pydatetime(
 
         else:
 
-            local_val = info.utc_val_to_local_val(utc_val, &pos)
+            local_val = info.utc_val_to_local_val(utc_val, &pos, &fold)
             if info.use_pytz:
                 # find right representation of dst etc in pytz timezone
                 new_tz = tz._tzinfos[tz._transition_info[pos]]

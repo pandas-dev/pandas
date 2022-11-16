@@ -33,7 +33,6 @@ def get_resolution(
 def ints_to_pydatetime(
     arr: npt.NDArray[np.int64],
     tz: tzinfo | None = ...,
-    fold: bool = ...,
     box: str = ...,
     reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.object_]: ...
