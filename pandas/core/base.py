@@ -55,7 +55,6 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-import pandas as pd
 from pandas.core import (
     algorithms,
     nanops,
@@ -1271,7 +1270,7 @@ class IndexOpsMixin(OpsMixin):
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
 
-        if isinstance(value, pd.DataFrame):
+        if isinstance(value, ABCDataFrame):
             msg = (
                 "Value must be array-like or scalar, "
                 f"{type(value).__name__} is not supported"
