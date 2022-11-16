@@ -137,7 +137,6 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     arraylike,
-    missing,
     ops,
 )
 from pandas.core.accessor import CachedAccessor
@@ -163,6 +162,7 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import disallow_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
+from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
@@ -3650,7 +3650,7 @@ class Index(IndexOpsMixin, PandasObject):
         limit: int | None = None,
         tolerance=None,
     ) -> npt.NDArray[np.intp]:
-        method = missing.clean_reindex_fill_method(method)
+        method = clean_reindex_fill_method(method)
         orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
 
