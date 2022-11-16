@@ -69,7 +69,7 @@ class TestSeriesSearchSorted:
         tm.assert_numpy_array_equal(res, exp)
 
     def test_searchsorted_Dataframe_fail(self):
-        ser = Series([1, 2, 3, 4])
+        ser = Series([1, 2, 3, 4, 5])
         vals = pd.DataFrame([[1, 2], [3, 4]])
         msg = (
             "Value must be array-like or scalar, "
