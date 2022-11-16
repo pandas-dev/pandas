@@ -307,7 +307,7 @@ def read_sql_query(
     con,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
-    params: list | tuple | dict | None =...,
+    params: list | tuple | dict | None = ...,
     parse_dates: list[str] | dict[str, str] | None = ...,
     chunksize: None = ...,
     dtype: DtypeArg | None = ...,
