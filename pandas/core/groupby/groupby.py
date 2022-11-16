@@ -3006,10 +3006,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
         return self.bfill(limit=limit)
 
-    @final
     # https://github.com/python/mypy/issues/1362
     # Mypy does not support decorated properties
-    @property  # type: ignore[misc]
+    @final  # type: ignore[misc]
+    @property
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
     def nth(self) -> GroupByNthSelector:
