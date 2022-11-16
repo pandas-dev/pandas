@@ -215,7 +215,7 @@ def _wrapped_sanitize(cls, data, dtype: DtypeObj | None, copy: bool):
     except ValueError as err:
         if "index must be specified when data is not list-like" in str(err):
             raise cls._raise_scalar_data_error(data) from err
-        elif "Data must be 1-dimensional" in str(err):
+        if "Data must be 1-dimensional" in str(err):
             raise ValueError("Index data must be 1-dimensional") from err
         raise
     arr = ensure_wrapped_if_datetimelike(arr)
