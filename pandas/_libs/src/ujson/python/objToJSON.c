@@ -294,15 +294,16 @@ static npy_int64 get_long_attr(PyObject *o, const char *attr) {
 
     // ensure we are in nanoseconds, similar to Timestamp._as_creso or _as_unit
     PyObject* reso = PyObject_GetAttrString(o, "_creso");
-    // if (!PyLong_Check(reso)) {
-    // TODO(anyone): we should have error handling here, but one step at a time
-    // }
+    if (!PyLong_Check(reso)) {
+        // https://github.com/pandas-dev/pandas/pull/49034#discussion_r1023165139
+        return -1;
+    }
 
     long cReso = PyLong_AsLong(reso);
-    // if (cReso == -1 && PyErr_Occurred()) {
-    // TODO(anyone): we should have error handling here, but one step at a time
-    // }
     Py_DECREF(reso);
+    if (cReso == -1 && PyErr_Occurred()) {
+        return -1;
+    }
 
     if (cReso == NPY_FR_us) {
         long_val = long_val * 1000L;
