@@ -9527,7 +9527,7 @@ Parrot 2  Parrot       24.0
         self,
         other: DataFrame | Series | list[DataFrame | Series],
         on: IndexLabel | None = None,
-        how: JoinHow = "left",
+        how: MergeHow = "left",
         lsuffix: str = "",
         rsuffix: str = "",
         sort: bool = False,
