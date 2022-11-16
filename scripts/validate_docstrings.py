@@ -67,7 +67,7 @@ ERROR_MSGS = {
 def pandas_error(code, **kwargs):
     """
     Copy of the numpydoc error function, since ERROR_MSGS can't be updated
-    with our custom errors yet.
+    with our custom errors yet. rvema test
     """
     return (code, ERROR_MSGS[code].format(**kwargs))
 
