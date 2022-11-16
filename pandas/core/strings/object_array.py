@@ -470,8 +470,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
             return self._str_map(functools.partial(removesuffix, suffix=suffix))
 
-        else:
-            return self._str_map(lambda x: x.removesuffix(suffix))
+        return self._str_map(lambda x: x.removesuffix(suffix))
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         regex = re.compile(pat, flags=flags)
