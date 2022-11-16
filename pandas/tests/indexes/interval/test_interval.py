@@ -537,7 +537,7 @@ class TestIntervalIndex:
         result = index.isin(other.tolist())
         tm.assert_numpy_array_equal(result, expected)
 
-        for other_closed in {"right", "left", "both", "neither"}:
+        for other_closed in ["right", "left", "both", "neither"]:
             other = self.create_index(closed=other_closed)
             expected = np.repeat(closed == other_closed, len(index))
             result = index.isin(other)
