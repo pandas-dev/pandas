@@ -626,7 +626,7 @@ def test_categorical_transformers(
         expected = expected.astype("intp")
     if transformation_func == "ngroup":
         expected[df["x"].notnull() & expected.ge(na_group)] += 1
-        expected = expected.astype("intp")
+        expected = expected.astype("int64")
 
     tm.assert_equal(result, expected)
 
