@@ -535,31 +535,35 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         value, method = validate_fillna_kwargs(value, method)
 
-        if isinstance(self._data.type, pa.DurationType):
-            # pyarrow complains about duration types:
-            #   ArrowNotImplementedError: Function 'coalesce' has no kernel
+        try:
+            if method is None and limit is None:
+                if is_array_like(value):
+                    val = cast(ArrayLike, value)
+                    if len(val) != len(self):
+                        raise ValueError(
+                            f"Length of 'value' does not match. Got ({len(val)}) "
+                            f" expected {len(self)}"
+                        )
+                    if not isinstance(val, (pa.Array, pa.ChunkedArray)):
+                        val = pa.array(val, type=self._data.type, from_pandas=True)
+                else:
+                    val = pa.scalar(value, type=self._data.type, from_pandas=True)
+                return type(self)(pc.fill_null(self._data, fill_value=val))
+
+            elif method == "pad" and limit is None and not pa_version_under7p0:
+                return type(self)(pc.fill_null_forward(self._data))
+
+            elif method == "backfill" and limit is None and not pa_version_under7p0:
+                return type(self)(pc.fill_null_backward(self._data))
+
+        except (pa.ArrowInvalid, pa.ArrowTypeError):
+            raise TypeError(f"Invalid value '{str(value)}' for dtype {self.dtype}")
+        except pa.ArrowNotImplementedError:
+            # ArrowNotImplementedError: Function 'coalesce' has no kernel
             #   matching input types (duration[ns], duration[ns])
+            # TODO: remove this except case if/when pyarrow implements a
+            #   kernel for duration types.
             pass
-
-        elif method is None and limit is None:
-            if is_array_like(value):
-                value = cast(ArrayLike, value)
-                if len(value) != len(self):
-                    raise ValueError(
-                        f"Length of 'value' does not match. Got ({len(value)}) "
-                        f" expected {len(self)}"
-                    )
-                if not isinstance(value, (pa.Array, pa.ChunkedArray)):
-                    value = pa.array(value, type=self._data.type, from_pandas=True)
-            else:
-                value = pa.scalar(value, type=self._data.type, from_pandas=True)
-            return type(self)(pc.fill_null(self._data, fill_value=value))
-
-        elif method == "pad" and limit is None and not pa_version_under7p0:
-            return type(self)(pc.fill_null_forward(self._data))
-
-        elif method == "backfill" and limit is None and not pa_version_under7p0:
-            return type(self)(pc.fill_null_backward(self._data))
 
         return super().fillna(value=value, method=method, limit=limit)
 
