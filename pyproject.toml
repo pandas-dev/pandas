@@ -75,7 +75,6 @@ disable = [
   "unsubscriptable-object",
   "unsupported-assignment-operation",
   "unsupported-membership-test",
-  "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
   "import-outside-toplevel",
@@ -94,8 +93,6 @@ disable = [
   "unneeded-not",
   "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
-  "use-sequence-for-iteration",
-  "useless-import-alias",
   "wrong-import-order",
   "wrong-import-position",
 

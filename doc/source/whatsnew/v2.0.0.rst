@@ -553,6 +553,9 @@ Removal of prior version deprecations/changes
 - Changed behavior of :meth:`DataFrame.apply` with list-like so that any partial failure will raise an error (:issue:`43740`)
 - Changed behavior of :meth:`Series.__setitem__` with an integer key and a :class:`Float64Index` when the key is not present in the index; previously we treated the key as positional (behaving like ``series.iloc[key] = val``), now we treat it is a label (behaving like ``series.loc[key] = val``), consistent with :meth:`Series.__getitem__`` behavior (:issue:`33469`)
 - Removed ``na_sentinel`` argument from :func:`factorize`, :meth:`.Index.factorize`, and :meth:`.ExtensionArray.factorize` (:issue:`47157`)
+- Changed behavior of :meth:`Series.diff` and :meth:`DataFrame.diff` with :class:`ExtensionDtype` dtypes whose arrays do not implement ``diff``, these now raise ``TypeError`` rather than casting to numpy (:issue:`31025`)
+- Enforced deprecation of calling numpy "ufunc"s on :class:`DataFrame` with ``method="outer"``; this now raises ``NotImplementedError`` (:issue:`36955`)
+- Enforced deprecation disallowing passing ``numeric_only=True`` to :class:`Series` reductions (``rank``, ``any``, ``all``, ...) with non-numeric dtype (:issue:`47500`)
 - Changed behavior of :meth:`DataFrameGroupBy.apply` and :meth:`SeriesGroupBy.apply` so that ``group_keys`` is respected even if a transformer is detected (:issue:`34998`)
 - Enforced deprecation ``numeric_only=None`` (the default) in DataFrame reductions that would silently drop columns that raised; ``numeric_only`` now defaults to ``False`` (:issue:`41480`)
 - Changed default of ``numeric_only`` to ``False`` in all DataFrame methods with that argument (:issue:`46096`, :issue:`46906`)
@@ -662,6 +665,7 @@ Missing
 - Bug in :meth:`Index.equals` raising ``TypeError`` when :class:`Index` consists of tuples that contain ``NA`` (:issue:`48446`)
 - Bug in :meth:`Series.map` caused incorrect result when data has NaNs and defaultdict mapping was used (:issue:`48813`)
 - Bug in :class:`NA` raising a ``TypeError`` instead of return :class:`NA` when performing a binary operation with a ``bytes`` object (:issue:`49108`)
+- Bug in :meth:`DataFrame.update` with ``overwrite=False`` raising ``TypeError`` when ``self`` has column with ``NaT`` values and column not present in ``other`` (:issue:`16713`)
 
 MultiIndex
 ^^^^^^^^^^
