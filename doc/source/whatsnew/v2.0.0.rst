@@ -721,6 +721,7 @@ Reshaping
 - Bug in :func:`join` when ``left_on`` or ``right_on`` is or includes a :class:`CategoricalIndex` incorrectly raising ``AttributeError`` (:issue:`48464`)
 - Bug in :meth:`DataFrame.pivot_table` raising ``ValueError`` with parameter ``margins=True`` when result is an empty :class:`DataFrame` (:issue:`49240`)
 - Clarified error message in :func:`merge` when passing invalid ``validate`` option (:issue:`49417`)
+- Bug in :meth:`DataFrame.explode` raising ``ValueError`` on multiple columns with ``NaN`` values or empty lists (:issue:`46084`)
 
 Sparse
 ^^^^^^
