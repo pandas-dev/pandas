@@ -4483,6 +4483,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             indexer,
             axis=bm_axis,
             allow_dups=True,
+            copy=None,
             only_slice=only_slice,
         )
         result = self._constructor(new_mgr)
