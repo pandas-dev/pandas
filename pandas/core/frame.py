@@ -70,7 +70,6 @@ from pandas._typing import (
     IgnoreRaise,
     IndexKeyFunc,
     IndexLabel,
-    JoinHow,
     Level,
     MergeHow,
     NaPosition,
