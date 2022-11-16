@@ -1028,6 +1028,7 @@ class BaseGrouper:
 
         npvalues = lib.maybe_convert_objects(result, try_float=False)
         if preserve_dtype:
+            # numeric_only = True?
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
             out = npvalues

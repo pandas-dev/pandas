@@ -168,7 +168,7 @@ class TestNumericOnly:
 
         with pytest.raises(TypeError, match="[Cc]ould not convert"):
             getattr(gb, method)(numeric_only=False)
-        result = getattr(gb, method)()
+        result = getattr(gb, method)(numeric_only=True)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         expected_columns = expected.columns
@@ -250,12 +250,14 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
-        if method in ("min", "max", "cummin", "cummax"):
+        if method in ("min", "max", "cummin", "cummax", "sum", "cumsum", "prod", "cumprod"):
             # The methods default to numeric_only=False and raise TypeError
             msg = "|".join(
                 [
                     "Categorical is not ordered",
                     "function is not implemented for this dtype",
+                    "category type does not support sum operations",
+                    "can't multiply sequence by non-int of type 'str'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -1361,41 +1363,22 @@ def test_groupby_sum_timedelta_with_nat():
         ("var", True, True),
     ],
 )
-@pytest.mark.parametrize("numeric_only", [True, False, lib.no_default])
+@pytest.mark.parametrize("numeric_only", [True, False])
 @pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
 def test_deprecate_numeric_only(
     kernel, numeric_only_default, has_arg, numeric_only, keys
 ):
     # GH#46072
-    # drops_nuisance: Whether the op drops nuisance columns even when numeric_only=False
     # has_arg: Whether the op has a numeric_only arg
     df = DataFrame({"a1": [1, 1], "a2": [2, 2], "a3": [5, 6], "b": 2 * [object]})
 
     args = get_groupby_method_args(kernel, df)
-    kwargs = {} if numeric_only is lib.no_default else {"numeric_only": numeric_only}
+    kwargs = {"numeric_only": numeric_only}
 
     gb = df.groupby(keys)
     method = getattr(gb, kernel)
-    if (
-        has_arg
-        and (kernel not in ("idxmax", "idxmin") or numeric_only is True)
-        and (
-            # Cases where b does not appear in the result
-            numeric_only is True
-            or (numeric_only is lib.no_default and numeric_only_default)
-        )
-    ):
-        if numeric_only is True or not numeric_only_default:
-            warn = None
-        else:
-            warn = FutureWarning
-        if numeric_only is lib.no_default and numeric_only_default:
-            msg = f"The default value of numeric_only in DataFrameGroupBy.{kernel}"
-        else:
-            msg = f"Dropping invalid columns in DataFrameGroupBy.{kernel}"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = method(*args, **kwargs)
-
+    if has_arg and numeric_only:
+        result = method(*args, **kwargs)
         assert "b" not in result.columns
     elif (
         # kernels that work on any dtype and have numeric_only arg
@@ -1403,13 +1386,12 @@ def test_deprecate_numeric_only(
         or (
             # kernels that work on any dtype and don't have numeric_only arg
             kernel in ("any", "all", "bfill", "ffill", "fillna", "nth", "nunique")
-            and numeric_only is lib.no_default
         )
     ):
         result = method(*args, **kwargs)
         assert "b" in result.columns
     elif has_arg or kernel in ("idxmax", "idxmin"):
-        assert numeric_only is not True
+        assert not numeric_only
         # kernels that are successful on any dtype were above; this will fail
         msg = "|".join(
             [
@@ -1423,17 +1405,6 @@ def test_deprecate_numeric_only(
             ]
         )
         with pytest.raises(TypeError, match=msg):
-            method(*args, **kwargs)
-    elif not has_arg and numeric_only is not lib.no_default:
-        with pytest.raises(
-            TypeError, match="got an unexpected keyword argument 'numeric_only'"
-        ):
-            method(*args, **kwargs)
-    else:
-        assert kernel in ("diff", "pct_change")
-        assert numeric_only is lib.no_default
-        # Doesn't have numeric_only argument and fails on nuisance columns
-        with pytest.raises(TypeError, match=r"unsupported operand type"):
             method(*args, **kwargs)
 
 
@@ -1524,24 +1495,9 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         with pytest.raises(TypeError, match=msg):
             method(*args, numeric_only=True)
     elif dtype is object:
-        err_category = NotImplementedError
-        err_msg = f"{groupby_func} does not implement numeric_only"
-        if groupby_func.startswith("cum"):
-            # cum ops already exhibit future behavior
-            warn_category = None
-            warn_msg = ""
-            err_category = TypeError
-            err_msg = f"{groupby_func} is not supported for object dtype"
-        elif groupby_func == "skew":
-            warn_category = FutureWarning
-            warn_msg = "will raise a TypeError in the future"
-        else:
-            warn_category = FutureWarning
-            warn_msg = "This will raise a TypeError"
-
-        with tm.assert_produces_warning(warn_category, match=warn_msg):
-            with pytest.raises(err_category, match=err_msg):
-                method(*args, numeric_only=True)
+        msg = "asdf"
+        with pytest.raises(TypeError, match=msg):
+            method(*args, numeric_only=True)
     else:
         result = method(*args, numeric_only=True)
         expected = method(*args, numeric_only=False)
