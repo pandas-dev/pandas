@@ -48,7 +48,7 @@ def read_orc(
     columns : list, default None
         If not None, only these columns will be read from the file.
         Output always follows the ordering of the file and not the columns list.
-        This mirrors the original behaviour of :func:`pyarrow.orc.OrcFile.read`.
+        This mirrors the original behaviour of :func:`pyarrow.orc.ORCFile.read`.
     **kwargs
         Any additional kwargs are passed to pyarrow.
 
