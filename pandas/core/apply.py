@@ -414,7 +414,7 @@ class Apply(metaclass=abc.ABCMeta):
 
             axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
             result = concat(
-                {k: results[k] for k in keys_to_use},  # type: ignore[misc]
+                {k: results[k] for k in keys_to_use},
                 axis=axis,
                 keys=keys_to_use,
             )
