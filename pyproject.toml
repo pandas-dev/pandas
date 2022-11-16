@@ -93,8 +93,6 @@ disable = [
   "unneeded-not",
   "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
-  "use-sequence-for-iteration",
-  "useless-import-alias",
   "wrong-import-order",
   "wrong-import-position",
 

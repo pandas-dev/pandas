@@ -275,18 +275,9 @@ class TestSeriesMisc:
             with pytest.raises(TypeError, match=msg):
                 method(*args, numeric_only=True)
         elif dtype is object:
-            if kernel == "rank":
-                msg = "Calling Series.rank with numeric_only=True and dtype object"
-                with tm.assert_produces_warning(FutureWarning, match=msg):
-                    method(*args, numeric_only=True)
-            else:
-                warn_msg = (
-                    f"Calling Series.{kernel} with numeric_only=True and dtype object"
-                )
-                err_msg = f"Series.{kernel} does not implement numeric_only"
-                with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                    with pytest.raises(NotImplementedError, match=err_msg):
-                        method(*args, numeric_only=True)
+            msg = f"Series.{kernel} does not allow numeric_only=True with non-numeric"
+            with pytest.raises(TypeError, match=msg):
+                method(*args, numeric_only=True)
         else:
             result = method(*args, numeric_only=True)
             expected = method(*args, numeric_only=False)
