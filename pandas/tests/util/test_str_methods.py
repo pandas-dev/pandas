@@ -2,12 +2,11 @@ import sys
 
 import pytest
 
-from pandas.util._str_methods import (
-    removeprefix,
-    removesuffix,
-)
-
 if sys.version_info < (3, 9):
+    from pandas.util._str_methods import (
+        removeprefix,
+        removesuffix,
+    )
 
     @pytest.mark.parametrize(
         "string, prefix, expected",
