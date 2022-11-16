@@ -466,11 +466,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         if sys.version_info < (3, 9):
             # NOTE pyupgrade will remove this when we run it with --py39-plus
             # so don't remove the unnecessary `else` statement below
-
-            def removesuffix(text: str) -> str:
-                if text.endswith(suffix):
-                    return text[: -len(suffix)]
-                return text
+            from pandas.util._str_methods import removesuffix
 
             return self._str_map(removesuffix)
 
