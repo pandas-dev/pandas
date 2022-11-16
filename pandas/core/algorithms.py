@@ -1616,14 +1616,10 @@ def diff(arr, n: int, axis: AxisInt = 0):
                 raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
             return op(arr, arr.shift(n))
         else:
-            warnings.warn(
-                "dtype lost in 'diff()'. In the future this will raise a "
-                "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise TypeError(
+                f"{type(arr).__name__} has no 'diff' method. "
+                "Convert to a suitable dtype prior to calling 'diff'."
             )
-            arr = np.asarray(arr)
-            dtype = arr.dtype
 
     is_timedelta = False
     if needs_i8_conversion(arr.dtype):

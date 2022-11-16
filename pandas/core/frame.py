@@ -5837,7 +5837,8 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             frame = self
         else:
-            frame = self.copy()
+            # GH 49473 Use "lazy copy" with Copy-on-Write
+            frame = self.copy(deep=None)
 
         arrays = []
         names: list[Hashable] = []
@@ -8057,11 +8058,12 @@ Keep all original rows and columns and also all original values
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
-        other = other.reindex_like(self)
+        other = other.reindex(self.index)
 
-        for col in self.columns:
+        for col in self.columns.intersection(other.columns):
             this = self[col]._values
             that = other[col]._values
+
             if filter_func is not None:
                 with np.errstate(all="ignore"):
                     mask = ~filter_func(this) | isna(that)
@@ -8081,7 +8083,9 @@ Keep all original rows and columns and also all original values
             if mask.all():
                 continue
 
-            self.loc[:, col] = expressions.where(mask, this, that)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", "In a future version, `df.iloc")
+                self.loc[:, col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
@@ -10460,7 +10464,7 @@ Parrot 2  Parrot       24.0
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
-            res, _ = df._mgr.reduce(blk_func, ignore_failures=False)
+            res = df._mgr.reduce(blk_func)
             out = df._constructor(res).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)
