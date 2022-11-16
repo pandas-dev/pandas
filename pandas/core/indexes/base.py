@@ -482,7 +482,9 @@ class Index(IndexOpsMixin, PandasObject):
             raise cls._raise_scalar_data_error(data)
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name)
-        elif not is_list_like(data):
+        elif not is_list_like(data) and not isinstance(data, memoryview):
+            # 2022-11-16 the memoryview check is only necessary on some CI
+            #  builds, not clear why
             raise cls._raise_scalar_data_error(data)
 
         else:
