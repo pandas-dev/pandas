@@ -15,29 +15,65 @@ class Factorizer:
     count: int
     def __init__(self, size_hint: int) -> None: ...
     def get_count(self) -> int: ...
+    def factorize(
+        self,
+        values: np.ndarray,
+        sort: bool = ...,
+        na_sentinel=...,
+        na_value=...,
+    ) -> npt.NDArray[np.intp]: ...
 
 class ObjectFactorizer(Factorizer):
     table: PyObjectHashTable
     uniques: ObjectVector
-    def factorize(
-        self,
-        values: npt.NDArray[np.object_],
-        sort: bool = ...,
-        na_sentinel=...,
-        na_value=...,
-    ) -> npt.NDArray[np.intp]: ...
 
 class Int64Factorizer(Factorizer):
     table: Int64HashTable
     uniques: Int64Vector
-    def factorize(
-        self,
-        values: np.ndarray,  # const int64_t[:]
-        sort: bool = ...,
-        na_sentinel=...,
-        na_value=...,
-        mask=...,
-    ) -> npt.NDArray[np.intp]: ...
+
+class UInt64Factorizer(Factorizer):
+    table: UInt64HashTable
+    uniques: UInt64Vector
+
+class Int32Factorizer(Factorizer):
+    table: Int32HashTable
+    uniques: Int32Vector
+
+class UInt32Factorizer(Factorizer):
+    table: UInt32HashTable
+    uniques: UInt32Vector
+
+class Int16Factorizer(Factorizer):
+    table: Int16HashTable
+    uniques: Int16Vector
+
+class UInt16Factorizer(Factorizer):
+    table: UInt16HashTable
+    uniques: UInt16Vector
+
+class Int8Factorizer(Factorizer):
+    table: Int8HashTable
+    uniques: Int8Vector
+
+class UInt8Factorizer(Factorizer):
+    table: UInt8HashTable
+    uniques: UInt8Vector
+
+class Float64Factorizer(Factorizer):
+    table: Float64HashTable
+    uniques: Float64Vector
+
+class Float32Factorizer(Factorizer):
+    table: Float32HashTable
+    uniques: Float32Vector
+
+class Complex64Factorizer(Factorizer):
+    table: Complex64HashTable
+    uniques: Complex64Vector
+
+class Complex128Factorizer(Factorizer):
+    table: Complex128HashTable
+    uniques: Complex128Vector
 
 class Int64Vector:
     def __init__(self, *args) -> None: ...

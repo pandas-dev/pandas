@@ -2362,14 +2362,8 @@ def _factorize_keys(
 
     rizer = klass(max(len(lk), len(rk)))
 
-    # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
-    # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
-    # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
-    llab = rizer.factorize(lk)  # type: ignore[arg-type]
-    # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
-    # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
-    # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
-    rlab = rizer.factorize(rk)  # type: ignore[arg-type]
+    llab = rizer.factorize(lk)
+    rlab = rizer.factorize(rk)
     assert llab.dtype == np.dtype(np.intp), llab.dtype
     assert rlab.dtype == np.dtype(np.intp), rlab.dtype
 
