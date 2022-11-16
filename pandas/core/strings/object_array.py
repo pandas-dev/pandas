@@ -468,7 +468,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             # so don't remove the unnecessary `else` statement below
             from pandas.util._str_methods import removesuffix
 
-            return self._str_map(removesuffix)
+            return self._str_map(functools.partial(removesuffix, suffix=suffix))
 
         else:
             return self._str_map(lambda x: x.removesuffix(suffix))
