@@ -109,7 +109,7 @@ from pandas.core.construction import (
 from pandas.core.indexers import check_setitem_lengths
 
 if TYPE_CHECKING:
-    from pandas import (
+    from pandas.core.api import (
         Float64Index,
         Index,
     )

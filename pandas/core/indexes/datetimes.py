@@ -61,7 +61,7 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
-    from pandas import (
+    from pandas.core.api import (
         DataFrame,
         Float64Index,
         PeriodIndex,
