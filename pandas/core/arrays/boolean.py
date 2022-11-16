@@ -26,6 +26,7 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
+from pandas.core.array_algos import masked_accumulations
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -382,8 +383,15 @@ class BooleanArray(BaseMaskedArray):
     def _accumulate(
         self, name: str, *, skipna: bool = True, **kwargs
     ) -> BaseMaskedArray:
-        from pandas.core.arrays import IntegerArray
-
-        data = self._data.astype(int)
+        data = self._data
         mask = self._mask
-        return IntegerArray(data, mask)._accumulate(name, skipna=skipna, **kwargs)
+        if name in ("cummin", "cummax"):
+            op = getattr(masked_accumulations, name)
+            data, mask = op(data, mask, skipna=skipna, **kwargs)
+            return type(self)(data, mask, copy=False)
+        else:
+            from pandas.core.arrays import IntegerArray
+
+            return IntegerArray(data.astype(int), mask)._accumulate(
+                name, skipna=skipna, **kwargs
+            )

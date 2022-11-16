@@ -5,6 +5,7 @@ from typing import Callable
 import numpy as np
 
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
     is_float_dtype,
     is_integer_dtype,
 )
@@ -41,6 +42,8 @@ def _cum_func(
         dtype_info = np.finfo(values.dtype.type)
     elif is_integer_dtype(values):
         dtype_info = np.iinfo(values.dtype.type)
+    elif is_bool_dtype(values):
+        dtype_info = np.iinfo(np.uint8)
     else:
         raise NotImplementedError(
             f"No masked accumulation defined for dtype {values.dtype.type}"
