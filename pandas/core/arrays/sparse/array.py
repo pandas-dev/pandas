@@ -1309,6 +1309,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 values = np.array(self)
                 return astype_nansafe(values, dtype=future_dtype)
             else:
+                # pylint: disable-next=used-before-assignment
                 dtype = cast(ExtensionDtype, dtype)
                 cls = dtype.construct_array_type()
                 return cls._from_sequence(self, dtype=dtype, copy=copy)
