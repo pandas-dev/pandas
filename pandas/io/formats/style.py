@@ -78,7 +78,6 @@ try:
     has_mpl = True
 except ImportError:
     has_mpl = False
-    no_mpl_message = "{0} requires matplotlib."
 
 
 @contextmanager
@@ -86,7 +85,7 @@ def _mpl(func: Callable) -> Generator[tuple[Any, Any], None, None]:
     if has_mpl:
         yield plt, mpl
     else:
-        raise ImportError(no_mpl_message.format(func.__name__))
+        raise ImportError(f"{func.__name__} requires matplotlib.")
 
 
 ####
@@ -2902,7 +2901,7 @@ class Styler(StylerRenderer):
         return self.applymap(lambda x: values, subset=subset)
 
     @Substitution(subset=subset)
-    def bar(
+    def bar(  # pylint: disable=disallowed-name
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,
@@ -3002,7 +3001,7 @@ class Styler(StylerRenderer):
 
         if not 0 <= width <= 100:
             raise ValueError(f"`width` must be a value in [0, 100], got {width}")
-        elif not 0 <= height <= 100:
+        if not 0 <= height <= 100:
             raise ValueError(f"`height` must be a value in [0, 100], got {height}")
 
         if subset is None:
@@ -3560,12 +3559,12 @@ def _validate_apply_axis_arg(
             f"'{arg_name}' is a Series but underlying data for operations "
             f"is a DataFrame since 'axis=None'"
         )
-    elif isinstance(arg, DataFrame) and isinstance(data, Series):
+    if isinstance(arg, DataFrame) and isinstance(data, Series):
         raise ValueError(
             f"'{arg_name}' is a DataFrame but underlying data for "
             f"operations is a Series with 'axis in [0,1]'"
         )
-    elif isinstance(arg, (Series, DataFrame)):  # align indx / cols to data
+    if isinstance(arg, (Series, DataFrame)):  # align indx / cols to data
         arg = arg.reindex_like(data, method=None).to_numpy(**dtype)
     else:
         arg = np.asarray(arg, **dtype)
@@ -3604,15 +3603,11 @@ def _background_gradient(
         rng = smax - smin
         # extend lower / upper bounds, compresses color range
         norm = mpl.colors.Normalize(smin - (rng * low), smax + (rng * high))
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
 
-        if mpl_ge_3_6_0():
-            if cmap is None:
-                rgbas = mpl.colormaps[mpl.rcParams["image.cmap"]](norm(gmap))
-            else:
-                rgbas = mpl.colormaps[cmap](norm(gmap))
+        if cmap is None:
+            rgbas = mpl.colormaps[mpl.rcParams["image.cmap"]](norm(gmap))
         else:
-            rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
+            rgbas = mpl.colormaps.get_cmap(cmap)(norm(gmap))
 
         def relative_luminance(rgba) -> float:
             """
@@ -3891,10 +3886,8 @@ def _bar(
     if cmap is not None:
         # use the matplotlib colormap input
         with _mpl(Styler.bar) as (plt, mpl):
-            from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
-
             cmap = (
-                (mpl.colormaps[cmap] if mpl_ge_3_6_0() else mpl.cm.get_cmap(cmap))
+                mpl.colormaps[cmap]
                 if isinstance(cmap, str)
                 else cmap  # assumed to be a Colormap instance as documented
             )

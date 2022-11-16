@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas import (
     DataFrame,
@@ -131,6 +132,25 @@ def test_reindex_columns(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_drop_on_column(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.drop(columns="a")
+    df2._mgr._verify_integrity()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    else:
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    df2.iloc[0, 0] = 0
+    assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_select_dtypes(using_copy_on_write):
     # Case: selecting columns using `select_dtypes()` returns a new dataframe
     # + afterwards modifying the result
@@ -156,7 +176,7 @@ def test_to_frame(using_copy_on_write):
     ser = Series([1, 2, 3])
     ser_orig = ser.copy()
 
-    df = ser.to_frame()
+    df = ser[:].to_frame()
 
     # currently this always returns a "view"
     assert np.shares_memory(ser.values, get_array(df, 0))
@@ -169,5 +189,64 @@ def test_to_frame(using_copy_on_write):
         tm.assert_series_equal(ser, ser_orig)
     else:
         # but currently select_dtypes() actually returns a view -> mutates parent
-        ser_orig.iloc[0] = 0
-        tm.assert_series_equal(ser, ser_orig)
+        expected = ser_orig.copy()
+        expected.iloc[0] = 0
+        tm.assert_series_equal(ser, expected)
+
+    # modify original series -> don't modify dataframe
+    df = ser[:].to_frame()
+    ser.iloc[0] = 0
+
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, ser_orig.to_frame())
+    else:
+        expected = ser_orig.copy().to_frame()
+        expected.iloc[0, 0] = 0
+        tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "method, idx",
+    [
+        (lambda df: df.copy(deep=False).copy(deep=False), 0),
+        (lambda df: df.reset_index().reset_index(), 2),
+        (lambda df: df.rename(columns=str.upper).rename(columns=str.lower), 0),
+        (lambda df: df.copy(deep=False).select_dtypes(include="number"), 0),
+    ],
+    ids=["shallow-copy", "reset_index", "rename", "select_dtypes"],
+)
+def test_chained_methods(request, method, idx, using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+
+    # when not using CoW, only the copy() variant actually gives a view
+    df2_is_view = not using_copy_on_write and request.node.callspec.id == "shallow-copy"
+
+    # modify df2 -> don't modify df
+    df2 = method(df)
+    df2.iloc[0, idx] = 0
+    if not df2_is_view:
+        tm.assert_frame_equal(df, df_orig)
+
+    # modify df -> don't modify df2
+    df2 = method(df)
+    df.iloc[0, 0] = 0
+    if not df2_is_view:
+        tm.assert_frame_equal(df2.iloc[:, idx:], df_orig)
+
+
+def test_set_index(using_copy_on_write):
+    # GH 49473
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.set_index("a")
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    else:
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    # mutating df2 triggers a copy-on-write for that column / block
+    df2.iloc[0, 1] = 0
+    assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    tm.assert_frame_equal(df, df_orig)

@@ -286,7 +286,7 @@ def test_transform_partial_failure(op, request):
     # Using object makes most transform kernels fail
     ser = Series(3 * [object])
 
-    if op in ("fillna", "ngroup", "rank"):
+    if op in ("fillna", "ngroup"):
         error = ValueError
         msg = "Transform function failed"
     else:

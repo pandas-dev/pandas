@@ -21,7 +21,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.frame import DataFrame
-from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import (
+    Index,
+    default_index,
+)
 from pandas.core.series import Series
 
 
@@ -249,7 +252,7 @@ def _get_dummies_1d(
         if isinstance(data, Series):
             index = data.index
         else:
-            index = Index(range(len(data)))
+            index = default_index(len(data))
         return DataFrame(index=index)
 
     # if all NaN
@@ -508,7 +511,7 @@ def from_dummies(
                 "Dummy DataFrame contains multi-assignment(s); "
                 f"First instance in row: {assigned.idxmax()}"
             )
-        elif any(assigned == 0):
+        if any(assigned == 0):
             if isinstance(default_category, dict):
                 cats.append(default_category[prefix])
             else:

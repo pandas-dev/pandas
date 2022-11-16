@@ -141,9 +141,12 @@ class TestTimedeltaIndex(DatetimeLike):
 
         # We don't support "D" reso, so we use the pre-2.0 behavior
         #  casting to float64
-        result = td.astype("timedelta64[D]")
-        expected = index_or_series([31, 31, 31, np.nan])
-        tm.assert_equal(result, expected)
+        msg = (
+            r"Cannot convert from timedelta64\[ns\] to timedelta64\[D\]. "
+            "Supported resolutions are 's', 'ms', 'us', 'ns'"
+        )
+        with pytest.raises(ValueError, match=msg):
+            td.astype("timedelta64[D]")
 
         result = td / np.timedelta64(1, "s")
         expected = index_or_series(
