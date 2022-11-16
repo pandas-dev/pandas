@@ -516,7 +516,7 @@ class Index(IndexOpsMixin, PandasObject):
         klass = cls._dtype_to_subclass(arr.dtype)
 
         # _ensure_array _may_ be unnecessary once Int64Index etc are gone
-        arr = klass._ensure_array(arr, arr.dtype, copy)
+        arr = klass._ensure_array(arr, arr.dtype, copy=False)
         return klass._simple_new(arr, name)
 
     @classmethod
