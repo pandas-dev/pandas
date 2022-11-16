@@ -62,11 +62,11 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("index", ["datetime"], indirect=True)
     def test_new_axis(self, index):
-        with tm.assert_produces_warning(FutureWarning):
+        # TODO: a bunch of scattered tests check this deprecation is enforced.
+        #  de-duplicate/centralize them.
+        with pytest.raises(ValueError, match="Multi-dimensional indexing"):
             # GH#30588 multi-dimensional indexing deprecated
-            new_index = index[None, :]
-        assert new_index.ndim == 2
-        assert isinstance(new_index, np.ndarray)
+            index[None, :]
 
     def test_argsort(self, index):
         with tm.maybe_produces_warning(
@@ -230,7 +230,6 @@ class TestIndex(Base):
         result = index._simple_new(index.values, dtype)
         tm.assert_index_equal(result, index)
 
-    @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, DatetimeIndex])
     def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, klass):
@@ -244,34 +243,51 @@ class TestIndex(Base):
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        warn = None if tz_naive_fixture is None else FutureWarning
-        # astype dt64 -> dt64tz deprecated
+        # As of 2.0 astype raises on dt64.astype(dt64tz)
+        err = tz_naive_fixture is not None
+        msg = "Cannot use .astype to convert from timezone-naive dtype to"
 
         if attr == "asi8":
             result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
+            tm.assert_index_equal(result, index)
+        elif klass is Index:
+            with pytest.raises(TypeError, match="unexpected keyword"):
+                klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(arg, tz=tz_naive_fixture)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            with tm.assert_produces_warning(warn):
+            if err:
+                with pytest.raises(TypeError, match=msg):
+                    DatetimeIndex(arg).astype(dtype)
+            else:
                 result = DatetimeIndex(arg).astype(dtype)
+                tm.assert_index_equal(result, index)
         else:
             result = klass(arg, dtype=dtype)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
         if attr == "asi8":
             result = DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
+            tm.assert_index_equal(result, index)
+        elif klass is Index:
+            with pytest.raises(TypeError, match="unexpected keyword"):
+                klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(list(arg), tz=tz_naive_fixture)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            with tm.assert_produces_warning(warn):
+            if err:
+                with pytest.raises(TypeError, match=msg):
+                    DatetimeIndex(list(arg)).astype(dtype)
+            else:
                 result = DatetimeIndex(list(arg)).astype(dtype)
+                tm.assert_index_equal(result, index)
         else:
             result = klass(list(arg), dtype=dtype)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
@@ -647,23 +663,6 @@ class TestIndex(Base):
     def test_is_object(self, index, expected):
         assert index.is_object() is expected
 
-    @pytest.mark.parametrize(
-        "index, expected",
-        [
-            ("string", False),
-            ("bool-object", False),
-            ("bool-dtype", False),
-            ("categorical", False),
-            ("int", False),
-            ("datetime", True),
-            ("float", False),
-        ],
-        indirect=["index"],
-    )
-    def test_is_all_dates(self, index, expected):
-        with tm.assert_produces_warning(FutureWarning):
-            assert index.is_all_dates is expected
-
     def test_summary(self, index):
         index._summary()
 
@@ -803,14 +802,6 @@ class TestIndex(Base):
     def test_is_monotonic_incomparable(self, attr):
         index = Index([5, datetime.now(), 7])
         assert not getattr(index, attr)
-
-    def test_set_value_deprecated(self, simple_index):
-        # GH 28621
-        idx = simple_index
-        arr = np.array([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            idx.set_value(arr, idx[1], 80)
-        assert arr[1] == 80
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(
@@ -1305,19 +1296,6 @@ class TestMixedIntIndex(Base):
         assert index.name == "MyName"
         assert index2.name == "NewName"
 
-        with tm.assert_produces_warning(FutureWarning):
-            index3 = index.copy(names=["NewName"])
-        tm.assert_index_equal(index, index3, check_names=False)
-        assert index.name == "MyName"
-        assert index.names == ["MyName"]
-        assert index3.name == "NewName"
-        assert index3.names == ["NewName"]
-
-    def test_copy_names_deprecated(self, simple_index):
-        # GH44916
-        with tm.assert_produces_warning(FutureWarning):
-            simple_index.copy(names=["a"])
-
     def test_unique_na(self):
         idx = Index([2, np.nan, 2, 1], name="my_index")
         expected = Index([2, np.nan, 1], name="my_index")
@@ -1519,7 +1497,6 @@ def test_index_subclass_constructor_wrong_kwargs(index_maker):
         index_maker(foo="bar")
 
 
-@pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
 def test_deprecated_fastpath():
     msg = "[Uu]nexpected keyword argument"
     with pytest.raises(TypeError, match=msg):
@@ -1536,15 +1513,15 @@ def test_deprecated_fastpath():
 
 
 def test_shape_of_invalid_index():
-    # Currently, it is possible to create "invalid" index objects backed by
+    # Pre-2.0, it was possible to create "invalid" index objects backed by
     # a multi-dimensional array (see https://github.com/pandas-dev/pandas/issues/27125
     # about this). However, as long as this is not solved in general,this test ensures
     # that the returned shape is consistent with this underlying array for
     # compat with matplotlib (see https://github.com/pandas-dev/pandas/issues/27775)
     idx = Index([0, 1, 2, 3])
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(ValueError, match="Multi-dimensional indexing"):
         # GH#30588 multi-dimensional indexing deprecated
-        assert idx[:, None].shape == (4, 1)
+        idx[:, None]
 
 
 def test_validate_1d_input():
@@ -1592,33 +1569,6 @@ def test_construct_from_memoryview(klass, extra_kwargs):
     result = klass(memoryview(np.arange(2000, 2005)), **extra_kwargs)
     expected = klass(list(range(2000, 2005)), **extra_kwargs)
     tm.assert_index_equal(result, expected, exact=True)
-
-
-def test_index_set_names_pos_args_deprecation():
-    # GH#41485
-    idx = Index([1, 2, 3, 4])
-    msg = (
-        "In a future version of pandas all arguments of Index.set_names "
-        "except for the argument 'names' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = idx.set_names("quarter", None)
-    expected = Index([1, 2, 3, 4], name="quarter")
-    tm.assert_index_equal(result, expected)
-
-
-def test_drop_duplicates_pos_args_deprecation():
-    # GH#41485
-    idx = Index([1, 2, 3, 1])
-    msg = (
-        "In a future version of pandas all arguments of "
-        "Index.drop_duplicates will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        idx.drop_duplicates("last")
-        result = idx.drop_duplicates("last")
-    expected = Index([2, 3, 1])
-    tm.assert_index_equal(expected, result)
 
 
 def test_get_attributes_dict_deprecated():

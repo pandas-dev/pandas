@@ -2,8 +2,6 @@ import io
 
 import pytest
 
-from pandas.compat._optional import import_optional_dependency
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -11,12 +9,6 @@ from pandas.io.excel import ExcelFile
 from pandas.io.excel._base import inspect_excel_format
 
 xlrd = pytest.importorskip("xlrd")
-xlwt = pytest.importorskip("xlwt")
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:As the xlwt package is no longer maintained:FutureWarning"
-)
-
 
 exts = [".xls"]
 
@@ -31,54 +23,27 @@ def read_ext_xlrd(request):
     return request.param
 
 
-def test_read_xlrd_book(read_ext_xlrd, frame):
-    df = frame
-
+def test_read_xlrd_book(read_ext_xlrd, datapath):
     engine = "xlrd"
-    sheet_name = "SheetA"
+    sheet_name = "Sheet1"
+    pth = datapath("io", "data", "excel", "test1.xls")
+    with xlrd.open_workbook(pth) as book:
+        with ExcelFile(book, engine=engine) as xl:
+            result = pd.read_excel(xl, sheet_name=sheet_name, index_col=0)
 
-    with tm.ensure_clean(read_ext_xlrd) as pth:
-        df.to_excel(pth, sheet_name)
-        with xlrd.open_workbook(pth) as book:
-            with ExcelFile(book, engine=engine) as xl:
-                result = pd.read_excel(xl, sheet_name=sheet_name, index_col=0)
-                tm.assert_frame_equal(df, result)
-
-            result = pd.read_excel(
-                book, sheet_name=sheet_name, engine=engine, index_col=0
-            )
-        tm.assert_frame_equal(df, result)
+        expected = pd.read_excel(
+            book, sheet_name=sheet_name, engine=engine, index_col=0
+        )
+    tm.assert_frame_equal(result, expected)
 
 
-def test_excel_file_warning_with_xlsx_file(datapath):
+def test_read_xlsx_fails(datapath):
     # GH 29375
-    path = datapath("io", "data", "excel", "test1.xlsx")
-    has_openpyxl = import_optional_dependency("openpyxl", errors="ignore") is not None
-    if not has_openpyxl:
-        with tm.assert_produces_warning(
-            FutureWarning,
-            raise_on_extra_warnings=False,
-            match="The xlrd engine is no longer maintained",
-        ):
-            ExcelFile(path, engine=None)
-    else:
-        with tm.assert_produces_warning(None):
-            pd.read_excel(path, "Sheet1", engine=None)
+    from xlrd.biffh import XLRDError
 
-
-def test_read_excel_warning_with_xlsx_file(datapath):
-    # GH 29375
     path = datapath("io", "data", "excel", "test1.xlsx")
-    has_openpyxl = import_optional_dependency("openpyxl", errors="ignore") is not None
-    if not has_openpyxl:
-        with pytest.raises(
-            ValueError,
-            match="Your version of xlrd is ",
-        ):
-            pd.read_excel(path, "Sheet1", engine=None)
-    else:
-        with tm.assert_produces_warning(None):
-            pd.read_excel(path, "Sheet1", engine=None)
+    with pytest.raises(XLRDError, match="Excel xlsx file; not supported"):
+        pd.read_excel(path, engine="xlrd")
 
 
 @pytest.mark.parametrize(

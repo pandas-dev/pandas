@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import iNaT
+from pandas.errors import NoBufferPresent
 from pandas.util._decorators import cache_readonly
 
 import pandas as pd
@@ -23,7 +24,6 @@ from pandas.core.interchange.dataframe_protocol import (
 from pandas.core.interchange.utils import (
     ArrowCTypes,
     Endianness,
-    NoBufferPresent,
     dtype_to_arrow_c_fmt,
 )
 
@@ -329,7 +329,7 @@ class PandasColumn(Column):
             return buffer, dtype
 
         try:
-            msg = _NO_VALIDITY_BUFFER[null] + " so does not have a separate mask"
+            msg = f"{_NO_VALIDITY_BUFFER[null]} so does not have a separate mask"
         except KeyError:
             # TODO: implement for other bit/byte masks?
             raise NotImplementedError("See self.describe_null")

@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -18,7 +20,10 @@ def test_error():
         df.explode(list("AA"))
 
     df.columns = list("AA")
-    with pytest.raises(ValueError, match="columns must be unique"):
+    with pytest.raises(
+        ValueError,
+        match=re.escape("DataFrame columns must be unique. Duplicate columns: ['A']"),
+    ):
         df.explode("A")
 
 

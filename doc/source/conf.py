@@ -105,7 +105,7 @@ if pattern:
 
                 if fname == "index.rst" and os.path.abspath(dirname) == source_path:
                     continue
-                elif pattern == "-api" and reldir.startswith("reference"):
+                if pattern == "-api" and reldir.startswith("reference"):
                     exclude_patterns.append(fname)
                 elif (
                     pattern == "whatsnew"
@@ -236,7 +236,7 @@ switcher_version = version
 if ".dev" in version:
     switcher_version = "dev"
 elif "rc" in version:
-    switcher_version = version.split("rc")[0] + " (rc)"
+    switcher_version = version.split("rc", maxsplit=1)[0] + " (rc)"
 
 html_theme_options = {
     "external_links": [],
@@ -245,7 +245,7 @@ html_theme_options = {
     "twitter_url": "https://twitter.com/pandas_dev",
     "google_analytics_id": "UA-27880019-2",
     "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
-    "navbar_end": ["version-switcher", "navbar-icon-links"],
+    "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
     "switcher": {
         "json_url": "/versions.json",
         "version_match": switcher_version,
@@ -374,7 +374,7 @@ header = f"""\
 
 
 html_context = {
-    "redirects": {old: new for old, new in moved_api_pages},
+    "redirects": dict(moved_api_pages),
     "header": header,
 }
 

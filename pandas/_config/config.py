@@ -54,7 +54,6 @@ from contextlib import (
     ContextDecorator,
     contextmanager,
 )
-import inspect
 import re
 from typing import (
     Any,
@@ -662,7 +661,7 @@ def _warn_if_deprecated(key: str) -> bool:
             warnings.warn(
                 d.msg,
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         else:
             msg = f"'{key}' is deprecated"
@@ -673,9 +672,7 @@ def _warn_if_deprecated(key: str) -> bool:
             else:
                 msg += ", please refrain from using it."
 
-            warnings.warn(
-                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
-            )
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
         return True
     return False
 
@@ -704,7 +701,7 @@ def _build_option_description(k: str) -> str:
     return s
 
 
-def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
+def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
     """Builds a concise listing of available options, grouped by prefix"""
     from itertools import groupby
     from textwrap import wrap

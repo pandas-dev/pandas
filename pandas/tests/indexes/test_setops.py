@@ -103,7 +103,7 @@ def test_union_different_types(index_flat, index_flat2, request):
         # complex objects non-sortable
         warn = RuntimeWarning
 
-    any_uint64 = idx1.dtype == np.uint64 or idx2.dtype == np.uint64
+    any_uint64 = np.uint64 in (idx1.dtype, idx2.dtype)
     idx1_signed = is_signed_integer_dtype(idx1.dtype)
     idx2_signed = is_signed_integer_dtype(idx2.dtype)
 
@@ -189,20 +189,6 @@ def test_union_dtypes(left, right, expected, names):
     # TODO: pin down desired dtype; do we want it to be commutative?
     result = a.intersection(b)
     assert result.name == names[2]
-
-
-def test_dunder_inplace_setops_deprecated(index):
-    # GH#37374 these will become logical ops, not setops
-
-    with tm.assert_produces_warning(FutureWarning):
-        index |= index
-
-    with tm.assert_produces_warning(FutureWarning):
-        index &= index
-
-    is_pyarrow = str(index.dtype) == "string[pyarrow]" and pa_version_under7p0
-    with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=is_pyarrow):
-        index ^= index
 
 
 @pytest.mark.parametrize("values", [[1, 2, 2, 3], [3, 3]])
@@ -573,13 +559,10 @@ def test_intersection_duplicates_all_indexes(index):
         # No duplicates in empty indexes
         return
 
-    def check_intersection_commutative(left, right):
-        assert left.intersection(right).equals(right.intersection(left))
-
     idx = index
     idx_non_unique = idx[[0, 0, 1, 2]]
 
-    check_intersection_commutative(idx, idx_non_unique)
+    assert idx.intersection(idx_non_unique).equals(idx_non_unique.intersection(idx))
     assert idx.intersection(idx_non_unique).is_unique
 
 

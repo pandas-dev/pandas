@@ -112,9 +112,9 @@ def nested_to_record(
                     v = new_d.pop(k)
                     new_d[newkey] = v
                 continue
-            else:
-                v = new_d.pop(k)
-                new_d.update(nested_to_record(v, newkey, sep, level + 1, max_level))
+
+            v = new_d.pop(k)
+            new_d.update(nested_to_record(v, newkey, sep, level + 1, max_level))
         new_ds.append(new_d)
 
     if singleton:
@@ -403,7 +403,7 @@ def _json_normalize(
                     f"Key {e} not found. If specifying a record_path, all elements of "
                     f"data should have the path."
                 ) from e
-            elif errors == "ignore":
+            if errors == "ignore":
                 return np.nan
             else:
                 raise KeyError(
@@ -485,7 +485,7 @@ def _json_normalize(
     meta_vals: DefaultDict = defaultdict(list)
     meta_keys = [sep.join(val) for val in _meta]
 
-    def _recursive_extract(data, path, seen_meta, level=0) -> None:
+    def _recursive_extract(data, path, seen_meta, level: int = 0) -> None:
         if isinstance(data, dict):
             data = [data]
         if len(path) > 1:

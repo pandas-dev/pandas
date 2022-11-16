@@ -46,7 +46,7 @@ cdef extern from "src/datetime/np_datetime.h":
     npy_datetimestruct _S_MIN_DTS, _S_MAX_DTS
     npy_datetimestruct _M_MIN_DTS, _M_MAX_DTS
 
-    PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype);
+    PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype)
 
 cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(const char *str, int len, int want_exc,
@@ -171,7 +171,11 @@ class OutOfBoundsTimedelta(ValueError):
     pass
 
 
-cdef get_implementation_bounds(NPY_DATETIMEUNIT reso, npy_datetimestruct *lower, npy_datetimestruct *upper):
+cdef get_implementation_bounds(
+    NPY_DATETIMEUNIT reso,
+    npy_datetimestruct *lower,
+    npy_datetimestruct *upper,
+):
     if reso == NPY_FR_ns:
         upper[0] = _NS_MAX_DTS
         lower[0] = _NS_MIN_DTS
@@ -215,11 +219,6 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
 # ----------------------------------------------------------------------
 # Conversion
 
-cdef inline int64_t dtstruct_to_dt64(npy_datetimestruct* dts) nogil:
-    """Convenience function to call npy_datetimestruct_to_datetime
-    with the by-far-most-common frequency NPY_FR_ns"""
-    return npy_datetimestruct_to_datetime(NPY_FR_ns, dts)
-
 
 # just exposed for testing at the moment
 def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
@@ -247,12 +246,13 @@ cdef inline void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
 
 
 cdef inline int64_t pydatetime_to_dt64(datetime val,
-                                       npy_datetimestruct *dts):
+                                       npy_datetimestruct *dts,
+                                       NPY_DATETIMEUNIT reso=NPY_FR_ns):
     """
     Note we are assuming that the datetime object is timezone-naive.
     """
     pydatetime_to_dtstruct(val, dts)
-    return dtstruct_to_dt64(dts)
+    return npy_datetimestruct_to_datetime(reso, dts)
 
 
 cdef inline void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
@@ -263,9 +263,11 @@ cdef inline void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
     dts.ps = dts.as = 0
     return
 
-cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
+cdef inline int64_t pydate_to_dt64(
+    date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=NPY_FR_ns
+):
     pydate_to_dtstruct(val, dts)
-    return dtstruct_to_dt64(dts)
+    return npy_datetimestruct_to_datetime(reso, dts)
 
 
 cdef inline int string_to_dts(
@@ -422,7 +424,6 @@ def compare_mismatched_resolutions(ndarray left, ndarray right, op):
         Py_ssize_t i, N = left.size
         npy_datetimestruct ldts, rdts
 
-
     for i in range(N):
         # Analogous to: lval = lvalues[i]
         lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
@@ -513,7 +514,10 @@ cdef ndarray astype_round_check(
 
 
 @cython.overflowcheck(True)
-cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT to_unit) except? -1:
+cdef int64_t get_conversion_factor(
+    NPY_DATETIMEUNIT from_unit,
+    NPY_DATETIMEUNIT to_unit
+) except? -1:
     """
     Find the factor by which we need to multiply to convert from from_unit to to_unit.
     """

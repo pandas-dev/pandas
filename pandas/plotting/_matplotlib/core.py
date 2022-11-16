@@ -4,7 +4,6 @@ from abc import (
     ABC,
     abstractmethod,
 )
-import inspect
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -21,6 +20,7 @@ import numpy as np
 from pandas._typing import (
     IndexLabel,
     PlottingOrientation,
+    npt,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
@@ -55,7 +55,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+from pandas.plotting._matplotlib import tools
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
@@ -74,7 +74,6 @@ from pandas.plotting._matplotlib.tools import (
     get_all_lines,
     get_xlim,
     handle_shared_axes,
-    table,
 )
 
 if TYPE_CHECKING:
@@ -138,7 +137,6 @@ class MPLPlot(ABC):
         yticks=None,
         xlabel: Hashable | None = None,
         ylabel: Hashable | None = None,
-        sort_columns: bool = False,
         fontsize=None,
         secondary_y: bool | tuple | list | np.ndarray = False,
         colormap=None,
@@ -184,7 +182,6 @@ class MPLPlot(ABC):
 
         self.kind = kind
 
-        self.sort_columns = sort_columns
         self.subplots = self._validate_subplots_kwarg(subplots)
 
         if sharex is None:
@@ -259,7 +256,7 @@ class MPLPlot(ABC):
         # Probably better to accept either.
         if "cmap" in kwds and colormap:
             raise TypeError("Only specify one of `cmap` and `colormap`.")
-        elif "cmap" in kwds:
+        if "cmap" in kwds:
             self.colormap = kwds.pop("cmap")
         else:
             self.colormap = colormap
@@ -360,16 +357,15 @@ class MPLPlot(ABC):
                 raise ValueError(
                     f"Column label(s) {list(bad_labels)} not found in the DataFrame."
                 )
-            else:
-                unique_columns = set(group)
-                duplicates = seen_columns.intersection(unique_columns)
-                if duplicates:
-                    raise ValueError(
-                        "Each column should be in only one subplot. "
-                        f"Columns {duplicates} were found in multiple subplots."
-                    )
-                seen_columns = seen_columns.union(unique_columns)
-                out.append(tuple(idx_locs))
+            unique_columns = set(group)
+            duplicates = seen_columns.intersection(unique_columns)
+            if duplicates:
+                raise ValueError(
+                    "Each column should be in only one subplot. "
+                    f"Columns {duplicates} were found in multiple subplots."
+                )
+            seen_columns = seen_columns.union(unique_columns)
+            out.append(tuple(idx_locs))
 
         unseen_columns = columns.difference(seen_columns)
         for column in unseen_columns:
@@ -400,7 +396,7 @@ class MPLPlot(ABC):
         ) and self.colormap is not None:
             warnings.warn(
                 "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         if "color" in self.kwds and self.style is not None:
@@ -417,7 +413,7 @@ class MPLPlot(ABC):
                         "other or pass 'style' without a color symbol"
                     )
 
-    def _iter_data(self, data=None, keep_index=False, fillna=None):
+    def _iter_data(self, data=None, keep_index: bool = False, fillna=None):
         if data is None:
             data = self.data
         if fillna is not None:
@@ -648,7 +644,7 @@ class MPLPlot(ABC):
         else:
             data = self.table
         ax = self._get_ax(0)
-        table(ax, data)
+        tools.table(ax, data)
 
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
@@ -670,7 +666,6 @@ class MPLPlot(ABC):
 
     def _post_plot_logic(self, ax, data) -> None:
         """Post process for each axes. Overridden in child classes"""
-        pass
 
     def _adorn_subplots(self):
         """Common post process unrelated to data"""
@@ -911,7 +906,7 @@ class MPLPlot(ABC):
         return name
 
     @classmethod
-    def _get_ax_layer(cls, ax, primary=True):
+    def _get_ax_layer(cls, ax, primary: bool = True):
         """get left (primary) or right (secondary) axes"""
         if primary:
             return getattr(ax, "left_ax", ax)
@@ -987,7 +982,11 @@ class MPLPlot(ABC):
                 kwds["color"] = colors[col_num % len(colors)]
         return style, kwds
 
-    def _get_colors(self, num_colors=None, color_kwds="color"):
+    def _get_colors(
+        self,
+        num_colors: int | None = None,
+        color_kwds: str = "color",
+    ):
         if num_colors is None:
             num_colors = self.nseries
 
@@ -1087,7 +1086,9 @@ class MPLPlot(ABC):
 
         return err
 
-    def _get_errorbars(self, label=None, index=None, xerr=True, yerr=True):
+    def _get_errorbars(
+        self, label=None, index=None, xerr: bool = True, yerr: bool = True
+    ):
         errors = {}
 
         for kw, flag in zip(["xerr", "yerr"], [xerr, yerr]):
@@ -1179,11 +1180,7 @@ class PlanePlot(MPLPlot, ABC):
         # use the last one which contains the latest information
         # about the ax
         img = ax.collections[-1]
-        with warnings.catch_warnings():
-            # https://github.com/matplotlib/matplotlib/issues/23614
-            # False positive deprecation warning until matplotlib=3.6
-            warnings.filterwarnings("ignore", "Auto-removal of grids")
-            return self.fig.colorbar(img, ax=ax, **kwds)
+        return self.fig.colorbar(img, ax=ax, **kwds)
 
 
 class ScatterPlot(PlanePlot):
@@ -1214,7 +1211,7 @@ class ScatterPlot(PlanePlot):
         color = self.kwds.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
-        elif c is None and color is None:
+        if c is None and color is None:
             c_values = self.plt.rcParams["patch.facecolor"]
         elif color is not None:
             c_values = color
@@ -1225,16 +1222,16 @@ class ScatterPlot(PlanePlot):
         else:
             c_values = c
 
-        # cmap is only used if c_values are integers, otherwise UserWarning
-        if is_integer_dtype(c_values):
-            # pandas uses colormap, matplotlib uses cmap.
-            cmap = self.colormap or "Greys"
-            if mpl_ge_3_6_0():
+        if self.colormap is not None:
+            cmap = mpl.colormaps.get_cmap(self.colormap)
+        else:
+            # cmap is only used if c_values are integers, otherwise UserWarning
+            if is_integer_dtype(c_values):
+                # pandas uses colormap, matplotlib uses cmap.
+                cmap = "Greys"
                 cmap = mpl.colormaps[cmap]
             else:
-                cmap = self.plt.cm.get_cmap(cmap)
-        else:
-            cmap = None
+                cmap = None
 
         if color_by_categorical:
             from matplotlib import colors
@@ -1300,10 +1297,7 @@ class HexBinPlot(PlanePlot):
         ax = self.axes[0]
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "BuGn"
-        if mpl_ge_3_6_0():
-            cmap = mpl.colormaps[cmap]
-        else:
-            cmap = self.plt.cm.get_cmap(cmap)
+        cmap = mpl.colormaps.get_cmap(cmap)
         cb = self.kwds.pop("colorbar", True)
 
         if C is None:
@@ -1645,7 +1639,14 @@ class BarPlot(MPLPlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax: Axes, x, y, w, start=0, log=False, **kwds
+        cls,
+        ax: Axes,
+        x,
+        y,
+        w,
+        start: int | npt.NDArray[np.intp] = 0,
+        log: bool = False,
+        **kwds,
     ):
         return ax.bar(x, y, w, bottom=start, log=log, **kwds)
 
@@ -1654,8 +1655,6 @@ class BarPlot(MPLPlot):
         return self.bottom
 
     def _make_plot(self) -> None:
-        import matplotlib as mpl
-
         colors = self._get_colors()
         ncolors = len(colors)
 
@@ -1771,7 +1770,14 @@ class BarhPlot(BarPlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax: Axes, x, y, w, start=0, log=False, **kwds
+        cls,
+        ax: Axes,
+        x,
+        y,
+        w,
+        start: int | npt.NDArray[np.intp] = 0,
+        log: bool = False,
+        **kwds,
     ):
         return ax.barh(x, y, w, left=start, log=log, **kwds)
 

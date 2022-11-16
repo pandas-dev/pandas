@@ -764,17 +764,6 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(df, expected.astype(object))
 
 
-def test_where_try_cast_deprecated(frame_or_series):
-    obj = DataFrame(np.random.randn(4, 3))
-    obj = tm.get_obj(obj, frame_or_series)
-
-    mask = obj > 0
-
-    with tm.assert_produces_warning(FutureWarning):
-        # try_cast keyword deprecated
-        obj.where(mask, -1, try_cast=False)
-
-
 def test_where_int_downcasting_deprecated():
     # GH#44597
     arr = np.arange(6).astype(np.int16).reshape(3, 2)
@@ -872,20 +861,6 @@ def test_where_duplicate_axes_mixed_dtypes():
     tm.assert_frame_equal(a.astype("f8"), b.astype("f8"))
     tm.assert_frame_equal(b.astype("f8"), c.astype("f8"))
     tm.assert_frame_equal(c.astype("f8"), d.astype("f8"))
-
-
-def test_where_non_keyword_deprecation(frame_or_series):
-    # GH 41485
-    obj = frame_or_series(range(5))
-    msg = (
-        "In a future version of pandas all arguments of "
-        f"{frame_or_series.__name__}.where except for the arguments 'cond' "
-        "and 'other' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = obj.where(obj > 1, 10, False)
-    expected = frame_or_series([10, 10, 2, 3, 4])
-    tm.assert_equal(expected, result)
 
 
 def test_where_columns_casting():
@@ -1032,20 +1007,6 @@ def test_where_dt64_2d():
     mask[:] = True
     expected = df
     _check_where_equivalences(df, mask, other, expected)
-
-
-def test_where_mask_deprecated(frame_or_series):
-    # GH 47728
-    obj = DataFrame(np.random.randn(4, 3))
-    obj = tm.get_obj(obj, frame_or_series)
-
-    mask = obj > 0
-
-    with tm.assert_produces_warning(FutureWarning):
-        obj.where(mask, -1, errors="raise")
-
-    with tm.assert_produces_warning(FutureWarning):
-        obj.mask(mask, -1, errors="raise")
 
 
 def test_where_producing_ea_cond_for_np_dtype():

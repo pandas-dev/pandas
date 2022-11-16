@@ -5,12 +5,10 @@ on:
     branches:
       - main
       - 1.5.x
-      - 1.4.x
   pull_request:
     branches:
       - main
       - 1.5.x
-      - 1.4.x
     types: [labeled, opened, synchronize, reopened]
     paths-ignore:
       - "doc/**"
@@ -30,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{matrix.python-version}}-sdist
@@ -42,7 +40,7 @@ jobs:
         fetch-depth: 0
 
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -86,6 +84,8 @@ jobs:
           pip install numpy==1.20.3 ;;
         3.10)
           pip install numpy==1.21.2 ;;
+        3.11)
+          pip install numpy==1.23.2 ;;
         esac
 
     - name: Import pandas
