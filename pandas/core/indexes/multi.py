@@ -3284,34 +3284,18 @@ class MultiIndex(Index):
                         if not is_hashable(x):
                             # e.g. slice
                             raise err
-                        try:
-                            item_indexer = self._get_level_indexer(
-                                x, level=i, indexer=indexer
-                            )
-                        except KeyError:
-                            # ignore not founds; see discussion in GH#39424
-                            warnings.warn(
-                                "The behavior of indexing on a MultiIndex with a "
-                                "nested sequence of labels is deprecated and will "
-                                "change in a future version. "
-                                "`series.loc[label, sequence]` will raise if any "
-                                "members of 'sequence' or not present in "
-                                "the index's second level. To retain the old "
-                                "behavior, use `series.index.isin(sequence, level=1)`",
-                                # TODO: how to opt in to the future behavior?
-                                # TODO: how to handle IntervalIndex level?
-                                #  (no test cases)
-                                FutureWarning,
-                                stacklevel=find_stack_level(),
-                            )
-                            continue
+                        # GH 39424: Ignore not founds
+                        # GH 42351: No longer ignore not founds & enforced in 2.0
+                        # TODO: how to handle IntervalIndex level? (no test cases)
+                        item_indexer = self._get_level_indexer(
+                            x, level=i, indexer=indexer
+                        )
+                        if lvl_indexer is None:
+                            lvl_indexer = _to_bool_indexer(item_indexer)
+                        elif isinstance(item_indexer, slice):
+                            lvl_indexer[item_indexer] = True  # type: ignore[index]
                         else:
-                            if lvl_indexer is None:
-                                lvl_indexer = _to_bool_indexer(item_indexer)
-                            elif isinstance(item_indexer, slice):
-                                lvl_indexer[item_indexer] = True  # type: ignore[index]
-                            else:
-                                lvl_indexer |= item_indexer
+                            lvl_indexer |= item_indexer
 
                 if lvl_indexer is None:
                     # no matches we are done

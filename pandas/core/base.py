@@ -61,11 +61,6 @@ from pandas.core import (
     ops,
 )
 from pandas.core.accessor import DirNamesMixin
-from pandas.core.algorithms import (
-    duplicated,
-    unique1d,
-    value_counts,
-)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import (
@@ -991,7 +986,7 @@ class IndexOpsMixin(OpsMixin):
         NaN    1
         dtype: int64
         """
-        return value_counts(
+        return algorithms.value_counts(
             self,
             sort=sort,
             ascending=ascending,
@@ -1006,7 +1001,7 @@ class IndexOpsMixin(OpsMixin):
             # i.e. ExtensionArray
             result = values.unique()
         else:
-            result = unique1d(values)
+            result = algorithms.unique1d(values)
         return result
 
     @final
@@ -1292,7 +1287,7 @@ class IndexOpsMixin(OpsMixin):
 
     @final
     def _duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
-        return duplicated(self._values, keep=keep)
+        return algorithms.duplicated(self._values, keep=keep)
 
     def _arith_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)

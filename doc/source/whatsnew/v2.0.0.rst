@@ -72,7 +72,7 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_200.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_200.notable_bug_fixes.cumsum_cumprod_overflow:
 
 :meth:`.GroupBy.cumsum` and :meth:`.GroupBy.cumprod` overflow instead of lossy casting to float
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -102,10 +102,58 @@ We return incorrect results with the 6th value.
 
 We overflow with the 7th value, but the 6th value is still correct.
 
-.. _whatsnew_200.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_200.notable_bug_fixes.groupby_nth_filter:
 
-notable_bug_fix2
-^^^^^^^^^^^^^^^^
+:meth:`.DataFrameGroupBy.nth` and :meth:`.SeriesGroupBy.nth` now behave as filtrations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions of pandas, :meth:`.DataFrameGroupBy.nth` and
+:meth:`.SeriesGroupBy.nth` acted as if they were aggregations. However, for most
+inputs ``n``, they may return either zero or multiple rows per group. This means
+that they are filtrations, similar to e.g. :meth:`.DataFrameGroupBy.head`. pandas
+now treats them as filtrations (:issue:`13666`).
+
+.. ipython:: python
+
+    df = pd.DataFrame({"a": [1, 1, 2, 1, 2], "b": [np.nan, 2.0, 3.0, 4.0, 5.0]})
+    gb = df.groupby("a")
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [5]: gb.nth(n=1)
+    Out[5]:
+       A    B
+    1  1  2.0
+    4  2  5.0
+
+*New Behavior*
+
+.. ipython:: python
+
+    gb.nth(n=1)
+
+In particular, the index of the result is derived from the input by selecting
+the appropriate rows. Also, when ``n`` is larger than the group, no rows instead of
+``NaN`` is returned.
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [5]: gb.nth(n=3, dropna="any")
+    Out[5]:
+        B
+    A
+    1 NaN
+    2 NaN
+
+*New Behavior*
+
+.. ipython:: python
+
+    gb.nth(n=3, dropna="any")
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.api_breaking:
@@ -421,6 +469,7 @@ Removal of prior version deprecations/changes
 - Removed :meth:`.Rolling.validate`, :meth:`.Expanding.validate`, and :meth:`.ExponentialMovingWindow.validate` (:issue:`43665`)
 - Removed :attr:`Rolling.win_type` returning ``"freq"`` (:issue:`38963`)
 - Removed :attr:`Rolling.is_datetimelike` (:issue:`38963`)
+- Removed the ``level`` keyword in :class:`DataFrame` and :class:`Series` aggregations; use ``groupby`` instead (:issue:`39983`)
 - Removed deprecated :meth:`Timedelta.delta`, :meth:`Timedelta.is_populated`, and :attr:`Timedelta.freq` (:issue:`46430`, :issue:`46476`)
 - Removed deprecated :attr:`NaT.freq` (:issue:`45071`)
 - Removed deprecated :meth:`Categorical.replace`, use :meth:`Series.replace` instead (:issue:`44929`)
@@ -452,6 +501,7 @@ Removal of prior version deprecations/changes
 - Enforced disallowing using ``usecols`` with out of bounds indices for ``read_csv`` with ``engine="c"`` (:issue:`25623`)
 - Enforced disallowing the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
 - Enforced disallowing a tuple of column labels into :meth:`.DataFrameGroupBy.__getitem__` (:issue:`30546`)
+- Enforced disallowing missing labels when indexing with a sequence of labels on a level of a :class:`MultiIndex`. This now raises a ``KeyError`` (:issue:`42351`)
 - Enforced disallowing setting values with ``.loc`` using a positional slice. Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
 - Enforced disallowing positional indexing with a ``float`` key even if that key is a round number, manually cast to integer instead (:issue:`34193`)
 - Enforced disallowing using a :class:`DataFrame` indexer with ``.iloc``, use ``.loc`` instead for automatic alignment (:issue:`39022`)
@@ -492,6 +542,7 @@ Removal of prior version deprecations/changes
 - Changed behavior of :class:`Index` constructor when passed a ``SparseArray`` or ``SparseDtype`` to retain that dtype instead of casting to ``numpy.ndarray`` (:issue:`43930`)
 - Changed behavior of setitem-like operations (``__setitem__``, ``fillna``, ``where``, ``mask``, ``replace``, ``insert``, fill_value for ``shift``) on an object with :class:`DatetimeTZDtype` when using a value with a non-matching timezone, the value will be cast to the object's timezone instead of casting both to object-dtype (:issue:`44243`)
 - Changed behavior of :class:`Index`, :class:`Series`, :class:`DataFrame` constructors with floating-dtype data and a :class:`DatetimeTZDtype`, the data are now interpreted as UTC-times instead of wall-times, consistent with how integer-dtype data are treated (:issue:`45573`)
+- Changed behavior of :class:`Series` and :class:`DataFrame` constructors with integer dtype and floating-point data containing ``NaN``, this now raises ``IntCastingNaNError`` (:issue:`40110`)
 - Removed the deprecated ``base`` and ``loffset`` arguments from :meth:`pandas.DataFrame.resample`, :meth:`pandas.Series.resample` and :class:`pandas.Grouper`. Use ``offset`` or ``origin`` instead (:issue:`31809`)
 - Changed behavior of :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtype and an incompatible ``fill_value``; this now casts to ``object`` dtype instead of raising, consistent with the behavior with other dtypes (:issue:`45746`)
 - Change the default argument of ``regex`` for :meth:`Series.str.replace` from ``True`` to ``False``. Additionally, a single character ``pat`` with ``regex=True`` is now treated as a regular expression instead of a string literal. (:issue:`36695`, :issue:`24804`)
@@ -504,6 +555,8 @@ Removal of prior version deprecations/changes
 - Removed ``na_sentinel`` argument from :func:`factorize`, :meth:`.Index.factorize`, and :meth:`.ExtensionArray.factorize` (:issue:`47157`)
 - Changed behavior of :meth:`DataFrameGroupBy.apply` and :meth:`SeriesGroupBy.apply` so that ``group_keys`` is respected even if a transformer is detected (:issue:`34998`)
 - Enforced deprecation ``numeric_only=None`` (the default) in DataFrame reductions that would silently drop columns that raised; ``numeric_only`` now defaults to ``False`` (:issue:`41480`)
+- Changed default of ``numeric_only`` to ``False`` in all DataFrame methods with that argument (:issue:`46096`, :issue:`46906`)
+- Changed default of ``numeric_only`` to ``False`` in :meth:`Series.rank` (:issue:`47561`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -609,6 +662,7 @@ Missing
 - Bug in :meth:`Index.equals` raising ``TypeError`` when :class:`Index` consists of tuples that contain ``NA`` (:issue:`48446`)
 - Bug in :meth:`Series.map` caused incorrect result when data has NaNs and defaultdict mapping was used (:issue:`48813`)
 - Bug in :class:`NA` raising a ``TypeError`` instead of return :class:`NA` when performing a binary operation with a ``bytes`` object (:issue:`49108`)
+- Bug in :meth:`DataFrame.update` with ``overwrite=False`` raising ``TypeError`` when ``self`` has column with ``NaT`` values and column not present in ``other`` (:issue:`16713`)
 
 MultiIndex
 ^^^^^^^^^^
