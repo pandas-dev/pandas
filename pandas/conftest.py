@@ -62,6 +62,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    compat,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -79,7 +80,7 @@ else:
     has_pyarrow = True
 
 zoneinfo = None
-if pd.compat.PY39:
+if compat.PY39:
     # Import "zoneinfo" could not be resolved (reportMissingImports)
     import zoneinfo  # type: ignore[no-redef]
 

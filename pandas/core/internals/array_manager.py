@@ -96,7 +96,7 @@ from pandas.core.internals.blocks import (
 )
 
 if TYPE_CHECKING:
-    from pandas import Float64Index
+    from pandas.core.api import Float64Index
 
 
 T = TypeVar("T", bound="BaseArrayManager")
