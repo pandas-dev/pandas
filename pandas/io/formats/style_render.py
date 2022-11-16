@@ -184,17 +184,7 @@ class StylerRenderer:
             for (r, c), v in concatenated.ctx_index.items():
                 self.ctx_index[(r + ctx_len, c)] = v
 
-            ctx_len += (
-                max(
-                    max(r for r, c in concatenated.ctx.keys())
-                    if concatenated.ctx.keys()
-                    else -1,
-                    max(r for r, c in concatenated.ctx_index.keys())
-                    if concatenated.ctx_index.keys()
-                    else -1,
-                )
-                + 1
-            )
+            ctx_len += len(concatenated.index)
 
         d = self._translate(
             sparse_index, sparse_columns, max_rows, max_cols, blank, dxs
