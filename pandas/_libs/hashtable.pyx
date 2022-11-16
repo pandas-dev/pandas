@@ -79,7 +79,7 @@ cdef class ObjectFactorizer(Factorizer):
         self.uniques = ObjectVector()
 
     def factorize(
-        self, ndarray[object] values, na_sentinel=-1, na_value=None
+        self, ndarray[object] values, na_sentinel=-1, na_value=None, mask=None
     ) -> np.ndarray:
         """
 
@@ -97,6 +97,9 @@ cdef class ObjectFactorizer(Factorizer):
         """
         cdef:
             ndarray[intp_t] labels
+
+        if mask is None:
+            raise NotImplementedError("mask not supported for ObjectFactorizer.")
 
         if self.uniques.external_view_exists:
             uniques = ObjectVector()

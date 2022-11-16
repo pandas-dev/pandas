@@ -112,6 +112,8 @@ cdef class Factorizer:
     def get_count(self) -> int:
         return self.count
 
+    def factorize(self, values, na_sentinel=-1, na_value=None, mask=None) -> np.ndarray:
+        raise NotImplementedError
 
 {{py:
 
