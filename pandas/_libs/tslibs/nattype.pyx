@@ -1,7 +1,3 @@
-import warnings
-
-from pandas.util._exceptions import find_stack_level
-
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
@@ -128,14 +124,7 @@ cdef class _NaT(datetime):
                 return False
             if op == Py_NE:
                 return True
-            warnings.warn(
-                "Comparison of NaT with datetime.date is deprecated in "
-                "order to match the standard library behavior. "
-                "In a future version these will be considered non-comparable.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            return False
+            raise TypeError("Cannot compare NaT with datetime.date object")
 
         return NotImplemented
 
@@ -374,15 +363,6 @@ class NaTType(_NaT):
 
         return base
 
-    @property
-    def freq(self):
-        warnings.warn(
-            "NaT.freq is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return None
-
     def __reduce_ex__(self, protocol):
         # python 3.6 compat
         # https://bugs.python.org/issue28730
@@ -566,12 +546,17 @@ class NaTType(_NaT):
         """
         Timestamp.utcfromtimestamp(ts)
 
-        Construct a naive UTC datetime from a POSIX timestamp.
+        Construct a timezone-aware UTC datetime from a POSIX timestamp.
+
+        Notes
+        -----
+        Timestamp.utcfromtimestamp behavior differs from datetime.utcfromtimestamp
+        in returning a timezone-aware object.
 
         Examples
         --------
         >>> pd.Timestamp.utcfromtimestamp(1584199972)
-        Timestamp('2020-03-14 15:32:52')
+        Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
         """,
     )
     fromtimestamp = _make_error_func(
@@ -1209,6 +1194,22 @@ default 'raise'
     @property
     def tzinfo(self) -> None:
         return None
+
+    def as_unit(self, str unit, bint round_ok=True) -> "NaTType":
+        """
+        Convert the underlying int64 representaton to the given unit.
+
+        Parameters
+        ----------
+        unit : {"ns", "us", "ms", "s"}
+        round_ok : bool, default True
+            If False and the conversion requires rounding, raise.
+
+        Returns
+        -------
+        Timestamp
+        """
+        return c_NaT
 
 
 c_NaT = NaTType()  # C-visible

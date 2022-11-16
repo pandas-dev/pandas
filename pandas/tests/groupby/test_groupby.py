@@ -915,11 +915,13 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
 
     grouped = df.groupby("A")
 
-    if agg_function in ("var", "std", "sem") and numeric_only is False:
+    no_drop_nuisance = ("var", "std", "sem", "mean", "prod", "median")
+    if agg_function in no_drop_nuisance and numeric_only is False:
         # Added numeric_only as part of GH#46560; these do not drop nuisance
         # columns when numeric_only is False
-        klass = TypeError if agg_function == "var" else ValueError
-        with pytest.raises(klass, match="could not convert string to float"):
+        klass = ValueError if agg_function in ("std", "sem") else TypeError
+        msg = "|".join(["[C|c]ould not convert", "can't multiply sequence"])
+        with pytest.raises(klass, match=msg):
             getattr(grouped, agg_function)(numeric_only=numeric_only)
     else:
         if numeric_only is lib.no_default:
@@ -1093,10 +1095,6 @@ def test_groupby_complex():
     expected = Series((1 + 2j, 5 + 10j))
 
     result = a.groupby(level=0).sum()
-    tm.assert_series_equal(result, expected)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = a.sum(level=0)
     tm.assert_series_equal(result, expected)
 
 
@@ -2053,10 +2051,13 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
             and isinstance(values, Categorical)
             and len(keys) == 1
         ):
+            if op in ("min", "max"):
+                with pytest.raises(TypeError, match="Categorical is not ordered"):
+                    get_result()
+                return
             # Categorical doesn't implement, so with numeric_only=True
             #  these are dropped and we get an empty DataFrame back
             result = get_result()
-            expected = df.set_index(keys)[[]]
 
             # with numeric_only=True, these are dropped, and we get
             # an empty DataFrame back

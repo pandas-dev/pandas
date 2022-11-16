@@ -388,7 +388,7 @@ class TestTake:
 class TestGetLoc:
     def test_get_loc_key_unit_mismatch(self):
         idx = date_range("2000-01-01", periods=3)
-        key = idx[1]._as_unit("ms")
+        key = idx[1].as_unit("ms")
         loc = idx.get_loc(key)
         assert loc == 1
         assert key in idx
@@ -396,7 +396,7 @@ class TestGetLoc:
     def test_get_loc_key_unit_mismatch_not_castable(self):
         dta = date_range("2000-01-01", periods=3)._data.astype("M8[s]")
         dti = DatetimeIndex(dta)
-        key = dta[0]._as_unit("ns") + pd.Timedelta(1)
+        key = dta[0].as_unit("ns") + pd.Timedelta(1)
 
         with pytest.raises(
             KeyError, match=r"Timestamp\('2000-01-01 00:00:00.000000001'\)"
@@ -718,11 +718,13 @@ class TestGetSliceBounds:
         index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz)
         key = box(year=2000, month=1, day=7)
 
-        warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn):
-            # GH#36148 will require tzawareness-compat
+        if tz is not None:
+            with pytest.raises(TypeError, match="Cannot compare tz-naive"):
+                # GH#36148 we require tzawareness-compat as of 2.0
+                index.get_slice_bound(key, side=side)
+        else:
             result = index.get_slice_bound(key, side=side)
-        assert result == expected
+            assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     @pytest.mark.parametrize("side", ["left", "right"])
@@ -735,11 +737,13 @@ class TestGetSliceBounds:
         index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz)
         key = box(year=year, month=1, day=7)
 
-        warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn):
-            # GH#36148 will require tzawareness-compat
+        if tz is not None:
+            with pytest.raises(TypeError, match="Cannot compare tz-naive"):
+                # GH#36148 we require tzawareness-compat as of 2.0
+                index.get_slice_bound(key, side=side)
+        else:
             result = index.get_slice_bound(key, side=side)
-        assert result == expected
+            assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     def test_slice_datetime_locs(self, box, tz_aware_fixture):
@@ -748,12 +752,14 @@ class TestGetSliceBounds:
         index = DatetimeIndex(["2010-01-01", "2010-01-03"]).tz_localize(tz)
         key = box(2010, 1, 1)
 
-        warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn):
-            # GH#36148 will require tzawareness-compat
+        if tz is not None:
+            with pytest.raises(TypeError, match="Cannot compare tz-naive"):
+                # GH#36148 we require tzawareness-compat as of 2.0
+                index.slice_locs(key, box(2010, 1, 2))
+        else:
             result = index.slice_locs(key, box(2010, 1, 2))
-        expected = (0, 1)
-        assert result == expected
+            expected = (0, 1)
+            assert result == expected
 
 
 class TestIndexerBetweenTime:

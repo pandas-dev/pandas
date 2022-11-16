@@ -112,13 +112,13 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import (
+    algorithms,
     nanops,
     ops,
 )
 from pandas.core.algorithms import (
     checked_add_with_arr,
     isin,
-    mode,
     unique1d,
 )
 from pandas.core.arraylike import OpsMixin
@@ -600,7 +600,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         value,
         *,
         allow_listlike: bool = False,
-        setitem: bool = True,
         unbox: bool = True,
     ):
         """
@@ -612,8 +611,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         allow_listlike: bool, default False
             When raising an exception, whether the message should say
             listlike inputs are allowed.
-        setitem : bool, default True
-            Whether to check compatibility with setitem strictness.
         unbox : bool, default True
             Whether to unbox the result before returning.  Note: unbox=False
             skips the setitem compatibility check.
@@ -735,14 +732,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return value
 
-    def _validate_searchsorted_value(self, value):
-        if not is_list_like(value):
-            return self._validate_scalar(value, allow_listlike=True, setitem=False)
-        else:
-            value = self._validate_listlike(value)
-
-        return self._unbox(value)
-
     def _validate_setitem_value(self, value):
         if is_list_like(value):
             value = self._validate_listlike(value)
@@ -827,7 +816,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if self.dtype.kind in ["m", "M"]:
             self = cast("DatetimeArray | TimedeltaArray", self)
-            values = values._as_unit(self._unit)
+            values = values.as_unit(self.unit)
 
         try:
             self._check_compatible_with(values)
@@ -1127,7 +1116,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # i.e. np.datetime64("NaT")
             # In this case we specifically interpret NaT as a datetime, not
             # the timedelta interpretation we would get by returning self + NaT
-            result = self._ndarray + NaT.to_datetime64().astype(f"M8[{self._unit}]")
+            result = self._ndarray + NaT.to_datetime64().astype(f"M8[{self.unit}]")
             # Preserve our resolution
             return DatetimeArray._simple_new(result, dtype=result.dtype)
 
@@ -1139,10 +1128,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result = checked_add_with_arr(
             self.asi8, other_i8, arr_mask=self._isnan, b_mask=o_mask
         )
-        res_values = result.view(f"M8[{self._unit}]")
+        res_values = result.view(f"M8[{self.unit}]")
 
-        dtype = tz_to_dtype(tz=other.tz, unit=self._unit)
-        res_values = result.view(f"M8[{self._unit}]")
+        dtype = tz_to_dtype(tz=other.tz, unit=self.unit)
+        res_values = result.view(f"M8[{self.unit}]")
         new_freq = self._get_arithmetic_result_freq(other)
         return DatetimeArray._simple_new(res_values, dtype=dtype, freq=new_freq)
 
@@ -1202,7 +1191,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         res_values = checked_add_with_arr(
             self.asi8, -other_i8, arr_mask=self._isnan, b_mask=o_mask
         )
-        res_m8 = res_values.view(f"timedelta64[{self._unit}]")
+        res_m8 = res_values.view(f"timedelta64[{self.unit}]")
 
         new_freq = self._get_arithmetic_result_freq(other)
         return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=new_freq)
@@ -1363,13 +1352,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # Caller is responsible for broadcasting if necessary
         assert self.shape == other.shape, (self.shape, other.shape)
 
-        with warnings.catch_warnings():
-            # filter out warnings about Timestamp.freq
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            res_values = op(self.astype("O"), np.asarray(other))
+        res_values = op(self.astype("O"), np.asarray(other))
 
-        result = pd_array(res_values.ravel())
-        result = extract_array(result, extract_numpy=True).reshape(self.shape)
+        ext_arr = pd_array(res_values.ravel())
+        result = cast(np.ndarray, extract_array(ext_arr, extract_numpy=True))
+        result = result.reshape(self.shape)
         return result
 
     def _time_shift(
@@ -1704,7 +1691,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if dropna:
             mask = self.isna()
 
-        i8modes = mode(self.view("i8"), mask=mask)
+        i8modes = algorithms.mode(self.view("i8"), mask=mask)
         npmodes = i8modes.view(self._ndarray.dtype)
         npmodes = cast(np.ndarray, npmodes)
         return self._from_backing_data(npmodes)
@@ -2003,13 +1990,13 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return get_unit_from_dtype(self._ndarray.dtype)
 
     @cache_readonly
-    def _unit(self) -> str:
+    def unit(self) -> str:
         # e.g. "ns", "us", "ms"
         # error: Argument 1 to "dtype_to_unit" has incompatible type
         # "ExtensionDtype"; expected "Union[DatetimeTZDtype, dtype[Any]]"
         return dtype_to_unit(self.dtype)  # type: ignore[arg-type]
 
-    def _as_unit(self: TimelikeOpsT, unit: str) -> TimelikeOpsT:
+    def as_unit(self: TimelikeOpsT, unit: str) -> TimelikeOpsT:
         dtype = np.dtype(f"{self.dtype.kind}8[{unit}]")
         new_values = astype_overflowsafe(self._ndarray, dtype, round_ok=True)
 
@@ -2031,9 +2018,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if self._creso != other._creso:
             # Just as with Timestamp/Timedelta, we cast to the higher resolution
             if self._creso < other._creso:
-                self = self._as_unit(other._unit)
+                self = self.as_unit(other.unit)
             else:
-                other = other._as_unit(self._unit)
+                other = other.as_unit(self.unit)
         return self, other
 
     # --------------------------------------------------------------
@@ -2144,10 +2131,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     # --------------------------------------------------------------
 
-    # GH#46910 - Keep old signature to test we don't break things for EA library authors
-    def factorize(  # type:ignore[override]
+    def factorize(
         self,
-        na_sentinel: int = -1,
+        use_na_sentinel: bool = True,
         sort: bool = False,
     ):
         if self.freq is not None:
@@ -2159,7 +2145,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 uniques = uniques[::-1]
             return codes, uniques
         # FIXME: shouldn't get here; we are ignoring sort
-        return super().factorize(na_sentinel=na_sentinel)
+        return super().factorize(use_na_sentinel=use_na_sentinel)
 
 
 # -------------------------------------------------------------------

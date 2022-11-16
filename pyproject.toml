@@ -59,8 +59,8 @@ exclude = '''
 max-line-length = 88
 disable = [
   "abstract-class-instantiated",
+  "c-extension-no-member",
   "import-error",
-  "invalid-repr-returned",
   "invalid-unary-operand-type",
   "no-member",
   "no-name-in-module",
@@ -75,7 +75,6 @@ disable = [
   "unsubscriptable-object",
   "unsupported-assignment-operation",
   "unsupported-membership-test",
-  "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
   "import-outside-toplevel",
@@ -94,16 +93,11 @@ disable = [
   "unneeded-not",
   "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
-  "use-sequence-for-iteration",
-  "useless-import-alias",
   "wrong-import-order",
   "wrong-import-position",
 
   # pylint type "R": refactor, for bad code smell
-  "chained-comparison",
   "comparison-with-itself",
-  "consider-merging-isinstance",
-  "consider-using-min-builtin",
   "consider-using-ternary",
   "consider-using-with",
   "cyclic-import",
@@ -122,9 +116,7 @@ disable = [
   "too-many-public-methods",
   "too-many-return-statements",
   "too-many-statements",
-  "unnecessary-comprehension",
   "unnecessary-list-index-lookup",
-  "useless-option-value",
 
   # pylint type "W": warning, for python specific problems
   "abstract-method",
@@ -142,7 +134,6 @@ disable = [
   "fixme",
   "global-statement",
   "global-variable-not-assigned",
-  "import-self",
   "invalid-envvar-default",
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
@@ -156,7 +147,6 @@ disable = [
   "raise-missing-from",
   "redefined-builtin",
   "redefined-outer-name",
-  "reimported",
   "self-assigning-variable",
   "self-cls-assignment",
   "signature-differs",
@@ -170,7 +160,6 @@ disable = [
   "unused-import",
   "unused-variable",
   "using-constant-test",
-  "useless-else-on-loop",
   "useless-parent-delegation"
 ]
 
