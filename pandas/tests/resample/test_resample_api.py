@@ -821,8 +821,8 @@ def test_end_and_end_day_origin(
         ("sum", False, {"cat": ["cat_1cat_2"], "num": [25]}),
         ("sum", lib.no_default, {"num": [25]}),
         ("prod", True, {"num": [100]}),
-        ("prod", False, {"num": [100]}),
-        ("prod", lib.no_default, {"num": [100]}),
+        ("prod", False, "can't multiply sequence"),
+        ("prod", lib.no_default, "can't multiply sequence"),
         ("min", True, {"num": [5]}),
         ("min", False, {"cat": ["cat_1"], "num": [5]}),
         ("min", lib.no_default, {"cat": ["cat_1"], "num": [5]}),
@@ -836,10 +836,10 @@ def test_end_and_end_day_origin(
         ("last", False, {"cat": ["cat_2"], "num": [20]}),
         ("last", lib.no_default, {"cat": ["cat_2"], "num": [20]}),
         ("mean", True, {"num": [12.5]}),
-        ("mean", False, {"num": [12.5]}),
+        ("mean", False, "Could not convert"),
         ("mean", lib.no_default, {"num": [12.5]}),
         ("median", True, {"num": [12.5]}),
-        ("median", False, {"num": [12.5]}),
+        ("median", False, "could not convert"),
         ("median", lib.no_default, {"num": [12.5]}),
         ("std", True, {"num": [10.606601717798213]}),
         ("std", False, "could not convert string to float"),
@@ -876,15 +876,14 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
         msg = (
             f"default value of numeric_only in DataFrameGroupBy.{method} is deprecated"
         )
-    elif method in ("prod", "mean", "median") and numeric_only is not True:
-        warn = FutureWarning
-        msg = f"Dropping invalid columns in DataFrameGroupBy.{method} is deprecated"
     else:
         warn = None
         msg = ""
     with tm.assert_produces_warning(warn, match=msg):
         if isinstance(expected_data, str):
-            klass = TypeError if method == "var" else ValueError
+            klass = (
+                TypeError if method in ("var", "mean", "median", "prod") else ValueError
+            )
             with pytest.raises(klass, match=expected_data):
                 _ = func(**kwargs)
         else:
