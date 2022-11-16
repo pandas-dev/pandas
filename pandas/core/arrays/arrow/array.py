@@ -4,12 +4,15 @@ from typing import (
     TYPE_CHECKING,
     Any,
     TypeVar,
+    cast,
 )
 
 import numpy as np
 
 from pandas._typing import (
+    ArrayLike,
     Dtype,
+    FillnaOptions,
     PositionalIndexer,
     SortKind,
     TakeIndexer,
@@ -20,6 +23,7 @@ from pandas.compat import (
     pa_version_under7p0,
 )
 from pandas.util._decorators import doc
+from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -520,6 +524,44 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return super().dropna()
         else:
             return type(self)(pc.drop_null(self._data))
+
+    @doc(ExtensionArray.fillna)
+    def fillna(
+        self: ArrowExtensionArrayT,
+        value: object | ArrayLike | None = None,
+        method: FillnaOptions | None = None,
+        limit: int | None = None,
+    ) -> ArrowExtensionArrayT:
+
+        value, method = validate_fillna_kwargs(value, method)
+
+        if isinstance(self._data.type, pa.DurationType):
+            # pyarrow complains about duration types:
+            #   ArrowNotImplementedError: Function 'coalesce' has no kernel
+            #   matching input types (duration[ns], duration[ns])
+            pass
+
+        elif method is None and limit is None:
+            if is_array_like(value):
+                value = cast(ArrayLike, value)
+                if len(value) != len(self):
+                    raise ValueError(
+                        f"Length of 'value' does not match. Got ({len(value)}) "
+                        f" expected {len(self)}"
+                    )
+                if not isinstance(value, (pa.Array, pa.ChunkedArray)):
+                    value = pa.array(value, type=self._data.type, from_pandas=True)
+            else:
+                value = pa.scalar(value, type=self._data.type, from_pandas=True)
+            return type(self)(pc.fill_null(self._data, fill_value=value))
+
+        elif method == "pad" and limit is None and not pa_version_under7p0:
+            return type(self)(pc.fill_null_forward(self._data))
+
+        elif method == "backfill" and limit is None and not pa_version_under7p0:
+            return type(self)(pc.fill_null_backward(self._data))
+
+        return super().fillna(value=value, method=method, limit=limit)
 
     def isin(self, values) -> npt.NDArray[np.bool_]:
         # short-circuit to return all False array.
