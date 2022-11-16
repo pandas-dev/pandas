@@ -4,15 +4,12 @@ Boilerplate functions used in defining binary operations.
 from __future__ import annotations
 
 from functools import wraps
+import sys
 from typing import Callable
 
 from pandas._libs.lib import item_from_zerodim
 from pandas._libs.missing import is_matching_na
 from pandas._typing import F
-from pandas.util._str_methods import (
-    removeprefix,
-    removesuffix,
-)
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -56,7 +53,15 @@ def _unpack_zerodim_and_defer(method, name: str):
     -------
     method
     """
-    stripped_name = removesuffix(removeprefix(name, "__"), "__")
+    if sys.version_info < (3, 9):
+        from pandas.util._str_methods import (
+            removeprefix,
+            removesuffix,
+        )
+
+        stripped_name = removesuffix(removeprefix(name, "__"), "__")
+    else:
+        stripped_name = name.removeprefix("__").removesuffix("__")
     is_cmp = stripped_name in {"eq", "ne", "lt", "le", "gt", "ge"}
 
     @wraps(method)
