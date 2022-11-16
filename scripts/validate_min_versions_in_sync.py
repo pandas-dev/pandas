@@ -24,7 +24,7 @@ CI_PATH = next(
 )
 CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
 SETUP_PATH = pathlib.Path("setup.cfg").resolve()
-EXCLUDE_DEPS = {"tzdata"}
+EXCLUDE_DEPS = {"tzdata", "blosc"}
 # pandas package is not available
 # in pre-commit environment
 sys.path.append("pandas/compat")
@@ -38,10 +38,11 @@ import _optional
 
 
 def get_versions_from_code() -> dict[str, str]:
+    """Min versions for checking within pandas code."""
     install_map = _optional.INSTALL_MAPPING
     versions = _optional.VERSIONS
     for item in EXCLUDE_DEPS:
-        versions.pop(item)
+        versions.pop(item, None)
     return {
         install_map.get(k, k).casefold(): v
         for k, v in versions.items()
@@ -50,6 +51,7 @@ def get_versions_from_code() -> dict[str, str]:
 
 
 def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, str]]:
+    """Min versions in CI job for testing all optional dependencies."""
     # Don't parse with pyyaml because it ignores comments we're looking for
     seen_required = False
     seen_optional = False
@@ -79,6 +81,7 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
 
 
 def get_versions_from_setup() -> dict[str, str]:
+    """Min versions in setup.cfg for pip install pandas[extra]."""
     install_map = _optional.INSTALL_MAPPING
     optional_dependencies = {}
 
@@ -99,7 +102,7 @@ def get_versions_from_setup() -> dict[str, str]:
         optional_dependencies[install_map.get(package, package).casefold()] = version
 
     for item in EXCLUDE_DEPS:
-        optional_dependencies.pop(item)
+        optional_dependencies.pop(item, None)
 
     return optional_dependencies
 
