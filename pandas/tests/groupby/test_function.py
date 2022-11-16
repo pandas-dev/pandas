@@ -1528,8 +1528,10 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
             err_category = TypeError
             err_msg = f"{groupby_func} is not supported for object dtype"
         elif groupby_func == "skew":
-            warn_category = FutureWarning
-            warn_msg = "will raise a TypeError in the future"
+            warn_category = None
+            warn_msg = ""
+            err_category = TypeError
+            err_msg = "Series.skew does not allow numeric_only=True with non-numeric"
         else:
             warn_category = FutureWarning
             warn_msg = "This will raise a TypeError"
