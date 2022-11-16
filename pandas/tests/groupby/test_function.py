@@ -250,7 +250,18 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
-        if method in ("min", "max", "cummin", "cummax", "sum", "cumsum", "prod", "cumprod"):
+        if method in (
+            "min",
+            "max",
+            "cummin",
+            "cummax",
+            "sum",
+            "cumsum",
+            "prod",
+            "cumprod",
+            "mean",
+            "median",
+        ):
             # The methods default to numeric_only=False and raise TypeError
             msg = "|".join(
                 [
@@ -1380,15 +1391,13 @@ def test_deprecate_numeric_only(
     if has_arg and numeric_only:
         result = method(*args, **kwargs)
         assert "b" not in result.columns
-    elif (
+    elif kernel in ("first", "last"):
         # kernels that work on any dtype and have numeric_only arg
-        kernel in ("first", "last")
-        or (
-            # kernels that work on any dtype and don't have numeric_only arg
-            kernel in ("any", "all", "bfill", "ffill", "fillna", "nth", "nunique")
-        )
-    ):
         result = method(*args, **kwargs)
+        assert "b" in result.columns
+    elif kernel in ("any", "all", "bfill", "ffill", "fillna", "nth", "nunique"):
+        # kernels that work on any dtype and don't have numeric_only arg
+        result = method(*args)
         assert "b" in result.columns
     elif has_arg or kernel in ("idxmax", "idxmin"):
         assert not numeric_only
@@ -1411,9 +1420,9 @@ def test_deprecate_numeric_only(
 @pytest.mark.parametrize("dtype", [bool, int, float, object])
 def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
-    if groupby_func in ("backfill", "pad"):
-        pytest.skip("method is deprecated")
-    elif groupby_func == "corrwith":
+    # if groupby_func in ("backfill", "pad"):
+    #     pytest.skip("method is deprecated")
+    if groupby_func == "corrwith":
         msg = "corrwith is not implemented on SeriesGroupBy"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
@@ -1495,8 +1504,8 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         with pytest.raises(TypeError, match=msg):
             method(*args, numeric_only=True)
     elif dtype is object:
-        msg = "asdf"
-        with pytest.raises(TypeError, match=msg):
+        msg = "does not implement numeric_only"
+        with pytest.raises(NotImplementedError, match=msg):
             method(*args, numeric_only=True)
     else:
         result = method(*args, numeric_only=True)
