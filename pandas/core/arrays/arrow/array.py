@@ -535,6 +535,14 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         value, method = validate_fillna_kwargs(value, method)
 
+        if limit is not None:
+            return super().fillna(value=value, method=method, limit=limit)
+
+        if method is not None and pa_version_under7p0:
+            # fill_null_{forward|backward} added in pyarrow 7.0
+            fallback_performancewarning(version="7")
+            return super().fillna(value=value, method=method, limit=limit)
+
         if is_array_like(value):
             value = cast(ArrayLike, value)
             if len(value) != len(self):
@@ -549,29 +557,30 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             if isinstance(value, (pa.Scalar, pa.Array, pa.ChunkedArray)):
                 return value
             if is_array_like(value):
-                func = pa.array
+                pa_box = pa.array
             else:
-                func = pa.scalar
+                pa_box = pa.scalar
             try:
-                value = func(value, type=pa_type, from_pandas=True)
-            except pa.ArrowTypeError:
-                raise TypeError(f"Invalid value '{str(value)}' for dtype {dtype}")
+                value = pa_box(value, type=pa_type, from_pandas=True)
+            except pa.ArrowTypeError as err:
+                msg = f"Invalid value '{str(value)}' for dtype {dtype}"
+                raise TypeError(msg) from err
             return value
 
         fill_value = convert_fill_value(value, self._data.type, self.dtype)
 
         try:
-            if method is None and limit is None:
+            if method is None:
                 return type(self)(pc.fill_null(self._data, fill_value=fill_value))
-            elif method == "pad" and limit is None and not pa_version_under7p0:
+            elif method == "pad":
                 return type(self)(pc.fill_null_forward(self._data))
-            elif method == "backfill" and limit is None and not pa_version_under7p0:
+            elif method == "backfill":
                 return type(self)(pc.fill_null_backward(self._data))
         except pa.ArrowNotImplementedError:
             # ArrowNotImplementedError: Function 'coalesce' has no kernel
             #   matching input types (duration[ns], duration[ns])
-            # TODO: remove this except case if/when pyarrow implements a
-            #   kernel for duration types.
+            # TODO: remove try/except wrapper if/when pyarrow implements
+            #   a kernel for duration types.
             pass
 
         return super().fillna(value=value, method=method, limit=limit)
