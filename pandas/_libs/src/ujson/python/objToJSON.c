@@ -287,8 +287,8 @@ static npy_int64 get_long_attr(PyObject *o, const char *attr) {
 
     Py_DECREF(value);
 
-    if (long_val == NPY_MIN_INT64) {
-        // i.e. o is NaT
+    if (object_is_nat_type(o)) {
+        // i.e. o is NaT, long_val will be NPY_MIN_INT64
         return long_val;
     }
 
