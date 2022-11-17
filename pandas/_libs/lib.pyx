@@ -597,18 +597,17 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
             if PyArray_Check(x) and PyArray_Check(y):
                 if x.shape != y.shape:
                     return False
-                if x.dtype != y.dtype:
-                    return False
-                if x.dtype != object:
+                if x.dtype == y.dtype == object:
+                    if not array_equivalent_object(x, y):
+                        return False
+                else:
                     # Circular import isn't great, but so it goes.
                     # TODO: could use np.array_equal?
                     from pandas.core.dtypes.missing import array_equivalent
 
                     if not array_equivalent(x, y):
                         return False
-                else:
-                    if not array_equivalent_object(x, y):
-                        return False
+
             elif (x is C_NA) ^ (y is C_NA):
                 return False
             elif not (
