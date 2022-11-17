@@ -450,7 +450,8 @@ cpdef array_to_datetime(
     bint yearfirst=False,
     bint utc=False,
     bint require_iso8601=False,
-    bint allow_mixed=False,
+    format: str | None=None,
+    bint exact=True,
 ):
     """
     Converts a 1D array of date-like values to a numpy array of either:
@@ -479,8 +480,6 @@ cpdef array_to_datetime(
          indicator whether the dates should be UTC
     require_iso8601 : bool, default False
          indicator whether the datetime string should be iso8601
-    allow_mixed : bool, default False
-        Whether to allow mixed datetimes and integers.
 
     Returns
     -------
@@ -570,6 +569,16 @@ cpdef array_to_datetime(
                     iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
 
                 elif is_integer_object(val) or is_float_object(val):
+                    if require_iso8601:
+                        if is_coerce:
+                            iresult[i] = NPY_NAT
+                            continue
+                        elif is_raise:
+                            raise ValueError(
+                                f"time data \"{val}\" at position {i} doesn't "
+                                f"match format \"{format}\""
+                            )
+                        return values, tz_out
                     # these must be ns unit by-definition
                     seen_integer = True
 
@@ -600,7 +609,7 @@ cpdef array_to_datetime(
 
                     string_to_dts_failed = string_to_dts(
                         val, &dts, &out_bestunit, &out_local,
-                        &out_tzoffset, False
+                        &out_tzoffset, False, format, exact
                     )
                     if string_to_dts_failed:
                         # An error at this point is a _parsing_ error
@@ -616,7 +625,7 @@ cpdef array_to_datetime(
                             elif is_raise:
                                 raise ValueError(
                                     f"time data \"{val}\" at position {i} doesn't "
-                                    "match format specified"
+                                    f"match format \"{format}\""
                                 )
                             return values, tz_out
 
@@ -714,12 +723,6 @@ cpdef array_to_datetime(
                 val = values[i]
                 if is_integer_object(val) or is_float_object(val):
                     result[i] = NPY_NAT
-        elif allow_mixed:
-            pass
-        elif is_raise:
-            raise ValueError("mixed datetimes and integers in passed array")
-        else:
-            return _array_to_datetime_object(values, errors, dayfirst, yearfirst)
 
     if seen_datetime_offset and not utc_convert:
         # GH#17697
