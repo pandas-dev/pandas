@@ -278,8 +278,8 @@ def _get_hashtable_algo(values: np.ndarray):
     values = _ensure_data(values)
 
     ndtype = _check_object_for_strings(values)
-    htable = _hashtables[ndtype]
-    return htable, values
+    hashtable = _hashtables[ndtype]
+    return hashtable, values
 
 
 def _check_object_for_strings(values: np.ndarray) -> str:
@@ -416,9 +416,9 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
         return values.unique()
 
     original = values
-    htable, values = _get_hashtable_algo(values)
+    hashtable, values = _get_hashtable_algo(values)
 
-    table = htable(len(values))
+    table = hashtable(len(values))
     if mask is None:
         uniques = table.unique(values)
         uniques = _reconstruct_data(uniques, original.dtype, original)
