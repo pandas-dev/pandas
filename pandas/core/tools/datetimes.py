@@ -429,13 +429,8 @@ def _convert_listlike_datetimes(
     if format is None:
         format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
 
-    # There is a special fast-path for iso8601 formatted
-    # datetime strings, so in those cases don't use the inferred
-    # format because this path makes process slower in this
-    # special case
-    if format is not None and format_is_iso(format):
-        require_iso8601 = True
-        format = None
+    # There is a special fast-path for iso8601 formatted datetime strings
+    require_iso8601 = format is not None and format_is_iso(format)
 
     if format is not None and not require_iso8601:
         return _to_datetime_with_format(
