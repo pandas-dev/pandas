@@ -84,7 +84,7 @@ class TestStata:
         assert isinstance(read_df.index, pd.RangeIndex)
         expected = df.copy()
         expected["a"] = expected["a"].astype(np.int32)
-        tm.assert_frame_equal(read_df, expected)
+        tm.assert_frame_equal(read_df, expected, check_index_type=True)
 
     @pytest.mark.parametrize("file", ["stata1_114", "stata1_117"])
     def test_read_dta1(self, file, datapath):
