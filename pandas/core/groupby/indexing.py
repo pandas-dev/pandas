@@ -112,6 +112,7 @@ class GroupByIndexingMixin:
         4  b  5
         """
         if TYPE_CHECKING:
+            # pylint: disable-next=used-before-assignment
             groupby_self = cast(groupby.GroupBy, self)
         else:
             groupby_self = self
@@ -297,7 +298,7 @@ class GroupByNthSelector:
         n: PositionalIndexer | tuple,
         dropna: Literal["any", "all", None] = None,
     ) -> DataFrame | Series:
-        return self.groupby_object.nth_actual(n, dropna)
+        return self.groupby_object._nth(n, dropna)
 
     def __getitem__(self, n: PositionalIndexer | tuple) -> DataFrame | Series:
-        return self.groupby_object.nth_actual(n)
+        return self.groupby_object._nth(n)

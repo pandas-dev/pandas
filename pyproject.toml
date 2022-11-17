@@ -75,7 +75,6 @@ disable = [
   "unsubscriptable-object",
   "unsupported-assignment-operation",
   "unsupported-membership-test",
-  "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
   "import-outside-toplevel",
@@ -91,17 +90,13 @@ disable = [
   "unidiomatic-typecheck",
   "unnecessary-dunder-call",
   "unnecessary-lambda-assignment",
-  "unneeded-not",
   "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
-  "use-sequence-for-iteration",
-  "useless-import-alias",
   "wrong-import-order",
   "wrong-import-position",
 
   # pylint type "R": refactor, for bad code smell
   "comparison-with-itself",
-  "consider-merging-isinstance",
   "consider-using-ternary",
   "consider-using-with",
   "cyclic-import",
