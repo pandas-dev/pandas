@@ -34,7 +34,7 @@ Bug fixes
 
 Other
 ~~~~~
--
+- Reverted ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` in function :meth:`DataFrame.plot.scatter` (:issue:`49732`)
 -
 
 .. ---------------------------------------------------------------------------
