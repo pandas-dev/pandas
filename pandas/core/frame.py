@@ -636,6 +636,18 @@ class DataFrame(NDFrame, OpsMixin):
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
+        if isinstance(data,list) and columns is not None: 
+            len_columns = len(columns)
+            len_data = len(data)
+            if index is None:
+                index=[0]
+            if len_columns > 1:
+                if len_columns == len_data:
+                    dict_data = dict()
+                    for i,j in zip(range(len(columns)),range(len(data))):
+                        dict_data[columns[i]] = data[j]   
+                    data = dict_data  
+                
         if isinstance(data, DataFrame):
             data = data._mgr
 
