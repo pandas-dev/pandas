@@ -1114,5 +1114,5 @@ def test_ops_error_str():
         with pytest.raises(TypeError, match=msg):
             left > right
 
-        assert not left == right
+        assert not left == right  # pylint: disable=unneeded-not
         assert left != right
