@@ -133,18 +133,8 @@ class TestComparison:
         expected = self.elementwise_comparison(op, interval_array, other)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_compare_scalar_na(
-        self, op, interval_array, nulls_fixture, box_with_array, request
-    ):
+    def test_compare_scalar_na(self, op, interval_array, nulls_fixture, box_with_array):
         box = box_with_array
-
-        if box is pd.DataFrame:
-            if interval_array.dtype.subtype.kind not in "iuf":
-                mark = pytest.mark.xfail(
-                    reason="raises on DataFrame.transpose (would be fixed by EA2D)"
-                )
-                request.node.add_marker(mark)
-
         obj = tm.box_expected(interval_array, box)
         result = op(obj, nulls_fixture)
 
