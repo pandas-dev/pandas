@@ -18,6 +18,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.plot` preventing :class:`~matplotlib.colors.Colormap` instance
   from being passed using the ``colormap`` argument if Matplotlib 3.6+ is used (:issue:`49374`)
 - Fixed regression in :func:`date_range` returning an invalid set of periods for ``CustomBusinessDay`` frequency and ``start`` date with timezone (:issue:`49441`)
+- Fixed performance regression in groupby operations (:issue:`49676`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -33,7 +34,7 @@ Bug fixes
 
 Other
 ~~~~~
--
+- Reverted ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` in function :meth:`DataFrame.plot.scatter` (:issue:`49732`)
 -
 
 .. ---------------------------------------------------------------------------
