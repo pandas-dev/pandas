@@ -132,7 +132,6 @@ disable = [
   "expression-not-assigned",
   "fixme",
   "global-statement",
-  "global-variable-not-assigned",
   "invalid-envvar-default",
   "invalid-overridden-method",
   "keyword-arg-before-vararg",

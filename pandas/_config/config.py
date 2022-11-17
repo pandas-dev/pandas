@@ -767,7 +767,7 @@ def config_prefix(prefix) -> Generator[None, None, None]:
     # Note: reset_option relies on set_option, and on key directly
     # it does not fit in to this monkey-patching scheme
 
-    global register_option, get_option, set_option, reset_option
+    global register_option, get_option, set_option
 
     def wrap(func: F) -> F:
         def inner(key: str, *args, **kwds):
