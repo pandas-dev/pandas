@@ -173,7 +173,7 @@ class CSSToExcelConverter:
 
     compute_css = CSSResolver()
 
-    @lru_cache(maxsize=None)
+    @lru_cache(maxsize=None)  # pylint: disable=method-cache-max-size-none
     def __call__(
         self, declarations: str | frozenset[tuple[str, str]]
     ) -> dict[str, dict[str, str]]:
