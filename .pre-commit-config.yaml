@@ -201,7 +201,7 @@ repos:
         entry: python scripts/sync_flake8_versions.py
         files: ^(\.pre-commit-config\.yaml|environment\.yml)$
         pass_filenames: false
-        additional_dependencies: [pyyaml]
+        additional_dependencies: [pyyaml, toml]
     -   id: title-capitalization
         name: Validate correct capitalization among titles in documentation
         entry: python scripts/validate_rst_title_capitalization.py
