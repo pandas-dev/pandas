@@ -64,6 +64,30 @@ repos:
     hooks:
     -   id: pylint
         stages: [manual]
+-   repo: https://github.com/pycqa/pylint
+    rev: v2.15.5
+    hooks:
+    -   id: pylint
+        files: ^pandas/
+        exclude: |
+            (?x)
+            ^pandas/tests  # leave turned off
+            |/_testing/  # leave turned off
+            |^pandas/util/_test_decorators\.py  # leave turned off
+            |^pandas/_version\.py  # leave turned off
+            |^pandas/conftest\.py
+            |^pandas/core/generic\.py
+            |^pandas/core/internals/concat\.py
+            |^pandas/core/reshape/merge\.py
+            |^pandas/core/tools/datetimes\.py
+            |^pandas/formats/format\.py
+            |^pandas/io/formats/format\.py
+            |^pandas/io/formats/style\.py
+            |^pandas/io/json/_json\.py
+            |^pandas/io/xml\.py
+            |^pandas/util/_decorators\.py
+            |^pandas/util/_doctools\.py
+        args: [--disable=all, --enable=redefined-outer-name]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
