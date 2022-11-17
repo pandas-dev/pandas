@@ -246,6 +246,7 @@ def test_is_list_like_generic():
 
     assert not inference.is_list_like(tstc)
     assert isinstance(tst, DataFrame)
+    assert inference.is_list_like(tst)
 
 
 def test_is_sequence():
