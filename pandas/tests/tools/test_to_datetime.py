@@ -1915,6 +1915,12 @@ class TestToDatetimeMisc:
         result = td.apply(to_datetime, format="%b %y", cache=cache)
         tm.assert_series_equal(result, expected)
 
+    def test_to_datetime_timezone_name(self):
+        # https://github.com/pandas-dev/pandas/issues/49748
+        result = to_datetime("2020-01-01 00:00:00UTC", format="%Y-%m-%d %H:%M:%S%Z")
+        expected = Timestamp(2020, 1, 1).tz_localize("UTC")
+        assert result == expected
+
     @td.skip_if_not_us_locale
     def test_to_datetime_with_apply_with_empty_str(self, cache):
         # this is only locale tested with US/None locales
