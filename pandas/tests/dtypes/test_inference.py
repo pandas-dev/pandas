@@ -238,16 +238,14 @@ def test_is_list_like_generic():
     # is_list_like was yielding false positives for Generic classes in python 3.11
     T = TypeVar("T")
 
-    class Base:
-        def __init__(self, x: int):
-            self._x = x
-
-    class Gen(Base, Generic[T]):
+    class MyDataFrame(DataFrame, Generic[T]):
         ...
 
-    fooc = Gen[float]
+    tstc = MyDataFrame[int]
+    tst = MyDataFrame[int]({"x": [1, 2, 3]})
 
-    assert not inference.is_list_like(fooc)
+    assert not inference.is_list_like(tstc)
+    assert isinstance(tst, DataFrame)
 
 
 def test_is_sequence():
