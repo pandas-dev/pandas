@@ -30,7 +30,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
-from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.tests.extension.decimal import to_decimal
 
 
@@ -519,7 +518,7 @@ def test_concat_no_unnecessary_upcast(dt, frame_or_series):
     assert x.values.dtype == dt
 
 
-@pytest.mark.parametrize("pdt", [create_series_with_explicit_dtype, DataFrame])
+@pytest.mark.parametrize("pdt", [Series, DataFrame])
 @pytest.mark.parametrize("dt", np.sctypes["int"])
 def test_concat_will_upcast(dt, pdt):
     with catch_warnings(record=True):

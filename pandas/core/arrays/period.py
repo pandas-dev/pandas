@@ -328,13 +328,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def _unbox_scalar(  # type: ignore[override]
         self,
         value: Period | NaTType,
-        setitem: bool = False,
     ) -> np.int64:
         if value is NaT:
             # error: Item "Period" of "Union[Period, NaTType]" has no attribute "value"
             return np.int64(value.value)  # type: ignore[union-attr]
         elif isinstance(value, self._scalar_type):
-            self._check_compatible_with(value, setitem=setitem)
+            self._check_compatible_with(value)
             return np.int64(value.ordinal)
         else:
             raise ValueError(f"'value' should be a Period. Got '{value}' instead.")
@@ -342,7 +341,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
 
-    def _check_compatible_with(self, other, setitem: bool = False) -> None:
+    def _check_compatible_with(self, other) -> None:
         if other is NaT:
             return
         self._require_matching_freq(other)
@@ -693,7 +692,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        npvalue = self._validate_searchsorted_value(value).view("M8[ns]")
+        npvalue = self._validate_setitem_value(value).view("M8[ns]")
 
         # Cast to M8 to get datetime-like NaT placement
         m8arr = self._ndarray.view("M8[ns]")
@@ -1168,7 +1167,7 @@ def _make_field_arrays(*fields) -> list[np.ndarray]:
         if isinstance(x, (list, np.ndarray, ABCSeries)):
             if length is not None and len(x) != length:
                 raise ValueError("Mismatched Period array lengths")
-            elif length is None:
+            if length is None:
                 length = len(x)
 
     # error: Argument 2 to "repeat" has incompatible type "Optional[int]"; expected

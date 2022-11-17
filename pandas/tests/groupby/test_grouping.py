@@ -393,8 +393,6 @@ class TestGrouping:
 
     def test_groupby_dict_mapping(self):
         # GH #679
-        from pandas import Series
-
         s = Series({"T1": 5})
         result = s.groupby({"T1": "T2"}).agg(sum)
         expected = s.groupby(["T2"]).agg(sum)
@@ -851,6 +849,8 @@ class TestGetGroup:
         exp = DataFrame(index=Index(["a", "b", "s"], name="a"))
         tm.assert_frame_equal(df.groupby("a").count(), exp)
         tm.assert_frame_equal(df.groupby("a").sum(), exp)
+
+        exp = df.iloc[[3, 4, 5]]
         tm.assert_frame_equal(df.groupby("a").nth(1), exp)
 
     def test_gb_key_len_equal_axis_len(self):
@@ -946,6 +946,9 @@ class TestIteration:
         df["k1"] = np.array(["b", "b", "b", "a", "a", "a"])
         df["k2"] = np.array(["1", "1", "1", "2", "2", "2"])
         grouped = df.groupby(["k1", "k2"])
+        # calling `dict` on a DataFrameGroupBy leads to a TypeError,
+        # we need to use a dictionary comprehension here
+        # pylint: disable-next=unnecessary-comprehension
         groups = {key: gp for key, gp in grouped}
         assert len(groups) == 2
 

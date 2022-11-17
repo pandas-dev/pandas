@@ -30,9 +30,11 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.computation import pytables
+from pandas.core.computation import (
+    expr,
+    pytables,
+)
 from pandas.core.computation.engines import ENGINES
-import pandas.core.computation.expr as expr
 from pandas.core.computation.expr import (
     BaseExprVisitor,
     PandasExprVisitor,

@@ -17,7 +17,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-import pandas.core.nanops as nanops
+from pandas.core import nanops
 from pandas.tests.groupby import get_groupby_method_args
 from pandas.util import _test_decorators as td
 
@@ -163,14 +163,12 @@ class TestNumericOnly:
                 "int",
                 "float",
                 "category_int",
-                "datetime",
-                "datetimetz",
-                "timedelta",
             ],
         )
 
-        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
-            result = getattr(gb, method)(numeric_only=False)
+        with pytest.raises(TypeError, match="[Cc]ould not convert"):
+            getattr(gb, method)(numeric_only=False)
+        result = getattr(gb, method)()
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         expected_columns = expected.columns
@@ -252,30 +250,35 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
-        # cummin, cummax dont have numeric_only kwarg, always use False
-        warn = None
-        if method in ["cummin", "cummax"]:
-            # these dont have numeric_only kwarg, always use False
-            warn = FutureWarning
-        elif method in ["min", "max"]:
-            # these have numeric_only kwarg, but default to False
-            warn = FutureWarning
-
-        with tm.assert_produces_warning(
-            warn, match="Dropping invalid columns", raise_on_extra_warnings=False
-        ):
+        if method in ("min", "max", "cummin", "cummax"):
+            # The methods default to numeric_only=False and raise TypeError
+            msg = "|".join(
+                [
+                    "Categorical is not ordered",
+                    "function is not implemented for this dtype",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                getattr(gb, method)()
+        else:
             result = getattr(gb, method)()
+            tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        tm.assert_index_equal(result.columns, expected_columns_numeric)
-
-        # GH#41475 deprecated silently ignoring nuisance columns
-        warn = None
-        if len(expected_columns) < len(gb._obj_with_exclusions.columns):
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+        if method not in ("first", "last"):
+            msg = "|".join(
+                [
+                    "[Cc]ould not convert",
+                    "Categorical is not ordered",
+                    "category type does not support",
+                    "can't multiply sequence",
+                    "function is not implemented for this dtype",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                getattr(gb, method)(numeric_only=False)
+        else:
             result = getattr(gb, method)(numeric_only=False)
-
-        tm.assert_index_equal(result.columns, expected_columns)
+            tm.assert_index_equal(result.columns, expected_columns)
 
 
 class TestGroupByNonCythonPaths:
@@ -301,27 +304,19 @@ class TestGroupByNonCythonPaths:
         return gni
 
     # TODO: non-unique columns, as_index=False
-    def test_idxmax(self, gb):
-        # object dtype so idxmax goes through _aggregate_item_by_item
-        # GH#5610
-        # non-cython calls should not include the grouper
+    def test_idxmax_nuisance_raises(self, gb):
+        # GH#5610, GH#41480
         expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
-        msg = "The default value of numeric_only in DataFrameGroupBy.idxmax"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = gb.idxmax()
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match="not allowed for this dtype"):
+            gb.idxmax()
 
-    def test_idxmin(self, gb):
-        # object dtype so idxmax goes through _aggregate_item_by_item
-        # GH#5610
-        # non-cython calls should not include the grouper
+    def test_idxmin_nuisance_raises(self, gb):
+        # GH#5610, GH#41480
         expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
-        msg = "The default value of numeric_only in DataFrameGroupBy.idxmin"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = gb.idxmin()
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match="not allowed for this dtype"):
+            gb.idxmin()
 
     def test_describe(self, df, gb, gni):
         # describe
@@ -413,7 +408,6 @@ def test_median_empty_bins(observed):
         ("last", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 4}]}),
         ("min", {"df": [{"a": 1, "b": 1}, {"a": 2, "b": 3}]}),
         ("max", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 4}]}),
-        ("nth", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 4}], "args": [1]}),
         ("count", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 2}], "out_type": "int64"}),
     ],
 )
@@ -1332,45 +1326,45 @@ def test_groupby_sum_timedelta_with_nat():
 
 
 @pytest.mark.parametrize(
-    "kernel, numeric_only_default, drops_nuisance, has_arg",
+    "kernel, numeric_only_default, has_arg",
     [
-        ("all", False, False, False),
-        ("any", False, False, False),
-        ("bfill", False, False, False),
-        ("corr", True, False, True),
-        ("corrwith", True, False, True),
-        ("cov", True, False, True),
-        ("cummax", False, True, True),
-        ("cummin", False, True, True),
-        ("cumprod", True, True, True),
-        ("cumsum", True, True, True),
-        ("diff", False, False, False),
-        ("ffill", False, False, False),
-        ("fillna", False, False, False),
-        ("first", False, False, True),
-        ("idxmax", True, False, True),
-        ("idxmin", True, False, True),
-        ("last", False, False, True),
-        ("max", False, True, True),
-        ("mean", True, True, True),
-        ("median", True, True, True),
-        ("min", False, True, True),
-        ("nth", False, False, False),
-        ("nunique", False, False, False),
-        ("pct_change", False, False, False),
-        ("prod", True, True, True),
-        ("quantile", True, False, True),
-        ("sem", True, True, True),
-        ("skew", True, False, True),
-        ("std", True, True, True),
-        ("sum", True, True, True),
-        ("var", True, False, True),
+        ("all", False, False),
+        ("any", False, False),
+        ("bfill", False, False),
+        ("corr", True, True),
+        ("corrwith", True, True),
+        ("cov", True, True),
+        ("cummax", False, True),
+        ("cummin", False, True),
+        ("cumprod", True, True),
+        ("cumsum", True, True),
+        ("diff", False, False),
+        ("ffill", False, False),
+        ("fillna", False, False),
+        ("first", False, True),
+        ("idxmax", True, True),
+        ("idxmin", True, True),
+        ("last", False, True),
+        ("max", False, True),
+        ("mean", True, True),
+        ("median", True, True),
+        ("min", False, True),
+        ("nth", False, False),
+        ("nunique", False, False),
+        ("pct_change", False, False),
+        ("prod", True, True),
+        ("quantile", True, True),
+        ("sem", True, True),
+        ("skew", True, True),
+        ("std", True, True),
+        ("sum", True, True),
+        ("var", True, True),
     ],
 )
 @pytest.mark.parametrize("numeric_only", [True, False, lib.no_default])
 @pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
 def test_deprecate_numeric_only(
-    kernel, numeric_only_default, drops_nuisance, has_arg, numeric_only, keys
+    kernel, numeric_only_default, has_arg, numeric_only, keys
 ):
     # GH#46072
     # drops_nuisance: Whether the op drops nuisance columns even when numeric_only=False
@@ -1382,13 +1376,16 @@ def test_deprecate_numeric_only(
 
     gb = df.groupby(keys)
     method = getattr(gb, kernel)
-    if has_arg and (
-        # Cases where b does not appear in the result
-        numeric_only is True
-        or (numeric_only is lib.no_default and numeric_only_default)
-        or drops_nuisance
+    if (
+        has_arg
+        and (kernel not in ("idxmax", "idxmin") or numeric_only is True)
+        and (
+            # Cases where b does not appear in the result
+            numeric_only is True
+            or (numeric_only is lib.no_default and numeric_only_default)
+        )
     ):
-        if numeric_only is True or (not numeric_only_default and not drops_nuisance):
+        if numeric_only is True or not numeric_only_default:
             warn = None
         else:
             warn = FutureWarning
@@ -1411,17 +1408,19 @@ def test_deprecate_numeric_only(
     ):
         result = method(*args, **kwargs)
         assert "b" in result.columns
-    elif has_arg:
+    elif has_arg or kernel in ("idxmax", "idxmin"):
         assert numeric_only is not True
-        assert numeric_only is not lib.no_default or numeric_only_default is False
-        assert not drops_nuisance
         # kernels that are successful on any dtype were above; this will fail
-        msg = (
-            "(not allowed for this dtype"
-            "|must be a string or a number"
-            "|cannot be performed against 'object' dtypes"
-            "|must be a string or a real number"
-            "|unsupported operand type)"
+        msg = "|".join(
+            [
+                "not allowed for this dtype",
+                "must be a string or a number",
+                "cannot be performed against 'object' dtypes",
+                "must be a string or a real number",
+                "unsupported operand type",
+                "not supported between instances of",
+                "function is not implemented for this dtype",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             method(*args, **kwargs)
@@ -1534,8 +1533,10 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
             err_category = TypeError
             err_msg = f"{groupby_func} is not supported for object dtype"
         elif groupby_func == "skew":
-            warn_category = FutureWarning
-            warn_msg = "will raise a TypeError in the future"
+            warn_category = None
+            warn_msg = ""
+            err_category = TypeError
+            err_msg = "Series.skew does not allow numeric_only=True with non-numeric"
         else:
             warn_category = FutureWarning
             warn_msg = "This will raise a TypeError"

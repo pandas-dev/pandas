@@ -78,7 +78,10 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import arraylike
+from pandas.core import (
+    arraylike,
+    ops,
+)
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
@@ -96,9 +99,8 @@ from pandas.core.indexers import (
 )
 from pandas.core.missing import interpolate_2d
 from pandas.core.nanops import check_below_min_count
-import pandas.core.ops as ops
 
-import pandas.io.formats.printing as printing
+from pandas.io.formats import printing
 
 # See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
@@ -117,6 +119,8 @@ if TYPE_CHECKING:
     )
 
     SparseIndexKind = Literal["integer", "block"]
+
+    from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Series
 
@@ -374,7 +378,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         self,
         data,
         sparse_index=None,
-        index=None,
         fill_value=None,
         kind: SparseIndexKind = "integer",
         dtype: Dtype | None = None,
@@ -409,26 +412,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 fill_value = dtype.fill_value
             dtype = dtype.subtype
 
-        if index is not None:
-            warnings.warn(
-                "The index argument has been deprecated and will be "
-                "removed in a future version. Use a function like np.full "
-                "to construct an array with the desired repeats of the "
-                "scalar value instead.\n\n",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        if index is not None and not is_scalar(data):
-            raise Exception("must only pass scalars with an index")
-
         if is_scalar(data):
-            if index is not None and data is None:
-                data = np.nan
-
-            if index is not None:
-                npoints = len(index)
-            elif sparse_index is None:
+            if sparse_index is None:
                 npoints = 1
             else:
                 npoints = sparse_index.length
@@ -777,7 +762,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         ):
             raise ValueError("Must specify one of 'method' or 'value'.")
 
-        elif method is not None:
+        if method is not None:
             msg = "fillna with 'method' requires high memory usage."
             warnings.warn(
                 msg,
@@ -869,8 +854,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def factorize(
         self,
-        na_sentinel: int | lib.NoDefault = lib.no_default,
-        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool = True,
     ) -> tuple[np.ndarray, SparseArray]:
         # Currently, ExtensionArray.factorize -> Tuple[ndarray, EA]
         # The sparsity on this is backwards from what Sparse would want. Want
@@ -878,12 +862,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # Given that we have to return a dense array of codes, why bother
         # implementing an efficient factorize?
         codes, uniques = algos.factorize(
-            np.asarray(self), na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
+            np.asarray(self), use_na_sentinel=use_na_sentinel
         )
-        if na_sentinel is lib.no_default:
-            na_sentinel = -1
-        if use_na_sentinel is lib.no_default or use_na_sentinel:
-            codes[codes == -1] = na_sentinel
         uniques_sp = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques_sp
 
@@ -1168,8 +1148,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if (indices.max() >= n) or (indices.min() < -n):
             if n == 0:
                 raise IndexError("cannot do a non-empty take from an empty axes.")
-            else:
-                raise IndexError("out of bounds value in 'indices'.")
+            raise IndexError("out of bounds value in 'indices'.")
 
         if to_shift.any():
             indices = indices.copy()
@@ -1326,14 +1305,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         future_dtype = pandas_dtype(dtype)
         if not isinstance(future_dtype, SparseDtype):
             # GH#34457
-            warnings.warn(
-                "The behavior of .astype from SparseDtype to a non-sparse dtype "
-                "is deprecated. In a future version, this will return a non-sparse "
-                "array with the requested dtype. To retain the old behavior, use "
-                "`obj.astype(SparseDtype(dtype))`",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            if isinstance(future_dtype, np.dtype):
+                values = np.array(self)
+                return astype_nansafe(values, dtype=future_dtype)
+            else:
+                # pylint: disable-next=used-before-assignment
+                dtype = cast(ExtensionDtype, dtype)
+                cls = dtype.construct_array_type()
+                return cls._from_sequence(self, dtype=dtype, copy=copy)
 
         dtype = self.dtype.update_dtype(dtype)
         subtype = pandas_dtype(dtype._subtype_with_str)

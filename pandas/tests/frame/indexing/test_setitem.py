@@ -1076,12 +1076,7 @@ class TestDataFrameSetItemBooleanMask:
         df = DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
 
         exp_fancy = exp_multi_row.copy()
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # issue #37643 inplace kwarg deprecated
-            return_value = exp_fancy["cats"].cat.set_categories(
-                ["a", "b", "c"], inplace=True
-            )
-        assert return_value is None
+        exp_fancy["cats"] = exp_fancy["cats"].cat.set_categories(["a", "b", "c"])
 
         mask = df["cats"] == "c"
         df[mask] = ["b", 2]
@@ -1137,7 +1132,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         s = float_frame["A"].copy()
         float_frame["E"] = s
 
-        float_frame["E"][5:10] = np.nan
+        float_frame.iloc[5:10, float_frame.columns.get_loc("E")] = np.nan
         assert notna(s[5:10]).all()
 
     @pytest.mark.parametrize("consolidate", [True, False])

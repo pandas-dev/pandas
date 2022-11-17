@@ -1053,7 +1053,9 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     cdef:
         Py_ssize_t n = len(arr)
         Py_ssize_t increment = arr.strides[0] // 8
-        ndarray[int64_t] result = cnp.PyArray_EMPTY(arr.ndim, arr.shape, cnp.NPY_INT64, 0)
+        ndarray[int64_t] result = cnp.PyArray_EMPTY(
+            arr.ndim, arr.shape, cnp.NPY_INT64, 0
+        )
 
     _period_asfreq(
         <int64_t*>cnp.PyArray_DATA(arr),
@@ -1362,7 +1364,6 @@ def get_period_field_arr(str field, const int64_t[:] arr, int freq):
     cdef:
         Py_ssize_t i, sz
         int64_t[::1] out
-        accessor f
 
     func = _get_accessor_func(field)
     if func is NULL:
@@ -1438,7 +1439,9 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = values.size
         int64_t ordinal
-        ndarray ordinals = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_INT64, 0)
+        ndarray ordinals = cnp.PyArray_EMPTY(
+            values.ndim, values.shape, cnp.NPY_INT64, 0
+        )
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(ordinals, values)
         object p
 
@@ -1684,7 +1687,10 @@ cdef class _Period(PeriodMixin):
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})")
 
-        if util.is_timedelta64_object(other) and get_timedelta64_value(other) == NPY_NAT:
+        if (
+            util.is_timedelta64_object(other) and
+            get_timedelta64_value(other) == NPY_NAT
+        ):
             # i.e. np.timedelta64("nat")
             return NaT
 
@@ -2478,7 +2484,8 @@ class Period(_Period):
         the start or the end of the period, but rather the entire period itself.
     freq : str, default None
         One of pandas period strings or corresponding objects. Accepted
-        strings are listed in the :ref:`offset alias section <timeseries.offset_aliases>` in the user docs.
+        strings are listed in the
+        :ref:`offset alias section <timeseries.offset_aliases>` in the user docs.
     ordinal : int, default None
         The period offset from the proleptic Gregorian epoch.
     year : int, default None
@@ -2511,7 +2518,6 @@ class Period(_Period):
         # ('T', 5) but may be passed in as a string like '5T'
 
         # ordinal is the period offset from the gregorian proleptic epoch
-        cdef _Period self
 
         if freq is not None:
             freq = cls._maybe_convert_freq(freq)

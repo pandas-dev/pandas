@@ -27,7 +27,6 @@ from pandas.io.excel import (
     ExcelWriter,
     _OpenpyxlWriter,
     _XlsxWriter,
-    _XlwtWriter,
     register_writer,
 )
 
@@ -61,7 +60,6 @@ def set_engine(engine, ext):
     [
         pytest.param(".xlsx", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
         pytest.param(".xlsm", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
-        pytest.param(".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]),
         pytest.param(
             ".xlsx", marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")]
         ),
@@ -320,9 +318,6 @@ class TestRoundTrip:
             marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")],
         ),
         pytest.param(
-            "xlwt", ".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]
-        ),
-        pytest.param(
             "xlsxwriter",
             ".xlsx",
             marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")],
@@ -379,7 +374,7 @@ class TestExcelWriter:
 
     def test_roundtrip(self, frame, path):
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
 
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
@@ -449,7 +444,7 @@ class TestExcelWriter:
 
     def test_basics_with_nan(self, frame, path):
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
         frame.to_excel(path, "test1", header=False)
@@ -513,7 +508,7 @@ class TestExcelWriter:
         tsframe.index = index
 
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
 
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
@@ -535,7 +530,7 @@ class TestExcelWriter:
 
     def test_colaliases(self, frame, path):
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
 
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
@@ -553,7 +548,7 @@ class TestExcelWriter:
 
     def test_roundtrip_indexlabels(self, merge_cells, frame, path):
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
 
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
@@ -870,11 +865,10 @@ class TestExcelWriter:
     def test_to_excel_unicode_filename(self, ext):
         with tm.ensure_clean("\u0192u." + ext) as filename:
             try:
-                f = open(filename, "wb")
+                with open(filename, "wb"):
+                    pass
             except UnicodeEncodeError:
                 pytest.skip("No unicode file names on this system")
-            finally:
-                f.close()
 
             df = DataFrame(
                 [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
@@ -1283,7 +1277,6 @@ class TestExcelWriterEngineTests:
         [
             pytest.param(_XlsxWriter, ".xlsx", marks=td.skip_if_no("xlsxwriter")),
             pytest.param(_OpenpyxlWriter, ".xlsx", marks=td.skip_if_no("openpyxl")),
-            pytest.param(_XlwtWriter, ".xls", marks=td.skip_if_no("xlwt")),
         ],
     )
     def test_ExcelWriter_dispatch(self, klass, ext):
@@ -1342,21 +1335,6 @@ class TestExcelWriterEngineTests:
         with tm.ensure_clean("something.xls") as filepath:
             df.to_excel(filepath, engine="dummy")
         DummyClass.assert_called_and_reset()
-
-    @pytest.mark.parametrize(
-        "ext",
-        [
-            pytest.param(".xlsx", marks=td.skip_if_no("xlsxwriter")),
-            pytest.param(".xlsx", marks=td.skip_if_no("openpyxl")),
-            pytest.param(".ods", marks=td.skip_if_no("odf")),
-        ],
-    )
-    def test_engine_kwargs_and_kwargs_raises(self, ext):
-        # GH 40430
-        msg = re.escape("Cannot use both engine_kwargs and **kwargs")
-        with pytest.raises(ValueError, match=msg):
-            with ExcelWriter("", engine_kwargs={"a": 1}, b=2):
-                pass
 
 
 @td.skip_if_no("xlrd")

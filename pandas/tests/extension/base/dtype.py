@@ -45,10 +45,10 @@ class BaseDtypeTests(BaseExtensionTests):
         assert dtype.is_dtype([1, 2, 3]) is False
 
     def test_is_not_string_type(self, dtype):
-        return not is_string_dtype(dtype)
+        assert not is_string_dtype(dtype)
 
     def test_is_not_object_type(self, dtype):
-        return not is_object_dtype(dtype)
+        assert not is_object_dtype(dtype)
 
     def test_eq_with_str(self, dtype):
         assert dtype == dtype.name

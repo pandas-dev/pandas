@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import ParserWarning
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -22,13 +21,10 @@ from pandas.core.arrays import (
     StringArray,
 )
 
-# TODO(1.4): Change me into xfail at release time
-# and xfail individual tests
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
-
 
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_all_columns(all_parsers, dtype, check_orig):
     # see gh-3795, gh-6607
     parser = all_parsers
@@ -53,6 +49,7 @@ def test_dtype_all_columns(all_parsers, dtype, check_orig):
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_per_column(all_parsers):
     parser = all_parsers
     data = """\
@@ -71,6 +68,7 @@ one,two
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_invalid_dtype_per_column(all_parsers):
     parser = all_parsers
     data = """\
@@ -84,6 +82,7 @@ one,two
         parser.read_csv(StringIO(data), dtype={"one": "foo", 1: "int"})
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_raise_on_passed_int_dtype_with_nas(all_parsers):
     # see gh-2631
     parser = all_parsers
@@ -101,6 +100,7 @@ def test_raise_on_passed_int_dtype_with_nas(all_parsers):
         parser.read_csv(StringIO(data), dtype={"DOY": np.int64}, skipinitialspace=True)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_with_converters(all_parsers):
     parser = all_parsers
     data = """a,b
@@ -132,6 +132,7 @@ def test_numeric_dtype(all_parsers, dtype):
     tm.assert_frame_equal(expected, result)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_boolean_dtype(all_parsers):
     parser = all_parsers
     data = "\n".join(
@@ -184,6 +185,7 @@ def test_boolean_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_delimiter_with_usecols_and_parse_dates(all_parsers):
     # GH#35873
     result = all_parsers.read_csv(
@@ -264,6 +266,7 @@ def test_skip_whitespace(c_parser_only, float_precision):
     tm.assert_series_equal(df.iloc[:, 1], pd.Series([1.2, 2.1, 1.0, 1.2], name="num"))
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_true_values_cast_to_bool(all_parsers):
     # GH#34655
     text = """a,b
@@ -286,6 +289,7 @@ no,yyy
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
 def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     # GH#35211
@@ -300,6 +304,7 @@ def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
     # GH#42022
     parser = all_parsers
@@ -309,6 +314,7 @@ def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_multi_index(all_parsers):
     # GH 42446
     parser = all_parsers
@@ -355,6 +361,7 @@ def test_nullable_int_dtype(all_parsers, any_int_ea_dtype):
     tm.assert_frame_equal(actual, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("default", ["float", "float64"])
 def test_dtypes_defaultdict(all_parsers, default):
     # GH#41574
@@ -368,6 +375,7 @@ def test_dtypes_defaultdict(all_parsers, default):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     # GH#41574
     data = """a,b,a,b,b.1
@@ -381,6 +389,7 @@ def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtypes_defaultdict_invalid(all_parsers):
     # GH#41574
     data = """a,b
@@ -392,6 +401,7 @@ def test_dtypes_defaultdict_invalid(all_parsers):
         parser.read_csv(StringIO(data), dtype=dtype)
 
 
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_use_nullable_dtypes(all_parsers):
     # GH#36712
 
@@ -435,11 +445,11 @@ def test_use_nullabla_dtypes_and_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("pyarrow")
+@pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-def test_use_nullabla_dtypes_string(all_parsers, storage):
+def test_use_nullable_dtypes_string(all_parsers, storage):
     # GH#36712
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     with pd.option_context("mode.string_storage", storage):
 
@@ -476,4 +486,41 @@ def test_use_nullable_dtypes_ea_dtype_specified(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), dtype="Int64", use_nullable_dtypes=True)
     expected = DataFrame({"a": [1], "b": 2}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
+    # GH#36712
+    pa = pytest.importorskip("pyarrow")
+    parser = all_parsers
+
+    data = """a,b,c,d,e,f,g,h,i,j
+1,2.5,True,a,,,,,12-31-2019,
+3,4.5,False,b,6,7.5,True,a,12-31-2019,
+"""
+    with pd.option_context("io.nullable_backend", "pyarrow"):
+        if parser.engine != "pyarrow":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason=f"Not implemented with engine={parser.engine}",
+                )
+            )
+        result = parser.read_csv(
+            StringIO(data), use_nullable_dtypes=True, parse_dates=["i"]
+        )
+        expected = DataFrame(
+            {
+                "a": pd.Series([1, 3], dtype="int64[pyarrow]"),
+                "b": pd.Series([2.5, 4.5], dtype="float64[pyarrow]"),
+                "c": pd.Series([True, False], dtype="bool[pyarrow]"),
+                "d": pd.Series(["a", "b"], dtype=pd.ArrowDtype(pa.string())),
+                "e": pd.Series([pd.NA, 6], dtype="int64[pyarrow]"),
+                "f": pd.Series([pd.NA, 7.5], dtype="float64[pyarrow]"),
+                "g": pd.Series([pd.NA, True], dtype="bool[pyarrow]"),
+                "h": pd.Series(["", "a"], dtype=pd.ArrowDtype(pa.string())),
+                "i": pd.Series([Timestamp("2019-12-31")] * 2),
+                "j": pd.Series([pd.NA, pd.NA], dtype="null[pyarrow]"),
+            }
+        )
     tm.assert_frame_equal(result, expected)
