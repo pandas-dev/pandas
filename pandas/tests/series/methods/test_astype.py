@@ -378,11 +378,7 @@ class TestAstype:
         former_encoding = None
 
         if sys.getdefaultencoding() == "utf-8":
-            item = "野菜食べないとやばい"
-            ser = Series([item.encode()])
-            res = ser.astype("unicode")
-            expected = Series([item])
-            tm.assert_series_equal(res, expected)
+            test_series.append(Series(["野菜食べないとやばい".encode()]))
 
         for ser in test_series:
             res = ser.astype("unicode")
