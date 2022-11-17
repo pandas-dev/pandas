@@ -412,9 +412,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             unit = "ns"
 
         if start is not None and unit is not None:
-            start = start._as_unit(unit, round_ok=False)
+            start = start.as_unit(unit, round_ok=False)
         if end is not None and unit is not None:
-            end = end._as_unit(unit, round_ok=False)
+            end = end.as_unit(unit, round_ok=False)
 
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
         start, end = _maybe_normalize_endpoints(start, end, normalize)

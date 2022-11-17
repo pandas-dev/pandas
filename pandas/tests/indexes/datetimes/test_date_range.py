@@ -1199,10 +1199,24 @@ class TestDateRangeNonNano:
             #    # TODO give a more useful or informative message?
             date_range("2016-01-01", "2016-01-02", freq="ns", unit="ms")
 
-        # But matching reso is OK
-        date_range("2016-01-01", "2016-01-01 00:00:01", freq="ms", unit="ms")
-        date_range("2016-01-01", "2016-01-01 00:00:01", freq="us", unit="us")
-        date_range("2016-01-01", "2016-01-01 00:00:00.001", freq="ns", unit="ns")
+    def test_date_range_freq_matches_reso(self):
+        # GH#49106 matching reso is OK
+        dti = date_range("2016-01-01", "2016-01-01 00:00:01", freq="ms", unit="ms")
+        rng = np.arange(1_451_606_400_000, 1_451_606_401_001, dtype=np.int64)
+        expected = DatetimeIndex(rng.view("M8[ms]"), freq="ms")
+        tm.assert_index_equal(dti, expected)
+
+        dti = date_range("2016-01-01", "2016-01-01 00:00:01", freq="us", unit="us")
+        rng = np.arange(1_451_606_400_000_000, 1_451_606_401_000_001, dtype=np.int64)
+        expected = DatetimeIndex(rng.view("M8[us]"), freq="us")
+        tm.assert_index_equal(dti, expected)
+
+        dti = date_range("2016-01-01", "2016-01-01 00:00:00.001", freq="ns", unit="ns")
+        rng = np.arange(
+            1_451_606_400_000_000_000, 1_451_606_400_001_000_001, dtype=np.int64
+        )
+        expected = DatetimeIndex(rng.view("M8[ns]"), freq="ns")
+        tm.assert_index_equal(dti, expected)
 
     def test_date_range_freq_lower_than_endpoints(self):
         start = Timestamp("2022-10-19 11:50:44.719781")
@@ -1214,7 +1228,12 @@ class TestDateRangeNonNano:
             date_range(start, end, periods=3, unit="s")
 
         # but we can losslessly cast to "us"
-        date_range(start, end, periods=3, unit="us")
+        dti = date_range(start, end, periods=2, unit="us")
+        rng = np.array(
+            [start.as_unit("us").value, end.as_unit("us").value], dtype=np.int64
+        )
+        expected = DatetimeIndex(rng.view("M8[us]"))
+        tm.assert_index_equal(dti, expected)
 
     def test_date_range_non_nano(self):
         start = np.datetime64("1066-10-14")  # Battle of Hastings

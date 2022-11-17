@@ -51,7 +51,7 @@ def generate_regular_range(
     freq.nanos  # raises if non-fixed frequency
     td = Timedelta(freq)
     try:
-        td = td._as_unit(  # pyright: ignore[reportGeneralTypeIssues]
+        td = td.as_unit(  # pyright: ignore[reportGeneralTypeIssues]
             unit, round_ok=False
         )
     except ValueError as err:
