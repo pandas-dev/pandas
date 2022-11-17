@@ -1362,8 +1362,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 arr_func, ignore_failures=numeric_only is lib.no_default
             )
         except NotImplementedError as err:
-            # For NotImplementedError, args[0] is the error message
-            raise TypeError(err.args[0]) from err
+            # For NotImplementedError, args[0] is the error message when available
+            msg = err.args[0] if len(err.args) > 0 else ""
+            raise TypeError(msg) from err
         res_mgr.set_axis(1, mgr.axes[1])
 
         if len(res_mgr) < orig_mgr_len:
