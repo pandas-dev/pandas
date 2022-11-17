@@ -151,9 +151,6 @@ def pytest_collection_modifyitems(items, config) -> None:
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
-        # Deprecations where the docstring will emit a warning
-        ("DataFrame.append", "The frame.append method is deprecated"),
-        ("Series.append", "The series.append method is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         # Docstring demonstrates the call raises a warning

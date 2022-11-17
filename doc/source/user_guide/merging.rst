@@ -151,8 +151,7 @@ It's not a stretch to see how this can be very useful. More detail on this
 functionality below.
 
 .. note::
-   It is worth noting that :func:`~pandas.concat` (and therefore
-   :func:`~pandas.append`) makes a full copy of the data, and that constantly
+   It is worth noting that :func:`~pandas.concat` makes a full copy of the data, and that constantly
    reusing this function can create a significant performance hit. If you need
    to use the operation over several datasets, use a list comprehension.
 
