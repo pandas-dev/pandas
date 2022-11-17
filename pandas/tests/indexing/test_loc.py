@@ -953,11 +953,7 @@ class TestLocBaseIndependent:
 
     def test_loc_coercion2(self):
         # GH#12045
-        import datetime
-
-        df = DataFrame(
-            {"date": [datetime.datetime(2012, 1, 1), datetime.datetime(1012, 1, 2)]}
-        )
+        df = DataFrame({"date": [datetime(2012, 1, 1), datetime(1012, 1, 2)]})
         expected = df.dtypes
 
         result = df.iloc[[0]]

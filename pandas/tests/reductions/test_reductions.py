@@ -866,8 +866,6 @@ class TestSeriesReductions:
         allna = string_series * np.nan
         assert isna(allna.idxmax())
 
-        from pandas import date_range
-
         s = Series(date_range("20130102", periods=6))
         result = s.idxmax()
         assert result == 5

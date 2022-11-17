@@ -1,13 +1,11 @@
 from datetime import timedelta
 from decimal import Decimal
-import inspect
 import re
 
 from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
-from pandas._libs import lib
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
@@ -1491,6 +1489,7 @@ class TestNuisanceColumns:
         # TODO: np.median(df, axis=0) gives np.array([2.0, 2.0]) instead
         #  of expected.values
 
+    @pytest.mark.filterwarnings("ignore:.*will return a scalar.*:FutureWarning")
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_min_max_categorical_dtype_non_ordered_nuisance_column(self, method):
         # GH#28949 DataFrame.min should behave like Series.min
@@ -1623,40 +1622,7 @@ def test_reduction_axis_none_deprecation(method):
     [
         "corr",
         "corrwith",
-        "count",
         "cov",
-        "mode",
-        "quantile",
-    ],
-)
-def test_numeric_only_deprecation(kernel):
-    # GH#46852
-    df = DataFrame({"a": [1, 2, 3], "b": object})
-    args = (df,) if kernel == "corrwith" else ()
-    signature = inspect.signature(getattr(DataFrame, kernel))
-    default = signature.parameters["numeric_only"].default
-    assert default is not True
-
-    if default is None or default is lib.no_default:
-        expected = getattr(df[["a"]], kernel)(*args)
-        warn = FutureWarning
-    else:
-        # default must be False and works on any nuisance columns
-        expected = getattr(df, kernel)(*args)
-        if kernel == "mode":
-            assert "b" in expected.columns
-        else:
-            assert "b" in expected.index
-        warn = None
-    msg = f"The default value of numeric_only in DataFrame.{kernel}"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(df, kernel)(*args)
-    tm.assert_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "kernel",
-    [
         "idxmax",
         "idxmin",
         "kurt",
@@ -1665,6 +1631,7 @@ def test_numeric_only_deprecation(kernel):
         "median",
         "min",
         "prod",
+        "quantile",
         "sem",
         "skew",
         "std",
@@ -1675,6 +1642,7 @@ def test_numeric_only_deprecation(kernel):
 def test_fails_on_non_numeric(kernel):
     # GH#46852
     df = DataFrame({"a": [1, 2, 3], "b": object})
+    args = (df,) if kernel == "corrwith" else ()
     msg = "|".join(
         [
             "not allowed for this dtype",
@@ -1685,4 +1653,4 @@ def test_fails_on_non_numeric(kernel):
         ]
     )
     with pytest.raises(TypeError, match=msg):
-        getattr(df, kernel)()
+        getattr(df, kernel)(*args)

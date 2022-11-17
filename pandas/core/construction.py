@@ -66,10 +66,10 @@ import pandas.core.common as com
 
 if TYPE_CHECKING:
     from pandas import (
-        ExtensionArray,
         Index,
         Series,
     )
+    from pandas.core.arrays.base import ExtensionArray
 
 
 def array(
