@@ -204,12 +204,16 @@ class TestTimestampProperties:
 
     def test_resolution(self):
         # GH#21336, GH#21365
-        dt = Timestamp("2100-01-01 00:00:00")
+        dt = Timestamp("2100-01-01 00:00:00.000000000")
         assert dt.resolution == Timedelta(nanoseconds=1)
 
         # Check that the attribute is available on the class, mirroring
         #  the stdlib datetime behavior
         assert Timestamp.resolution == Timedelta(nanoseconds=1)
+
+        assert dt.as_unit("us").resolution == Timedelta(microseconds=1)
+        assert dt.as_unit("ms").resolution == Timedelta(milliseconds=1)
+        assert dt.as_unit("s").resolution == Timedelta(seconds=1)
 
 
 class TestTimestamp:
@@ -376,7 +380,7 @@ class TestTimestamp:
 
         # test value to string and back conversions
         # further test accessors
-        base = Timestamp("20140101 00:00:00")
+        base = Timestamp("20140101 00:00:00").as_unit("ns")
 
         result = Timestamp(base.value + Timedelta("5ms").value)
         assert result == Timestamp(f"{base}.005000")
@@ -518,7 +522,7 @@ class TestTimestampToJulianDate:
 class TestTimestampConversion:
     def test_conversion(self):
         # GH#9255
-        ts = Timestamp("2000-01-01")
+        ts = Timestamp("2000-01-01").as_unit("ns")
 
         result = ts.to_pydatetime()
         expected = datetime(2000, 1, 1)
@@ -999,7 +1003,8 @@ def test_timestamp_class_min_max_resolution():
 
 class TestAsUnit:
     def test_as_unit(self):
-        ts = Timestamp("1970-01-01")
+        ts = Timestamp("1970-01-01").as_unit("ns")
+        assert ts.unit == "ns"
 
         assert ts.as_unit("ns") is ts
 

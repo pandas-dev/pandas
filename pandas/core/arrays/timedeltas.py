@@ -301,7 +301,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             return value.as_unit(self.unit).asm8
 
     def _scalar_from_string(self, value) -> Timedelta | NaTType:
-        return Timedelta(value)
+        return Timedelta(value)  # .as_unit(self._unit)
 
     def _check_compatible_with(self, other) -> None:
         # we don't have anything to validate.

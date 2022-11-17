@@ -395,9 +395,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         if start is not None:
             start = Timestamp(start)
+            if start is not NaT:
+                start = start.as_unit("ns")
 
         if end is not None:
             end = Timestamp(end)
+            if end is not NaT:
+                end = end.as_unit("ns")
 
         if start is NaT or end is NaT:
             raise ValueError("Neither `start` nor `end` can be NaT")
@@ -488,10 +492,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timestamp.")
         self._check_compatible_with(value)
-        return value.asm8
+        if value is NaT:
+            return np.datetime64(value.value, "ns")
+        else:
+            return value.as_unit(self.unit).asm8
 
     def _scalar_from_string(self, value) -> Timestamp | NaTType:
-        return Timestamp(value, tz=self.tz)
+        return Timestamp(value, tz=self.tz)  # .as_unit(self._unit)
 
     def _check_compatible_with(self, other) -> None:
         if other is NaT:

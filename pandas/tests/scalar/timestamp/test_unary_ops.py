@@ -256,8 +256,14 @@ class TestTimestampUnaryOps:
     def test_round_int64(self, timestamp, freq):
         # check that all rounding modes are accurate to int64 precision
         # see GH#22591
-        dt = Timestamp(timestamp)
+        dt = Timestamp(timestamp).as_unit("ns")
         unit = to_offset(freq).nanos
+        # if dt._unit == "us":
+        #    unit //= 1000
+        # elif dt._unit == "ms":
+        #    unit //= 1_000_000
+        # elif dt._unit == "s":
+        #    unit //= 1_000_000_000
 
         # test floor
         result = dt.floor(freq)
