@@ -2102,6 +2102,8 @@ def objects_to_datetime64ns(
     errors: DateTimeErrorChoices = "raise",
     require_iso8601: bool = False,
     allow_object: bool = False,
+    format: str | None = None,
+    exact: bool = True,
 ):
     """
     Convert data to array of timestamps.
@@ -2146,6 +2148,8 @@ def objects_to_datetime64ns(
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             require_iso8601=require_iso8601,
+            format=format,
+            exact=exact,
         )
         result = result.reshape(data.shape, order=order)
     except OverflowError as err:
