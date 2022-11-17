@@ -59,7 +59,7 @@ def generate_regular_range(
             f"freq={freq} is incompatible with unit={unit}. "
             "Use a lower freq or a higher unit instead."
         ) from err
-    stride = td.value
+    stride = int(td.value)
 
     if periods is None and istart is not None and iend is not None:
         b = istart
