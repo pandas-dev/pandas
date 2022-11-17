@@ -1643,11 +1643,6 @@ class PlotAccessor(PandasObject):
 
               .. versionchanged:: 1.1.0
 
-        size : str, scalar or array-like, optional
-            Alias for s.
-
-            .. versionadded:: 1.5.0
-
         c : str, int or array-like, optional
             The color of each point. Possible values are:
 
@@ -1661,10 +1656,6 @@ class PlotAccessor(PandasObject):
 
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
-        color : str, int or array-like, optional
-            Alias for c.
-
-            .. versionadded:: 1.5.0
 
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
