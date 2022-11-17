@@ -894,7 +894,7 @@ def format_is_iso(f: str) -> bint:
 
     for date_sep in [' ', '/', '\\', '-', '.', '']:
         for time_sep in [' ', 'T']:
-            for micro_or_tz in ['', '%z', '%Z', '.%f', '.%f%z', '.%f%Z']:
+            for micro_or_tz in ['', '%z', '.%f', '.%f%z']:
                 if (iso_template(date_sep=date_sep,
                                  time_sep=time_sep,
                                  micro_or_tz=micro_or_tz,

@@ -1734,7 +1734,6 @@ class TestToDatetimeMisc:
             ("2012-01-01 10", "%Y-%m-%d %H:%M"),
             ("2012-01-01 10:00", "%Y-%m-%d %H:%M:%S"),
             ("2012-01-01 10:00:00", "%Y-%m-%d %H:%M:%S.%f"),
-            ("2012-01-01 10:00:00.123", "%Y-%m-%d %H:%M:%S.%f%Z"),
             ("2012-01-01 10:00:00.123", "%Y-%m-%d %H:%M:%S.%f%z"),
             (0, "%Y-%m-%d"),
         ],
@@ -1840,7 +1839,7 @@ class TestToDatetimeMisc:
         [
             ("2020-01-01T00:00:00.000000000+00:00", "%Y-%m-%dT%H:%M:%S.%f%z"),
             ("2020-01-01T00:00:00+00:00", "%Y-%m-%dT%H:%M:%S%z"),
-            ("2020-01-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%Z"),
+            ("2020-01-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"),
         ],
     )
     def test_to_datetime_iso8601_with_timezone_valid(self, input, format):
@@ -1894,6 +1893,12 @@ class TestToDatetimeMisc:
         expected = to_datetime(td, format="%b %y", cache=cache)
         result = td.apply(to_datetime, format="%b %y", cache=cache)
         tm.assert_series_equal(result, expected)
+
+    def test_to_datetime_timezone_name(self):
+        # https://github.com/pandas-dev/pandas/issues/49748
+        result = to_datetime("2020-01-01 00:00:00UTC", format="%Y-%m-%d %H:%M:%S%Z")
+        expected = Timestamp(2020, 1, 1).tz_localize("UTC")
+        assert result == expected
 
     @td.skip_if_not_us_locale
     def test_to_datetime_with_apply_with_empty_str(self, cache):
