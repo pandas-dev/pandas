@@ -964,7 +964,7 @@ def to_datetime(
 
     - Timezone-naive inputs are converted to timezone-naive :class:`DatetimeIndex`:
 
-    >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 13:00:15'])
+    >>> pd.to_datetime(['2018-10-26 12:00:00', '2018-10-26 13:00:15'])
     DatetimeIndex(['2018-10-26 12:00:00', '2018-10-26 13:00:15'],
                   dtype='datetime64[ns]', freq=None)
 
@@ -1010,19 +1010,6 @@ def to_datetime(
     >>> pd.to_datetime(['2018-10-26 12:00 -0530', '2018-10-26 12:00 -0500'],
     ...                utc=True)
     DatetimeIndex(['2018-10-26 17:30:00+00:00', '2018-10-26 17:00:00+00:00'],
-                  dtype='datetime64[ns, UTC]', freq=None)
-
-    - Inputs can contain both naive and aware, string or datetime, the above
-      rules still apply
-
-    >>> from datetime import timezone, timedelta
-    >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 12:00 -0530',
-    ...                datetime(2020, 1, 1, 18),
-    ...                datetime(2020, 1, 1, 18,
-    ...                tzinfo=timezone(-timedelta(hours=1)))],
-    ...                utc=True)
-    DatetimeIndex(['2018-10-26 12:00:00+00:00', '2018-10-26 17:30:00+00:00',
-                   '2020-01-01 18:00:00+00:00', '2020-01-01 19:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
     """
     if infer_datetime_format is not lib.no_default:
