@@ -2640,6 +2640,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if self.axis == 1:
                 return result.T
 
+            # GH#49256 - properly handle the grouping column(s)
             if self._selected_obj.ndim != 1 or self.as_index:
                 result = result.unstack()
             if self._selected_obj.ndim != 1 and not self.as_index:

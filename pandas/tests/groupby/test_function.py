@@ -1087,19 +1087,21 @@ def test_series_describe_single():
     tm.assert_series_equal(result, expected)
 
 
-def test_series_describe_as_index(as_index):
+@pytest.mark.parametrize("keys", ["key1", ["key1", "key2"]])
+def test_series_describe_as_index(as_index, keys):
     # GH#49256
     df = DataFrame(
         {
-            "foo1": ["one", "two", "two", "three", "two"],
+            "key1": ["one", "two", "two", "three", "two"],
+            "key2": ["one", "two", "two", "three", "two"],
             "foo2": [1, 2, 4, 4, 6],
         }
     )
-    gb = df.groupby("foo1", as_index=as_index)["foo2"]
+    gb = df.groupby(keys, as_index=as_index)["foo2"]
     result = gb.describe()
     expected = DataFrame(
         {
-            "foo1": ["one", "three", "two"],
+            "key1": ["one", "three", "two"],
             "count": [1.0, 1.0, 3.0],
             "mean": [1.0, 4.0, 4.0],
             "std": [np.nan, np.nan, 2.0],
@@ -1110,8 +1112,10 @@ def test_series_describe_as_index(as_index):
             "max": [1.0, 4.0, 6.0],
         }
     )
+    if len(keys) == 2:
+        expected.insert(1, "key2", expected["key1"])
     if as_index:
-        expected = expected.set_index("foo1")
+        expected = expected.set_index(keys)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1199,17 +1203,21 @@ def test_frame_describe_unstacked_format():
     "pandas.errors.PerformanceWarning"
 )
 @pytest.mark.parametrize("as_index", [True, False])
-def test_describe_with_duplicate_output_column_names(as_index):
+@pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
+def test_describe_with_duplicate_output_column_names(as_index, keys):
     # GH 35314
     df = DataFrame(
         {
-            "a": [99, 99, 99, 88, 88, 88],
+            "a1": [99, 99, 99, 88, 88, 88],
+            "a2": [99, 99, 99, 88, 88, 88],
             "b": [1, 2, 3, 4, 5, 6],
             "c": [10, 20, 30, 40, 50, 60],
         },
-        columns=["a", "b", "b"],
+        columns=["a1", "a2", "b", "b"],
         copy=False,
     )
+    if keys == ["a1"]:
+        df = df.drop(columns="a2")
 
     expected = (
         DataFrame.from_records(
@@ -1236,12 +1244,17 @@ def test_describe_with_duplicate_output_column_names(as_index):
         .T
     )
     expected.columns.names = [None, None]
-    expected.index = Index([88, 99], name="a")
+    if len(keys) == 2:
+        expected.index = MultiIndex(
+            levels=[[88, 99], [88, 99]], codes=[[0, 1], [0, 1]], names=["a1", "a2"]
+        )
+    else:
+        expected.index = Index([88, 99], name="a1")
 
     if not as_index:
         expected = expected.reset_index()
 
-    result = df.groupby("a", as_index=as_index).describe()
+    result = df.groupby(keys, as_index=as_index).describe()
 
     tm.assert_frame_equal(result, expected)
 
