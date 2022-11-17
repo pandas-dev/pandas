@@ -81,6 +81,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     maybe_cast_pointwise_result,
+    maybe_infer_to_datetimelike,
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
@@ -89,6 +90,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
+    is_complex_dtype,
     is_dtype_equal,
     is_ea_or_datetimelike_dtype,
     is_extension_array_dtype,
@@ -135,7 +137,6 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     arraylike,
-    missing,
     ops,
 )
 from pandas.core.accessor import CachedAccessor
@@ -161,6 +162,7 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import disallow_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
+from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
@@ -502,9 +504,8 @@ class Index(IndexOpsMixin, PandasObject):
                 arr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
                 if dtype is None:
-                    arr = _maybe_cast_data_without_dtype(
-                        arr, cast_numeric_deprecated=True
-                    )
+                    arr = maybe_infer_to_datetimelike(arr)
+                    arr = ensure_wrapped_if_datetimelike(arr)
                     dtype = arr.dtype
 
             klass = cls._dtype_to_subclass(arr.dtype)
@@ -533,9 +534,7 @@ class Index(IndexOpsMixin, PandasObject):
             subarr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
             if dtype is None:
                 # with e.g. a list [1, 2, 3] casting to numeric is _not_ deprecated
-                subarr = _maybe_cast_data_without_dtype(
-                    subarr, cast_numeric_deprecated=False
-                )
+                subarr = _maybe_cast_data_without_dtype(subarr)
                 dtype = subarr.dtype
             return Index(subarr, dtype=dtype, copy=copy, name=name)
 
@@ -1021,7 +1020,7 @@ class Index(IndexOpsMixin, PandasObject):
             # NB: this must come before the ExtensionDtype check below
             # TODO: this differs from Series behavior; can/should we align them?
             raise TypeError(
-                f"Cannot convert Float64Index to dtype {dtype}; integer "
+                f"Cannot convert dtype={self.dtype} to dtype {dtype}; integer "
                 "values are required for conversion"
             )
 
@@ -1044,7 +1043,11 @@ class Index(IndexOpsMixin, PandasObject):
             # this block is needed so e.g. NumericIndex[int8].astype("int32") returns
             # NumericIndex[int32] and not Int64Index with dtype int64.
             # When Int64Index etc. are removed from the code base, removed this also.
-            if isinstance(dtype, np.dtype) and is_numeric_dtype(dtype):
+            if (
+                isinstance(dtype, np.dtype)
+                and is_numeric_dtype(dtype)
+                and not is_complex_dtype(dtype)
+            ):
                 return self._constructor(
                     new_values, name=self.name, dtype=dtype, copy=False
                 )
@@ -1645,7 +1648,7 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.indexes.multi import MultiIndex
 
         if names is not None:
-            if isinstance(names, str) or isinstance(names, int):
+            if isinstance(names, (int, str)):
                 names = [names]
 
         if not isinstance(names, list) and names is not None:
@@ -2933,39 +2936,6 @@ class Index(IndexOpsMixin, PandasObject):
         return self + other
 
     @final
-    def __and__(self, other):
-        warnings.warn(
-            "Index.__and__ operating as a set operation is deprecated, "
-            "in the future this will be a logical operation matching "
-            "Series.__and__.  Use index.intersection(other) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.intersection(other)
-
-    @final
-    def __or__(self, other):
-        warnings.warn(
-            "Index.__or__ operating as a set operation is deprecated, "
-            "in the future this will be a logical operation matching "
-            "Series.__or__.  Use index.union(other) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.union(other)
-
-    @final
-    def __xor__(self, other):
-        warnings.warn(
-            "Index.__xor__ operating as a set operation is deprecated, "
-            "in the future this will be a logical operation matching "
-            "Series.__xor__.  Use index.symmetric_difference(other) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.symmetric_difference(other)
-
-    @final
     def __nonzero__(self) -> NoReturn:
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
@@ -3528,13 +3498,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _convert_can_do_setop(self, other) -> tuple[Index, Hashable]:
         if not isinstance(other, Index):
-            # TODO(2.0): no need to special-case here once _with_infer
-            #  deprecation is enforced
-            if hasattr(other, "dtype"):
-                other = Index(other, name=self.name, dtype=other.dtype)
-            else:
-                # e.g. list
-                other = Index(other, name=self.name)
+            other = Index(other, name=self.name)
             result_name = self.name
         else:
             result_name = get_op_result_name(self, other)
@@ -3686,7 +3650,7 @@ class Index(IndexOpsMixin, PandasObject):
         limit: int | None = None,
         tolerance=None,
     ) -> npt.NDArray[np.intp]:
-        method = missing.clean_reindex_fill_method(method)
+        method = clean_reindex_fill_method(method)
         orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
 
@@ -4492,8 +4456,10 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_non_unique(other, how=how)
         elif not self.is_unique or not other.is_unique:
             if self.is_monotonic_increasing and other.is_monotonic_increasing:
-                if self._can_use_libjoin:
+                if not is_interval_dtype(self.dtype):
                     # otherwise we will fall through to _join_via_get_indexer
+                    # GH#39133
+                    # go through object dtype for ea till engine is supported properly
                     return self._join_monotonic(other, how=how)
             else:
                 return self._join_non_unique(other, how=how)
@@ -4868,7 +4834,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._constructor(joined, name=name)  # type: ignore[return-value]
         else:
             name = get_op_result_name(self, other)
-            return self._constructor._with_infer(joined, name=name)
+            return self._constructor._with_infer(joined, name=name, dtype=self.dtype)
 
     @cache_readonly
     def _can_use_libjoin(self) -> bool:
@@ -6693,6 +6659,16 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
+    def _logical_method(self, other, op):
+        res_name = ops.get_op_result_name(self, other)
+
+        lvalues = self._values
+        rvalues = extract_array(other, extract_numpy=True, extract_range=True)
+
+        res_values = ops.logical_op(lvalues, rvalues, op)
+        return self._construct_result(res_values, name=res_name)
+
+    @final
     def _construct_result(self, result, name):
         if isinstance(result, tuple):
             return (
@@ -7080,9 +7056,7 @@ def maybe_extract_name(name, obj, cls) -> Hashable:
     return name
 
 
-def _maybe_cast_data_without_dtype(
-    subarr: np.ndarray, cast_numeric_deprecated: bool = True
-) -> ArrayLike:
+def _maybe_cast_data_without_dtype(subarr: npt.NDArray[np.object_]) -> ArrayLike:
     """
     If we have an arraylike input but no passed dtype, try to infer
     a supported dtype.
@@ -7090,8 +7064,6 @@ def _maybe_cast_data_without_dtype(
     Parameters
     ----------
     subarr : np.ndarray[object]
-    cast_numeric_deprecated : bool, default True
-        Whether to issue a FutureWarning when inferring numeric dtypes.
 
     Returns
     -------
@@ -7106,12 +7078,6 @@ def _maybe_cast_data_without_dtype(
         convert_interval=True,
         dtype_if_all_nat=np.dtype("datetime64[ns]"),
     )
-    if result.dtype.kind in ["i", "u", "f"]:
-        if not cast_numeric_deprecated:
-            # i.e. we started with a list, not an ndarray[object]
-            return result
-        return subarr
-
     result = ensure_wrapped_if_datetimelike(result)
     return result
 

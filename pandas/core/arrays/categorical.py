@@ -1019,7 +1019,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
         """
-        if set(self.dtype.categories) != set(new_categories):
+        if (
+            len(self.categories) != len(new_categories)
+            or not self.categories.difference(new_categories).empty
+        ):
             raise ValueError(
                 "items in new_categories are not the same as in old categories"
             )
@@ -1300,8 +1303,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             return self._validate_listlike(value)
         else:
             return self._validate_scalar(value)
-
-    _validate_searchsorted_value = _validate_setitem_value
 
     def _validate_scalar(self, fill_value):
         """
@@ -1882,7 +1883,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         start = True
         cur_col_len = len(levheader)  # header
         sep_len, sep = (3, " < ") if self.ordered else (2, ", ")
-        linesep = sep.rstrip() + "\n"  # remove whitespace
+        linesep = f"{sep.rstrip()}\n"  # remove whitespace
         for val in category_strs:
             if max_width != 0 and cur_col_len + sep_len + len(val) > max_width:
                 levstring += linesep + (" " * (len(levheader) + 1))
@@ -1893,7 +1894,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             levstring += val
             start = False
         # replace to simple save space by
-        return levheader + "[" + levstring.replace(" < ... < ", " ... ") + "]"
+        return f"{levheader}[{levstring.replace(' < ... < ', ' ... ')}]"
 
     def _repr_footer(self) -> str:
         info = self._repr_categories_info()

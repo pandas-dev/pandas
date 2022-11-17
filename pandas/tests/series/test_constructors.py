@@ -15,6 +15,7 @@ from pandas._libs import (
     lib,
 )
 from pandas.compat import is_numpy_dev
+from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -83,24 +84,27 @@ class TestSeriesConstructors:
             # test for None or an empty generator.
             # test_constructor_pass_none tests None but only with the index also
             # passed.
-            (lambda: Series(), True),
-            (lambda: Series(None), True),
-            (lambda: Series({}), True),
-            (lambda: Series(()), False),  # creates a RangeIndex
-            (lambda: Series([]), False),  # creates a RangeIndex
-            (lambda: Series(_ for _ in []), False),  # creates a RangeIndex
-            (lambda: Series(data=None), True),
-            (lambda: Series(data={}), True),
-            (lambda: Series(data=()), False),  # creates a RangeIndex
-            (lambda: Series(data=[]), False),  # creates a RangeIndex
-            (lambda: Series(data=(_ for _ in [])), False),  # creates a RangeIndex
+            (lambda idx: Series(index=idx), True),
+            (lambda idx: Series(None, index=idx), True),
+            (lambda idx: Series({}, index=idx), True),
+            (lambda idx: Series((), index=idx), False),  # creates a RangeIndex
+            (lambda idx: Series([], index=idx), False),  # creates a RangeIndex
+            (lambda idx: Series((_ for _ in []), index=idx), False),  # RangeIndex
+            (lambda idx: Series(data=None, index=idx), True),
+            (lambda idx: Series(data={}, index=idx), True),
+            (lambda idx: Series(data=(), index=idx), False),  # creates a RangeIndex
+            (lambda idx: Series(data=[], index=idx), False),  # creates a RangeIndex
+            (lambda idx: Series(data=(_ for _ in []), index=idx), False),  # RangeIndex
         ],
     )
-    def test_empty_constructor(self, constructor, check_index_type):
+    @pytest.mark.parametrize("empty_index", [None, []])
+    def test_empty_constructor(self, constructor, check_index_type, empty_index):
         # TODO: share with frame test of the same name
-        expected = Series()
-        result = constructor()
+        # GH 49573 (addition of empty_index parameter)
+        expected = Series(index=empty_index)
+        result = constructor(empty_index)
 
+        assert result.dtype == object
         assert len(result.index) == 0
         tm.assert_series_equal(result, expected, check_index_type=check_index_type)
 
@@ -667,10 +671,9 @@ class TestSeriesConstructors:
         s = Series(np.array([1.0, 1.0, 8.0]), dtype="i8")
         assert s.dtype == np.dtype("i8")
 
-        msg = "float-dtype values containing NaN and an integer dtype"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series(np.array([1.0, 1.0, np.nan]), copy=True, dtype="i8")
-        assert ser.dtype == np.dtype("f8")
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+        with pytest.raises(IntCastingNaNError, match=msg):
+            Series(np.array([1.0, 1.0, np.nan]), copy=True, dtype="i8")
 
     def test_constructor_copy(self):
         # GH15125
@@ -806,18 +809,17 @@ class TestSeriesConstructors:
         res = frame_or_series(list(arr), dtype="i8")
         tm.assert_equal(res, expected)
 
-        # When we have NaNs, we silently ignore the integer dtype
+        # pre-2.0, when we had NaNs, we silently ignored the integer dtype
         arr[0] = np.nan
         expected = frame_or_series(arr)
-        msg = "passing float-dtype values containing NaN and an integer dtype"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj = frame_or_series(arr, dtype="i8")
-        tm.assert_equal(obj, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+        with pytest.raises(IntCastingNaNError, match=msg):
+            frame_or_series(arr, dtype="i8")
+
+        with pytest.raises(IntCastingNaNError, match=msg):
             # same behavior if we pass list instead of the ndarray
-            obj = frame_or_series(list(arr), dtype="i8")
-        tm.assert_equal(obj, expected)
+            frame_or_series(list(arr), dtype="i8")
 
         # float array that can be losslessly cast to integers
         arr = np.array([1.0, 2.0], dtype="float64")
@@ -851,13 +853,13 @@ class TestSeriesConstructors:
         # Updated: make sure we treat this list the same as we would treat the
         # equivalent ndarray
         vals = [1, 2, np.nan]
-        msg = "In a future version, passing float-dtype values containing NaN"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = Series(vals, dtype=any_int_numpy_dtype)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = Series(np.array(vals), dtype=any_int_numpy_dtype)
-        tm.assert_series_equal(res, expected)
-        assert np.isnan(expected.iloc[-1])
+        # pre-2.0 this would return with a float dtype, in 2.0 we raise
+
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+        with pytest.raises(IntCastingNaNError, match=msg):
+            Series(vals, dtype=any_int_numpy_dtype)
+        with pytest.raises(IntCastingNaNError, match=msg):
+            Series(np.array(vals), dtype=any_int_numpy_dtype)
 
     def test_constructor_dtype_no_cast(self):
         # see gh-1572
@@ -1579,7 +1581,7 @@ class TestSeriesConstructors:
         assert ser.dtype == arr.dtype
 
         tdi = timedelta_range("00:00:01", periods=3, freq="s")
-        tda = tdi._data._as_unit("s")
+        tda = tdi._data.as_unit("s")
         expected = Series(tda)
         assert expected.dtype == arr.dtype
         tm.assert_series_equal(ser, expected)
@@ -1665,18 +1667,22 @@ class TestSeriesConstructors:
         with pytest.raises(ValueError, match=msg):
             Series([], dtype=dtype)
 
-    @pytest.mark.parametrize(
-        "dtype,msg",
-        [
-            ("m8[ps]", "cannot convert timedeltalike"),
-            ("M8[ps]", "cannot convert datetimelike"),
-        ],
-    )
-    def test_constructor_generic_timestamp_bad_frequency(self, dtype, msg):
+    @pytest.mark.parametrize("unit", ["ps", "as", "fs", "Y", "M", "W", "D", "h", "m"])
+    @pytest.mark.parametrize("kind", ["m", "M"])
+    def test_constructor_generic_timestamp_bad_frequency(self, kind, unit):
         # see gh-15524, gh-15987
+        # as of 2.0 we raise on any non-supported unit rather than silently
+        #  cast to nanos; previously we only raised for frequencies higher
+        #  than ns
+        dtype = f"{kind}8[{unit}]"
 
+        msg = "dtype=.* is not supported. Supported resolutions are"
         with pytest.raises(TypeError, match=msg):
             Series([], dtype=dtype)
+
+        with pytest.raises(TypeError, match=msg):
+            # pre-2.0 the DataFrame cast raised but the Series case did not
+            DataFrame([[0]], dtype=dtype)
 
     @pytest.mark.parametrize("dtype", [None, "uint8", "category"])
     def test_constructor_range_dtype(self, dtype):

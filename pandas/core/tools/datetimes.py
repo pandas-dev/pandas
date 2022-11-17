@@ -1060,7 +1060,7 @@ def to_datetime(
         exact=exact,
         infer_datetime_format=infer_datetime_format,
     )
-
+    # pylint: disable-next=used-before-assignment
     result: Timestamp | NaTType | Series | Index
 
     if isinstance(arg, Timestamp):
