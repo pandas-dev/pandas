@@ -505,9 +505,9 @@ all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
 @pytest.mark.parametrize("method", [None, "multi"])
 def test_to_sql(conn, method, test_frame1, request):
     conn = request.getfixturevalue(conn)
-    pandasSQL = pandasSQL_builder(conn)
-    pandasSQL.to_sql(test_frame1, "test_frame", method=method)
-    assert pandasSQL.has_table("test_frame")
+    with pandasSQL_builder(conn) as pandasSQL:
+        pandasSQL.to_sql(test_frame1, "test_frame", method=method)
+        assert pandasSQL.has_table("test_frame")
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
 
@@ -516,10 +516,10 @@ def test_to_sql(conn, method, test_frame1, request):
 @pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
 def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
     conn = request.getfixturevalue(conn)
-    pandasSQL = pandasSQL_builder(conn)
-    pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
-    pandasSQL.to_sql(test_frame1, "test_frame", if_exists=mode)
-    assert pandasSQL.has_table("test_frame")
+    with pandasSQL_builder(conn) as pandasSQL:
+        pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
+        pandasSQL.to_sql(test_frame1, "test_frame", if_exists=mode)
+        assert pandasSQL.has_table("test_frame")
     assert count_rows(conn, "test_frame") == num_row_coef * len(test_frame1)
 
 
@@ -527,21 +527,21 @@ def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_exist_fail(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
-    pandasSQL = pandasSQL_builder(conn)
-    pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
-    assert pandasSQL.has_table("test_frame")
-
-    msg = "Table 'test_frame' already exists"
-    with pytest.raises(ValueError, match=msg):
+    with pandasSQL_builder(conn) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
+        assert pandasSQL.has_table("test_frame")
+
+        msg = "Table 'test_frame' already exists"
+        with pytest.raises(ValueError, match=msg):
+            pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
 
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_iris(conn, request):
     conn = request.getfixturevalue(conn)
-    pandasSQL = pandasSQL_builder(conn)
-    iris_frame = pandasSQL.read_query("SELECT * FROM iris")
+    with pandasSQL_builder(conn) as pandasSQL:
+        iris_frame = pandasSQL.read_query("SELECT * FROM iris")
     check_iris_frame(iris_frame)
 
 
@@ -549,7 +549,6 @@ def test_read_iris(conn, request):
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_to_sql_callable(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
-    pandasSQL = pandasSQL_builder(conn)
 
     check = []  # used to double check function below is really being used
 
@@ -558,8 +557,9 @@ def test_to_sql_callable(conn, test_frame1, request):
         data = [dict(zip(keys, row)) for row in data_iter]
         conn.execute(pd_table.table.insert(), data)
 
-    pandasSQL.to_sql(test_frame1, "test_frame", method=sample)
-    assert pandasSQL.has_table("test_frame")
+    with pandasSQL_builder(conn) as pandasSQL:
+        pandasSQL.to_sql(test_frame1, "test_frame", method=sample)
+        assert pandasSQL.has_table("test_frame")
     assert check == [1]
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
@@ -694,7 +694,7 @@ class SQLAlchemyMixIn(MixInBase):
         return inspect(self.conn).get_table_names()
 
     def _close_conn(self):
-        # https://docs.sqlalchemy.org/en/13/core/connections.html#engine-disposal
+        # https://docs.sqlalchemy.org/en/14/core/connections.html#engine-disposal
         self.conn.dispose()
 
 
@@ -1287,8 +1287,7 @@ class _TestSQLApi(PandasSQLTest):
         tm.assert_frame_equal(res, df)
 
 
-@pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="SQLAlchemy not installed")
-class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
+class _TestSQLApiEngine(SQLAlchemyMixIn, _TestSQLApi):
     """
     Test the public API as it would be used directly
 
@@ -1512,7 +1511,8 @@ class _EngineToConnMixin:
         self.pandasSQL = sql.SQLDatabase(self.__engine)
 
 
-class TestSQLApiConn(_EngineToConnMixin, TestSQLApi):
+@pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="SQLAlchemy not installed")
+class TestSQLApiConn(_EngineToConnMixin, _TestSQLApiEngine):
     pass
 
 
@@ -2526,26 +2526,12 @@ class _TestPostgreSQLAlchemy:
 
 
 @pytest.mark.db
-class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
-    pass
-
-
-@pytest.mark.db
 class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
 @pytest.mark.db
-class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy):
-    pass
-
-
-@pytest.mark.db
 class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn):
-    pass
-
-
-class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy):
     pass
 
 
