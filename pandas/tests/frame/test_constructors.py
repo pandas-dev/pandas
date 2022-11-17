@@ -344,7 +344,7 @@ class TestDataFrameConstructors:
 
         for d, a in zip(dtypes, arrays):
             assert a.dtype == d
-        ad.update({d: a for d, a in zip(dtypes, arrays)})
+        ad.update(dict(zip(dtypes, arrays)))
         df = DataFrame(ad)
 
         dtypes = MIXED_FLOAT_DTYPES + MIXED_INT_DTYPES
@@ -3021,14 +3021,11 @@ class TestFromScalar:
         scalar = cls("NaT", "ns")
         dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]
 
-        msg = "Cannot cast"
         if cls is np.datetime64:
-            msg = "|".join(
-                [
-                    r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]",
-                    "Cannot cast",
-                ]
-            )
+            msg1 = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
+        else:
+            msg1 = r"dtype timedelta64\[ns\] cannot be converted to datetime64\[ns\]"
+        msg = "|".join(["Cannot cast", msg1])
 
         with pytest.raises(TypeError, match=msg):
             constructor(scalar, dtype=dtype)

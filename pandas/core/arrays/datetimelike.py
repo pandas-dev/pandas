@@ -112,13 +112,13 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import (
+    algorithms,
     nanops,
     ops,
 )
 from pandas.core.algorithms import (
     checked_add_with_arr,
     isin,
-    mode,
     unique1d,
 )
 from pandas.core.arraylike import OpsMixin
@@ -1354,8 +1354,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         res_values = op(self.astype("O"), np.asarray(other))
 
-        result = pd_array(res_values.ravel())
-        result = extract_array(result, extract_numpy=True).reshape(self.shape)
+        ext_arr = pd_array(res_values.ravel())
+        result = cast(np.ndarray, extract_array(ext_arr, extract_numpy=True))
+        result = result.reshape(self.shape)
         return result
 
     def _time_shift(
@@ -1690,7 +1691,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if dropna:
             mask = self.isna()
 
-        i8modes = mode(self.view("i8"), mask=mask)
+        i8modes = algorithms.mode(self.view("i8"), mask=mask)
         npmodes = i8modes.view(self._ndarray.dtype)
         npmodes = cast(np.ndarray, npmodes)
         return self._from_backing_data(npmodes)

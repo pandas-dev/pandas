@@ -137,7 +137,6 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     arraylike,
-    missing,
     ops,
 )
 from pandas.core.accessor import CachedAccessor
@@ -163,6 +162,7 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import disallow_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
+from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
@@ -1016,14 +1016,6 @@ class Index(IndexOpsMixin, PandasObject):
             with rewrite_exception(type(values).__name__, type(self).__name__):
                 new_values = values.astype(dtype, copy=copy)
 
-        elif is_float_dtype(self.dtype) and needs_i8_conversion(dtype):
-            # NB: this must come before the ExtensionDtype check below
-            # TODO: this differs from Series behavior; can/should we align them?
-            raise TypeError(
-                f"Cannot convert Float64Index to dtype {dtype}; integer "
-                "values are required for conversion"
-            )
-
         elif isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
             # Note: for RangeIndex and CategoricalDtype self vs self._values
@@ -1648,7 +1640,7 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.indexes.multi import MultiIndex
 
         if names is not None:
-            if isinstance(names, str) or isinstance(names, int):
+            if isinstance(names, (int, str)):
                 names = [names]
 
         if not isinstance(names, list) and names is not None:
@@ -3650,7 +3642,7 @@ class Index(IndexOpsMixin, PandasObject):
         limit: int | None = None,
         tolerance=None,
     ) -> npt.NDArray[np.intp]:
-        method = missing.clean_reindex_fill_method(method)
+        method = clean_reindex_fill_method(method)
         orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
 
