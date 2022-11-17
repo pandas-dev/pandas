@@ -25,7 +25,6 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 import pandas as pd
-import pandas._testing as tm
 
 
 @pytest.fixture(
@@ -403,15 +402,12 @@ def test_maybe_promote_any_with_datetime64(any_numpy_dtype_reduced, fill_value):
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = fill_value
 
-    warn = None
-    msg = "Using a `date` object for fill_value"
     if type(fill_value) is datetime.date and dtype.kind == "M":
-        # Casting date to dt64 is deprecated
-        warn = FutureWarning
+        # Casting date to dt64 is deprecated, in 2.0 enforced to cast to object
+        expected_dtype = np.dtype(object)
+        exp_val_for_scalar = fill_value
 
-    with tm.assert_produces_warning(warn, match=msg):
-        # stacklevel is chosen to make sense when called from higher-level functions
-        _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
+    _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
 @pytest.mark.parametrize(

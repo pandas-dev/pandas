@@ -2,7 +2,7 @@ import numpy as np
 
 import pandas as pd
 
-ops = ["mean", "sum", "median", "std", "skew", "kurt", "mad", "prod", "sem", "var"]
+ops = ["mean", "sum", "median", "std", "skew", "kurt", "prod", "sem", "var"]
 
 
 class FrameOps:
@@ -11,9 +11,6 @@ class FrameOps:
     param_names = ["op", "dtype", "axis"]
 
     def setup(self, op, dtype, axis):
-        if op == "mad" and dtype == "Int64":
-            # GH-33036, GH#33600
-            raise NotImplementedError
         values = np.random.randn(100000, 4)
         if dtype == "Int64":
             values = values.astype(int)
@@ -26,10 +23,10 @@ class FrameOps:
 
 class FrameMultiIndexOps:
 
-    params = ([0, 1, [0, 1]], ops)
-    param_names = ["level", "op"]
+    params = [ops]
+    param_names = ["op"]
 
-    def setup(self, level, op):
+    def setup(self, op):
         levels = [np.arange(10), np.arange(100), np.arange(100)]
         codes = [
             np.arange(10).repeat(10000),
@@ -40,8 +37,8 @@ class FrameMultiIndexOps:
         df = pd.DataFrame(np.random.randn(len(index), 4), index=index)
         self.df_func = getattr(df, op)
 
-    def time_op(self, level, op):
-        self.df_func(level=level)
+    def time_op(self, op):
+        self.df_func()
 
 
 class SeriesOps:
@@ -59,10 +56,10 @@ class SeriesOps:
 
 class SeriesMultiIndexOps:
 
-    params = ([0, 1, [0, 1]], ops)
-    param_names = ["level", "op"]
+    params = [ops]
+    param_names = ["op"]
 
-    def setup(self, level, op):
+    def setup(self, op):
         levels = [np.arange(10), np.arange(100), np.arange(100)]
         codes = [
             np.arange(10).repeat(10000),
@@ -73,8 +70,8 @@ class SeriesMultiIndexOps:
         s = pd.Series(np.random.randn(len(index)), index=index)
         self.s_func = getattr(s, op)
 
-    def time_op(self, level, op):
-        self.s_func(level=level)
+    def time_op(self, op):
+        self.s_func()
 
 
 class Rank:

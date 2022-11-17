@@ -16,7 +16,6 @@ from pandas import (
     DataFrame,
     Series,
     Timestamp,
-    compat,
     date_range,
     option_context,
 )
@@ -228,11 +227,13 @@ class TestDataFrameBlockInternals:
         expected = DataFrame(
             {
                 "dt1": Timestamp("20130101"),
-                "dt2": date_range("20130101", periods=3),
+                "dt2": date_range("20130101", periods=3).astype("M8[s]"),
                 # 'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
             },
             index=range(3),
         )
+        assert expected.dtypes["dt1"] == "M8[ns]"
+        assert expected.dtypes["dt2"] == "M8[s]"
 
         df = DataFrame(index=range(3))
         df["dt1"] = np.datetime64("2013-01-01")
@@ -257,16 +258,15 @@ class TestDataFrameBlockInternals:
         with pytest.raises(NotImplementedError, match=msg):
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
-        # these work (though results may be unexpected)
-        depr_msg = "either all columns will be cast to that dtype, or a TypeError will"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        # pre-2.0 these used to work (though results may be unexpected)
+        with pytest.raises(TypeError, match="argument must be"):
             f("int64")
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        with pytest.raises(TypeError, match="argument must be"):
             f("float64")
 
         # 10822
-        # invalid error message on dt inference
-        if not compat.is_platform_windows():
+        msg = "Unknown string format: aa present at position 0"
+        with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
     def test_pickle(self, float_string_frame, timezone_frame):

@@ -34,6 +34,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_sequence,
+    is_signed_integer_dtype,
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
@@ -105,12 +106,7 @@ from pandas._testing.contexts import (
     use_numexpr,
     with_csv_dialect,
 )
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-    NumericIndex,
-    UInt64Index,
-)
+from pandas.core.api import NumericIndex
 from pandas.core.arrays import (
     BaseMaskedArray,
     ExtensionArray,
@@ -200,8 +196,11 @@ if not pa_version_under6p0:
     SIGNED_INT_PYARROW_DTYPES = [pa.int8(), pa.int16(), pa.int32(), pa.int64()]
     ALL_INT_PYARROW_DTYPES = UNSIGNED_INT_PYARROW_DTYPES + SIGNED_INT_PYARROW_DTYPES
 
+    # pa.float16 doesn't seem supported
+    # https://github.com/apache/arrow/blob/master/python/pyarrow/src/arrow/python/helpers.cc#L86
     FLOAT_PYARROW_DTYPES = [pa.float32(), pa.float64()]
-    STRING_PYARROW_DTYPES = [pa.string(), pa.utf8()]
+    STRING_PYARROW_DTYPES = [pa.string()]
+    BINARY_PYARROW_DTYPES = [pa.binary()]
 
     TIME_PYARROW_DTYPES = [
         pa.time32("s"),
@@ -224,6 +223,8 @@ if not pa_version_under6p0:
     ALL_PYARROW_DTYPES = (
         ALL_INT_PYARROW_DTYPES
         + FLOAT_PYARROW_DTYPES
+        + STRING_PYARROW_DTYPES
+        + BINARY_PYARROW_DTYPES
         + TIME_PYARROW_DTYPES
         + DATE_PYARROW_DTYPES
         + DATETIME_PYARROW_DTYPES
@@ -344,7 +345,7 @@ def makeBoolIndex(k: int = 10, name=None) -> Index:
     return Index([False, True] + [False] * (k - 2), name=name)
 
 
-def makeNumericIndex(k: int = 10, name=None, *, dtype) -> NumericIndex:
+def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> NumericIndex:
     dtype = pandas_dtype(dtype)
     assert isinstance(dtype, np.dtype)
 
@@ -362,23 +363,29 @@ def makeNumericIndex(k: int = 10, name=None, *, dtype) -> NumericIndex:
     return NumericIndex(values, dtype=dtype, name=name)
 
 
-def makeIntIndex(k: int = 10, name=None) -> Int64Index:
-    base_idx = makeNumericIndex(k, name=name, dtype="int64")
-    return Int64Index(base_idx)
+def makeIntIndex(k: int = 10, *, name=None, dtype: Dtype = "int64") -> NumericIndex:
+    dtype = pandas_dtype(dtype)
+    if not is_signed_integer_dtype(dtype):
+        raise TypeError(f"Wrong dtype {dtype}")
+    return makeNumericIndex(k, name=name, dtype=dtype)
 
 
-def makeUIntIndex(k: int = 10, name=None) -> UInt64Index:
-    base_idx = makeNumericIndex(k, name=name, dtype="uint64")
-    return UInt64Index(base_idx)
+def makeUIntIndex(k: int = 10, *, name=None, dtype: Dtype = "uint64") -> NumericIndex:
+    dtype = pandas_dtype(dtype)
+    if not is_unsigned_integer_dtype(dtype):
+        raise TypeError(f"Wrong dtype {dtype}")
+    return makeNumericIndex(k, name=name, dtype=dtype)
 
 
 def makeRangeIndex(k: int = 10, name=None, **kwargs) -> RangeIndex:
     return RangeIndex(0, k, 1, name=name, **kwargs)
 
 
-def makeFloatIndex(k: int = 10, name=None) -> Float64Index:
-    base_idx = makeNumericIndex(k, name=name, dtype="float64")
-    return Float64Index(base_idx)
+def makeFloatIndex(k: int = 10, *, name=None, dtype: Dtype = "float64") -> NumericIndex:
+    dtype = pandas_dtype(dtype)
+    if not is_float_dtype(dtype):
+        raise TypeError(f"Wrong dtype {dtype}")
+    return makeNumericIndex(k, name=name, dtype=dtype)
 
 
 def makeDateIndex(
@@ -604,8 +611,6 @@ def makeCustomIndex(
     for i in range(nlevels):
 
         def keyfunc(x):
-            import re
-
             numeric_tuple = re.sub(r"[^\d_]_?", "", x).split("_")
             return [int(num) for num in numeric_tuple]
 

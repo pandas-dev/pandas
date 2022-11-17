@@ -626,20 +626,15 @@ class TestToDatetime:
     def test_to_datetime_now(self):
         # See GH#18666
         with tm.set_timezone("US/Eastern"):
-            msg = "The parsing of 'now' in pd.to_datetime"
-            with tm.assert_produces_warning(
-                FutureWarning, match=msg, check_stacklevel=False
-            ):
-                # checking stacklevel is tricky because we go through cython code
-                # GH#18705
-                npnow = np.datetime64("now").astype("datetime64[ns]")
-                pdnow = to_datetime("now")
-                pdnow2 = to_datetime(["now"])[0]
+            # GH#18705
+            now = Timestamp("now")
+            pdnow = to_datetime("now")
+            pdnow2 = to_datetime(["now"])[0]
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
-            assert abs(pdnow.value - npnow.astype(np.int64)) < 1e10
-            assert abs(pdnow2.value - npnow.astype(np.int64)) < 1e10
+            assert abs(pdnow.value - now.value) < 1e10
+            assert abs(pdnow2.value - now.value) < 1e10
 
             assert pdnow.tzinfo is None
             assert pdnow2.tzinfo is None
@@ -673,12 +668,7 @@ class TestToDatetime:
 
     @pytest.mark.parametrize("arg", ["now", "today"])
     def test_to_datetime_today_now_unicode_bytes(self, arg):
-        warn = FutureWarning if arg == "now" else None
-        msg = "The parsing of 'now' in pd.to_datetime"
-        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-            # checking stacklevel is tricky because we go through cython code
-            # GH#18705
-            to_datetime([arg])
+        to_datetime([arg])
 
     @pytest.mark.parametrize(
         "dt", [np.datetime64("2000-01-01"), np.datetime64("2000-01-02")]
@@ -717,10 +707,9 @@ class TestToDatetime:
         ] * 30
         # Assuming all datetimes are in bounds, to_datetime() returns
         # an array that is equal to Timestamp() parsing
-        tm.assert_index_equal(
-            to_datetime(dts, cache=cache),
-            DatetimeIndex([Timestamp(x).asm8 for x in dts]),
-        )
+        result = to_datetime(dts, cache=cache)
+        expected = DatetimeIndex([Timestamp(x).asm8 for x in dts], dtype="M8[ns]")
+        tm.assert_index_equal(result, expected)
 
         # A list of datetimes where the last one is out of bounds
         dts_with_oob = dts + [np.datetime64("9999-01-01")]
@@ -1445,9 +1434,14 @@ class TestToDatetimeUnit:
         result = to_datetime(arr, errors="coerce", cache=cache)
         tm.assert_index_equal(result, expected)
 
-        msg = "mixed datetimes and integers in passed array"
-        with pytest.raises(ValueError, match=msg):
-            to_datetime(arr, errors="raise", cache=cache)
+        # GH#49037 pre-2.0 this raised, but it always worked with Series,
+        #  was never clear why it was disallowed
+        result = to_datetime(arr, errors="raise", cache=cache)
+        expected = Index([Timestamp(x) for x in arr], dtype="M8[ns]")
+        tm.assert_index_equal(result, expected)
+
+        result = DatetimeIndex(arr)
+        tm.assert_index_equal(result, expected)
 
     def test_unit_rounding(self, cache):
         # GH 14156 & GH 20445: argument will incur floating point errors
@@ -1752,6 +1746,129 @@ class TestToDatetimeMisc:
         exp = Timestamp(exp_str)
         assert result[0] == exp
 
+    @pytest.mark.parametrize(
+        "input, format",
+        [
+            ("2012", "%Y-%m"),
+            ("2012-01", "%Y-%m-%d"),
+            ("2012-01-01", "%Y-%m-%d %H"),
+            ("2012-01-01 10", "%Y-%m-%d %H:%M"),
+            ("2012-01-01 10:00", "%Y-%m-%d %H:%M:%S"),
+            ("2012-01-01 10:00:00", "%Y-%m-%d %H:%M:%S.%f"),
+            ("2012-01-01 10:00:00.123", "%Y-%m-%d %H:%M:%S.%f%z"),
+            (0, "%Y-%m-%d"),
+        ],
+    )
+    @pytest.mark.parametrize("exact", [True, False])
+    def test_to_datetime_iso8601_fails(self, input, format, exact):
+        # https://github.com/pandas-dev/pandas/issues/12649
+        # `format` is longer than the string, so this fails regardless of `exact`
+        with pytest.raises(
+            ValueError,
+            match=(
+                rf"time data \"{input}\" at position 0 doesn't match format "
+                rf"\"{format}\""
+            ),
+        ):
+            to_datetime(input, format=format, exact=exact)
+
+    @pytest.mark.parametrize(
+        "input, format",
+        [
+            ("2012-01-01", "%Y-%m"),
+            ("2012-01-01 10", "%Y-%m-%d"),
+            ("2012-01-01 10:00", "%Y-%m-%d %H"),
+            ("2012-01-01 10:00:00", "%Y-%m-%d %H:%M"),
+            (0, "%Y-%m-%d"),
+        ],
+    )
+    def test_to_datetime_iso8601_exact_fails(self, input, format):
+        # https://github.com/pandas-dev/pandas/issues/12649
+        # `format` is shorter than the date string, so only fails with `exact=True`
+        with pytest.raises(
+            ValueError,
+            match=(
+                rf"time data \"{input}\" at position 0 doesn't match format "
+                rf"\"{format}\""
+            ),
+        ):
+            to_datetime(input, format=format)
+
+    @pytest.mark.parametrize(
+        "input, format",
+        [
+            ("2012-01-01", "%Y-%m"),
+            ("2012-01-01 00", "%Y-%m-%d"),
+            ("2012-01-01 00:00", "%Y-%m-%d %H"),
+            ("2012-01-01 00:00:00", "%Y-%m-%d %H:%M"),
+        ],
+    )
+    def test_to_datetime_iso8601_non_exact(self, input, format):
+        # https://github.com/pandas-dev/pandas/issues/12649
+        expected = Timestamp(2012, 1, 1)
+        result = to_datetime(input, format=format, exact=False)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "input, format",
+        [
+            ("2020-01", "%Y/%m"),
+            ("2020-01-01", "%Y/%m/%d"),
+            ("2020-01-01 00", "%Y/%m/%dT%H"),
+            ("2020-01-01T00", "%Y/%m/%d %H"),
+            ("2020-01-01 00:00", "%Y/%m/%dT%H:%M"),
+            ("2020-01-01T00:00", "%Y/%m/%d %H:%M"),
+            ("2020-01-01 00:00:00", "%Y/%m/%dT%H:%M:%S"),
+            ("2020-01-01T00:00:00", "%Y/%m/%d %H:%M:%S"),
+        ],
+    )
+    def test_to_datetime_iso8601_separator(self, input, format):
+        # https://github.com/pandas-dev/pandas/issues/12649
+        with pytest.raises(
+            ValueError,
+            match=(
+                rf"time data \"{input}\" at position 0 doesn\'t match format "
+                rf"\"{format}\""
+            ),
+        ):
+            to_datetime(input, format=format)
+
+    @pytest.mark.parametrize(
+        "input, format",
+        [
+            ("2020-01", "%Y-%m"),
+            ("2020-01-01", "%Y-%m-%d"),
+            ("2020-01-01 00", "%Y-%m-%d %H"),
+            ("2020-01-01T00", "%Y-%m-%dT%H"),
+            ("2020-01-01 00:00", "%Y-%m-%d %H:%M"),
+            ("2020-01-01T00:00", "%Y-%m-%dT%H:%M"),
+            ("2020-01-01 00:00:00", "%Y-%m-%d %H:%M:%S"),
+            ("2020-01-01T00:00:00", "%Y-%m-%dT%H:%M:%S"),
+            ("2020-01-01T00:00:00.000", "%Y-%m-%dT%H:%M:%S.%f"),
+            ("2020-01-01T00:00:00.000000", "%Y-%m-%dT%H:%M:%S.%f"),
+            ("2020-01-01T00:00:00.000000000", "%Y-%m-%dT%H:%M:%S.%f"),
+        ],
+    )
+    def test_to_datetime_iso8601_valid(self, input, format):
+        # https://github.com/pandas-dev/pandas/issues/12649
+        expected = Timestamp(2020, 1, 1)
+        result = to_datetime(input, format=format)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "input, format",
+        [
+            ("2020-01-01T00:00:00.000000000+00:00", "%Y-%m-%dT%H:%M:%S.%f%z"),
+            ("2020-01-01T00:00:00+00:00", "%Y-%m-%dT%H:%M:%S%z"),
+            ("2020-01-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"),
+        ],
+    )
+    def test_to_datetime_iso8601_with_timezone_valid(self, input, format):
+        # https://github.com/pandas-dev/pandas/issues/12649
+        expected = Timestamp(2020, 1, 1, tzinfo=pytz.UTC)
+        result = to_datetime(input, format=format)
+        assert result == expected
+
     def test_to_datetime_default(self, cache):
         rs = to_datetime("2001", cache=cache)
         xp = datetime(2001, 1, 1)
@@ -1797,6 +1914,12 @@ class TestToDatetimeMisc:
         expected = to_datetime(td, format="%b %y", cache=cache)
         result = td.apply(to_datetime, format="%b %y", cache=cache)
         tm.assert_series_equal(result, expected)
+
+    def test_to_datetime_timezone_name(self):
+        # https://github.com/pandas-dev/pandas/issues/49748
+        result = to_datetime("2020-01-01 00:00:00UTC", format="%Y-%m-%d %H:%M:%S%Z")
+        expected = Timestamp(2020, 1, 1).tz_localize("UTC")
+        assert result == expected
 
     @td.skip_if_not_us_locale
     def test_to_datetime_with_apply_with_empty_str(self, cache):
@@ -1980,7 +2103,15 @@ class TestToDatetimeMisc:
 
         values = base.values.astype(dtype)
 
-        tm.assert_index_equal(DatetimeIndex(values), base)
+        unit = dtype.split("[")[-1][:-1]
+        if unit in ["h", "m"]:
+            # we cast to closest supported unit
+            unit = "s"
+        exp_dtype = np.dtype(f"M8[{unit}]")
+        expected = DatetimeIndex(base.astype(exp_dtype))
+        assert expected.dtype == exp_dtype
+
+        tm.assert_index_equal(DatetimeIndex(values), expected)
         tm.assert_index_equal(to_datetime(values, cache=cache), base)
 
     def test_dayfirst(self, cache):
@@ -2257,7 +2388,7 @@ class TestDaysInMonth:
 
     @pytest.mark.parametrize("arg", ["2015-02-29", "2015-02-32", "2015-04-31"])
     def test_day_not_in_month_raise_value(self, cache, arg):
-        msg = f'time data "{arg}" at position 0 doesn\'t match format specified'
+        msg = f'time data "{arg}" at position 0 doesn\'t match format "%Y-%m-%d"'
         with pytest.raises(ValueError, match=msg):
             to_datetime(arg, errors="raise", format="%Y-%m-%d", cache=cache)
 
