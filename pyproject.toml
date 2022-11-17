@@ -153,7 +153,6 @@ disable = [
   "subprocess-run-check",
   "super-init-not-called",
   "try-except-raise",
-  "undefined-loop-variable",
   "unnecessary-lambda",
   "unspecified-encoding",
   "unused-argument",
