@@ -115,7 +115,6 @@ disable = [
   "too-many-public-methods",
   "too-many-return-statements",
   "too-many-statements",
-  "unnecessary-list-index-lookup",
 
   # pylint type "W": warning, for python specific problems
   "abstract-method",

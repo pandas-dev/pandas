@@ -1196,7 +1196,7 @@ class TestDatetimeIndexTimezones:
             ["2018-02-08 15:00:00.168456358", "2018-02-08 15:00:00.168456359"], tz=tz
         )
         for i, ts in enumerate(index):
-            assert ts == index[i]
+            assert ts == index[i]  # pylint: disable=unnecessary-list-index-lookup
 
 
 def test_tz_localize_invalidates_freq():
