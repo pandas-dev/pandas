@@ -1434,9 +1434,14 @@ class TestToDatetimeUnit:
         result = to_datetime(arr, errors="coerce", cache=cache)
         tm.assert_index_equal(result, expected)
 
-        msg = "mixed datetimes and integers in passed array"
-        with pytest.raises(ValueError, match=msg):
-            to_datetime(arr, errors="raise", cache=cache)
+        # GH#49037 pre-2.0 this raised, but it always worked with Series,
+        #  was never clear why it was disallowed
+        result = to_datetime(arr, errors="raise", cache=cache)
+        expected = Index([Timestamp(x) for x in arr], dtype="M8[ns]")
+        tm.assert_index_equal(result, expected)
+
+        result = DatetimeIndex(arr)
+        tm.assert_index_equal(result, expected)
 
     def test_unit_rounding(self, cache):
         # GH 14156 & GH 20445: argument will incur floating point errors
