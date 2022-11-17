@@ -152,7 +152,7 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
     with iris_file.open(newline=None) as csvfile:
         reader = csv.reader(csvfile)
         header = next(reader)
-        params = [{key: value for key, value in zip(header, row)} for row in reader]
+        params = [dict(zip(header, row)) for row in reader]
         stmt = insert(iris).values(params)
         if isinstance(conn, Engine):
             with conn.connect() as conn:
@@ -1587,7 +1587,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     def _get_sqlite_column_type(self, schema, column):
 
         for col in schema.split("\n"):
-            if col.split()[0].strip('""') == column:
+            if col.split()[0].strip('"') == column:
                 return col.split()[1]
         raise ValueError(f"Column {column} not found")
 
