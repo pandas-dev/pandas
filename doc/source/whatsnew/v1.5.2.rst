@@ -27,8 +27,8 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in the Copy-on-Write implementation losing track of views in certain chained indexing cases (:issue:`48996`)
-- Bug with python 3.11 and creating a subclass that is ``Generic`` (:issue:`49649`)
-
+- Fixed bug when instantiating a ``DataFrame`` subclass inheriting from ``typing.Generic`` that triggered a ``UserWarning`` on python 3.11 (:issue:49649)
+-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_152.other:
 
