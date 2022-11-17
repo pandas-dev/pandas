@@ -1036,8 +1036,6 @@ def all_arithmetic_functions(request):
     return request.param
 
 
-# TODO: Dedeupe with reduction_functions in frame/conftest
-#  adds counts, sem
 _all_numeric_reductions = [
     "count",
     "sum",
