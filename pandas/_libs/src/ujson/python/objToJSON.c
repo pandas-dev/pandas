@@ -296,6 +296,7 @@ static npy_int64 get_long_attr(PyObject *o, const char *attr) {
     PyObject* reso = PyObject_GetAttrString(o, "_creso");
     if (!PyLong_Check(reso)) {
         // https://github.com/pandas-dev/pandas/pull/49034#discussion_r1023165139
+        Py_DECREF(reso);
         return -1;
     }
 

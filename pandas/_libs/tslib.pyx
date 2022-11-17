@@ -550,7 +550,7 @@ cpdef array_to_datetime(
                             raise ValueError('Cannot mix tz-aware with '
                                              'tz-naive values')
                         if isinstance(val, _Timestamp):
-                            iresult[i] = (<_Timestamp>val)._as_creso(NPY_FR_ns).value
+                            iresult[i] = val.as_unit("ns").value
                         else:
                             iresult[i] = pydatetime_to_dt64(val, &dts)
                             check_dts_bounds(&dts)
