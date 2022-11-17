@@ -236,6 +236,7 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
 
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
+    @skip_nested
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
@@ -403,6 +404,7 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     def test_setitem_mask(self, data, mask, box_in_series):
         super().test_setitem_mask(data, mask, box_in_series)
 
+    @skip_nested
     def test_setitem_mask_raises(self, data, box_in_series):
         super().test_setitem_mask_raises(data, box_in_series)
 
