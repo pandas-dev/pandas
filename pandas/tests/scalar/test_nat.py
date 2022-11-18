@@ -73,9 +73,6 @@ def test_nat_vector_field_access():
         # on NaT/Timestamp for compat with datetime
         if field == "weekday":
             continue
-        if field in ["week", "weekofyear"]:
-            # GH#33595 Deprecate week and weekofyear
-            continue
 
         result = getattr(idx, field)
         expected = Index([getattr(x, field) for x in idx])
@@ -87,9 +84,6 @@ def test_nat_vector_field_access():
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
         if field == "weekday":
-            continue
-        if field in ["week", "weekofyear"]:
-            # GH#33595 Deprecate week and weekofyear
             continue
 
         result = getattr(ser.dt, field)
@@ -190,16 +184,15 @@ def test_nat_iso_format(get_nat):
 @pytest.mark.parametrize(
     "klass,expected",
     [
-        (Timestamp, ["freqstr", "normalize", "to_julian_date", "to_period", "tz"]),
+        (Timestamp, ["normalize", "to_julian_date", "to_period", "unit"]),
         (
             Timedelta,
             [
                 "components",
-                "delta",
-                "is_populated",
                 "resolution_string",
                 "to_pytimedelta",
                 "to_timedelta64",
+                "unit",
                 "view",
             ],
         ),
@@ -262,6 +255,7 @@ def _get_overlap_public_nat_methods(klass, as_tuple=False):
         (
             Timestamp,
             [
+                "as_unit",
                 "astimezone",
                 "ceil",
                 "combine",
@@ -654,32 +648,19 @@ def test_compare_date(fixed_now_ts):
 
     dt = fixed_now_ts.to_pydatetime().date()
 
+    msg = "Cannot compare NaT with datetime.date object"
     for left, right in [(NaT, dt), (dt, NaT)]:
         assert not left == right
         assert left != right
 
-        with tm.assert_produces_warning(FutureWarning):
-            assert not left < right
-        with tm.assert_produces_warning(FutureWarning):
-            assert not left <= right
-        with tm.assert_produces_warning(FutureWarning):
-            assert not left > right
-        with tm.assert_produces_warning(FutureWarning):
-            assert not left >= right
-
-    # Once the deprecation is enforced, the following assertions
-    #  can be enabled:
-    #    assert not left == right
-    #    assert left != right
-    #
-    #    with pytest.raises(TypeError):
-    #        left < right
-    #    with pytest.raises(TypeError):
-    #        left <= right
-    #    with pytest.raises(TypeError):
-    #        left > right
-    #    with pytest.raises(TypeError):
-    #        left >= right
+        with pytest.raises(TypeError, match=msg):
+            left < right
+        with pytest.raises(TypeError, match=msg):
+            left <= right
+        with pytest.raises(TypeError, match=msg):
+            left > right
+        with pytest.raises(TypeError, match=msg):
+            left >= right
 
 
 @pytest.mark.parametrize(
@@ -721,8 +702,3 @@ def test_pickle():
     # GH#4606
     p = tm.round_trip_pickle(NaT)
     assert p is NaT
-
-
-def test_freq_deprecated():
-    with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-        NaT.freq

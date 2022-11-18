@@ -23,6 +23,7 @@ from pandas._typing import (
     ReadBuffer,
 )
 from pandas.util._decorators import Appender
+from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 
@@ -412,7 +413,10 @@ class XportReader(ReaderBase, abc.Iterator):
         total_records_length = self.filepath_or_buffer.tell() - self.record_start
 
         if total_records_length % 80 != 0:
-            warnings.warn("xport file may be corrupted.")
+            warnings.warn(
+                "xport file may be corrupted.",
+                stacklevel=find_stack_level(),
+            )
 
         if self.record_length > 80:
             self.filepath_or_buffer.seek(self.record_start)
@@ -476,7 +480,7 @@ class XportReader(ReaderBase, abc.Iterator):
         raw = self.filepath_or_buffer.read(read_len)
         data = np.frombuffer(raw, dtype=self._dtype, count=read_lines)
 
-        df = pd.DataFrame(index=range(read_lines))
+        df_data = {}
         for j, x in enumerate(self.columns):
             vec = data["s" + str(j)]
             ntype = self.fields[j]["ntype"]
@@ -491,7 +495,8 @@ class XportReader(ReaderBase, abc.Iterator):
                 if self._encoding is not None:
                     v = [y.decode(self._encoding) for y in v]
 
-            df[x] = v
+            df_data.update({x: v})
+        df = pd.DataFrame(df_data)
 
         if self._index is None:
             df.index = pd.Index(range(self._lines_read, self._lines_read + read_lines))

@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from pandas._typing import ReadBuffer
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
 
-from pandas.io.parsers.base_parser import ParserBase
+from pandas import (
+    DataFrame,
+    arrays,
+    get_option,
+)
 
-if TYPE_CHECKING:
-    from pandas import DataFrame
+from pandas.io.parsers.base_parser import ParserBase
 
 
 class ArrowParserWrapper(ParserBase):
@@ -42,7 +43,7 @@ class ArrowParserWrapper(ParserBase):
             )
         self.na_values = list(self.kwds["na_values"])
 
-    def _get_pyarrow_options(self):
+    def _get_pyarrow_options(self) -> None:
         """
         Rename some arguments to pass to pyarrow
         """
@@ -77,7 +78,7 @@ class ArrowParserWrapper(ParserBase):
             else self.kwds["skiprows"],
         }
 
-    def _finalize_output(self, frame: DataFrame) -> DataFrame:
+    def _finalize_pandas_output(self, frame: DataFrame) -> DataFrame:
         """
         Processes data read in based on kwargs.
 
@@ -95,9 +96,7 @@ class ArrowParserWrapper(ParserBase):
         multi_index_named = True
         if self.header is None:
             if self.names is None:
-                if self.prefix is not None:
-                    self.names = [f"{self.prefix}{i}" for i in range(num_cols)]
-                elif self.header is None:
+                if self.header is None:
                     self.names = range(num_cols)
             if len(self.names) != num_cols:
                 # usecols is passed through to pyarrow, we only handle index col here
@@ -150,6 +149,16 @@ class ArrowParserWrapper(ParserBase):
             parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
             convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
         )
-
-        frame = table.to_pandas()
-        return self._finalize_output(frame)
+        if (
+            self.kwds["use_nullable_dtypes"]
+            and get_option("io.nullable_backend") == "pyarrow"
+        ):
+            frame = DataFrame(
+                {
+                    col_name: arrays.ArrowExtensionArray(pa_col)
+                    for col_name, pa_col in zip(table.column_names, table.itercolumns())
+                }
+            )
+        else:
+            frame = table.to_pandas()
+        return self._finalize_pandas_output(frame)

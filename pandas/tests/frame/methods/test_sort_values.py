@@ -15,11 +15,12 @@ import pandas._testing as tm
 
 
 class TestDataFrameSortValues:
-    def test_sort_values_sparse_no_warning(self):
+    @pytest.mark.parametrize("dtype", [np.uint8, bool])
+    def test_sort_values_sparse_no_warning(self, dtype):
         # GH#45618
         # TODO(2.0): test will be unnecessary
         ser = pd.Series(Categorical(["a", "b", "a"], categories=["a", "b", "c"]))
-        df = pd.get_dummies(ser, sparse=True)
+        df = pd.get_dummies(ser, dtype=dtype, sparse=True)
 
         with tm.assert_produces_warning(None):
             # No warnings about constructing Index from SparseArray
@@ -857,18 +858,6 @@ class TestSortValuesLevelAsStr:
         # Compute result by transposing and sorting on axis=1.
         result = df_idx.T.sort_values(by=sort_names, ascending=ascending, axis=1)
 
-        tm.assert_frame_equal(result, expected)
-
-    def test_sort_values_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"In a future version of pandas all arguments of DataFrame\.sort_values "
-            r"except for the argument 'by' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.sort_values("a", 0)
-        expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
 
     def test_sort_values_validate_ascending_for_value_error(self):

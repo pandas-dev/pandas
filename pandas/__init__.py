@@ -47,6 +47,7 @@ import pandas.core.config_init  # pyright: ignore # noqa:F401
 
 from pandas.core.api import (
     # dtype
+    ArrowDtype,
     Int8Dtype,
     Int16Dtype,
     Int32Dtype,
@@ -182,86 +183,6 @@ __version__ = v.get("closest-tag", v["version"])
 __git_version__ = v.get("full-revisionid")
 del get_versions, v
 
-# GH 27101
-__deprecated_num_index_names = ["Float64Index", "Int64Index", "UInt64Index"]
-
-
-def __dir__() -> list[str]:
-    # GH43028
-    # Int64Index etc. are deprecated, but we still want them to be available in the dir.
-    # Remove in Pandas 2.0, when we remove Int64Index etc. from the code base.
-    return list(globals().keys()) + __deprecated_num_index_names
-
-
-def __getattr__(name):
-    import warnings
-
-    if name in __deprecated_num_index_names:
-        warnings.warn(
-            f"pandas.{name} is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Use pandas.Index with the appropriate dtype instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        from pandas.core.api import Float64Index, Int64Index, UInt64Index
-
-        return {
-            "Float64Index": Float64Index,
-            "Int64Index": Int64Index,
-            "UInt64Index": UInt64Index,
-        }[name]
-    elif name == "datetime":
-        warnings.warn(
-            "The pandas.datetime class is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Import from datetime module instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        from datetime import datetime as dt
-
-        return dt
-
-    elif name == "np":
-
-        warnings.warn(
-            "The pandas.np module is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Import numpy directly instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        import numpy as np
-
-        return np
-
-    elif name in {"SparseSeries", "SparseDataFrame"}:
-        warnings.warn(
-            f"The {name} class is removed from pandas. Accessing it from "
-            "the top-level namespace will also be removed in the next version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return type(name, (), {})
-
-    elif name == "SparseArray":
-
-        warnings.warn(
-            "The pandas.SparseArray class is deprecated "
-            "and will be removed from pandas in a future version. "
-            "Use pandas.arrays.SparseArray instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        from pandas.core.arrays.sparse import SparseArray as _SparseArray
-
-        return _SparseArray
-
-    raise AttributeError(f"module 'pandas' has no attribute '{name}'")
-
 
 # module level doc-string
 __doc__ = """
@@ -308,6 +229,7 @@ Here are just a few of the things that pandas does well:
 # Pandas is not (yet) a py.typed library: the public API is determined
 # based on the documentation.
 __all__ = [
+    "ArrowDtype",
     "BooleanDtype",
     "Categorical",
     "CategoricalDtype",

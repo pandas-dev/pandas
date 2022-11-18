@@ -11,7 +11,7 @@ from pandas.compat._optional import import_optional_dependency
 PKG = os.path.dirname(os.path.dirname(__file__))
 
 
-def test(extra_args: list[str] | None = None):
+def test(extra_args: list[str] | None = None) -> None:
     """
     Run the pandas test suite using pytest.
 

@@ -71,8 +71,7 @@ class TestMultiIndexPartial:
         )
         df = DataFrame(np.random.randn(8, 4), index=index, columns=list("abcd"))
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.xs(["foo", "one"])
+        result = df.xs(("foo", "one"))
         expected = df.loc["foo", "one"]
         tm.assert_frame_equal(result, expected)
 
@@ -122,7 +121,9 @@ class TestMultiIndexPartial:
     # TODO(ArrayManager) rewrite test to not use .values
     # exp.loc[2000, 4].values[:] select multiple columns -> .values is not a view
     @td.skip_array_manager_invalid_test
-    def test_partial_set(self, multiindex_year_month_day_dataframe_random_data):
+    def test_partial_set(
+        self, multiindex_year_month_day_dataframe_random_data, using_copy_on_write
+    ):
         # GH #397
         ymd = multiindex_year_month_day_dataframe_random_data
         df = ymd.copy()
@@ -132,7 +133,8 @@ class TestMultiIndexPartial:
         tm.assert_frame_equal(df, exp)
 
         df["A"].loc[2000, 4] = 1
-        exp["A"].loc[2000, 4].values[:] = 1
+        if not using_copy_on_write:
+            exp["A"].loc[2000, 4].values[:] = 1
         tm.assert_frame_equal(df, exp)
 
         df.loc[2000] = 5
@@ -141,7 +143,10 @@ class TestMultiIndexPartial:
 
         # this works...for now
         df["A"].iloc[14] = 5
-        assert df["A"].iloc[14] == 5
+        if using_copy_on_write:
+            df["A"].iloc[14] == exp["A"].iloc[14]
+        else:
+            assert df["A"].iloc[14] == 5
 
     @pytest.mark.parametrize("dtype", [int, float])
     def test_getitem_intkey_leading_level(
@@ -165,9 +170,6 @@ class TestMultiIndexPartial:
 
         with pytest.raises(KeyError, match="14"):
             ser[14]
-        with pytest.raises(KeyError, match="14"):
-            with tm.assert_produces_warning(FutureWarning):
-                mi.get_value(ser, 14)
 
     # ---------------------------------------------------------------------
 

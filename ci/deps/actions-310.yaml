@@ -43,12 +43,12 @@ dependencies:
   - pyreadstat
   - python-snappy
   - pyxlsb
-  - s3fs
+  - s3fs>=2021.08.0
   - scipy
   - sqlalchemy
   - tabulate
+  - tzdata>=2022a
   - xarray
   - xlrd
   - xlsxwriter
-  - xlwt
   - zstandard

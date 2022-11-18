@@ -169,13 +169,13 @@ def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
         expected = df.copy()
     else:
         # GH14962
-        expected = Series([], dtype=object)
+        expected = Series([], dtype=np.int64)
 
     expected.index = _asfreq_compat(df.index, freq)
 
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
-    tm.assert_almost_equal(result, expected, check_dtype=False)
+    tm.assert_almost_equal(result, expected)
 
     # test size for GH13212 (currently stays as df)
 

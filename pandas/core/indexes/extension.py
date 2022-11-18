@@ -77,7 +77,7 @@ def _inherit_from_data(
                     return Index(result, name=self.name)
                 return result
 
-            def fset(self, value):
+            def fset(self, value) -> None:
                 setattr(self._data, name, value)
 
             fget.__name__ = name

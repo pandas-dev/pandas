@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Iterator
 
 import numpy as np
 import pytest
@@ -43,6 +44,8 @@ class TestFromRecords:
         dtypes = [("EXPIRY", "<M8[m]")]
         recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
         result = DataFrame.from_records(recarray)
+        # we get the closest supported unit, "s"
+        expected["EXPIRY"] = expected["EXPIRY"].astype("M8[s]")
         tm.assert_frame_equal(result, expected)
 
     def test_from_records_sequencelike(self):
@@ -148,7 +151,7 @@ class TestFromRecords:
         for b in blocks.values():
             columns.extend(b.columns)
 
-        asdict = {x: y for x, y in df.items()}
+        asdict = dict(df.items())
         asdict2 = {x: y.values for x, y in df.items()}
 
         # dict of series & dict of ndarrays (have dtype info)
@@ -200,7 +203,7 @@ class TestFromRecords:
             def __getitem__(self, i):
                 return self.args[i]
 
-            def __iter__(self):
+            def __iter__(self) -> Iterator:
                 return iter(self.args)
 
         recs = [Record(1, 2, 3), Record(4, 5, 6), Record(7, 8, 9)]
@@ -229,11 +232,7 @@ class TestFromRecords:
     def test_from_records_series_categorical_index(self):
         # GH#32805
         index = CategoricalIndex(
-            [
-                Interval(-20, -10, "right"),
-                Interval(-10, 0, "right"),
-                Interval(0, 10, "right"),
-            ]
+            [Interval(-20, -10), Interval(-10, 0), Interval(0, 10)]
         )
         series_of_dicts = Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
         frame = DataFrame.from_records(series_of_dicts, index=index)

@@ -275,7 +275,7 @@ def left_join_indexer_unique(
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[intp_t] indexer
-        numeric_object_t lval, rval
+        numeric_object_t rval
 
     i = 0
     j = 0
@@ -298,7 +298,7 @@ def left_join_indexer_unique(
             indexer[i] = j
             i += 1
 
-        if left[i] == right[j]:
+        if left[i] == rval:
             indexer[i] = j
             i += 1
             while i < nleft - 1 and left[i] == rval:
@@ -324,7 +324,7 @@ def left_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t] 
     is non-unique (if both were unique we'd use left_join_indexer_unique).
     """
     cdef:
-        Py_ssize_t i, j, k, nright, nleft, count
+        Py_ssize_t i, j, nright, nleft, count
         numeric_object_t lval, rval
         ndarray[intp_t] lindexer, rindexer
         ndarray[numeric_object_t] result
@@ -434,7 +434,7 @@ def inner_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
     Both left and right are monotonic increasing but not necessarily unique.
     """
     cdef:
-        Py_ssize_t i, j, k, nright, nleft, count
+        Py_ssize_t i, j, nright, nleft, count
         numeric_object_t lval, rval
         ndarray[intp_t] lindexer, rindexer
         ndarray[numeric_object_t] result

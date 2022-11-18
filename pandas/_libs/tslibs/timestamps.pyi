@@ -16,6 +16,7 @@ import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
+    NaTType,
     Period,
     Tick,
     Timedelta,
@@ -26,17 +27,16 @@ _DatetimeT = TypeVar("_DatetimeT", bound=datetime)
 def integer_op_not_supported(obj: object) -> TypeError: ...
 
 class Timestamp(datetime):
+    _creso: int
     min: ClassVar[Timestamp]
     max: ClassVar[Timestamp]
 
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
-    def __new__(
+    # error: "__new__" must return a class instance (got "Union[Timestamp, NaTType]")
+    def __new__(  # type: ignore[misc]
         cls: type[_DatetimeT],
         ts_input: np.integer | float | str | _date | datetime | np.datetime64 = ...,
-        freq: int | None | str | BaseOffset = ...,
-        tz: str | _tzinfo | None | int = ...,
-        unit: str | int | None = ...,
         year: int | None = ...,
         month: int | None = ...,
         day: int | None = ...,
@@ -44,15 +44,13 @@ class Timestamp(datetime):
         minute: int | None = ...,
         second: int | None = ...,
         microsecond: int | None = ...,
-        nanosecond: int | None = ...,
         tzinfo: _tzinfo | None = ...,
         *,
+        nanosecond: int | None = ...,
+        tz: str | _tzinfo | None | int = ...,
+        unit: str | int | None = ...,
         fold: int | None = ...,
-    ) -> _DatetimeT: ...
-    # GH 46171
-    # While Timestamp can return pd.NaT, having the constructor return
-    # a Union with NaTType makes things awkward for users of pandas
-    def _set_freq(self, freq: BaseOffset | None) -> None: ...
+    ) -> _DatetimeT | NaTType: ...
     @classmethod
     def _from_value_and_reso(
         cls, value: int, reso: int, tz: _tzinfo | None
@@ -89,7 +87,6 @@ class Timestamp(datetime):
     def fromordinal(
         cls: type[_DatetimeT],
         ordinal: int,
-        freq: str | BaseOffset | None = ...,
         tz: _tzinfo | str | None = ...,
     ) -> _DatetimeT: ...
     @classmethod
@@ -176,7 +173,7 @@ class Timestamp(datetime):
     def is_year_end(self) -> bool: ...
     def to_pydatetime(self, warn: bool = ...) -> datetime: ...
     def to_datetime64(self) -> np.datetime64: ...
-    def to_period(self, freq: BaseOffset | str | None = ...) -> Period: ...
+    def to_period(self, freq: BaseOffset | str = ...) -> Period: ...
     def to_julian_date(self) -> np.float64: ...
     @property
     def asm8(self) -> np.datetime64: ...
@@ -222,4 +219,6 @@ class Timestamp(datetime):
     def days_in_month(self) -> int: ...
     @property
     def daysinmonth(self) -> int: ...
-    def _as_unit(self, unit: str, round_ok: bool = ...) -> Timestamp: ...
+    @property
+    def unit(self) -> str: ...
+    def as_unit(self, unit: str, round_ok: bool = ...) -> Timestamp: ...

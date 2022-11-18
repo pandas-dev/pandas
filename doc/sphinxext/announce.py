@@ -3,7 +3,7 @@
 Script to generate contributor and pull request lists
 
 This script generates contributor and pull request lists for release
-announcements using Github v3 protocol. Use requires an authentication token in
+announcements using GitHub v3 protocol. Use requires an authentication token in
 order to have sufficient bandwidth, you can get one following the directions at
 `<https://help.github.com/articles/creating-an-access-token-for-command-line-use/>_
 Don't add any scope, as the default is read access to public information. The
@@ -88,7 +88,7 @@ def get_authors(revision_range):
     pre.discard("Homu")
 
     # Append '+' to new authors.
-    authors = [s + " +" for s in cur - pre] + [s for s in cur & pre]
+    authors = [s + " +" for s in cur - pre] + list(cur & pre)
     authors.sort()
     return authors
 
@@ -112,7 +112,7 @@ def get_pull_requests(repo, revision_range):
     issues = re.findall("^.*\\(\\#(\\d+)\\)$", commits, re.M)
     prnums.extend(int(s) for s in issues)
 
-    # get PR data from github repo
+    # get PR data from GitHub repo
     prnums.sort()
     prs = [repo.get_pull(n) for n in prnums]
     return prs

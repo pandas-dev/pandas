@@ -115,9 +115,7 @@ def test_less_precise(data1, data2, dtype, decimals):
     s1 = Series([data1], dtype=dtype)
     s2 = Series([data2], dtype=dtype)
 
-    if (decimals == 5 or decimals == 10) or (
-        decimals >= 3 and abs(data1 - data2) >= 0.0005
-    ):
+    if decimals in (5, 10) or (decimals >= 3 and abs(data1 - data2) >= 0.0005):
         if is_extension_array_dtype(dtype):
             msg = "ExtensionArray are different"
         else:
@@ -184,10 +182,12 @@ def test_series_equal_index_mismatch(check_index):
 
 
 def test_series_invalid_param_combination():
+    left = Series(dtype=object)
+    right = Series(dtype=object)
     with pytest.raises(
         ValueError, match="check_like must be False if check_index is False"
     ):
-        tm.assert_series_equal(Series(), Series(), check_index=False, check_like=True)
+        tm.assert_series_equal(left, right, check_index=False, check_like=True)
 
 
 def test_series_equal_length_mismatch(rtol):
@@ -288,7 +288,7 @@ Attribute "dtype" are different
 
 def test_assert_series_equal_interval_dtype_mismatch():
     # https://github.com/pandas-dev/pandas/issues/32747
-    left = Series([pd.Interval(0, 1, "right")], dtype="interval")
+    left = Series([pd.Interval(0, 1)], dtype="interval")
     right = left.astype(object)
 
     msg = """Attributes of Series are different

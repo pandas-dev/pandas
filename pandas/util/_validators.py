@@ -15,7 +15,6 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import IntervalInclusiveType
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -225,7 +224,7 @@ def validate_args_and_kwargs(
 
 
 def validate_bool_kwarg(
-    value: BoolishNoneT, arg_name, none_allowed=True, int_allowed=False
+    value: BoolishNoneT, arg_name, none_allowed: bool = True, int_allowed: bool = False
 ) -> BoolishNoneT:
     """
     Ensure that argument passed in arg_name can be interpreted as boolean.
@@ -387,7 +386,7 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = Tru
 
     if value is None and method is None:
         raise ValueError("Must specify a fill 'value' or 'method'.")
-    elif value is None and method is not None:
+    if value is None and method is not None:
         method = clean_fill_method(method)
 
     elif value is not None and method is None:
@@ -491,7 +490,7 @@ def validate_endpoints(closed: str | None) -> tuple[bool, bool]:
     return left_closed, right_closed
 
 
-def validate_inclusive(inclusive: IntervalInclusiveType | None) -> tuple[bool, bool]:
+def validate_inclusive(inclusive: str | None) -> tuple[bool, bool]:
     """
     Check that the `inclusive` argument is among {"both", "neither", "left", "right"}.
 

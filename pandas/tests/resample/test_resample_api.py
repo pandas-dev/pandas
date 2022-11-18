@@ -99,11 +99,7 @@ def test_groupby_resample_on_api():
 
 def test_resample_group_keys():
     df = DataFrame({"A": 1, "B": 2}, index=date_range("2000", periods=10))
-    g = df.resample("5D")
     expected = df.copy()
-    with tm.assert_produces_warning(FutureWarning, match="Not prepending group keys"):
-        result = g.apply(lambda x: x)
-    tm.assert_frame_equal(result, expected)
 
     # no warning
     g = df.resample("5D", group_keys=False)
@@ -115,6 +111,10 @@ def test_resample_group_keys():
     expected.index = pd.MultiIndex.from_arrays(
         [pd.to_datetime(["2000-01-01", "2000-01-06"]).repeat(5), expected.index]
     )
+
+    g = df.resample("5D")
+    result = g.apply(lambda x: x)
+    tm.assert_frame_equal(result, expected)
 
     g = df.resample("5D", group_keys=True)
     with tm.assert_produces_warning(None):
@@ -407,14 +407,14 @@ def test_agg():
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
         # In case 2, "date" is an index and a column, so agg still tries to agg
-        warn = FutureWarning if t == cases[2] else None
-        with tm.assert_produces_warning(
-            warn,
-            match=r"\['date'\] did not aggregate successfully",
-        ):
-            # .var on dt64 column raises and is dropped
+        if t == cases[2]:
+            # .var on dt64 column raises
+            msg = "Cannot cast DatetimeArray to dtype float64"
+            with pytest.raises(TypeError, match=msg):
+                t.aggregate([np.mean, np.std])
+        else:
             result = t.aggregate([np.mean, np.std])
-        tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
     expected = pd.concat([a_mean, b_std], axis=1)
     for t in cases:
@@ -821,8 +821,8 @@ def test_end_and_end_day_origin(
         ("sum", False, {"cat": ["cat_1cat_2"], "num": [25]}),
         ("sum", lib.no_default, {"num": [25]}),
         ("prod", True, {"num": [100]}),
-        ("prod", False, {"num": [100]}),
-        ("prod", lib.no_default, {"num": [100]}),
+        ("prod", False, "can't multiply sequence"),
+        ("prod", lib.no_default, "can't multiply sequence"),
         ("min", True, {"num": [5]}),
         ("min", False, {"cat": ["cat_1"], "num": [5]}),
         ("min", lib.no_default, {"cat": ["cat_1"], "num": [5]}),
@@ -836,10 +836,10 @@ def test_end_and_end_day_origin(
         ("last", False, {"cat": ["cat_2"], "num": [20]}),
         ("last", lib.no_default, {"cat": ["cat_2"], "num": [20]}),
         ("mean", True, {"num": [12.5]}),
-        ("mean", False, {"num": [12.5]}),
+        ("mean", False, "Could not convert"),
         ("mean", lib.no_default, {"num": [12.5]}),
         ("median", True, {"num": [12.5]}),
-        ("median", False, {"num": [12.5]}),
+        ("median", False, "could not convert"),
         ("median", lib.no_default, {"num": [12.5]}),
         ("std", True, {"num": [10.606601717798213]}),
         ("std", False, "could not convert string to float"),
@@ -876,15 +876,14 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
         msg = (
             f"default value of numeric_only in DataFrameGroupBy.{method} is deprecated"
         )
-    elif method in ("prod", "mean", "median") and numeric_only is not True:
-        warn = FutureWarning
-        msg = f"Dropping invalid columns in DataFrameGroupBy.{method} is deprecated"
     else:
         warn = None
         msg = ""
     with tm.assert_produces_warning(warn, match=msg):
         if isinstance(expected_data, str):
-            klass = TypeError if method == "var" else ValueError
+            klass = (
+                TypeError if method in ("var", "mean", "median", "prod") else ValueError
+            )
             with pytest.raises(klass, match=expected_data):
                 _ = func(**kwargs)
         else:

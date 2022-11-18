@@ -124,6 +124,26 @@ from pandas.tests.extension.decimal import (
             None,
             TimedeltaArray._from_sequence(["1H", "2H"]),
         ),
+        (
+            # preserve non-nano, i.e. don't cast to PandasArray
+            TimedeltaArray._simple_new(
+                np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
+            ),
+            None,
+            TimedeltaArray._simple_new(
+                np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
+            ),
+        ),
+        (
+            # preserve non-nano, i.e. don't cast to PandasArray
+            TimedeltaArray._simple_new(
+                np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
+            ),
+            np.dtype("m8[s]"),
+            TimedeltaArray._simple_new(
+                np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
+            ),
+        ),
         # Category
         (["a", "b"], "category", pd.Categorical(["a", "b"])),
         (
@@ -133,9 +153,9 @@ from pandas.tests.extension.decimal import (
         ),
         # Interval
         (
-            [pd.Interval(1, 2, "right"), pd.Interval(3, 4, "right")],
+            [pd.Interval(1, 2), pd.Interval(3, 4)],
             "interval",
-            IntervalArray.from_tuples([(1, 2), (3, 4)], "right"),
+            IntervalArray.from_tuples([(1, 2), (3, 4)]),
         ),
         # Sparse
         ([0, 1], "Sparse[int64]", SparseArray([0, 1], dtype="int64")),
@@ -206,10 +226,7 @@ cet = pytz.timezone("CET")
             period_array(["2000", "2001"], freq="D"),
         ),
         # interval
-        (
-            [pd.Interval(0, 1, "right"), pd.Interval(1, 2, "right")],
-            IntervalArray.from_breaks([0, 1, 2], "right"),
-        ),
+        ([pd.Interval(0, 1), pd.Interval(1, 2)], IntervalArray.from_breaks([0, 1, 2])),
         # datetime
         (
             [pd.Timestamp("2000"), pd.Timestamp("2001")],
@@ -225,7 +242,9 @@ cet = pytz.timezone("CET")
         ),
         (
             np.array([1, 2], dtype="M8[us]"),
-            DatetimeArray(np.array([1000, 2000], dtype="M8[ns]")),
+            DatetimeArray._simple_new(
+                np.array([1, 2], dtype="M8[us]"), dtype=np.dtype("M8[us]")
+            ),
         ),
         # datetimetz
         (
@@ -254,7 +273,7 @@ cet = pytz.timezone("CET")
         ),
         (
             np.array([1, 2], dtype="m8[us]"),
-            TimedeltaArray(np.array([1000, 2000], dtype="m8[ns]")),
+            TimedeltaArray(np.array([1, 2], dtype="m8[us]")),
         ),
         # integer
         ([1, 2], IntegerArray._from_sequence([1, 2])),
@@ -298,8 +317,8 @@ def test_array_inference(data, expected):
     [
         # mix of frequencies
         [pd.Period("2000", "D"), pd.Period("2001", "A")],
-        # mix of inclusive
-        [pd.Interval(0, 1, "left"), pd.Interval(1, 2, "right")],
+        # mix of closed
+        [pd.Interval(0, 1, closed="left"), pd.Interval(1, 2, closed="right")],
         # Mix of timezones
         [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2000", tz="UTC")],
         # Mix of tz-aware and tz-naive

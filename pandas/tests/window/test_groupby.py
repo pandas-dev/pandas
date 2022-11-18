@@ -96,10 +96,7 @@ class TestRolling:
             "mean",
             "min",
             "max",
-            pytest.param(
-                "count",
-                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
-            ),
+            "count",
             "kurt",
             "skew",
         ],
@@ -280,11 +277,11 @@ class TestRolling:
     def test_groupby_rolling(self, expected_value, raw_value):
         # GH 31754
 
-        def foo(x):
+        def isnumpyarray(x):
             return int(isinstance(x, np.ndarray))
 
         df = DataFrame({"id": [1, 1, 1], "value": [1, 2, 3]})
-        result = df.groupby("id").value.rolling(1).apply(foo, raw=raw_value)
+        result = df.groupby("id").value.rolling(1).apply(isnumpyarray, raw=raw_value)
         expected = Series(
             [expected_value] * 3,
             index=MultiIndex.from_tuples(((1, 0), (1, 1), (1, 2)), names=["id", None]),
@@ -1006,14 +1003,15 @@ class TestRolling:
 
 
 class TestExpanding:
-    def setup_method(self):
-        self.frame = DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
+    @pytest.fixture
+    def frame(self):
+        return DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
     @pytest.mark.parametrize(
         "f", ["sum", "mean", "min", "max", "count", "kurt", "skew"]
     )
-    def test_expanding(self, f):
-        g = self.frame.groupby("A", group_keys=False)
+    def test_expanding(self, f, frame):
+        g = frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = getattr(r, f)()
@@ -1021,13 +1019,13 @@ class TestExpanding:
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected_index = MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["std", "var"])
-    def test_expanding_ddof(self, f):
-        g = self.frame.groupby("A", group_keys=False)
+    def test_expanding_ddof(self, f, frame):
+        g = frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = getattr(r, f)(ddof=0)
@@ -1035,15 +1033,15 @@ class TestExpanding:
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected_index = MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
     )
-    def test_expanding_quantile(self, interpolation):
-        g = self.frame.groupby("A", group_keys=False)
+    def test_expanding_quantile(self, interpolation, frame):
+        g = frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = r.quantile(0.4, interpolation=interpolation)
@@ -1053,21 +1051,21 @@ class TestExpanding:
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected_index = MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["corr", "cov"])
-    def test_expanding_corr_cov(self, f):
-        g = self.frame.groupby("A")
+    def test_expanding_corr_cov(self, f, frame):
+        g = frame.groupby("A")
         r = g.expanding()
 
-        result = getattr(r, f)(self.frame)
+        result = getattr(r, f)(frame)
 
-        def func(x):
-            return getattr(x.expanding(), f)(self.frame)
+        def func_0(x):
+            return getattr(x.expanding(), f)(frame)
 
-        expected = g.apply(func)
+        expected = g.apply(func_0)
         # GH 39591: groupby.apply returns 1 instead of nan for windows
         # with all nan values
         null_idx = list(range(20, 61)) + list(range(72, 113))
@@ -1079,14 +1077,14 @@ class TestExpanding:
 
         result = getattr(r.B, f)(pairwise=True)
 
-        def func(x):
+        def func_1(x):
             return getattr(x.B.expanding(), f)(pairwise=True)
 
-        expected = g.apply(func)
+        expected = g.apply(func_1)
         tm.assert_series_equal(result, expected)
 
-    def test_expanding_apply(self, raw):
-        g = self.frame.groupby("A", group_keys=False)
+    def test_expanding_apply(self, raw, frame):
+        g = frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         # reduction
@@ -1095,7 +1093,7 @@ class TestExpanding:
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected_index = MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
@@ -1164,7 +1162,11 @@ class TestEWM:
         halflife = "23 days"
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
             # GH#42738
-            result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+            result = (
+                times_frame.groupby("A")
+                .ewm(halflife=halflife, times=times_frame["C"])
+                .mean()
+            )
         expected = DataFrame(
             {
                 "B": [
@@ -1203,9 +1205,13 @@ class TestEWM:
         halflife = "23 days"
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
             # GH#42738
-            result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+            result = (
+                times_frame.groupby("A")
+                .ewm(halflife=halflife, times=times_frame["C"])
+                .mean()
+            )
             expected = times_frame.groupby("A", group_keys=True).apply(
-                lambda x: x.ewm(halflife=halflife, times="C").mean()
+                lambda x: x.ewm(halflife=halflife, times=x["C"]).mean()
             )
         tm.assert_frame_equal(result, expected)
 
@@ -1215,7 +1221,7 @@ class TestEWM:
         gb = times_frame.groupby("A")
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
             # GH#42738
-            result = gb.ewm(halflife=halflife, times="C").mean()
+            result = gb.ewm(halflife=halflife, times=times_frame["C"]).mean()
             expected = gb.ewm(halflife=halflife, times=times_frame["C"].values).mean()
         tm.assert_frame_equal(result, expected)
 

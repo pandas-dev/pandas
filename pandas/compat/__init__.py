@@ -12,32 +12,26 @@ from __future__ import annotations
 import os
 import platform
 import sys
-from typing import TYPE_CHECKING
 
 from pandas._typing import F
+import pandas.compat._compressors
+from pandas.compat._constants import (
+    IS64,
+    PY39,
+    PY310,
+    PY311,
+    PYPY,
+)
 from pandas.compat.numpy import (
     is_numpy_dev,
     np_version_under1p21,
 )
 from pandas.compat.pyarrow import (
-    pa_version_under1p01,
-    pa_version_under2p0,
-    pa_version_under3p0,
-    pa_version_under4p0,
-    pa_version_under5p0,
     pa_version_under6p0,
     pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
 )
-
-if TYPE_CHECKING:
-    import lzma
-
-PY39 = sys.version_info >= (3, 9)
-PY310 = sys.version_info >= (3, 10)
-PYPY = platform.python_implementation() == "PyPy"
-IS64 = sys.maxsize > 2**32
 
 
 def set_function_name(f: F, name: str, cls) -> F:
@@ -125,7 +119,7 @@ def is_ci_environment() -> bool:
     return os.environ.get("PANDAS_CI", "0") == "1"
 
 
-def get_lzma_file() -> type[lzma.LZMAFile]:
+def get_lzma_file() -> type[pandas.compat._compressors.LZMAFile]:
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -139,27 +133,25 @@ def get_lzma_file() -> type[lzma.LZMAFile]:
     RuntimeError
         If the `lzma` module was not imported correctly, or didn't exist.
     """
-    try:
-        import lzma
-    except ImportError:
+    if not pandas.compat._compressors.has_lzma:
         raise RuntimeError(
             "lzma module not available. "
             "A Python re-install with the proper dependencies, "
             "might be required to solve this issue."
         )
-    return lzma.LZMAFile
+    return pandas.compat._compressors.LZMAFile
 
 
 __all__ = [
     "is_numpy_dev",
     "np_version_under1p21",
-    "pa_version_under1p01",
-    "pa_version_under2p0",
-    "pa_version_under3p0",
-    "pa_version_under4p0",
-    "pa_version_under5p0",
     "pa_version_under6p0",
     "pa_version_under7p0",
     "pa_version_under8p0",
     "pa_version_under9p0",
+    "IS64",
+    "PY39",
+    "PY310",
+    "PY311",
+    "PYPY",
 ]

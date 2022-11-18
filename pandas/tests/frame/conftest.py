@@ -277,7 +277,6 @@ def frame_of_index_cols():
         "sem",
         "var",
         "std",
-        "mad",
     ]
 )
 def reduction_functions(request):

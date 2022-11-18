@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import io
 import os
-from typing import Any
+from typing import (
+    Any,
+    Literal,
+)
 from warnings import catch_warnings
 
 from pandas._typing import (
@@ -19,6 +22,7 @@ from pandas.util._decorators import doc
 from pandas import (
     DataFrame,
     MultiIndex,
+    arrays,
     get_option,
 )
 from pandas.core.shared_docs import _shared_docs
@@ -151,7 +155,7 @@ class PyArrowImpl(BaseImpl):
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
-        import pandas.core.arrays.arrow._arrow_utils  # pyright: ignore # noqa:F401
+        import pandas.core.arrays.arrow.extension_types  # pyright: ignore # noqa:F401
 
         self.api = pyarrow
 
@@ -186,6 +190,8 @@ class PyArrowImpl(BaseImpl):
             and isinstance(path_or_handle.name, (str, bytes))
         ):
             path_or_handle = path_or_handle.name
+            if isinstance(path_or_handle, bytes):
+                path_or_handle = path_or_handle.decode()
 
         try:
             if partition_cols is not None:
@@ -210,31 +216,33 @@ class PyArrowImpl(BaseImpl):
         self,
         path,
         columns=None,
-        use_nullable_dtypes=False,
+        use_nullable_dtypes: bool = False,
         storage_options: StorageOptions = None,
         **kwargs,
     ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
 
+        nullable_backend = get_option("io.nullable_backend")
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
             import pandas as pd
 
-            mapping = {
-                self.api.int8(): pd.Int8Dtype(),
-                self.api.int16(): pd.Int16Dtype(),
-                self.api.int32(): pd.Int32Dtype(),
-                self.api.int64(): pd.Int64Dtype(),
-                self.api.uint8(): pd.UInt8Dtype(),
-                self.api.uint16(): pd.UInt16Dtype(),
-                self.api.uint32(): pd.UInt32Dtype(),
-                self.api.uint64(): pd.UInt64Dtype(),
-                self.api.bool_(): pd.BooleanDtype(),
-                self.api.string(): pd.StringDtype(),
-                self.api.float32(): pd.Float32Dtype(),
-                self.api.float64(): pd.Float64Dtype(),
-            }
-            to_pandas_kwargs["types_mapper"] = mapping.get
+            if nullable_backend == "pandas":
+                mapping = {
+                    self.api.int8(): pd.Int8Dtype(),
+                    self.api.int16(): pd.Int16Dtype(),
+                    self.api.int32(): pd.Int32Dtype(),
+                    self.api.int64(): pd.Int64Dtype(),
+                    self.api.uint8(): pd.UInt8Dtype(),
+                    self.api.uint16(): pd.UInt16Dtype(),
+                    self.api.uint32(): pd.UInt32Dtype(),
+                    self.api.uint64(): pd.UInt64Dtype(),
+                    self.api.bool_(): pd.BooleanDtype(),
+                    self.api.string(): pd.StringDtype(),
+                    self.api.float32(): pd.Float32Dtype(),
+                    self.api.float64(): pd.Float64Dtype(),
+                }
+                to_pandas_kwargs["types_mapper"] = mapping.get
         manager = get_option("mode.data_manager")
         if manager == "array":
             to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
@@ -246,9 +254,20 @@ class PyArrowImpl(BaseImpl):
             mode="rb",
         )
         try:
-            result = self.api.parquet.read_table(
+            pa_table = self.api.parquet.read_table(
                 path_or_handle, columns=columns, **kwargs
-            ).to_pandas(**to_pandas_kwargs)
+            )
+            if nullable_backend == "pandas":
+                result = pa_table.to_pandas(**to_pandas_kwargs)
+            elif nullable_backend == "pyarrow":
+                result = DataFrame(
+                    {
+                        col_name: arrays.ArrowExtensionArray(pa_col)
+                        for col_name, pa_col in zip(
+                            pa_table.column_names, pa_table.itercolumns()
+                        )
+                    }
+                )
             if manager == "array":
                 result = result._as_manager("array", copy=False)
             return result
@@ -270,7 +289,7 @@ class FastParquetImpl(BaseImpl):
         self,
         df: DataFrame,
         path,
-        compression="snappy",
+        compression: Literal["snappy", "gzip", "brotli"] | None = "snappy",
         index=None,
         partition_cols=None,
         storage_options: StorageOptions = None,
@@ -286,7 +305,7 @@ class FastParquetImpl(BaseImpl):
                 "Cannot use both partition_on and "
                 "partition_cols. Use partition_cols for partitioning data"
             )
-        elif "partition_on" in kwargs:
+        if "partition_on" in kwargs:
             partition_cols = kwargs.pop("partition_on")
 
         if partition_cols is not None:
@@ -488,6 +507,13 @@ def read_parquet(
         support dtypes) may change without notice.
 
         .. versionadded:: 1.2.0
+
+        The nullable dtype implementation can be configured by setting the global
+        ``io.nullable_backend`` configuration option to ``"pandas"`` to use
+        numpy-backed nullable dtypes or ``"pyarrow"`` to use pyarrow-backed
+        nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0.0
 
     **kwargs
         Any additional kwargs are passed to the engine.

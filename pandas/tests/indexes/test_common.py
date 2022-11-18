@@ -12,6 +12,7 @@ from pandas.compat import (
     IS64,
     pa_version_under7p0,
 )
+from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -22,7 +23,6 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
     RangeIndex,
-    TimedeltaIndex,
 )
 import pandas._testing as tm
 from pandas.core.api import NumericIndex
@@ -169,7 +169,12 @@ class TestCommon:
         s1 = pd.Series(2, index=first)
         s2 = pd.Series(3, index=second[:-1])
         # See GH#13365
-        s3 = s1 * s2
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            s3 = s1 * s2
         assert s3.index.name == "mario"
 
     def test_copy_name2(self, index_flat):
@@ -242,7 +247,7 @@ class TestCommon:
         assert idx_unique_nan.dtype == index.dtype
 
         expected = idx_unique_nan
-        for i in [idx_nan, idx_unique_nan]:
+        for pos, i in enumerate([idx_nan, idx_unique_nan]):
             result = i.unique()
             tm.assert_index_equal(result, expected)
 
@@ -406,6 +411,7 @@ class TestCommon:
             with tm.assert_produces_warning(
                 warn,
                 raise_on_extra_warnings=is_pyarrow_str,
+                check_stacklevel=False,
             ):
                 result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
@@ -415,16 +421,6 @@ class TestCommon:
             assert result.names == index.names
         else:
             assert result.name == index.name
-
-    def test_asi8_deprecation(self, index):
-        # GH#37877
-        if isinstance(index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
-            warn = None
-        else:
-            warn = FutureWarning
-
-        with tm.assert_produces_warning(warn):
-            index.asi8
 
     def test_hasnans_isnans(self, index_flat):
         # GH#11343, added tests for hasnans / isnans
@@ -459,9 +455,13 @@ class TestCommon:
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
-
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-        index_with_missing.sort_values(na_position=na_position)
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            index_with_missing.sort_values(na_position=na_position)
 
 
 @pytest.mark.parametrize("na_position", ["first", "last"])
@@ -487,7 +487,13 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
     # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
     expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
 
-    result = index_with_missing.sort_values(na_position=na_position)
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        pa_version_under7p0
+        and getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
+        check_stacklevel=False,
+    ):
+        result = index_with_missing.sort_values(na_position=na_position)
     tm.assert_index_equal(result, expected)
 
 

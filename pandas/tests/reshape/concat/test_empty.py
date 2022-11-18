@@ -16,11 +16,11 @@ class TestEmptyConcat:
     def test_handle_empty_objects(self, sort):
         df = DataFrame(np.random.randn(10, 4), columns=list("abcd"))
 
-        baz = df[:5].copy()
-        baz["foo"] = "bar"
+        dfcopy = df[:5].copy()
+        dfcopy["foo"] = "bar"
         empty = df[5:5]
 
-        frames = [baz, empty, empty, df[5:]]
+        frames = [dfcopy, empty, empty, df[5:]]
         concatted = concat(frames, axis=0, sort=sort)
 
         expected = df.reindex(columns=["a", "b", "c", "d", "foo"])
@@ -284,3 +284,11 @@ class TestEmptyConcat:
         result = concat([df1[:0], df2[:0]])
         assert result["a"].dtype == np.int64
         assert result["b"].dtype == np.object_
+
+    def test_concat_to_empty_ea(self):
+        """48510 `concat` to an empty EA should maintain type EA dtype."""
+        df_empty = DataFrame({"a": pd.array([], dtype=pd.Int64Dtype())})
+        df_new = DataFrame({"a": pd.array([1, 2, 3], dtype=pd.Int64Dtype())})
+        expected = df_new.copy()
+        result = concat([df_empty, df_new])
+        tm.assert_frame_equal(result, expected)

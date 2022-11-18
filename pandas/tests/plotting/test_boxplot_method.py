@@ -13,6 +13,7 @@ from pandas import (
     MultiIndex,
     Series,
     date_range,
+    plotting,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -22,7 +23,6 @@ from pandas.tests.plotting.common import (
 )
 
 from pandas.io.formats.printing import pprint_thing
-import pandas.plotting as plotting
 
 
 @td.skip_if_no_mpl
@@ -61,23 +61,23 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.boxplot, return_type="dict")
         _check_plot_works(df.boxplot, column=["one", "two"], return_type="dict")
         # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(df.boxplot, column=["one", "two"], by="indic")
         _check_plot_works(df.boxplot, column="one", by=["indic", "indic2"])
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(df.boxplot, by="indic")
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(df.boxplot, by=["indic", "indic2"])
         _check_plot_works(plotting._core.boxplot, data=df["one"], return_type="dict")
         _check_plot_works(df.boxplot, notch=1, return_type="dict")
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(df.boxplot, by="indic", notch=1)
 
     def test_boxplot_legacy2(self):
         df = DataFrame(np.random.rand(10, 2), columns=["Col1", "Col2"])
         df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         df["Y"] = Series(["A"] * 10)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(df.boxplot, by="X")
 
         # When ax is supplied and required number of axes is 1,
@@ -330,7 +330,7 @@ class TestDataFramePlots(TestPlotBase):
 class TestDataFrameGroupByPlots(TestPlotBase):
     def test_boxplot_legacy1(self, hist_df):
         grouped = hist_df.groupby(by="gender")
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(grouped.boxplot, return_type="axes")
         self._check_axes_shape(list(axes.values), axes_num=2, layout=(1, 2))
         axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
@@ -341,7 +341,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
         grouped = df.groupby(level=1)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(grouped.boxplot, return_type="axes")
         self._check_axes_shape(list(axes.values), axes_num=10, layout=(4, 3))
 
@@ -352,7 +352,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
         grouped = df.unstack(level=1).groupby(level=0, axis=1)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(grouped.boxplot, return_type="axes")
         self._check_axes_shape(list(axes.values), axes_num=3, layout=(2, 2))
         axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
@@ -437,20 +437,20 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             df.boxplot(column=["weight", "height"], by=df.gender, layout=(-1, -1))
 
         # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             box = _check_plot_works(
                 df.groupby("gender").boxplot, column="height", return_type="dict"
             )
         self._check_axes_shape(self.plt.gcf().axes, axes_num=2, layout=(1, 2))
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             box = _check_plot_works(
                 df.groupby("category").boxplot, column="height", return_type="dict"
             )
         self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(2, 2))
 
         # GH 6769
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             box = _check_plot_works(
                 df.groupby("classroom").boxplot, column="height", return_type="dict"
             )
@@ -473,7 +473,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         )
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             box = _check_plot_works(
                 df.groupby("category").boxplot,
                 column="height",
@@ -481,7 +481,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                 return_type="dict",
             )
         self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(3, 2))
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             box = _check_plot_works(
                 df.groupby("category").boxplot,
                 column="height",

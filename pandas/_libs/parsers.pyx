@@ -8,9 +8,20 @@ from csv import (
     QUOTE_NONNUMERIC,
 )
 from errno import ENOENT
+import inspect
 import sys
 import time
 import warnings
+
+from pandas.errors import ParserError
+from pandas.util._exceptions import find_stack_level
+
+from pandas import StringDtype
+from pandas.core.arrays import (
+    BooleanArray,
+    FloatingArray,
+    IntegerArray,
+)
 
 cimport cython
 from cpython.bytes cimport (
@@ -64,7 +75,7 @@ from pandas._libs.util cimport (
     UINT64_MAX,
 )
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 
 from pandas._libs.khash cimport (
     kh_destroy_float64,
@@ -332,6 +343,7 @@ cdef class TextReader:
         object index_col
         object skiprows
         object dtype
+        bint use_nullable_dtypes
         object usecols
         set unnamed_cols  # set[str]
 
@@ -370,7 +382,8 @@ cdef class TextReader:
                   bint mangle_dupe_cols=True,
                   float_precision=None,
                   bint skip_blank_lines=True,
-                  encoding_errors=b"strict"):
+                  encoding_errors=b"strict",
+                  use_nullable_dtypes=False):
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -495,6 +508,7 @@ cdef class TextReader:
         # - DtypeObj
         # - dict[Any, DtypeObj]
         self.dtype = dtype
+        self.use_nullable_dtypes = use_nullable_dtypes
 
         # XXX
         self.noconvert = set()
@@ -731,6 +745,8 @@ cdef class TextReader:
         elif self.names is not None:
             # Names passed
             if self.parser.lines < 1:
+                if not self.has_usecols:
+                    self.parser.expected_fields = len(self.names)
                 self._tokenize_rows(1)
 
             header = [self.names]
@@ -743,6 +759,7 @@ cdef class TextReader:
             # Enforce this unless usecols
             if not self.has_usecols:
                 self.parser.expected_fields = max(field_count, len(self.names))
+
         else:
             # No header passed nor to be found in the file
             if self.parser.lines < 1:
@@ -923,6 +940,7 @@ cdef class TextReader:
             bint na_filter = 0
             int64_t num_cols
             dict result
+            bint use_nullable_dtypes
 
         start = self.parser_start
 
@@ -954,11 +972,9 @@ cdef class TextReader:
                 all(isinstance(u, int) for u in self.usecols)):
             missing_usecols = [col for col in self.usecols if col >= num_cols]
             if missing_usecols:
-                warnings.warn(
-                    "Defining usecols with out of bounds indices is deprecated "
-                    "and will raise a ParserError in a future version.",
-                    FutureWarning,
-                    stacklevel=6,
+                raise ParserError(
+                    "Defining usecols without of bounds indices is not allowed. "
+                    f"{missing_usecols} are out of bounds.",
                 )
 
         results = {}
@@ -1009,7 +1025,7 @@ cdef class TextReader:
                     warnings.warn((f"Both a converter and dtype were specified "
                                    f"for column {name} - only the converter will "
                                    f"be used."), ParserWarning,
-                                  stacklevel=5)
+                                  stacklevel=find_stack_level())
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
@@ -1043,8 +1059,14 @@ cdef class TextReader:
                     self._free_na_set(na_hashset)
 
             # don't try to upcast EAs
-            if na_count > 0 and not is_extension_array_dtype(col_dtype):
-                col_res = _maybe_upcast(col_res)
+            if (
+                na_count > 0 and not is_extension_array_dtype(col_dtype)
+                or self.use_nullable_dtypes
+            ):
+                use_nullable_dtypes = self.use_nullable_dtypes and col_dtype is None
+                col_res = _maybe_upcast(
+                    col_res, use_nullable_dtypes=use_nullable_dtypes
+                )
 
             if col_res is None:
                 raise ParserError(f'Unable to parse column {i}')
@@ -1375,18 +1397,56 @@ STR_NA_VALUES = {
 _NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
 
-def _maybe_upcast(arr):
-    """
+def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
+    """Sets nullable dtypes or upcasts if nans are present.
 
+    Upcast, if use_nullable_dtypes is false and nans are present so that the
+    current dtype can not hold the na value. We use nullable dtypes if the
+    flag is true for every array.
+
+    Parameters
+    ----------
+    arr: ndarray
+        Numpy array that is potentially being upcast.
+
+    use_nullable_dtypes: bool, default False
+        If true, we cast to the associated nullable dtypes.
+
+    Returns
+    -------
+    The casted array.
     """
+    if is_extension_array_dtype(arr.dtype):
+        return arr
+
+    na_value = na_values[arr.dtype]
+
     if issubclass(arr.dtype.type, np.integer):
-        na_value = na_values[arr.dtype]
-        arr = arr.astype(float)
-        np.putmask(arr, arr == na_value, np.nan)
+        mask = arr == na_value
+
+        if use_nullable_dtypes:
+            arr = IntegerArray(arr, mask)
+        else:
+            arr = arr.astype(float)
+            np.putmask(arr, mask, np.nan)
+
     elif arr.dtype == np.bool_:
-        mask = arr.view(np.uint8) == na_values[np.uint8]
-        arr = arr.astype(object)
-        np.putmask(arr, mask, np.nan)
+        mask = arr.view(np.uint8) == na_value
+
+        if use_nullable_dtypes:
+            arr = BooleanArray(arr, mask)
+        else:
+            arr = arr.astype(object)
+            np.putmask(arr, mask, np.nan)
+
+    elif issubclass(arr.dtype.type, float) or arr.dtype.type == np.float32:
+        if use_nullable_dtypes:
+            mask = np.isnan(arr)
+            arr = FloatingArray(arr, mask)
+
+    elif arr.dtype == np.object_:
+        if use_nullable_dtypes:
+            arr = StringDtype().construct_array_type()._from_sequence(arr)
 
     return arr
 
@@ -1982,6 +2042,7 @@ def _compute_na_values():
     uint16info = np.iinfo(np.uint16)
     uint8info = np.iinfo(np.uint8)
     na_values = {
+        np.float32: np.nan,
         np.float64: np.nan,
         np.int64: int64info.min,
         np.int32: int32info.min,

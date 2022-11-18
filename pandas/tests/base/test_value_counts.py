@@ -4,6 +4,9 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under7p0
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     DatetimeIndex,
@@ -26,8 +29,6 @@ def test_value_counts(index_or_series_obj):
     counter = collections.Counter(obj)
     expected = Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
     expected.index = expected.index.astype(obj.dtype)
-    if isinstance(obj, pd.MultiIndex):
-        expected.index = Index(expected.index)
 
     if not isinstance(result.dtype, np.dtype):
         # i.e IntegerDtype
@@ -36,8 +37,16 @@ def test_value_counts(index_or_series_obj):
     # TODO(GH#32514): Order of entries with the same count is inconsistent
     #  on CI (gh-32449)
     if obj.duplicated().any():
-        result = result.sort_index()
-        expected = expected.sort_index()
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
+        ):
+            result = result.sort_index()
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
+        ):
+            expected = expected.sort_index()
     tm.assert_series_equal(result, expected)
 
 
@@ -70,8 +79,16 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     if obj.duplicated().any():
         # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
-        expected = expected.sort_index()
-        result = result.sort_index()
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
+        ):
+            expected = expected.sort_index()
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
+        ):
+            result = result.sort_index()
 
     if not isinstance(result.dtype, np.dtype):
         # i.e IntegerDtype
@@ -84,8 +101,16 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     if obj.duplicated().any():
         # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
-        expected = expected.sort_index()
-        result = result.sort_index()
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
+        ):
+            expected = expected.sort_index()
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
+        ):
+            result = result.sort_index()
     tm.assert_series_equal(result, expected)
 
 
@@ -133,10 +158,10 @@ def test_value_counts_bins(index_or_series):
 
     s1 = Series([1, 1, 2, 3])
     res1 = s1.value_counts(bins=1)
-    exp1 = Series({Interval(0.997, 3.0, "right"): 4})
+    exp1 = Series({Interval(0.997, 3.0): 4})
     tm.assert_series_equal(res1, exp1)
     res1n = s1.value_counts(bins=1, normalize=True)
-    exp1n = Series({Interval(0.997, 3.0, "right"): 1.0})
+    exp1n = Series({Interval(0.997, 3.0): 1.0})
     tm.assert_series_equal(res1n, exp1n)
 
     if isinstance(s1, Index):
@@ -149,12 +174,12 @@ def test_value_counts_bins(index_or_series):
 
     # these return the same
     res4 = s1.value_counts(bins=4, dropna=True)
-    intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0], "right")
+    intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
     exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]))
     tm.assert_series_equal(res4, exp4)
 
     res4 = s1.value_counts(bins=4, dropna=False)
-    intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0], "right")
+    intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
     exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]))
     tm.assert_series_equal(res4, exp4)
 
@@ -218,14 +243,16 @@ def test_value_counts_datetime64(index_or_series):
     expected_s = Series([3, 2, 1], index=idx)
     tm.assert_series_equal(s.value_counts(), expected_s)
 
-    expected = np.array(
-        ["2010-01-01 00:00:00", "2009-01-01 00:00:00", "2008-09-09 00:00:00"],
-        dtype="datetime64[ns]",
+    expected = pd.array(
+        np.array(
+            ["2010-01-01 00:00:00", "2009-01-01 00:00:00", "2008-09-09 00:00:00"],
+            dtype="datetime64[ns]",
+        )
     )
     if isinstance(s, Index):
         tm.assert_index_equal(s.unique(), DatetimeIndex(expected))
     else:
-        tm.assert_numpy_array_equal(s.unique(), expected)
+        tm.assert_extension_array_equal(s.unique(), expected)
 
     assert s.nunique() == 3
 
@@ -250,7 +277,7 @@ def test_value_counts_datetime64(index_or_series):
         exp_idx = DatetimeIndex(expected.tolist() + [pd.NaT])
         tm.assert_index_equal(unique, exp_idx)
     else:
-        tm.assert_numpy_array_equal(unique[:3], expected)
+        tm.assert_extension_array_equal(unique[:3], expected)
         assert pd.isna(unique[3])
 
     assert s.nunique() == 3
@@ -268,7 +295,7 @@ def test_value_counts_datetime64(index_or_series):
     if isinstance(td, Index):
         tm.assert_index_equal(td.unique(), expected)
     else:
-        tm.assert_numpy_array_equal(td.unique(), expected.values)
+        tm.assert_extension_array_equal(td.unique(), expected._values)
 
     td2 = timedelta(1) + (df.dt - df.dt)
     td2 = klass(td2, name="dt")

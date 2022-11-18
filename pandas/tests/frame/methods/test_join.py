@@ -143,7 +143,18 @@ def test_suffix_on_list_join():
 def test_join_invalid_validate(left_no_dup, right_no_dup):
     # GH 46622
     # Check invalid arguments
-    msg = "Not a valid argument for validate"
+    msg = (
+        '"invalid" is not a valid argument. '
+        "Valid arguments are:\n"
+        '- "1:1"\n'
+        '- "1:m"\n'
+        '- "m:1"\n'
+        '- "m:m"\n'
+        '- "one_to_one"\n'
+        '- "one_to_many"\n'
+        '- "many_to_one"\n'
+        '- "many_to_many"'
+    )
     with pytest.raises(ValueError, match=msg):
         left_no_dup.merge(right_no_dup, on="a", validate="invalid")
 
@@ -516,8 +527,9 @@ class TestDataFrameJoin:
 
         tm.assert_equal(result, expected)
 
-    def test_merge_join_different_levels(self):
+    def test_merge_join_different_levels_raises(self):
         # GH#9455
+        # GH 40993: For raising, enforced in 2.0
 
         # first dataframe
         df1 = DataFrame(columns=["a", "b"], data=[[1, 11], [0, 22]])
@@ -527,20 +539,16 @@ class TestDataFrameJoin:
         df2 = DataFrame(columns=columns, data=[[1, 33], [0, 44]])
 
         # merge
-        columns = ["a", "b", ("c", "c1")]
-        expected = DataFrame(columns=columns, data=[[1, 11, 33], [0, 22, 44]])
-        with tm.assert_produces_warning(FutureWarning):
-            result = pd.merge(df1, df2, on="a")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(
+            MergeError, match="Not allowed to merge between different levels"
+        ):
+            pd.merge(df1, df2, on="a")
 
         # join, see discussion in GH#12219
-        columns = ["a", "b", ("a", ""), ("c", "c1")]
-        expected = DataFrame(columns=columns, data=[[1, 11, 0, 44], [0, 22, 1, 33]])
-        msg = "merging between different levels is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # stacklevel is chosen to be correct for pd.merge, not DataFrame.join
-            result = df1.join(df2, on="a")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(
+            MergeError, match="Not allowed to merge between different levels"
+        ):
+            df1.join(df2, on="a")
 
     def test_frame_join_tzaware(self):
         test1 = DataFrame(

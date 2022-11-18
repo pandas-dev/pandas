@@ -1,3 +1,4 @@
+""" Test cases for DataFrame.plot """
 from datetime import (
     date,
     datetime,
@@ -22,6 +23,7 @@ from pandas import (
     Series,
     bdate_range,
     date_range,
+    plotting,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -30,11 +32,11 @@ from pandas.tests.plotting.common import (
 )
 
 from pandas.io.formats.printing import pprint_thing
-import pandas.plotting as plotting
 
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
+    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     @pytest.mark.slow
     def test_plot(self):
         df = tm.makeTimeDataFrame()
@@ -70,7 +72,6 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(df.plot, use_index=True)
         self._check_ticks_props(ax, xrot=0)
-        _check_plot_works(df.plot, sort_columns=False)
         _check_plot_works(df.plot, yticks=[1, 5, 10])
         _check_plot_works(df.plot, xticks=[1, 5, 10])
         _check_plot_works(df.plot, ylim=(-100, 100), xlim=(-100, 100))
@@ -652,11 +653,6 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             df.plot.scatter(y="y")
 
-        with pytest.raises(TypeError, match="Specify exactly one of `s` and `size`"):
-            df.plot.scatter(x="x", y="y", s=2, size=2)
-        with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
-            df.plot.scatter(x="a", y="b", c="red", color="green")
-
         # GH 6951
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
@@ -730,10 +726,9 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
     def test_plot_scatter_with_c(self):
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_4_0
 
         df = DataFrame(
-            np.random.randn(6, 4),
+            np.random.randint(low=0, high=100, size=(6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )
@@ -743,10 +738,7 @@ class TestDataFramePlots(TestPlotBase):
             # default to Greys
             assert ax.collections[0].cmap.name == "Greys"
 
-            if mpl_ge_3_4_0():
-                assert ax.collections[0].colorbar.ax.get_ylabel() == "z"
-            else:
-                assert ax.collections[0].colorbar._label == "z"
+            assert ax.collections[0].colorbar.ax.get_ylabel() == "z"
 
         cm = "cubehelix"
         ax = df.plot.scatter(x="x", y="y", c="z", colormap=cm)
@@ -1533,8 +1525,8 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_errorbar_with_integer_column_names(self):
         # test with integer column names
-        df = DataFrame(np.random.randn(10, 2))
-        df_err = DataFrame(np.random.randn(10, 2))
+        df = DataFrame(np.abs(np.random.randn(10, 2)))
+        df_err = DataFrame(np.abs(np.random.randn(10, 2)))
         ax = _check_plot_works(df.plot, yerr=df_err)
         self._check_has_errorbars(ax, xerr=0, yerr=2)
         ax = _check_plot_works(df.plot, y=0, yerr=1)
@@ -1542,8 +1534,8 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_errorbar_with_partial_columns(self):
-        df = DataFrame(np.random.randn(10, 3))
-        df_err = DataFrame(np.random.randn(10, 2), columns=[0, 2])
+        df = DataFrame(np.abs(np.random.randn(10, 3)))
+        df_err = DataFrame(np.abs(np.random.randn(10, 2)), columns=[0, 2])
         kinds = ["line", "bar"]
         for kind in kinds:
             ax = _check_plot_works(df.plot, yerr=df_err, kind=kind)
@@ -1631,9 +1623,11 @@ class TestDataFramePlots(TestPlotBase):
             assert len(ax.tables) == 1
 
     def test_errorbar_scatter(self):
-        df = DataFrame(np.random.randn(5, 2), index=range(5), columns=["x", "y"])
+        df = DataFrame(
+            np.abs(np.random.randn(5, 2)), index=range(5), columns=["x", "y"]
+        )
         df_err = DataFrame(
-            np.random.randn(5, 2) / 5, index=range(5), columns=["x", "y"]
+            np.abs(np.random.randn(5, 2)) / 5, index=range(5), columns=["x", "y"]
         )
 
         ax = _check_plot_works(df.plot.scatter, x="x", y="y")
@@ -1660,7 +1654,9 @@ class TestDataFramePlots(TestPlotBase):
             )
 
         # GH 8081
-        df = DataFrame(np.random.randn(10, 5), columns=["a", "b", "c", "d", "e"])
+        df = DataFrame(
+            np.abs(np.random.randn(10, 5)), columns=["a", "b", "c", "d", "e"]
+        )
         ax = df.plot.scatter(x="a", y="b", xerr="d", yerr="e", c="red")
         self._check_has_errorbars(ax, xerr=1, yerr=1)
         _check_errorbar_color(ax.containers, "red", has_err="has_xerr")
@@ -1669,6 +1665,12 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot.scatter(x="a", y="b", yerr="e", color="green")
         self._check_has_errorbars(ax, xerr=0, yerr=1)
         _check_errorbar_color(ax.containers, "green", has_err="has_yerr")
+
+    def test_scatter_unknown_colormap(self):
+        # GH#48726
+        df = DataFrame({"a": [1, 2, 3], "b": 4})
+        with pytest.raises((ValueError, KeyError), match="'unknown' is not a"):
+            df.plot(x="a", y="b", colormap="unknown", kind="scatter")
 
     def test_sharex_and_ax(self):
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
@@ -1810,15 +1812,15 @@ class TestDataFramePlots(TestPlotBase):
         # force a garbage collection
         gc.collect()
         msg = "weakly-referenced object no longer exists"
-        for key in results:
+        for result_value in results.values():
             # check that every plot was collected
             with pytest.raises(ReferenceError, match=msg):
                 # need to actually access something to get an error
-                results[key].lines
+                result_value.lines
 
     def test_df_gridspec_patterns(self):
         # GH 10819
-        import matplotlib.gridspec as gridspec
+        from matplotlib import gridspec
         import matplotlib.pyplot as plt
 
         ts = Series(np.random.randn(10), index=date_range("1/1/2000", periods=10))
