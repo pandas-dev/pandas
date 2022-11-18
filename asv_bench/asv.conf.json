@@ -41,7 +41,7 @@
     // pip (with all the conda available packages installed first,
     // followed by the pip installed packages).
     "matrix": {
-        "numpy": [],
+        "pip+oldest-supported-numpy": [],
         "Cython": ["0.29.32"],
         "matplotlib": [],
         "sqlalchemy": [],
@@ -56,8 +56,11 @@
         "xlrd": [],
         "odfpy": [],
         "jinja2": [],
+        "meson": [],
+        "meson-python": [],
+        "python-build": [],
     },
-    "conda_channels": ["defaults", "conda-forge"],
+    "conda_channels": ["conda-forge","defaults"],
     // Combinations of libraries/python versions can be excluded/included
     // from the set to test. Each entry is a dictionary containing additional
     // key-value pairs to include/exclude.
@@ -125,6 +128,6 @@
     "regression_thresholds": {
     },
     "build_command":
-    ["python setup.py build -j4",
-     "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"],
+    // TODO: Caching?
+    ["python -m build -Cbuildir=buildir --wheel --no-isolation --outdir {build_cache_dir}"]
 }
