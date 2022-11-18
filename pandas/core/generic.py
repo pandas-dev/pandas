@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import collections
 import datetime as dt
+from functools import partial
 import gc
 import json
 import operator
@@ -3233,7 +3234,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         .. versionchanged:: 1.2.0
            Added position argument, changed meaning of caption argument.
 
-        .. versionchanged:: 1.5.0
+        .. versionchanged:: 2.0.0
            Refactored to use the Styler implementation via jinja2 templating.
 
         Parameters
@@ -3338,7 +3339,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
 
         .. note::
-           As of v1.5.0 this method has changed to use the Styler implementation as
+           As of v2.0.0 this method has changed to use the Styler implementation as
            part of :meth:`.Styler.to_latex` via ``jinja2`` templating. It is advised
            that users switch to using Styler, since this implementation is more
            frequently updated and contains much more flexibility with the output.
@@ -3413,7 +3414,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         formatters_: list | tuple | dict | Callable | None = None
         if isinstance(formatters, list):
             formatters_ = {
-                c: functools.partial(_wrap, alt_format_=formatters[i])
+                c: partial(_wrap, alt_format_=formatters[i])
                 for i, c in enumerate(self.columns)
             }
         elif isinstance(formatters, dict):
@@ -3429,7 +3430,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             for col in [c for c in float_columns if c not in formatters.keys()]:
                 formatters_.update({col: float_format_})
         elif formatters is None and float_format is not None:
-            formatters_ = functools.partial(_wrap, alt_format_=lambda v: v)
+            formatters_ = partial(_wrap, alt_format_=lambda v: v)
         format_index_ = [index_format_, column_format_]
 
         # Deal with hiding indexes and relabelling column names
