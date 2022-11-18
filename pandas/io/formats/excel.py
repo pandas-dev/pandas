@@ -172,7 +172,7 @@ class CSSToExcelConverter:
             self.inherited = None
         # We should avoid lru_cache on the __call__ method.
         # Otherwise once the method __call__ has been called
-        # garbage collection no longer deletes converter.
+        # garbage collection no longer deletes the instance.
         self._call_cached = lru_cache(maxsize=None)(self._call_uncached)
 
     compute_css = CSSResolver()
