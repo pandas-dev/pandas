@@ -91,8 +91,9 @@ in some cases:
 - ``DataFrame`` columns can't be `NoRowIndex` (so ``transpose`` would need some adjustments when called on a ``NoRowIndex`` ``DataFrame``);
 - `insert` and `delete` should raise. As a consequence, if ``df`` is a ``DataFrame`` with a
   ``NoRowIndex``, then `df.drop` with `axis=0` would always raise;
-- arithmetic operations (e.g. `NoRowIndex(3) + 2`) would always raise.
-- when printing a ``DataFrame``/``Series`` with a ``NoRowIndex``, then the row labels wouldn't be printed.
+- arithmetic operations (e.g. `NoRowIndex(3) + 2`) would always raise;
+- when printing a ``DataFrame``/``Series`` with a ``NoRowIndex``, then the row labels wouldn't be printed;
+- a ``MultiIndex`` could not be created with a ``NoRowIndex`` as one of its levels.
 
 Let's go into more detail for some of these.
 
