@@ -10140,7 +10140,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Parameters
         ----------
         tz : str or tzinfo object or None
-            Time zone to convert index to. Passing ``None`` will convert to
+            Target time zone. Passing ``None`` will convert to
             UTC and remove the timezone information.
         axis : the axis to convert
         level : int, str, default None
@@ -10169,7 +10169,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-09-15 07:30:00+08:00    1
         dtype: int64
 
-        Convert to UTC and get a tz-naive index:
+        Pass None to convert to UTC and get a tz-naive index:
 
         >>> s = pd.Series([1],
         ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
@@ -10227,7 +10227,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Parameters
         ----------
         tz : str or tzinfo or None
-            Time zone to convert the index to. pass ``None`` will remove the
+            Time zone to localize. Passing ``None`` will remove the
             time zone information and preserve local time.
         axis : the axis to localize
         level : int, str, default None
@@ -10284,7 +10284,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-09-15 01:30:00+02:00    1
         dtype: int64
 
-        Convert to tz-naive index and preserve local time:
+        Pass None to convert to tz-naive index and preserve local time:
 
         >>> s = pd.Series([1],
         ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
