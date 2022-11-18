@@ -10137,8 +10137,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Convert tz-aware axis to target time zone.
 
-        To convert to UTC and get a tz-naive axis, pass tz=None.
-
         Parameters
         ----------
         tz : str or tzinfo object or None
@@ -10207,9 +10205,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         This operation localizes the Index. To localize the values in a
         timezone-naive Series, use :meth:`Series.dt.tz_localize`.
-
-        This method can also used to do the inverse -- to get a tz-naive index
-        from a time zone aware index, pass tz=None.
 
         Parameters
         ----------
