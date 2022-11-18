@@ -250,6 +250,10 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
+        # object dtypes for transformations are not implemented in Cython and
+        # have no Python fallback
+        exception = NotImplementedError if method.startswith("cum") else TypeError
+
         if method in ("min", "max", "cummin", "cummax"):
             # The methods default to numeric_only=False and raise TypeError
             msg = "|".join(
@@ -258,7 +262,7 @@ class TestNumericOnly:
                     "function is not implemented for this dtype",
                 ]
             )
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(exception, match=msg):
                 getattr(gb, method)()
         else:
             result = getattr(gb, method)()
@@ -274,7 +278,7 @@ class TestNumericOnly:
                     "function is not implemented for this dtype",
                 ]
             )
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(exception, match=msg):
                 getattr(gb, method)(numeric_only=False)
         else:
             result = getattr(gb, method)(numeric_only=False)
@@ -1436,6 +1440,11 @@ def test_deprecate_numeric_only(
     elif has_arg or kernel in ("idxmax", "idxmin"):
         assert numeric_only is not True
         # kernels that are successful on any dtype were above; this will fail
+
+        # object dtypes for transformations are not implemented in Cython and
+        # have no Python fallback
+        exception = NotImplementedError if kernel.startswith("cum") else TypeError
+
         msg = "|".join(
             [
                 "not allowed for this dtype",
@@ -1447,7 +1456,7 @@ def test_deprecate_numeric_only(
                 "function is not implemented for this dtype",
             ]
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(exception, match=msg):
             method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:
         with pytest.raises(
