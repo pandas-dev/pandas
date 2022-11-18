@@ -1054,18 +1054,15 @@ class TestDataFrameConstructors:
         assert isna(frame).values.all()
 
         # cast type
-        msg = r"datetime64\[ns\] values and dtype=int64"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = r"datetime64\[ns\] values and dtype=int64 is not supported"
+        with pytest.raises(TypeError, match=msg):
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     "ignore",
                     category=DeprecationWarning,
                     message="elementwise comparison failed",
                 )
-                frame = DataFrame(
-                    mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64
-                )
-        assert frame.values.dtype == np.int64
+                DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
 
         # Check non-masked values
         mat2 = ma.copy(mat)
