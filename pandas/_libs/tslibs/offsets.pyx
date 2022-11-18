@@ -1615,9 +1615,9 @@ cdef class BusinessHour(BusinessMixin):
         Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
-    start : str, default "09:00"
+    start : str, time, or list of str/time, default "09:00"
         Start time of your custom business hour in 24h format.
-    end : str, default: "17:00"
+    end : str, time, or list of str/time, default: "17:00"
         End time of your custom business hour in 24h format.
 
     Examples
@@ -3619,9 +3619,9 @@ cdef class CustomBusinessHour(BusinessHour):
         Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
-    start : str, default "09:00"
+    start : str, time, or list of str/time, default "09:00"
         Start time of your custom business hour in 24h format.
-    end : str, default: "17:00"
+    end : str, time, or list of str/time, default: "17:00"
         End time of your custom business hour in 24h format.
 
     Examples
