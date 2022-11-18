@@ -40,7 +40,6 @@ from pandas._typing import (
     CorrelationMethod,
     FillnaOptions,
     IndexLabel,
-    Level,
     Manager,
     Manager2D,
     SingleManager,
@@ -80,7 +79,6 @@ from pandas.core.apply import (
 )
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
-from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
@@ -96,6 +94,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     all_indexes_same,
+    default_index,
 )
 from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.series import Series
@@ -181,7 +180,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return ser
 
     def _get_data_to_aggregate(self) -> SingleManager:
-        ser = self._obj_with_exclusions
+        ser = self._selected_obj
         single = ser._mgr
         return single
 
@@ -295,9 +294,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
                 # result is a dict whose keys are the elements of result_index
                 index = self.grouper.result_index
-                return create_series_with_explicit_dtype(
-                    result, index=index, dtype_if_empty=object
-                )
+                return Series(result, index=index)
 
     agg = aggregate
 
@@ -309,7 +306,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # GH 15931
             raise SpecificationError("nested renamer is not supported")
 
-        elif any(isinstance(x, (tuple, list)) for x in arg):
+        if any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
 
             # indicated column order
@@ -332,7 +329,7 @@ class SeriesGroupBy(GroupBy[Series]):
             from pandas import concat
 
             res_df = concat(
-                results.values(), axis=1, keys=[key.label for key in results.keys()]
+                results.values(), axis=1, keys=[key.label for key in results]
             )
             return res_df
 
@@ -360,7 +357,7 @@ class SeriesGroupBy(GroupBy[Series]):
         data: Series,
         values: list[Any],
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ) -> DataFrame | Series:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
@@ -402,7 +399,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self._concat_objects(
                 values,
                 not_indexed_same=not_indexed_same,
-                override_group_keys=override_group_keys,
+                is_transform=is_transform,
             )
             result.name = self.obj.name
             return result
@@ -856,12 +853,9 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         indices: TakeIndexer,
         axis: Axis = 0,
-        is_copy: bool | None = None,
         **kwargs,
     ) -> Series:
-        result = self._op_via_apply(
-            "take", indices=indices, axis=axis, is_copy=is_copy, **kwargs
-        )
+        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
     @doc(Series.skew.__doc__)
@@ -869,7 +863,6 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         axis: Axis | lib.NoDefault = lib.no_default,
         skipna: bool = True,
-        level: Level | None = None,
         numeric_only: bool | None = None,
         **kwargs,
     ) -> Series:
@@ -877,22 +870,9 @@ class SeriesGroupBy(GroupBy[Series]):
             "skew",
             axis=axis,
             skipna=skipna,
-            level=level,
             numeric_only=numeric_only,
             **kwargs,
         )
-        return result
-
-    @doc(Series.mad.__doc__)
-    def mad(
-        self, axis: Axis | None = None, skipna: bool = True, level: Level | None = None
-    ) -> Series:
-        result = self._op_via_apply("mad", axis=axis, skipna=skipna, level=level)
-        return result
-
-    @doc(Series.tshift.__doc__)
-    def tshift(self, periods: int = 1, freq=None) -> Series:
-        result = self._op_via_apply("tshift", periods=periods, freq=freq)
         return result
 
     @property
@@ -906,7 +886,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         f = partial(Series.nlargest, n=n, keep=keep)
-        data = self._obj_with_exclusions
+        data = self._selected_obj
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
         result = self._python_apply_general(f, data, not_indexed_same=True)
@@ -917,7 +897,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         f = partial(Series.nsmallest, n=n, keep=keep)
-        data = self._obj_with_exclusions
+        data = self._selected_obj
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
         result = self._python_apply_general(f, data, not_indexed_same=True)
@@ -1156,8 +1136,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     result = gba.agg()
 
                 except ValueError as err:
-                    if "no results" not in str(err):
-                        # raised directly by _aggregate_multiple_funcs
+                    if "No objects to concatenate" not in str(err):
                         raise
                     result = self._aggregate_frame(func)
 
@@ -1178,7 +1157,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
-            result.index = Index(range(len(result)))
+            result.index = default_index(len(result))
 
         return result
 
@@ -1247,7 +1226,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         data: DataFrame,
         values: list,
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ):
 
         if len(values) == 0:
@@ -1267,7 +1246,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self._concat_objects(
                 values,
                 not_indexed_same=not_indexed_same,
-                override_group_keys=override_group_keys,
+                is_transform=is_transform,
             )
 
         key_index = self.grouper.result_index if self.as_index else None
@@ -1298,7 +1277,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 not_indexed_same,
                 first_not_none,
                 key_index,
-                override_group_keys,
+                is_transform,
             )
 
     def _wrap_applied_output_series(
@@ -1307,49 +1286,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         not_indexed_same: bool,
         first_not_none,
         key_index,
-        override_group_keys: bool,
+        is_transform: bool,
     ) -> DataFrame | Series:
-        # this is to silence a DeprecationWarning
-        # TODO(2.0): Remove when default dtype of empty Series is object
         kwargs = first_not_none._construct_axes_dict()
-        backup = create_series_with_explicit_dtype(dtype_if_empty=object, **kwargs)
+        backup = Series(**kwargs)
         values = [x if (x is not None) else backup for x in values]
 
         all_indexed_same = all_indexes_same(x.index for x in values)
-
-        # GH3596
-        # provide a reduction (Frame -> Series) if groups are
-        # unique
-        if self.squeeze:
-            applied_index = self._selected_obj._get_axis(self.axis)
-            singular_series = len(values) == 1 and applied_index.nlevels == 1
-
-            if singular_series:
-                # GH2893
-                # we have series in the values array, we want to
-                # produce a series:
-                # if any of the sub-series are not indexed the same
-                # OR we don't have a multi-index and we have only a
-                # single values
-                return self._concat_objects(
-                    values,
-                    not_indexed_same=not_indexed_same,
-                    override_group_keys=override_group_keys,
-                )
-
-            # still a series
-            # path added as of GH 5545
-            elif all_indexed_same:
-                from pandas.core.reshape.concat import concat
-
-                return concat(values)
 
         if not all_indexed_same:
             # GH 8467
             return self._concat_objects(
                 values,
                 not_indexed_same=True,
-                override_group_keys=override_group_keys,
+                is_transform=is_transform,
             )
 
         # Combine values
@@ -1407,7 +1357,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         # We could use `mgr.apply` here and not have to set_axis, but
         #  we would have to do shape gymnastics for ArrayManager compat
-        res_mgr = mgr.grouped_reduce(arr_func, ignore_failures=True)
+        try:
+            res_mgr = mgr.grouped_reduce(
+                arr_func, ignore_failures=numeric_only is lib.no_default
+            )
+        except NotImplementedError as err:
+            # For NotImplementedError, args[0] is the error message
+            raise TypeError(err.args[0]) from err
         res_mgr.set_axis(1, mgr.axes[1])
 
         if len(res_mgr) < orig_mgr_len:
@@ -1637,12 +1593,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # per GH 23566
         if isinstance(key, tuple) and len(key) > 1:
             # if len == 1, then it becomes a SeriesGroupBy and this is actually
-            # valid syntax, so don't raise warning
-            warnings.warn(
-                "Indexing with multiple keys (implicitly converted to a tuple "
-                "of keys) will be deprecated, use a list instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            # valid syntax, so don't raise
+            raise ValueError(
+                "Cannot subset columns with a tuple with more than one element. "
+                "Use a list instead."
             )
         return super().__getitem__(key)
 
@@ -1673,7 +1627,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 as_index=self.as_index,
                 sort=self.sort,
                 group_keys=self.group_keys,
-                squeeze=self.squeeze,
                 observed=self.observed,
                 mutated=self.mutated,
                 dropna=self.dropna,
@@ -1688,7 +1641,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 selection=key,
                 sort=self.sort,
                 group_keys=self.group_keys,
-                squeeze=self.squeeze,
                 observed=self.observed,
                 dropna=self.dropna,
             )
@@ -1830,7 +1782,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         if not self.as_index:
-            results.index = Index(range(len(results)))
+            results.index = default_index(len(results))
             self._insert_inaxis_grouper_inplace(results)
 
         return results
@@ -2283,12 +2235,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         indices: TakeIndexer,
         axis: Axis | None = 0,
-        is_copy: bool | None = None,
         **kwargs,
     ) -> DataFrame:
-        result = self._op_via_apply(
-            "take", indices=indices, axis=axis, is_copy=is_copy, **kwargs
-        )
+        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
         return result
 
     @doc(DataFrame.skew.__doc__)
@@ -2296,7 +2245,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
-        level: Level | None = None,
         numeric_only: bool | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> DataFrame:
@@ -2304,22 +2252,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             "skew",
             axis=axis,
             skipna=skipna,
-            level=level,
             numeric_only=numeric_only,
             **kwargs,
         )
-        return result
-
-    @doc(DataFrame.mad.__doc__)
-    def mad(
-        self, axis: Axis | None = None, skipna: bool = True, level: Level | None = None
-    ) -> DataFrame:
-        result = self._op_via_apply("mad", axis=axis, skipna=skipna, level=level)
-        return result
-
-    @doc(DataFrame.tshift.__doc__)
-    def tshift(self, periods: int = 1, freq=None, axis: Axis = 0) -> DataFrame:
-        result = self._op_via_apply("tshift", periods=periods, freq=freq, axis=axis)
         return result
 
     @property

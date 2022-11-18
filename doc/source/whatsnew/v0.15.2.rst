@@ -25,6 +25,7 @@ API changes
   a lexically sorted index will have a better performance. (:issue:`2646`)
 
   .. ipython:: python
+    :okexcept:
     :okwarning:
 
     df = pd.DataFrame({'jim':[0, 0, 1, 1],
@@ -153,11 +154,13 @@ Other enhancements:
 
 - ``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters (:issue:`8302`):
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: python
 
-     s = pd.Series([False, True, False], index=[0, 0, 1])
-     s.any(level=0)
+     >>> s = pd.Series([False, True, False], index=[0, 0, 1])
+     >>> s.any(level=0)
+     0     True
+     1    False
+     dtype: bool
 
 - ``Panel`` now supports the ``all`` and ``any`` aggregation functions. (:issue:`8302`):
 

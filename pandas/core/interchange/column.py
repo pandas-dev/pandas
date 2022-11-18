@@ -81,10 +81,11 @@ class PandasColumn(Column):
         self._col = column
         self._allow_copy = allow_copy
 
-    def size(self) -> int:
+    def size(self) -> int:  # type: ignore[override]
         """
         Size of the column, in elements.
         """
+        # error: Signature of "size" incompatible with supertype "Column"  [override]
         return self._col.size
 
     @property
@@ -329,7 +330,7 @@ class PandasColumn(Column):
             return buffer, dtype
 
         try:
-            msg = _NO_VALIDITY_BUFFER[null] + " so does not have a separate mask"
+            msg = f"{_NO_VALIDITY_BUFFER[null]} so does not have a separate mask"
         except KeyError:
             # TODO: implement for other bit/byte masks?
             raise NotImplementedError("See self.describe_null")

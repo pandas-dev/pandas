@@ -471,6 +471,16 @@ class TestGetIndexer:
         with pytest.raises(ValueError, match=msg):
             mi.get_indexer(mi[:-1], tolerance="piano")
 
+    def test_get_indexer_nan(self):
+        # GH#37222
+        idx1 = MultiIndex.from_product([["A"], [1.0, 2.0]], names=["id1", "id2"])
+        idx2 = MultiIndex.from_product([["A"], [np.nan, 2.0]], names=["id1", "id2"])
+        expected = np.array([-1, 1])
+        result = idx2.get_indexer(idx1)
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+        result = idx1.get_indexer(idx2)
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
 
 def test_getitem(idx):
     # scalar
@@ -527,7 +537,7 @@ class TestGetLoc:
     def test_get_loc(self, idx):
         assert idx.get_loc(("foo", "two")) == 1
         assert idx.get_loc(("baz", "two")) == 3
-        with pytest.raises(KeyError, match=r"^10$"):
+        with pytest.raises(KeyError, match=r"^15$"):
             idx.get_loc(("bar", "two"))
         with pytest.raises(KeyError, match=r"^'quux'$"):
             idx.get_loc("quux")
@@ -800,7 +810,7 @@ class TestContains:
     def test_large_mi_contains(self):
         # GH#10645
         result = MultiIndex.from_arrays([range(10**6), range(10**6)])
-        assert not (10**6, 0) in result
+        assert (10**6, 0) not in result
 
 
 def test_timestamp_multiindex_indexer():
@@ -841,8 +851,7 @@ def test_timestamp_multiindex_indexer():
 def test_get_slice_bound_with_missing_value(index_arr, expected, target, algo):
     # issue 19132
     idx = MultiIndex.from_arrays(index_arr)
-    with tm.assert_produces_warning(FutureWarning, match="'kind' argument"):
-        result = idx.get_slice_bound(target, side=algo, kind="loc")
+    result = idx.get_slice_bound(target, side=algo)
     assert result == expected
 
 
@@ -884,9 +893,9 @@ def test_pyint_engine():
     # keys would collide; if truncating the last levels, the fifth and
     # sixth; if rotating bits rather than shifting, the third and fifth.
 
-    for idx in range(len(keys)):
+    for idx, key_value in enumerate(keys):
         index = MultiIndex.from_tuples(keys)
-        assert index.get_loc(keys[idx]) == idx
+        assert index.get_loc(key_value) == idx
 
         expected = np.arange(idx + 1, dtype=np.intp)
         result = index.get_indexer([keys[i] for i in expected])
@@ -923,4 +932,18 @@ def test_get_locs_reordering(keys, expected):
     )
     result = idx.get_locs(keys)
     expected = np.array(expected, dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_indexer_for_multiindex_with_nans(nulls_fixture):
+    # GH37222
+    idx1 = MultiIndex.from_product([["A"], [1.0, 2.0]], names=["id1", "id2"])
+    idx2 = MultiIndex.from_product([["A"], [nulls_fixture, 2.0]], names=["id1", "id2"])
+
+    result = idx2.get_indexer(idx1)
+    expected = np.array([-1, 1], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = idx1.get_indexer(idx2)
+    expected = np.array([-1, 1], dtype=np.intp)
     tm.assert_numpy_array_equal(result, expected)
