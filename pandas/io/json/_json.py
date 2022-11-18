@@ -21,7 +21,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import json as js
+from pandas._libs.json import (
+    dumps,
+    loads,
+)
 from pandas._libs.tslibs import iNaT
 from pandas._typing import (
     CompressionOptions,
@@ -73,8 +76,8 @@ if TYPE_CHECKING:
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
 
-loads = js.loads
-dumps = js.dumps
+loads = loads
+dumps = dumps
 
 
 # interface to/from
