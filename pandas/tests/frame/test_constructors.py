@@ -851,7 +851,7 @@ class TestDataFrameConstructors:
             (lambda x: np.timedelta64(x, "D"), "timedelta64"),
             (lambda x: timedelta(days=x), "pytimedelta"),
             (lambda x: Timedelta(x, "D"), "Timedelta[ns]"),
-            (lambda x: Timedelta(x, "D")._as_unit("s"), "Timedelta[s]"),
+            (lambda x: Timedelta(x, "D").as_unit("s"), "Timedelta[s]"),
         ],
     )
     def test_constructor_dict_timedelta64_index(self, klass, name):

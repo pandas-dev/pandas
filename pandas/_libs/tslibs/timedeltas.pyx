@@ -1094,7 +1094,7 @@ cdef class _Timedelta(timedelta):
             #  see GH#44504
             return hash(self.value)
         elif self._is_in_pytimedelta_bounds() and (
-            self._reso == NPY_FR_ns or self._reso == NPY_DATETIMEUNIT.NPY_FR_us
+            self._creso == NPY_FR_ns or self._creso == NPY_DATETIMEUNIT.NPY_FR_us
         ):
             # If we can defer to timedelta.__hash__, do so, as that
             #  ensures the hash is invariant to our _reso.
@@ -1108,7 +1108,7 @@ cdef class _Timedelta(timedelta):
             #  have the same hash.  So we try downcasting to the next-lowest
             #  resolution.
             try:
-                obj = self._as_reso(<NPY_DATETIMEUNIT>(self._reso + 1))
+                obj = (<_Timedelta>self)._as_creso(<NPY_DATETIMEUNIT>(self._creso + 1))
             except OverflowError:
                 # Doesn't fit, so we're off the hook
                 return hash(self.value)
