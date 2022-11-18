@@ -28,7 +28,7 @@ from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.interval import IntervalIndex
 from pandas.core.indexes.multi import MultiIndex
-from pandas.core.indexes.no_index import NoIndex
+from pandas.core.indexes.no_row_index import NoRowIndex
 from pandas.core.indexes.numeric import (
     Float64Index,
     Int64Index,
@@ -60,7 +60,7 @@ __all__ = [
     "CategoricalIndex",
     "IntervalIndex",
     "RangeIndex",
-    "NoIndex",
+    "NoRowIndex",
     "UInt64Index",
     "InvalidIndexError",
     "TimedeltaIndex",
@@ -380,6 +380,6 @@ def all_indexes_same(indexes) -> bool:
 
 def default_index(n: int) -> RangeIndex:
     if get_option("mode.no_default_index"):
-        return NoIndex(n)
+        return NoRowIndex(n)
     rng = range(0, n)
     return RangeIndex._simple_new(rng, name=None)

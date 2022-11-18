@@ -56,7 +56,7 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
-    NoIndex,
+    NoRowIndex,
     RangeIndex,
 )
 from pandas.core.shared_docs import _shared_docs
@@ -1689,7 +1689,7 @@ class TextFileReader(abc.Iterator):
                     # Any column is actually fine:
                     new_rows = len(next(iter(col_dict.values())))
                     if get_option("mode.no_default_index"):
-                        index = NoIndex(new_rows)
+                        index = NoRowIndex(new_rows)
                     else:
                         index = RangeIndex(self._currow, self._currow + new_rows)
                 else:

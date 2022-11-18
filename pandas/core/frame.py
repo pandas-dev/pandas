@@ -174,7 +174,7 @@ from pandas.core.indexers import check_key_length
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
-    NoIndex,
+    NoRowIndex,
     PeriodIndex,
     default_index,
     ensure_index,
@@ -656,9 +656,9 @@ class DataFrame(NDFrame, OpsMixin):
         if columns is not None and isinstance(columns, set):
             raise ValueError("columns cannot be a set")
 
-        if columns is not None and isinstance(columns, NoIndex):
+        if columns is not None and isinstance(columns, NoRowIndex):
             raise ValueError(
-                "Columns cannot be NoIndex.\n"
+                "Columns cannot be NoRowIndex.\n"
                 "If you got here via `transpose` or an `axis=1` "
                 "operation, then you should first set an index, "
                 "e.g.: `df.pipe(lambda _df: _df.set_axis(pd.RangeIndex(len(df))))`"

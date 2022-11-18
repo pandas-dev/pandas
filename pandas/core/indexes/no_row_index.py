@@ -8,8 +8,8 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.indexes.range import RangeIndex
 
 
-class NoIndex(RangeIndex):
-    _typ = "noindex"
+class NoRowIndex(RangeIndex):
+    _typ = "NoRowIndex"
 
     def __new__(
         cls,
@@ -55,30 +55,30 @@ class NoIndex(RangeIndex):
     @name.setter
     def name(self, new_name):
         if new_name is not None:
-            raise TypeError("Can't set name of NoIndex!")
+            raise TypeError("Can't set name of NoRowIndex!")
 
     def _set_names(self, values, *, level=None) -> None:
-        raise TypeError("Can't set name of NoIndex!")
+        raise TypeError("Can't set name of NoRowIndex!")
 
     def __repr__(self) -> str:
-        return f"NoIndex(len={self.stop})"
+        return f"NoRowIndex(len={self.stop})"
 
     def append(self, other):
         if not isinstance(other, list):
             other = [other]
         length = len(self)
         for _other in other:
-            if not isinstance(_other, NoIndex):
+            if not isinstance(_other, NoRowIndex):
                 raise TypeError(
-                    f"Can only concatenate NoIndex to NoIndex - got {_other}"
+                    f"Can only concatenate NoRowIndex to NoRowIndex - got {_other}"
                 )
             length += len(_other)
-        return NoIndex(length)
+        return NoRowIndex(length)
 
     def __getitem__(self, key):
         _super = super().__getitem__(key)
         try:
-            return NoIndex(len(_super))
+            return NoRowIndex(len(_super))
         except TypeError:
             return _super
 
@@ -86,13 +86,13 @@ class NoIndex(RangeIndex):
         from pandas.core import common as com
 
         if not com.is_bool_indexer(key):
-            raise IndexError("Cannot use label-based indexing on NoIndex!")
+            raise IndexError("Cannot use label-based indexing on NoRowIndex!")
         return super().get_loc(key, method, tolerance)
 
     @property
     def _constructor(self):  # type: ignore[override]
         """return the class to use for construction"""
-        return NoIndex
+        return NoRowIndex
 
     @classmethod
     def _simple_new(cls, values, name=None):
@@ -134,9 +134,9 @@ class NoIndex(RangeIndex):
         level=None,
         return_indexers: bool = False,
         sort: bool = False,
-    ) -> NoIndex:
-        if not isinstance(other, NoIndex):
-            raise TypeError("Can't join NoIndex with Index")
+    ) -> NoRowIndex:
+        if not isinstance(other, NoRowIndex):
+            raise TypeError("Can't join NoRowIndex with Index")
         if not len(self) == len(other):
-            raise TypeError("Can't join NoIndex of different lengths")
+            raise TypeError("Can't join NoRowIndex of different lengths")
         return super().join(other, how=how, return_indexers=return_indexers, sort=sort)

@@ -15,21 +15,21 @@ from pandas.core.indexes.api import (
     Float64Index,
     Index,
     Int64Index,
-    NoIndex,
+    NoRowIndex,
     RangeIndex,
 )
 from pandas.tests.indexes.ranges.test_range import TestRangeIndex
 
 # aliases to make some tests easier to read
-NI = NoIndex
+NI = NoRowIndex
 RI = RangeIndex
 I64 = Int64Index
 F64 = Float64Index
 OI = Index
 
 
-class TestNoIndex(TestRangeIndex):
-    _index_cls = NoIndex
+class TestNoRowIndex(TestRangeIndex):
+    _index_cls = NoRowIndex
 
     @pytest.fixture
     def simple_index(self) -> Index:
@@ -39,25 +39,25 @@ class TestNoIndex(TestRangeIndex):
         # GH#29069 check that name is hashable
         # See also same-named test in tests.series.test_constructors
         idx = simple_index
-        with pytest.raises(TypeError, match="Can't set name of NoIndex!"):
+        with pytest.raises(TypeError, match="Can't set name of NoRowIndex!"):
             type(idx)(10, name="Joe")
 
     def test_create_index_existing_name(self, simple_index):
         # GH11193, when an existing index is passed, and a new name is not
         # specified, the new index should inherit the previous object name
         expected = simple_index
-        with pytest.raises(TypeError, match="Can't set name of NoIndex!"):
+        with pytest.raises(TypeError, match="Can't set name of NoRowIndex!"):
             expected.name = "foo"
 
     def test_repeat(self, simple_index):
         rep = 2
         idx = simple_index.copy()
-        expected = NoIndex(20)
+        expected = NoRowIndex(20)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
         idx = simple_index
         rep = np.arange(len(idx))
-        expected = NoIndex(45)
+        expected = NoRowIndex(45)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
     def test_equals_op(self, simple_index):
@@ -236,11 +236,11 @@ class TestCommon:
     def test_boolean_mask(self, ser1):
         mask = ser1 > 1
         result = ser1[mask]
-        expected = Series([2, 3], index=NoIndex(2))
+        expected = Series([2, 3], index=NoRowIndex(2))
         tm.assert_series_equal(result, expected)
 
         ser1[mask] = 4
-        expected = Series([1, 4, 4], index=NoIndex(3))
+        expected = Series([1, 4, 4], index=NoRowIndex(3))
         tm.assert_series_equal(ser1, expected)
 
     def test_join(self, ser1, ser2, df1, df2):
@@ -252,31 +252,31 @@ class TestCommon:
                 "a": [6, 5, 4],
                 "b": [1, 4, 2],
             },
-            index=NoIndex(3),
+            index=NoRowIndex(3),
         )
         tm.assert_frame_equal(result, expected)
 
     def test_loc(self, df1):
         with pytest.raises(
-            IndexError, match="Cannot use label-based indexing on NoIndex!"
+            IndexError, match="Cannot use label-based indexing on NoRowIndex!"
         ):
             df1.loc[0, "a"]
         with pytest.raises(
-            IndexError, match="Cannot use label-based indexing on NoIndex!"
+            IndexError, match="Cannot use label-based indexing on NoRowIndex!"
         ):
             df1.loc[0]
 
         result = df1.loc[:, "a"]
-        expected = Series([1, 2, 3], index=NoIndex(3), name="a")
+        expected = Series([1, 2, 3], index=NoRowIndex(3), name="a")
         tm.assert_series_equal(result, expected)
 
         mask = df1["a"] > 2
         result = df1.loc[mask]
-        expected = DataFrame({"a": [3], "b": [6]}, index=NoIndex(1))
+        expected = DataFrame({"a": [3], "b": [6]}, index=NoRowIndex(1))
         tm.assert_frame_equal(result, expected)
 
         result = df1.loc[df1["a"] > 2, "a"]
-        expected = Series([3], index=NoIndex(1), name="a")
+        expected = Series([3], index=NoRowIndex(1), name="a")
         tm.assert_series_equal(result, expected)
 
         result = df1.iloc[1:]
@@ -292,16 +292,18 @@ class TestCommon:
         tm.assert_frame_equal(result, expected)
 
     def test_alignment(self, df1):
-        with pytest.raises(TypeError, match="Can't join NoIndex of different lengths"):
+        with pytest.raises(
+            TypeError, match="Can't join NoRowIndex of different lengths"
+        ):
             result = df1 + df1.iloc[1:]
         result = df1 + df1
-        expected = DataFrame({"a": [2, 4, 6], "b": [8, 10, 12]}, index=NoIndex(3))
+        expected = DataFrame({"a": [2, 4, 6], "b": [8, 10, 12]}, index=NoRowIndex(3))
         tm.assert_frame_equal(result, expected)
 
     def test_reader(self):
         with option_context("mode.no_default_index", True):
             result = pd.read_csv(io.StringIO("data\n1\n"))
-        expected = DataFrame({"data": [1]}, index=NoIndex(1))
+        expected = DataFrame({"data": [1]}, index=NoRowIndex(1))
         tm.assert_frame_equal(result, expected)
 
     def test_repr(self):
@@ -349,7 +351,7 @@ class TestCommon:
                 "a": [1, 2, 3, 1, 2, 3],
                 "b": [4, 5, 6, 4, 5, 6],
             },
-            index=NoIndex(6),
+            index=NoRowIndex(6),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -361,6 +363,6 @@ class TestCommon:
                 "b_x": [4, 5, 6],
                 "b_y": [4, 5, 6],
             },
-            index=NoIndex(3),
+            index=NoRowIndex(3),
         )
         tm.assert_frame_equal(result, expected)

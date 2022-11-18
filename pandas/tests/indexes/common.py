@@ -35,7 +35,7 @@ from pandas.core.api import (  # noqa:F401
     UInt64Index,
 )
 from pandas.core.arrays import BaseMaskedArray
-from pandas.core.indexes.api import NoIndex
+from pandas.core.indexes.api import NoRowIndex
 
 
 class Base:
@@ -647,8 +647,8 @@ class Base:
     def test_astype_category(self, copy, name, ordered, simple_index):
         # GH 18630
         idx = simple_index
-        if isinstance(idx, NoIndex):
-            pytest.skip(reason="Can't set name of NoIndex")
+        if isinstance(idx, NoRowIndex):
+            pytest.skip(reason="Can't set name of NoRowIndex")
         if name:
             idx = idx.rename(name)
 
@@ -722,7 +722,7 @@ class Base:
     def test_copy_shares_cache(self, simple_index):
         # GH32898, GH36840
         idx = simple_index
-        if isinstance(idx, NoIndex):
+        if isinstance(idx, NoRowIndex):
             pytest.skip(reason="No get_loc")
         idx.get_loc(idx[0])  # populates the _cache.
         copy = idx.copy()
@@ -732,7 +732,7 @@ class Base:
     def test_shallow_copy_shares_cache(self, simple_index):
         # GH32669, GH36840
         idx = simple_index
-        if isinstance(idx, NoIndex):
+        if isinstance(idx, NoRowIndex):
             pytest.skip(reason="No get_loc")
         idx.get_loc(idx[0])  # populates the _cache.
         shallow_copy = idx._view()
@@ -852,8 +852,8 @@ class NumericBase(Base):
         # GH#43921 inserting an element that we know we can hold should
         #  not change dtype or type (except for RangeIndex)
         index = simple_index
-        if isinstance(index, NoIndex):
-            pytest.skip(reason="Can't insert into NoIndex")
+        if isinstance(index, NoRowIndex):
+            pytest.skip(reason="Can't insert into NoRowIndex")
 
         result = index.insert(0, index[0])
 
@@ -867,8 +867,8 @@ class NumericBase(Base):
     def test_insert_na(self, nulls_fixture, simple_index):
         # GH 18295 (test missing)
         index = simple_index
-        if isinstance(index, NoIndex):
-            pytest.skip(reason="Can't insert into NoIndex")
+        if isinstance(index, NoRowIndex):
+            pytest.skip(reason="Can't insert into NoRowIndex")
         na_val = nulls_fixture
 
         if na_val is pd.NaT:
