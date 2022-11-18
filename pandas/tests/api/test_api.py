@@ -55,18 +55,15 @@ class TestPDApi(Base):
         "DatetimeIndex",
         "ExcelFile",
         "ExcelWriter",
-        "Float64Index",
         "Flags",
         "Grouper",
         "HDFStore",
         "Index",
-        "Int64Index",
         "MultiIndex",
         "Period",
         "PeriodIndex",
         "RangeIndex",
         "NoIndex",
-        "UInt64Index",
         "Series",
         "SparseDtype",
         "StringDtype",
@@ -94,7 +91,7 @@ class TestPDApi(Base):
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_classes: list[str] = ["Float64Index", "Int64Index", "UInt64Index"]
+    deprecated_classes: list[str] = []
 
     # external modules exposed in pandas namespace
     modules: list[str] = []

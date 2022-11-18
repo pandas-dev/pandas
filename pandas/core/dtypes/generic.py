@@ -13,9 +13,7 @@ if TYPE_CHECKING:
         CategoricalIndex,
         DataFrame,
         DatetimeIndex,
-        Float64Index,
         Index,
-        Int64Index,
         IntervalIndex,
         MultiIndex,
         NoIndex,
@@ -23,7 +21,6 @@ if TYPE_CHECKING:
         RangeIndex,
         Series,
         TimedeltaIndex,
-        UInt64Index,
     )
     from pandas.core.arrays import (
         DatetimeArray,
@@ -33,6 +30,11 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
     from pandas.core.generic import NDFrame
+    from pandas.core.indexes.api import (
+        Float64Index,
+        Int64Index,
+        UInt64Index,
+    )
 
 
 # define abstract base classes to enable isinstance type checking on our
