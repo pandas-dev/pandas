@@ -78,7 +78,6 @@ try:
     has_mpl = True
 except ImportError:
     has_mpl = False
-    no_mpl_message = "{0} requires matplotlib."
 
 
 @contextmanager
