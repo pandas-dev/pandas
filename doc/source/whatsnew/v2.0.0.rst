@@ -340,7 +340,7 @@ Other API changes
 - Passing strings that cannot be parsed as datetimes to :class:`Series` or :class:`DataFrame` with ``dtype="datetime64[ns]"`` will raise instead of silently ignoring the keyword and returning ``object`` dtype (:issue:`24435`)
 - Passing a sequence containing a type that cannot be converted to :class:`Timedelta` to :func:`to_timedelta` or to the :class:`Series` or :class:`DataFrame` constructor with ``dtype="timedelta64[ns]"`` or to :class:`TimedeltaIndex` now raises ``TypeError`` instead of ``ValueError`` (:issue:`49525`)
 - Changed behavior of :class:`Index` constructor with sequence containing at least one ``NaT`` and everything else either ``None`` or ``NaN`` to infer ``datetime64[ns]`` dtype instead of ``object``, matching :class:`Series` behavior (:issue:`49340`)
-- If no parameter ``index_col`` is given to :func:`read_stata`, the index will be a :class:`RangeIndex` Previously the index would have been a :class:`Int64Index` (:issue:`49745`)
+- :func:`read_stata` with parameter ``index_col`` set to ``None`` (the default) will now set the index on the returned :class:`DataFrame` to a :class:`RangeIndex` instead of a :class:`Int64Index` (:issue:`49745`)
 - Changed behavior of :class:`Index` constructor with an object-dtype ``numpy.ndarray`` containing all-``bool`` values or all-complex values, this will now retain object dtype, consistent with the :class:`Series` behavior (:issue:`49594`)
 -
 
@@ -595,7 +595,7 @@ Performance improvements
 - Memory improvement in :meth:`RangeIndex.sort_values` (:issue:`48801`)
 - Performance improvement in :class:`DataFrameGroupBy` and :class:`SeriesGroupBy` when ``by`` is a categorical type and ``sort=False`` (:issue:`48976`)
 - Performance improvement in :class:`DataFrameGroupBy` and :class:`SeriesGroupBy` when ``by`` is a categorical type and ``observed=False`` (:issue:`49596`)
-- Performance improvement in :func:`read_stata` with parameter ``index_col`` set to ``None``(the default). Now the index will be a :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`49745`)
+- Performance improvement in :func:`read_stata` with parameter ``index_col`` set to ``None`` (the default). Now the index will be a :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`49745`)
 - Performance improvement in :func:`merge` when not merging on the index - the new index will now be :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`49478`)
 
 .. ---------------------------------------------------------------------------
