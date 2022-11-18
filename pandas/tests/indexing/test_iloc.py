@@ -839,16 +839,8 @@ class TestiLocBaseIndependent:
             df.iloc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(
-        self, using_array_manager, using_copy_on_write, request
-    ):
+    def test_identity_slice_returns_new_object(self, using_copy_on_write):
         # GH13873
-        if using_array_manager:
-            mark = pytest.mark.xfail(
-                reason="setting with .loc[:, 'a'] does not alter inplace"
-            )
-            request.node.add_marker(mark)
-
         original_df = DataFrame({"a": [1, 2, 3]})
         sliced_df = original_df.iloc[:]
         assert sliced_df is not original_df
@@ -889,7 +881,6 @@ class TestiLocBaseIndependent:
         result = s.iloc[np.array(0)]
         assert result == 1
 
-    @td.skip_array_manager_not_yet_implemented
     def test_iloc_setitem_categorical_updates_inplace(self, using_copy_on_write):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
         cat = Categorical(["A", "B", "C"])
@@ -1208,7 +1199,7 @@ class TestiLocBaseIndependent:
         arr[2] = arr[-1]
         assert ser[0] == arr[-1]
 
-    def test_iloc_setitem_multicolumn_to_datetime(self, using_array_manager):
+    def test_iloc_setitem_multicolumn_to_datetime(self):
 
         # GH#20511
         df = DataFrame({"A": ["2022-01-01", "2022-01-02"], "B": ["2021", "2022"]})
@@ -1223,7 +1214,7 @@ class TestiLocBaseIndependent:
                 "B": ["2021", "2022"],
             }
         )
-        tm.assert_frame_equal(df, expected, check_dtype=using_array_manager)
+        tm.assert_frame_equal(df, expected, check_dtype=False)
 
 
 class TestILocErrors:

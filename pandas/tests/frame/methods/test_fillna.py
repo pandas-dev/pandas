@@ -20,7 +20,6 @@ from pandas.tests.frame.common import _check_mixed_float
 
 
 class TestFillNA:
-    @td.skip_array_manager_not_yet_implemented
     def test_fillna_dict_inplace_nonunique_columns(self, using_copy_on_write):
         df = DataFrame(
             {"A": [np.nan] * 3, "B": [NaT, Timestamp(1), NaT], "C": [np.nan, "foo", 2]}
