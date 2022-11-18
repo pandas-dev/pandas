@@ -1115,9 +1115,12 @@ class _LocIndexer(_LocationIndexer):
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
         # boolean not in slice and with boolean index
+        ax = self.obj._get_axis(axis)
         if isinstance(key, bool) and not (
-            is_bool_dtype(self.obj._get_axis(axis))
-            or self.obj._get_axis(axis).dtype.name == "boolean"
+            is_bool_dtype(ax)
+            or ax.dtype.name == "boolean"
+            or isinstance(ax, MultiIndex)
+            and is_bool_dtype(ax.get_level_values(0))
         ):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
