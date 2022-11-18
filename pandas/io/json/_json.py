@@ -21,7 +21,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import json
+from pandas._libs import json as js
 from pandas._libs.tslibs import iNaT
 from pandas._typing import (
     CompressionOptions,
@@ -73,8 +73,8 @@ if TYPE_CHECKING:
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
 
-loads = json.loads
-dumps = json.dumps
+loads = js.loads
+dumps = js.dumps
 
 
 # interface to/from
@@ -912,7 +912,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         self.close()
         return obj
 
-    def _get_object_parser(self, json_file) -> DataFrame | Series:
+    def _get_object_parser(self, json) -> DataFrame | Series:
         """
         Parses a json document into a pandas object.
         """
@@ -929,12 +929,12 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         }
         obj = None
         if typ == "frame":
-            obj = FrameParser(json_file, **kwargs).parse()
+            obj = FrameParser(json, **kwargs).parse()
 
         if typ == "series" or obj is None:
             if not isinstance(dtype, bool):
                 kwargs["dtype"] = dtype
-            obj = SeriesParser(json_file, **kwargs).parse()
+            obj = SeriesParser(json, **kwargs).parse()
 
         return obj
 
@@ -1009,7 +1009,7 @@ class Parser:
 
     def __init__(
         self,
-        json_file,
+        json,
         orient,
         dtype: DtypeArg | None = None,
         convert_axes: bool = True,
@@ -1018,7 +1018,7 @@ class Parser:
         precise_float: bool = False,
         date_unit=None,
     ) -> None:
-        self.json_file = json_file
+        self.json = json
 
         if orient is None:
             orient = self._default_orient
@@ -1239,31 +1239,31 @@ class FrameParser(Parser):
 
     def _parse(self) -> None:
 
-        json_file = self.json_file
+        json = self.json
         orient = self.orient
 
         if orient == "columns":
             self.obj = DataFrame(
-                loads(json_file, precise_float=self.precise_float), dtype=None
+                loads(json, precise_float=self.precise_float), dtype=None
             )
         elif orient == "split":
             decoded = {
                 str(k): v
-                for k, v in loads(json_file, precise_float=self.precise_float).items()
+                for k, v in loads(json, precise_float=self.precise_float).items()
             }
             self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
             self.obj = DataFrame.from_dict(
-                loads(json_file, precise_float=self.precise_float),
+                loads(json, precise_float=self.precise_float),
                 dtype=None,
                 orient="index",
             )
         elif orient == "table":
-            self.obj = parse_table_schema(json_file, precise_float=self.precise_float)
+            self.obj = parse_table_schema(json, precise_float=self.precise_float)
         else:
             self.obj = DataFrame(
-                loads(json_file, precise_float=self.precise_float), dtype=None
+                loads(json, precise_float=self.precise_float), dtype=None
             )
 
     def _process_converter(self, f, filt=None) -> None:
