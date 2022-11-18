@@ -380,6 +380,8 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             and pa_version_under6p0
         ):
             request.node.add_marker(xfail_mark)
+        elif all_numeric_reductions == "sem" and pa_version_under8p0:
+            request.node.add_marker(xfail_mark)
         elif (
             all_numeric_reductions in {"sum", "mean"}
             and skipna is False
