@@ -818,6 +818,8 @@ def date_range(
     normalize: bool = False,
     name: Hashable = None,
     inclusive: IntervalClosedType = "both",
+    *,
+    unit: str | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -856,6 +858,10 @@ def date_range(
         Include boundaries; Whether to set each bound as closed or open.
 
         .. versionadded:: 1.4.0
+    unit : str, default None
+        Specify the desired resolution of the result.
+
+        .. versionadded:: 2.0.0
     **kwargs
         For compatibility. Has no effect on the result.
 
@@ -966,6 +972,14 @@ def date_range(
     >>> pd.date_range(start='2017-01-01', end='2017-01-04', inclusive='right')
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
+
+    **Specify a unit**
+
+    >>> pd.date_range(start="2017-01-01", periods=10, freq="100AS", unit="s")
+    DatetimeIndex(['2017-01-01', '2117-01-01', '2217-01-01', '2317-01-01',
+                   '2417-01-01', '2517-01-01', '2617-01-01', '2717-01-01',
+                   '2817-01-01', '2917-01-01'],
+                  dtype='datetime64[s]', freq='100AS-JAN')
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
@@ -978,6 +992,7 @@ def date_range(
         tz=tz,
         normalize=normalize,
         inclusive=inclusive,
+        unit=unit,
         **kwargs,
     )
     return DatetimeIndex._simple_new(dtarr, name=name)
