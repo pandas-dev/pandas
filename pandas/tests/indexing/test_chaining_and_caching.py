@@ -360,8 +360,9 @@ class TestChaining:
         assert df._is_copy is not None
         df.loc[:, "letters"] = df["letters"].apply(str.lower)
 
-        # Should be ok even though it's a copy!
-        assert df._is_copy is None
+        # with the enforcement of #45333 in 2.0, the .loc[:, letters] setting
+        #  is inplace, so df._is_copy remains non-None.
+        assert df._is_copy is not None
 
         df["letters"] = df["letters"].apply(str.lower)
         assert df._is_copy is None

@@ -1899,6 +1899,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             return element
         raise LossySetitemError
 
+    if dtype.kind == "V":
+        # i.e. np.void, which cannot hold _anything_
+        raise LossySetitemError
+
     raise NotImplementedError(dtype)
 
 

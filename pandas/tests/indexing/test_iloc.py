@@ -87,22 +87,11 @@ class TestiLocBaseIndependent:
         df = frame.copy()
         orig_vals = df.values
 
-        overwrite = isinstance(key, slice) and key == slice(None)
-        warn = None
-        if overwrite:
-            warn = FutureWarning
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(warn, match=msg):
-            indexer(df)[key, 0] = cat
+        indexer(df)[key, 0] = cat
 
-        if overwrite:
-            # TODO: GH#39986 this probably shouldn't behave differently
-            expected = DataFrame({0: cat})
-            assert not np.shares_memory(df.values, orig_vals)
-        else:
-            expected = DataFrame({0: cat}).astype(object)
-            if not using_array_manager:
-                assert np.shares_memory(df[0].values, orig_vals)
+        expected = DataFrame({0: cat}).astype(object)
+        if not using_array_manager:
+            assert np.shares_memory(df[0].values, orig_vals)
 
         tm.assert_frame_equal(df, expected)
 
@@ -110,13 +99,14 @@ class TestiLocBaseIndependent:
         df.iloc[0, 0] = "gamma"
         assert cat[0] != "gamma"
 
-        # TODO with mixed dataframe ("split" path), we always overwrite the column
+        # pre-2.0 with mixed dataframe ("split" path) we always overwrote the
+        #  column.  as of 2.0 we correctly write "into" the column, so
+        #  we retain the object dtype.
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
         df = frame.copy()
         orig_vals = df.values
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            indexer(df)[key, 0] = cat
-        expected = DataFrame({0: cat, 1: range(3)})
+        indexer(df)[key, 0] = cat
+        expected = DataFrame({0: cat.astype(object), 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("box", [array, Series])
@@ -908,10 +898,9 @@ class TestiLocBaseIndependent:
 
         assert tm.shares_memory(df[1], cat)
 
-        # This should modify our original values in-place
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.iloc[:, 0] = cat[::-1]
+        # With the enforcement of GH#45333 in 2.0, this modifies original
+        #  values inplace
+        df.iloc[:, 0] = cat[::-1]
 
         if not using_copy_on_write:
             assert tm.shares_memory(df[1], cat)
@@ -1320,12 +1309,15 @@ class TestILocSetItemDuplicateColumns:
     ):
         # GH#22035
         df = DataFrame([[init_value, "str", "str2"]], columns=["a", "b", "b"])
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
+
+        # with the enforcement of GH#45333 in 2.0, this sets values inplace,
+        #  so we retain object dtype
+        df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
 
         expected_df = DataFrame(
-            [[expected_value, "str", "str2"]], columns=["a", "b", "b"]
+            [[expected_value, "str", "str2"]],
+            columns=["a", "b", "b"],
+            dtype=object,
         )
         tm.assert_frame_equal(df, expected_df)
 
