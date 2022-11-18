@@ -629,6 +629,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 - Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` with object-dtype containing multiple timezone-aware ``datetime`` objects with heterogeneous timezones to a :class:`DatetimeTZDtype` incorrectly raising (:issue:`32581`)
+- Bug in :func:`to_datetime` was failing to parse date strings with timezone name when ``format`` was specified with ``%Z`` (:issue:`49748`)
 -
 
 Numeric
@@ -694,7 +695,9 @@ I/O
 - Improved error message in :func:`read_excel` by including the offending sheet name when an exception is raised while reading a file (:issue:`48706`)
 - Bug when a pickling a subset PyArrow-backed data that would serialize the entire data instead of the subset (:issue:`42600`)
 - Bug in :func:`read_csv` for a single-line csv with fewer columns than ``names`` raised :class:`.errors.ParserError` with ``engine="c"`` (:issue:`47566`)
+- Bug in :func:`DataFrame.to_string` with ``header=False`` that printed the index name on the same line as the first row of the data (:issue:`49230`)
 - Fixed memory leak which stemmed from the initialization of the internal JSON module (:issue:`49222`)
+-
 
 Period
 ^^^^^^
@@ -715,7 +718,9 @@ Groupby/resample/rolling
 - Bug in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` would not include unobserved categories in result when grouping by categorical indexes (:issue:`49354`)
 - Bug in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` would change result order depending on the input index when grouping by categoricals (:issue:`49223`)
 - Bug in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` when grouping on categorical data would sort result values even when used with ``sort=False`` (:issue:`42482`)
--
+- Bug in :meth:`.DataFrameGroupBy.apply` and :class:`SeriesGroupBy.apply` with ``as_index=False`` would not attempt the computation without using the grouping keys when using them failed with a ``TypeError`` (:issue:`49256`)
+- Bug in :meth:`.DataFrameGroupBy.describe` would describe the group keys (:issue:`49256`)
+- Bug in :meth:`.SeriesGroupBy.describe` with ``as_index=False`` would have the incorrect shape (:issue:`49256`)
 
 Reshaping
 ^^^^^^^^^
@@ -729,7 +734,7 @@ Reshaping
 
 Sparse
 ^^^^^^
--
+- Bug in :meth:`Series.astype` when converting a ``SparseDtype`` with ``datetime64[ns]`` subtype to ``int64`` dtype raising, inconsistent with the non-sparse behavior (:issue:`49631`)
 -
 
 ExtensionArray
