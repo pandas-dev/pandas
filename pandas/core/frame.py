@@ -8038,10 +8038,10 @@ Keep all original rows and columns and also all original values
         >>> new_df = pd.DataFrame({'B': [4, np.nan, 6]})
         >>> df.update(new_df)
         >>> df
-           A      B
-        0  1    4.0
-        1  2  500.0
-        2  3    6.0
+           A    B
+        0  1    4
+        1  2  500
+        2  3    6
         """
         from pandas.core.computation import expressions
 
@@ -8079,9 +8079,7 @@ Keep all original rows and columns and also all original values
             if mask.all():
                 continue
 
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", "In a future version, `df.iloc")
-                self.loc[:, col] = expressions.where(mask, this, that)
+            self.loc[:, col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
