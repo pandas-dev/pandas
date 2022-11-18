@@ -320,9 +320,7 @@ class TestPairwise:
         result = result.dropna().values
         expected = expected.dropna().values
 
-        tm.assert_numpy_array_equal(
-            result, expected, check_dtype=False, check_exact=False
-        )
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
     @pytest.mark.parametrize(
         "f",

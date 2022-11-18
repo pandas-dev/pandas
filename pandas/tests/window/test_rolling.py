@@ -1710,7 +1710,11 @@ def test_rolling_quantile_interpolation_options(quantile, interpolation, data):
     if np.isnan(q1):
         assert np.isnan(q2)
     else:
-        assert np.allclose([q1], [q2])
+        if not IS64:
+            # Less precision on 32-bit
+            assert np.allclose([q1], [q2])
+        else:
+            assert q1 == q2
 
 
 def test_invalid_quantile_value():
