@@ -115,14 +115,10 @@ class BaseGroupbyTests(BaseExtensionTests):
             or is_object_dtype(dtype)
         ):
             expected = pd.Index(["B", "C"])
-        else:
-            expected = pd.Index(["C"])
-
-        if "B" in expected:
             result = df.groupby("A").sum().columns
         else:
+            expected = pd.Index(["C"])
             with pytest.raises(TypeError, match="does not support"):
                 df.groupby("A").sum().columns
             result = df.groupby("A").sum(numeric_only=True).columns
-
         tm.assert_index_equal(result, expected)

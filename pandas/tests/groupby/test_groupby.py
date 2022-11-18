@@ -1183,12 +1183,9 @@ def test_groupby_with_hier_columns():
 
 def test_grouping_ndarray(df):
     grouped = df.groupby(df["A"].values)
-
     result = grouped.sum()
-    expected = df.groupby(df["A"].rename("key")).sum()
-    tm.assert_frame_equal(
-        result, expected, check_names=False
-    )  # Note: no names when grouping by value
+    expected = df.groupby(df["A"].rename(None)).sum()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_wrong_multi_labels():
