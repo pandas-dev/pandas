@@ -62,11 +62,8 @@ def df_letters():
 
 
 @pytest.fixture
-def raw_frame(multiindex_dataframe_random_data):
-    df = multiindex_dataframe_random_data
-    df.iloc[1, [1, 2]] = np.nan
-    df.iloc[7, [0, 1]] = np.nan
-    return df
+def raw_frame():
+    return DataFrame([0])
 
 
 @pytest.mark.parametrize("op", AGG_FUNCTIONS)
@@ -84,14 +81,21 @@ def test_regression_allowlist_methods(raw_frame, op, axis, skipna, sort):
         frame = raw_frame.T
 
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
-        grouped = frame.groupby("first", axis=axis, sort=sort)
+        grouped = frame.groupby(level=0, axis=axis, sort=sort)
         result = getattr(grouped, op)(skipna=skipna)
+        expected = frame.groupby(level=0).apply(
+            lambda h: getattr(h, op)(axis=axis, skipna=skipna)
+        )
+        if sort:
+            expected = expected.sort_index(axis=axis)
+        tm.assert_frame_equal(result, expected)
     else:
-        grouped = frame.groupby("first", axis=axis, sort=sort)
+        grouped = frame.groupby(level=0, axis=axis, sort=sort)
         result = getattr(grouped, op)()
-    # Previously compared to frame.op(level=...), but level removed in 2.0
-    # TODO(GH 49629): Assert something better
-    assert isinstance(result, DataFrame)
+        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(axis=axis))
+        if sort:
+            expected = expected.sort_index(axis=axis)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_blocklist(df_letters):
