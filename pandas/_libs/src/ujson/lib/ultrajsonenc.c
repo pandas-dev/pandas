@@ -1142,7 +1142,6 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
 
 char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer,
                         size_t _cbBuffer) {
-    char *locale;
     enc->malloc = enc->malloc ? enc->malloc : malloc;
     enc->free = enc->free ? enc->free : free;
     enc->realloc = enc->realloc ? enc->realloc : realloc;
@@ -1175,20 +1174,7 @@ char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer,
     enc->end = enc->start + _cbBuffer;
     enc->offset = enc->start;
 
-    locale = setlocale(LC_NUMERIC, NULL);
-    if (strcmp(locale, "C")) {
-        locale = strdup(locale);
-        if (!locale) {
-            SetError(NULL, enc, "Could not reserve memory block");
-            return NULL;
-        }
-        setlocale(LC_NUMERIC, "C");
-        encode(obj, enc, NULL, 0);
-        setlocale(LC_NUMERIC, locale);
-        free(locale);
-    } else {
-        encode(obj, enc, NULL, 0);
-    }
+    encode(obj, enc, NULL, 0);
 
     Buffer_Reserve(enc, 1);
     if (enc->errorMsg) {

@@ -1154,7 +1154,6 @@ JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer,
     /*
     FIXME: Base the size of escBuffer of that of cbBuffer so that the unicode
     escaping doesn't run into the wall each time */
-    char *locale;
     struct DecoderState ds;
     wchar_t escBuffer[(JSON_MAX_STACK_BUFFER_SIZE / sizeof(wchar_t))];
     JSOBJ ret;
@@ -1173,19 +1172,7 @@ JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer,
 
     ds.dec = dec;
 
-    locale = setlocale(LC_NUMERIC, NULL);
-    if (strcmp(locale, "C")) {
-        locale = strdup(locale);
-        if (!locale) {
-            return SetError(&ds, -1, "Could not reserve memory block");
-        }
-        setlocale(LC_NUMERIC, "C");
-        ret = decode_any(&ds);
-        setlocale(LC_NUMERIC, locale);
-        free(locale);
-    } else {
-        ret = decode_any(&ds);
-    }
+    ret = decode_any(&ds);
 
     if (ds.escHeap) {
         dec->free(ds.escStart);
