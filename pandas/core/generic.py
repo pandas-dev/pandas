@@ -3243,11 +3243,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Buffer to write to. If None, the output is returned as a string.
         columns : list of label, optional
             The subset of columns to write. Writes all columns by default.
-        col_space : int, optional
-            The minimum width of each column.
-
-            .. deprecated:: 1.5.0
-               Whitespace does not affect a rendered LaTeX file and is ignored.
         header : bool or list of str, default True
             Write out the column names. If a list of strings is given,
             it is assumed to be aliases for the column names.
@@ -3364,13 +3359,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         \bottomrule
         \end{tabular}
         """
-        msg = (
-            "`col_space` is deprecated. Whitespace in LaTeX does not impact "
-            "the rendered version, and this argument is ignored."
-        )
-        if col_space is not None:
-            warnings.warn(msg, DeprecationWarning, stacklevel=find_stack_level())
-
         # Get defaults from the pandas config
         if self.ndim == 1:
             self = self.to_frame()
