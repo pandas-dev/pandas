@@ -15,6 +15,7 @@ permissions:
 
 jobs:
   pip:
+    if: ${{ github.event.label.name == 'Build' || contains(github.event.pull_request.labels.*.name, 'Build') || github.event_name == 'push'}}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -37,13 +38,6 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: '3.8'
-
-      # Hacky patch to disable building cython extensions.
-      # This job should only check that the extras successfully install.
-      - name: Disable building ext_modules
-        run: |
-          sed -i '/ext_modules=/d' setup.py
-        shell: bash -el {0}
 
       - name: Install required dependencies
         run: |
