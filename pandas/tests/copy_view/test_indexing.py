@@ -351,10 +351,8 @@ def test_subset_set_column_with_loc(using_copy_on_write, using_array_manager, dt
         index=range(1, 3),
     )
     tm.assert_frame_equal(subset, expected)
-    if using_copy_on_write or using_array_manager:
+    if using_copy_on_write:
         # original parent dataframe is not modified (CoW)
-        # with the enforcement of GH#45333 in 2.0, the original is modified
-        df_orig.loc[1:3, "a"] = np.array([10, 11], dtype="int64")
         tm.assert_frame_equal(df, df_orig)
     else:
         # original parent dataframe is actually updated
@@ -386,10 +384,8 @@ def test_subset_set_column_with_loc2(using_copy_on_write, using_array_manager):
     subset._mgr._verify_integrity()
     expected = DataFrame({"a": [0, 0]}, index=range(1, 3))
     tm.assert_frame_equal(subset, expected)
-    if using_copy_on_write or using_array_manager:
+    if using_copy_on_write:
         # original parent dataframe is not modified (CoW)
-        # with the enforcement of GH#45333 in 2.0, the original is modified
-        df_orig.loc[1:3, "a"] = 0
         tm.assert_frame_equal(df, df_orig)
     else:
         # original parent dataframe is actually updated
@@ -452,10 +448,7 @@ def test_subset_set_with_column_indexer(
     subset._mgr._verify_integrity()
     expected = DataFrame({"a": [0, 0], "b": [0.0, 0.0], "c": [5, 6]}, index=range(1, 3))
     tm.assert_frame_equal(subset, expected)
-    if using_copy_on_write or using_array_manager:
-        # pre-2.0, the original would not be mutated at all. this changed with the
-        #  enforcement of GH#45333
-        df_orig.loc[1:2, ["a", "b"]] = 0
+    if using_copy_on_write:
         tm.assert_frame_equal(df, df_orig)
     else:
         # pre-2.0, in the mixed case with BlockManager, only column "a"
