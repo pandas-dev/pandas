@@ -85,6 +85,7 @@ import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
+    NoRowIndex,
     _index_shared_docs,
     ensure_index,
     get_unanimous_names,
@@ -817,6 +818,10 @@ class MultiIndex(Index):
                 raise ValueError("Length of levels must match number of levels.")
             if level is not None and len(levels) != len(level):
                 raise ValueError("Length of levels must match length of level.")
+            if any(isinstance(_level, NoRowIndex) for _level in levels):
+                raise ValueError(
+                    "Can't make MultiIndex with NoRowIndex as one of its levels."
+                )
 
         if level is None:
             new_levels = FrozenList(

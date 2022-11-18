@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas._typing import Dtype
 
+from pandas.core import common as com
 from pandas.core.arrays import ExtensionArray
 from pandas.core.indexes.range import RangeIndex
 
@@ -17,7 +18,7 @@ class NoRowIndex(RangeIndex):
         dtype: Dtype | None = None,
         copy: bool = False,
         name=None,
-    ):
+    ) -> NoRowIndex:
         rng = range(0, len)
         return cls._simple_new(rng, name=name)
 
@@ -49,7 +50,7 @@ class NoRowIndex(RangeIndex):
         raise NotImplementedError()
 
     @property
-    def name(self):
+    def name(self) -> None:
         return None
 
     @name.setter
@@ -57,13 +58,13 @@ class NoRowIndex(RangeIndex):
         if new_name is not None:
             raise TypeError("Can't set name of NoRowIndex!")
 
-    def _set_names(self, values, *, level=None) -> None:
+    def _set_names(self, values, *, level=None):
         raise TypeError("Can't set name of NoRowIndex!")
 
     def __repr__(self) -> str:
         return f"NoRowIndex(len={self.stop})"
 
-    def append(self, other):
+    def append(self, other) -> NoRowIndex:
         if not isinstance(other, list):
             other = [other]
         length = len(self)
@@ -80,22 +81,21 @@ class NoRowIndex(RangeIndex):
         try:
             return NoRowIndex(len(_super))
         except TypeError:
+            # wait, why do we need this?
             return _super
 
     def get_loc(self, key, method=None, tolerance=None):
-        from pandas.core import common as com
-
         if not com.is_bool_indexer(key):
             raise IndexError("Cannot use label-based indexing on NoRowIndex!")
         return super().get_loc(key, method, tolerance)
 
     @property
-    def _constructor(self):  # type: ignore[override]
+    def _constructor(self) -> type[NoRowIndex]:  # type: ignore[override]
         """return the class to use for construction"""
         return NoRowIndex
 
     @classmethod
-    def _simple_new(cls, values, name=None):
+    def _simple_new(cls, values, name=None) -> NoRowIndex:
         result = object.__new__(cls)
         assert isinstance(values, (range, np.ndarray, ExtensionArray))
         values = range(len(values))

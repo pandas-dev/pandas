@@ -266,29 +266,25 @@ class TestCommon:
         ):
             df1.loc[0]
 
+    def test_loc_colon(self, df1):
         result = df1.loc[:, "a"]
         expected = Series([1, 2, 3], index=NoRowIndex(3), name="a")
         tm.assert_series_equal(result, expected)
 
+    def test_loc_mask(self, df1):
         mask = df1["a"] > 2
         result = df1.loc[mask]
         expected = DataFrame({"a": [3], "b": [6]}, index=NoRowIndex(1))
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_mask_and_column(self, df1):
         result = df1.loc[df1["a"] > 2, "a"]
         expected = Series([3], index=NoRowIndex(1), name="a")
         tm.assert_series_equal(result, expected)
 
+    def test_iloc(self, df1):
         result = df1.iloc[1:]
-        expected = DataFrame(
-            {
-                "a": [
-                    2,
-                    3,
-                ],
-                "b": [5, 6],
-            }
-        )
+        expected = DataFrame({"a": [2, 3], "b": [5, 6]})
         tm.assert_frame_equal(result, expected)
 
     def test_alignment(self, df1):
