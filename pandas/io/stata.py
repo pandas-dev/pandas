@@ -1725,7 +1725,7 @@ the string values returned are correct."""
         # If index is not specified, use actual row number rather than
         # restarting at 0 for each chunk.
         if index_col is None:
-            rng = np.arange(self._lines_read - read_lines, self._lines_read)
+            rng = range(self._lines_read - read_lines, self._lines_read)
             data.index = Index(rng)  # set attr instead of set_index to avoid copy
 
         if columns is not None:
