@@ -108,6 +108,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    LossySetitemError,
     can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
@@ -4138,7 +4139,7 @@ class DataFrame(NDFrame, OpsMixin):
             self._mgr.column_setitem(icol, iindex, value, inplace=True)
             self._clear_item_cache()
 
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError, LossySetitemError):
             # get_loc might raise a KeyError for missing labels (falling back
             #  to (i)loc will do expansion of the index)
             # column_setitem will do validation that may raise TypeError or ValueError
