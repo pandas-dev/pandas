@@ -846,30 +846,19 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result_Timestamp, expected)
 
     @pytest.mark.parametrize(
-        "klass",
+        "klass,name",
         [
-            pytest.param(
-                np.timedelta64,
-                marks=pytest.mark.xfail(
-                    reason="hash mismatch (GH#44504) causes lib.fast_multiget "
-                    "to mess up on dict lookups with equal Timedeltas with "
-                    "mismatched resos"
-                ),
-            ),
-            timedelta,
-            Timedelta,
+            (lambda x: np.timedelta64(x, "D"), "timedelta64"),
+            (lambda x: timedelta(days=x), "pytimedelta"),
+            (lambda x: Timedelta(x, "D"), "Timedelta[ns]"),
+            (lambda x: Timedelta(x, "D").as_unit("s"), "Timedelta[s]"),
         ],
     )
-    def test_constructor_dict_timedelta64_index(self, klass):
+    def test_constructor_dict_timedelta64_index(self, klass, name):
         # GH 10160
         td_as_int = [1, 2, 3, 4]
 
-        if klass is timedelta:
-            constructor = lambda x: timedelta(days=x)
-        else:
-            constructor = lambda x: klass(x, "D")
-
-        data = {i: {constructor(s): 2 * i} for i, s in enumerate(td_as_int)}
+        data = {i: {klass(s): 2 * i} for i, s in enumerate(td_as_int)}
 
         expected = DataFrame(
             [
@@ -881,7 +870,13 @@ class TestDataFrameConstructors:
             index=[Timedelta(td, "D") for td in td_as_int],
         )
 
-        result = DataFrame(data)
+        if name == "Timedelta[s]":
+            # TODO(2.0): passing index here shouldn't be necessary, is for now
+            #  otherwise we raise in _extract_index
+            result = DataFrame(data, index=expected.index)
+        else:
+            result = DataFrame(data)
+
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_period_dict(self):
