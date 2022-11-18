@@ -658,7 +658,12 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError("columns cannot be a set")
 
         if columns is not None and isinstance(columns, NoIndex):
-            raise ValueError("columns cannot be NoIndex")
+            raise ValueError(
+                "Columns cannot be NoIndex.\n"
+                "If you got here via `transpose` or an `axis=1` "
+                "operation, then you should first set an index, "
+                "e.g.: `df.pipe(lambda _df: _df.set_axis(pd.RangeIndex(len(df))))`"
+                )
 
         if copy is None:
             if isinstance(data, dict):
@@ -3596,11 +3601,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         dtypes = list(self.dtypes)
 
-        if isinstance(self.index, NoIndex):
-            # columns can't be NoIndex
-            columns = RangeIndex(self.index._range)
-        else:
-            columns = self.index
+        columns = self.index
 
         if self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
