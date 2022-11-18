@@ -40,7 +40,6 @@ from pandas._typing import (
     CorrelationMethod,
     FillnaOptions,
     IndexLabel,
-    Level,
     Manager,
     Manager2D,
     SingleManager,
@@ -864,7 +863,6 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         axis: Axis | lib.NoDefault = lib.no_default,
         skipna: bool = True,
-        level: Level | None = None,
         numeric_only: bool | None = None,
         **kwargs,
     ) -> Series:
@@ -872,7 +870,6 @@ class SeriesGroupBy(GroupBy[Series]):
             "skew",
             axis=axis,
             skipna=skipna,
-            level=level,
             numeric_only=numeric_only,
             **kwargs,
         )
@@ -1360,7 +1357,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         # We could use `mgr.apply` here and not have to set_axis, but
         #  we would have to do shape gymnastics for ArrayManager compat
-        res_mgr = mgr.grouped_reduce(arr_func, ignore_failures=True)
+        res_mgr = mgr.grouped_reduce(
+            arr_func, ignore_failures=numeric_only is lib.no_default
+        )
         res_mgr.set_axis(1, mgr.axes[1])
 
         if len(res_mgr) < orig_mgr_len:
@@ -2242,7 +2241,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
-        level: Level | None = None,
         numeric_only: bool | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> DataFrame:
@@ -2250,7 +2248,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             "skew",
             axis=axis,
             skipna=skipna,
-            level=level,
             numeric_only=numeric_only,
             **kwargs,
         )
