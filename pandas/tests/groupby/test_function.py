@@ -778,7 +778,7 @@ def test_nlargest_and_smallest_noop(data, groups, method):
     if method == "nlargest":
         data = list(reversed(data))
     ser = Series(data, name="a")
-    result = getattr(ser.groupby(groups), method)(n=2)
+    result = getattr(ser.groupby(np.array(groups, dtype=np.int64)), method)(n=2)
     expected = Series(data, index=MultiIndex.from_arrays([groups, ser.index]), name="a")
     tm.assert_series_equal(result, expected)
 

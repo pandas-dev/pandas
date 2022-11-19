@@ -18,10 +18,8 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-)
+from pandas.api.types import is_unsigned_integer_dtype
+from pandas.core.api import NumericIndex
 from pandas.core.arrays import IntervalArray
 import pandas.core.common as com
 
@@ -38,35 +36,44 @@ class ConstructorTests:
     get_kwargs_from_breaks to the expected format.
     """
 
-    @pytest.mark.parametrize(
-        "breaks",
-        [
-            [3, 14, 15, 92, 653],
-            np.arange(10, dtype="int64"),
-            Int64Index(range(-10, 11)),
-            Float64Index(np.arange(20, 30, 0.5)),
-            date_range("20180101", periods=10),
-            date_range("20180101", periods=10, tz="US/Eastern"),
-            timedelta_range("1 day", periods=10),
-        ],
+    @pytest.fixture(
+        params=[
+            ([3, 14, 15, 92, 653], np.int64),
+            (np.arange(10, dtype="int64"), np.int64),
+            (NumericIndex(range(-10, 11), dtype=np.int64), np.int64),
+            (NumericIndex(range(10, 31), dtype=np.uint64), np.uint64),
+            (NumericIndex(np.arange(20, 30, 0.5), dtype=np.float64), np.float64),
+            (date_range("20180101", periods=10), "<M8[ns]"),
+            (
+                date_range("20180101", periods=10, tz="US/Eastern"),
+                "datetime64[ns, US/Eastern]",
+            ),
+            (timedelta_range("1 day", periods=10), "<m8[ns]"),
+        ]
     )
-    def test_constructor(self, constructor, breaks, closed, name):
+    def breaks_and_expected_subtype(self, request):
+        return request.param
+
+    def test_constructor(self, constructor, breaks_and_expected_subtype, closed, name):
+        breaks, expected_subtype = breaks_and_expected_subtype
+
         result_kwargs = self.get_kwargs_from_breaks(breaks, closed)
+
         result = constructor(closed=closed, name=name, **result_kwargs)
 
         assert result.closed == closed
         assert result.name == name
-        assert result.dtype.subtype == getattr(breaks, "dtype", "int64")
-        tm.assert_index_equal(result.left, Index(breaks[:-1]))
-        tm.assert_index_equal(result.right, Index(breaks[1:]))
+        assert result.dtype.subtype == expected_subtype
+        tm.assert_index_equal(result.left, Index(breaks[:-1], dtype=expected_subtype))
+        tm.assert_index_equal(result.right, Index(breaks[1:], dtype=expected_subtype))
 
     @pytest.mark.parametrize(
         "breaks, subtype",
         [
-            (Int64Index([0, 1, 2, 3, 4]), "float64"),
-            (Int64Index([0, 1, 2, 3, 4]), "datetime64[ns]"),
-            (Int64Index([0, 1, 2, 3, 4]), "timedelta64[ns]"),
-            (Float64Index([0, 1, 2, 3, 4]), "int64"),
+            (NumericIndex([0, 1, 2, 3, 4], dtype=np.int64), "float64"),
+            (NumericIndex([0, 1, 2, 3, 4], dtype=np.int64), "datetime64[ns]"),
+            (NumericIndex([0, 1, 2, 3, 4], dtype=np.int64), "timedelta64[ns]"),
+            (NumericIndex([0, 1, 2, 3, 4], dtype=np.float64), "int64"),
             (date_range("2017-01-01", periods=5), "int64"),
             (timedelta_range("1 day", periods=5), "int64"),
         ],
@@ -85,10 +92,9 @@ class ConstructorTests:
     @pytest.mark.parametrize(
         "breaks",
         [
-            Int64Index([0, 1, 2, 3, 4]),
-            Int64Index([0, 1, 2, 3, 4]),
-            Int64Index([0, 1, 2, 3, 4]),
-            Float64Index([0, 1, 2, 3, 4]),
+            NumericIndex([0, 1, 2, 3, 4], dtype=np.int64),
+            NumericIndex([0, 1, 2, 3, 4], dtype=np.uint64),
+            NumericIndex([0, 1, 2, 3, 4], dtype=np.float64),
             date_range("2017-01-01", periods=5),
             timedelta_range("1 day", periods=5),
         ],
@@ -123,6 +129,7 @@ class ConstructorTests:
         [
             [],
             np.array([], dtype="int64"),
+            np.array([], dtype="uint64"),
             np.array([], dtype="float64"),
             np.array([], dtype="datetime64[ns]"),
             np.array([], dtype="timedelta64[ns]"),
@@ -244,8 +251,8 @@ class TestFromArrays(ConstructorTests):
         right = np.arange(1, 10, dtype=right_subtype)
         result = IntervalIndex.from_arrays(left, right)
 
-        expected_left = Float64Index(left)
-        expected_right = Float64Index(right)
+        expected_left = NumericIndex(left, dtype=np.float64)
+        expected_right = NumericIndex(right, dtype=np.float64)
         expected_subtype = np.float64
 
         tm.assert_index_equal(result.left, expected_left)
@@ -291,8 +298,34 @@ class TestFromBreaks(ConstructorTests):
         assert result._left.base is None or result._left.base is not result._right.base
 
 
-class TestFromTuples(ConstructorTests):
+class TuplesClassConstructorTests(ConstructorTests):
+    @pytest.fixture(
+        params=[
+            ([3, 14, 15, 92, 653], np.int64),
+            (np.arange(10, dtype="int64"), np.int64),
+            (NumericIndex(range(-10, 11), dtype=np.int64), np.int64),
+            (NumericIndex(range(10, 31), dtype=np.uint64), np.int64),
+            (NumericIndex(np.arange(20, 30, 0.5), dtype=np.float64), np.float64),
+            (date_range("20180101", periods=10), "<M8[ns]"),
+            (
+                date_range("20180101", periods=10, tz="US/Eastern"),
+                "datetime64[ns, US/Eastern]",
+            ),
+            (timedelta_range("1 day", periods=10), "<m8[ns]"),
+        ]
+    )
+    def breaks_and_expected_subtype(self, request):
+        return request.param
+
+
+class TestFromTuples(TuplesClassConstructorTests):
     """Tests specific to IntervalIndex.from_tuples"""
+
+    def _skip_test_constructor(self, dtype):
+        if is_unsigned_integer_dtype(dtype):
+            return True, "tuples don't have a dtype"
+        else:
+            return False, ""
 
     @pytest.fixture
     def constructor(self):
@@ -338,8 +371,16 @@ class TestFromTuples(ConstructorTests):
         tm.assert_index_equal(idx_na_tuple, idx_na_element)
 
 
-class TestClassConstructors(ConstructorTests):
+class TestClassConstructors(TuplesClassConstructorTests):
     """Tests specific to the IntervalIndex/Index constructors"""
+
+    def _skip_test_constructor(self, dtype):
+        # get_kwargs_from_breaks in TestFromTuples and TestClassconstructors just return
+        # tuples of ints, so IntervalIndex can't know the original dtype
+        if is_unsigned_integer_dtype(dtype):
+            return True, "tuples don't have a dtype"
+        else:
+            return False, ""
 
     @pytest.fixture(
         params=[IntervalIndex, partial(Index, dtype="interval")],
