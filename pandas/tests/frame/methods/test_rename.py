@@ -171,12 +171,7 @@ class TestRename:
 
         assert np.shares_memory(renamed["foo"]._values, float_frame["C"]._values)
 
-        # TODO(CoW) this also shouldn't warn in case of CoW, but the heuristic
-        # checking if the array shares memory doesn't work if CoW happened
-        with tm.assert_produces_warning(FutureWarning if using_copy_on_write else None):
-            # This loc setitem already happens inplace, so no warning
-            #  that this will change in the future
-            renamed.loc[:, "foo"] = 1.0
+        renamed.loc[:, "foo"] = 1.0
         if using_copy_on_write:
             assert not (float_frame["C"] == 1.0).all()
         else:
