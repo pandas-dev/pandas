@@ -68,6 +68,8 @@ repos:
     rev: v2.15.5
     hooks:
     -   id: pylint
+        alias: redefined-outer-name
+        name: Redefining name from outer scope
         files: ^pandas/
         exclude: |
             (?x)
@@ -88,6 +90,7 @@ repos:
             |^pandas/util/_decorators\.py
             |^pandas/util/_doctools\.py
         args: [--disable=all, --enable=redefined-outer-name]
+        stages: [manual]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
