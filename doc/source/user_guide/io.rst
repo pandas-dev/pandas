@@ -3834,7 +3834,7 @@ OpenDocument spreadsheets match what can be done for `Excel files`_ using
 
 .. versionadded:: 0.25
 
-The :func:`~pandas.read_excel` can read OpenDocument spreadsheets
+The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
 
 .. code-block:: python
 
@@ -3843,7 +3843,7 @@ The :func:`~pandas.read_excel` can read OpenDocument spreadsheets
 
 .. versionadded:: 1.1.0
 
-Similarly, the :func:`~pandas.to_excel` can write OpenDocument spreadsheets
+Similarly, the :func:`~pandas.to_excel` method can write OpenDocument spreadsheets
 
 .. code-block:: python
 
