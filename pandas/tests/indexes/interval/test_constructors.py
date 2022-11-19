@@ -18,9 +18,11 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.api.types import is_unsigned_integer_dtype
 from pandas.core.api import (
     Float64Index,
     Int64Index,
+    UInt64Index,
 )
 from pandas.core.arrays import IntervalArray
 import pandas.core.common as com
@@ -38,12 +40,17 @@ class ConstructorTests:
     get_kwargs_from_breaks to the expected format.
     """
 
+    # get_kwargs_from_breaks in TestFromTuples and TestClassconstructors just return
+    # tuples of ints, so IntervalIndex can't know the original dtype was uint
+    _skip_test_constructor_if_uint = False
+
     @pytest.mark.parametrize(
         "breaks",
         [
             [3, 14, 15, 92, 653],
             np.arange(10, dtype="int64"),
             Int64Index(range(-10, 11)),
+            UInt64Index(range(10, 31)),
             Float64Index(np.arange(20, 30, 0.5)),
             date_range("20180101", periods=10),
             date_range("20180101", periods=10, tz="US/Eastern"),
@@ -51,6 +58,9 @@ class ConstructorTests:
         ],
     )
     def test_constructor(self, constructor, breaks, closed, name):
+        if self._skip_test_constructor_if_uint and is_unsigned_integer_dtype(breaks):
+            pytest.skip(reason=f"uint dtype isn't kept for tests in class {type(self)}")
+
         result_kwargs = self.get_kwargs_from_breaks(breaks, closed)
         result = constructor(closed=closed, name=name, **result_kwargs)
 
@@ -294,6 +304,8 @@ class TestFromBreaks(ConstructorTests):
 class TestFromTuples(ConstructorTests):
     """Tests specific to IntervalIndex.from_tuples"""
 
+    _skip_test_constructor_if_uint = True
+
     @pytest.fixture
     def constructor(self):
         return IntervalIndex.from_tuples
@@ -340,6 +352,8 @@ class TestFromTuples(ConstructorTests):
 
 class TestClassConstructors(ConstructorTests):
     """Tests specific to the IntervalIndex/Index constructors"""
+
+    _skip_test_constructor_if_uint = True
 
     @pytest.fixture(
         params=[IntervalIndex, partial(Index, dtype="interval")],
