@@ -20,7 +20,7 @@ Fixed regressions
   from being passed using the ``colormap`` argument if Matplotlib 3.6+ is used (:issue:`49374`)
 - Fixed regression in :func:`date_range` returning an invalid set of periods for ``CustomBusinessDay`` frequency and ``start`` date with timezone (:issue:`49441`)
 - Fixed performance regression in groupby operations (:issue:`49676`)
--
+- Fixed regression in :class:`Timedelta` constructor returning object of wrong type when subclassing ``Timedelta`` (:issue:`49579`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_152.bug_fixes:
