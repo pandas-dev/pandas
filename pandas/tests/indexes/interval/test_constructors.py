@@ -63,7 +63,7 @@ class ConstructorTests:
         result_kwargs = self.get_kwargs_from_breaks(breaks, closed)
         is_uint = is_unsigned_integer_dtype(breaks_dtype)
         if use_dtype or (self._use_dtype_in_test_constructor_uint and is_uint):
-            result_kwargs["dtype"] = IntervalDtype(breaks_dtype)
+            result_kwargs["dtype"] = IntervalDtype(breaks_dtype, closed=closed)
 
         result = constructor(closed=closed, name=name, **result_kwargs)
 
