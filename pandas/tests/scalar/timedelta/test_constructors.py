@@ -503,3 +503,12 @@ def test_timedelta_new_npnat():
     # GH#48898
     nat = np.timedelta64("NaT", "h")
     assert Timedelta(nat) is NaT
+
+
+def test_subclass_respected():
+    # GH#49579
+    class MyCustomTimedelta(Timedelta):
+        pass
+
+    td = MyCustomTimedelta("1 minute")
+    assert isinstance(td, MyCustomTimedelta)
