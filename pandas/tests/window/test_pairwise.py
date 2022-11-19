@@ -301,8 +301,9 @@ class TestPairwise:
             # TODO: We're missing a flag somewhere in meson
             pytest.param(
                 lambda x, y: x.rolling(window=3).corr(y, pairwise=True),
-                marks=pytest.mark.xfail(not IS64, reason="Precision issues on 32 bit"),
-                strict=False,
+                marks=pytest.mark.xfail(
+                    not IS64, reason="Precision issues on 32 bit", strict=False
+                ),
             ),
             lambda x, y: x.ewm(com=3).cov(y, pairwise=True),
             lambda x, y: x.ewm(com=3).corr(y, pairwise=True),
