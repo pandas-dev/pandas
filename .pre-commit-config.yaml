@@ -73,11 +73,11 @@ repos:
         files: ^pandas/
         exclude: |
             (?x)
-            ^pandas/tests  # leave turned off
-            |/_testing/  # leave turned off
-            |^pandas/util/_test_decorators\.py  # leave turned off
-            |^pandas/_version\.py  # leave turned off
-            |^pandas/conftest\.py  # leave turned off
+            ^pandas/tests  # keep excluded
+            |/_testing/  # keep excluded
+            |^pandas/util/_test_decorators\.py  # keep excluded
+            |^pandas/_version\.py  # keep excluded
+            |^pandas/conftest\.py  # keep excluded
             |^pandas/core/generic\.py
             |^pandas/core/internals/concat\.py
             |^pandas/core/reshape/merge\.py
