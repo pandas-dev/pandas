@@ -134,7 +134,6 @@ disable = [
   "invalid-envvar-default",
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
-  "method-cache-max-size-none",
   "non-parent-init-called",
   "overridden-final-method",
   "pointless-statement",
