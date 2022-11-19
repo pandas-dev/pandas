@@ -3839,7 +3839,7 @@ The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
 .. code-block:: python
 
    # Returns a DataFrame
-   df = pd.read_excel("path_to_file.ods", engine="odf")
+   pd.read_excel("path_to_file.ods", engine="odf")
 
 .. versionadded:: 1.1.0
 
