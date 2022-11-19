@@ -23,10 +23,13 @@ from pandas._libs.tslibs import (
     NaTType,
     Period,
     Timestamp,
-    dtypes,
     timezones,
     to_offset,
     tz_compare,
+)
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+    PeriodDtypeBase,
 )
 from pandas._typing import (
     Dtype,
@@ -716,10 +719,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
         The NPY_DATETIMEUNIT corresponding to this dtype's resolution.
         """
         reso = {
-            "s": dtypes.NpyDatetimeUnit.NPY_FR_s,
-            "ms": dtypes.NpyDatetimeUnit.NPY_FR_ms,
-            "us": dtypes.NpyDatetimeUnit.NPY_FR_us,
-            "ns": dtypes.NpyDatetimeUnit.NPY_FR_ns,
+            "s": NpyDatetimeUnit.NPY_FR_s,
+            "ms": NpyDatetimeUnit.NPY_FR_ms,
+            "us": NpyDatetimeUnit.NPY_FR_us,
+            "ns": NpyDatetimeUnit.NPY_FR_ns,
         }[self.unit]
         return reso.value
 
@@ -820,7 +823,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
 
 @register_extension_dtype
-class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
+class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     """
     An ExtensionDtype for Period data.
 
@@ -869,7 +872,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         elif freq is None:
             # empty constructor for pickle compat
             # -10_000 corresponds to PeriodDtypeCode.UNDEFINED
-            u = dtypes.PeriodDtypeBase.__new__(cls, -10_000)
+            u = PeriodDtypeBase.__new__(cls, -10_000)
             u._freq = None
             return u
 
@@ -880,7 +883,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
             return cls._cache_dtypes[freq.freqstr]
         except KeyError:
             dtype_code = freq._period_dtype_code
-            u = dtypes.PeriodDtypeBase.__new__(cls, dtype_code)
+            u = PeriodDtypeBase.__new__(cls, dtype_code)
             u._freq = freq
             cls._cache_dtypes[freq.freqstr] = u
             return u
