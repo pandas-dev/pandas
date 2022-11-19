@@ -1176,16 +1176,15 @@ char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer,
     enc->offset = enc->start;
 
     locale = setlocale(LC_NUMERIC, NULL);
+    if (!locale) {
+        SetError(NULL, enc, "Could not reserve memory block");
+        return NULL;
+    }
+
     if (strcmp(locale, "C")) {
-        locale = strdup(locale);
-        if (!locale) {
-            SetError(NULL, enc, "Could not reserve memory block");
-            return NULL;
-        }
         setlocale(LC_NUMERIC, "C");
         encode(obj, enc, NULL, 0);
         setlocale(LC_NUMERIC, locale);
-        free(locale);
     } else {
         encode(obj, enc, NULL, 0);
     }
