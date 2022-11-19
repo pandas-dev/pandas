@@ -278,8 +278,8 @@ def _get_hashtable_algo(values: np.ndarray):
     values = _ensure_data(values)
 
     ndtype = _check_object_for_strings(values)
-    htable = _hashtables[ndtype]
-    return htable, values
+    hashtable = _hashtables[ndtype]
+    return hashtable, values
 
 
 def _check_object_for_strings(values: np.ndarray) -> str:
@@ -438,9 +438,9 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
         return values.unique()
 
     original = values
-    htable, values = _get_hashtable_algo(values)
+    hashtable, values = _get_hashtable_algo(values)
 
-    table = htable(len(values))
+    table = hashtable(len(values))
     if mask is None:
         uniques = table.unique(values)
         uniques = _reconstruct_data(uniques, original.dtype, original)
@@ -1638,14 +1638,10 @@ def diff(arr, n: int, axis: AxisInt = 0):
                 raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
             return op(arr, arr.shift(n))
         else:
-            warnings.warn(
-                "dtype lost in 'diff()'. In the future this will raise a "
-                "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise TypeError(
+                f"{type(arr).__name__} has no 'diff' method. "
+                "Convert to a suitable dtype prior to calling 'diff'."
             )
-            arr = np.asarray(arr)
-            dtype = arr.dtype
 
     is_timedelta = False
     if needs_i8_conversion(arr.dtype):
