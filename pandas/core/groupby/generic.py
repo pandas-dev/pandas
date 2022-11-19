@@ -1357,14 +1357,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         # We could use `mgr.apply` here and not have to set_axis, but
         #  we would have to do shape gymnastics for ArrayManager compat
-        try:
-            res_mgr = mgr.grouped_reduce(
-                arr_func,
-                ignore_failures=False,
-            )
-        except NotImplementedError as err:
-            # For NotImplementedError, args[0] is the error message
-            raise TypeError(err.args[0]) from err
+        res_mgr = mgr.grouped_reduce(arr_func, ignore_failures=False)
         res_mgr.set_axis(1, mgr.axes[1])
 
         if len(res_mgr) < orig_mgr_len:
