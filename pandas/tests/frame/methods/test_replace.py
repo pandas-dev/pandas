@@ -1503,6 +1503,15 @@ class TestDataFrameReplace:
         result = df.replace({val: None})
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_in_col_containing_na(self):
+        # GH#47480
+        df = DataFrame({"A": [0, 1, 2]})
+        df.at[0, "A"] = pd.NA
+        expected = df.copy()
+        df["A"].replace(to_replace=1, value=100, inplace=True)
+        expected.at[1, "A"] = 100
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameReplaceRegex:
     @pytest.mark.parametrize(
