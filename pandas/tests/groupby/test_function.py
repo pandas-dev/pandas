@@ -250,6 +250,10 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
+        # object dtypes for transformations are not implemented in Cython and
+        # have no Python fallback
+        exception = NotImplementedError if method.startswith("cum") else TypeError
+
         if method in ("min", "max", "cummin", "cummax"):
             # The methods default to numeric_only=False and raise TypeError
             msg = "|".join(
@@ -258,7 +262,7 @@ class TestNumericOnly:
                     "function is not implemented for this dtype",
                 ]
             )
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(exception, match=msg):
                 getattr(gb, method)()
         else:
             result = getattr(gb, method)()
@@ -274,7 +278,7 @@ class TestNumericOnly:
                     "function is not implemented for this dtype",
                 ]
             )
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(exception, match=msg):
                 getattr(gb, method)(numeric_only=False)
         else:
             result = getattr(gb, method)(numeric_only=False)
@@ -336,13 +340,7 @@ class TestGroupByNonCythonPaths:
         result = gb.describe()
         tm.assert_frame_equal(result, expected)
 
-        expected = pd.concat(
-            [
-                df[df.A == 1].describe().unstack().to_frame().T,
-                df[df.A == 3].describe().unstack().to_frame().T,
-            ]
-        )
-        expected.index = Index([0, 1])
+        expected = expected.reset_index()
         result = gni.describe()
         tm.assert_frame_equal(result, expected)
 
@@ -1093,6 +1091,38 @@ def test_series_describe_single():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("keys", ["key1", ["key1", "key2"]])
+def test_series_describe_as_index(as_index, keys):
+    # GH#49256
+    df = DataFrame(
+        {
+            "key1": ["one", "two", "two", "three", "two"],
+            "key2": ["one", "two", "two", "three", "two"],
+            "foo2": [1, 2, 4, 4, 6],
+        }
+    )
+    gb = df.groupby(keys, as_index=as_index)["foo2"]
+    result = gb.describe()
+    expected = DataFrame(
+        {
+            "key1": ["one", "three", "two"],
+            "count": [1.0, 1.0, 3.0],
+            "mean": [1.0, 4.0, 4.0],
+            "std": [np.nan, np.nan, 2.0],
+            "min": [1.0, 4.0, 2.0],
+            "25%": [1.0, 4.0, 3.0],
+            "50%": [1.0, 4.0, 4.0],
+            "75%": [1.0, 4.0, 5.0],
+            "max": [1.0, 4.0, 6.0],
+        }
+    )
+    if len(keys) == 2:
+        expected.insert(1, "key2", expected["key1"])
+    if as_index:
+        expected = expected.set_index(keys)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_series_index_name(df):
     grouped = df.loc[:, ["C"]].groupby(df["A"])
     result = grouped.agg(lambda x: x.mean())
@@ -1177,29 +1207,25 @@ def test_frame_describe_unstacked_format():
     "pandas.errors.PerformanceWarning"
 )
 @pytest.mark.parametrize("as_index", [True, False])
-def test_describe_with_duplicate_output_column_names(as_index):
+@pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
+def test_describe_with_duplicate_output_column_names(as_index, keys):
     # GH 35314
     df = DataFrame(
         {
-            "a": [99, 99, 99, 88, 88, 88],
+            "a1": [99, 99, 99, 88, 88, 88],
+            "a2": [99, 99, 99, 88, 88, 88],
             "b": [1, 2, 3, 4, 5, 6],
             "c": [10, 20, 30, 40, 50, 60],
         },
-        columns=["a", "b", "b"],
+        columns=["a1", "a2", "b", "b"],
         copy=False,
     )
+    if keys == ["a1"]:
+        df = df.drop(columns="a2")
 
     expected = (
         DataFrame.from_records(
             [
-                ("a", "count", 3.0, 3.0),
-                ("a", "mean", 88.0, 99.0),
-                ("a", "std", 0.0, 0.0),
-                ("a", "min", 88.0, 99.0),
-                ("a", "25%", 88.0, 99.0),
-                ("a", "50%", 88.0, 99.0),
-                ("a", "75%", 88.0, 99.0),
-                ("a", "max", 88.0, 99.0),
                 ("b", "count", 3.0, 3.0),
                 ("b", "mean", 5.0, 2.0),
                 ("b", "std", 1.0, 1.0),
@@ -1222,14 +1248,17 @@ def test_describe_with_duplicate_output_column_names(as_index):
         .T
     )
     expected.columns.names = [None, None]
-    expected.index = Index([88, 99], name="a")
-
-    if as_index:
-        expected = expected.drop(columns=["a"], level=0)
+    if len(keys) == 2:
+        expected.index = MultiIndex(
+            levels=[[88, 99], [88, 99]], codes=[[0, 1], [0, 1]], names=["a1", "a2"]
+        )
     else:
-        expected = expected.reset_index(drop=True)
+        expected.index = Index([88, 99], name="a1")
 
-    result = df.groupby("a", as_index=as_index).describe()
+    if not as_index:
+        expected = expected.reset_index()
+
+    result = df.groupby(keys, as_index=as_index).describe()
 
     tm.assert_frame_equal(result, expected)
 
@@ -1411,6 +1440,11 @@ def test_deprecate_numeric_only(
     elif has_arg or kernel in ("idxmax", "idxmin"):
         assert numeric_only is not True
         # kernels that are successful on any dtype were above; this will fail
+
+        # object dtypes for transformations are not implemented in Cython and
+        # have no Python fallback
+        exception = NotImplementedError if kernel.startswith("cum") else TypeError
+
         msg = "|".join(
             [
                 "not allowed for this dtype",
@@ -1422,7 +1456,7 @@ def test_deprecate_numeric_only(
                 "function is not implemented for this dtype",
             ]
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(exception, match=msg):
             method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:
         with pytest.raises(

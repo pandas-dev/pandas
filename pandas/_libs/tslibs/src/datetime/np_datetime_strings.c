@@ -539,7 +539,7 @@ parse_timezone:
 
     /* UTC specifier */
     if (*substr == 'Z') {
-        if (compare_format(&format, &format_len, "%Z", 2, exact)) {
+        if (compare_format(&format, &format_len, "%z", 2, exact)) {
             goto parse_error;
         }
         /* "Z" should be equivalent to tz offset "+00:00" */
