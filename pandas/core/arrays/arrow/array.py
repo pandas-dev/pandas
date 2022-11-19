@@ -42,8 +42,12 @@ if not pa_version_under6p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
-    from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
-    from pandas.core.arrays.arrow.dtype import ArrowDtype
+    from pandas.core.arrays.arrow._arrow_utils import (  # pylint: disable=ungrouped-imports # noqa: E501
+        fallback_performancewarning,
+    )
+    from pandas.core.arrays.arrow.dtype import (  # pylint: disable=ungrouped-imports
+        ArrowDtype,
+    )
 
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,

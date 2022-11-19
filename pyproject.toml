@@ -85,7 +85,6 @@ disable = [
   "missing-module-docstring",
   "singleton-comparison",
   "too-many-lines",
-  "ungrouped-imports",
   "unidiomatic-typecheck",
   "unnecessary-dunder-call",
   "unnecessary-lambda-assignment",
