@@ -124,7 +124,6 @@ disable = [
   "attribute-defined-outside-init",
   "broad-except",
   "comparison-with-callable",
-  "confusing-with-statement",
   "dangerous-default-value",
   "deprecated-module",
   "eval-used",
