@@ -10,7 +10,7 @@
 
 The suggestion is to add a ``NoRowIndex`` class. Internally, it would act a bit like
 a ``RangeIndex``, but some methods would be stricter. This would be one
-step towards enabling users who don't want to think about indices to not have to.
+step towards enabling users who do not want to think about indices to not need to.
 
 ## Motivation
 
@@ -24,7 +24,7 @@ In [38]: ser2 = pd.Series([10, 15, 20, 25], index=[1, 2, 3, 4])
 
 Then:
 
-- it can be unexpected that summing `Series` with the same length (but different indices) produces `NaN`s in the result (https://stackoverflow.com/q/66094702/4451315):
+- it can be unexpected that adding `Series` with the same length (but different indices) produces `NaN`s in the result (https://stackoverflow.com/q/66094702/4451315):
 
   ```python
   In [41]: ser1 + ser2
@@ -62,7 +62,7 @@ Then:
   dtype: int64
   ```
 
-If a user didn't want to think about row labels (which they may have ended up after slicing / concatenating operations),
+If a user did not want to think about row labels (which they may have ended up after slicing / concatenating operations),
 then ``NoRowIndex`` would enable the above to work in a more intuitive
 manner (details and examples to follow below).
 
@@ -70,7 +70,7 @@ manner (details and examples to follow below).
 
 This proposal deals exclusively with the ``NoRowIndex`` class. To allow users to fully "opt-out" of having to think
 about row labels, the following could also be useful:
-- a ``pd.set_option('mode.no_default_index')`` mode which would default to creating new ``DataFrame``s and
+- a ``pd.set_option('mode.no_row_index', True)`` mode which would default to creating new ``DataFrame``s and
   ``Series`` with ``NoRowIndex`` instead of ``RangeIndex``;
 - giving ``as_index`` options to methods which currently create an index
   (e.g. ``value_counts``, ``.sum()``, ``.pivot_table``) to just insert a new column instead of creating an
@@ -85,17 +85,19 @@ within the ``NoRowIndex`` object. It would act just like ``RangeIndex``, but wou
 in some cases:
 - `name` could only be `None`;
 - `start` could only be `0`, `step` `1`;
-- when appending a ``NoRowIndex``, the result would still be ``NoRowIndex``;
+- when appending one ``NoRowIndex`` to another ``NoRowIndex``, the result would still be ``NoRowIndex``.
+  Appending a ``NoRowIndex`` to any other index (or vice-versa) would raise;
 - the ``NoRowIndex`` class would be preserved under slicing;
-- it could only be aligned with another ``Index`` if it's also ``NoRowIndex`` and if it's of the same length;
-- ``DataFrame`` columns can't be `NoRowIndex` (so ``transpose`` would need some adjustments when called on a ``NoRowIndex`` ``DataFrame``);
+- a ``NoRowIndex`` could only be aligned with another ``Index`` if it's also ``NoRowIndex`` and if it's of the same length;
+- ``DataFrame`` columns cannot be `NoRowIndex` (so ``transpose`` would need some adjustments when called on a ``NoRowIndex`` ``DataFrame``);
 - `insert` and `delete` should raise. As a consequence, if ``df`` is a ``DataFrame`` with a
   ``NoRowIndex``, then `df.drop` with `axis=0` would always raise;
 - arithmetic operations (e.g. `NoRowIndex(3) + 2`) would always raise;
-- when printing a ``DataFrame``/``Series`` with a ``NoRowIndex``, then the row labels wouldn't be printed;
+- when printing a ``DataFrame``/``Series`` with a ``NoRowIndex``, then the row labels would not be printed;
 - a ``MultiIndex`` could not be created with a ``NoRowIndex`` as one of its levels.
 
-Let's go into more detail for some of these.
+Let's go into more detail for some of these. In the examples that follow, the ``NoRowIndex`` will be passed explicitly,
+but this is not how users would be expected to use it (see "Usage and Impact" section for details).
 
 ### NoRowIndex.append
 
@@ -108,15 +110,20 @@ result in a ``DataFrame`` which still has ``NoRowIndex``. To do this, the follow
 Example:
 
 ```python
-In [7]: df1 = pd.DataFrame({'a': [1,  2], 'b': [4, 5]}, index=NoRowIndex(2))
+In [6]: df1 = pd.DataFrame({'a': [1,  2], 'b': [4, 5]}, index=NoRowIndex(2))
 
-In [8]: df2 = pd.DataFrame({'a': [4], 'b': [0]}, index=NoRowIndex(1))
+In [7]: df2 = pd.DataFrame({'a': [4], 'b': [0]}, index=NoRowIndex(1))
 
-In [9]: df1
-Out[9]:
+In [8]: df1
+Out[8]:
  a  b
  1  4
  2  5
+
+In [9]: df2
+Out[9]:
+ a  b
+ 4  0
 
 In [10]: pd.concat([df1, df2])
 Out[10]:
@@ -160,7 +167,11 @@ In [15]: df.loc[0, 'b']
 ---------------------------------------------------------------------------
 IndexError: Cannot use label-based indexing on NoRowIndex!
 ```
-Note that other uses of ``.loc``, such as boolean masks, would still be allowed (see F.A.Q).
+
+Note too that:
+- other uses of ``.loc``, such as boolean masks, would still be allowed (see F.A.Q);
+- ``.iloc`` and ``.iat`` would keep working as before;
+- ``.at`` would raise.
 
 ### Aligning ``NoRowIndex``s
 
@@ -184,10 +195,10 @@ dtype: int64
 
 In [4]: ser1 + ser2.iloc[1:]  # errors!
 ---------------------------------------------------------------------------
-TypeError: Can't join NoRowIndex of different lengths
+TypeError: Cannot join NoRowIndex of different lengths
 ```
 
-### Columns can't be NoRowIndex
+### Columns cannot be NoRowIndex
 
 This proposal deals exclusively with letting users not have to think about
 row labels. There's no suggestion to remove the column labels.
@@ -206,7 +217,7 @@ If you got here via `transpose` or an `axis=1` operation, then you should first 
 
 ### DataFrameFormatter and SeriesFormatter changes
 
-When printing an object with a ``NoRowIndex``, then the row labels wouldn't be shown:
+When printing an object with a ``NoRowIndex``, then the row labels would not be shown:
 
 ```python
 In [15]: df = pd.DataFrame({'a': [1,  2, 3], 'b': [4, 5, 6]}, index=NoRowIndex(3))
@@ -224,16 +235,24 @@ Of the above changes, this may be the only one that would need implementing with
 
 ## Usage and Impact
 
-By itself, ``NoRowIndex`` would be of limited use. To become useful and user-friendly,
-a ``no_default_index`` mode could be introduced which, if enabled, would change
-the ``default_index`` function to return a ``NoRowIndex`` of the appropriate length.
-In particular, ``.reset_index()`` would result in a ``DataFrame`` with a ``NoRowIndex``.
-Likewise, a ``DataFrame`` constructed without explicitly specifying ``index=``.
+Users would not be expected to work with the ``NoRowIndex`` class itself directly.
+Usage would probably involve a mode which would change how the ``default_index``
+function to return a ``NoRowIndex`` rather than a ``RangeIndex``.
+Then, if a user opted in to this mode with
 
-Furthermore, it could be useful to add ``as_index`` options to methods which currently
-set an index, and then allow for that mode to control the ``as_index`` default.
+```python
+pd.set_option('mode.no_row_index', True)
+```
 
-Discussion of such a mode is out-of-scope for this proposal. A ``NoRowIndex`` would
+then the following would all create a ``DataFrame`` with a ``NoRowIndex`` (as they
+all call ``default_index``):
+
+- ``df.reset_index(drop=True)``;
+- ``pd.concat([df1, df2], ignore_index=True)``
+- ``df1.merge(df2, on=col)``;
+- ``df = pd.DataFrame({'col_1': [1, 2, 3]})``
+
+Further discussion of such a mode is out-of-scope for this proposal. A ``NoRowIndex`` would
 just be a first step towards getting there.
 
 ## Implementation
@@ -241,25 +260,25 @@ just be a first step towards getting there.
 Draft pull request showing proof of concept: https://github.com/pandas-dev/pandas/pull/49693.
 
 Note that implementation details could well change even if this PDEP were
-accepted. For example, ``NoRowIndex`` wouldn't necessarily need to subclass
-``RangeIndex``, and it wouldn't necessarily need to be accessible to the user
+accepted. For example, ``NoRowIndex`` would not necessarily need to subclass
+``RangeIndex``, and it would not necessarily need to be accessible to the user
 (``df.index`` could well return ``None``)
 
 ## Likely FAQ
 
-**Q: Couldn't users just use ``RangeIndex``? Why do we need a new class?**
+**Q: Could not users just use ``RangeIndex``? Why do we need a new class?**
 
-**A**: ``RangeIndex`` isn't preserved under slicing and appending, e.g.:
+**A**: ``RangeIndex`` is not preserved under slicing and appending, e.g.:
   ```python
   In [1]: ser = pd.Series([1,2,3])
 
   In [2]: ser[ser!=2].index
   Out[2]: Int64Index([0, 2], dtype='int64')
   ```
-  If someone doesn't want to think about row labels and starts off
+  If someone does not want to think about row labels and starts off
   with a ``RangeIndex``, they'll very quickly lose it.
 
-**Q: Aren't indices really powerful?**
+**Q: Are not indices really powerful?**
 
 **A:** Yes! And they're also confusing to many users, even experienced developers.
   It's fairly common to see pandas code with ``.reset_index`` scattered around every
@@ -275,10 +294,23 @@ accepted. For example, ``NoRowIndex`` wouldn't necessarily need to subclass
   ```
   There's probably no need to introduce a new method for this.
 
+  Conversely, to get rid of the index, then (so long as one has enabled the ``mode.no_row_index`` option)
+  one could simply do ``df.reset_index(drop=True)``.
+
+**Q: How would ``tz_localize`` and other methods which operate on the index work on a ``NoRowIndex`` ``DataFrame``?**
+
+**A:** Same way they work on other ``NumericIndex``s, which would typically be to raise:
+
+  ```python
+  In [2]: ser.tz_localize('UTC')
+  ---------------------------------------------------------------------------
+  TypeError: index is not a valid DatetimeIndex or PeriodIndex
+  ```
+
 **Q: Why not let transpose switch ``NoRowIndex`` to ``RangeIndex`` under the hood before swapping index and columns?**
 
 **A:** This is the kind of magic that can lead to surprising behaviour that's
-  difficult to debug. For example, ``df.transpose().transpose()`` wouldn't
+  difficult to debug. For example, ``df.transpose().transpose()`` would not
   round-trip. It's easy enough to set an index after all, better to "force" users
   to be intentional about what they want and end up with fewer surprises later
   on.
