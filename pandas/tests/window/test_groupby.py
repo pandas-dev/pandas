@@ -811,7 +811,7 @@ class TestRolling:
         expected_result = DataFrame(
             np.array(expected, dtype="float64"),
             index=MultiIndex(
-                levels=[[1, 2], [0, 1, 2, 3, 4, 5, 6, 7]],
+                levels=[np.array([1, 2]), [0, 1, 2, 3, 4, 5, 6, 7]],
                 codes=[[0, 0, 0, 0, 1, 1, 1, 1], [0, 2, 4, 6, 1, 3, 5, 7]],
             ),
         )
@@ -919,7 +919,10 @@ class TestRolling:
             arr,
             name="adl2",
             index=MultiIndex.from_arrays(
-                [[0] * 999 + [1], [0] * 999 + [1]], names=["index", "index"]
+                [
+                    Index([0] * 999 + [1], dtype=np.int_, name="index"),
+                    Index([0] * 999 + [1], dtype=np.int_, name="index"),
+                ],
             ),
         )
         tm.assert_series_equal(result, expected)

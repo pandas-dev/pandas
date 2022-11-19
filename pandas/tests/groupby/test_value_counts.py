@@ -183,7 +183,7 @@ def test_series_groupby_value_counts_on_categorical():
         data=[1, 0],
         index=MultiIndex.from_arrays(
             [
-                [0, 0],
+                np.array([0, 0]),
                 CategoricalIndex(
                     ["a", "b"], categories=["a", "b"], ordered=False, dtype="category"
                 ),

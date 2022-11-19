@@ -1153,7 +1153,7 @@ class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
         return Series(res_values)
 
 
-@pytest.mark.parametrize("val", [512, np.int16(512)])
+@pytest.mark.parametrize("val", [np.int16(512), np.int16(512)])
 class TestSetitemIntoIntegerSeriesNeedsUpcast(SetitemCastingEquivalents):
     @pytest.fixture
     def obj(self):
@@ -1168,7 +1168,7 @@ class TestSetitemIntoIntegerSeriesNeedsUpcast(SetitemCastingEquivalents):
         return Series([1, 512, 3], dtype=np.int16)
 
 
-@pytest.mark.parametrize("val", [2**33 + 1.0, 2**33 + 1.1, 2**62])
+@pytest.mark.parametrize("val", [2**30 + 1.0, 2**33 + 1.1, 2**62])
 class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
     # https://github.com/pandas-dev/pandas/issues/39584#issuecomment-941212124
     @pytest.fixture
@@ -1181,10 +1181,12 @@ class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
 
     @pytest.fixture
     def expected(self, val):
-        if val % 1 != 0:
+        if val > np.iinfo(np.int64).max:
             dtype = "f8"
-        else:
+        elif val > np.iinfo(np.int32).max:
             dtype = "i8"
+        else:
+            dtype = "i4"
         return Series([val, 2, 3], dtype=dtype)
 
 
