@@ -278,7 +278,7 @@ accepted. For example, ``NoRowIndex`` would not necessarily need to subclass
   If someone does not want to think about row labels and starts off
   with a ``RangeIndex``, they'll very quickly lose it.
 
-**Q: Are not indices really powerful?**
+**Q: Are indices not really powerful?**
 
 **A:** Yes! And they're also confusing to many users, even experienced developers.
   It's fairly common to see pandas code with ``.reset_index`` scattered around every
