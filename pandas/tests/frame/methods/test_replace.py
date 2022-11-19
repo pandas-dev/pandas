@@ -1505,11 +1505,9 @@ class TestDataFrameReplace:
 
     def test_replace_in_col_containing_na(self):
         # GH#47480
-        df = DataFrame({"A": [0, 1, 2]})
-        df.at[0, "A"] = pd.NA
-        expected = df.copy()
+        df = DataFrame({"A": [pd.NA, 1, 2]}, dtype="Int64")
         df["A"].replace(to_replace=1, value=100, inplace=True)
-        expected.at[1, "A"] = 100
+        expected = DataFrame({"A": [pd.NA, 100, 2]}, dtype="Int64")
         tm.assert_frame_equal(df, expected)
 
 
