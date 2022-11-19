@@ -441,7 +441,6 @@ def test_drop_duplicates_null_in_object_column(nulls_fixture):
     tm.assert_frame_equal(result, df)
 
 
-@pytest.mark.parametrize("keep", ["first", "last", False])
 def test_drop_duplicates_series_vs_dataframe(keep):
     # GH#14192
     df = DataFrame(

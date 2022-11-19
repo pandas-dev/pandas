@@ -102,19 +102,6 @@ from pandas._libs.tslibs.util cimport get_c_string
 from pandas._libs.missing cimport C_NA
 
 
-cdef class Factorizer:
-    cdef readonly:
-        Py_ssize_t count
-
-    def __cinit__(self, size_hint: int):
-        self.count = 0
-
-    def get_count(self) -> int:
-        return self.count
-
-    def factorize(self, values, na_sentinel=-1, na_value=None, mask=None) -> np.ndarray:
-        pass
-
 {{py:
 
 # name, dtype, c_type

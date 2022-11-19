@@ -1061,8 +1061,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # This is a no-op for SeriesGroupBy
         grp = self.grouper
         if not (
-            self.as_index
-            and grp.groupings is not None
+            grp.groupings is not None
             and self.obj.ndim > 1
             and self._group_selection is None
         ):
@@ -1655,6 +1654,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 alt=npfunc,
                 numeric_only=numeric_only,
                 min_count=min_count,
+                ignore_failures=numeric_only is lib.no_default,
             )
             return result.__finalize__(self.obj, method="groupby")
 
@@ -2123,6 +2123,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 "mean",
                 alt=lambda x: Series(x).mean(numeric_only=numeric_only_bool),
                 numeric_only=numeric_only,
+                ignore_failures=numeric_only is lib.no_default,
             )
             return result.__finalize__(self.obj, method="groupby")
 
@@ -2152,6 +2153,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             "median",
             alt=lambda x: Series(x).median(numeric_only=numeric_only_bool),
             numeric_only=numeric_only,
+            ignore_failures=numeric_only is lib.no_default,
         )
         return result.__finalize__(self.obj, method="groupby")
 
@@ -2637,7 +2639,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             if self.axis == 1:
                 return result.T
-            return result.unstack()
+
+            # GH#49256 - properly handle the grouping column(s)
+            if self._selected_obj.ndim != 1 or self.as_index:
+                result = result.unstack()
+                if not self.as_index:
+                    self._insert_inaxis_grouper_inplace(result)
+
+            return result
 
     @final
     def resample(self, rule, *args, **kwargs):
@@ -3756,7 +3765,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if numeric_only_bool:
             mgr = mgr.get_numeric_data()
 
-        res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
+        res_mgr = mgr.grouped_reduce(
+            blk_func, ignore_failures=numeric_only is lib.no_default
+        )
 
         if not is_ser and len(res_mgr.items) != orig_mgr_len:
             howstr = how.replace("group_", "")

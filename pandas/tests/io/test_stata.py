@@ -73,6 +73,19 @@ class TestStata:
             empty_ds2 = read_stata(path)
             tm.assert_frame_equal(empty_ds, empty_ds2)
 
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
+    def test_read_index_col_none(self, version):
+        df = DataFrame({"a": range(5), "b": ["b1", "b2", "b3", "b4", "b5"]})
+        # GH 7369, make sure can read a 0-obs dta file
+        with tm.ensure_clean() as path:
+            df.to_stata(path, write_index=False, version=version)
+            read_df = read_stata(path)
+
+        assert isinstance(read_df.index, pd.RangeIndex)
+        expected = df.copy()
+        expected["a"] = expected["a"].astype(np.int32)
+        tm.assert_frame_equal(read_df, expected, check_index_type=True)
+
     @pytest.mark.parametrize("file", ["stata1_114", "stata1_117"])
     def test_read_dta1(self, file, datapath):
 
@@ -1054,7 +1067,7 @@ class TestStata:
         parsed = parsed.sort_values("srh", na_position="first")
 
         # Don't sort index
-        parsed.index = np.arange(parsed.shape[0])
+        parsed.index = pd.RangeIndex(len(parsed))
         codes = [-1, -1, 0, 1, 1, 1, 2, 2, 3, 4]
         categories = ["Poor", "Fair", "Good", "Very good", "Excellent"]
         cat = pd.Categorical.from_codes(

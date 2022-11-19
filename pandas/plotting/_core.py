@@ -1630,11 +1630,6 @@ class PlotAccessor(PandasObject):
 
               .. versionchanged:: 1.1.0
 
-        size : str, scalar or array-like, optional
-            Alias for s.
-
-            .. versionadded:: 1.5.0
-
         c : str, int or array-like, optional
             The color of each point. Possible values are:
 
@@ -1648,10 +1643,6 @@ class PlotAccessor(PandasObject):
 
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
-        color : str, int or array-like, optional
-            Alias for c.
-
-            .. versionadded:: 1.5.0
 
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
@@ -1835,8 +1826,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     # entry_points lost dict API ~ PY 3.10
     # https://github.com/python/importlib_metadata/issues/298
     if hasattr(eps, "select"):
-        # error: "Dict[str, Tuple[EntryPoint, ...]]" has no attribute "select"
-        entry = eps.select(group=key)  # type: ignore[attr-defined]
+        entry = eps.select(group=key)  # pyright: ignore[reportGeneralTypeIssues]
     else:
         entry = eps.get(key, ())
     for entry_point in entry:

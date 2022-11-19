@@ -69,6 +69,20 @@ else:
     raise ValueError(np.dtype(np.intp))
 
 
+cdef class Factorizer:
+    cdef readonly:
+        Py_ssize_t count
+
+    def __cinit__(self, size_hint: int):
+        self.count = 0
+
+    def get_count(self) -> int:
+        return self.count
+
+    def factorize(self, values, na_sentinel=-1, na_value=None, mask=None) -> np.ndarray:
+        raise NotImplementedError
+
+
 cdef class ObjectFactorizer(Factorizer):
     cdef public:
         PyObjectHashTable table
@@ -99,7 +113,7 @@ cdef class ObjectFactorizer(Factorizer):
             ndarray[intp_t] labels
 
         if mask is not None:
-            raise NotImplementedError("Mask is not implemented for object.")
+            raise NotImplementedError("mask not supported for ObjectFactorizer.")
 
         if self.uniques.external_view_exists:
             uniques = ObjectVector()
