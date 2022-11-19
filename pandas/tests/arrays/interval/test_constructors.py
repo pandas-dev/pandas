@@ -353,7 +353,7 @@ class TestFromTuples(ConstructorTests):
 
 
 class TestClassConstructors(ConstructorTests):
-    """Tests specific to the IntervalArray/Serie constructors"""
+    """Tests specific to the IntervalArray/Series constructors"""
 
     _use_dtype_in_test_constructor_uint = True
 
