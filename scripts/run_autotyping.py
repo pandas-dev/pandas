@@ -28,6 +28,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             *args.paths,
             "--aggressive",
         ],
+        check=True,
     )
     sys.exit(output.returncode)
 
