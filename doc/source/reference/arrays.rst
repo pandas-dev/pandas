@@ -139,6 +139,7 @@ Properties
    Timestamp.second
    Timestamp.tz
    Timestamp.tzinfo
+   Timestamp.unit
    Timestamp.value
    Timestamp.week
    Timestamp.weekofyear
@@ -149,6 +150,7 @@ Methods
 .. autosummary::
    :toctree: api/
 
+   Timestamp.as_unit
    Timestamp.astimezone
    Timestamp.ceil
    Timestamp.combine
@@ -157,8 +159,6 @@ Methods
    Timestamp.day_name
    Timestamp.dst
    Timestamp.floor
-   Timestamp.freq
-   Timestamp.freqstr
    Timestamp.fromordinal
    Timestamp.fromtimestamp
    Timestamp.isocalendar
@@ -244,6 +244,7 @@ Properties
    Timedelta.nanoseconds
    Timedelta.resolution
    Timedelta.seconds
+   Timedelta.unit
    Timedelta.value
    Timedelta.view
 
@@ -252,6 +253,7 @@ Methods
 .. autosummary::
    :toctree: api/
 
+   Timedelta.as_unit
    Timedelta.ceil
    Timedelta.floor
    Timedelta.isoformat
@@ -659,7 +661,6 @@ Scalar introspection
    :toctree: api/
 
     api.types.is_bool
-    api.types.is_categorical
     api.types.is_complex
     api.types.is_float
     api.types.is_hashable

@@ -62,11 +62,11 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("index", ["datetime"], indirect=True)
     def test_new_axis(self, index):
-        with tm.assert_produces_warning(FutureWarning):
+        # TODO: a bunch of scattered tests check this deprecation is enforced.
+        #  de-duplicate/centralize them.
+        with pytest.raises(ValueError, match="Multi-dimensional indexing"):
             # GH#30588 multi-dimensional indexing deprecated
-            new_index = index[None, :]
-        assert new_index.ndim == 2
-        assert isinstance(new_index, np.ndarray)
+            index[None, :]
 
     def test_argsort(self, index):
         with tm.maybe_produces_warning(
@@ -230,7 +230,6 @@ class TestIndex(Base):
         result = index._simple_new(index.values, dtype)
         tm.assert_index_equal(result, index)
 
-    @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, DatetimeIndex])
     def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, klass):
@@ -250,9 +249,13 @@ class TestIndex(Base):
 
         if attr == "asi8":
             result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
+            tm.assert_index_equal(result, index)
+        elif klass is Index:
+            with pytest.raises(TypeError, match="unexpected keyword"):
+                klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(arg, tz=tz_naive_fixture)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
         if attr == "asi8":
             if err:
@@ -267,9 +270,13 @@ class TestIndex(Base):
 
         if attr == "asi8":
             result = DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
+            tm.assert_index_equal(result, index)
+        elif klass is Index:
+            with pytest.raises(TypeError, match="unexpected keyword"):
+                klass(arg, tz=tz_naive_fixture)
         else:
             result = klass(list(arg), tz=tz_naive_fixture)
-        tm.assert_index_equal(result, index)
+            tm.assert_index_equal(result, index)
 
         if attr == "asi8":
             if err:
@@ -333,14 +340,17 @@ class TestIndex(Base):
         "index",
         [
             "datetime",
-            "float",
-            "int",
+            "float64",
+            "float32",
+            "int64",
+            "int32",
             "period",
             "range",
             "repeats",
             "timedelta",
             "tuples",
-            "uint",
+            "uint64",
+            "uint32",
         ],
         indirect=True,
     )
@@ -368,7 +378,11 @@ class TestIndex(Base):
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
 
-    @pytest.mark.parametrize("index", ["int", "range"], indirect=True)
+    @pytest.mark.parametrize(
+        "index",
+        ["int64", "int32", "range"],
+        indirect=True,
+    )
     def test_astype(self, index):
         casted = index.astype("i8")
 
@@ -467,7 +481,11 @@ class TestIndex(Base):
         for i in sl:
             assert i == sl[sl.get_loc(i)]
 
-    @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
+    @pytest.mark.parametrize(
+        "index",
+        ["string", "int64", "int32", "uint64", "uint32", "float64", "float32"],
+        indirect=True,
+    )
     @pytest.mark.parametrize("dtype", [np.int_, np.bool_])
     def test_empty_fancy(self, index, dtype):
         empty_arr = np.array([], dtype=dtype)
@@ -476,7 +494,11 @@ class TestIndex(Base):
         assert index[[]].identical(empty_index)
         assert index[empty_arr].identical(empty_index)
 
-    @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
+    @pytest.mark.parametrize(
+        "index",
+        ["string", "int64", "int32", "uint64", "uint32", "float64", "float32"],
+        indirect=True,
+    )
     def test_empty_fancy_raises(self, index):
         # DatetimeIndex is excluded, because it overrides getitem and should
         # be tested separately.
@@ -631,9 +653,13 @@ class TestIndex(Base):
             ("bool-object", False),
             ("bool-dtype", False),
             ("categorical", False),
-            ("int", True),
+            ("int64", True),
+            ("int32", True),
+            ("uint64", True),
+            ("uint32", True),
             ("datetime", False),
-            ("float", True),
+            ("float64", True),
+            ("float32", True),
         ],
         indirect=["index"],
     )
@@ -647,31 +673,18 @@ class TestIndex(Base):
             ("bool-object", True),
             ("bool-dtype", False),
             ("categorical", False),
-            ("int", False),
+            ("int64", False),
+            ("int32", False),
+            ("uint64", False),
+            ("uint32", False),
             ("datetime", False),
-            ("float", False),
+            ("float64", False),
+            ("float32", False),
         ],
         indirect=["index"],
     )
     def test_is_object(self, index, expected):
         assert index.is_object() is expected
-
-    @pytest.mark.parametrize(
-        "index, expected",
-        [
-            ("string", False),
-            ("bool-object", False),
-            ("bool-dtype", False),
-            ("categorical", False),
-            ("int", False),
-            ("datetime", True),
-            ("float", False),
-        ],
-        indirect=["index"],
-    )
-    def test_is_all_dates(self, index, expected):
-        with tm.assert_produces_warning(FutureWarning):
-            assert index.is_all_dates is expected
 
     def test_summary(self, index):
         index._summary()
@@ -710,7 +723,9 @@ class TestIndex(Base):
         index = simple_index
         assert getattr(index, op)() == getattr(index.values, op)()
 
-    @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
+    @pytest.mark.parametrize(
+        "index", ["string", "int64", "int32", "float64", "float32"], indirect=True
+    )
     def test_drop_by_str_label(self, index):
         n = len(index)
         drop = index[list(range(5, 10))]
@@ -723,13 +738,17 @@ class TestIndex(Base):
         expected = index[1:]
         tm.assert_index_equal(dropped, expected)
 
-    @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
+    @pytest.mark.parametrize(
+        "index", ["string", "int64", "int32", "float64", "float32"], indirect=True
+    )
     @pytest.mark.parametrize("keys", [["foo", "bar"], ["1", "bar"]])
     def test_drop_by_str_label_raises_missing_keys(self, index, keys):
         with pytest.raises(KeyError, match=""):
             index.drop(keys)
 
-    @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
+    @pytest.mark.parametrize(
+        "index", ["string", "int64", "int32", "float64", "float32"], indirect=True
+    )
     def test_drop_by_str_label_errors_ignore(self, index):
         n = len(index)
         drop = index[list(range(5, 10))]
@@ -812,14 +831,6 @@ class TestIndex(Base):
     def test_is_monotonic_incomparable(self, attr):
         index = Index([5, datetime.now(), 7])
         assert not getattr(index, attr)
-
-    def test_set_value_deprecated(self, simple_index):
-        # GH 28621
-        idx = simple_index
-        arr = np.array([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            idx.set_value(arr, idx[1], 80)
-        assert arr[1] == 80
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(
@@ -958,7 +969,16 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize(
         "index",
-        ["string", "datetime", "int", "uint", "float"],
+        [
+            "string",
+            "datetime",
+            "int64",
+            "int32",
+            "uint64",
+            "uint32",
+            "float64",
+            "float32",
+        ],
         indirect=True,
     )
     def test_join_self(self, index, join_type):
@@ -1515,7 +1535,6 @@ def test_index_subclass_constructor_wrong_kwargs(index_maker):
         index_maker(foo="bar")
 
 
-@pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
 def test_deprecated_fastpath():
     msg = "[Uu]nexpected keyword argument"
     with pytest.raises(TypeError, match=msg):
@@ -1532,15 +1551,15 @@ def test_deprecated_fastpath():
 
 
 def test_shape_of_invalid_index():
-    # Currently, it is possible to create "invalid" index objects backed by
+    # Pre-2.0, it was possible to create "invalid" index objects backed by
     # a multi-dimensional array (see https://github.com/pandas-dev/pandas/issues/27125
     # about this). However, as long as this is not solved in general,this test ensures
     # that the returned shape is consistent with this underlying array for
     # compat with matplotlib (see https://github.com/pandas-dev/pandas/issues/27775)
     idx = Index([0, 1, 2, 3])
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(ValueError, match="Multi-dimensional indexing"):
         # GH#30588 multi-dimensional indexing deprecated
-        assert idx[:, None].shape == (4, 1)
+        idx[:, None]
 
 
 def test_validate_1d_input():
@@ -1588,33 +1607,6 @@ def test_construct_from_memoryview(klass, extra_kwargs):
     result = klass(memoryview(np.arange(2000, 2005)), **extra_kwargs)
     expected = klass(list(range(2000, 2005)), **extra_kwargs)
     tm.assert_index_equal(result, expected, exact=True)
-
-
-def test_index_set_names_pos_args_deprecation():
-    # GH#41485
-    idx = Index([1, 2, 3, 4])
-    msg = (
-        "In a future version of pandas all arguments of Index.set_names "
-        "except for the argument 'names' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = idx.set_names("quarter", None)
-    expected = Index([1, 2, 3, 4], name="quarter")
-    tm.assert_index_equal(result, expected)
-
-
-def test_drop_duplicates_pos_args_deprecation():
-    # GH#41485
-    idx = Index([1, 2, 3, 1])
-    msg = (
-        "In a future version of pandas all arguments of "
-        "Index.drop_duplicates will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        idx.drop_duplicates("last")
-        result = idx.drop_duplicates("last")
-    expected = Index([2, 3, 1])
-    tm.assert_index_equal(expected, result)
 
 
 def test_get_attributes_dict_deprecated():

@@ -208,22 +208,6 @@ def test_is_scipy_sparse():
     assert not com.is_scipy_sparse(SparseArray([1, 2, 3]))
 
 
-def test_is_categorical():
-    cat = pd.Categorical([1, 2, 3])
-    with tm.assert_produces_warning(FutureWarning):
-        assert com.is_categorical(cat)
-        assert com.is_categorical(pd.Series(cat))
-        assert com.is_categorical(pd.CategoricalIndex([1, 2, 3]))
-
-        assert not com.is_categorical([1, 2, 3])
-
-
-def test_is_categorical_deprecation():
-    # GH#33385
-    with tm.assert_produces_warning(FutureWarning):
-        com.is_categorical([1, 2, 3])
-
-
 def test_is_datetime64_dtype():
     assert not com.is_datetime64_dtype(object)
     assert not com.is_datetime64_dtype([1, 2, 3])
@@ -304,6 +288,15 @@ def test_is_string_dtype():
     assert com.is_string_dtype(object)
     assert com.is_string_dtype(np.array(["a", "b"]))
     assert com.is_string_dtype(pd.StringDtype())
+
+
+@pytest.mark.parametrize(
+    "data",
+    [[(0, 1), (1, 1)], pd.Categorical([1, 2, 3]), np.array([1, 2], dtype=object)],
+)
+def test_is_string_dtype_arraylike_with_object_elements_not_strings(data):
+    # GH 15585
+    assert not com.is_string_dtype(pd.Series(data))
 
 
 def test_is_string_dtype_nullable(nullable_string_dtype):

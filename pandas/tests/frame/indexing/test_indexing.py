@@ -1436,6 +1436,24 @@ class TestDataFrameIndexing:
             df.loc[:, "a"] = rhs
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("indexer", [True, (True,)])
+    @pytest.mark.parametrize("dtype", [bool, "boolean"])
+    def test_loc_bool_multiindex(self, dtype, indexer):
+        # GH#47687
+        midx = MultiIndex.from_arrays(
+            [
+                Series([True, True, False, False], dtype=dtype),
+                Series([True, False, True, False], dtype=dtype),
+            ],
+            names=["a", "b"],
+        )
+        df = DataFrame({"c": [1, 2, 3, 4]}, index=midx)
+        result = df.loc[indexer]
+        expected = DataFrame(
+            {"c": [1, 2]}, index=Index([True, False], name="b", dtype=dtype)
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):
@@ -1711,14 +1729,14 @@ class TestLocILocDataFrameCategorical:
         tm.assert_frame_equal(result, expected)
 
 
-class TestDepreactedIndexers:
+class TestDeprecatedIndexers:
     @pytest.mark.parametrize(
         "key", [{1}, {1: 1}, ({1}, "a"), ({1: 1}, "a"), (1, {"a"}), (1, {"a": "a"})]
     )
     def test_getitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key]
 
     @pytest.mark.parametrize(
@@ -1733,22 +1751,22 @@ class TestDepreactedIndexers:
         ],
     )
     def test_getitem_dict_and_set_deprecated_multiindex(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         df = DataFrame(
             [[1, 2], [3, 4]],
             columns=["a", "b"],
             index=MultiIndex.from_tuples([(1, 2), (3, 4)]),
         )
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key]
 
     @pytest.mark.parametrize(
         "key", [{1}, {1: 1}, ({1}, "a"), ({1: 1}, "a"), (1, {"a"}), (1, {"a": "a"})]
     )
-    def test_setitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed(self, key):
+        # GH#42825 enforced in 2.0
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key] = 1
 
     @pytest.mark.parametrize(
@@ -1762,12 +1780,12 @@ class TestDepreactedIndexers:
             ((1, 2), {"a": "a"}),
         ],
     )
-    def test_setitem_dict_and_set_deprecated_multiindex(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed_multiindex(self, key):
+        # GH#42825 enforced in 2.0
         df = DataFrame(
             [[1, 2], [3, 4]],
             columns=["a", "b"],
             index=MultiIndex.from_tuples([(1, 2), (3, 4)]),
         )
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key] = 1

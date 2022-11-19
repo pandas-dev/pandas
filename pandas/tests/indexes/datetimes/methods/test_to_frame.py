@@ -19,13 +19,10 @@ class TestToFrame:
         #  not changed to 0
         # GH-45448 this is first deprecated to only change in the future
         idx = date_range(start="2019-01-01", end="2019-01-30", freq="D", tz="UTC")
-        with tm.assert_produces_warning(FutureWarning):
-            result = idx.to_frame(name=None)
-        # exp_idx = Index([None], dtype=object)
-        exp_idx = Index([0])
+        result = idx.to_frame(name=None)
+        exp_idx = Index([None], dtype=object)
         tm.assert_index_equal(exp_idx, result.columns)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = idx.rename("foo").to_frame(name=None)
-        exp_idx = Index(["foo"], dtype=object)
+        result = idx.rename("foo").to_frame(name=None)
+        exp_idx = Index([None], dtype=object)
         tm.assert_index_equal(exp_idx, result.columns)

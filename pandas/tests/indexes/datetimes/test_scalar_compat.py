@@ -64,9 +64,7 @@ class TestDatetimeIndexOps:
         idx = tm.makeDateIndex(100)
         expected = getattr(idx, field)[-1]
 
-        warn = FutureWarning if field.startswith("is_") else None
-        with tm.assert_produces_warning(warn, match="Timestamp.freq is deprecated"):
-            result = getattr(Timestamp(idx[-1]), field)
+        result = getattr(Timestamp(idx[-1]), field)
         assert result == expected
 
     def test_dti_timestamp_isocalendar_fields(self):
@@ -74,22 +72,6 @@ class TestDatetimeIndexOps:
         expected = tuple(idx.isocalendar().iloc[-1].to_list())
         result = idx[-1].isocalendar()
         assert result == expected
-
-    def test_dti_timestamp_freq_fields(self):
-        # extra fields from DatetimeIndex like quarter and week
-        idx = tm.makeDateIndex(100)
-
-        msg = "The 'freq' argument in Timestamp is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ts = Timestamp(idx[-1], idx.freq)
-
-        msg2 = "Timestamp.freq is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            assert idx.freq == ts.freq
-
-        msg3 = "Timestamp.freqstr is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg3):
-            assert idx.freqstr == ts.freqstr
 
     # ----------------------------------------------------------------
     # DatetimeIndex.round

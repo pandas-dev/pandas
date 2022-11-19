@@ -46,13 +46,14 @@ cdef extern from "src/datetime/np_datetime.h":
     npy_datetimestruct _S_MIN_DTS, _S_MAX_DTS
     npy_datetimestruct _M_MIN_DTS, _M_MAX_DTS
 
-    PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype);
+    PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype)
 
 cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                                 npy_datetimestruct *out,
                                 NPY_DATETIMEUNIT *out_bestunit,
-                                int *out_local, int *out_tzoffset)
+                                int *out_local, int *out_tzoffset,
+                                const char *format, int format_len, int exact)
 
 
 # ----------------------------------------------------------------------
@@ -171,7 +172,11 @@ class OutOfBoundsTimedelta(ValueError):
     pass
 
 
-cdef get_implementation_bounds(NPY_DATETIMEUNIT reso, npy_datetimestruct *lower, npy_datetimestruct *upper):
+cdef get_implementation_bounds(
+    NPY_DATETIMEUNIT reso,
+    npy_datetimestruct *lower,
+    npy_datetimestruct *upper,
+):
     if reso == NPY_FR_ns:
         upper[0] = _NS_MAX_DTS
         lower[0] = _NS_MIN_DTS
@@ -273,14 +278,25 @@ cdef inline int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
+    format: str | None=None,
+    bint exact=True,
 ) except? -1:
     cdef:
         Py_ssize_t length
         const char* buf
+        Py_ssize_t format_length
+        const char* format_buf
 
     buf = get_c_string_buf_and_size(val, &length)
+    if format is None:
+        format_buf = b''
+        format_length = 0
+        exact = False
+    else:
+        format_buf = get_c_string_buf_and_size(format, &format_length)
     return parse_iso_8601_datetime(buf, length, want_exc,
-                                   dts, out_bestunit, out_local, out_tzoffset)
+                                   dts, out_bestunit, out_local, out_tzoffset,
+                                   format_buf, format_length, exact)
 
 
 cpdef ndarray astype_overflowsafe(
@@ -420,7 +436,6 @@ def compare_mismatched_resolutions(ndarray left, ndarray right, op):
         Py_ssize_t i, N = left.size
         npy_datetimestruct ldts, rdts
 
-
     for i in range(N):
         # Analogous to: lval = lvalues[i]
         lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
@@ -511,7 +526,10 @@ cdef ndarray astype_round_check(
 
 
 @cython.overflowcheck(True)
-cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT to_unit) except? -1:
+cdef int64_t get_conversion_factor(
+    NPY_DATETIMEUNIT from_unit,
+    NPY_DATETIMEUNIT to_unit
+) except? -1:
     """
     Find the factor by which we need to multiply to convert from from_unit to to_unit.
     """
