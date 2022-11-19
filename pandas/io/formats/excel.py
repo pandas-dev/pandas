@@ -170,10 +170,13 @@ class CSSToExcelConverter:
             self.inherited = self.compute_css(inherited)
         else:
             self.inherited = None
+        # We should avoid lru_cache on the __call__ method.
+        # Otherwise once the method __call__ has been called
+        # garbage collection no longer deletes the instance.
+        self._call_cached = lru_cache(maxsize=None)(self._call_uncached)
 
     compute_css = CSSResolver()
 
-    @lru_cache(maxsize=None)
     def __call__(
         self, declarations: str | frozenset[tuple[str, str]]
     ) -> dict[str, dict[str, str]]:
@@ -193,6 +196,11 @@ class CSSToExcelConverter:
             A style as interpreted by ExcelWriter when found in
             ExcelCell.style.
         """
+        return self._call_cached(declarations)
+
+    def _call_uncached(
+        self, declarations: str | frozenset[tuple[str, str]]
+    ) -> dict[str, dict[str, str]]:
         properties = self.compute_css(declarations, self.inherited)
         return self.build_xlstyle(properties)
 
