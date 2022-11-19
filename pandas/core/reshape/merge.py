@@ -104,10 +104,12 @@ _factorizers = {
     np.uint32: libhashtable.UInt32Factorizer,
     np.uint16: libhashtable.UInt16Factorizer,
     np.uint8: libhashtable.UInt8Factorizer,
+    np.bool_: libhashtable.UInt8Factorizer,
     np.float64: libhashtable.Float64Factorizer,
     np.float32: libhashtable.Float32Factorizer,
     np.complex64: libhashtable.Complex64Factorizer,
     np.complex128: libhashtable.Complex128Factorizer,
+    np.object_: libhashtable.ObjectFactorizer,
 }
 
 
@@ -2386,7 +2388,7 @@ def _factorize_keys(
     if isinstance(lk, BaseMaskedArray):
         assert isinstance(rk, BaseMaskedArray)
         llab = rizer.factorize(lk._data, mask=lk._mask)
-        rlab = rizer.factorize(rk._data, mask=lk._mask)
+        rlab = rizer.factorize(rk._data, mask=rk._mask)
     else:
         # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
         # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
