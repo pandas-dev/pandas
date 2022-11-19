@@ -414,7 +414,7 @@ class TestClassConstructors(ConstructorTests):
                 "some kind, 5 was passed"
             )
         else:
-            msg = r"type <class 'numpy.int64'> with value 5 is not an interval"
+            msg = "type <class 'numpy.int(32|64)'> with value 5 is not an interval"
         with pytest.raises(TypeError, match=msg):
             klass(5)
 
