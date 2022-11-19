@@ -664,6 +664,14 @@ class TestBaseParsing(base.BaseParsingTests):
                     reason=f"Parameterized types with tz={pa_dtype.tz} not supported.",
                 )
             )
+        elif pa.types.is_timestamp(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=ValueError,
+                    strict=False,
+                    reason="https://github.com/pandas-dev/pandas/issues/49767",
+                )
+            )
         elif pa.types.is_binary(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(reason="CSV parsers don't correctly handle binary")
