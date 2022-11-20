@@ -317,7 +317,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         # DatetimeLikeArrayMixin super call handles other cases
         dtype = pandas_dtype(dtype)
 
-        if dtype.kind == "m":
+        if isinstance(dtype, np.dtype) and dtype.kind == "m":
             if dtype == self.dtype:
                 if copy:
                     return self.copy()

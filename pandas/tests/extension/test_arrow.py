@@ -1369,3 +1369,12 @@ def test_pickle_roundtrip(data):
 
     result_sliced = pickle.loads(sliced_pickled)
     tm.assert_series_equal(result_sliced, expected_sliced)
+
+
+def test_astype_from_non_pyarrow(data):
+    # GH#
+    pd_array = data._data.to_pandas().array
+    result = pd_array.astype(data.dtype)
+    assert not isinstance(pd_array.dtype, ArrowDtype)
+    assert isinstance(result.dtype, ArrowDtype)
+    tm.assert_extension_array_equal(result, data)
