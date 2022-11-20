@@ -1503,6 +1503,14 @@ class TestDataFrameReplace:
         result = df.replace({val: None})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", [None, "Int64", "Float64"])
+    def test_replace_df_containing_na(self, dtype):
+        # GH#47480
+        df = DataFrame({"A": [4, 1, pd.NA], "B": [1, 3, 2]}, dtype=dtype)
+        df.replace(to_replace=1, value=100, inplace=True)
+        expected = DataFrame({"A": [4, 100, pd.NA], "B": [100, 3, 2]}, dtype=dtype)
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameReplaceRegex:
     @pytest.mark.parametrize(

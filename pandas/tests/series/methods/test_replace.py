@@ -674,3 +674,11 @@ class TestSeriesReplace:
         result = ser.replace(val, None)
         expected = pd.Series([1, None], dtype=object)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", [None, "Int64", "Float64"])
+    def test_replace_series_containing_na(self, dtype):
+        # GH#47480
+        df = pd.Series([4, 1, pd.NA, 1], dtype=dtype)
+        df.replace(to_replace=1, value=100, inplace=True)
+        expected = pd.Series([4, 100, pd.NA, 100], dtype=dtype)
+        tm.assert_series_equal(df, expected)
