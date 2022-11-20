@@ -1,0 +1,33 @@
+# Dependencies used in ASV performance benchmarks
+name: pandas-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+
+  # test dependencies
+  - cython>=0.29.32
+
+  # required dependencies
+  - python-dateutil
+  - numpy
+  - pytz
+
+  # optional dependencies
+  - jinja2
+  - numba
+  - numexpr
+  - openpyxl
+  - odfpy
+  - pyarrow
+  - pytables
+  - scipy
+  - sqlalchemy
+  - xlrd
+  - xlsxwriter
+
+  # downstream packages
+  - ipython
+  - pyyaml
+  - py
+  - pytorch

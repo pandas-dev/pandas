@@ -50,6 +50,7 @@
         "numexpr": [],
         "pytables": [null, ""],  // platform dependent, see excludes below
         "pyarrow": [],
+        "pytorch": [],
         "tables": [null, ""],
         "openpyxl": [],
         "xlsxwriter": [],
