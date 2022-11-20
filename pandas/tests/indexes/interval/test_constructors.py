@@ -40,9 +40,10 @@ class ConstructorTests:
     get_kwargs_from_breaks to the expected format.
     """
 
-    # get_kwargs_from_breaks in TestFromTuples and TestClassconstructors just return
-    # tuples of ints, so IntervalIndex can't know the original dtype was uint
-    _use_dtype_in_test_constructor_uint = False
+    def _skip_test_constructor(self, dtype):
+        # get_kwargs_from_breaks in TestFromTuples and TestClassconstructors just return
+        # tuples of ints, so IntervalIndex can't know the original dtype
+        return False, ""
 
     @pytest.mark.parametrize(
         "breaks",
@@ -60,9 +61,13 @@ class ConstructorTests:
     @pytest.mark.parametrize("use_dtype", [True, False])
     def test_constructor(self, constructor, breaks, closed, name, use_dtype):
         breaks_dtype = getattr(breaks, "dtype", "int64")
+
+        skip, skip_msg = self._skip_test_constructor(breaks_dtype)
+        if skip:
+            pytest.skip(skip_msg)
+
         result_kwargs = self.get_kwargs_from_breaks(breaks, closed)
-        is_uint = is_unsigned_integer_dtype(breaks_dtype)
-        if use_dtype or (self._use_dtype_in_test_constructor_uint and is_uint):
+        if use_dtype:
             result_kwargs["dtype"] = IntervalDtype(breaks_dtype, closed=closed)
 
         result = constructor(closed=closed, name=name, **result_kwargs)
@@ -307,7 +312,11 @@ class TestFromBreaks(ConstructorTests):
 class TestFromTuples(ConstructorTests):
     """Tests specific to IntervalIndex.from_tuples"""
 
-    _use_dtype_in_test_constructor_uint = True
+    def _skip_test_constructor(self, dtype):
+        if is_unsigned_integer_dtype(dtype):
+            return True, "tuples don't have a dtype"
+        else:
+            return False, ""
 
     @pytest.fixture
     def constructor(self):
@@ -356,7 +365,13 @@ class TestFromTuples(ConstructorTests):
 class TestClassConstructors(ConstructorTests):
     """Tests specific to the IntervalIndex/Index constructors"""
 
-    _use_dtype_in_test_constructor_uint = True
+    def _skip_test_constructor(self, dtype):
+        # get_kwargs_from_breaks in TestFromTuples and TestClassconstructors just return
+        # tuples of ints, so IntervalIndex can't know the original dtype
+        if is_unsigned_integer_dtype(dtype):
+            return True, "tuples don't have a dtype"
+        else:
+            return False, ""
 
     @pytest.fixture(
         params=[IntervalIndex, partial(Index, dtype="interval")],
