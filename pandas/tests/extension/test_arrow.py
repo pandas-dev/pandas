@@ -1372,7 +1372,7 @@ def test_pickle_roundtrip(data):
 
 
 def test_astype_from_non_pyarrow(data):
-    # GH#
+    # GH49795
     pd_array = data._data.to_pandas().array
     result = pd_array.astype(data.dtype)
     assert not isinstance(pd_array.dtype, ArrowDtype)
