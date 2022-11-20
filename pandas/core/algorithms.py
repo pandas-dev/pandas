@@ -425,7 +425,11 @@ def nunique_ints(values: ArrayLike) -> int:
     if len(values) == 0:
         return 0
     values = _ensure_data(values)
-    result = (np.bincount(values.ravel()) != 0).sum()
+    a = values.ravel()
+    b = np.bincount(a)
+    c = b != 0
+    result = c.sum()
+    # result = (np.bincount(values.ravel()) != 0).sum()
     return result
 
 
