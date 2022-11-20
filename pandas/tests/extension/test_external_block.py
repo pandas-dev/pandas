@@ -17,7 +17,7 @@ class CustomBlock(ExtensionBlock):
 
     # Cannot override final attribute "_can_hold_na"
     @property  # type: ignore[misc]
-    def _can_hold_na(self) -> bool:
+    def _can_hold_na(self) -> bool:  # pylint: disable=overridden-final-method
         return False
 
 
