@@ -192,6 +192,7 @@ class KdePlot(HistPlot):
         return "vertical"
 
     def __init__(self, data, bw_method=None, ind=None, **kwargs) -> None:
+        # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
         self.bw_method = bw_method
         self.ind = ind
