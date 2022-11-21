@@ -94,6 +94,11 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
             pass
         else:
             new_mask = arr == x
+            # GH#47480
+            if isinstance(new_mask, bool):
+                new_mask = np.equal(arr, x, dtype=object)
+                mask_na = np.vectorize(lambda value: False if isna(value) else value)
+                new_mask = mask_na(new_mask).astype(bool)
             if not isinstance(new_mask, np.ndarray):
                 # usually BooleanArray
                 new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
