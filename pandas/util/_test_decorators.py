@@ -295,11 +295,11 @@ def file_leak_context() -> Generator[None, None, None]:
 def async_mark():
     try:
         import_optional_dependency("pytest_asyncio")
-        async_mark = pytest.mark.asyncio
+        asyncio_mark = pytest.mark.asyncio
     except ImportError:
-        async_mark = pytest.mark.skip(reason="Missing dependency pytest-asyncio")
+        asyncio_mark = pytest.mark.skip(reason="Missing dependency pytest-asyncio")
 
-    return async_mark
+    return asyncio_mark
 
 
 def mark_array_manager_not_yet_implemented(request) -> None:
