@@ -76,9 +76,6 @@ if TYPE_CHECKING:
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
 
-loads = loads
-dumps = dumps
-
 
 # interface to/from
 @overload
