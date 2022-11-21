@@ -166,9 +166,8 @@ class TablePlotter:
         ax.set_title(title, size=self.font_size)
         ax.axis("off")
 
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as pyplot
+def main():
+    import matplotlib.pyplot as plt
 
     p = TablePlotter()
 
@@ -176,14 +175,14 @@ if __name__ == "__main__":
     df2 = pd.DataFrame({"A": [10, 12], "C": [30, 32]})
 
     p.plot([df1, df2], pd.concat([df1, df2]), labels=["df1", "df2"], vertical=True)
-    pyplot.show()
+    plt.show()
 
     df3 = pd.DataFrame({"X": [10, 12], "Z": [30, 32]})
 
     p.plot(
         [df1, df3], pd.concat([df1, df3], axis=1), labels=["df1", "df2"], vertical=False
     )
-    pyplot.show()
+    plt.show()
 
     idx = pd.MultiIndex.from_tuples(
         [(1, "A"), (1, "B"), (1, "C"), (2, "A"), (2, "B"), (2, "C")]
@@ -192,4 +191,7 @@ if __name__ == "__main__":
     df3 = pd.DataFrame({"v1": [1, 2, 3, 4, 5, 6], "v2": [5, 6, 7, 8, 9, 10]}, index=idx)
     df3.columns = column
     p.plot(df3, df3, labels=["df3"])
-    pyplot.show()
+    plt.show()
+
+if __name__ == "__main__":
+    main()
