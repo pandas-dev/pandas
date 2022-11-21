@@ -3141,7 +3141,6 @@ class TestAllowNonNano:
 
     @pytest.mark.xfail(
         # TODO(2.0): xfail should become unnecessary
-        strict=False,
         reason="stack_arrays converts TDA to ndarray, then goes "
         "through ensure_wrapped_if_datetimelike",
     )

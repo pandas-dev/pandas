@@ -80,11 +80,6 @@ def tips_df(datapath):
 
 @pytest.mark.single_cpu
 @pytest.mark.usefixtures("s3_resource")
-@pytest.mark.xfail(
-    reason="CI race condition GH 45433, GH 44584",
-    raises=FileNotFoundError,
-    strict=False,
-)
 @td.skip_if_not_us_locale()
 class TestS3:
     @td.skip_if_no("s3fs")
@@ -226,7 +221,6 @@ class TestS3:
         with pytest.raises(OSError, match=msg):
             read_csv("s3://cant_get_it/file.csv")
 
-    @pytest.mark.xfail(reason="GH#39155 s3fs upgrade", strict=False)
     def test_write_s3_csv_fails(self, tips_df, s3so):
         # GH 32486
         # Attempting to write to an invalid S3 path should raise
@@ -242,7 +236,6 @@ class TestS3:
                 "s3://an_s3_bucket_data_doesnt_exit/not_real.csv", storage_options=s3so
             )
 
-    @pytest.mark.xfail(reason="GH#39155 s3fs upgrade", strict=False)
     @td.skip_if_no("pyarrow")
     def test_write_s3_parquet_fails(self, tips_df, s3so):
         # GH 27679

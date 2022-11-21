@@ -872,7 +872,7 @@ class TestAlignment:
                 f"parser={parser}, index_name={index_name}, "
                 f"r_idx_type={r_idx_type}, c_idx_type={c_idx_type}"
             )
-            request.node.add_marker(pytest.mark.xfail(reason=reason, strict=False))
+            request.node.add_marker(pytest.mark.xfail(reason=reason))
         df = tm.makeCustomDataframe(
             10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
         )

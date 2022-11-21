@@ -474,7 +474,6 @@ class TestDataFramePlots(TestPlotBase):
             assert xmax >= lines[0].get_data()[0][-1]
 
     @pytest.mark.xfail(
-        strict=False,
         reason="2020-12-01 this has been failing periodically on the "
         "ymin==0 assertion for a week or so.",
     )

@@ -293,7 +293,6 @@ class TestTimeConversionFormats:
                 marks=pytest.mark.xfail(
                     locale.getlocale()[0] in ("zh_CN", "it_IT"),
                     reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
-                    strict=False,
                 ),
             ),
             pytest.param(
@@ -303,7 +302,6 @@ class TestTimeConversionFormats:
                 marks=pytest.mark.xfail(
                     locale.getlocale()[0] in ("zh_CN", "it_IT"),
                     reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
-                    strict=False,
                 ),
             ),
             pytest.param(
@@ -313,7 +311,6 @@ class TestTimeConversionFormats:
                 marks=pytest.mark.xfail(
                     locale.getlocale()[0] in ("zh_CN", "it_IT"),
                     reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
-                    strict=False,
                 ),
             ),
         ],
