@@ -54,6 +54,7 @@ class FramePlotting:
     param_names = ["kind"]
 
     def setup(self, kind):
+        print("mpl version", matplotlib.__version__)
         if kind in ["bar", "barh", "pie"]:
             n = 100
         elif kind in ["kde", "scatter", "hexbin"]:

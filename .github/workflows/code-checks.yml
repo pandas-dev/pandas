@@ -117,6 +117,10 @@ jobs:
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
 
+    - name: install
+      run : |
+        pip install git+https://github.com/MarcoGorelli/asv
+
     - name: Run ASV benchmarks
       run: |
         cd asv_bench
