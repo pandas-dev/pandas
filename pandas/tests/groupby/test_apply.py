@@ -930,7 +930,7 @@ def test_apply_index_has_complex_internals(index):
         (lambda x: set(x.index.to_list()), [{0, 1}, {2, 3}]),
         (lambda x: tuple(x.index.to_list()), [(0, 1), (2, 3)]),
         (
-            lambda x: {n: i for (n, i) in enumerate(x.index.to_list())},
+            lambda x: dict(enumerate(x.index.to_list())),
             [{0: 0, 1: 1}, {0: 2, 1: 3}],
         ),
         (
@@ -974,16 +974,20 @@ def test_apply_function_index_return(function):
 
 
 def test_apply_function_with_indexing_return_column():
-    # GH: 7002
+    # GH#7002, GH#41480, GH#49256
     df = DataFrame(
         {
             "foo1": ["one", "two", "two", "three", "one", "two"],
             "foo2": [1, 2, 4, 4, 5, 6],
         }
     )
-    with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-        result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
-    expected = DataFrame({"foo1": ["one", "three", "two"], "foo2": [3.0, 4.0, 4.0]})
+    result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
+    expected = DataFrame(
+        {
+            "foo1": ["one", "three", "two"],
+            "foo2": [3.0, 4.0, 4.0],
+        }
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -1015,25 +1019,6 @@ def test_result_order_group_keys_false():
     result = df.groupby("A", group_keys=False).apply(lambda x: x)
     expected = df.groupby("A", group_keys=False).apply(lambda x: x.copy())
     tm.assert_frame_equal(result, expected)
-
-
-def test_groupby_apply_group_keys_warns():
-    df = DataFrame({"A": [0, 1, 1], "B": [1, 2, 3]})
-    msg = "Not prepending group keys to the result index"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").apply(lambda x: x)
-
-    tm.assert_frame_equal(result, df)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A")["B"].apply(lambda x: x)
-
-    tm.assert_series_equal(result, df["B"])
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df["B"].groupby(df["A"]).apply(lambda x: x)
-
-    tm.assert_series_equal(result, df["B"])
 
 
 def test_apply_with_timezones_aware():

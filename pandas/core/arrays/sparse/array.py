@@ -49,7 +49,10 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.astype import astype_nansafe
+from pandas.core.dtypes.astype import (
+    astype_array,
+    astype_nansafe,
+)
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     find_common_type,
@@ -90,6 +93,7 @@ from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
 )
@@ -119,8 +123,6 @@ if TYPE_CHECKING:
     )
 
     SparseIndexKind = Literal["integer", "block"]
-
-    from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Series
 
@@ -378,7 +380,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         self,
         data,
         sparse_index=None,
-        index=None,
         fill_value=None,
         kind: SparseIndexKind = "integer",
         dtype: Dtype | None = None,
@@ -413,26 +414,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 fill_value = dtype.fill_value
             dtype = dtype.subtype
 
-        if index is not None:
-            warnings.warn(
-                "The index argument has been deprecated and will be "
-                "removed in a future version. Use a function like np.full "
-                "to construct an array with the desired repeats of the "
-                "scalar value instead.\n\n",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        if index is not None and not is_scalar(data):
-            raise Exception("must only pass scalars with an index")
-
         if is_scalar(data):
-            if index is not None and data is None:
-                data = np.nan
-
-            if index is not None:
-                npoints = len(index)
-            elif sparse_index is None:
+            if sparse_index is None:
                 npoints = 1
             else:
                 npoints = sparse_index.length
@@ -1324,23 +1307,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         future_dtype = pandas_dtype(dtype)
         if not isinstance(future_dtype, SparseDtype):
             # GH#34457
-            if isinstance(future_dtype, np.dtype):
-                values = np.array(self)
-                return astype_nansafe(values, dtype=future_dtype)
-            else:
-                dtype = cast(ExtensionDtype, dtype)
-                cls = dtype.construct_array_type()
-                return cls._from_sequence(self, dtype=dtype, copy=copy)
+            values = np.asarray(self)
+            values = ensure_wrapped_if_datetimelike(values)
+            return astype_array(values, dtype=future_dtype, copy=False)
 
         dtype = self.dtype.update_dtype(dtype)
         subtype = pandas_dtype(dtype._subtype_with_str)
+        subtype = cast(np.dtype, subtype)  # ensured by update_dtype
         sp_values = astype_nansafe(self.sp_values, subtype, copy=copy)
 
-        # error: Argument 1 to "_simple_new" of "SparseArray" has incompatible type
-        # "ExtensionArray"; expected "ndarray"
-        return self._simple_new(
-            sp_values, self.sp_index, dtype  # type: ignore[arg-type]
-        )
+        return self._simple_new(sp_values, self.sp_index, dtype)
 
     def map(self: SparseArrayT, mapper) -> SparseArrayT:
         """

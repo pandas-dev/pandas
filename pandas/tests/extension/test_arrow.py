@@ -499,6 +499,9 @@ class TestBaseGroupby(base.BaseGroupbyTests):
             )
         super().test_in_numeric_groupby(data_for_grouping)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of numeric_only:FutureWarning"
+    )
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype

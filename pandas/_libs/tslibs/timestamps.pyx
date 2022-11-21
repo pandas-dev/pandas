@@ -233,7 +233,7 @@ cdef class _Timestamp(ABCTimestamp):
     resolution = MinMaxReso("resolution")  # GH#21336, GH#21365
 
     @property
-    def _unit(self) -> str:
+    def unit(self) -> str:
         """
         The abbreviation associated with self._creso.
         """
@@ -993,7 +993,20 @@ cdef class _Timestamp(ABCTimestamp):
         value = convert_reso(self.value, self._creso, reso, round_ok=round_ok)
         return type(self)._from_value_and_reso(value, reso=reso, tz=self.tzinfo)
 
-    def _as_unit(self, str unit, bint round_ok=True):
+    def as_unit(self, str unit, bint round_ok=True):
+        """
+        Convert the underlying int64 representaton to the given unit.
+
+        Parameters
+        ----------
+        unit : {"ns", "us", "ms", "s"}
+        round_ok : bool, default True
+            If False and the conversion requires rounding, raise.
+
+        Returns
+        -------
+        Timestamp
+        """
         dtype = np.dtype(f"M8[{unit}]")
         reso = get_unit_from_dtype(dtype)
         try:
@@ -1303,24 +1316,20 @@ class Timestamp(_Timestamp):
         """
         Timestamp.utcfromtimestamp(ts)
 
-        Construct a naive UTC datetime from a POSIX timestamp.
+        Construct a timezone-aware UTC datetime from a POSIX timestamp.
+
+        Notes
+        -----
+        Timestamp.utcfromtimestamp behavior differs from datetime.utcfromtimestamp
+        in returning a timezone-aware object.
 
         Examples
         --------
         >>> pd.Timestamp.utcfromtimestamp(1584199972)
-        Timestamp('2020-03-14 15:32:52')
+        Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
         """
         # GH#22451
-        warnings.warn(
-            "The behavior of Timestamp.utcfromtimestamp is deprecated, in a "
-            "future version will return a timezone-aware Timestamp with UTC "
-            "timezone. To keep the old behavior, use "
-            "Timestamp.utcfromtimestamp(ts).tz_localize(None). "
-            "To get the future behavior, use Timestamp.fromtimestamp(ts, 'UTC')",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return cls(datetime.utcfromtimestamp(ts))
+        return cls.fromtimestamp(ts, tz="UTC")
 
     @classmethod
     def fromtimestamp(cls, ts, tz=None):

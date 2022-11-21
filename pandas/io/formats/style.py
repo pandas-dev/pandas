@@ -78,7 +78,6 @@ try:
     has_mpl = True
 except ImportError:
     has_mpl = False
-    no_mpl_message = "{0} requires matplotlib."
 
 
 @contextmanager
@@ -86,7 +85,7 @@ def _mpl(func: Callable) -> Generator[tuple[Any, Any], None, None]:
     if has_mpl:
         yield plt, mpl
     else:
-        raise ImportError(no_mpl_message.format(func.__name__))
+        raise ImportError(f"{func.__name__} requires matplotlib.")
 
 
 ####

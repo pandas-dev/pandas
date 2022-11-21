@@ -810,7 +810,7 @@ class TestContains:
     def test_large_mi_contains(self):
         # GH#10645
         result = MultiIndex.from_arrays([range(10**6), range(10**6)])
-        assert not (10**6, 0) in result
+        assert (10**6, 0) not in result
 
 
 def test_timestamp_multiindex_indexer():
@@ -932,4 +932,18 @@ def test_get_locs_reordering(keys, expected):
     )
     result = idx.get_locs(keys)
     expected = np.array(expected, dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_indexer_for_multiindex_with_nans(nulls_fixture):
+    # GH37222
+    idx1 = MultiIndex.from_product([["A"], [1.0, 2.0]], names=["id1", "id2"])
+    idx2 = MultiIndex.from_product([["A"], [nulls_fixture, 2.0]], names=["id1", "id2"])
+
+    result = idx2.get_indexer(idx1)
+    expected = np.array([-1, 1], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = idx1.get_indexer(idx2)
+    expected = np.array([-1, 1], dtype=np.intp)
     tm.assert_numpy_array_equal(result, expected)

@@ -118,7 +118,6 @@ from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
-    ensure_platform_int,
     infer_dtype_from_object,
     is_1d_only_ea_dtype,
     is_bool_dtype,
@@ -133,7 +132,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
-    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_sequence,
@@ -267,9 +265,8 @@ _shared_doc_kwargs = {
     you to specify a location to update with some value.""",
 }
 
-_numeric_only_doc = """numeric_only : bool or None, default None
-    Include only float, int, boolean data. If None, will attempt to use
-    everything, then use only numeric data
+_numeric_only_doc = """numeric_only : bool, default False
+    Include only float, int, boolean data.
 """
 
 _merge_doc = """
@@ -687,33 +684,22 @@ class DataFrame(NDFrame, OpsMixin):
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
-                mgr = rec_array_to_mgr(
-                    data,
-                    index,
-                    columns,
-                    dtype,
-                    copy,
-                    typ=manager,
-                )
-                warnings.warn(
-                    "Support for MaskedRecords is deprecated and will be "
-                    "removed in a future version.  Pass "
-                    "{name: data[name] for name in data.dtype.names} instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise TypeError(
+                    "MaskedRecords are not supported. Pass "
+                    "{name: data[name] for name in data.dtype.names} "
+                    "instead"
                 )
 
             # a masked array
-            else:
-                data = sanitize_masked_array(data)
-                mgr = ndarray_to_mgr(
-                    data,
-                    index,
-                    columns,
-                    dtype=dtype,
-                    copy=copy,
-                    typ=manager,
-                )
+            data = sanitize_masked_array(data)
+            mgr = ndarray_to_mgr(
+                data,
+                index,
+                columns,
+                dtype=dtype,
+                copy=copy,
+                typ=manager,
+            )
 
         elif isinstance(data, (np.ndarray, Series, Index, ExtensionArray)):
             if data.dtype.names:
@@ -750,7 +736,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # For data is list-like, or Iterable (will consume into list)
         elif is_list_like(data):
-            if not isinstance(data, (abc.Sequence, ExtensionArray)):
+            if not isinstance(data, abc.Sequence):
                 if hasattr(data, "__array__"):
                     # GH#44616 big perf improvement for e.g. pytorch tensor
                     data = np.asarray(data)
@@ -2785,12 +2771,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> str | None:
         if "showindex" in kwargs:
-            warnings.warn(
-                "'showindex' is deprecated. Only 'index' will be used "
-                "in a future version. Use 'index' to silence this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            raise ValueError("Pass 'index' instead of 'showindex")
 
         kwargs.setdefault("headers", "keys")
         kwargs.setdefault("tablefmt", "pipe")
@@ -5461,9 +5442,8 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "fillna" incompatible with supertype "NDFrame"
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
-    def fillna(  # type: ignore[override]
+    def fillna(
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
         *,
@@ -5552,9 +5532,8 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    # error: Signature of "replace" incompatible with supertype "NDFrame"
     @doc(NDFrame.replace, **_shared_doc_kwargs)
-    def replace(  # type: ignore[override]
+    def replace(
         self,
         to_replace=None,
         value=lib.no_default,
@@ -5853,7 +5832,8 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             frame = self
         else:
-            frame = self.copy()
+            # GH 49473 Use "lazy copy" with Copy-on-Write
+            frame = self.copy(deep=None)
 
         arrays = []
         names: list[Hashable] = []
@@ -6510,9 +6490,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
-        duplicated = self.duplicated(subset, keep=keep)
 
-        result = self[-duplicated]
+        result = self[-self.duplicated(subset, keep=keep)]
         if ignore_index:
             result.index = default_index(len(result))
 
@@ -6699,10 +6678,9 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     # TODO: Just move the sort_values doc here.
-    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
-    def sort_values(  # type: ignore[override]
+    def sort_values(
         self,
         by: IndexLabel,
         *,
@@ -8074,11 +8052,12 @@ Keep all original rows and columns and also all original values
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
-        other = other.reindex_like(self)
+        other = other.reindex(self.index)
 
-        for col in self.columns:
+        for col in self.columns.intersection(other.columns):
             this = self[col]._values
             that = other[col]._values
+
             if filter_func is not None:
                 with np.errstate(all="ignore"):
                     mask = ~filter_func(this) | isna(that)
@@ -8098,7 +8077,9 @@ Keep all original rows and columns and also all original values
             if mask.all():
                 continue
 
-            self.loc[:, col] = expressions.where(mask, this, that)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", "In a future version, `df.iloc")
+                self.loc[:, col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
@@ -8862,7 +8843,7 @@ Parrot 2  Parrot       24.0
         if len(columns) == 1:
             result = df[columns[0]].explode()
         else:
-            mylen = lambda x: len(x) if is_list_like(x) else -1
+            mylen = lambda x: len(x) if (is_list_like(x) and len(x) > 0) else 1
             counts0 = self[columns[0]].apply(mylen)
             for c in columns[1:]:
                 if not all(counts0 == self[c].apply(mylen)):
@@ -9219,8 +9200,9 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | Series:
         ...
 
+    # error: Missing return statement
     @doc(NDFrame.any, **_shared_doc_kwargs)
-    def any(
+    def any(  # type: ignore[empty-body]
         self,
         axis: Axis = 0,
         bool_only: bool | None = None,
@@ -9954,7 +9936,7 @@ Parrot 2  Parrot       24.0
         self,
         method: CorrelationMethod = "pearson",
         min_periods: int = 1,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
@@ -9975,14 +9957,13 @@ Parrot 2  Parrot       24.0
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for Pearson
             and Spearman correlation.
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
 
-            .. deprecated:: 1.5.0
-                The default value of ``numeric_only`` will be ``False`` in a future
-                version of pandas.
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
 
         Returns
         -------
@@ -10022,11 +10003,7 @@ Parrot 2  Parrot       24.0
         dogs   1.0   NaN
         cats   NaN   1.0
         """  # noqa:E501
-        numeric_only_bool = com.resolve_numeric_only(numeric_only)
-        data = self._get_numeric_data() if numeric_only_bool else self
-        if numeric_only is lib.no_default and len(data.columns) < len(self.columns):
-            com.deprecate_numeric_only_default(type(self), "corr")
-
+        data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
         idx = cols.copy()
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
@@ -10073,7 +10050,7 @@ Parrot 2  Parrot       24.0
         self,
         min_periods: int | None = None,
         ddof: int | None = 1,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ) -> DataFrame:
         """
         Compute pairwise covariance of columns, excluding NA/null values.
@@ -10105,14 +10082,13 @@ Parrot 2  Parrot       24.0
 
             .. versionadded:: 1.1.0
 
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
 
-            .. deprecated:: 1.5.0
-                The default value of ``numeric_only`` will be ``False`` in a future
-                version of pandas.
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
 
         Returns
         -------
@@ -10183,11 +10159,7 @@ Parrot 2  Parrot       24.0
         b       NaN  1.248003  0.191417
         c -0.150812  0.191417  0.895202
         """
-        numeric_only_bool = com.resolve_numeric_only(numeric_only)
-        data = self._get_numeric_data() if numeric_only_bool else self
-        if numeric_only is lib.no_default and len(data.columns) < len(self.columns):
-            com.deprecate_numeric_only_default(type(self), "cov")
-
+        data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
         idx = cols.copy()
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
@@ -10211,7 +10183,7 @@ Parrot 2  Parrot       24.0
         axis: Axis = 0,
         drop: bool = False,
         method: CorrelationMethod = "pearson",
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ) -> Series:
         """
         Compute pairwise correlation.
@@ -10239,14 +10211,13 @@ Parrot 2  Parrot       24.0
             * callable: callable with input two 1d ndarrays
                 and returning a float.
 
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
 
-            .. deprecated:: 1.5.0
-                The default value of ``numeric_only`` will be ``False`` in a future
-                version of pandas.
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
 
         Returns
         -------
@@ -10279,15 +10250,12 @@ Parrot 2  Parrot       24.0
         dtype: float64
         """  # noqa:E501
         axis = self._get_axis_number(axis)
-        numeric_only_bool = com.resolve_numeric_only(numeric_only)
-        this = self._get_numeric_data() if numeric_only_bool else self
-        if numeric_only is lib.no_default and len(this.columns) < len(self.columns):
-            com.deprecate_numeric_only_default(type(self), "corrwith")
+        this = self._get_numeric_data() if numeric_only else self
 
         if isinstance(other, Series):
             return this.apply(lambda x: other.corr(x, method=method), axis=axis)
 
-        if numeric_only_bool:
+        if numeric_only:
             other = other._get_numeric_data()
         left, right = this.align(other, join="inner", copy=False)
 
@@ -10301,14 +10269,14 @@ Parrot 2  Parrot       24.0
             right = right + left * 0
 
             # demeaned data
-            ldem = left - left.mean(numeric_only=numeric_only_bool)
-            rdem = right - right.mean(numeric_only=numeric_only_bool)
+            ldem = left - left.mean(numeric_only=numeric_only)
+            rdem = right - right.mean(numeric_only=numeric_only)
 
             num = (ldem * rdem).sum()
             dom = (
                 (left.count() - 1)
-                * left.std(numeric_only=numeric_only_bool)
-                * right.std(numeric_only=numeric_only_bool)
+                * left.std(numeric_only=numeric_only)
+                * right.std(numeric_only=numeric_only)
             )
 
             correl = num / dom
@@ -10346,7 +10314,7 @@ Parrot 2  Parrot       24.0
     # ----------------------------------------------------------------------
     # ndarray-like stats methods
 
-    def count(self, axis: Axis = 0, level: Level = None, numeric_only: bool = False):
+    def count(self, axis: Axis = 0, numeric_only: bool = False):
         """
         Count non-NA cells for each column or row.
 
@@ -10358,10 +10326,6 @@ Parrot 2  Parrot       24.0
         axis : {0 or 'index', 1 or 'columns'}, default 0
             If 0 or 'index' counts are generated for each column.
             If 1 or 'columns' counts are generated for each row.
-        level : int or str, optional
-            If the axis is a `MultiIndex` (hierarchical), count along a
-            particular `level`, collapsing into a `DataFrame`.
-            A `str` specifies the level name.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -10415,16 +10379,6 @@ Parrot 2  Parrot       24.0
         dtype: int64
         """
         axis = self._get_axis_number(axis)
-        if level is not None:
-            warnings.warn(
-                "Using the level keyword in DataFrame and Series aggregations is "
-                "deprecated and will be removed in a future version. Use groupby "
-                "instead. df.count(level=1) should use df.groupby(level=1).count().",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            res = self._count_level(level, axis=axis, numeric_only=numeric_only)
-            return res.__finalize__(self, method="count")
 
         if numeric_only:
             frame = self._get_numeric_data()
@@ -10449,53 +10403,6 @@ Parrot 2  Parrot       24.0
 
         return result.astype("int64").__finalize__(self, method="count")
 
-    def _count_level(self, level: Level, axis: AxisInt = 0, numeric_only: bool = False):
-        if numeric_only:
-            frame = self._get_numeric_data()
-        else:
-            frame = self
-
-        count_axis = frame._get_axis(axis)
-        agg_axis = frame._get_agg_axis(axis)
-
-        if not isinstance(count_axis, MultiIndex):
-            raise TypeError(
-                f"Can only count levels on hierarchical {self._get_axis_name(axis)}."
-            )
-
-        # Mask NaNs: Mask rows or columns where the index level is NaN, and all
-        # values in the DataFrame that are NaN
-        if frame._is_mixed_type:
-            # Since we have mixed types, calling notna(frame.values) might
-            # upcast everything to object
-            values_mask = notna(frame).values
-        else:
-            # But use the speedup when we have homogeneous dtypes
-            values_mask = notna(frame.values)
-
-        index_mask = notna(count_axis.get_level_values(level=level))
-        if axis == 1:
-            mask = index_mask & values_mask
-        else:
-            mask = index_mask.reshape(-1, 1) & values_mask
-
-        if isinstance(level, int):
-            level_number = level
-        else:
-            level_number = count_axis._get_level_number(level)
-
-        level_name = count_axis._names[level_number]
-        level_index = count_axis.levels[level_number]._rename(name=level_name)
-        level_codes = ensure_platform_int(count_axis.codes[level_number])
-        counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=axis)
-
-        if axis == 1:
-            result = self._constructor(counts, index=agg_axis, columns=level_index)
-        else:
-            result = self._constructor(counts, index=level_index, columns=agg_axis)
-
-        return result
-
     def _reduce(
         self,
         op,
@@ -10503,7 +10410,7 @@ Parrot 2  Parrot       24.0
         *,
         axis: Axis = 0,
         skipna: bool = True,
-        numeric_only: bool | None = None,
+        numeric_only: bool = False,
         filter_type=None,
         **kwds,
     ):
@@ -10512,7 +10419,6 @@ Parrot 2  Parrot       24.0
 
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
-        labels = self._get_agg_axis(axis)
         assert axis in [0, 1]
 
         def func(values: np.ndarray):
@@ -10538,25 +10444,22 @@ Parrot 2  Parrot       24.0
                 data = self._get_bool_data()
             return data
 
-        numeric_only_bool = com.resolve_numeric_only(numeric_only)
-        if numeric_only is not None or axis == 0:
+        if numeric_only or axis == 0:
             # For numeric_only non-None and axis non-None, we know
             #  which blocks to use and no try/except is needed.
             #  For numeric_only=None only the case with axis==0 and no object
             #  dtypes are unambiguous can be handled with BlockManager.reduce
             # Case with EAs see GH#35881
             df = self
-            if numeric_only_bool:
+            if numeric_only:
                 df = _get_data()
             if axis == 1:
                 df = df.T
                 axis = 0
 
-            ignore_failures = numeric_only is None
-
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
-            res, _ = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
+            res = df._mgr.reduce(blk_func)
             out = df._constructor(res).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)
@@ -10565,44 +10468,13 @@ Parrot 2  Parrot       24.0
                 #  float64, see test_apply_funcs_over_empty
                 out = out.astype(np.float64)
 
-            if numeric_only is None and out.shape[0] != df.shape[1]:
-                # columns have been dropped GH#41480
-                com.deprecate_numeric_only_default(
-                    type(self), name, deprecate_none=True
-                )
-
             return out
 
-        assert numeric_only is None
+        assert not numeric_only and axis == 1
 
         data = self
         values = data.values
-
-        try:
-            result = func(values)
-
-        except TypeError:
-            # e.g. in nanops trying to convert strs to float
-
-            data = _get_data()
-            labels = data._get_agg_axis(axis)
-
-            values = data.values
-            with np.errstate(all="ignore"):
-                result = func(values)
-
-            # columns have been dropped GH#41480
-            arg_name = "numeric_only"
-            if name in ["all", "any"]:
-                arg_name = "bool_only"
-            warnings.warn(
-                "Dropping of nuisance columns in DataFrame reductions "
-                f"(with '{arg_name}=None') is deprecated; in a future "
-                "version this will raise TypeError.  Select only valid "
-                "columns before calling the reduction.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+        result = func(values)
 
         if hasattr(result, "dtype"):
             if filter_type == "bool" and notna(result).all():
@@ -10614,6 +10486,7 @@ Parrot 2  Parrot       24.0
                     # try to coerce to the original dtypes item by item if we can
                     pass
 
+        labels = self._get_agg_axis(axis)
         result = self._constructor_sliced(result, index=labels)
         return result
 
@@ -10844,7 +10717,7 @@ Parrot 2  Parrot       24.0
         self,
         q: float = ...,
         axis: Axis = ...,
-        numeric_only: bool | lib.NoDefault = ...,
+        numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
     ) -> Series:
         ...
@@ -10854,7 +10727,7 @@ Parrot 2  Parrot       24.0
         self,
         q: AnyArrayLike | Sequence[float],
         axis: Axis = ...,
-        numeric_only: bool | lib.NoDefault = ...,
+        numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
     ) -> Series | DataFrame:
         ...
@@ -10864,7 +10737,7 @@ Parrot 2  Parrot       24.0
         self,
         q: float | AnyArrayLike | Sequence[float] = ...,
         axis: Axis = ...,
-        numeric_only: bool | lib.NoDefault = ...,
+        numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
     ) -> Series | DataFrame:
         ...
@@ -10873,7 +10746,7 @@ Parrot 2  Parrot       24.0
         self,
         q: float | AnyArrayLike | Sequence[float] = 0.5,
         axis: Axis = 0,
-        numeric_only: bool | lib.NoDefault = no_default,
+        numeric_only: bool = False,
         interpolation: QuantileInterpolation = "linear",
         method: Literal["single", "table"] = "single",
     ) -> Series | DataFrame:
@@ -10886,13 +10759,11 @@ Parrot 2  Parrot       24.0
             Value between 0 <= q <= 1, the quantile(s) to compute.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-        numeric_only : bool, default True
-            If False, the quantile of datetime and timedelta data will be
-            computed as well.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
 
-            .. deprecated:: 1.5.0
-                The default value of ``numeric_only`` will be ``False`` in a future
-                version of pandas.
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
 
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             This optional parameter specifies the interpolation method to use,
@@ -10964,10 +10835,6 @@ Parrot 2  Parrot       24.0
         """
         validate_percentile(q)
         axis = self._get_axis_number(axis)
-        any_not_numeric = any(not is_numeric_dtype(x) for x in self.dtypes)
-        if numeric_only is no_default and any_not_numeric:
-            com.deprecate_numeric_only_default(type(self), "quantile")
-        numeric_only = com.resolve_numeric_only(numeric_only)
 
         if not is_list_like(q):
             # BlockManager.quantile expects listlike, so we wrap and unwrap here

@@ -8,6 +8,7 @@ import sys
 import numpy as np
 import pytest
 
+from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -100,13 +101,13 @@ def test_construct_dask_float_array_int_dtype_match_ndarray():
     expected = Series(arr, dtype="i8")
     tm.assert_series_equal(res, expected)
 
-    msg = "In a future version, passing float-dtype values containing NaN"
+    msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
     arr[2] = np.nan
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = Series(darr, dtype="i8")
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = Series(arr, dtype="i8")
-    tm.assert_series_equal(res, expected)
+    with pytest.raises(IntCastingNaNError, match=msg):
+        Series(darr, dtype="i8")
+    # which is the same as we get with a numpy input
+    with pytest.raises(IntCastingNaNError, match=msg):
+        Series(arr, dtype="i8")
 
 
 def test_xarray(df):
@@ -156,7 +157,6 @@ def test_oo_optimized_datetime_index_unpickle():
 @pytest.mark.network
 @tm.network
 # Cython import warning
-@pytest.mark.filterwarnings("ignore:pandas.util.testing is deprecated")
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 @pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 @pytest.mark.filterwarnings(
