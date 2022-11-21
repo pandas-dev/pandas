@@ -1182,7 +1182,7 @@ char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer,
     }
 
     if (strcmp(locale, "C")) {
-        int len = malloc(strlen(locale) + 1);
+        int len = strlen(locale) + 1;
         char *origLocale = malloc(len);
         if (origLocale == NULL) {
           SetError(NULL, enc, "Could not reserve memory block");
