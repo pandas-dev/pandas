@@ -119,13 +119,9 @@ jobs:
       with:
         environment-file: ci/deps/asv.yaml
 
-    - name: Build Pandas
-      id: build
-      uses: ./.github/actions/build_pandas
-
     - name: Run ASV benchmarks
       run: |
-        git branch
+        git remote -v
 
     - name: Run ASV benchmarks
       run: |
@@ -134,6 +130,7 @@ jobs:
     - name: Run ASV benchmarks
       run: |
         cd asv_bench
+        git fetch origin main:main
         asv machine --yes
         asv run --quick --dry-run --strict --durations=30
 
