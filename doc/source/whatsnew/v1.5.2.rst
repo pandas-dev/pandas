@@ -1,6 +1,6 @@
 .. _whatsnew_152:
 
-What's new in 1.5.2 (November ??, 2022)
+What's new in 1.5.2 (November 21, 2022)
 ---------------------------------------
 
 These are the changes in pandas 1.5.2. See :ref:`release` for a full changelog
@@ -38,7 +38,6 @@ Bug fixes
 Other
 ~~~~~
 - Reverted ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` in function :meth:`DataFrame.plot.scatter` (:issue:`49732`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_152.contributors:
