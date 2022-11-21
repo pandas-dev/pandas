@@ -58,7 +58,7 @@ class BoxPlot(LinePlot):
             raise ValueError("return_type must be {None, 'axes', 'dict', 'both'}")
 
         self.return_type = return_type
-        MPLPlot.__init__(self, data, **kwargs)
+        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
 
     def _args_adjust(self) -> None:
         if self.subplots:
