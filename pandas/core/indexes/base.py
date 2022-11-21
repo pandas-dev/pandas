@@ -81,7 +81,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     maybe_cast_pointwise_result,
-    maybe_infer_to_datetimelike,
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
@@ -116,7 +115,6 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
-    PandasDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -137,7 +135,6 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     arraylike,
-    missing,
     ops,
 )
 from pandas.core.accessor import CachedAccessor
@@ -163,6 +160,7 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import disallow_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
+from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
@@ -206,6 +204,22 @@ str_t = str
 
 
 _dtype_obj = np.dtype("object")
+
+
+def _wrapped_sanitize(cls, data, dtype: DtypeObj | None, copy: bool):
+    """
+    Call sanitize_array with wrapping for differences between Index/Series.
+    """
+    try:
+        arr = sanitize_array(data, None, dtype=dtype, copy=copy, strict_ints=True)
+    except ValueError as err:
+        if "index must be specified when data is not list-like" in str(err):
+            raise cls._raise_scalar_data_error(data) from err
+        if "Data must be 1-dimensional" in str(err):
+            raise ValueError("Index data must be 1-dimensional") from err
+        raise
+    arr = ensure_wrapped_if_datetimelike(arr)
+    return arr
 
 
 def _maybe_return_indexers(meth: F) -> F:
@@ -422,20 +436,12 @@ class Index(IndexOpsMixin, PandasObject):
         tupleize_cols: bool = True,
     ) -> Index:
 
-        from pandas.core.arrays import PandasArray
         from pandas.core.indexes.range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
-
-        if type(data) is PandasArray:
-            # ensure users don't accidentally put a PandasArray in an index,
-            #  but don't unpack StringArray
-            data = data.to_numpy()
-        if isinstance(dtype, PandasDtype):
-            dtype = dtype.numpy_dtype
 
         data_dtype = getattr(data, "dtype", None)
 
@@ -448,28 +454,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif is_ea_or_datetimelike_dtype(dtype):
             # non-EA dtype indexes have special casting logic, so we punt here
-            klass = cls._dtype_to_subclass(dtype)
-            if klass is not Index:
-                return klass(data, dtype=dtype, copy=copy, name=name)
-
-            ea_cls = dtype.construct_array_type()
-            data = ea_cls._from_sequence(data, dtype=dtype, copy=copy)
-            return Index._simple_new(data, name=name)
+            pass
 
         elif is_ea_or_datetimelike_dtype(data_dtype):
-            data_dtype = cast(DtypeObj, data_dtype)
-            klass = cls._dtype_to_subclass(data_dtype)
-            if klass is not Index:
-                result = klass(data, copy=copy, name=name)
-                if dtype is not None:
-                    return result.astype(dtype, copy=False)
-                return result
-            elif dtype is not None:
-                # GH#45206
-                data = data.astype(dtype, copy=False)
-
-            data = extract_array(data, extract_numpy=True)
-            return Index._simple_new(data, name=name)
+            pass
 
         # index-like
         elif (
@@ -483,42 +471,25 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(data, ABCMultiIndex):
                 data = data._values
 
-            if dtype is not None:
-                # we need to avoid having numpy coerce
+            if data.dtype.kind not in ["i", "u", "f", "b", "c", "m", "M"]:
+                # GH#11836 we need to avoid having numpy coerce
                 # things that look like ints/floats to ints unless
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
-                # GH 11836
-                data = sanitize_array(data, None, dtype=dtype, copy=copy)
-
-                dtype = data.dtype
-
-            if data.dtype.kind in ["i", "u", "f"]:
-                # maybe coerce to a sub-class
-                arr = data
-            elif data.dtype.kind in ["b", "c"]:
-                # No special subclass, and Index._ensure_array won't do this
-                #  for us.
-                arr = np.asarray(data)
-            else:
-                arr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
-
-                if dtype is None:
-                    arr = maybe_infer_to_datetimelike(arr)
-                    arr = ensure_wrapped_if_datetimelike(arr)
-                    dtype = arr.dtype
-
-            klass = cls._dtype_to_subclass(arr.dtype)
-            arr = klass._ensure_array(arr, dtype, copy)
-            return klass._simple_new(arr, name)
+                data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
         elif is_scalar(data):
             raise cls._raise_scalar_data_error(data)
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name)
+        elif not is_list_like(data) and not isinstance(data, memoryview):
+            # 2022-11-16 the memoryview check is only necessary on some CI
+            #  builds, not clear why
+            raise cls._raise_scalar_data_error(data)
+
         else:
 
-            if tupleize_cols and is_list_like(data):
+            if tupleize_cols:
                 # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
                     data = list(data)
@@ -531,12 +502,24 @@ class Index(IndexOpsMixin, PandasObject):
                     return MultiIndex.from_tuples(data, names=name)
             # other iterable of some kind
 
-            subarr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
-            if dtype is None:
-                # with e.g. a list [1, 2, 3] casting to numeric is _not_ deprecated
-                subarr = _maybe_cast_data_without_dtype(subarr)
-                dtype = subarr.dtype
-            return Index(subarr, dtype=dtype, copy=copy, name=name)
+            if not isinstance(data, (list, tuple)):
+                # we allow set/frozenset, which Series/sanitize_array does not, so
+                #  cast to list here
+                data = list(data)
+            if len(data) == 0:
+                # unlike Series, we default to object dtype:
+                data = np.array(data, dtype=object)
+
+            if len(data) and isinstance(data[0], tuple):
+                # Ensure we get 1-D array of tuples instead of 2D array.
+                data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
+
+        arr = _wrapped_sanitize(cls, data, dtype, copy)
+        klass = cls._dtype_to_subclass(arr.dtype)
+
+        # _ensure_array _may_ be unnecessary once Int64Index etc are gone
+        arr = klass._ensure_array(arr, arr.dtype, copy=False)
+        return klass._simple_new(arr, name)
 
     @classmethod
     def _ensure_array(cls, data, dtype, copy: bool):
@@ -1015,14 +998,6 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(values, ExtensionArray):
             with rewrite_exception(type(values).__name__, type(self).__name__):
                 new_values = values.astype(dtype, copy=copy)
-
-        elif is_float_dtype(self.dtype) and needs_i8_conversion(dtype):
-            # NB: this must come before the ExtensionDtype check below
-            # TODO: this differs from Series behavior; can/should we align them?
-            raise TypeError(
-                f"Cannot convert Float64Index to dtype {dtype}; integer "
-                "values are required for conversion"
-            )
 
         elif isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
@@ -1648,7 +1623,7 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.indexes.multi import MultiIndex
 
         if names is not None:
-            if isinstance(names, str) or isinstance(names, int):
+            if isinstance(names, (int, str)):
                 names = [names]
 
         if not isinstance(names, list) and names is not None:
@@ -3650,7 +3625,7 @@ class Index(IndexOpsMixin, PandasObject):
         limit: int | None = None,
         tolerance=None,
     ) -> npt.NDArray[np.intp]:
-        method = missing.clean_reindex_fill_method(method)
+        method = clean_reindex_fill_method(method)
         orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
 
@@ -7054,32 +7029,6 @@ def maybe_extract_name(name, obj, cls) -> Hashable:
         raise TypeError(f"{cls.__name__}.name must be a hashable type")
 
     return name
-
-
-def _maybe_cast_data_without_dtype(subarr: npt.NDArray[np.object_]) -> ArrayLike:
-    """
-    If we have an arraylike input but no passed dtype, try to infer
-    a supported dtype.
-
-    Parameters
-    ----------
-    subarr : np.ndarray[object]
-
-    Returns
-    -------
-    np.ndarray or ExtensionArray
-    """
-
-    result = lib.maybe_convert_objects(
-        subarr,
-        convert_datetime=True,
-        convert_timedelta=True,
-        convert_period=True,
-        convert_interval=True,
-        dtype_if_all_nat=np.dtype("datetime64[ns]"),
-    )
-    result = ensure_wrapped_if_datetimelike(result)
-    return result
 
 
 def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:
