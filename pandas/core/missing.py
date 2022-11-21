@@ -93,12 +93,11 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
             # GH#29553 prevent numpy deprecation warnings
             pass
         else:
-            new_mask = arr == x
             # GH#47480
-            if isinstance(new_mask, bool):
-                new_mask = np.equal(arr, x, dtype=object)
-                mask_na = np.vectorize(lambda value: False if isna(value) else value)
-                new_mask = mask_na(new_mask).astype(bool)
+            mask_func = np.vectorize(
+                lambda value: False if (isna(value) or value != x) else True
+            )
+            new_mask = mask_func(arr).astype(bool)
             if not isinstance(new_mask, np.ndarray):
                 # usually BooleanArray
                 new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
