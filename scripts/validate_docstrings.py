@@ -211,7 +211,7 @@ class PandasDocstring(Validator):
             file.write(content)
             file.flush()
             cmd = ["python", "-m", "flake8", "--quiet", "--statistics", file.name]
-            response = subprocess.run(cmd, capture_output=True, text=True)
+            response = subprocess.run(cmd, capture_output=True, check=False, text=True)
             stdout = response.stdout
             stdout = stdout.replace(file.name, "")
             messages = stdout.strip("\n")
