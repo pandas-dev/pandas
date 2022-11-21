@@ -31,3 +31,6 @@ dependencies:
   - pyyaml
   - py
   - pytorch
+
+  # benchmarks
+  - asv
