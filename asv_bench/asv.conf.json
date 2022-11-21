@@ -43,7 +43,7 @@
     "matrix": {
         "numpy": [],
         "Cython": ["0.29.32"],
-        "matplotlib": ["3.6.1"],
+        "matplotlib": [],
         "sqlalchemy": [],
         "scipy": [],
         "numba": [],
