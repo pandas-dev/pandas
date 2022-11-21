@@ -77,7 +77,9 @@ def test_union_different_types(index_flat, index_flat2, request):
         # [True, True, True, True, True, True, True, True, False, False], dtype='bool'
         # )
         # idx2 = Int64Index([0, 0, 1, 1, 2, 2], dtype='int64')
-        mark = pytest.mark.xfail(reason="GH#44000 True==1", raises=ValueError)
+        mark = pytest.mark.xfail(
+            reason="GH#44000 True==1", raises=ValueError, strict=False
+        )
         request.node.add_marker(mark)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
