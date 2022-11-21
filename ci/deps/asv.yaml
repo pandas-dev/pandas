@@ -15,6 +15,7 @@ dependencies:
 
   # optional dependencies
   - jinja2
+  - matplotlib
   - numba
   - numexpr
   - openpyxl
@@ -27,8 +28,6 @@ dependencies:
   - xlsxwriter
 
   # downstream packages
-  - ipython
-  - pyyaml
   - py
   - pytorch
 
