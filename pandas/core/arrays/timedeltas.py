@@ -254,8 +254,10 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         return result
 
+    # Signature of "_generate_range" incompatible with supertype
+    # "DatetimeLikeArrayMixin"
     @classmethod
-    def _generate_range(
+    def _generate_range(  # type: ignore[override]
         cls, start, end, periods, freq, closed=None, *, unit: str | None = None
     ):
 
