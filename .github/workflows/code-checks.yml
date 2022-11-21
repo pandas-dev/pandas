@@ -125,10 +125,16 @@ jobs:
 
     - name: Run ASV benchmarks
       run: |
+        git branch
+
+    - name: Run ASV benchmarks
+      run: |
+        git branch --show-current
+
+    - name: Run ASV benchmarks
+      run: |
         cd asv_bench
         asv machine --yes
-        git branch
-        git branch --show-current
         asv run --quick --dry-run --strict --durations=30
 
   build_docker_dev_environment:
