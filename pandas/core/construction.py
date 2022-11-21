@@ -618,7 +618,7 @@ def sanitize_array(
     else:
         _sanitize_non_ordered(data)
         # materialize e.g. generators, convert e.g. tuples, abc.ValueView
-        data = list(data)
+        data = list(data) if not isinstance(data, list) else data
 
         if len(data) == 0 and dtype is None:
             # We default to float64, matching numpy

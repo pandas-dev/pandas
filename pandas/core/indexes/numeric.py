@@ -145,13 +145,11 @@ class NumericIndex(Index):
                 data = list(data)
 
             orig = data
-            if isinstance(data, (list, tuple)) and dtype is None:
+            if isinstance(data, (list, tuple)):
                 if len(data):
                     data = sanitize_array(data, index=None)
                 else:
                     data = np.array([], dtype=np.int64)
-            else:
-                data = np.asarray(data, dtype=dtype)
 
             if dtype is None and data.dtype.kind == "f":
                 if cls is UInt64Index and (data >= 0).all():
@@ -203,7 +201,8 @@ class NumericIndex(Index):
             return cls._default_dtype
 
         dtype = pandas_dtype(dtype)
-        assert isinstance(dtype, np.dtype)
+        if not isinstance(dtype, np.dtype):
+            raise TypeError(f"{dtype} not a numpy type")
 
         if cls._is_backward_compat_public_numeric_index:
             # dtype for NumericIndex
