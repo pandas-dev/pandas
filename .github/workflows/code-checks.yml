@@ -117,7 +117,7 @@ jobs:
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
       with:
-        environment-file: ci/deps/actions-38-minimum_versions.yaml
+        environment-file: ci/deps/asv.yaml
 
     - name: Build Pandas
       id: build
