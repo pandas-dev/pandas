@@ -75,7 +75,6 @@ dependencies:
   - flask
 
   # benchmarks
-  - asv
 
   # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler

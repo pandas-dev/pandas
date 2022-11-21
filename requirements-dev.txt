@@ -60,7 +60,6 @@ pyyaml
 py
 moto
 flask
-asv
 black==22.3.0
 cpplint
 flake8==5.0.4
