@@ -68,9 +68,10 @@ class TestSeriesSearchSorted:
         exp = np.array([0, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(res, exp)
 
-    def test_searchsorted_Dataframe_fail(self):
+    def test_searchsorted_dataframe_fail(self):
+        # GH#49620
         ser = Series([1, 2, 3, 4, 5])
         vals = pd.DataFrame([[1, 2], [3, 4]])
-        msg = "Value must be array-like or scalar, DataFrame is not supported"
+        msg = "Value must be 1-D array-like or scalar, DataFrame is not supported"
         with pytest.raises(ValueError, match=msg):
             ser.searchsorted(vals)
