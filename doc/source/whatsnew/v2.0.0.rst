@@ -62,6 +62,7 @@ Other enhancements
 - Fix ``test`` optional_extra by adding missing test package ``pytest-asyncio`` (:issue:`48361`)
 - :func:`DataFrame.astype` exception message thrown improved to include column name when type conversion is not possible. (:issue:`47571`)
 - :func:`date_range` now supports a ``unit`` keyword ("s", "ms", "us", or "ns") to specify the desired resolution of the output index (:issue:`49106`)
+- :func:`timedelta_range` now supports a ``unit`` keyword ("s", "ms", "us", or "ns") to specify the desired resolution of the output index (:issue:`49824`)
 - :meth:`DataFrame.to_json` now supports a ``mode`` keyword with supported inputs 'w' and 'a'. Defaulting to 'w', 'a' can be used when lines=True and orient='records' to append record oriented json lines to an existing json file. (:issue:`35849`)
 - Added ``name`` parameter to :meth:`IntervalIndex.from_breaks`, :meth:`IntervalIndex.from_arrays` and :meth:`IntervalIndex.from_tuples` (:issue:`48911`)
 -
@@ -336,6 +337,7 @@ Other API changes
 - Passing ``dtype`` of "timedelta64[s]", "timedelta64[ms]", or "timedelta64[us]" to :class:`TimedeltaIndex`, :class:`Series`, or :class:`DataFrame` constructors will now retain that dtype instead of casting to "timedelta64[ns]"; passing a dtype with lower resolution for :class:`Series` or :class:`DataFrame` will be cast to the lowest supported resolution "timedelta64[s]" (:issue:`49014`)
 - Passing a ``np.datetime64`` object with non-nanosecond resolution to :class:`Timestamp` will retain the input resolution if it is "s", "ms", or "ns"; otherwise it will be cast to the closest supported resolution (:issue:`49008`)
 - The ``other`` argument in :meth:`DataFrame.mask` and :meth:`Series.mask` now defaults to ``no_default`` instead of ``np.nan`` consistent with :meth:`DataFrame.where` and :meth:`Series.where`. Entries will be filled with the corresponding NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension dtypes). (:issue:`49111`)
+- Changed behavior of :meth:`Series.quantile` and :meth:`DataFrame.quantile` with :class:`SparseDtype` to retain sparse dtype (:issue:`49583`)
 - When creating a :class:`Series` with a object-dtype :class:`Index` of datetime objects, pandas no longer silently converts the index to a :class:`DatetimeIndex` (:issue:`39307`, :issue:`23598`)
 - :meth:`Series.unique` with dtype "timedelta64[ns]" or "datetime64[ns]" now returns :class:`TimedeltaArray` or :class:`DatetimeArray` instead of ``numpy.ndarray`` (:issue:`49176`)
 - :func:`to_datetime` and :class:`DatetimeIndex` now allow sequences containing both ``datetime`` objects and numeric entries, matching :class:`Series` behavior (:issue:`49037`)
@@ -584,6 +586,7 @@ Performance improvements
 - Performance improvement in :meth:`.DataFrameGroupBy.mean`, :meth:`.SeriesGroupBy.mean`, :meth:`.DataFrameGroupBy.var`, and :meth:`.SeriesGroupBy.var` for extension array dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.isin` when ``level=None`` (:issue:`48622`, :issue:`49577`)
 - Performance improvement in :meth:`Index.union` and :meth:`MultiIndex.union` when index contains duplicates (:issue:`48900`)
+- Performance improvement in :meth:`Series.fillna` for pyarrow-backed dtypes (:issue:`49722`)
 - Performance improvement for :meth:`Series.value_counts` with nullable dtype (:issue:`48338`)
 - Performance improvement for :class:`Series` constructor passing integer numpy array with nullable dtype (:issue:`48338`)
 - Performance improvement for :class:`DatetimeIndex` constructor passing a list (:issue:`48609`)
@@ -653,6 +656,8 @@ Conversion
 - Bug where any :class:`ExtensionDtype` subclass with ``kind="M"`` would be interpreted as a timezone type (:issue:`34986`)
 - Bug in :class:`.arrays.ArrowExtensionArray` that would raise ``NotImplementedError`` when passed a sequence of strings or binary (:issue:`49172`)
 - Bug in :func:`to_datetime` was not respecting ``exact`` argument when ``format`` was an ISO8601 format (:issue:`12649`)
+- Bug in :meth:`TimedeltaArray.astype` raising ``TypeError`` when converting to a pyarrow duration type (:issue:`49795`)
+-
 
 Strings
 ^^^^^^^
