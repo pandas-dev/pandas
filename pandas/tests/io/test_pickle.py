@@ -283,8 +283,9 @@ class TestCompression:
             raise ValueError(msg)
 
         if compression not in ["zip", "tar"]:
-            with open(src_path, "rb") as fh, f:
-                f.write(fh.read())
+            with open(src_path, "rb") as fh:
+                with f:
+                    f.write(fh.read())
 
     def test_write_explicit(self, compression, get_random_path):
         base = get_random_path
@@ -352,7 +353,6 @@ class TestCompression:
 
             # read compressed file
             df2 = pd.read_pickle(p2, compression=compression)
-
             tm.assert_frame_equal(df, df2)
 
     def test_read_infer(self, compression_ext, get_random_path):
@@ -372,7 +372,6 @@ class TestCompression:
 
             # read compressed file by inferred compression method
             df2 = pd.read_pickle(p2)
-
             tm.assert_frame_equal(df, df2)
 
 
