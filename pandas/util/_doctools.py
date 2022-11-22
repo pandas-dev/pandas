@@ -166,7 +166,8 @@ class TablePlotter:
         ax.set_title(title, size=self.font_size)
         ax.axis("off")
 
-def main():
+
+def main() -> None:
     import matplotlib.pyplot as plt
 
     p = TablePlotter()
@@ -192,6 +193,7 @@ def main():
     df3.columns = column
     p.plot(df3, df3, labels=["df3"])
     plt.show()
+
 
 if __name__ == "__main__":
     main()
