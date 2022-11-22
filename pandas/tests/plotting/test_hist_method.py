@@ -191,6 +191,7 @@ class TestSeriesPlots(TestPlotBase):
         ax = ts.plot.hist(align="left", stacked=True, ax=ax)
         tm.close()
 
+    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     @td.skip_if_no_scipy
     def test_hist_kde(self, ts):
 

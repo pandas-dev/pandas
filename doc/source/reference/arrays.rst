@@ -19,20 +19,21 @@ objects contained with a :class:`Index`, :class:`Series`, or
 For some data types, pandas extends NumPy's type system. String aliases for these types
 can be found at :ref:`basics.dtypes`.
 
-=================== ========================= ============================= =============================
-Kind of Data        pandas Data Type          Scalar                        Array
-=================== ========================= ============================= =============================
-TZ-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp`            :ref:`api.arrays.datetime`
-Timedeltas          (none)                    :class:`Timedelta`            :ref:`api.arrays.timedelta`
-Period (time spans) :class:`PeriodDtype`      :class:`Period`               :ref:`api.arrays.period`
-Intervals           :class:`IntervalDtype`    :class:`Interval`             :ref:`api.arrays.interval`
-Nullable Integer    :class:`Int64Dtype`, ...  (none)                        :ref:`api.arrays.integer_na`
-Categorical         :class:`CategoricalDtype` (none)                        :ref:`api.arrays.categorical`
-Sparse              :class:`SparseDtype`      (none)                        :ref:`api.arrays.sparse`
-Strings             :class:`StringDtype`      :class:`str`                  :ref:`api.arrays.string`
-Boolean (with NA)   :class:`BooleanDtype`     :class:`bool`                 :ref:`api.arrays.bool`
-PyArrow             :class:`ArrowDtype`       Python Scalars or :class:`NA` :ref:`api.arrays.arrow`
-=================== ========================= ============================= =============================
+=================== ========================== ============================= =============================
+Kind of Data        pandas Data Type           Scalar                        Array
+=================== ========================== ============================= =============================
+TZ-aware datetime   :class:`DatetimeTZDtype`   :class:`Timestamp`            :ref:`api.arrays.datetime`
+Timedeltas          (none)                     :class:`Timedelta`            :ref:`api.arrays.timedelta`
+Period (time spans) :class:`PeriodDtype`       :class:`Period`               :ref:`api.arrays.period`
+Intervals           :class:`IntervalDtype`     :class:`Interval`             :ref:`api.arrays.interval`
+Nullable Integer    :class:`Int64Dtype`, ...   (none)                        :ref:`api.arrays.integer_na`
+Nullable Float      :class:`Float64Dtype`, ... (none)                        :ref:`api.arrays.float_na`
+Categorical         :class:`CategoricalDtype`  (none)                        :ref:`api.arrays.categorical`
+Sparse              :class:`SparseDtype`       (none)                        :ref:`api.arrays.sparse`
+Strings             :class:`StringDtype`       :class:`str`                  :ref:`api.arrays.string`
+Nullable Boolean    :class:`BooleanDtype`      :class:`bool`                 :ref:`api.arrays.bool`
+PyArrow             :class:`ArrowDtype`        Python Scalars or :class:`NA` :ref:`api.arrays.arrow`
+=================== ========================== ============================= =============================
 
 pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
 The top-level :meth:`array` method can be used to create a new array, which may be
@@ -91,12 +92,19 @@ with the :class:`arrays.DatetimeArray` extension array, which can hold timezone-
 or timezone-aware values.
 
 :class:`Timestamp`, a subclass of :class:`datetime.datetime`, is pandas'
-scalar type for timezone-naive or timezone-aware datetime data.
+scalar type for timezone-naive or timezone-aware datetime data. :class:`NaT`
+is the missing value for datetime data.
 
 .. autosummary::
    :toctree: api/
 
    Timestamp
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   NaT
 
 Properties
 ~~~~~~~~~~
@@ -131,6 +139,7 @@ Properties
    Timestamp.second
    Timestamp.tz
    Timestamp.tzinfo
+   Timestamp.unit
    Timestamp.value
    Timestamp.week
    Timestamp.weekofyear
@@ -141,6 +150,7 @@ Methods
 .. autosummary::
    :toctree: api/
 
+   Timestamp.as_unit
    Timestamp.astimezone
    Timestamp.ceil
    Timestamp.combine
@@ -149,8 +159,6 @@ Methods
    Timestamp.day_name
    Timestamp.dst
    Timestamp.floor
-   Timestamp.freq
-   Timestamp.freqstr
    Timestamp.fromordinal
    Timestamp.fromtimestamp
    Timestamp.isocalendar
@@ -208,12 +216,19 @@ Timedeltas
 ----------
 
 NumPy can natively represent timedeltas. pandas provides :class:`Timedelta`
-for symmetry with :class:`Timestamp`.
+for symmetry with :class:`Timestamp`. :class:`NaT`
+is the missing value for timedelta data.
 
 .. autosummary::
    :toctree: api/
 
    Timedelta
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   NaT
 
 Properties
 ~~~~~~~~~~
@@ -223,15 +238,13 @@ Properties
    Timedelta.asm8
    Timedelta.components
    Timedelta.days
-   Timedelta.delta
-   Timedelta.freq
-   Timedelta.is_populated
    Timedelta.max
    Timedelta.microseconds
    Timedelta.min
    Timedelta.nanoseconds
    Timedelta.resolution
    Timedelta.seconds
+   Timedelta.unit
    Timedelta.value
    Timedelta.view
 
@@ -240,6 +253,7 @@ Methods
 .. autosummary::
    :toctree: api/
 
+   Timedelta.as_unit
    Timedelta.ceil
    Timedelta.floor
    Timedelta.isoformat
@@ -419,6 +433,26 @@ pandas provides this through :class:`arrays.IntegerArray`.
    UInt16Dtype
    UInt32Dtype
    UInt64Dtype
+   NA
+
+.. _api.arrays.float_na:
+
+Nullable float
+--------------
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   arrays.FloatingArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   Float32Dtype
+   Float64Dtype
+   NA
 
 .. _api.arrays.categorical:
 
@@ -555,6 +589,7 @@ with a bool :class:`numpy.ndarray`.
    :template: autosummary/class_without_autosummary.rst
 
    BooleanDtype
+   NA
 
 
 .. Dtype attributes which are manually listed in their docstrings: including
@@ -594,7 +629,6 @@ Data type introspection
     api.types.is_datetime64_dtype
     api.types.is_datetime64_ns_dtype
     api.types.is_datetime64tz_dtype
-    api.types.is_extension_type
     api.types.is_extension_array_dtype
     api.types.is_float_dtype
     api.types.is_int64_dtype
@@ -627,7 +661,6 @@ Scalar introspection
    :toctree: api/
 
     api.types.is_bool
-    api.types.is_categorical
     api.types.is_complex
     api.types.is_float
     api.types.is_hashable

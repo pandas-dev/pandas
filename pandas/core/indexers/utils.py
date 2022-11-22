@@ -3,17 +3,14 @@ Low-dependency indexing utilities.
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
 )
-import warnings
 
 import numpy as np
 
 from pandas._typing import AnyArrayLike
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -334,22 +331,18 @@ def length_of_indexer(indexer, target=None) -> int:
     raise AssertionError("cannot find the length of the indexer")
 
 
-def deprecate_ndim_indexing(result, stacklevel: int = 3) -> None:
+def disallow_ndim_indexing(result) -> None:
     """
-    Helper function to raise the deprecation warning for multi-dimensional
-    indexing on 1D Series/Index.
+    Helper function to disallow multi-dimensional indexing on 1D Series/Index.
 
     GH#27125 indexer like idx[:, None] expands dim, but we cannot do that
-    and keep an index, so we currently return ndarray, which is deprecated
-    (Deprecation GH#30588).
+    and keep an index, so we used to return ndarray, which was deprecated
+    in GH#30588.
     """
     if np.ndim(result) > 1:
-        warnings.warn(
-            "Support for multi-dimensional indexing (e.g. `obj[:, None]`) "
-            "is deprecated and will be removed in a future "
-            "version.  Convert to a numpy array before indexing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+        raise ValueError(
+            "Multi-dimensional indexing (e.g. `obj[:, None]`) is no longer "
+            "supported. Convert to a numpy array before indexing instead."
         )
 
 
@@ -368,12 +361,9 @@ def unpack_1tuple(tup):
 
         if isinstance(tup, list):
             # GH#31299
-            warnings.warn(
+            raise ValueError(
                 "Indexing with a single-item list containing a "
-                "slice is deprecated and will raise in a future "
-                "version.  Pass a tuple instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                "slice is not allowed. Pass a tuple instead.",
             )
 
         return tup[0]

@@ -1,9 +1,15 @@
 """
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
-from datetime import datetime
+from contextlib import nullcontext
+from datetime import (
+    datetime,
+    time,
+    timedelta,
+)
 from io import StringIO
 import itertools
+import locale
 from operator import methodcaller
 import os
 from pathlib import Path
@@ -40,10 +46,17 @@ from pandas import (
 )
 import pandas._testing as tm
 
+from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
-import pandas.io.formats.printing as printing
 
 use_32bit_repr = is_platform_windows() or not IS64
+
+
+def get_local_am_pm():
+    """Return the AM and PM strings returned by strftime in current locale."""
+    am_local = time(1).strftime("%p")
+    pm_local = time(13).strftime("%p")
+    return am_local, pm_local
 
 
 @pytest.fixture(params=["string", "pathlike", "buffer"])
@@ -197,20 +210,6 @@ class TestDataFrameFormatting:
                 df.info(buf=buf, show_counts=show_counts)
                 assert ("non-null" in buf.getvalue()) is result
 
-    def test_show_null_counts_deprecation(self):
-        # GH37999
-        df = DataFrame(1, columns=range(10), index=range(10))
-        with tm.assert_produces_warning(
-            FutureWarning, match="null_counts is deprecated.+"
-        ):
-            buf = StringIO()
-            df.info(buf=buf, null_counts=True)
-            assert "non-null" in buf.getvalue()
-
-        # GH37999
-        with pytest.raises(ValueError, match=r"null_counts used with show_counts.+"):
-            df.info(null_counts=True, show_counts=True)
-
     def test_repr_truncation(self):
         max_len = 20
         with option_context("display.max_colwidth", max_len):
@@ -240,12 +239,13 @@ class TestDataFrameFormatting:
         with option_context("display.max_colwidth", max_len + 2):
             assert "..." not in repr(df)
 
-    def test_repr_deprecation_negative_int(self):
-        # TODO(2.0): remove in future version after deprecation cycle
-        # Non-regression test for:
+    def test_max_colwidth_negative_int_raises(self):
+        # Deprecation enforced from:
         # https://github.com/pandas-dev/pandas/issues/31532
         width = get_option("display.max_colwidth")
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(
+            ValueError, match="Value must be a nonnegative integer or None"
+        ):
             set_option("display.max_colwidth", -1)
         set_option("display.max_colwidth", width)
 
@@ -973,7 +973,7 @@ class TestDataFrameFormatting:
                 if w == 20:
                     assert has_horizontally_truncated_repr(df)
                 else:
-                    assert not (has_horizontally_truncated_repr(df))
+                    assert not has_horizontally_truncated_repr(df)
             with option_context("display.max_rows", 15, "display.max_columns", 15):
                 if h == 20 and w == 20:
                     assert has_doubly_truncated_repr(df)
@@ -995,12 +995,10 @@ class TestDataFrameFormatting:
         # when truncated the dtypes of the splits can differ
 
         # 11594
-        import datetime
-
         s = Series(
-            [datetime.datetime(2012, 1, 1)] * 10
-            + [datetime.datetime(1012, 1, 2)]
-            + [datetime.datetime(2012, 1, 3)] * 10
+            [datetime(2012, 1, 1)] * 10
+            + [datetime(1012, 1, 2)]
+            + [datetime(2012, 1, 3)] * 10
         )
 
         with option_context("display.max_rows", 8):
@@ -1251,8 +1249,6 @@ class TestDataFrameFormatting:
             dtype="int64",
         )
 
-        import re
-
         str_rep = str(s)
         nmatches = len(re.findall("dtype", str_rep))
         assert nmatches == 1
@@ -1415,25 +1411,25 @@ class TestDataFrameFormatting:
         assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
-        # GH 13998, GH 22505
+        # GH 13998, GH 22505, # GH 49230
         df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = " x  \\\n 1   \n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
+        expected = " x   \n 1  \\\n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
         df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = " x  \\\n11   \n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
+        expected = " x   \n11  \\\n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
         df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = "  x  \\\n 11   \n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
+        expected = "  x   \n 11  \\\n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
 
         assert df_s == expected
 
@@ -1686,6 +1682,20 @@ c  10  11  12  13  14\
         df = DataFrame(123, index=range(10, 15), columns=range(30))
         s = df.to_string(line_width=80)
         assert max(len(line) for line in s.split("\n")) == 80
+
+    def test_to_string_header_false(self):
+        # GH 49230
+        df = DataFrame([1, 2])
+        df.index.name = "a"
+        s = df.to_string(header=False)
+        expected = "a   \n0  1\n1  2"
+        assert s == expected
+
+        df = DataFrame([[1, 2], [3, 4]])
+        df.index.name = "a"
+        s = df.to_string(header=False)
+        expected = "a      \n0  1  2\n1  3  4"
+        assert s == expected
 
     def test_show_dimensions(self):
         df = DataFrame(123, index=range(10, 15), columns=range(30))
@@ -2446,12 +2456,6 @@ class TestSeriesFormatting:
         assert start_date in result
 
     def test_timedelta64(self):
-
-        from datetime import (
-            datetime,
-            timedelta,
-        )
-
         Series(np.array([1100, 20], dtype="timedelta64[ns]")).to_string()
 
         s = Series(date_range("2012-1-1", periods=3, freq="D"))
@@ -2816,7 +2820,7 @@ class TestGenericArrayFormatter:
                 return "DtypeStub"
 
         class ExtTypeStub(pd.api.extensions.ExtensionArray):
-            def __len__(self):
+            def __len__(self) -> int:
                 return 2
 
             def __getitem__(self, ix):
@@ -3219,6 +3223,67 @@ class TestPeriodIndexFormat:
             per = dt.to_period(freq="H")
         assert per.format()[0] == "2013-01-01 00:00"
 
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            pytest.param(None, id=str(locale.getlocale())),
+            "it_IT.utf8",
+            "it_IT",  # Note: encoding will be 'ISO8859-1'
+            "zh_CN.utf8",
+            "zh_CN",  # Note: encoding will be 'gb2312'
+        ],
+    )
+    def test_period_non_ascii_fmt(self, locale_str):
+        # GH#46468 non-ascii char in input format string leads to wrong output
+
+        # Skip if locale cannot be set
+        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
+
+        # Change locale temporarily for this test.
+        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
+            # Scalar
+            per = pd.Period("2018-03-11 13:00", freq="H")
+            assert per.strftime("%y é") == "18 é"
+
+            # Index
+            per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
+            formatted = per.format(date_format="%y é")
+            assert formatted[0] == "03 é"
+            assert formatted[1] == "03 é"
+
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            pytest.param(None, id=str(locale.getlocale())),
+            "it_IT.utf8",
+            "it_IT",  # Note: encoding will be 'ISO8859-1'
+            "zh_CN.utf8",
+            "zh_CN",  # Note: encoding will be 'gb2312'
+        ],
+    )
+    def test_period_custom_locale_directive(self, locale_str):
+        # GH#46319 locale-specific directive leads to non-utf8 c strftime char* result
+
+        # Skip if locale cannot be set
+        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
+
+        # Change locale temporarily for this test.
+        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
+            # Get locale-specific reference
+            am_local, pm_local = get_local_am_pm()
+
+            # Scalar
+            per = pd.Period("2018-03-11 13:00", freq="H")
+            assert per.strftime("%p") == pm_local
+
+            # Index
+            per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
+            formatted = per.format(date_format="%y %I:%M:%S%p")
+            assert formatted[0] == f"03 01:00:00{am_local}"
+            assert formatted[1] == f"03 01:00:00{pm_local}"
+
 
 class TestDatetimeIndexFormat:
     def test_datetime(self):
@@ -3306,24 +3371,34 @@ class TestStringRepTimestamp:
             assert f(NaT) == "NaT"
 
 
-def test_format_percentiles():
-    result = fmt.format_percentiles([0.01999, 0.02001, 0.5, 0.666666, 0.9999])
-    expected = ["1.999%", "2.001%", "50%", "66.667%", "99.99%"]
+@pytest.mark.parametrize(
+    "percentiles, expected",
+    [
+        (
+            [0.01999, 0.02001, 0.5, 0.666666, 0.9999],
+            ["1.999%", "2.001%", "50%", "66.667%", "99.99%"],
+        ),
+        (
+            [0, 0.5, 0.02001, 0.5, 0.666666, 0.9999],
+            ["0%", "50%", "2.0%", "50%", "66.67%", "99.99%"],
+        ),
+        ([0.281, 0.29, 0.57, 0.58], ["28.1%", "29%", "57%", "58%"]),
+        ([0.28, 0.29, 0.57, 0.58], ["28%", "29%", "57%", "58%"]),
+    ],
+)
+def test_format_percentiles(percentiles, expected):
+    result = fmt.format_percentiles(percentiles)
     assert result == expected
 
-    result = fmt.format_percentiles([0, 0.5, 0.02001, 0.5, 0.666666, 0.9999])
-    expected = ["0%", "50%", "2.0%", "50%", "66.67%", "99.99%"]
-    assert result == expected
 
+@pytest.mark.parametrize(
+    "percentiles",
+    [([0.1, np.nan, 0.5]), ([-0.001, 0.1, 0.5]), ([2, 0.1, 0.5]), ([0.1, 0.5, "a"])],
+)
+def test_error_format_percentiles(percentiles):
     msg = r"percentiles should all be in the interval \[0,1\]"
     with pytest.raises(ValueError, match=msg):
-        fmt.format_percentiles([0.1, np.nan, 0.5])
-    with pytest.raises(ValueError, match=msg):
-        fmt.format_percentiles([-0.001, 0.1, 0.5])
-    with pytest.raises(ValueError, match=msg):
-        fmt.format_percentiles([2, 0.1, 0.5])
-    with pytest.raises(ValueError, match=msg):
-        fmt.format_percentiles([0.1, 0.5, "a"])
+        fmt.format_percentiles(percentiles)
 
 
 def test_format_percentiles_integer_idx():
@@ -3400,9 +3475,3 @@ def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
     msg = "buf is not a file name and it has no write method"
     with pytest.raises(TypeError, match=msg):
         getattr(float_frame, method)(buf=object())
-
-
-def test_col_space_deprecated():
-    # GH 7576
-    with tm.assert_produces_warning(FutureWarning, match="column_space is"):
-        set_option("display.column_space", 11)

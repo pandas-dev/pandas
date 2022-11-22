@@ -10,6 +10,7 @@ from pandas._libs.tslibs.ccalendar import (
     DAYS,
     MONTHS,
 )
+from pandas._libs.tslibs.offsets import _get_offset
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat import is_platform_windows
 
@@ -28,8 +29,10 @@ from pandas.core.arrays import (
 )
 from pandas.core.tools.datetimes import to_datetime
 
-import pandas.tseries.frequencies as frequencies
-import pandas.tseries.offsets as offsets
+from pandas.tseries import (
+    frequencies,
+    offsets,
+)
 
 
 @pytest.fixture(
@@ -358,9 +361,16 @@ def test_non_datetime_index2():
 
 
 @pytest.mark.parametrize(
-    "idx", [tm.makeIntIndex(10), tm.makeFloatIndex(10), tm.makePeriodIndex(10)]
+    "idx",
+    [
+        tm.makeIntIndex(10),
+        tm.makeFloatIndex(10),
+        tm.makePeriodIndex(10),
+        tm.makeRangeIndex(10),
+    ],
 )
 def test_invalid_index_types(idx):
+    # see gh-48439
     msg = "|".join(
         [
             "cannot infer freq from a non-convertible",
@@ -440,7 +450,7 @@ def test_series_datetime_index(freq):
 @pytest.mark.parametrize(
     "offset_func",
     [
-        frequencies._get_offset,
+        _get_offset,
         lambda freq: date_range("2011-01-01", periods=5, freq=freq),
     ],
 )
@@ -500,16 +510,11 @@ def test_legacy_offset_warnings(offset_func, freq):
 
 
 def test_ms_vs_capital_ms():
-    left = frequencies._get_offset("ms")
-    right = frequencies._get_offset("MS")
+    left = _get_offset("ms")
+    right = _get_offset("MS")
 
     assert left == offsets.Milli()
     assert right == offsets.MonthBegin()
-
-
-def test_infer_freq_warn_deprecated():
-    with tm.assert_produces_warning(FutureWarning):
-        frequencies.infer_freq(date_range(2022, periods=3), warn=False)
 
 
 def test_infer_freq_non_nano():

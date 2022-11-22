@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import contextlib
-import functools
 import inspect
 import os
-from typing import Iterator
+import re
+from typing import Generator
+import warnings
 
 
 @contextlib.contextmanager
-def rewrite_exception(old_name: str, new_name: str) -> Iterator[None]:
+def rewrite_exception(old_name: str, new_name: str) -> Generator[None, None, None]:
     """
     Rewrite the message of an exception.
     """
@@ -26,16 +27,10 @@ def rewrite_exception(old_name: str, new_name: str) -> Iterator[None]:
         raise
 
 
-@functools.lru_cache
-def find_stack_level(frame) -> int:
+def find_stack_level() -> int:
     """
     Find the first place in the stack that is not inside pandas
     (tests notwithstanding).
-
-    ``frame`` should be passed as ``inspect.currentframe()`` by the
-    calling function.
-
-    https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
     """
 
     import pandas as pd
@@ -43,7 +38,9 @@ def find_stack_level(frame) -> int:
     pkg_dir = os.path.dirname(pd.__file__)
     test_dir = os.path.join(pkg_dir, "tests")
 
-    n = 1
+    # https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
+    frame = inspect.currentframe()
+    n = 0
     while frame:
         fname = inspect.getfile(frame)
         if fname.startswith(pkg_dir) and not fname.startswith(test_dir):
@@ -52,3 +49,46 @@ def find_stack_level(frame) -> int:
         else:
             break
     return n
+
+
+@contextlib.contextmanager
+def rewrite_warning(
+    target_message: str,
+    target_category: type[Warning],
+    new_message: str,
+    new_category: type[Warning] | None = None,
+) -> Generator[None, None, None]:
+    """
+    Rewrite the message of a warning.
+
+    Parameters
+    ----------
+    target_message : str
+        Warning message to match.
+    target_category : Warning
+        Warning type to match.
+    new_message : str
+        New warning message to emit.
+    new_category : Warning or None, default None
+        New warning type to emit. When None, will be the same as target_category.
+    """
+    if new_category is None:
+        new_category = target_category
+    with warnings.catch_warnings(record=True) as record:
+        yield
+    if len(record) > 0:
+        match = re.compile(target_message)
+        for warning in record:
+            if warning.category is target_category and re.search(
+                match, str(warning.message)
+            ):
+                category = new_category
+                message: Warning | str = new_message
+            else:
+                category, message = warning.category, warning.message
+            warnings.warn_explicit(
+                message=message,
+                category=category,
+                filename=warning.filename,
+                lineno=warning.lineno,
+            )

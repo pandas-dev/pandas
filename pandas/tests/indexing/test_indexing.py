@@ -478,7 +478,7 @@ class TestFancy:
             {
                 "FC": ["a", np.nan, "a", "b", "a", "b"],
                 "PF": [0, 0, 0, 0, 1, 1],
-                "col1": [0.0, 1.0, 4.0, 6.0, 8.0, 10.0],
+                "col1": [0, 1, 4, 6, 8, 10],
                 "col2": [12, 7, 16, np.nan, 20, 22],
             }
         )
@@ -706,7 +706,7 @@ class TestMisc:
         # make frames multi-type & re-run tests
         for frame in [df, rhs, right_loc, right_iloc]:
             frame["joe"] = frame["joe"].astype("float64")
-            frame["jolie"] = frame["jolie"].map("@{}".format)
+            frame["jolie"] = frame["jolie"].map(lambda x: f"@{x}")
         right_iloc["joe"] = [1.0, "@-28", "@-20", "@-12", 17.0]
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
         run_tests(df, rhs, right_loc, right_iloc)

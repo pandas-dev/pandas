@@ -35,7 +35,7 @@ def test_insert(idx):
         idx.insert(0, ("foo2",))
 
     left = pd.DataFrame([["a", "b", 0], ["b", "d", 1]], columns=["1st", "2nd", "3rd"])
-    left = left.set_index(["1st", "2nd"], copy=False)
+    left.set_index(["1st", "2nd"], inplace=True)
     ts = left["3rd"].copy(deep=True)
 
     left.loc[("b", "x"), "3rd"] = 2
@@ -65,7 +65,7 @@ def test_insert(idx):
         ],
         columns=["1st", "2nd", "3rd"],
     )
-    right = right.set_index(["1st", "2nd"], copy=False)
+    right.set_index(["1st", "2nd"], inplace=True)
     # FIXME data types changes to float because
     # of intermediate nan insertion;
     tm.assert_frame_equal(left, right, check_dtype=False)
@@ -147,6 +147,25 @@ def test_append_index():
         ),
         None,
     )
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("name, exp", [("b", "b"), ("c", None)])
+def test_append_names_match(name, exp):
+    # GH#48288
+    midx = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+    midx2 = MultiIndex.from_arrays([[3], [5]], names=["a", name])
+    result = midx.append(midx2)
+    expected = MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=["a", exp])
+    tm.assert_index_equal(result, expected)
+
+
+def test_append_names_dont_match():
+    # GH#48288
+    midx = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+    midx2 = MultiIndex.from_arrays([[3], [5]], names=["x", "y"])
+    result = midx.append(midx2)
+    expected = MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=None)
     tm.assert_index_equal(result, expected)
 
 

@@ -27,10 +27,7 @@ from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
-from pandas.util._decorators import (
-    deprecate_nonkeyword_arguments,
-    doc,
-)
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -212,7 +209,7 @@ class _XMLFrameParser:
 
         if self.elems_only and self.attrs_only:
             raise ValueError("Either element or attributes can be parsed not both.")
-        elif self.elems_only:
+        if self.elems_only:
             if self.names:
                 dicts = [
                     {
@@ -286,7 +283,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
+            dicts = [dict(zip(self.names, d.values())) for d in dicts]
 
         return dicts
 
@@ -383,11 +380,11 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
+            dicts = [dict(zip(self.names, d.values())) for d in dicts]
 
         return dicts
 
-    def _validate_path(self) -> None:
+    def _validate_path(self) -> list[Any]:
         """
         Validate xpath.
 
@@ -446,8 +443,7 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         if self.iterparse is None:
             self.xml_doc = self._parse_doc(self.path_or_buffer)
-            self._validate_path()
-            elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
+            elems = self._validate_path()
 
         self._validate_names()
 
@@ -459,7 +455,7 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         return xml_dicts
 
-    def _validate_path(self) -> None:
+    def _validate_path(self) -> list[Any]:
         """
         Notes
         -----
@@ -468,18 +464,28 @@ class _EtreeFrameParser(_XMLFrameParser):
         """
 
         msg = (
-            "xpath does not return any nodes. "
+            "xpath does not return any nodes or attributes. "
+            "Be sure to specify in `xpath` the parent nodes of "
+            "children and attributes to parse. "
             "If document uses namespaces denoted with "
             "xmlns, be sure to define namespaces and "
             "use them in xpath."
         )
         try:
-            elems = self.xml_doc.find(self.xpath, namespaces=self.namespaces)
+            elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
+            children = [ch for el in elems for ch in el.findall("*")]
+            attrs = {k: v for el in elems for k, v in el.attrib.items()}
+
             if elems is None:
                 raise ValueError(msg)
 
-            if elems is not None and elems.find("*") is None and elems.attrib is None:
-                raise ValueError(msg)
+            if elems is not None:
+                if self.elems_only and children == []:
+                    raise ValueError(msg)
+                if self.attrs_only and attrs == {}:
+                    raise ValueError(msg)
+                if children == [] and attrs == {}:
+                    raise ValueError(msg)
 
         except (KeyError, SyntaxError):
             raise SyntaxError(
@@ -487,6 +493,8 @@ class _EtreeFrameParser(_XMLFrameParser):
                 "expression for etree library or you used an "
                 "undeclared namespace prefix."
             )
+
+        return elems
 
     def _validate_names(self) -> None:
         children: list[Any]
@@ -525,9 +533,9 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         with preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
-            doc = parse(xml_data, parser=curr_parser)
+            document = parse(xml_data, parser=curr_parser)
 
-        return doc.getroot()
+        return document.getroot()
 
 
 class _LxmlFrameParser(_XMLFrameParser):
@@ -554,8 +562,7 @@ class _LxmlFrameParser(_XMLFrameParser):
                 self.xsl_doc = self._parse_doc(self.stylesheet)
                 self.xml_doc = self._transform_doc()
 
-            self._validate_path()
-            elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
+            elems = self._validate_path()
 
         self._validate_names()
 
@@ -567,25 +574,33 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         return xml_dicts
 
-    def _validate_path(self) -> None:
+    def _validate_path(self) -> list[Any]:
 
         msg = (
-            "xpath does not return any nodes. "
-            "Be sure row level nodes are in xpath. "
+            "xpath does not return any nodes or attributes. "
+            "Be sure to specify in `xpath` the parent nodes of "
+            "children and attributes to parse. "
             "If document uses namespaces denoted with "
             "xmlns, be sure to define namespaces and "
             "use them in xpath."
         )
 
         elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
-        children = self.xml_doc.xpath(self.xpath + "/*", namespaces=self.namespaces)
-        attrs = self.xml_doc.xpath(self.xpath + "/@*", namespaces=self.namespaces)
+        children = [ch for el in elems for ch in el.xpath("*")]
+        attrs = {k: v for el in elems for k, v in el.attrib.items()}
 
         if elems == []:
             raise ValueError(msg)
 
-        if elems != [] and attrs == [] and children == []:
-            raise ValueError(msg)
+        if elems != []:
+            if self.elems_only and children == []:
+                raise ValueError(msg)
+            if self.attrs_only and attrs == {}:
+                raise ValueError(msg)
+            if children == [] and attrs == {}:
+                raise ValueError(msg)
+
+        return elems
 
     def _validate_names(self) -> None:
         children: list[Any]
@@ -633,13 +648,13 @@ class _LxmlFrameParser(_XMLFrameParser):
                         "Can not pass encoding None when input is StringIO."
                     )
 
-                doc = fromstring(
+                document = fromstring(
                     xml_data.getvalue().encode(self.encoding), parser=curr_parser
                 )
             else:
-                doc = parse(xml_data, parser=curr_parser)
+                document = parse(xml_data, parser=curr_parser)
 
-        return doc
+        return document
 
     def _transform_doc(self) -> _XSLTResultTree:
         """
@@ -694,10 +709,7 @@ def get_data_from_filepath(
             storage_options=storage_options,
         ) as handle_obj:
             filepath_or_buffer = (
-                # error: Incompatible types in assignment (expression has type
-                # "Union[str, IO[str]]", variable has type "Union[Union[str,
-                # PathLike[str]], bytes, ReadBuffer[bytes], ReadBuffer[str]]")
-                handle_obj.handle.read()  # type: ignore[assignment]
+                handle_obj.handle.read()
                 if hasattr(handle_obj.handle, "read")
                 else handle_obj.handle
             )
@@ -835,13 +847,13 @@ def _parse(
     )
 
 
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["path_or_buffer"])
 @doc(
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
 )
 def read_xml(
     path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
+    *,
     xpath: str = "./*",
     namespaces: dict[str, str] | None = None,
     elems_only: bool = False,

@@ -5,12 +5,10 @@ on:
     branches:
       - main
       - 1.5.x
-      - 1.4.x
   pull_request:
     branches:
       - main
       - 1.5.x
-      - 1.4.x
 
 env:
   ENV_FILE: environment.yml
@@ -88,7 +86,7 @@ jobs:
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
       if: ${{ steps.build.outcome == 'success' && always() }}
 
-    - name: Typing
+    - name: Typing + pylint
       uses: pre-commit/action@v2.0.3
       with:
         extra_args: --hook-stage manual --all-files
@@ -152,6 +150,9 @@ jobs:
 
       - name: Build image
         run: docker build --pull --no-cache --tag pandas-dev-env .
+
+      - name: Show environment
+        run: docker run -w /home/pandas pandas-dev-env mamba run -n pandas-dev python -c "import pandas as pd; print(pd.show_versions())"
 
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt

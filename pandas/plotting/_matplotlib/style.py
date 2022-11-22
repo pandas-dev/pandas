@@ -1,21 +1,19 @@
 from __future__ import annotations
 
-import inspect
 import itertools
 from typing import (
     TYPE_CHECKING,
     Collection,
     Iterator,
-    Sequence,
-    Union,
     cast,
 )
 import warnings
 
-import matplotlib.cm as cm
+import matplotlib as mpl
 import matplotlib.colors
 import numpy as np
 
+from pandas._typing import MatplotlibColor as Color
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
@@ -24,9 +22,6 @@ import pandas.core.common as com
 
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap
-
-
-Color = Union[str, Sequence[float]]
 
 
 def get_standard_colors(
@@ -125,7 +120,7 @@ def _derive_colors(
         if colormap is not None:
             warnings.warn(
                 "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         return _get_colors_from_color(color)
     else:
@@ -155,7 +150,7 @@ def _get_cmap_instance(colormap: str | Colormap) -> Colormap:
     """Get instance of matplotlib colormap."""
     if isinstance(colormap, str):
         cmap = colormap
-        colormap = cm.get_cmap(colormap)
+        colormap = mpl.colormaps[colormap]
         if colormap is None:
             raise ValueError(f"Colormap {cmap} is not recognized")
     return colormap

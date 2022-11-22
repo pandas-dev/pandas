@@ -31,9 +31,7 @@ from pandas.tests.frame.common import (
 )
 
 
-@pytest.fixture(
-    autouse=True, scope="module", params=[0, 1000000], ids=["numexpr", "python"]
-)
+@pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
 def switch_numexpr_min_elements(request):
     _MIN_ELEMENTS = expr._MIN_ELEMENTS
     expr._MIN_ELEMENTS = request.param
@@ -1135,6 +1133,26 @@ class TestFrameArithmetic:
                 expected = op(df, value).dtypes
             tm.assert_series_equal(result, expected)
 
+    def test_arithmetic_midx_cols_different_dtypes(self):
+        # GH#49769
+        midx = MultiIndex.from_arrays([Series([1, 2]), Series([3, 4])])
+        midx2 = MultiIndex.from_arrays([Series([1, 2], dtype="Int8"), Series([3, 4])])
+        left = DataFrame([[1, 2], [3, 4]], columns=midx)
+        right = DataFrame([[1, 2], [3, 4]], columns=midx2)
+        result = left - right
+        expected = DataFrame([[0, 0], [0, 0]], columns=midx)
+        tm.assert_frame_equal(result, expected)
+
+    def test_arithmetic_midx_cols_different_dtypes_different_order(self):
+        # GH#49769
+        midx = MultiIndex.from_arrays([Series([1, 2]), Series([3, 4])])
+        midx2 = MultiIndex.from_arrays([Series([2, 1], dtype="Int8"), Series([4, 3])])
+        left = DataFrame([[1, 2], [3, 4]], columns=midx)
+        right = DataFrame([[1, 2], [3, 4]], columns=midx2)
+        result = left - right
+        expected = DataFrame([[-1, 1], [-1, 1]], columns=midx)
+        tm.assert_frame_equal(result, expected)
+
 
 def test_frame_with_zero_len_series_corner_cases():
     # GH#28600
@@ -2032,7 +2050,7 @@ def test_frame_op_subclass_nonclass_constructor():
     class SubclassedDataFrame(DataFrame):
         _metadata = ["my_extra_data"]
 
-        def __init__(self, my_extra_data, *args, **kwargs):
+        def __init__(self, my_extra_data, *args, **kwargs) -> None:
             self.my_extra_data = my_extra_data
             super().__init__(*args, **kwargs)
 

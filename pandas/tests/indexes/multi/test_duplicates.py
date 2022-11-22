@@ -6,6 +6,7 @@ import pytest
 from pandas._libs import hashtable
 
 from pandas import (
+    NA,
     DatetimeIndex,
     MultiIndex,
     Series,
@@ -86,8 +87,7 @@ def test_duplicate_multiindex_codes():
     mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     msg = r"Level values must be unique: \[[AB', ]+\] on level 0"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(FutureWarning):
-            mi.set_levels([["A", "B", "A", "A", "B"], [2, 1, 3, -2, 5]], inplace=True)
+        mi.set_levels([["A", "B", "A", "A", "B"], [2, 1, 3, -2, 5]])
 
 
 @pytest.mark.parametrize("names", [["a", "b", "a"], [1, 1, 2], [1, "a", 1]])
@@ -326,14 +326,14 @@ def test_duplicated_series_complex_numbers(dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_multi_drop_duplicates_pos_args_deprecation():
-    # GH#41485
-    idx = MultiIndex.from_arrays([[1, 2, 3, 1], [1, 2, 3, 1]])
-    msg = (
-        "In a future version of pandas all arguments of "
-        "MultiIndex.drop_duplicates will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = idx.drop_duplicates("last")
-    expected = MultiIndex.from_arrays([[2, 3, 1], [2, 3, 1]])
-    tm.assert_index_equal(expected, result)
+def test_midx_unique_ea_dtype():
+    # GH#48335
+    vals_a = Series([1, 2, NA, NA], dtype="Int64")
+    vals_b = np.array([1, 2, 3, 3])
+    midx = MultiIndex.from_arrays([vals_a, vals_b], names=["a", "b"])
+    result = midx.unique()
+
+    exp_vals_a = Series([1, 2, NA], dtype="Int64")
+    exp_vals_b = np.array([1, 2, 3])
+    expected = MultiIndex.from_arrays([exp_vals_a, exp_vals_b], names=["a", "b"])
+    tm.assert_index_equal(result, expected)

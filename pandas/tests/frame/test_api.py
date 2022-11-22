@@ -244,8 +244,7 @@ class TestDataFrameMisc:
 
         # set_index
         f = lambda x: x.set_index("a", inplace=True)
-        with tm.assert_produces_warning(FutureWarning, match="The 'inplace' keyword"):
-            _check_f(data.copy(), f)
+        _check_f(data.copy(), f)
 
         # reset_index
         f = lambda x: x.reset_index(inplace=True)
@@ -383,8 +382,3 @@ class TestDataFrameMisc:
         df = DataFrame()
         with tm.assert_produces_warning(None):
             inspect.getmembers(df)
-
-    def test_dataframe_iteritems_deprecated(self):
-        df = DataFrame([1])
-        with tm.assert_produces_warning(FutureWarning):
-            next(df.iteritems())

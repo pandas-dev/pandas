@@ -60,10 +60,9 @@ class HistPlot(LinePlot):
         self.bins = bins  # use mpl default
         self.bottom = bottom
         # Do not call LinePlot.__init__ which may fill nan
-        MPLPlot.__init__(self, data, **kwargs)
+        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
 
-    def _args_adjust(self):
-
+    def _args_adjust(self) -> None:
         # calculate bin number separately in different subplots
         # where subplots are created based on by argument
         if is_integer(self.bins):
@@ -88,16 +87,18 @@ class HistPlot(LinePlot):
         )
         return bins
 
+    # error: Signature of "_plot" incompatible with supertype "LinePlot"
     @classmethod
-    def _plot(
+    def _plot(  # type: ignore[override]
         cls,
         ax,
         y,
         style=None,
-        bins=None,
-        bottom=0,
-        column_num=0,
+        bottom: int | np.ndarray = 0,
+        column_num: int = 0,
         stacking_id=None,
+        *,
+        bins,
         **kwds,
     ):
         if column_num == 0:
@@ -110,7 +111,7 @@ class HistPlot(LinePlot):
         cls._update_stacker(ax, stacking_id, n)
         return patches
 
-    def _make_plot(self):
+    def _make_plot(self) -> None:
         colors = self._get_colors()
         stacking_id = self._get_stacking_id()
 
@@ -167,7 +168,7 @@ class HistPlot(LinePlot):
         kwds["bins"] = self.bins
         return kwds
 
-    def _post_plot_logic(self, ax: Axes, data):
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         if self.orientation == "horizontal":
             ax.set_xlabel("Frequency")
         else:
@@ -191,11 +192,12 @@ class KdePlot(HistPlot):
         return "vertical"
 
     def __init__(self, data, bw_method=None, ind=None, **kwargs) -> None:
-        MPLPlot.__init__(self, data, **kwargs)
+        # Do not call LinePlot.__init__ which may fill nan
+        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
         self.bw_method = bw_method
         self.ind = ind
 
-    def _args_adjust(self):
+    def _args_adjust(self) -> None:
         pass
 
     def _get_ind(self, y):
@@ -244,7 +246,7 @@ class KdePlot(HistPlot):
         kwds["ind"] = self._get_ind(y)
         return kwds
 
-    def _post_plot_logic(self, ax, data):
+    def _post_plot_logic(self, ax, data) -> None:
         ax.set_ylabel("Density")
 
 
@@ -253,12 +255,12 @@ def _grouped_plot(
     data,
     column=None,
     by=None,
-    numeric_only=True,
+    numeric_only: bool = True,
     figsize=None,
-    sharex=True,
-    sharey=True,
+    sharex: bool = True,
+    sharey: bool = True,
     layout=None,
-    rot=0,
+    rot: float = 0,
     ax=None,
     **kwargs,
 ):
@@ -296,18 +298,18 @@ def _grouped_hist(
     column=None,
     by=None,
     ax=None,
-    bins=50,
+    bins: int = 50,
     figsize=None,
     layout=None,
-    sharex=False,
-    sharey=False,
-    rot=90,
-    grid=True,
+    sharex: bool = False,
+    sharey: bool = False,
+    rot: float = 90,
+    grid: bool = True,
     xlabelsize=None,
     xrot=None,
     ylabelsize=None,
     yrot=None,
-    legend=False,
+    legend: bool = False,
     **kwargs,
 ):
     """
@@ -324,7 +326,7 @@ def _grouped_hist(
     layout : optional
     sharex : bool, default False
     sharey : bool, default False
-    rot : int, default 90
+    rot : float, default 90
     grid : bool, default True
     legend: : bool, default False
     kwargs : dict, keyword arguments passed to matplotlib.Axes.hist
@@ -342,7 +344,7 @@ def _grouped_hist(
         else:
             kwargs["label"] = column
 
-    def plot_group(group, ax):
+    def plot_group(group, ax) -> None:
         ax.hist(group.dropna().values, bins=bins, **kwargs)
         if legend:
             ax.legend()

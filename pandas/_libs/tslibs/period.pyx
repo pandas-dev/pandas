@@ -1,8 +1,3 @@
-import inspect
-import warnings
-
-from pandas.util._exceptions import find_stack_level
-
 cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
@@ -25,7 +20,6 @@ cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDelta_Check,
     datetime,
     import_datetime,
 )
@@ -50,7 +44,6 @@ from pandas._libs.missing cimport C_NA
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
-    NPY_FR_us,
     astype_overflowsafe,
     check_dts_bounds,
     get_timedelta64_value,
@@ -780,7 +773,7 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
     """
     cdef:
         int64_t unix_date
-        int freq_group, fmonth, mdiff
+        int freq_group, fmonth
         NPY_DATETIMEUNIT unit
 
     freq_group = get_freq_group(freq)
@@ -1060,7 +1053,9 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     cdef:
         Py_ssize_t n = len(arr)
         Py_ssize_t increment = arr.strides[0] // 8
-        ndarray[int64_t] result = cnp.PyArray_EMPTY(arr.ndim, arr.shape, cnp.NPY_INT64, 0)
+        ndarray[int64_t] result = cnp.PyArray_EMPTY(
+            arr.ndim, arr.shape, cnp.NPY_INT64, 0
+        )
 
     _period_asfreq(
         <int64_t*>cnp.PyArray_DATA(arr),
@@ -1162,7 +1157,8 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         return "NaT"
 
     if isinstance(fmt, str):
-        fmt = fmt.encode("utf-8")
+        # Encode using current locale, in case fmt contains non-utf8 chars
+        fmt = <bytes>util.string_encode_locale(fmt)
 
     if fmt is None:
         freq_group = get_freq_group(freq)
@@ -1231,7 +1227,8 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     # Execute c_strftime to process the usual datetime directives
     formatted = c_strftime(&dts, <char*>fmt)
 
-    result = util.char_to_string(formatted)
+    # Decode result according to current locale
+    result = util.char_to_string_locale(formatted)
     free(formatted)
 
     # Now we will fill the placeholders corresponding to our additional directives
@@ -1367,7 +1364,6 @@ def get_period_field_arr(str field, const int64_t[:] arr, int freq):
     cdef:
         Py_ssize_t i, sz
         int64_t[::1] out
-        accessor f
 
     func = _get_accessor_func(field)
     if func is NULL:
@@ -1443,7 +1439,9 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = values.size
         int64_t ordinal
-        ndarray ordinals = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_INT64, 0)
+        ndarray ordinals = cnp.PyArray_EMPTY(
+            values.ndim, values.shape, cnp.NPY_INT64, 0
+        )
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(ordinals, values)
         object p
 
@@ -1689,12 +1687,15 @@ cdef class _Period(PeriodMixin):
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})")
 
-        if util.is_timedelta64_object(other) and get_timedelta64_value(other) == NPY_NAT:
+        if (
+            util.is_timedelta64_object(other) and
+            get_timedelta64_value(other) == NPY_NAT
+        ):
             # i.e. np.timedelta64("nat")
             return NaT
 
         try:
-            inc = delta_to_nanoseconds(other, reso=self.freq._reso, round_ok=False)
+            inc = delta_to_nanoseconds(other, reso=self.freq._creso, round_ok=False)
         except ValueError as err:
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})") from err
@@ -1803,7 +1804,7 @@ cdef class _Period(PeriodMixin):
 
         return Period(ordinal=ordinal, freq=freq)
 
-    def to_timestamp(self, freq=None, how='start', tz=None) -> Timestamp:
+    def to_timestamp(self, freq=None, how="start") -> Timestamp:
         """
         Return the Timestamp representation of the Period.
 
@@ -1823,16 +1824,6 @@ cdef class _Period(PeriodMixin):
         -------
         Timestamp
         """
-        if tz is not None:
-            # GH#34522
-            warnings.warn(
-                "Period.to_timestamp `tz` argument is deprecated and will "
-                "be removed in a future version.  Use "
-                "`per.to_timestamp(...).tz_localize(tz)` instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-
         how = validate_end_alias(how)
 
         end = how == 'E'
@@ -1854,7 +1845,7 @@ cdef class _Period(PeriodMixin):
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
-        return Timestamp(dt64, tz=tz)
+        return Timestamp(dt64)
 
     @property
     def year(self) -> int:
@@ -2289,9 +2280,14 @@ cdef class _Period(PeriodMixin):
         return bool(is_leapyear(self.year))
 
     @classmethod
-    def now(cls, freq=None):
+    def now(cls, freq):
         """
         Return the period of now's date.
+
+        Parameters
+        ----------
+        freq : str, BaseOffset
+            Frequency to use for the returned period.
         """
         return Period(datetime.now(), freq=freq)
 
@@ -2488,7 +2484,8 @@ class Period(_Period):
         the start or the end of the period, but rather the entire period itself.
     freq : str, default None
         One of pandas period strings or corresponding objects. Accepted
-        strings are listed in the :ref:`offset alias section <timeseries.offset_aliases>` in the user docs.
+        strings are listed in the
+        :ref:`offset alias section <timeseries.offset_aliases>` in the user docs.
     ordinal : int, default None
         The period offset from the proleptic Gregorian epoch.
     year : int, default None
@@ -2521,7 +2518,6 @@ class Period(_Period):
         # ('T', 5) but may be passed in as a string like '5T'
 
         # ordinal is the period offset from the gregorian proleptic epoch
-        cdef _Period self
 
         if freq is not None:
             freq = cls._maybe_convert_freq(freq)

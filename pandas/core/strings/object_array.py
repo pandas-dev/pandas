@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 from collections.abc import Callable  # noqa: PDF001
+import functools
 import re
+import sys
 import textwrap
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 import unicodedata
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 from pandas._typing import (
@@ -32,7 +37,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     _str_na_value = np.nan
 
-    def __len__(self):
+    def __len__(self) -> int:
         # For typing, _str_map relies on the object being sized.
         raise NotImplementedError
 
@@ -98,12 +103,17 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 result = lib.maybe_convert_objects(result)
         return result
 
-    def _str_count(self, pat, flags=0):
+    def _str_count(self, pat, flags: int = 0):
         regex = re.compile(pat, flags=flags)
         f = lambda x: len(regex.findall(x))
         return self._str_map(f, dtype="int64")
 
-    def _str_pad(self, width, side="left", fillchar=" "):
+    def _str_pad(
+        self,
+        width,
+        side: Literal["left", "right", "both"] = "left",
+        fillchar: str = " ",
+    ):
         if side == "left":
             f = lambda x: x.rjust(width, fillchar)
         elif side == "right":
@@ -114,7 +124,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             raise ValueError("Invalid side")
         return self._str_map(f)
 
-    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex: bool = True):
+    def _str_contains(
+        self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
+    ):
         if regex:
             if not case:
                 flags |= re.IGNORECASE
@@ -218,14 +230,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         f = lambda x: regex.fullmatch(x) is not None
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
-    def _str_encode(self, encoding, errors="strict"):
+    def _str_encode(self, encoding, errors: str = "strict"):
         f = lambda x: x.encode(encoding, errors=errors)
         return self._str_map(f, dtype=object)
 
-    def _str_find(self, sub, start=0, end=None):
+    def _str_find(self, sub, start: int = 0, end=None):
         return self._str_find_(sub, start, end, side="left")
 
-    def _str_rfind(self, sub, start=0, end=None):
+    def _str_rfind(self, sub, start: int = 0, end=None):
         return self._str_find_(sub, start, end, side="right")
 
     def _str_find_(self, sub, start, end, side):
@@ -242,7 +254,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             f = lambda x: getattr(x, method)(sub, start, end)
         return self._str_map(f, dtype="int64")
 
-    def _str_findall(self, pat, flags=0):
+    def _str_findall(self, pat, flags: int = 0):
         regex = re.compile(pat, flags=flags)
         return self._str_map(regex.findall, dtype="object")
 
@@ -256,14 +268,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         return self._str_map(f)
 
-    def _str_index(self, sub, start=0, end=None):
+    def _str_index(self, sub, start: int = 0, end=None):
         if end:
             f = lambda x: x.index(sub, start, end)
         else:
             f = lambda x: x.index(sub, start, end)
         return self._str_map(f, dtype="int64")
 
-    def _str_rindex(self, sub, start=0, end=None):
+    def _str_rindex(self, sub, start: int = 0, end=None):
         if end:
             f = lambda x: x.rindex(sub, start, end)
         else:
@@ -310,7 +322,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         self,
         pat: str | re.Pattern | None = None,
         n=-1,
-        expand=False,
+        expand: bool = False,
         regex: bool | None = None,
     ):
         if pat is None:
@@ -354,7 +366,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         tw = textwrap.TextWrapper(**kwargs)
         return self._str_map(lambda s: "\n".join(tw.wrap(s)))
 
-    def _str_get_dummies(self, sep="|"):
+    def _str_get_dummies(self, sep: str = "|"):
         from pandas import Series
 
         arr = Series(self).fillna("")
@@ -370,9 +382,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         dummies = np.empty((len(arr), len(tags2)), dtype=np.int64)
 
+        def _isin(test_elements: str, element: str) -> bool:
+            return element in test_elements
+
         for i, t in enumerate(tags2):
             pat = sep + t + sep
-            dummies[:, i] = lib.map_infer(arr.to_numpy(), lambda x: pat in x)
+            dummies[:, i] = lib.map_infer(
+                arr.to_numpy(), functools.partial(_isin, element=pat)
+            )
         return dummies, tags2
 
     def _str_upper(self):
@@ -446,16 +463,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(removeprefix)
 
     def _str_removesuffix(self, suffix: str) -> Series:
-        # this could be used on Python 3.9+
-        # f = lambda x: x.removesuffix(suffix)
-        # return self._str_map(str.removesuffix)
+        if sys.version_info < (3, 9):
+            # NOTE pyupgrade will remove this when we run it with --py39-plus
+            # so don't remove the unnecessary `else` statement below
+            from pandas.util._str_methods import removesuffix
 
-        def removesuffix(text: str) -> str:
-            if text.endswith(suffix):
-                return text[: -len(suffix)]
-            return text
-
-        return self._str_map(removesuffix)
+            return self._str_map(functools.partial(removesuffix, suffix=suffix))
+        else:
+            return self._str_map(lambda x: x.removesuffix(suffix))
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         regex = re.compile(pat, flags=flags)

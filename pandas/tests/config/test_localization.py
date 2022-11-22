@@ -12,7 +12,7 @@ from pandas._config.localization import (
 
 import pandas as pd
 
-_all_locales = get_locales() or []
+_all_locales = get_locales()
 _current_locale = locale.setlocale(locale.LC_ALL)  # getlocale() is wrong, see GH#46595
 
 # Don't run any of these tests if we have no locales.

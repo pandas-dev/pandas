@@ -1,6 +1,8 @@
 from contextlib import contextmanager
+import re
 import struct
 import tracemalloc
+from typing import Generator
 
 import numpy as np
 import pytest
@@ -13,7 +15,7 @@ from pandas.core.algorithms import isin
 
 
 @contextmanager
-def activated_tracemalloc():
+def activated_tracemalloc() -> Generator[None, None, None]:
     tracemalloc.start()
     try:
         yield
@@ -75,6 +77,49 @@ class TestHashTable:
         assert table.get_item(index + 1) == 41
         assert index + 2 not in table
 
+        table.set_item(index + 1, 21)
+        assert index in table
+        assert index + 1 in table
+        assert len(table) == 2
+        assert table.get_item(index) == 21
+        assert table.get_item(index + 1) == 21
+
+        with pytest.raises(KeyError, match=str(index + 2)):
+            table.get_item(index + 2)
+
+    def test_get_set_contains_len_mask(self, table_type, dtype):
+        if table_type == ht.PyObjectHashTable:
+            pytest.skip("Mask not supported for object")
+        index = 5
+        table = table_type(55, uses_mask=True)
+        assert len(table) == 0
+        assert index not in table
+
+        table.set_item(index, 42)
+        assert len(table) == 1
+        assert index in table
+        assert table.get_item(index) == 42
+        with pytest.raises(KeyError, match="NA"):
+            table.get_na()
+
+        table.set_item(index + 1, 41)
+        table.set_na(41)
+        assert pd.NA in table
+        assert index in table
+        assert index + 1 in table
+        assert len(table) == 3
+        assert table.get_item(index) == 42
+        assert table.get_item(index + 1) == 41
+        assert table.get_na() == 41
+
+        table.set_na(21)
+        assert index in table
+        assert index + 1 in table
+        assert len(table) == 3
+        assert table.get_item(index + 1) == 41
+        assert table.get_na() == 21
+        assert index + 2 not in table
+
         with pytest.raises(KeyError, match=str(index + 2)):
             table.get_item(index + 2)
 
@@ -100,6 +145,22 @@ class TestHashTable:
         for i in range(N):
             assert table.get_item(keys[i]) == i
 
+    def test_map_locations_mask(self, table_type, dtype, writable):
+        if table_type == ht.PyObjectHashTable:
+            pytest.skip("Mask not supported for object")
+        N = 3
+        table = table_type(uses_mask=True)
+        keys = (np.arange(N) + N).astype(dtype)
+        keys.flags.writeable = writable
+        table.map_locations(keys, np.array([False, False, True]))
+        for i in range(N - 1):
+            assert table.get_item(keys[i]) == i
+
+        with pytest.raises(KeyError, match=re.escape(str(keys[N - 1]))):
+            table.get_item(keys[N - 1])
+
+        assert table.get_na() == 2
+
     def test_lookup(self, table_type, dtype, writable):
         N = 3
         table = table_type()
@@ -121,6 +182,24 @@ class TestHashTable:
         wrong_keys = np.arange(N).astype(dtype)
         result = table.lookup(wrong_keys)
         assert np.all(result == -1)
+
+    def test_lookup_mask(self, table_type, dtype, writable):
+        if table_type == ht.PyObjectHashTable:
+            pytest.skip("Mask not supported for object")
+        N = 3
+        table = table_type(uses_mask=True)
+        keys = (np.arange(N) + N).astype(dtype)
+        mask = np.array([False, True, False])
+        keys.flags.writeable = writable
+        table.map_locations(keys, mask)
+        result = table.lookup(keys, mask)
+        expected = np.arange(N)
+        tm.assert_numpy_array_equal(result.astype(np.int64), expected.astype(np.int64))
+
+        result = table.lookup(np.array([1 + N]).astype(dtype), np.array([False]))
+        tm.assert_numpy_array_equal(
+            result.astype(np.int64), np.array([-1], dtype=np.int64)
+        )
 
     def test_unique(self, table_type, dtype, writable):
         if dtype in (np.int8, np.uint8):

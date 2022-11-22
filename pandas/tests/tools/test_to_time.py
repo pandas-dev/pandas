@@ -4,9 +4,10 @@ import locale
 import numpy as np
 import pytest
 
+from pandas.compat import PY311
+
 from pandas import Series
 import pandas._testing as tm
-from pandas.core.tools.datetimes import to_time as to_time_alias
 from pandas.core.tools.times import to_time
 
 # The tests marked with this are locale-dependent.
@@ -40,8 +41,9 @@ class TestToTime:
     def test_odd_format(self):
         new_string = "14.15"
         msg = r"Cannot convert arg \['14\.15'\] to a time"
-        with pytest.raises(ValueError, match=msg):
-            to_time(new_string)
+        if not PY311:
+            with pytest.raises(ValueError, match=msg):
+                to_time(new_string)
         assert to_time(new_string, format="%H.%M") == time(14, 15)
 
     def test_arraylike(self):
@@ -66,12 +68,3 @@ class TestToTime:
         res = to_time(np.array(arg))
         assert isinstance(res, list)
         assert res == expected_arr
-
-
-def test_to_time_alias():
-    expected = time(14, 15)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = to_time_alias(expected)
-
-    assert result == expected

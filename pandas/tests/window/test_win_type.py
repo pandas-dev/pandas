@@ -168,10 +168,10 @@ def test_consistent_win_type_freq(arg):
         s.rolling(arg, win_type="freq")
 
 
-def test_win_type_freq_return_deprecation():
+def test_win_type_freq_return_none():
+    # GH 48838
     freq_roll = Series(range(2), index=date_range("2020", periods=2)).rolling("2s")
-    with tm.assert_produces_warning(FutureWarning):
-        assert freq_roll.win_type == "freq"
+    assert freq_roll.win_type is None
 
 
 @td.skip_if_no_scipy
@@ -684,7 +684,7 @@ def test_cmov_window_special_linear_range(win_types_special, step):
 
 @td.skip_if_no_scipy
 def test_weighted_var_big_window_no_segfault(win_types, center):
-    # Github Issue #46772
+    # GitHub Issue #46772
     x = Series(0)
     result = x.rolling(window=16, center=center, win_type=win_types).var()
     expected = Series(np.NaN)
