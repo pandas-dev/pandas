@@ -445,7 +445,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 i8values = generate_regular_range(start, end, periods, freq, unit=unit)
             else:
                 xdr = _generate_range(
-                    start=start, end=end, periods=periods, offset=freq
+                    start=start, end=end, periods=periods, offset=freq, unit=unit
                 )
                 i8values = np.array([x.value for x in xdr], dtype=np.int64)
 
@@ -2489,6 +2489,8 @@ def _generate_range(
     end: Timestamp | None,
     periods: int | None,
     offset: BaseOffset,
+    *,
+    unit: str,
 ):
     """
     Generates a sequence of dates corresponding to the specified time
@@ -2500,7 +2502,8 @@ def _generate_range(
     start : Timestamp or None
     end : Timestamp or None
     periods : int or None
-    offset : DateOffset,
+    offset : DateOffset
+    unit : str
 
     Notes
     -----
@@ -2521,7 +2524,7 @@ def _generate_range(
     # Non-overlapping identity check (left operand type: "Timestamp", right
     # operand type: "NaTType")
     if start is not NaT:  # type: ignore[comparison-overlap]
-        start = start.as_unit("ns")
+        start = start.as_unit(unit)
     else:
         start = None
 
@@ -2531,7 +2534,7 @@ def _generate_range(
     # Non-overlapping identity check (left operand type: "Timestamp", right
     # operand type: "NaTType")
     if end is not NaT:  # type: ignore[comparison-overlap]
-        end = end.as_unit("ns")
+        end = end.as_unit(unit)
     else:
         end = None
 
@@ -2574,7 +2577,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur).as_unit("ns")
+            next_date = offset._apply(cur).as_unit(unit)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
             cur = next_date
@@ -2588,7 +2591,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur).as_unit("ns")
+            next_date = offset._apply(cur).as_unit(unit)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")
             cur = next_date
