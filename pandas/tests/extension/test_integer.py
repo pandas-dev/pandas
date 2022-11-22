@@ -272,7 +272,7 @@ class TestNumericAccumulation(base.BaseNumericAccumulateTests):
             tm.assert_series_equal(result, expected)
 
         else:
-            raise
+            raise NotImplementedError(f"{op_name} not supported")
 
 
 class TestPrinting(base.BasePrintingTests):
