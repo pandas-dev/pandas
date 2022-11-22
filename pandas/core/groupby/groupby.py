@@ -324,8 +324,12 @@ Compute {fname} of group values.
 Parameters
 ----------
 numeric_only : bool, default {no}
-    Include only float, int, boolean columns. If None, will attempt to use
-    everything, then use only numeric data.
+    Include only float, int, boolean columns.
+
+    .. versionchanged:: 2.0.0
+
+        numeric_only no longer accepts ``None``.
+
 min_count : int, default {mc}
     The required number of valid values to perform the operation. If fewer
     than ``min_count`` non-NA values are present the result will be NA.
@@ -1061,8 +1065,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # This is a no-op for SeriesGroupBy
         grp = self.grouper
         if not (
-            self.as_index
-            and grp.groupings is not None
+            grp.groupings is not None
             and self.obj.ndim > 1
             and self._group_selection is None
         ):
@@ -1705,7 +1708,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         alt: Callable,
         numeric_only: bool | lib.NoDefault,
         min_count: int = -1,
-        ignore_failures: bool = True,
         **kwargs,
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
@@ -1749,7 +1751,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
-        new_mgr = data.grouped_reduce(array_func, ignore_failures=ignore_failures)
+        new_mgr = data.grouped_reduce(array_func, ignore_failures=False)
 
         if not is_ser and len(new_mgr) < orig_len:
             warn_dropping_nuisance_columns_deprecated(type(self), how, numeric_only)
@@ -2054,8 +2056,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Parameters
         ----------
         numeric_only : bool, default True
-            Include only float, int, boolean columns. If None, will attempt to use
-            everything, then use only numeric data.
+            Include only float, int, boolean columns.
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only no longer accepts ``None``.
 
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
@@ -2138,8 +2143,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Parameters
         ----------
         numeric_only : bool, default True
-            Include only float, int, boolean columns. If None, will attempt to use
-            everything, then use only numeric data.
+            Include only float, int, boolean columns.
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only no longer accepts ``None``.
 
         Returns
         -------
@@ -2285,7 +2293,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 "var",
                 alt=lambda x: Series(x).var(ddof=ddof),
                 numeric_only=numeric_only,
-                ignore_failures=numeric_only is lib.no_default,
                 ddof=ddof,
             )
 
@@ -2637,7 +2644,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             if self.axis == 1:
                 return result.T
-            return result.unstack()
+
+            # GH#49256 - properly handle the grouping column(s)
+            if self._selected_obj.ndim != 1 or self.as_index:
+                result = result.unstack()
+                if not self.as_index:
+                    self._insert_inaxis_grouper_inplace(result)
+
+            return result
 
     @final
     def resample(self, rule, *args, **kwargs):
@@ -3277,8 +3291,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         is_ser = obj.ndim == 1
         mgr = self._get_data_to_aggregate()
         data = mgr.get_numeric_data() if numeric_only_bool else mgr
-        ignore_failures = numeric_only_bool
-        res_mgr = data.grouped_reduce(blk_func, ignore_failures=ignore_failures)
+        res_mgr = data.grouped_reduce(blk_func, ignore_failures=False)
 
         if (
             numeric_only is lib.no_default
@@ -3756,7 +3769,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if numeric_only_bool:
             mgr = mgr.get_numeric_data()
 
-        res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
+        res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=False)
 
         if not is_ser and len(res_mgr.items) != orig_mgr_len:
             howstr = how.replace("group_", "")

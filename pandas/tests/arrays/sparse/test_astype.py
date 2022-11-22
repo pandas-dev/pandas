@@ -110,3 +110,12 @@ class TestAstype:
         result = arr.astype(dtype, copy=False)
         expected = SparseArray([1.0, 2.0, 3.0], fill_value=0.0)
         tm.assert_sp_array_equal(result, expected)
+
+    def test_astype_dt64_to_int64(self):
+        # GH#49631 match non-sparse behavior
+        values = np.array(["NaT", "2016-01-02", "2016-01-03"], dtype="M8[ns]")
+
+        arr = SparseArray(values)
+        result = arr.astype("int64")
+        expected = values.astype("int64")
+        tm.assert_numpy_array_equal(result, expected)
