@@ -2687,7 +2687,6 @@ def test_groupby_aggregation_numeric_with_non_numeric_dtype():
 
     gb = df.groupby(by=["x"])
     result = gb.sum()
-    print(result)
     tm.assert_frame_equal(result, expected)
 
 

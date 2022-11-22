@@ -345,7 +345,6 @@ def test_observed(observed):
         {"values": [1, 2, 3, 4], "C": ["foo", "bar", "foo", "bar"]}, index=exp_index
     )
     result = gb.sum()
-    print(result)
     if not observed:
         expected = cartesian_product_for_groupers(
             expected, [cat1, cat2], list("AB"), fill_value=0

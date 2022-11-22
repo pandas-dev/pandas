@@ -122,11 +122,6 @@ class BaseGroupbyTests(BaseExtensionTests):
             result = df.groupby("A").sum().columns
         else:
             with pytest.raises(TypeError, match="does not support"):
-                print(type(data_for_grouping))
-                print(data_for_grouping.dtype)
-                print(data_for_grouping)
-                print(df)
-                print(df.groupby("A").sum())
                 df.groupby("A").sum().columns
             result = df.groupby("A").sum(numeric_only=True).columns
 
