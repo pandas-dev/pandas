@@ -49,7 +49,10 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.astype import astype_nansafe
+from pandas.core.dtypes.astype import (
+    astype_array,
+    astype_nansafe,
+)
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     find_common_type,
@@ -83,13 +86,13 @@ from pandas.core import (
     ops,
 )
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
 )
@@ -119,8 +122,6 @@ if TYPE_CHECKING:
     )
 
     SparseIndexKind = Literal["integer", "block"]
-
-    from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Series
 
@@ -907,29 +908,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             index = keys
         return Series(counts, index=index)
 
-    def _quantile(self, qs: npt.NDArray[np.float64], interpolation: str):
-
-        if self._null_fill_value or self.sp_index.ngaps == 0:
-            # We can avoid densifying
-            npvalues = self.sp_values
-            mask = np.zeros(npvalues.shape, dtype=bool)
-        else:
-            npvalues = self.to_numpy()
-            mask = self.isna()
-
-        fill_value = na_value_for_dtype(npvalues.dtype, compat=False)
-        res_values = quantile_with_mask(
-            npvalues,
-            mask,
-            fill_value,
-            qs,
-            interpolation,
-        )
-
-        # Special case: the returned array isn't _really_ sparse, so we don't
-        #  wrap it in a SparseArray
-        return res_values
-
     # --------
     # Indexing
     # --------
@@ -1305,23 +1283,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         future_dtype = pandas_dtype(dtype)
         if not isinstance(future_dtype, SparseDtype):
             # GH#34457
-            if isinstance(future_dtype, np.dtype):
-                values = np.array(self)
-                return astype_nansafe(values, dtype=future_dtype)
-            else:
-                dtype = cast(ExtensionDtype, dtype)
-                cls = dtype.construct_array_type()
-                return cls._from_sequence(self, dtype=dtype, copy=copy)
+            values = np.asarray(self)
+            values = ensure_wrapped_if_datetimelike(values)
+            return astype_array(values, dtype=future_dtype, copy=False)
 
         dtype = self.dtype.update_dtype(dtype)
         subtype = pandas_dtype(dtype._subtype_with_str)
+        subtype = cast(np.dtype, subtype)  # ensured by update_dtype
         sp_values = astype_nansafe(self.sp_values, subtype, copy=copy)
 
-        # error: Argument 1 to "_simple_new" of "SparseArray" has incompatible type
-        # "ExtensionArray"; expected "ndarray"
-        return self._simple_new(
-            sp_values, self.sp_index, dtype  # type: ignore[arg-type]
-        )
+        return self._simple_new(sp_values, self.sp_index, dtype)
 
     def map(self: SparseArrayT, mapper) -> SparseArrayT:
         """

@@ -357,7 +357,7 @@ def test_css_excel_cell_precedence(styles, expected):
     """It applies favors latter declarations over former declarations"""
     # See GH 47371
     converter = CSSToExcelConverter()
-    converter.__call__.cache_clear()
+    converter._call_cached.cache_clear()
     css_styles = {(0, 0): styles}
     cell = CssExcelCell(
         row=0,
@@ -369,7 +369,7 @@ def test_css_excel_cell_precedence(styles, expected):
         css_col=0,
         css_converter=converter,
     )
-    converter.__call__.cache_clear()
+    converter._call_cached.cache_clear()
 
     assert cell.style == converter(expected)
 
@@ -410,7 +410,7 @@ def test_css_excel_cell_cache(styles, cache_hits, cache_misses):
     """It caches unique cell styles"""
     # See GH 47371
     converter = CSSToExcelConverter()
-    converter.__call__.cache_clear()
+    converter._call_cached.cache_clear()
 
     css_styles = {(0, i): _style for i, _style in enumerate(styles)}
     for css_row, css_col in css_styles:
@@ -424,8 +424,8 @@ def test_css_excel_cell_cache(styles, cache_hits, cache_misses):
             css_col=css_col,
             css_converter=converter,
         )
-    cache_info = converter.__call__.cache_info()
-    converter.__call__.cache_clear()
+    cache_info = converter._call_cached.cache_info()
+    converter._call_cached.cache_clear()
 
     assert cache_info.hits == cache_hits
     assert cache_info.misses == cache_misses

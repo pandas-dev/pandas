@@ -47,6 +47,9 @@ def read_orc(
         ``file://localhost/path/to/table.orc``.
     columns : list, default None
         If not None, only these columns will be read from the file.
+        Output always follows the ordering of the file and not the columns list.
+        This mirrors the original behaviour of
+        :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
     **kwargs
         Any additional kwargs are passed to pyarrow.
 
