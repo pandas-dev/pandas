@@ -53,7 +53,7 @@ def test_reductions_return_types(dropna, data, all_numeric_reductions):
     if op in ("sum", "prod"):
         assert isinstance(getattr(s, op)(), np.int_)
     elif op == "count":
-        # Oddly on the 32 bit build (but now Windows), this is intc (!= intp)
+        # Oddly on the 32 bit build (but not Windows), this is intc (!= intp)
         assert isinstance(getattr(s, op)(), np.integer)
     elif op in ("min", "max"):
         assert isinstance(getattr(s, op)(), np.bool_)
