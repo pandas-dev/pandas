@@ -136,7 +136,8 @@ def test_apply_out_of_range(request, tz_naive_fixture, _offset):
         t = Timestamp("20080101", tz=tz)
         result = t + offset
         assert isinstance(result, datetime)
-        assert t.tzinfo is not None
+        if tz is not None:
+            assert t.tzinfo is not None
 
         if isinstance(tz, tzlocal) and not IS64 and _offset is not DateOffset:
             # If we hit OutOfBoundsDatetime on non-64 bit machines
