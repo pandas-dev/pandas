@@ -435,7 +435,12 @@ _c_parser_defaults = {
     "float_precision": None,
 }
 
-_fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
+_fwf_defaults = {
+    "colspecs": "infer",
+    "infer_nrows": 100,
+    "widths": None,
+    "delimiter": " 	",
+}
 
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
