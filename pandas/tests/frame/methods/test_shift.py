@@ -500,7 +500,6 @@ class TestDataFrameShift:
         with pytest.raises(ValueError, match=msg):
             no_freq.shift(freq="infer")
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) axis=1 support
     def test_shift_dt64values_int_fill_deprecated(self):
         # GH#31971
         ser = Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
