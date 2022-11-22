@@ -362,7 +362,7 @@ def main():
     os.environ["MPLBACKEND"] = "module://matplotlib.backends.backend_agg"
 
     builder = DocBuilder(
-        args.num_jobs,
+        1,
         not args.no_api,
         args.whatsnew,
         args.single,
