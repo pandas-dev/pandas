@@ -207,6 +207,8 @@ def timedelta_range(
     freq=None,
     name=None,
     closed=None,
+    *,
+    unit: str | None = None,
 ) -> TimedeltaIndex:
     """
     Return a fixed frequency TimedeltaIndex with day as the default.
@@ -226,6 +228,10 @@ def timedelta_range(
     closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
+    unit : str, default None
+        Specify the desired resolution of the result.
+
+        .. versionadded:: 2.0.0
 
     Returns
     -------
@@ -270,10 +276,19 @@ def timedelta_range(
     TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',
                     '5 days 00:00:00'],
                    dtype='timedelta64[ns]', freq=None)
+
+    **Specify a unit**
+
+    >>> pd.timedelta_range("1 Day", periods=3, freq="100000D", unit="s")
+    TimedeltaIndex(['1 days 00:00:00', '100001 days 00:00:00',
+                    '200001 days 00:00:00'],
+                   dtype='timedelta64[s]', freq='100000D')
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
     freq, _ = dtl.maybe_infer_freq(freq)
-    tdarr = TimedeltaArray._generate_range(start, end, periods, freq, closed=closed)
+    tdarr = TimedeltaArray._generate_range(
+        start, end, periods, freq, closed=closed, unit=unit
+    )
     return TimedeltaIndex._simple_new(tdarr, name=name)
