@@ -355,8 +355,8 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _left_indexer_unique(self: _IndexT, other: _IndexT) -> npt.NDArray[np.intp]:
         # Caller is responsible for ensuring other.dtype == self.dtype
-        sv = self._get_engine_target()
-        ov = other._get_engine_target()
+        sv = self._get_join_target()
+        ov = other._get_join_target()
         # can_use_libjoin assures sv and ov are ndarrays
         sv = cast(np.ndarray, sv)
         ov = cast(np.ndarray, ov)
@@ -367,8 +367,8 @@ class Index(IndexOpsMixin, PandasObject):
         self: _IndexT, other: _IndexT
     ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
-        sv = self._get_engine_target()
-        ov = other._get_engine_target()
+        sv = self._get_join_target()
+        ov = other._get_join_target()
         # can_use_libjoin assures sv and ov are ndarrays
         sv = cast(np.ndarray, sv)
         ov = cast(np.ndarray, ov)
@@ -381,8 +381,8 @@ class Index(IndexOpsMixin, PandasObject):
         self: _IndexT, other: _IndexT
     ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
-        sv = self._get_engine_target()
-        ov = other._get_engine_target()
+        sv = self._get_join_target()
+        ov = other._get_join_target()
         # can_use_libjoin assures sv and ov are ndarrays
         sv = cast(np.ndarray, sv)
         ov = cast(np.ndarray, ov)
@@ -395,8 +395,8 @@ class Index(IndexOpsMixin, PandasObject):
         self: _IndexT, other: _IndexT
     ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
-        sv = self._get_engine_target()
-        ov = other._get_engine_target()
+        sv = self._get_join_target()
+        ov = other._get_join_target()
         # can_use_libjoin assures sv and ov are ndarrays
         sv = cast(np.ndarray, sv)
         ov = cast(np.ndarray, ov)
@@ -4927,6 +4927,19 @@ class Index(IndexOpsMixin, PandasObject):
             if not isinstance(self._values, BaseMaskedArray):
                 # TODO(ExtensionIndex): remove special-case, just use self._values
                 return self._values.astype(object)
+        return vals
+
+    def _get_join_target(self) -> ArrayLike:
+        """
+        Get the ndarray or ExtensionArray that we can pass to the IndexEngine
+        constructor.
+        """
+        vals = self._values
+        if isinstance(vals, StringArray):
+            # GH#45652 much more performant than ExtensionEngine
+            return vals._ndarray
+        if type(self) is Index and isinstance(self._values, ExtensionArray):
+            return self._values.astype(object)
         return vals
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
