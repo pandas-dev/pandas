@@ -384,9 +384,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         is_data_page = self._current_page_type == const.page_data_type
         is_mix_page = self._current_page_type == const.page_mix_type
         return bool(
-            is_data_page
-            or is_mix_page
-            or self._current_page_data_subheader_pointers != []
+            is_data_page or is_mix_page or self._current_page_data_subheader_pointers
         )
 
     def _read_page_header(self) -> None:

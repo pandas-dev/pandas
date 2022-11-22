@@ -373,7 +373,7 @@ class _XMLFrameParser:
                     ):
                         del elem.getparent()[0]
 
-        if dicts == []:
+        if not dicts:
             raise ParserError("No result from selected items in iterparse.")
 
         keys = list(dict.fromkeys([k for d in dicts for k in d.keys()]))

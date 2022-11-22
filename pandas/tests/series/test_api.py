@@ -162,7 +162,7 @@ class TestSeriesMisc:
 
     def test_attrs(self):
         s = Series([0, 1], name="abc")
-        assert s.attrs == {}
+        assert not s.attrs
         s.attrs["version"] = 1
         result = s + 1
         assert result.attrs == {"version": 1}

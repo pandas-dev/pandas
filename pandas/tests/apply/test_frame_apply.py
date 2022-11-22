@@ -125,7 +125,7 @@ def test_apply_with_reduce_empty():
     tm.assert_series_equal(result, expected)
 
     # Ensure that x.append hasn't been called
-    assert x == []
+    assert not x
 
 
 @pytest.mark.parametrize("func", ["sum", "prod", "any", "all"])

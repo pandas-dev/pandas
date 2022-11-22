@@ -89,7 +89,6 @@ disable = [
   "unidiomatic-typecheck",
   "unnecessary-dunder-call",
   "unnecessary-lambda-assignment",
-  "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
   "wrong-import-order",
   "wrong-import-position",
