@@ -1678,10 +1678,12 @@ class ExtensionArray:
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
-    def any(self, *, skipna: bool = True) -> bool:
+    def any(self, *, skipna: bool = True) -> bool:  # type: ignore[empty-body]
+        # error: Missing return statement
         pass
 
-    def all(self, *, skipna: bool = True) -> bool:
+    def all(self, *, skipna: bool = True) -> bool:  # type: ignore[empty-body]
+        # error: Missing return statement
         pass
 
 
