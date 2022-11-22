@@ -398,13 +398,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         if start is not None:
             start = Timestamp(start)
-            if start is not NaT:
-                start = start.as_unit("ns")
 
         if end is not None:
             end = Timestamp(end)
-            if end is not NaT:
-                end = end.as_unit("ns")
 
         if start is NaT or end is NaT:
             raise ValueError("Neither `start` nor `end` can be NaT")
