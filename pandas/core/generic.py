@@ -2751,8 +2751,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Using SQLAlchemy makes it possible to use any DB supported by that
             library. Legacy support is provided for sqlite3.Connection objects. The user
             is responsible for engine disposal and connection closure for the SQLAlchemy
-            connectable See `here \
-                <https://docs.sqlalchemy.org/en/13/core/connections.html>`_.
+            connectable. See `here \
+                <https://docs.sqlalchemy.org/en/14/core/connections.html>`_.
+            If passing a sqlalchemy.engine.Connection which is already in a transaction,
+            the transaction will not be committed.  If passing a sqlite3.Connection,
+            it will not be possible to roll back the record insertion.
 
         schema : str, optional
             Specify the schema (if database flavor supports this). If None, use
@@ -4483,6 +4486,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             indexer,
             axis=bm_axis,
             allow_dups=True,
+            copy=None,
             only_slice=only_slice,
         )
         result = self._constructor(new_mgr)
@@ -8999,12 +9003,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if numeric_only:
             if self.ndim == 1 and not is_numeric_dtype(self.dtype):
                 # GH#47500
-                warnings.warn(
-                    f"Calling Series.rank with numeric_only={numeric_only} and dtype "
-                    f"{self.dtype} is deprecated and will raise a TypeError in a "
-                    "future version of pandas",
-                    category=FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise TypeError(
+                    "Series.rank does not allow numeric_only=True with "
+                    "non-numeric dtype."
                 )
             data = self._get_numeric_data()
         else:
@@ -10138,7 +10139,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        tz : str or tzinfo object
+        tz : str or tzinfo object or None
+            Target time zone. Passing ``None`` will convert to
+            UTC and remove the timezone information.
         axis : the axis to convert
         level : int, str, default None
             If axis is a MultiIndex, convert a specific level. Otherwise
@@ -10155,6 +10158,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ------
         TypeError
             If the axis is tz-naive.
+
+        Examples
+        --------
+        Change to another time zone:
+
+        >>> s = pd.Series([1],
+        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
+        >>> s.tz_convert('Asia/Shanghai')
+        2018-09-15 07:30:00+08:00    1
+        dtype: int64
+
+        Pass None to convert to UTC and get a tz-naive index:
+
+        >>> s = pd.Series([1],
+        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
+        >>> s.tz_convert(None)
+        2018-09-14 23:30:00    1
+        dtype: int64
         """
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
@@ -10205,7 +10226,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        tz : str or tzinfo
+        tz : str or tzinfo or None
+            Time zone to localize. Passing ``None`` will remove the
+            time zone information and preserve local time.
         axis : the axis to localize
         level : int, str, default None
             If axis ia a MultiIndex, localize a specific level. Otherwise
@@ -10259,6 +10282,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...               index=pd.DatetimeIndex(['2018-09-15 01:30:00']))
         >>> s.tz_localize('CET')
         2018-09-15 01:30:00+02:00    1
+        dtype: int64
+
+        Pass None to convert to tz-naive index and preserve local time:
+
+        >>> s = pd.Series([1],
+        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
+        >>> s.tz_localize(None)
+        2018-09-15 01:30:00    1
         dtype: int64
 
         Be careful with DST changes. When there is sequential data, pandas
@@ -10945,6 +10976,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+
         if axis is lib.no_default:
             axis = None
 

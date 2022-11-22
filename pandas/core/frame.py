@@ -5444,9 +5444,8 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
-    # error: Signature of "fillna" incompatible with supertype "NDFrame"
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
-    def fillna(  # type: ignore[override]
+    def fillna(
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
         *,
@@ -5535,9 +5534,8 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    # error: Signature of "replace" incompatible with supertype "NDFrame"
     @doc(NDFrame.replace, **_shared_doc_kwargs)
-    def replace(  # type: ignore[override]
+    def replace(
         self,
         to_replace=None,
         value=lib.no_default,
@@ -6682,10 +6680,9 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     # TODO: Just move the sort_values doc here.
-    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
-    def sort_values(  # type: ignore[override]
+    def sort_values(
         self,
         by: IndexLabel,
         *,
@@ -8082,7 +8079,9 @@ Keep all original rows and columns and also all original values
             if mask.all():
                 continue
 
-            self.loc[:, col] = expressions.where(mask, this, that)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", "In a future version, `df.iloc")
+                self.loc[:, col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
@@ -8846,7 +8845,7 @@ Parrot 2  Parrot       24.0
         if len(columns) == 1:
             result = df[columns[0]].explode()
         else:
-            mylen = lambda x: len(x) if is_list_like(x) else -1
+            mylen = lambda x: len(x) if (is_list_like(x) and len(x) > 0) else 1
             counts0 = self[columns[0]].apply(mylen)
             for c in columns[1:]:
                 if not all(counts0 == self[c].apply(mylen)):
@@ -9203,8 +9202,9 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | Series:
         ...
 
+    # error: Missing return statement
     @doc(NDFrame.any, **_shared_doc_kwargs)
-    def any(
+    def any(  # type: ignore[empty-body]
         self,
         axis: Axis = 0,
         bool_only: bool | None = None,
@@ -10461,7 +10461,7 @@ Parrot 2  Parrot       24.0
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
-            res, _ = df._mgr.reduce(blk_func, ignore_failures=False)
+            res = df._mgr.reduce(blk_func)
             out = df._constructor(res).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)

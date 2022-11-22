@@ -22,6 +22,7 @@ def generate_regular_range(
     end: Timestamp | Timedelta | None,
     periods: int | None,
     freq: BaseOffset,
+    unit: str = "ns",
 ) -> npt.NDArray[np.intp]:
     """
     Generate a range of dates or timestamps with the spans between dates
@@ -37,14 +38,28 @@ def generate_regular_range(
         Number of periods in produced date range.
     freq : Tick
         Describes space between dates in produced date range.
+    unit : str, default "ns"
+        The resolution the output is meant to represent.
 
     Returns
     -------
-    ndarray[np.int64] Representing nanoseconds.
+    ndarray[np.int64]
+        Representing the given resolution.
     """
     istart = start.value if start is not None else None
     iend = end.value if end is not None else None
-    stride = freq.nanos
+    freq.nanos  # raises if non-fixed frequency
+    td = Timedelta(freq)
+    try:
+        td = td.as_unit(  # pyright: ignore[reportGeneralTypeIssues]
+            unit, round_ok=False
+        )
+    except ValueError as err:
+        raise ValueError(
+            f"freq={freq} is incompatible with unit={unit}. "
+            "Use a lower freq or a higher unit instead."
+        ) from err
+    stride = int(td.value)
 
     if periods is None and istart is not None and iend is not None:
         b = istart
