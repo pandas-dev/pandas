@@ -1681,7 +1681,7 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        return self(kind="scatter", x=x, y=y, **kwargs)
+        return self(kind="scatter", x=x, y=y, s=s, c=c, **kwargs)
 
     def hexbin(
         self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs
