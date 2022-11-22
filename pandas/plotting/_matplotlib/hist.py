@@ -60,7 +60,7 @@ class HistPlot(LinePlot):
         self.bins = bins  # use mpl default
         self.bottom = bottom
         # Do not call LinePlot.__init__ which may fill nan
-        MPLPlot.__init__(self, data, **kwargs)
+        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
 
     def _args_adjust(self) -> None:
         # calculate bin number separately in different subplots
@@ -192,7 +192,8 @@ class KdePlot(HistPlot):
         return "vertical"
 
     def __init__(self, data, bw_method=None, ind=None, **kwargs) -> None:
-        MPLPlot.__init__(self, data, **kwargs)
+        # Do not call LinePlot.__init__ which may fill nan
+        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
         self.bw_method = bw_method
         self.ind = ind
 
