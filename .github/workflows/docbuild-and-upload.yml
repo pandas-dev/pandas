@@ -49,7 +49,7 @@ jobs:
       run: python web/pandas_web.py web/pandas --target-path=web/build
 
     - name: Build documentation
-      run: catchsegv doc/make.py --warnings-are-errors
+      run: doc/make.py --warnings-are-errors
 
     - name: Build documentation zip
       run: doc/make.py zip_html
