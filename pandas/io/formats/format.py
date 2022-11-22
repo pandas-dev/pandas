@@ -9,7 +9,7 @@ from csv import (
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
-import decimal
+import decimal as decimal_import
 from functools import partial
 from io import StringIO
 import math
@@ -108,7 +108,7 @@ from pandas.io.common import (
 )
 from pandas.io.formats.printing import (
     adjoin,
-    justify,
+    justify as printing_justify,
     pprint_thing,
 )
 
@@ -433,7 +433,7 @@ class TextAdjustment:
         return len(text)
 
     def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
-        return justify(texts, max_len, mode=mode)
+        return printing_justify(texts, max_len, mode=mode)
 
     def adjoin(self, space: int, *lists, **kwargs) -> str:
         return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
@@ -1794,12 +1794,12 @@ def _format_datetime64_dateonly(
 
 
 def get_format_datetime64(
-    is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None
+    is_only_dates: bool, nat_rep: str = "NaT", date_format: str | None = None
 ) -> Callable:
     """Return a formatter callable taking a datetime64 as input and providing
     a string as output"""
 
-    if is_dates_only:
+    if is_only_dates:
         return lambda x: _format_datetime64_dateonly(
             x, nat_rep=nat_rep, date_format=date_format
         )
@@ -2067,16 +2067,16 @@ class EngFormatter:
 
         @param num: the value to represent
         @type num: either a numeric value or a string that can be converted to
-                   a numeric value (as per decimal.Decimal constructor)
+                   a numeric value (as per decimal_import.Decimal constructor)
 
         @return: engineering formatted string
         """
-        dnum = decimal.Decimal(str(num))
+        dnum = decimal_import.Decimal(str(num))
 
-        if decimal.Decimal.is_nan(dnum):
+        if decimal_import.Decimal.is_nan(dnum):
             return "NaN"
 
-        if decimal.Decimal.is_infinite(dnum):
+        if decimal_import.Decimal.is_infinite(dnum):
             return "inf"
 
         sign = 1
@@ -2086,9 +2086,9 @@ class EngFormatter:
             dnum = -dnum
 
         if dnum != 0:
-            pow10 = decimal.Decimal(int(math.floor(dnum.log10() / 3) * 3))
+            pow10 = decimal_import.Decimal(int(math.floor(dnum.log10() / 3) * 3))
         else:
-            pow10 = decimal.Decimal(0)
+            pow10 = decimal_import.Decimal(0)
 
         pow10 = pow10.min(max(self.ENG_PREFIXES.keys()))
         pow10 = pow10.max(min(self.ENG_PREFIXES.keys()))
