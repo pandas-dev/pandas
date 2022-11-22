@@ -88,7 +88,7 @@ def get_authors(revision_range):
     pre.discard("Homu")
 
     # Append '+' to new authors.
-    authors = [s + " +" for s in cur - pre] + [s for s in cur & pre]
+    authors = [s + " +" for s in cur - pre] + list(cur & pre)
     authors.sort()
     return authors
 

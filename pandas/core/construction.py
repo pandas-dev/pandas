@@ -8,17 +8,15 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Any,
     Optional,
     Sequence,
     Union,
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
-import numpy.ma as ma
+from numpy import ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs.period import Period
@@ -30,7 +28,6 @@ from pandas._typing import (
     T,
 )
 from pandas.errors import IntCastingNaNError
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -69,10 +66,10 @@ import pandas.core.common as com
 
 if TYPE_CHECKING:
     from pandas import (
-        ExtensionArray,
         Index,
         Series,
     )
+    from pandas.core.arrays.base import ExtensionArray
 
 
 def array(
@@ -502,6 +499,7 @@ def sanitize_array(
     copy: bool = False,
     *,
     allow_2d: bool = False,
+    strict_ints: bool = False,
 ) -> ArrayLike:
     """
     Sanitize input data to an ndarray or ExtensionArray, copy if specified,
@@ -515,6 +513,8 @@ def sanitize_array(
     copy : bool, default False
     allow_2d : bool, default False
         If False, raise if we have a 2D Arraylike.
+    strict_ints : bool, default False
+        If False, silently ignore failures to cast float data to int dtype.
 
     Returns
     -------
@@ -545,8 +545,25 @@ def sanitize_array(
         data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
         return data
 
+    elif isinstance(data, ABCExtensionArray):
+        # it is already ensured above this is not a PandasArray
+        # Until GH#49309 is fixed this check needs to come before the
+        #  ExtensionDtype check
+        if dtype is not None:
+            subarr = data.astype(dtype, copy=copy)
+        elif copy:
+            subarr = data.copy()
+        else:
+            subarr = data
+
+    elif isinstance(dtype, ExtensionDtype):
+        # create an extension array from its dtype
+        _sanitize_non_ordered(data)
+        cls = dtype.construct_array_type()
+        subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+
     # GH#846
-    if isinstance(data, np.ndarray):
+    elif isinstance(data, np.ndarray):
         if isinstance(data, np.matrix):
             data = data.A
 
@@ -556,58 +573,64 @@ def sanitize_array(
                 # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
                 # casting aligning with IntCastingNaNError below
                 with np.errstate(invalid="ignore"):
-                    subarr = _try_cast(data, dtype, copy)
+                    # GH#15832: Check if we are requesting a numeric dtype and
+                    # that we can convert the data to the requested dtype.
+                    subarr = maybe_cast_to_integer_array(data, dtype)
+
             except IntCastingNaNError:
-                warnings.warn(
-                    "In a future version, passing float-dtype values containing NaN "
-                    "and an integer dtype will raise IntCastingNaNError "
-                    "(subclass of ValueError) instead of silently ignoring the "
-                    "passed dtype. To retain the old behavior, call Series(arr) or "
-                    "DataFrame(arr) without passing a dtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                subarr = np.array(data, copy=copy)
+                raise
             except ValueError:
                 # Pre-2.0, we would have different behavior for Series vs DataFrame.
                 #  DataFrame would call np.array(data, dtype=dtype, copy=copy),
                 #  which would cast to the integer dtype even if the cast is lossy.
                 #  See GH#40110.
+                if strict_ints:
+                    raise
 
                 # We ignore the dtype arg and return floating values,
                 #  e.g. test_constructor_floating_data_int_dtype
                 # TODO: where is the discussion that documents the reason for this?
                 subarr = np.array(data, copy=copy)
+
+        elif dtype is None:
+            subarr = data
+            if data.dtype == object:
+                subarr = maybe_infer_to_datetimelike(data)
+
+            if subarr is data and copy:
+                subarr = subarr.copy()
+
         else:
             # we will try to copy by-definition here
             subarr = _try_cast(data, dtype, copy)
 
-    elif isinstance(data, ABCExtensionArray):
-        # it is already ensured above this is not a PandasArray
-        subarr = data
-
-        if dtype is not None:
-            subarr = subarr.astype(dtype, copy=copy)
-        elif copy:
-            subarr = subarr.copy()
+    elif hasattr(data, "__array__"):
+        # e.g. dask array GH#38645
+        data = np.array(data, copy=copy)
+        return sanitize_array(
+            data,
+            index=index,
+            dtype=dtype,
+            copy=False,
+            allow_2d=allow_2d,
+        )
 
     else:
-        if isinstance(data, (set, frozenset)):
-            # Raise only for unordered sets, e.g., not for dict_keys
-            raise TypeError(f"'{type(data).__name__}' type is unordered")
-
+        _sanitize_non_ordered(data)
         # materialize e.g. generators, convert e.g. tuples, abc.ValueView
-        if hasattr(data, "__array__"):
-            # e.g. dask array GH#38645
-            data = np.array(data, copy=copy)
-        else:
-            data = list(data)
+        data = list(data)
 
-        if dtype is not None or len(data) == 0:
+        if len(data) == 0 and dtype is None:
+            # We default to float64, matching numpy
+            subarr = np.array([], dtype=np.float64)
+
+        elif dtype is not None:
             try:
                 subarr = _try_cast(data, dtype, copy)
             except ValueError:
                 if is_integer_dtype(dtype):
+                    if strict_ints:
+                        raise
                     casted = np.array(data, copy=False)
                     if casted.dtype.kind == "f":
                         # GH#40110 match the behavior we have if we passed
@@ -648,7 +671,7 @@ def range_to_ndarray(rng: range) -> np.ndarray:
         arr = np.arange(rng.start, rng.stop, rng.step, dtype="int64")
     except OverflowError:
         # GH#30173 handling for ranges that overflow int64
-        if (rng.start >= 0 and rng.step > 0) or (rng.stop >= 0 and rng.step < 0):
+        if (rng.start >= 0 and rng.step > 0) or (rng.step < 0 <= rng.stop):
             try:
                 arr = np.arange(rng.start, rng.stop, rng.step, dtype="uint64")
             except OverflowError:
@@ -656,6 +679,14 @@ def range_to_ndarray(rng: range) -> np.ndarray:
         else:
             arr = construct_1d_object_array_from_listlike(list(rng))
     return arr
+
+
+def _sanitize_non_ordered(data) -> None:
+    """
+    Raise only for unordered sets, e.g., not for dict_keys
+    """
+    if isinstance(data, (set, frozenset)):
+        raise TypeError(f"'{type(data).__name__}' type is unordered")
 
 
 def _sanitize_ndim(
@@ -672,7 +703,7 @@ def _sanitize_ndim(
     if getattr(result, "ndim", 0) == 0:
         raise ValueError("result should be arraylike with ndim > 0")
 
-    elif result.ndim == 1:
+    if result.ndim == 1:
         # the result that we want
         result = _maybe_repeat(result, index)
 
@@ -728,7 +759,7 @@ def _maybe_repeat(arr: ArrayLike, index: Index | None) -> ArrayLike:
 
 def _try_cast(
     arr: list | np.ndarray,
-    dtype: DtypeObj | None,
+    dtype: np.dtype,
     copy: bool,
 ) -> ArrayLike:
     """
@@ -738,7 +769,7 @@ def _try_cast(
     ----------
     arr : ndarray or list
         Excludes: ExtensionArray, Series, Index.
-    dtype : np.dtype, ExtensionDtype or None
+    dtype : np.dtype
     copy : bool
         If False, don't copy the data if not needed.
 
@@ -748,36 +779,7 @@ def _try_cast(
     """
     is_ndarray = isinstance(arr, np.ndarray)
 
-    if dtype is None:
-        # perf shortcut as this is the most common case
-        if is_ndarray:
-            arr = cast(np.ndarray, arr)
-            if arr.dtype != object:
-                if copy:
-                    return arr.copy()
-                return arr
-
-            out = maybe_infer_to_datetimelike(arr)
-            if out is arr and copy:
-                out = out.copy()
-            return out
-
-        else:
-            # i.e. list
-            varr = np.array(arr, copy=False)
-            # filter out cases that we _dont_ want to go through
-            #  maybe_infer_to_datetimelike
-            if varr.dtype != object or varr.size == 0:
-                return varr
-            return maybe_infer_to_datetimelike(varr)
-
-    elif isinstance(dtype, ExtensionDtype):
-        # create an extension array from its dtype
-        array_type = dtype.construct_array_type()._from_sequence
-        subarr = array_type(arr, dtype=dtype, copy=copy)
-        return subarr
-
-    elif is_object_dtype(dtype):
+    if is_object_dtype(dtype):
         if not is_ndarray:
             subarr = construct_1d_object_array_from_listlike(arr)
             return subarr
@@ -809,62 +811,3 @@ def _try_cast(
         subarr = np.array(arr, dtype=dtype, copy=copy)
 
     return subarr
-
-
-def is_empty_data(data: Any) -> bool:
-    """
-    Utility to check if a Series is instantiated with empty data,
-    which does not contain dtype information.
-
-    Parameters
-    ----------
-    data : array-like, Iterable, dict, or scalar value
-        Contains data stored in Series.
-
-    Returns
-    -------
-    bool
-    """
-    is_none = data is None
-    is_list_like_without_dtype = is_list_like(data) and not hasattr(data, "dtype")
-    is_simple_empty = is_list_like_without_dtype and not data
-    return is_none or is_simple_empty
-
-
-def create_series_with_explicit_dtype(
-    data: Any = None,
-    index: ArrayLike | Index | None = None,
-    dtype: Dtype | None = None,
-    name: str | None = None,
-    copy: bool = False,
-    fastpath: bool = False,
-    dtype_if_empty: Dtype = object,
-) -> Series:
-    """
-    Helper to pass an explicit dtype when instantiating an empty Series.
-
-    This silences a DeprecationWarning described in GitHub-17261.
-
-    Parameters
-    ----------
-    data : Mirrored from Series.__init__
-    index : Mirrored from Series.__init__
-    dtype : Mirrored from Series.__init__
-    name : Mirrored from Series.__init__
-    copy : Mirrored from Series.__init__
-    fastpath : Mirrored from Series.__init__
-    dtype_if_empty : str, numpy.dtype, or ExtensionDtype
-        This dtype will be passed explicitly if an empty Series will
-        be instantiated.
-
-    Returns
-    -------
-    Series
-    """
-    from pandas.core.series import Series
-
-    if is_empty_data(data) and dtype is None:
-        dtype = dtype_if_empty
-    return Series(
-        data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
-    )

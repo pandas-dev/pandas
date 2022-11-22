@@ -28,7 +28,7 @@ from pandas.tests.tseries.offsets.common import (
     assert_offset_equal,
 )
 
-from pandas.tseries import offsets as offsets
+from pandas.tseries import offsets
 
 
 @pytest.fixture

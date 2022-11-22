@@ -356,12 +356,6 @@ class TestBlock:
         for res, exp in zip(result, expected):
             assert_block_equal(res, exp)
 
-    def test_is_categorical_deprecated(self, fblock):
-        # GH#40571
-        blk = fblock
-        with tm.assert_produces_warning(DeprecationWarning):
-            blk.is_categorical
-
 
 class TestBlockManager:
     def test_attrs(self):
@@ -795,7 +789,6 @@ class TestBlockManager:
             )
 
     def test_get_bool_data(self, using_copy_on_write):
-        msg = "object-dtype columns with all-bool values"
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
             "str: object; bool: bool; obj: object; dt: datetime",
@@ -803,9 +796,8 @@ class TestBlockManager:
         )
         mgr.iset(6, np.array([True, False, True], dtype=np.object_))
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            bools = mgr.get_bool_data()
-        tm.assert_index_equal(bools.items, Index(["bool", "dt"]))
+        bools = mgr.get_bool_data()
+        tm.assert_index_equal(bools.items, Index(["bool"]))
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
             bools.iget(bools.items.get_loc("bool")).internal_values(),
@@ -824,8 +816,7 @@ class TestBlockManager:
             )
 
         # Check sharing
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            bools2 = mgr.get_bool_data(copy=True)
+        bools2 = mgr.get_bool_data(copy=True)
         bools2.iset(0, np.array([False, True, False]))
         if using_copy_on_write:
             tm.assert_numpy_array_equal(
@@ -1435,11 +1426,3 @@ def test_make_block_no_pandas_array(block_maker):
         )
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False
-
-
-def test_single_block_manager_fastpath_deprecated():
-    # GH#33092
-    ser = Series(range(3))
-    blk = ser._data.blocks[0]
-    with tm.assert_produces_warning(FutureWarning):
-        SingleBlockManager(blk, ser.index, fastpath=True)

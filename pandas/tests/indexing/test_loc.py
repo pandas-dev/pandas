@@ -672,11 +672,11 @@ class TestLocBaseIndependent:
             )
 
         with tm.assert_produces_warning(None, match=msg):
-            # timedelta64[m] -> float64, so this cannot be done inplace, so
+            # timedelta64[m] -> float, so this cannot be done inplace, so
             #  no warning
             df.loc[:, ("Respondent", "Duration")] = df.loc[
                 :, ("Respondent", "Duration")
-            ].astype("timedelta64[m]")
+            ] / Timedelta(60_000_000_000)
 
         expected = Series(
             [23.0, 12.0, 14.0, 36.0], index=df.index, name=("Respondent", "Duration")
@@ -953,11 +953,7 @@ class TestLocBaseIndependent:
 
     def test_loc_coercion2(self):
         # GH#12045
-        import datetime
-
-        df = DataFrame(
-            {"date": [datetime.datetime(2012, 1, 1), datetime.datetime(1012, 1, 2)]}
-        )
+        df = DataFrame({"date": [datetime(2012, 1, 1), datetime(1012, 1, 2)]})
         expected = df.dtypes
 
         result = df.iloc[[0]]
@@ -1300,10 +1296,6 @@ class TestLocBaseIndependent:
     @pytest.mark.parametrize("spmatrix_t", ["coo_matrix", "csc_matrix", "csr_matrix"])
     @pytest.mark.parametrize("dtype", [np.int64, np.float64, complex])
     @td.skip_if_no_scipy
-    @pytest.mark.filterwarnings(
-        # TODO(2.0): remove filtering; note only needed for using_array_manager
-        "ignore:The behavior of .astype from SparseDtype.*FutureWarning"
-    )
     def test_loc_getitem_range_from_spmatrix(self, spmatrix_t, dtype):
         import scipy.sparse
 
@@ -1462,9 +1454,6 @@ class TestLocBaseIndependent:
         assert Timestamp("2008-08-08") == df.loc[0, "c"]
         assert Timestamp("2008-08-08") == df.loc[1, "c"]
         df.loc[2, "c"] = date(2005, 5, 5)
-        with tm.assert_produces_warning(FutureWarning):
-            # Comparing Timestamp to date obj is deprecated
-            assert Timestamp("2005-05-05") == df.loc[2, "c"]
         assert Timestamp("2005-05-05").date() == df.loc[2, "c"]
 
     @pytest.mark.parametrize("idxer", ["var", ["var"]])
@@ -2072,13 +2061,12 @@ class TestLocSetitemWithExpansion:
         df.time = df.set_index("time").index.tz_localize("UTC")
         v = df[df.new_col == "new"].set_index("time").index.tz_convert("US/Pacific")
 
-        # trying to set a single element on a part of a different timezone
-        # this converts to object
+        # pre-2.0  trying to set a single element on a part of a different
+        #  timezone converted to object; in 2.0 it retains dtype
         df2 = df.copy()
-        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
-            df2.loc[df2.new_col == "new", "time"] = v
+        df2.loc[df2.new_col == "new", "time"] = v
 
-        expected = Series([v[0], df.loc[1, "time"]], name="time")
+        expected = Series([v[0].tz_convert("UTC"), df.loc[1, "time"]], name="time")
         tm.assert_series_equal(df2.time, expected)
 
         v = df.loc[df.new_col == "new", "time"] + Timedelta("1s")
@@ -2468,7 +2456,9 @@ class TestLabelSlicing:
             [1, 2, 3],
             index=[Timestamp("2016"), Timestamp("2019"), Timestamp("2017")],
         )
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(
+            KeyError, match="Value based partial slicing on non-monotonic"
+        ):
             obj.loc[start:"2022"]
 
     @pytest.mark.parametrize("value", [1, 1.5])
@@ -2795,15 +2785,12 @@ def test_loc_mixed_int_float():
     assert result == 0
 
 
-def test_loc_with_positional_slice_deprecation():
+def test_loc_with_positional_slice_raises():
     # GH#31840
     ser = Series(range(4), index=["A", "B", "C", "D"])
 
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
         ser.loc[:3] = 2
-
-    expected = Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
-    tm.assert_series_equal(ser, expected)
 
 
 def test_loc_slice_disallows_positional():
@@ -2822,15 +2809,15 @@ def test_loc_slice_disallows_positional():
         with pytest.raises(TypeError, match=msg):
             obj.loc[1:3]
 
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#31840 deprecated incorrect behavior
+        with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
+            # GH#31840 enforce incorrect behavior
             obj.loc[1:3] = 1
 
     with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1]
 
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#31840 deprecated incorrect behavior
+    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
+        # GH#31840 enforce incorrect behavior
         df.loc[1:3, 1] = 2
 
 

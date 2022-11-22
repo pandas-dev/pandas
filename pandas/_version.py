@@ -1,3 +1,4 @@
+# pylint: disable=consider-using-f-string
 # This file helps to compute a version number in source trees obtained from
 # git-archive tarball (such as those provided by GitHub's download-from-tag
 # feature). Distribution tarballs (built by setup.py sdist) and build
@@ -72,8 +73,8 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False, env=
     assert isinstance(commands, list)
     p = None
     for c in commands:
+        dispcmd = str([c] + args)
         try:
-            dispcmd = str([c] + args)
             # remember shell=False, so use git.cmd on windows, not just git
             p = subprocess.Popen(
                 [c] + args,
