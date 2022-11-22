@@ -315,6 +315,7 @@ def test_orc_use_nullable_dtypes_pandas_backend_not_supported(dirpath):
             read_orc(input_file, use_nullable_dtypes=True)
 
 
+@td.skip_if_no("pyarrow", min_version="7.0.0")
 def test_orc_use_nullable_dtypes_pyarrow_backend():
     df = pd.DataFrame(
         {
