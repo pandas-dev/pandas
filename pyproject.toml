@@ -131,7 +131,6 @@ disable = [
   "global-statement",
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
-  "non-parent-init-called",
   "overridden-final-method",
   "pointless-statement",
   "pointless-string-statement",
