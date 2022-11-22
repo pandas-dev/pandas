@@ -58,7 +58,10 @@ parse_iso_8601_datetime(const char *str, int len, int want_exc,
                         npy_datetimestruct *out,
                         NPY_DATETIMEUNIT *out_bestunit,
                         int *out_local,
-                        int *out_tzoffset);
+                        int *out_tzoffset,
+                        const char* format,
+                        int format_len,
+                        int exact);
 
 /*
  * Provides a string length to use for converting datetime

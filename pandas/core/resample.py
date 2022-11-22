@@ -1106,16 +1106,16 @@ def _add_downsample_kernel(
     setattr(Resampler, name, f)
 
 
-for method in ["sum", "prod", "min", "max", "first", "last"]:
-    _add_downsample_kernel(method, ("numeric_only", "min_count"))
-for method in ["median"]:
-    _add_downsample_kernel(method, ("numeric_only",))
-for method in ["sem"]:
-    _add_downsample_kernel(method, ("ddof", "numeric_only"))
-for method in ["ohlc"]:
-    _add_downsample_kernel(method, ())
-for method in ["nunique"]:
-    _add_downsample_kernel(method, (), SeriesGroupBy)
+for _method in ["sum", "prod", "min", "max", "first", "last"]:
+    _add_downsample_kernel(_method, ("numeric_only", "min_count"))
+for _method in ["median"]:
+    _add_downsample_kernel(_method, ("numeric_only",))
+for _method in ["sem"]:
+    _add_downsample_kernel(_method, ("ddof", "numeric_only"))
+for _method in ["ohlc"]:
+    _add_downsample_kernel(_method, ())
+for _method in ["nunique"]:
+    _add_downsample_kernel(_method, (), SeriesGroupBy)
 
 
 class _GroupByMixin(PandasObject):

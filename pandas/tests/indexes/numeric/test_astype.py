@@ -1,11 +1,11 @@
-import re
-
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import pandas_dtype
-
-from pandas import Index
+from pandas import (
+    Index,
+    to_datetime,
+    to_timedelta,
+)
 import pandas._testing as tm
 
 
@@ -66,15 +66,22 @@ class TestAstype:
         tm.assert_index_equal(result, expected, exact=True)
 
     @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
-    def test_cannot_cast_to_datetimelike(self, dtype):
+    def test_astype_float_to_datetimelike(self, dtype):
+        # GH#49660 pre-2.0 Index.astype from floating to M8/m8/Period raised,
+        #  inconsistent with Series.astype
         idx = Index([0, 1.1, 2], dtype=np.float64)
 
-        msg = (
-            f"Cannot convert Float64Index to dtype {pandas_dtype(dtype)}; "
-            f"integer values are required for conversion"
-        )
-        with pytest.raises(TypeError, match=re.escape(msg)):
-            idx.astype(dtype)
+        result = idx.astype(dtype)
+        if dtype[0] == "M":
+            expected = to_datetime(idx.values)
+        else:
+            expected = to_timedelta(idx.values)
+        tm.assert_index_equal(result, expected)
+
+        # check that we match Series behavior
+        result = idx.to_series().set_axis(range(3)).astype(dtype)
+        expected = expected.to_series().set_axis(range(3))
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [int, "int16", "int32", "int64"])
     @pytest.mark.parametrize("non_finite", [np.inf, np.nan])
