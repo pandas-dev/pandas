@@ -126,7 +126,7 @@ jobs:
         cd asv_bench
         asv machine --yes
         git fetch origin main:main
-        asv run --quick --dry-run --durations=30
+        asv run --quick --dry-run --durations=30 6c33cfc729 -b plotting.FramePlotting.time_frame_plot
 
   build_docker_dev_environment:
     name: Build Docker Dev Environment
