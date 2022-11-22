@@ -1231,6 +1231,7 @@ def read_fwf(
     *,
     colspecs: Sequence[tuple[int, int]] | str | None = "infer",
     widths: Sequence[int] | None = None,
+    delimiter: str | None = " \t",
     infer_nrows: int = 100,
     **kwds,
 ) -> DataFrame | TextFileReader:
@@ -1251,7 +1252,7 @@ def read_fwf(
         Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.csv``.
-    colspecs : list of tuple (int, int) or 'infer'. optional
+    colspecs : list of tuple (int, int) or 'infer', optional
         A list of tuples giving the extents of the fixed-width
         fields of each line as half-open intervals (i.e.,  [from, to[ ).
         String value 'infer' can be used to instruct the parser to try
@@ -1260,6 +1261,9 @@ def read_fwf(
     widths : list of int, optional
         A list of field widths which can be used instead of 'colspecs' if
         the intervals are contiguous.
+    delimiter : str, default " \t" (space and tab), optional
+        Character(s) to strip from start and end of each field. To
+        preserve whitespace, must be non-default value (i.e. delimiter="\0").
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.

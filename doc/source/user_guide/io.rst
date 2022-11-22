@@ -1366,8 +1366,10 @@ a different usage of the ``delimiter`` parameter:
 * ``widths``: A list of field widths which can be used instead of 'colspecs'
   if the intervals are contiguous.
 * ``delimiter``: Characters to consider as filler characters in the fixed-width file.
-  Can be used to specify the filler character of the fields
-  if it is not spaces (e.g., '~').
+  Default is "`` \t``"  (space and tab).
+  Used to specify the character(s) to strip from start and end of every field.
+  To preserve whitespace, set to a character that does not exist in the data,
+  i.e. "\0".
 
 Consider a typical fixed-width data file:
 
@@ -1404,8 +1406,9 @@ column widths for contiguous columns:
    df = pd.read_fwf("bar.csv", widths=widths, header=None)
    df
 
-The parser will take care of extra white spaces around the columns
+The parser will take care of extra whitespace around the columns,
 so it's ok to have extra separation between the columns in the file.
+To preserve whitespace around the columns, see ``delimiter``.
 
 By default, ``read_fwf`` will try to infer the file's ``colspecs`` by using the
 first 100 rows of the file. It can do it only in cases when the columns are
