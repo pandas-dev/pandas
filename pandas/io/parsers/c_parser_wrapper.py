@@ -132,9 +132,8 @@ class CParserWrapper(ParserBase):
                     n
                     # error: Cannot determine type of 'names'
                     for i, n in enumerate(self.names)  # type: ignore[has-type]
-                    if (
-                        i in usecols or n in usecols
-                    )  # pylint: disable=unsupported-membership-test
+                    # pylint: disable=unsupported-membership-test
+                    if (i in usecols or n in usecols)
                 ]
 
             # error: Cannot determine type of 'names'
@@ -329,8 +328,8 @@ class CParserWrapper(ParserBase):
             names = [
                 name
                 for i, name in enumerate(names)
-                if i in usecols
-                or name in usecols  # pylint: disable=unsupported-membership-test
+                # pylint: disable=unsupported-membership-test
+                if i in usecols or name in usecols
             ]
         return names
 
