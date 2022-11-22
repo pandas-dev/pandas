@@ -352,9 +352,9 @@ class StylerRenderer:
         for dx in dxs:  # self.concatenated is not empty
             d["body"].extend(dx["body"])  # type: ignore[union-attr]
             d["cellstyle"].extend(dx["cellstyle"])  # type: ignore[union-attr]
-            d["cellstyle_index"].extend(
+            d["cellstyle_index"].extend(  # type: ignore[union-attr]
                 dx["cellstyle_index"]
-            )  # type: ignore[union-attr]
+            )
 
         table_attr = self.table_attributes
         if not get_option("styler.html.mathjax"):
