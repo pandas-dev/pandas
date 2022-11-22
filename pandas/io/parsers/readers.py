@@ -439,7 +439,7 @@ _fwf_defaults = {
     "colspecs": "infer",
     "infer_nrows": 100,
     "widths": None,
-    "delimiter": " 	",
+    "delimiter": " 	",  # space & [TAB]
 }
 
 _c_unsupported = {"skipfooter"}
