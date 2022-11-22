@@ -114,6 +114,7 @@ version control to allow many people to work together on the project.
 
 Some great resources for learning Git:
 
+* the `Git documentation <https://git-scm.com/doc>`_.
 * the `GitHub help pages <https://help.github.com/>`_.
 * the `NumPy documentation <https://numpy.org/doc/stable/dev/index.html>`_.
 * Matthew Brett's `Pydagogue <https://matthew-brett.github.io/pydagogue/>`_.
