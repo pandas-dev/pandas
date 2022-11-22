@@ -11,7 +11,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -475,7 +474,6 @@ class TestDataFramePlots(TestPlotBase):
             assert xmax >= lines[0].get_data()[0][-1]
 
     @pytest.mark.xfail(
-        not is_platform_windows(),
         strict=False,
         reason="2020-12-01 this has been failing periodically on the "
         "ymin==0 assertion for a week or so.",
