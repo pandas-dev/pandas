@@ -516,17 +516,15 @@ class TestDataFrameShift:
         df2 = DataFrame({"A": ser, "B": ser})
         df2._consolidate_inplace()
 
-        with pytest.raises(TypeError, match="value should be a"):
-            df2.shift(1, axis=1, fill_value=0)
+        result = df2.shift(1, axis=1, fill_value=0)
+        expected = DataFrame({"A": [0, 0], "B": df2["A"]})
+        tm.assert_frame_equal(result, expected)
 
-        # same thing but not consolidated
-        # This isn't great that we get different behavior, but
-        #  that will go away when the deprecation is enforced
+        # same thing but not consolidated; pre-2.0 we got different behavior
         df3 = DataFrame({"A": ser})
         df3["B"] = ser
         assert len(df3._mgr.arrays) == 2
         result = df3.shift(1, axis=1, fill_value=0)
-        expected = DataFrame({"A": [0, 0], "B": df2["A"]})
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
