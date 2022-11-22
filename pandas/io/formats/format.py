@@ -1933,7 +1933,7 @@ def _make_fixed_width(
         return x
 
     strings = [just(x) for x in strings]
-    result = adjustment.ifp_justify(strings, max_len, mode=justify)
+    result = adjustment.justify(strings, max_len, mode=justify)
     return result
 
 
