@@ -43,6 +43,7 @@ def _cum_func(
     elif is_integer_dtype(values):
         dtype_info = np.iinfo(values.dtype.type)
     elif is_bool_dtype(values):
+        # Max value has to be greater than 0 and min value should be zero
         dtype_info = np.iinfo(np.uint8)
     else:
         raise NotImplementedError(
