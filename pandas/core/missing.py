@@ -31,7 +31,6 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     is_array_like,
-    is_numeric_v_string_like,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import (
@@ -89,19 +88,11 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     # GH 21977
     mask = np.zeros(arr.shape, dtype=bool)
     for x in nonna:
-        if is_numeric_v_string_like(arr, x):
-            # GH#29553 prevent numpy deprecation warnings
-            pass
-        else:
-            # GH#47480
-            mask_func = np.vectorize(
-                lambda value: False if (isna(value) or value != x) else True
-            )
-            new_mask = mask_func(arr).astype(bool)
-            if not isinstance(new_mask, np.ndarray):
-                # usually BooleanArray
-                new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
-            mask |= new_mask
+        # GH#47480
+        new_mask = np.vectorize(
+            lambda value: False if (isna(value) or value != x) else True
+        )(arr)
+        mask |= new_mask
 
     if na_mask.any():
         mask |= isna(arr)
