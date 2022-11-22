@@ -1043,7 +1043,7 @@ def nansem(
 
 
 def _nanminmax(meth, fill_value_typ):
-    @bottleneck_switch(name="nan" + meth)
+    @bottleneck_switch(name=f"nan{meth}")
     @_datetimelike_compat
     def reduction(
         values: np.ndarray,

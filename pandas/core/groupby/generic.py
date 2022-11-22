@@ -40,7 +40,6 @@ from pandas._typing import (
     CorrelationMethod,
     FillnaOptions,
     IndexLabel,
-    Level,
     Manager,
     Manager2D,
     SingleManager,
@@ -95,6 +94,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     all_indexes_same,
+    default_index,
 )
 from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.series import Series
@@ -306,7 +306,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # GH 15931
             raise SpecificationError("nested renamer is not supported")
 
-        elif any(isinstance(x, (tuple, list)) for x in arg):
+        if any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
 
             # indicated column order
@@ -357,7 +357,7 @@ class SeriesGroupBy(GroupBy[Series]):
         data: Series,
         values: list[Any],
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ) -> DataFrame | Series:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
@@ -399,7 +399,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self._concat_objects(
                 values,
                 not_indexed_same=not_indexed_same,
-                override_group_keys=override_group_keys,
+                is_transform=is_transform,
             )
             result.name = self.obj.name
             return result
@@ -863,15 +863,13 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         axis: Axis | lib.NoDefault = lib.no_default,
         skipna: bool = True,
-        level: Level | None = None,
-        numeric_only: bool | None = None,
+        numeric_only: bool = False,
         **kwargs,
     ) -> Series:
         result = self._op_via_apply(
             "skew",
             axis=axis,
             skipna=skipna,
-            level=level,
             numeric_only=numeric_only,
             **kwargs,
         )
@@ -1138,8 +1136,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     result = gba.agg()
 
                 except ValueError as err:
-                    if "no results" not in str(err):
-                        # raised directly by _aggregate_multiple_funcs
+                    if "No objects to concatenate" not in str(err):
                         raise
                     result = self._aggregate_frame(func)
 
@@ -1160,7 +1157,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
-            result.index = Index(range(len(result)))
+            result.index = default_index(len(result))
 
         return result
 
@@ -1229,7 +1226,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         data: DataFrame,
         values: list,
         not_indexed_same: bool = False,
-        override_group_keys: bool = False,
+        is_transform: bool = False,
     ):
 
         if len(values) == 0:
@@ -1249,7 +1246,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self._concat_objects(
                 values,
                 not_indexed_same=not_indexed_same,
-                override_group_keys=override_group_keys,
+                is_transform=is_transform,
             )
 
         key_index = self.grouper.result_index if self.as_index else None
@@ -1280,7 +1277,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 not_indexed_same,
                 first_not_none,
                 key_index,
-                override_group_keys,
+                is_transform,
             )
 
     def _wrap_applied_output_series(
@@ -1289,7 +1286,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         not_indexed_same: bool,
         first_not_none,
         key_index,
-        override_group_keys: bool,
+        is_transform: bool,
     ) -> DataFrame | Series:
         kwargs = first_not_none._construct_axes_dict()
         backup = Series(**kwargs)
@@ -1302,7 +1299,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self._concat_objects(
                 values,
                 not_indexed_same=True,
-                override_group_keys=override_group_keys,
+                is_transform=is_transform,
             )
 
         # Combine values
@@ -1360,7 +1357,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         # We could use `mgr.apply` here and not have to set_axis, but
         #  we would have to do shape gymnastics for ArrayManager compat
-        res_mgr = mgr.grouped_reduce(arr_func, ignore_failures=True)
+        res_mgr = mgr.grouped_reduce(arr_func, ignore_failures=False)
         res_mgr.set_axis(1, mgr.axes[1])
 
         if len(res_mgr) < orig_mgr_len:
@@ -1779,91 +1776,71 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         if not self.as_index:
-            results.index = Index(range(len(results)))
+            results.index = default_index(len(results))
             self._insert_inaxis_grouper_inplace(results)
 
         return results
 
     @doc(
         _shared_docs["idxmax"],
-        numeric_only_default="True for axis=0, False for axis=1",
+        numeric_only_default="False",
     )
     def idxmax(
         self,
         axis: Axis = 0,
         skipna: bool = True,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ) -> DataFrame:
         axis = DataFrame._get_axis_number(axis)
-        if numeric_only is lib.no_default:
-            # Cannot use self._resolve_numeric_only; we must pass None to
-            # DataFrame.idxmax for backwards compatibility
-            numeric_only_arg = None if axis == 0 else False
-        else:
-            numeric_only_arg = numeric_only
 
         def func(df):
-            with warnings.catch_warnings():
-                # Suppress numeric_only warnings here, will warn below
-                warnings.filterwarnings("ignore", ".*numeric_only in DataFrame.argmax")
-                res = df._reduce(
-                    nanops.nanargmax,
-                    "argmax",
-                    axis=axis,
-                    skipna=skipna,
-                    numeric_only=numeric_only_arg,
-                )
-                indices = res._values
-                index = df._get_axis(axis)
-                result = [index[i] if i >= 0 else np.nan for i in indices]
-                return df._constructor_sliced(result, index=res.index)
+            res = df._reduce(
+                nanops.nanargmax,
+                "argmax",
+                axis=axis,
+                skipna=skipna,
+                numeric_only=numeric_only,
+            )
+            indices = res._values
+            index = df._get_axis(axis)
+            result = [index[i] if i >= 0 else np.nan for i in indices]
+            return df._constructor_sliced(result, index=res.index)
 
         func.__name__ = "idxmax"
         result = self._python_apply_general(
             func, self._obj_with_exclusions, not_indexed_same=True
         )
-        self._maybe_warn_numeric_only_depr("idxmax", result, numeric_only)
         return result
 
     @doc(
         _shared_docs["idxmin"],
-        numeric_only_default="True for axis=0, False for axis=1",
+        numeric_only_default="False",
     )
     def idxmin(
         self,
         axis: Axis = 0,
         skipna: bool = True,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ) -> DataFrame:
         axis = DataFrame._get_axis_number(axis)
-        if numeric_only is lib.no_default:
-            # Cannot use self._resolve_numeric_only; we must pass None to
-            # DataFrame.idxmin for backwards compatibility
-            numeric_only_arg = None if axis == 0 else False
-        else:
-            numeric_only_arg = numeric_only
 
         def func(df):
-            with warnings.catch_warnings():
-                # Suppress numeric_only warnings here, will warn below
-                warnings.filterwarnings("ignore", ".*numeric_only in DataFrame.argmin")
-                res = df._reduce(
-                    nanops.nanargmin,
-                    "argmin",
-                    axis=axis,
-                    skipna=skipna,
-                    numeric_only=numeric_only_arg,
-                )
-                indices = res._values
-                index = df._get_axis(axis)
-                result = [index[i] if i >= 0 else np.nan for i in indices]
-                return df._constructor_sliced(result, index=res.index)
+            res = df._reduce(
+                nanops.nanargmin,
+                "argmin",
+                axis=axis,
+                skipna=skipna,
+                numeric_only=numeric_only,
+            )
+            indices = res._values
+            index = df._get_axis(axis)
+            result = [index[i] if i >= 0 else np.nan for i in indices]
+            return df._constructor_sliced(result, index=res.index)
 
         func.__name__ = "idxmin"
         result = self._python_apply_general(
             func, self._obj_with_exclusions, not_indexed_same=True
         )
-        self._maybe_warn_numeric_only_depr("idxmin", result, numeric_only)
         return result
 
     boxplot = boxplot_frame_groupby
@@ -2242,7 +2219,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
-        level: Level | None = None,
         numeric_only: bool | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> DataFrame:
@@ -2250,7 +2226,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             "skew",
             axis=axis,
             skipna=skipna,
-            level=level,
             numeric_only=numeric_only,
             **kwargs,
         )

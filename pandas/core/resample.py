@@ -1106,16 +1106,16 @@ def _add_downsample_kernel(
     setattr(Resampler, name, f)
 
 
-for method in ["sum", "prod", "min", "max", "first", "last"]:
-    _add_downsample_kernel(method, ("numeric_only", "min_count"))
-for method in ["median"]:
-    _add_downsample_kernel(method, ("numeric_only",))
-for method in ["sem"]:
-    _add_downsample_kernel(method, ("ddof", "numeric_only"))
-for method in ["ohlc"]:
-    _add_downsample_kernel(method, ())
-for method in ["nunique"]:
-    _add_downsample_kernel(method, (), SeriesGroupBy)
+for _method in ["sum", "prod", "min", "max", "first", "last"]:
+    _add_downsample_kernel(_method, ("numeric_only", "min_count"))
+for _method in ["median"]:
+    _add_downsample_kernel(_method, ("numeric_only",))
+for _method in ["sem"]:
+    _add_downsample_kernel(_method, ("ddof", "numeric_only"))
+for _method in ["ohlc"]:
+    _add_downsample_kernel(_method, ())
+for _method in ["nunique"]:
+    _add_downsample_kernel(_method, (), SeriesGroupBy)
 
 
 class _GroupByMixin(PandasObject):
@@ -1947,7 +1947,7 @@ def _get_timestamp_range_edges(
         index_tz = first.tz
         if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
-        elif origin == "epoch":
+        if origin == "epoch":
             # set the epoch based on the timezone to have similar bins results when
             # resampling on the same kind of indexes on different timezones
             origin = Timestamp("1970-01-01", tz=index_tz)

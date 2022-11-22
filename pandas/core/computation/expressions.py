@@ -271,7 +271,6 @@ def set_test_mode(v: bool = True) -> None:
 
 
 def _store_test_result(used_numexpr: bool) -> None:
-    global _TEST_RESULT
     if used_numexpr:
         _TEST_RESULT.append(used_numexpr)
 

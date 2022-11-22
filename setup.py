@@ -355,8 +355,9 @@ if is_platform_mac():
         target_macos_version = "10.9"
         parsed_macos_version = parse_version(target_macos_version)
         if (
-            parse_version(str(python_target)) < parsed_macos_version
-            and parse_version(current_system) >= parsed_macos_version
+            parse_version(str(python_target))
+            < parsed_macos_version
+            <= parse_version(current_system)
         ):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = target_macos_version
 

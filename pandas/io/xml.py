@@ -209,7 +209,7 @@ class _XMLFrameParser:
 
         if self.elems_only and self.attrs_only:
             raise ValueError("Either element or attributes can be parsed not both.")
-        elif self.elems_only:
+        if self.elems_only:
             if self.names:
                 dicts = [
                     {
@@ -283,7 +283,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
+            dicts = [dict(zip(self.names, d.values())) for d in dicts]
 
         return dicts
 
@@ -380,7 +380,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
+            dicts = [dict(zip(self.names, d.values())) for d in dicts]
 
         return dicts
 
@@ -482,9 +482,9 @@ class _EtreeFrameParser(_XMLFrameParser):
             if elems is not None:
                 if self.elems_only and children == []:
                     raise ValueError(msg)
-                elif self.attrs_only and attrs == {}:
+                if self.attrs_only and attrs == {}:
                     raise ValueError(msg)
-                elif children == [] and attrs == {}:
+                if children == [] and attrs == {}:
                     raise ValueError(msg)
 
         except (KeyError, SyntaxError):
@@ -533,9 +533,9 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         with preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
-            doc = parse(xml_data, parser=curr_parser)
+            document = parse(xml_data, parser=curr_parser)
 
-        return doc.getroot()
+        return document.getroot()
 
 
 class _LxmlFrameParser(_XMLFrameParser):
@@ -595,9 +595,9 @@ class _LxmlFrameParser(_XMLFrameParser):
         if elems != []:
             if self.elems_only and children == []:
                 raise ValueError(msg)
-            elif self.attrs_only and attrs == {}:
+            if self.attrs_only and attrs == {}:
                 raise ValueError(msg)
-            elif children == [] and attrs == {}:
+            if children == [] and attrs == {}:
                 raise ValueError(msg)
 
         return elems
@@ -648,13 +648,13 @@ class _LxmlFrameParser(_XMLFrameParser):
                         "Can not pass encoding None when input is StringIO."
                     )
 
-                doc = fromstring(
+                document = fromstring(
                     xml_data.getvalue().encode(self.encoding), parser=curr_parser
                 )
             else:
-                doc = parse(xml_data, parser=curr_parser)
+                document = parse(xml_data, parser=curr_parser)
 
-        return doc
+        return document
 
     def _transform_doc(self) -> _XSLTResultTree:
         """

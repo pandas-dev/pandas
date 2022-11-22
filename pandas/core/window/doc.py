@@ -10,7 +10,7 @@ _shared_docs = dict(**_shared_docs)
 
 def create_section_header(header: str) -> str:
     """Create numpydoc section header"""
-    return "\n".join((header, "-" * len(header))) + "\n"
+    return f"{header}\n{'-' * len(header)}\n"
 
 
 template_header = "\nCalculate the {window_method} {aggregation_description}.\n\n"

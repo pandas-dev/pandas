@@ -46,6 +46,10 @@ from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
 from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:.* may decrease performance. Upgrade to pyarrow >=7 to possibly"
+)
+
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
 def dtype(request):
@@ -495,6 +499,9 @@ class TestBaseGroupby(base.BaseGroupbyTests):
             )
         super().test_in_numeric_groupby(data_for_grouping)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of numeric_only:FutureWarning"
+    )
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
@@ -624,6 +631,18 @@ class TestBaseMissing(base.BaseMissingTests):
     @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     def test_dropna_array(self, data_missing):
         super().test_dropna_array(data_missing)
+
+    def test_fillna_no_op_returns_copy(self, data):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_fillna_no_op_returns_copy(data)
+
+    def test_fillna_series_method(self, data_missing, fillna_method):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_fillna_series_method(data_missing, fillna_method)
 
 
 class TestBasePrinting(base.BasePrintingTests):
@@ -867,8 +886,7 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_unique(data, box, method)
 
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize(self, data_for_grouping, na_sentinel, request):
+    def test_factorize(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
         if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
@@ -883,10 +901,9 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
-        super().test_factorize(data_for_grouping, na_sentinel)
+        super().test_factorize(data_for_grouping)
 
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize_equivalence(self, data_for_grouping, na_sentinel, request):
+    def test_factorize_equivalence(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
         if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
@@ -895,7 +912,7 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
                 )
             )
-        super().test_factorize_equivalence(data_for_grouping, na_sentinel)
+        super().test_factorize_equivalence(data_for_grouping)
 
     def test_factorize_empty(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1364,3 +1381,12 @@ def test_pickle_roundtrip(data):
 
     result_sliced = pickle.loads(sliced_pickled)
     tm.assert_series_equal(result_sliced, expected_sliced)
+
+
+def test_astype_from_non_pyarrow(data):
+    # GH49795
+    pd_array = data._data.to_pandas().array
+    result = pd_array.astype(data.dtype)
+    assert not isinstance(pd_array.dtype, ArrowDtype)
+    assert isinstance(result.dtype, ArrowDtype)
+    tm.assert_extension_array_equal(result, data)

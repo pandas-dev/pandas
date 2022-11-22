@@ -72,14 +72,22 @@ jobs:
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
-      # Used to test the built wheels
-      - uses: actions/setup-python@v4
+      # Used to test(Windows-only) and push the built wheels
+      # You might need to use setup-python separately
+      # if the new Python-dev version
+      # is unavailable on conda-forge.
+      - uses: conda-incubator/setup-miniconda@v2
         with:
+          auto-update-conda: true
           python-version: ${{ matrix.python[1] }}
+          activate-environment: test
+          channels: conda-forge, anaconda
+          channel-priority: true
+          mamba-version: "*"
 
       - name: Test wheels (Windows 64-bit only)
         if: ${{ matrix.buildplat[1] == 'win_amd64' }}
-        shell: cmd
+        shell: cmd /C CALL {0}
         run: |
           python ci/test_wheels.py wheelhouse
 
@@ -88,26 +96,15 @@ jobs:
           name: ${{ matrix.python[0] }}-${{ startsWith(matrix.buildplat[1], 'macosx') && 'macosx' || matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
 
-      # Used to push the built wheels
-      # TODO: once Python 3.11 is available on conda, de-dup with
-      # setup python above
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          # Really doesn't matter what version we upload with
-          # just the version we test with
-          python-version: '3.8'
-          channels: conda-forge
-          channel-priority: true
-          mamba-version: "*"
 
       - name: Install anaconda client
         if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
+        shell: bash -el {0}
         run: conda install -q -y anaconda-client
 
 
       - name: Upload wheels
-        if: success()
+        if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
         shell: bash -el {0}
         env:
           PANDAS_STAGING_UPLOAD_TOKEN: ${{ secrets.PANDAS_STAGING_UPLOAD_TOKEN }}
@@ -180,11 +177,12 @@ jobs:
 
       - name: Install anaconda client
         if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
+        shell: bash -el {0}
         run: |
           conda install -q -y anaconda-client
 
       - name: Upload sdist
-        if: success()
+        if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
         shell: bash -el {0}
         env:
           PANDAS_STAGING_UPLOAD_TOKEN: ${{ secrets.PANDAS_STAGING_UPLOAD_TOKEN }}

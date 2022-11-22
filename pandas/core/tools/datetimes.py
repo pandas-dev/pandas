@@ -15,7 +15,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -42,7 +41,6 @@ from pandas._typing import (
     Timezone,
     npt,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -426,16 +424,14 @@ def _convert_listlike_datetimes(
         format_is_iso8601 = format_is_iso(format)
         if format_is_iso8601:
             require_iso8601 = not infer_datetime_format
-            format = None
 
-    if format is not None:
+    if format is not None and not require_iso8601:
         res = _to_datetime_with_format(
             arg, orig_arg, name, tz, format, exact, errors, infer_datetime_format
         )
         if res is not None:
             return res
 
-    assert format is None or infer_datetime_format
     utc = tz == "utc"
     result, tz_parsed = objects_to_datetime64ns(
         arg,
@@ -445,6 +441,8 @@ def _convert_listlike_datetimes(
         errors=errors,
         require_iso8601=require_iso8601,
         allow_object=True,
+        format=format,
+        exact=exact,
     )
 
     if tz_parsed is not None:
@@ -476,7 +474,7 @@ def _array_strptime_with_fallback(
     except OutOfBoundsDatetime:
         if errors == "raise":
             raise
-        elif errors == "coerce":
+        if errors == "coerce":
             result = np.empty(arg.shape, dtype="M8[ns]")
             iresult = result.view("i8")
             iresult.fill(iNaT)
@@ -489,7 +487,7 @@ def _array_strptime_with_fallback(
         if not infer_datetime_format:
             if errors == "raise":
                 raise
-            elif errors == "coerce":
+            if errors == "coerce":
                 result = np.empty(arg.shape, dtype="M8[ns]")
                 iresult = result.view("i8")
                 iresult.fill(iNaT)
@@ -1062,7 +1060,7 @@ def to_datetime(
         exact=exact,
         infer_datetime_format=infer_datetime_format,
     )
-
+    # pylint: disable-next=used-before-assignment
     result: Timestamp | NaTType | Series | Index
 
     if isinstance(arg, Timestamp):
@@ -1294,27 +1292,8 @@ def _attempt_YYYYMMDD(arg: npt.NDArray[np.object_], errors: str) -> np.ndarray |
     return None
 
 
-def to_time(
-    arg,
-    format=None,
-    infer_time_format: bool = False,
-    errors: DateTimeErrorChoices = "raise",
-):
-    # GH#34145
-    warnings.warn(
-        "`to_time` has been moved, should be imported from pandas.core.tools.times. "
-        "This alias will be removed in a future version.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
-    from pandas.core.tools.times import to_time
-
-    return to_time(arg, format, infer_time_format, errors)
-
-
 __all__ = [
     "DateParseError",
     "should_cache",
     "to_datetime",
-    "to_time",
 ]
