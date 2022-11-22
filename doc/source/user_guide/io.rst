@@ -1366,7 +1366,7 @@ a different usage of the ``delimiter`` parameter:
 * ``widths``: A list of field widths which can be used instead of 'colspecs'
   if the intervals are contiguous.
 * ``delimiter``: Characters to consider as filler characters in the fixed-width file.
-  Default is "`` \t``"  (space and tab).
+  Default are space and tab characters.
   Used to specify the character(s) to strip from start and end of every field.
   To preserve whitespace, set to a character that does not exist in the data,
   i.e. "\0".
