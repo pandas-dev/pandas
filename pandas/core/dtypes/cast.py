@@ -41,7 +41,6 @@ from pandas.errors import (
     IntCastingNaNError,
     LossySetitemError,
 )
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -58,7 +57,6 @@ from pandas.core.dtypes.common import (
     is_complex,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -1222,7 +1220,7 @@ def maybe_cast_to_datetime(
     Caller is responsible for handling ExtensionDtype cases and non dt64/td64
     cases.
     """
-    from pandas.core.arrays.datetimes import sequence_to_datetimes
+    from pandas.core.arrays.datetimes import DatetimeArray
     from pandas.core.arrays.timedeltas import TimedeltaArray
 
     assert dtype.kind in ["m", "M"]
@@ -1238,36 +1236,24 @@ def maybe_cast_to_datetime(
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
 
-    if is_datetime64_dtype(dtype):
-        # Incompatible types in assignment (expression has type
-        # "Union[dtype[Any], ExtensionDtype]", variable has type
-        # "Optional[dtype[Any]]")
+    else:
+        # error: Incompatible types in assignment (expression has type
+        # "Union[dtype[Any], ExtensionDtype]", variable has type "Optional[dtype[Any]]")
         dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
 
-        value = np.array(value, copy=False)
-
-        # we have an array of datetime or timedeltas & nulls
-        if value.size or not is_dtype_equal(value.dtype, dtype):
-            _disallow_mismatched_datetimelike(value, dtype)
-
-            dta = sequence_to_datetimes(value)
-            # GH 25843: Remove tz information since the dtype
-            # didn't specify one
-
-            if dta.tz is not None:
+        try:
+            dta = DatetimeArray._from_sequence(value, dtype=dtype)
+        except ValueError as err:
+            # We can give a Series-specific exception message.
+            if "cannot supply both a tz and a timezone-naive dtype" in str(err):
                 raise ValueError(
                     "Cannot convert timezone-aware data to "
                     "timezone-naive dtype. Use "
                     "pd.Series(values).dt.tz_localize(None) instead."
-                )
+                ) from err
+            raise
 
-            # TODO(2.0): Do this astype in sequence_to_datetimes to
-            #  avoid potential extra copy?
-            dta = dta.astype(dtype, copy=False)
-            return dta
-
-    # at this point we have converted or raised in all cases where we had a list
-    return cast(ArrayLike, value)
+        return dta
 
 
 def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarray:
@@ -1693,25 +1679,17 @@ def maybe_cast_to_integer_array(
 
     if casted.dtype < arr.dtype:
         # GH#41734 e.g. [1, 200, 923442] and dtype="int8" -> overflows
-        warnings.warn(
-            f"Values are too large to be losslessly cast to {dtype}. "
-            "In a future version this will raise OverflowError. To retain the "
-            f"old behavior, use pd.Series(values).astype({dtype})",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+        raise ValueError(
+            f"Values are too large to be losslessly converted to {dtype}. "
+            f"To cast anyway, use pd.Series(values).astype({dtype})"
         )
-        return casted
 
     if arr.dtype.kind in ["m", "M"]:
         # test_constructor_maskedarray_nonfloat
-        warnings.warn(
-            f"Constructing Series or DataFrame from {arr.dtype} values and "
-            f"dtype={dtype} is deprecated and will raise in a future version. "
-            "Use values.view(dtype) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+        raise TypeError(
+            f"Constructing a Series or DataFrame from {arr.dtype} values and "
+            f"dtype={dtype} is not supported. Use values.view({dtype}) instead."
         )
-        return casted
 
     # No known cases that get here, but raising explicitly to cover our bases.
     raise ValueError(f"values cannot be losslessly cast to {dtype}")

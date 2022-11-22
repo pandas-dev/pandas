@@ -61,7 +61,7 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
-    from pandas import (
+    from pandas.core.api import (
         DataFrame,
         Float64Index,
         PeriodIndex,
@@ -818,6 +818,8 @@ def date_range(
     normalize: bool = False,
     name: Hashable = None,
     inclusive: IntervalClosedType = "both",
+    *,
+    unit: str | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -847,7 +849,7 @@ def date_range(
     tz : str or tzinfo, optional
         Time zone name for returning localized DatetimeIndex, for example
         'Asia/Hong_Kong'. By default, the resulting DatetimeIndex is
-        timezone-naive.
+        timezone-naive unless timezone-aware datetime-likes are passed.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     name : str, default None
@@ -856,6 +858,10 @@ def date_range(
         Include boundaries; Whether to set each bound as closed or open.
 
         .. versionadded:: 1.4.0
+    unit : str, default None
+        Specify the desired resolution of the result.
+
+        .. versionadded:: 2.0.0
     **kwargs
         For compatibility. Has no effect on the result.
 
@@ -893,6 +899,18 @@ def date_range(
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
                    '2018-01-05', '2018-01-06', '2018-01-07', '2018-01-08'],
                   dtype='datetime64[ns]', freq='D')
+
+    Specify timezone-aware `start` and `end`, with the default daily frequency.
+
+    >>> pd.date_range(
+    ...     start=pd.to_datetime("1/1/2018").tz_localize("Europe/Berlin"),
+    ...     end=pd.to_datetime("1/08/2018").tz_localize("Europe/Berlin"),
+    ... )
+    DatetimeIndex(['2018-01-01 00:00:00+01:00', '2018-01-02 00:00:00+01:00',
+                   '2018-01-03 00:00:00+01:00', '2018-01-04 00:00:00+01:00',
+                   '2018-01-05 00:00:00+01:00', '2018-01-06 00:00:00+01:00',
+                   '2018-01-07 00:00:00+01:00', '2018-01-08 00:00:00+01:00'],
+                  dtype='datetime64[ns, Europe/Berlin]', freq='D')
 
     Specify `start` and `periods`, the number of periods (days).
 
@@ -966,6 +984,14 @@ def date_range(
     >>> pd.date_range(start='2017-01-01', end='2017-01-04', inclusive='right')
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
+
+    **Specify a unit**
+
+    >>> pd.date_range(start="2017-01-01", periods=10, freq="100AS", unit="s")
+    DatetimeIndex(['2017-01-01', '2117-01-01', '2217-01-01', '2317-01-01',
+                   '2417-01-01', '2517-01-01', '2617-01-01', '2717-01-01',
+                   '2817-01-01', '2917-01-01'],
+                  dtype='datetime64[s]', freq='100AS-JAN')
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
@@ -978,6 +1004,7 @@ def date_range(
         tz=tz,
         normalize=normalize,
         inclusive=inclusive,
+        unit=unit,
         **kwargs,
     )
     return DatetimeIndex._simple_new(dtarr, name=name)
