@@ -326,7 +326,8 @@ def test_orc_use_nullable_dtypes_pyarrow_backend():
             "int": list(range(1, 4)),
             "float": np.arange(4.0, 7.0, dtype="float64"),
             "float_with_nan": [2.0, np.nan, 3.0],
-            "bool": [True, False, None],
+            "bool": [True, False, True],
+            "bool_with_na": [True, False, None],
             "datetime": pd.date_range("20130101", periods=3),
             "datetime_with_nat": [
                 pd.Timestamp("20130101"),
@@ -335,7 +336,7 @@ def test_orc_use_nullable_dtypes_pyarrow_backend():
             ],
         }
     )
-    bytes_data = df.to_orc()
+    bytes_data = df.copy().to_orc()
     with pd.option_context("io.nullable_backend", "pyarrow"):
         result = read_orc(BytesIO(bytes_data), use_nullable_dtypes=True)
     expected = pd.DataFrame(
