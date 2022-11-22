@@ -960,7 +960,6 @@ Performance improvements
 - Performance improvement when setting values in a pyarrow backed string array (:issue:`46400`)
 - Performance improvement in :func:`factorize` (:issue:`46109`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
-- Performance improvement in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` when using any non-object dtypes (:issue:`46470`)
 - Performance improvement in :func:`read_excel` when ``nrows`` argument provided (:issue:`32727`)
 - Performance improvement in :meth:`.Styler.to_excel` when applying repeated CSS formats (:issue:`47371`)
 - Performance improvement in :meth:`MultiIndex.is_monotonic_increasing`  (:issue:`47458`)
