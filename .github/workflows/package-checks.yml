@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - 1.5.x
+    types: [ labeled, opened, synchronize, reopened ]
 
 permissions:
   contents: read
