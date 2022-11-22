@@ -73,7 +73,6 @@ disable = [
   "unpacking-non-sequence",
   "unsubscriptable-object",
   "unsupported-assignment-operation",
-  "unsupported-membership-test",
 
  # pylint type "C": convention, for programming standard violation
   "import-outside-toplevel",

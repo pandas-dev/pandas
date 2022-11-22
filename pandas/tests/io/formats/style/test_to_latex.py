@@ -358,7 +358,7 @@ def test_multi_options(df_ext):
 def test_multiindex_columns_hidden():
     df = DataFrame([[1, 2, 3, 4]])
     df.columns = MultiIndex.from_tuples([("A", 1), ("A", 2), ("A", 3), ("B", 1)])
-    s = df.style
+    s = str(df.style)
     assert "{tabular}{lrrrr}" in s.to_latex()
     s.set_table_styles([])  # reset the position command
     s.hide([("A", 2)], axis="columns")
@@ -851,7 +851,7 @@ def test_rendered_links():
     # note the majority of testing is done in test_html.py: test_rendered_links
     # these test only the alternative latex format is functional
     df = DataFrame(["text www.domain.com text"])
-    result = df.style.format(hyperlinks="latex").to_latex()
+    result = str(df.style.format(hyperlinks="latex").to_latex())
     assert r"text \href{www.domain.com}{www.domain.com} text" in result
 
 
@@ -898,7 +898,7 @@ def test_clines_validation(clines, styler):
 @pytest.mark.parametrize("env", ["table", "longtable"])
 def test_clines_index(clines, exp, env):
     df = DataFrame([[1], [2], [3], [4]])
-    result = df.style.to_latex(clines=clines, environment=env)
+    result = str(df.style.to_latex(clines=clines, environment=env))
     expected = f"""\
 0 & 1 \\\\{exp}
 1 & 2 \\\\{exp}
@@ -988,7 +988,7 @@ def test_clines_multiindex(clines, expected, env):
     styler = df.style
     styler.hide([("-", 0, "X"), ("-", 0, "Y")])
     styler.hide(level=1)
-    result = styler.to_latex(clines=clines, environment=env)
+    result = str(styler.to_latex(clines=clines, environment=env))
     assert expected in result
 
 

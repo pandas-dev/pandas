@@ -710,7 +710,7 @@ def test_to_html_truncation_index_false_max_cols(
 @pytest.mark.parametrize("notebook", [True, False])
 def test_to_html_notebook_has_style(notebook):
     df = DataFrame({"A": [1, 2, 3]})
-    result = df.to_html(notebook=notebook)
+    result = str(df.to_html(notebook=notebook))
 
     if notebook:
         assert "tbody tr th:only-of-type" in result
@@ -725,14 +725,14 @@ def test_to_html_notebook_has_style(notebook):
 def test_to_html_with_index_names_false():
     # GH 16493
     df = DataFrame({"A": [1, 2]}, index=Index(["a", "b"], name="myindexname"))
-    result = df.to_html(index_names=False)
+    result = str(df.to_html(index_names=False))
     assert "myindexname" not in result
 
 
 def test_to_html_with_id():
     # GH 8496
     df = DataFrame({"A": [1, 2]}, index=Index(["a", "b"], name="myindexname"))
-    result = df.to_html(index_names=False, table_id="TEST_ID")
+    result = str(df.to_html(index_names=False, table_id="TEST_ID"))
     assert ' id="TEST_ID"' in result
 
 
@@ -799,8 +799,8 @@ def test_to_html_round_column_headers():
     # GH 17280
     df = DataFrame([1], columns=[0.55555])
     with option_context("display.precision", 3):
-        html = df.to_html(notebook=False)
-        notebook = df.to_html(notebook=True)
+        html = str(df.to_html(notebook=False))
+        notebook = str(df.to_html(notebook=True))
     assert "0.55555" in html
     assert "0.556" in notebook
 

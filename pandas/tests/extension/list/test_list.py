@@ -30,4 +30,4 @@ def test_to_csv(data):
     # which was done in to_native_types
     df = pd.DataFrame({"a": data})
     res = df.to_csv()
-    assert str(data[0]) in res
+    assert str(data[0]) in str(res)

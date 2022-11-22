@@ -177,12 +177,12 @@ def test_format_escape_html(escape, exp):
 
     s = Styler(df, uuid_len=0).format("&{0}&", escape=None)
     expected = f'<td id="T__row0_col0" class="data row0 col0" >&{chars}&</td>'
-    assert expected in s.to_html()
+    assert expected in str(s.to_html())
 
     # only the value should be escaped before passing to the formatter
     s = Styler(df, uuid_len=0).format("&{0}&", escape=escape)
     expected = f'<td id="T__row0_col0" class="data row0 col0" >&{exp}&</td>'
-    assert expected in s.to_html()
+    assert expected in str(s.to_html())
 
     # also test format_index()
     styler = Styler(DataFrame(columns=[chars]), uuid_len=0)
@@ -195,7 +195,7 @@ def test_format_escape_html(escape, exp):
 def test_format_escape_na_rep():
     # tests the na_rep is not escaped
     df = DataFrame([['<>&"', None]])
-    s = Styler(df, uuid_len=0).format("X&{0}>X", escape="html", na_rep="&")
+    s = str(Styler(df, uuid_len=0).format("X&{0}>X", escape="html", na_rep="&"))
     ex = '<td id="T__row0_col0" class="data row0 col0" >X&&lt;&gt;&amp;&#34;>X</td>'
     expected2 = '<td id="T__row0_col1" class="data row0 col1" >&</td>'
     assert ex in s.to_html()
@@ -429,7 +429,7 @@ def test_precision_zero(df):
 def test_formatter_options_validator(formatter, exp):
     df = DataFrame([[9]])
     with option_context("styler.format.formatter", formatter):
-        assert f" {exp} " in df.style.to_latex()
+        assert f" {exp} " in str(df.style.to_latex())
 
 
 def test_formatter_options_raises():

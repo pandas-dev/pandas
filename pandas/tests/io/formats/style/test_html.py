@@ -131,14 +131,18 @@ def test_colspan_w3():
     # GH 36223
     df = DataFrame(data=[[1, 2]], columns=[["l0", "l0"], ["l1a", "l1b"]])
     styler = Styler(df, uuid="_", cell_ids=False)
-    assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in styler.to_html()
+    assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in str(
+        styler.to_html()
+    )
 
 
 def test_rowspan_w3():
     # GH 38533
     df = DataFrame(data=[[1, 2]], index=[["l0", "l0"], ["l1a", "l1b"]])
     styler = Styler(df, uuid="_", cell_ids=False)
-    assert '<th class="row_heading level0 row0" rowspan="2">l0</th>' in styler.to_html()
+    assert '<th class="row_heading level0 row0" rowspan="2">l0</th>' in str(
+        styler.to_html()
+    )
 
 
 def test_styles(styler):
@@ -803,7 +807,7 @@ def test_rendered_links(type, text, exp, found):
         styler = df.style.format_index(hyperlinks="html")
 
     rendered = f'<a href="{found}" target="_blank">{found}</a>'
-    result = styler.to_html()
+    result = str(styler.to_html())
     assert (rendered in result) is exp
     assert (text in result) is not exp  # test conversion done when expected and not
 
@@ -812,7 +816,7 @@ def test_multiple_rendered_links():
     links = ("www.a.b", "http://a.c", "https://a.d", "ftp://a.e")
     # pylint: disable-next=consider-using-f-string
     df = DataFrame(["text {} {} text {} {}".format(*links)])
-    result = df.style.format(hyperlinks="html").to_html()
+    result = str(df.style.format(hyperlinks="html").to_html())
     href = '<a href="{0}" target="_blank">{0}</a>'
     for link in links:
         assert href.format(link) in result

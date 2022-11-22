@@ -1121,18 +1121,18 @@ class TestReadHtml:
         rng = date_range("2000-01-01", periods=10)
         df = DataFrame(np.random.randn(10, 4), index=rng)
 
-        result = df.to_html()
+        result = str(df.to_html())
         assert "2000-01-01" in result
 
     def test_to_html_borderless(self):
         df = DataFrame([{"A": 1, "B": 2}])
-        out_border_default = df.to_html()
-        out_border_true = df.to_html(border=True)
-        out_border_explicit_default = df.to_html(border=1)
-        out_border_nondefault = df.to_html(border=2)
-        out_border_zero = df.to_html(border=0)
+        out_border_default = str(df.to_html())
+        out_border_true = str(df.to_html(border=True))
+        out_border_explicit_default = str(df.to_html(border=1))
+        out_border_nondefault = str(df.to_html(border=2))
+        out_border_zero = str(df.to_html(border=0))
 
-        out_border_false = df.to_html(border=False)
+        out_border_false = str(df.to_html(border=False))
 
         assert ' border="1"' in out_border_default
         assert out_border_true == out_border_default

@@ -2041,7 +2041,7 @@ c  10  11  12  13  14\
     def test_dict_entries(self):
         df = DataFrame({"A": [{"a": 1, "b": 2}]})
 
-        val = df.to_string()
+        val = str(df.to_string())
         assert "'a': 1" in val
         assert "'b': 2" in val
 
@@ -2418,7 +2418,7 @@ class TestSeriesFormatting:
 
         index = date_range("20130102", periods=6)
         s = Series(1, index=index)
-        result = s.to_string()
+        result = str(s.to_string())
         assert "2013-01-02" in result
 
         # nat in index

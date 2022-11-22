@@ -256,7 +256,7 @@ def test_render_empty_mi():
       </thead>
     """
     )
-    assert expected in df.style.to_html()
+    assert expected in str(df.style.to_html())
 
 
 @pytest.mark.parametrize("comprehensive", [True, False])
@@ -505,7 +505,7 @@ class TestStyler:
         s.to_html()  # do 2 renders to ensure css styles not duplicated
         assert (
             '<style type="text/css">\n#T__row0_col0, #T__row1_col0 {\n'
-            "  color: red;\n}\n</style>" in s.to_html()
+            "  color: red;\n}\n</style>" in str(s.to_html())
         )
 
     def test_render_empty_dfs(self):
@@ -792,7 +792,7 @@ class TestStyler:
 
     def test_caption(self, df):
         styler = Styler(df, caption="foo")
-        result = styler.to_html()
+        result = str(styler.to_html())
         assert all(["caption" in result, "foo" in result])
 
         styler = df.style
@@ -802,7 +802,7 @@ class TestStyler:
 
     def test_uuid(self, df):
         styler = Styler(df, uuid="abc123")
-        result = styler.to_html()
+        result = str(styler.to_html())
         assert "abc123" in result
 
         styler = df.style
@@ -813,7 +813,7 @@ class TestStyler:
     def test_unique_id(self):
         # See https://github.com/pandas-dev/pandas/issues/16780
         df = DataFrame({"a": [1, 3, 5, 6], "b": [2, 4, 12, 21]})
-        result = df.style.to_html(uuid="test")
+        result = str(df.style.to_html(uuid="test"))
         assert "test" in result
         ids = re.findall('id="(.*?)"', result)
         assert np.unique(ids).size == len(ids)
@@ -880,7 +880,7 @@ class TestStyler:
     def test_table_attributes(self, df):
         attributes = 'class="foo" data-bar'
         styler = Styler(df, table_attributes=attributes)
-        result = styler.to_html()
+        result = str(styler.to_html())
         assert 'class="foo" data-bar' in result
 
         result = df.style.set_table_attributes(attributes).to_html()
@@ -1258,13 +1258,15 @@ class TestStyler:
     def test_set_data_classes(self, classes):
         # GH 36159
         df = DataFrame(data=[[0, 1], [2, 3]], columns=["A", "B"], index=["a", "b"])
-        s = Styler(df, uuid_len=0, cell_ids=False).set_td_classes(classes).to_html()
+        s = str(
+            Styler(df, uuid_len=0, cell_ids=False).set_td_classes(classes).to_html()
+        )
         assert '<td class="data row0 col0" >0</td>' in s
         assert '<td class="data row0 col1 test-class" >1</td>' in s
         assert '<td class="data row1 col0" >2</td>' in s
         assert '<td class="data row1 col1" >3</td>' in s
         # GH 39317
-        s = Styler(df, uuid_len=0, cell_ids=True).set_td_classes(classes).to_html()
+        s = str(Styler(df, uuid_len=0, cell_ids=True).set_td_classes(classes).to_html())
         assert '<td id="T__row0_col0" class="data row0 col0" >0</td>' in s
         assert '<td id="T__row0_col1" class="data row0 col1 test-class" >1</td>' in s
         assert '<td id="T__row1_col0" class="data row1 col0" >2</td>' in s
@@ -1280,7 +1282,7 @@ class TestStyler:
             columns=[0, 2],
             index=[0, 2],
         )
-        s = Styler(df, uuid_len=0).set_td_classes(classes).to_html()
+        s = str(Styler(df, uuid_len=0).set_td_classes(classes).to_html())
         assert '<td id="T__row0_col0" class="data row0 col0 mi" >0</td>' in s
         assert '<td id="T__row0_col2" class="data row0 col2 ma" >2</td>' in s
         assert '<td id="T__row1_col1" class="data row1 col1" >4</td>' in s
@@ -1303,11 +1305,11 @@ class TestStyler:
         df = DataFrame(data=[[0, 1], [1, 2]], columns=["A", "B"])
         s = Styler(df, uuid_len=0)
         s = s.set_table_styles({"A": [{"selector": "", "props": [("color", "blue")]}]})
-        assert "#T_ .col0 {\n  color: blue;\n}" in s.to_html()
+        assert "#T_ .col0 {\n  color: blue;\n}" in str(s.to_html())
         s = s.set_table_styles(
             {0: [{"selector": "", "props": [("color", "blue")]}]}, axis=1
         )
-        assert "#T_ .row0 {\n  color: blue;\n}" in s.to_html()
+        assert "#T_ .row0 {\n  color: blue;\n}" in str(s.to_html())
 
     @pytest.mark.parametrize("len_", [1, 5, 32, 33, 100])
     def test_uuid_len(self, len_):
