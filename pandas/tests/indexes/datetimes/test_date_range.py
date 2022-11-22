@@ -1184,3 +1184,69 @@ def test_date_range_with_custom_holidays():
         freq=freq,
     )
     tm.assert_index_equal(result, expected)
+
+
+class TestDateRangeNonNano:
+    def test_date_range_reso_validation(self):
+        msg = "'unit' must be one of 's', 'ms', 'us', 'ns'"
+        with pytest.raises(ValueError, match=msg):
+            date_range("2016-01-01", "2016-03-04", periods=3, unit="h")
+
+    def test_date_range_freq_higher_than_reso(self):
+        # freq being higher-resolution than reso is a problem
+        msg = "Use a lower freq or a higher unit instead"
+        with pytest.raises(ValueError, match=msg):
+            #    # TODO give a more useful or informative message?
+            date_range("2016-01-01", "2016-01-02", freq="ns", unit="ms")
+
+    def test_date_range_freq_matches_reso(self):
+        # GH#49106 matching reso is OK
+        dti = date_range("2016-01-01", "2016-01-01 00:00:01", freq="ms", unit="ms")
+        rng = np.arange(1_451_606_400_000, 1_451_606_401_001, dtype=np.int64)
+        expected = DatetimeIndex(rng.view("M8[ms]"), freq="ms")
+        tm.assert_index_equal(dti, expected)
+
+        dti = date_range("2016-01-01", "2016-01-01 00:00:01", freq="us", unit="us")
+        rng = np.arange(1_451_606_400_000_000, 1_451_606_401_000_001, dtype=np.int64)
+        expected = DatetimeIndex(rng.view("M8[us]"), freq="us")
+        tm.assert_index_equal(dti, expected)
+
+        dti = date_range("2016-01-01", "2016-01-01 00:00:00.001", freq="ns", unit="ns")
+        rng = np.arange(
+            1_451_606_400_000_000_000, 1_451_606_400_001_000_001, dtype=np.int64
+        )
+        expected = DatetimeIndex(rng.view("M8[ns]"), freq="ns")
+        tm.assert_index_equal(dti, expected)
+
+    def test_date_range_freq_lower_than_endpoints(self):
+        start = Timestamp("2022-10-19 11:50:44.719781")
+        end = Timestamp("2022-10-19 11:50:47.066458")
+
+        # start and end cannot be cast to "s" unit without lossy rounding,
+        #  so we do not allow this in date_range
+        with pytest.raises(ValueError, match="Cannot losslessly convert units"):
+            date_range(start, end, periods=3, unit="s")
+
+        # but we can losslessly cast to "us"
+        dti = date_range(start, end, periods=2, unit="us")
+        rng = np.array(
+            [start.as_unit("us").value, end.as_unit("us").value], dtype=np.int64
+        )
+        expected = DatetimeIndex(rng.view("M8[us]"))
+        tm.assert_index_equal(dti, expected)
+
+    def test_date_range_non_nano(self):
+        start = np.datetime64("1066-10-14")  # Battle of Hastings
+        end = np.datetime64("2305-07-13")  # Jean-Luc Picard's birthday
+
+        dti = date_range(start, end, freq="D", unit="s")
+        assert dti.freq == "D"
+        assert dti.dtype == "M8[s]"
+
+        exp = np.arange(
+            start.astype("M8[s]").view("i8"),
+            (end + 1).astype("M8[s]").view("i8"),
+            24 * 3600,
+        ).view("M8[s]")
+
+        tm.assert_numpy_array_equal(dti.to_numpy(), exp)
