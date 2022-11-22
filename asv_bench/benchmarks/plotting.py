@@ -55,6 +55,7 @@ class FramePlotting:
 
     def setup(self, kind):
         print("mpl version", matplotlib.__version__)
+        os.system("conda list")
         if kind in ["bar", "barh", "pie"]:
             n = 100
         elif kind in ["kde", "scatter", "hexbin"]:
