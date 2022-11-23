@@ -3,7 +3,7 @@ SQL-style merge routines
 """
 from __future__ import annotations
 
-import copy
+import copy as cp
 import datetime
 from functools import partial
 import string
@@ -106,7 +106,7 @@ def merge(
     right_index: bool = False,
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
-    is_copied: bool = True,
+    copy: bool = True,
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
@@ -124,7 +124,7 @@ def merge(
         indicator=indicator,
         validate=validate,
     )
-    return op.get_result(is_copied=is_copied)
+    return op.get_result(copy=copy)
 
 
 if __debug__:
@@ -183,7 +183,7 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
     from pandas.core.reshape.concat import concat
 
     result = concat(pieces, ignore_index=True)
-    result = result.reindex(columns=pieces[0].columns, is_copied=False)
+    result = result.reindex(columns=pieces[0].columns, copy=False)
     return result, lby
 
 
@@ -624,7 +624,7 @@ class _MergeOperation:
     bm_axis: AxisInt
     sort: bool
     suffixes: Suffixes
-    is_copied: bool
+    copy: bool
     indicator: str | bool
     validate: str | None
     join_names: list[Hashable]
@@ -721,7 +721,7 @@ class _MergeOperation:
         join_index: Index,
         left_indexer: npt.NDArray[np.intp] | None,
         right_indexer: npt.NDArray[np.intp] | None,
-        is_copied: bool,
+        copy: bool,
     ) -> DataFrame:
         """
         reindex along index and concat along columns.
@@ -742,7 +742,7 @@ class _MergeOperation:
                 join_index,
                 left_indexer,
                 axis=1,
-                is_copied=False,
+                copy=False,
                 only_slice=True,
                 allow_dups=True,
                 use_na_proxy=True,
@@ -755,7 +755,7 @@ class _MergeOperation:
                 join_index,
                 right_indexer,
                 axis=1,
-                is_copied=False,
+                copy=False,
                 only_slice=True,
                 allow_dups=True,
                 use_na_proxy=True,
@@ -767,17 +767,17 @@ class _MergeOperation:
 
         left.columns = llabels
         right.columns = rlabels
-        result = concat([left, right], axis=1, is_copied=is_copied)
+        result = concat([left, right], axis=1, copy=copy)
         return result
 
-    def get_result(self, is_copied: bool = True) -> DataFrame:
+    def get_result(self, copy: bool = True) -> DataFrame:
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         result = self._reindex_and_concat(
-            join_index, left_indexer, right_indexer, is_copied=is_copied
+            join_index, left_indexer, right_indexer, copy=copy
         )
         result = result.__finalize__(self, method=self._merge_type)
 
@@ -1637,7 +1637,7 @@ def get_join_indexers(
 
     lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
-    kwargs = copy.copy(kwargs)
+    kwargs = cp.copy(kwargs)
     if how in ("left", "right"):
         kwargs["sort"] = sort
     join_func = {
@@ -1776,7 +1776,7 @@ class _OrderedMerge(_MergeOperation):
             sort=True,  # factorize sorts
         )
 
-    def get_result(self, is_copied: bool = True) -> DataFrame:
+    def get_result(self, copy: bool = True) -> DataFrame:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         llabels, rlabels = _items_overlap_with_suffix(
@@ -1799,7 +1799,7 @@ class _OrderedMerge(_MergeOperation):
             right_join_indexer = right_indexer
 
         result = self._reindex_and_concat(
-            join_index, left_join_indexer, right_join_indexer, is_copied=is_copied
+            join_index, left_join_indexer, right_join_indexer, copy=copy
         )
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
@@ -1845,7 +1845,7 @@ class _AsOfMerge(_OrderedMerge):
         right_by=None,
         axis: AxisInt = 1,
         suffixes: Suffixes = ("_x", "_y"),
-        is_copied: bool = True,
+        copy: bool = True,
         fill_method: str | None = None,
         how: str = "asof",
         tolerance=None,
@@ -2156,7 +2156,7 @@ def _get_multiindex_indexer(
     if sort:
         rcodes = list(map(np.take, rcodes, index.codes))
     else:
-        i8copy = lambda a: a.astype("i8", subok=False, is_copied=True)
+        i8copy = lambda a: a.astype("i8", subok=False, copy=True)
         rcodes = list(map(i8copy, index.codes))
 
     # fix right labels if there were any nulls
@@ -2420,8 +2420,8 @@ def _get_join_keys(
 
     # get keys for the first `nlev` levels
     stride = np.prod(shape[1:nlev], dtype="i8")
-    lkey = stride * llab[0].astype("i8", subok=False, is_copied=False)
-    rkey = stride * rlab[0].astype("i8", subok=False, is_copied=False)
+    lkey = stride * llab[0].astype("i8", subok=False, copy=False)
+    rkey = stride * rlab[0].astype("i8", subok=False, copy=False)
 
     for i in range(1, nlev):
         with np.errstate(divide="ignore"):

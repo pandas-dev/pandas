@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import copy
+import copy as cp
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -69,7 +69,7 @@ if TYPE_CHECKING:
 
 
 def _concatenate_array_managers(
-    mgrs_indexers, axes: list[Index], concat_axis: AxisInt, is_copied: bool
+    mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
 ) -> Manager:
     """
     Concatenate array managers into one.
@@ -95,7 +95,7 @@ def _concatenate_array_managers(
             )
             if ax == 1 and indexer is not None:
                 axis1_made_copy = True
-        if is_copied and concat_axis == 0 and not axis1_made_copy:
+        if copy and concat_axis == 0 and not axis1_made_copy:
             # for concat_axis 1 we will always get a copy through concat_arrays
             mgr = mgr.copy()
         mgrs.append(mgr)
@@ -151,7 +151,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
     to_concat = [
         arr.to_array(target_dtype)
         if isinstance(arr, NullArrayProxy)
-        else astype_array(arr, target_dtype, is_copied=False)
+        else astype_array(arr, target_dtype, copy=False)
         for arr in to_concat
     ]
 
@@ -173,7 +173,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
 
 
 def concatenate_managers(
-    mgrs_indexers, axes: list[Index], concat_axis: AxisInt, is_copied: bool
+    mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
 ) -> Manager:
     """
     Concatenate block managers into one.
@@ -191,7 +191,7 @@ def concatenate_managers(
     """
     # TODO(ArrayManager) this assumes that all managers are of the same type
     if isinstance(mgrs_indexers[0][0], ArrayManager):
-        return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, is_copied)
+        return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
     mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
 
@@ -207,7 +207,7 @@ def concatenate_managers(
 
         if len(join_units) == 1 and not join_units[0].indexers:
             values = blk.values
-            if is_copied:
+            if copy:
                 values = values.copy()
             else:
                 values = values.view()
@@ -229,7 +229,7 @@ def concatenate_managers(
 
             fastpath = blk.values.dtype == values.dtype
         else:
-            values = _concatenate_join_units(join_units, concat_axis, is_copied=is_copied)
+            values = _concatenate_join_units(join_units, concat_axis, copy=copy)
             fastpath = False
 
         if fastpath:
@@ -260,7 +260,7 @@ def _maybe_reindex_columns_na_proxy(
                 axes[0],
                 indexers[0],
                 axis=0,
-                is_copied=False,
+                copy=False,
                 only_slice=True,
                 allow_dups=True,
                 use_na_proxy=True,
@@ -524,7 +524,7 @@ class JoinUnit:
 
 
 def _concatenate_join_units(
-    join_units: list[JoinUnit], concat_axis: AxisInt, is_copied: bool
+    join_units: list[JoinUnit], concat_axis: AxisInt, copy: bool
 ) -> ArrayLike:
     """
     Concatenate values from several join units along selected axis.
@@ -546,7 +546,7 @@ def _concatenate_join_units(
     if len(to_concat) == 1:
         # Only one block, nothing to concatenate.
         concat_values = to_concat[0]
-        if is_copied:
+        if copy:
             if isinstance(concat_values, np.ndarray):
                 # non-reindexed (=not yet copied) arrays are made into a view
                 # in JoinUnit.get_reindexed_values
@@ -691,7 +691,7 @@ def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
     else:
         extra_block = join_unit.block
 
-        extra_indexers = copy.copy(join_unit.indexers)
+        extra_indexers = cp.copy(join_unit.indexers)
         extra_indexers[0] = extra_indexers[0][length:]
         join_unit.indexers[0] = join_unit.indexers[0][:length]
 
