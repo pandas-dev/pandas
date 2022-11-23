@@ -157,8 +157,7 @@ disable = [
   "unspecified-encoding",
   "unused-argument",
   "unused-variable",
-  "using-constant-test",
-  "useless-parent-delegation"
+  "using-constant-test"
 ]
 
 [tool.pytest.ini_options]
