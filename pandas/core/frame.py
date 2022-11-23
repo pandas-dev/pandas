@@ -7453,11 +7453,6 @@ class DataFrame(NDFrame, OpsMixin):
             #  fails in cases with empty columns reached via
             #  _frame_arith_method_with_reindex
 
-            if isinstance(self._mgr, BlockManager) and isinstance(
-                right._mgr, ArrayManager
-            ):
-                raise ValueError("BlockManager -> ArrayManager operators don't work.")
-
             with np.errstate(all="ignore"):
                 bm = self._mgr.operate_blockwise(
                     # error: Argument 1 to "operate_blockwise" of "ArrayManager" has

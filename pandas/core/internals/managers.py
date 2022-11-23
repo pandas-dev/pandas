@@ -68,6 +68,7 @@ from pandas.core.indexes.api import (
     Index,
     ensure_index,
 )
+from pandas.core.internals import ArrayManager
 from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
@@ -1570,6 +1571,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         Apply array_op blockwise with another (aligned) BlockManager.
         """
+        if isinstance(other, ArrayManager):
+            raise ValueError("BlockManager -> ArrayManager operators don't work.")
+
         return operate_blockwise(self, other, array_op)
 
     def _equal_values(self: BlockManager, other: BlockManager) -> bool:
