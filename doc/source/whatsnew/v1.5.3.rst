@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed performance regression in :meth:`Series.isin` when ``values`` is empty (:issue:`49839`)
+- Fixed regression in :meth:`DataFrameGroupBy.transform` when used with ``as_index=False`` (:issue:`49834`)
 -
 
 .. ---------------------------------------------------------------------------
