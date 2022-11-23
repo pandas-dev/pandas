@@ -3660,7 +3660,20 @@ class MultiIndex(Index):
             raise ValueError("Item must have length equal to number of levels.")
         return item
 
-    def putmask(self, mask, value: MultiIndex) -> Index:
+    def putmask(self, mask, value: MultiIndex) -> MultiIndex:
+        """
+        Return a new MultiIndex of the values set with the mask.
+
+        Parameters
+        ----------
+        mask : array like
+        value : MultiIndex
+            Must either be the same length as self or length one
+
+        Returns
+        -------
+        MultiIndex
+        """
         mask, noop = validate_putmask(self, mask)
         if noop:
             return self.copy()
