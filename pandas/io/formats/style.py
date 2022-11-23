@@ -1927,6 +1927,25 @@ class Styler(StylerRenderer):
         ...  # doctest: +SKIP
 
         .. figure:: ../../_static/style/appmaphead2.png
+
+        Applying styles to specific axis level names using a list
+
+        >>> midx = pd.MultiIndex.from_product(
+        ...     [['ix', 'jy'], [0, 1], ['x3', 'z4']],
+        ...     names=["l0", "l1", "l2"]
+        ... )
+        >>> df = pd.DataFrame([np.arange(8)], columns=midx)
+        >>> df.style.{this}_index(lambda x: [
+        ...         "background-color: yellow",
+        ...         "",
+        ...         "background-color: red",
+        ...     ],
+        ...     axis="columns",
+        ...     names=True
+        ... )
+        ...  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/appmaphead3.png
         """
         self._todo.append(
             (
