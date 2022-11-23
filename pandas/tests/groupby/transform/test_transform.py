@@ -440,10 +440,12 @@ def test_transform_exclude_nuisance(df):
 
 
 def test_transform_function_aliases(df):
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").transform("mean")
-        expected = df.groupby("A").transform(np.mean)
+    with pytest.raises(TypeError, match="Could not convert"):
+        df.groupby("A").transform("mean")
+    result = df.groupby("A").transform("mean", numeric_only=True)
+    with pytest.raises(TypeError, match="Could not convert"):
+        df.groupby("A").transform(np.mean)
+    expected = df.groupby("A")[["C", "D"]].transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby("A")["C"].transform("mean")
