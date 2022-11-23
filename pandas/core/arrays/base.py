@@ -1370,7 +1370,9 @@ class ExtensionArray:
     def _can_hold_na(self) -> bool:
         return self.dtype._can_hold_na
 
-    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs) -> ExtensionArray:
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> ExtensionArray:
         """
         Return an ExtensionArray performing an accumulation operation.
 
