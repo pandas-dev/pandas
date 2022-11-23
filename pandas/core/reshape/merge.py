@@ -98,6 +98,7 @@ if TYPE_CHECKING:
 
 _factorizers = {
     np.int64: libhashtable.Int64Factorizer,
+    np.longlong: libhashtable.Int64Factorizer,
     np.int32: libhashtable.Int32Factorizer,
     np.int16: libhashtable.Int16Factorizer,
     np.int8: libhashtable.Int8Factorizer,
