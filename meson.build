@@ -10,11 +10,8 @@ project(
         # when buildtype = debug, this seems to be causing problems on CI
         # where provided Python is not compiled in debug mode
         'buildtype=release',
-        # TODO: turn on werror when ready
-        #'werror=true',
-        # TODO: We are using POSIX functions(strdup in ujson), so we can't compile
-        # with strict C99 :(
-        #'c_std=c99'
+        'werror=true',
+        'c_std=c99'
     ]
 )
 
@@ -23,8 +20,8 @@ add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')
 
 # This is a cython bug
 # TODO: Remove once cython/cython#4804 addressed
-add_global_arguments('-DNDEBUG', language : 'c')
-add_global_arguments('-DNDEBUG', language : 'cpp')
+add_project_arguments('-DNDEBUG', language : 'c')
+add_project_arguments('-DNDEBUG', language : 'cpp')
 
 py_mod = import('python')
 fs = import('fs')
