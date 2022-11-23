@@ -53,5 +53,5 @@ dependencies:
   - xlsxwriter
   - zstandard
   - pip:
-      - "git+https://github.com/mesonbuild/meson.git@master"
+      - "meson[ninja] @ git+https://github.com/mesonbuild/meson.git@master"
       - "git+https://github.com/mesonbuild/meson-python.git@main"
