@@ -15,6 +15,7 @@ from cpython.iterator cimport PyIter_Check
 from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
     Py_EQ,
+    PyObject,
     PyObject_RichCompareBool,
     PyTypeObject,
 )
@@ -571,25 +572,42 @@ def maybe_booleans_to_slice(ndarray[uint8_t, ndim=1] mask):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def array_equivalent_object(left: object[:], right: object[:]) -> bool:
+def array_equivalent_object(ndarray left, ndarray right) -> bool:
     """
-    Perform an element by element comparison on 1-d object arrays
+    Perform an element by element comparison on N-d object arrays
     taking into account nan positions.
     """
+    # left and right both have object dtype, but we cannot annotate that
+    #  without limiting ndim.
     cdef:
-        Py_ssize_t i, n = left.shape[0]
+        Py_ssize_t i, n = left.size
         object x, y
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(left, right)
+
+    # Caller is responsible for checking left.shape == right.shape
 
     for i in range(n):
-        x = left[i]
-        y = right[i]
+        # Analogous to: x = left[i]
+        x = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 0))[0]
+        y = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
         # we are either not equal or both nan
         # I think None == None will be true here
         try:
             if PyArray_Check(x) and PyArray_Check(y):
-                if not array_equivalent_object(x, y):
+                if x.shape != y.shape:
                     return False
+                if x.dtype == y.dtype == object:
+                    if not array_equivalent_object(x, y):
+                        return False
+                else:
+                    # Circular import isn't great, but so it goes.
+                    # TODO: could use np.array_equal?
+                    from pandas.core.dtypes.missing import array_equivalent
+
+                    if not array_equivalent(x, y):
+                        return False
+
             elif (x is C_NA) ^ (y is C_NA):
                 return False
             elif not (
@@ -611,6 +629,8 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                 # Only condition we may end up with a TypeError
                 return False
             raise
+
+        cnp.PyArray_MultiIter_NEXT(mi)
 
     return True
 
@@ -1438,6 +1458,8 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     else:
         if not isinstance(value, list):
             value = list(value)
+        if not value:
+            return "empty"
 
         from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
         values = construct_1d_object_array_from_listlike(value)
