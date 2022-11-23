@@ -51,7 +51,7 @@ def adjoin(space: int, *lists: list[str], **kwargs) -> str:
     maxLen = max(map(len, lists))
     for i, lst in enumerate(lists):
         nl = justfunc(lst, lengths[i], mode="left")
-        nl.extend([" " * lengths[i]] * (maxLen - len(lst)))
+        nl = ([" " * lengths[i]] * (maxLen - len(lst))) + nl
         newLists.append(nl)
     toJoin = zip(*newLists)
     for lines in toJoin:
@@ -426,8 +426,8 @@ def format_object_summary(
         summary = ""
         line = space2
 
-        for max_items in range(len(head)):
-            word = head[max_items] + sep + " "
+        for head_value in head:
+            word = head_value + sep + " "
             summary, line = _extend_line(summary, line, word, display_width, space2)
 
         if is_truncated:
@@ -435,8 +435,8 @@ def format_object_summary(
             summary += line.rstrip() + space2 + "..."
             line = space2
 
-        for max_items in range(len(tail) - 1):
-            word = tail[max_items] + sep + " "
+        for tail_item in tail[:-1]:
+            word = tail_item + sep + " "
             summary, line = _extend_line(summary, line, word, display_width, space2)
 
         # last value: no sep added + 1 space of width used for trailing ','

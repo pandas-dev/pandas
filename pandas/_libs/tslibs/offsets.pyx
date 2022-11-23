@@ -1,9 +1,5 @@
-import inspect
 import re
 import time
-import warnings
-
-from pandas.util._exceptions import find_stack_level
 
 cimport cython
 from cpython.datetime cimport (
@@ -258,7 +254,9 @@ cdef _to_dt64D(dt):
     if getattr(dt, 'tzinfo', None) is not None:
         # Get the nanosecond timestamp,
         #  equiv `Timestamp(dt).value` or `dt.timestamp() * 10**9`
-        naive = dt.astimezone(None)
+        # The `naive` must be the `dt` naive wall time
+        #  instead of the naive absolute time (GH#49441)
+        naive = dt.replace(tzinfo=None)
         dt = np.datetime64(naive, "D")
     else:
         dt = np.datetime64(dt)
@@ -496,25 +494,6 @@ cdef class BaseOffset:
     def __rsub__(self, other):
         return (-self).__add__(other)
 
-    def __call__(self, other):
-        warnings.warn(
-            "DateOffset.__call__ is deprecated and will be removed in a future "
-            "version.  Use `offset + other` instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self._apply(other)
-
-    def apply(self, other):
-        # GH#44522
-        warnings.warn(
-            f"{type(self).__name__}.apply is deprecated and will be removed "
-            "in a future version. Use `offset + other` instead",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self._apply(other)
-
     def __mul__(self, other):
         if util.is_array(other):
             return np.array([self * x for x in other])
@@ -652,34 +631,6 @@ cdef class BaseOffset:
         return ""
 
     # ------------------------------------------------------------------
-
-    def apply_index(self, dtindex):
-        """
-        Vectorized apply of DateOffset to DatetimeIndex.
-
-        .. deprecated:: 1.1.0
-
-           Use ``offset + dtindex`` instead.
-
-        Parameters
-        ----------
-        index : DatetimeIndex
-
-        Returns
-        -------
-        DatetimeIndex
-
-        Raises
-        ------
-        NotImplementedError
-            When the specific offset subclass does not have a vectorized
-            implementation.
-        """
-        warnings.warn("'Offset.apply_index(other)' is deprecated. "
-                      "Use 'offset + other' instead.", FutureWarning)
-
-        res = self._apply_array(dtindex)
-        return type(dtindex)(res)
 
     def _apply(self, other):
         raise NotImplementedError("implemented by subclasses")
@@ -820,22 +771,6 @@ cdef class BaseOffset:
     @property
     def nanos(self):
         raise ValueError(f"{self} is a non-fixed frequency")
-
-    def onOffset(self, dt) -> bool:
-        warnings.warn(
-            "onOffset is a deprecated, use is_on_offset instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self.is_on_offset(dt)
-
-    def isAnchored(self) -> bool:
-        warnings.warn(
-            "isAnchored is a deprecated, use is_anchored instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self.is_anchored()
 
     def is_anchored(self) -> bool:
         # TODO: Does this make sense for the general case?  It would help
@@ -1125,12 +1060,6 @@ cdef class Tick(SingleConstructorOffset):
 
         if util.is_timedelta64_object(other) or PyDelta_Check(other):
             return other + self.delta
-        elif isinstance(other, type(self)):
-            # TODO(2.0): remove once apply deprecation is enforced.
-            #  This is reached in tests that specifically call apply,
-            #  but should not be reached "naturally" because __add__ should
-            #  catch this case first.
-            return type(self)(self.n + other.n)
 
         raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
 
@@ -1147,7 +1076,7 @@ cdef class Day(Tick):
     _prefix = "D"
     _td64_unit = "D"
     _period_dtype_code = PeriodDtypeCode.D
-    _reso = NPY_DATETIMEUNIT.NPY_FR_D
+    _creso = NPY_DATETIMEUNIT.NPY_FR_D
 
 
 cdef class Hour(Tick):
@@ -1155,7 +1084,7 @@ cdef class Hour(Tick):
     _prefix = "H"
     _td64_unit = "h"
     _period_dtype_code = PeriodDtypeCode.H
-    _reso = NPY_DATETIMEUNIT.NPY_FR_h
+    _creso = NPY_DATETIMEUNIT.NPY_FR_h
 
 
 cdef class Minute(Tick):
@@ -1163,7 +1092,7 @@ cdef class Minute(Tick):
     _prefix = "T"
     _td64_unit = "m"
     _period_dtype_code = PeriodDtypeCode.T
-    _reso = NPY_DATETIMEUNIT.NPY_FR_m
+    _creso = NPY_DATETIMEUNIT.NPY_FR_m
 
 
 cdef class Second(Tick):
@@ -1171,7 +1100,7 @@ cdef class Second(Tick):
     _prefix = "S"
     _td64_unit = "s"
     _period_dtype_code = PeriodDtypeCode.S
-    _reso = NPY_DATETIMEUNIT.NPY_FR_s
+    _creso = NPY_DATETIMEUNIT.NPY_FR_s
 
 
 cdef class Milli(Tick):
@@ -1179,7 +1108,7 @@ cdef class Milli(Tick):
     _prefix = "L"
     _td64_unit = "ms"
     _period_dtype_code = PeriodDtypeCode.L
-    _reso = NPY_DATETIMEUNIT.NPY_FR_ms
+    _creso = NPY_DATETIMEUNIT.NPY_FR_ms
 
 
 cdef class Micro(Tick):
@@ -1187,7 +1116,7 @@ cdef class Micro(Tick):
     _prefix = "U"
     _td64_unit = "us"
     _period_dtype_code = PeriodDtypeCode.U
-    _reso = NPY_DATETIMEUNIT.NPY_FR_us
+    _creso = NPY_DATETIMEUNIT.NPY_FR_us
 
 
 cdef class Nano(Tick):
@@ -1195,7 +1124,7 @@ cdef class Nano(Tick):
     _prefix = "N"
     _td64_unit = "ns"
     _period_dtype_code = PeriodDtypeCode.N
-    _reso = NPY_DATETIMEUNIT.NPY_FR_ns
+    _creso = NPY_DATETIMEUNIT.NPY_FR_ns
 
 
 def delta_to_tick(delta: timedelta) -> Tick:
@@ -1326,7 +1255,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
             weeks = kwds.get("weeks", 0) * self.n
             if weeks:
                 delta = Timedelta(days=7 * weeks)
-                td = (<_Timedelta>delta)._as_reso(reso)
+                td = (<_Timedelta>delta)._as_creso(reso)
                 dt64other = dt64other + td
 
             timedelta_kwds = {
@@ -1336,7 +1265,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
             }
             if timedelta_kwds:
                 delta = Timedelta(**timedelta_kwds)
-                td = (<_Timedelta>delta)._as_reso(reso)
+                td = (<_Timedelta>delta)._as_creso(reso)
                 dt64other = dt64other + (self.n * td)
             return dt64other
         elif not self._use_relativedelta and hasattr(self, "_offset"):
@@ -1347,7 +1276,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta((self._offset + rem_nano) * self.n)
             else:
                 delta = Timedelta(self._offset * self.n)
-            td = (<_Timedelta>delta)._as_reso(reso)
+            td = (<_Timedelta>delta)._as_creso(reso)
             return dt64other + td
         else:
             # relativedelta with other keywords
@@ -2335,7 +2264,12 @@ cdef class QuarterOffset(SingleConstructorOffset):
     def _apply_array(self, dtarr):
         reso = get_unit_from_dtype(dtarr.dtype)
         shifted = shift_quarters(
-            dtarr.view("i8"), self.n, self.startingMonth, self._day_opt, modby=3, reso=reso
+            dtarr.view("i8"),
+            self.n,
+            self.startingMonth,
+            self._day_opt,
+            modby=3,
+            reso=reso,
         )
         return shifted
 
@@ -2615,7 +2549,9 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
             ndarray i8other = dtarr.view("i8")
             Py_ssize_t i, count = dtarr.size
             int64_t val, res_val
-            ndarray out = cnp.PyArray_EMPTY(i8other.ndim, i8other.shape, cnp.NPY_INT64, 0)
+            ndarray out = cnp.PyArray_EMPTY(
+                i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
+            )
             npy_datetimestruct dts
             int months, to_day, nadj, n = self.n
             int days_in_month, day, anchor_dom = self.day_of_month
@@ -2823,7 +2759,9 @@ cdef class Week(SingleConstructorOffset):
         cdef:
             Py_ssize_t i, count = i8other.size
             int64_t val, res_val
-            ndarray out = cnp.PyArray_EMPTY(i8other.ndim, i8other.shape, cnp.NPY_INT64, 0)
+            ndarray out = cnp.PyArray_EMPTY(
+                i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
+            )
             npy_datetimestruct dts
             int wday, days, weeks, n = self.n
             int anchor_weekday = self.weekday
@@ -3395,7 +3333,9 @@ cdef class FY5253Quarter(FY5253Mixin):
             for qlen in qtr_lens:
                 if qlen * 7 <= tdelta.days:
                     num_qtrs += 1
-                    tdelta -= (<_Timedelta>Timedelta(days=qlen * 7))._as_reso(norm._reso)
+                    tdelta -= (
+                        <_Timedelta>Timedelta(days=qlen * 7)
+                    )._as_creso(norm._creso)
                 else:
                     break
         else:
@@ -4212,7 +4152,9 @@ cdef ndarray _shift_bdays(
     """
     cdef:
         Py_ssize_t i, n = i8other.size
-        ndarray result = cnp.PyArray_EMPTY(i8other.ndim, i8other.shape, cnp.NPY_INT64, 0)
+        ndarray result = cnp.PyArray_EMPTY(
+            i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
+        )
         int64_t val, res_val
         int wday, nadj, days
         npy_datetimestruct dts

@@ -17,6 +17,10 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
+from pandas._libs.tslibs import (
+    get_unit_from_dtype,
+    is_supported_unit,
+)
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -423,6 +427,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             data = self._data.astype(dtype, copy=copy)
         return data
 
+    @doc(ExtensionArray.tolist)
+    def tolist(self):
+        if self.ndim > 1:
+            return [x.tolist() for x in self]
+        if not self._hasna:
+            # faster than list(self)
+            return list(self._data)
+        return list(self)
+
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
         ...
@@ -642,7 +655,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     raise NotImplementedError(
                         f"operator '{op_name}' not implemented for bool dtypes"
                     )
-                elif op_name in {"mod", "rmod"}:
+                if op_name in {"mod", "rmod"}:
                     dtype = "int8"
                 else:
                     dtype = "bool"
@@ -750,12 +763,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return BooleanArray(result, mask, copy=False)
 
-        elif result.dtype == "timedelta64[ns]":
+        elif (
+            isinstance(result.dtype, np.dtype)
+            and result.dtype.kind == "m"
+            and is_supported_unit(get_unit_from_dtype(result.dtype))
+        ):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
             if not isinstance(result, TimedeltaArray):
-                result = TimedeltaArray._simple_new(result)
+                result = TimedeltaArray._simple_new(result, dtype=result.dtype)
 
             result[mask] = result.dtype.type("NaT")
             return result
@@ -884,28 +901,25 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @doc(ExtensionArray.factorize)
     def factorize(
         self,
-        na_sentinel: int | lib.NoDefault = lib.no_default,
-        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool = True,
     ) -> tuple[np.ndarray, ExtensionArray]:
-        resolved_na_sentinel = algos.resolve_na_sentinel(na_sentinel, use_na_sentinel)
         arr = self._data
         mask = self._mask
 
-        # Pass non-None na_sentinel; recode and add NA to uniques if necessary below
-        na_sentinel_arg = -1 if resolved_na_sentinel is None else resolved_na_sentinel
-        codes, uniques = factorize_array(arr, na_sentinel=na_sentinel_arg, mask=mask)
+        # Use a sentinel for na; recode and add NA to uniques if necessary below
+        codes, uniques = factorize_array(arr, use_na_sentinel=True, mask=mask)
 
         # check that factorize_array correctly preserves dtype.
         assert uniques.dtype == self.dtype.numpy_dtype, (uniques.dtype, self.dtype)
 
         has_na = mask.any()
-        if resolved_na_sentinel is not None or not has_na:
+        if use_na_sentinel or not has_na:
             size = len(uniques)
         else:
             # Make room for an NA value
             size = len(uniques) + 1
         uniques_mask = np.zeros(size, dtype=bool)
-        if resolved_na_sentinel is None and has_na:
+        if not use_na_sentinel and has_na:
             na_index = mask.argmax()
             # Insert na with the proper code
             if na_index == 0:
@@ -1017,7 +1031,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 # I think this should be out_mask=self.isna().all(axis=1)
                 #  but am holding off until we have tests
                 raise NotImplementedError
-            elif self.isna().all():
+            if self.isna().all():
                 out_mask = np.ones(res.shape, dtype=bool)
             else:
                 out_mask = np.zeros(res.shape, dtype=bool)
@@ -1041,7 +1055,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             data = self.to_numpy("float64", na_value=np.nan)
 
         # median, var, std, skew, kurt, idxmin, idxmax
-        op = getattr(nanops, "nan" + name)
+        op = getattr(nanops, f"nan{name}")
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
         if np.isnan(result):

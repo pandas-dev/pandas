@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Series
-from pandas.core import strings as strings
+from pandas.core import strings
 
 _any_string_method = [
     ("cat", (), {"sep": ","}),
@@ -160,7 +160,7 @@ def any_allowed_skipna_inferred_dtype(request):
 
     Examples
     --------
-    >>> import pandas._libs.lib as lib
+    >>> from pandas._libs import lib
     >>>
     >>> def test_something(any_allowed_skipna_inferred_dtype):
     ...     inferred_dtype, values = any_allowed_skipna_inferred_dtype

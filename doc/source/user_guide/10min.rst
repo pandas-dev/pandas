@@ -233,7 +233,7 @@ For getting fast access to a scalar (equivalent to the prior method):
 Selection by position
 ~~~~~~~~~~~~~~~~~~~~~
 
-See more in :ref:`Selection by Position <indexing.integer>` using :meth:`DataFrame.iloc` or :meth:`DataFrame.at`.
+See more in :ref:`Selection by Position <indexing.integer>` using :meth:`DataFrame.iloc` or :meth:`DataFrame.iat`.
 
 Select via the position of the passed integers:
 

@@ -55,7 +55,7 @@ def test_reindex(datetime_series, string_series):
 
     # return a copy the same index here
     result = datetime_series.reindex()
-    assert not (result is datetime_series)
+    assert result is not datetime_series
 
 
 def test_reindex_nan():

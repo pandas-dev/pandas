@@ -65,7 +65,6 @@ Function application
 
    DataFrameGroupBy.all
    DataFrameGroupBy.any
-   DataFrameGroupBy.backfill
    DataFrameGroupBy.bfill
    DataFrameGroupBy.corr
    DataFrameGroupBy.corrwith
@@ -85,7 +84,6 @@ Function application
    DataFrameGroupBy.idxmax
    DataFrameGroupBy.idxmin
    DataFrameGroupBy.last
-   DataFrameGroupBy.mad
    DataFrameGroupBy.max
    DataFrameGroupBy.mean
    DataFrameGroupBy.median
@@ -94,7 +92,6 @@ Function application
    DataFrameGroupBy.nth
    DataFrameGroupBy.nunique
    DataFrameGroupBy.ohlc
-   DataFrameGroupBy.pad
    DataFrameGroupBy.pct_change
    DataFrameGroupBy.prod
    DataFrameGroupBy.quantile
@@ -110,7 +107,6 @@ Function application
    DataFrameGroupBy.var
    DataFrameGroupBy.tail
    DataFrameGroupBy.take
-   DataFrameGroupBy.tshift
    DataFrameGroupBy.value_counts
 
 ``SeriesGroupBy`` computations / descriptive stats
@@ -120,7 +116,6 @@ Function application
 
    SeriesGroupBy.all
    SeriesGroupBy.any
-   SeriesGroupBy.backfill
    SeriesGroupBy.bfill
    SeriesGroupBy.corr
    SeriesGroupBy.count
@@ -141,7 +136,6 @@ Function application
    SeriesGroupBy.idxmin
    SeriesGroupBy.is_monotonic_increasing
    SeriesGroupBy.is_monotonic_decreasing
-   SeriesGroupBy.mad
    SeriesGroupBy.max
    SeriesGroupBy.mean
    SeriesGroupBy.median
@@ -153,7 +147,6 @@ Function application
    SeriesGroupBy.nunique
    SeriesGroupBy.unique
    SeriesGroupBy.ohlc
-   SeriesGroupBy.pad
    SeriesGroupBy.pct_change
    SeriesGroupBy.prod
    SeriesGroupBy.quantile
@@ -169,7 +162,6 @@ Function application
    SeriesGroupBy.var
    SeriesGroupBy.tail
    SeriesGroupBy.take
-   SeriesGroupBy.tshift
    SeriesGroupBy.value_counts
 
 Plotting and visualization

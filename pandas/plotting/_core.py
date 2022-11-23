@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import importlib
-import inspect
-import itertools
 import types
 from typing import (
     TYPE_CHECKING,
     Sequence,
 )
-import warnings
 
 from pandas._config import get_option
 
@@ -17,7 +14,6 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -693,14 +689,17 @@ class PlotAccessor(PandasObject):
         The matplotlib line style per column.
     logx : bool or 'sym', default False
         Use log scaling or symlog scaling on x axis.
+
         .. versionchanged:: 0.25.0
 
     logy : bool or 'sym' default False
         Use log scaling or symlog scaling on y axis.
+
         .. versionchanged:: 0.25.0
 
     loglog : bool or 'sym', default False
         Use log scaling or symlog scaling on both x and y axes.
+
         .. versionchanged:: 0.25.0
 
     xticks : sequence
@@ -758,13 +757,6 @@ class PlotAccessor(PandasObject):
         Equivalent to yerr.
     stacked : bool, default False in line and bar plots, and True in area plot
         If True, create stacked plot.
-    sort_columns : bool, default False
-        Sort column names to determine plot ordering.
-
-        .. deprecated:: 1.5.0
-            The `sort_columns` arguments is deprecated and will be removed in a
-            future version.
-
     secondary_y : bool or sequence, default False
         Whether to plot on the secondary y-axis if a list/tuple, which
         columns to plot on secondary y-axis.
@@ -875,7 +867,6 @@ class PlotAccessor(PandasObject):
                 ("yerr", None),
                 ("xerr", None),
                 ("secondary_y", False),
-                ("sort_columns", False),
                 ("xlabel", None),
                 ("ylabel", None),
             ]
@@ -883,14 +874,6 @@ class PlotAccessor(PandasObject):
             raise TypeError(
                 f"Called plot accessor for type {type(data).__name__}, "
                 "expected Series or DataFrame"
-            )
-
-        if "sort_columns" in itertools.chain(args, kwargs.keys()):
-            warnings.warn(
-                "`sort_columns` is deprecated and will be removed in a future "
-                "version.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         if args and isinstance(data, ABCSeries):
@@ -953,7 +936,7 @@ class PlotAccessor(PandasObject):
                     raise ValueError(
                         f"{kind} requires either y column or 'subplots=True'"
                     )
-                elif y is not None:
+                if y is not None:
                     if is_integer(y) and not data.columns.holds_integer():
                         y = data.columns[y]
                     # converted to series actually. copy to not modify
@@ -1148,7 +1131,9 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def bar(self, x=None, y=None, **kwargs) -> PlotAccessor:
+    def bar(  # pylint: disable=disallowed-name
+        self, x=None, y=None, **kwargs
+    ) -> PlotAccessor:
         """
         Vertical bar plot.
 
@@ -1645,11 +1630,6 @@ class PlotAccessor(PandasObject):
 
               .. versionchanged:: 1.1.0
 
-        size : str, scalar or array-like, optional
-            Alias for s.
-
-            .. versionadded:: 1.5.0
-
         c : str, int or array-like, optional
             The color of each point. Possible values are:
 
@@ -1663,10 +1643,6 @@ class PlotAccessor(PandasObject):
 
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
-        color : str, int or array-like, optional
-            Alias for c.
-
-            .. versionadded:: 1.5.0
 
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
@@ -1708,13 +1684,13 @@ class PlotAccessor(PandasObject):
         size = kwargs.pop("size", None)
         if s is not None and size is not None:
             raise TypeError("Specify exactly one of `s` and `size`")
-        elif s is not None or size is not None:
+        if s is not None or size is not None:
             kwargs["s"] = s if s is not None else size
 
         color = kwargs.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
-        elif c is not None or color is not None:
+        if c is not None or color is not None:
             kwargs["c"] = c if c is not None else color
 
         return self(kind="scatter", x=x, y=y, **kwargs)
@@ -1850,8 +1826,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     # entry_points lost dict API ~ PY 3.10
     # https://github.com/python/importlib_metadata/issues/298
     if hasattr(eps, "select"):
-        # error: "Dict[str, Tuple[EntryPoint, ...]]" has no attribute "select"
-        entry = eps.select(group=key)  # type: ignore[attr-defined]
+        entry = eps.select(group=key)  # pyright: ignore[reportGeneralTypeIssues]
     else:
         entry = eps.get(key, ())
     for entry_point in entry:

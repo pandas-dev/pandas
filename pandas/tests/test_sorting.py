@@ -412,19 +412,18 @@ class TestSafeSort:
 
     @pytest.mark.parametrize("verify", [True, False])
     @pytest.mark.parametrize(
-        "codes, exp_codes, na_sentinel",
+        "codes, exp_codes",
         [
-            [[0, 1, 1, 2, 3, 0, -1, 4], [3, 1, 1, 2, 0, 3, -1, 4], -1],
-            [[0, 1, 1, 2, 3, 0, 99, 4], [3, 1, 1, 2, 0, 3, 99, 4], 99],
-            [[], [], -1],
+            [[0, 1, 1, 2, 3, 0, -1, 4], [3, 1, 1, 2, 0, 3, -1, 4]],
+            [[], []],
         ],
     )
-    def test_codes(self, verify, codes, exp_codes, na_sentinel):
+    def test_codes(self, verify, codes, exp_codes):
         values = [3, 1, 2, 0, 4]
         expected = np.array([0, 1, 2, 3, 4])
 
         result, result_codes = safe_sort(
-            values, codes, na_sentinel=na_sentinel, verify=verify
+            values, codes, use_na_sentinel=True, verify=verify
         )
         expected_codes = np.array(exp_codes, dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -435,17 +434,14 @@ class TestSafeSort:
         reason="In CI environment can crash thread with: "
         "Windows fatal exception: access violation",
     )
-    @pytest.mark.parametrize("na_sentinel", [-1, 99])
-    def test_codes_out_of_bound(self, na_sentinel):
+    def test_codes_out_of_bound(self):
         values = [3, 1, 2, 0, 4]
         expected = np.array([0, 1, 2, 3, 4])
 
         # out of bound indices
         codes = [0, 101, 102, 2, 3, 0, 99, 4]
-        result, result_codes = safe_sort(values, codes, na_sentinel=na_sentinel)
-        expected_codes = np.array(
-            [3, na_sentinel, na_sentinel, 2, 0, 3, na_sentinel, 4], dtype=np.intp
-        )
+        result, result_codes = safe_sort(values, codes, use_na_sentinel=True)
+        expected_codes = np.array([3, -1, -1, 2, 0, 3, -1, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_codes, expected_codes)
 
@@ -494,22 +490,19 @@ class TestSafeSort:
         tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("verify", [True, False])
-    @pytest.mark.parametrize("na_sentinel", [-1, 99])
-    def test_extension_array_codes(self, verify, na_sentinel):
+    def test_extension_array_codes(self, verify):
         a = array([1, 3, 2], dtype="Int64")
-        result, codes = safe_sort(
-            a, [0, 1, na_sentinel, 2], na_sentinel=na_sentinel, verify=verify
-        )
+        result, codes = safe_sort(a, [0, 1, -1, 2], use_na_sentinel=True, verify=verify)
         expected_values = array([1, 2, 3], dtype="Int64")
-        expected_codes = np.array([0, 2, na_sentinel, 1], dtype=np.intp)
+        expected_codes = np.array([0, 2, -1, 1], dtype=np.intp)
         tm.assert_extension_array_equal(result, expected_values)
         tm.assert_numpy_array_equal(codes, expected_codes)
 
 
-def test_mixed_str_nan():
-    values = np.array(["b", np.nan, "a", "b"], dtype=object)
+def test_mixed_str_null(nulls_fixture):
+    values = np.array(["b", nulls_fixture, "a", "b"], dtype=object)
     result = safe_sort(values)
-    expected = np.array([np.nan, "a", "b", "b"], dtype=object)
+    expected = np.array(["a", "b", "b", nulls_fixture], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
 

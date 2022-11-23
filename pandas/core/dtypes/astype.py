@@ -7,19 +7,12 @@ from __future__ import annotations
 import inspect
 from typing import (
     TYPE_CHECKING,
-    cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-    is_unitless,
-)
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
     ArrayLike,
@@ -27,11 +20,9 @@ from pandas._typing import (
     IgnoreRaise,
 )
 from pandas.errors import IntCastingNaNError
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
@@ -39,17 +30,13 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
     ExtensionDtype,
     PandasDtype,
 )
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import (
-        DatetimeArray,
-        ExtensionArray,
-    )
+    from pandas.core.arrays import ExtensionArray
 
 
 _dtype_obj = np.dtype(object)
@@ -136,7 +123,12 @@ def astype_nansafe(
             return arr.view(dtype)
 
         elif dtype.kind == "m":
-            return astype_td64_unit_conversion(arr, dtype, copy=copy)
+            # give the requested dtype for supported units (s, ms, us, ns)
+            #  and doing the old convert-to-float behavior otherwise.
+            from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+            arr = ensure_wrapped_if_datetimelike(arr)
+            return arr.astype(dtype, copy=copy)
 
         raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 
@@ -218,9 +210,6 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
         msg = rf"cannot astype a datetimelike from [{values.dtype}] to [{dtype}]"
         raise TypeError(msg)
 
-    if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
-        return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
-
     if is_dtype_equal(values.dtype, dtype):
         if copy:
             return values.copy()
@@ -285,20 +274,6 @@ def astype_array_safe(
         # Ensure we don't end up with a PandasArray
         dtype = dtype.numpy_dtype
 
-    if (
-        is_datetime64_dtype(values.dtype)
-        # need to do np.dtype check instead of is_datetime64_dtype
-        #  otherwise pyright complains
-        and isinstance(dtype, np.dtype)
-        and dtype.kind == "M"
-        and not is_unitless(dtype)
-        and not is_dtype_equal(dtype, values.dtype)
-        and not is_supported_unit(get_unit_from_dtype(dtype))
-    ):
-        # Supported units we handle in DatetimeArray.astype; but that raises
-        #  on non-supported units, so we handle that here.
-        return np.asarray(values).astype(dtype)
-
     try:
         new_values = astype_array(values, dtype, copy=copy)
     except (ValueError, TypeError):
@@ -310,113 +285,3 @@ def astype_array_safe(
             raise
 
     return new_values
-
-
-def astype_td64_unit_conversion(
-    values: np.ndarray, dtype: np.dtype, copy: bool
-) -> np.ndarray:
-    """
-    By pandas convention, converting to non-nano timedelta64
-    returns an int64-dtyped array with ints representing multiples
-    of the desired timedelta unit.  This is essentially division.
-
-    Parameters
-    ----------
-    values : np.ndarray[timedelta64[ns]]
-    dtype : np.dtype
-        timedelta64 with unit not-necessarily nano
-    copy : bool
-
-    Returns
-    -------
-    np.ndarray
-    """
-    if is_dtype_equal(values.dtype, dtype):
-        if copy:
-            return values.copy()
-        return values
-
-    # otherwise we are converting to non-nano
-    result = values.astype(dtype, copy=False)  # avoid double-copying
-    result = result.astype(np.float64)
-
-    mask = isna(values)
-    np.putmask(result, mask, np.nan)
-    return result
-
-
-def astype_dt64_to_dt64tz(
-    values: ArrayLike, dtype: DtypeObj, copy: bool, via_utc: bool = False
-) -> DatetimeArray:
-    # GH#33401 we have inconsistent behaviors between
-    #  Datetimeindex[naive].astype(tzaware)
-    #  Series[dt64].astype(tzaware)
-    # This collects them in one place to prevent further fragmentation.
-
-    from pandas.core.construction import ensure_wrapped_if_datetimelike
-
-    values = ensure_wrapped_if_datetimelike(values)
-    values = cast("DatetimeArray", values)
-    aware = isinstance(dtype, DatetimeTZDtype)
-
-    if via_utc:
-        # Series.astype behavior
-
-        # caller is responsible for checking this
-        assert values.tz is None and aware
-        dtype = cast(DatetimeTZDtype, dtype)
-
-        if copy:
-            # this should be the only copy
-            values = values.copy()
-
-        warnings.warn(
-            "Using .astype to convert from timezone-naive dtype to "
-            "timezone-aware dtype is deprecated and will raise in a "
-            "future version.  Use ser.dt.tz_localize instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-
-        # GH#33401 this doesn't match DatetimeArray.astype, which
-        #  goes through the `not via_utc` path
-        return values.tz_localize("UTC").tz_convert(dtype.tz)
-
-    else:
-        # DatetimeArray/DatetimeIndex.astype behavior
-        if values.tz is None and aware:
-            dtype = cast(DatetimeTZDtype, dtype)
-            warnings.warn(
-                "Using .astype to convert from timezone-naive dtype to "
-                "timezone-aware dtype is deprecated and will raise in a "
-                "future version.  Use obj.tz_localize instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-
-            return values.tz_localize(dtype.tz)
-
-        elif aware:
-            # GH#18951: datetime64_tz dtype but not equal means different tz
-            dtype = cast(DatetimeTZDtype, dtype)
-            result = values.tz_convert(dtype.tz)
-            if copy:
-                result = result.copy()
-            return result
-
-        elif values.tz is not None:
-            warnings.warn(
-                "Using .astype to convert from timezone-aware dtype to "
-                "timezone-naive dtype is deprecated and will raise in a "
-                "future version.  Use obj.tz_localize(None) or "
-                "obj.tz_convert('UTC').tz_localize(None) instead",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-
-            result = values.tz_convert("UTC").tz_localize(None)
-            if copy:
-                result = result.copy()
-            return result
-
-        raise NotImplementedError("dtype_equal case should be handled elsewhere")

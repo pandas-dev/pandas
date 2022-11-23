@@ -3,7 +3,6 @@ Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
 from __future__ import annotations
 
-import inspect
 import re
 from typing import (
     Callable,
@@ -51,7 +50,7 @@ def _side_expander(prop_fmt: str) -> Callable:
             warnings.warn(
                 f'Could not expand "{prop}: {value}"',
                 CSSWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             return
         for key, idx in zip(self.SIDES, mapping):
@@ -96,7 +95,7 @@ def _border_expander(side: str = "") -> Callable:
             warnings.warn(
                 f'Too many tokens provided to "{prop}" (expected 1-3)',
                 CSSWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         # TODO: Can we use current color as initial value to comply with CSS standards?
@@ -108,7 +107,7 @@ def _border_expander(side: str = "") -> Callable:
         for token in tokens:
             if token in self.BORDER_STYLES:
                 border_declarations[f"border{side}-style"] = token
-            elif any([ratio in token for ratio in self.BORDER_WIDTH_RATIOS]):
+            elif any(ratio in token for ratio in self.BORDER_WIDTH_RATIOS):
                 border_declarations[f"border{side}-width"] = token
             else:
                 border_declarations[f"border{side}-color"] = token
@@ -195,11 +194,11 @@ class CSSResolver:
 
     CSS_EXPANSIONS = {
         **{
-            "-".join(["border", prop] if prop else ["border"]): _border_expander(prop)
+            (f"border-{prop}" if prop else "border"): _border_expander(prop)
             for prop in ["", "top", "right", "bottom", "left"]
         },
         **{
-            "-".join(["border", prop]): _side_expander("border-{:s}-" + prop)
+            f"border-{prop}": _side_expander(f"border-{{:s}}-{prop}")
             for prop in ["color", "style", "width"]
         },
         **{
@@ -335,7 +334,7 @@ class CSSResolver:
             warnings.warn(
                 f"Unhandled size: {repr(in_val)}",
                 CSSWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             return self.size_to_pt("1!!default", conversions=conversions)
 
@@ -408,5 +407,5 @@ class CSSResolver:
                 warnings.warn(
                     f"Ill-formatted attribute: expected a colon in {repr(decl)}",
                     CSSWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
