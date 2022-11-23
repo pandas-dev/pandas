@@ -66,6 +66,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
+from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.tzconversion cimport (
     Localizer,
     tz_localize_to_utc_single,
@@ -701,7 +702,7 @@ cdef int64_t parse_pydatetime(
         object val,
         npy_datetimestruct *dts,
         bint utc_convert,
-) except -1:
+) except *:
     """
     Convert pydatetime to datetime64.
 

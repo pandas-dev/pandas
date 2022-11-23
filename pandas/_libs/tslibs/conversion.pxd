@@ -55,4 +55,4 @@ cdef int64_t parse_pydatetime(
     object val,
     npy_datetimestruct *dts,
     bint utc_convert,
-) except -1
+) except *
