@@ -1274,6 +1274,7 @@ def read_fwf(
     delimiter : str, default " \t" (space and tab), optional
         Character(s) to strip from start and end of each field. To
         preserve whitespace, must be non-default value (i.e. delimiter="\0").
+        Used by `colspecs="infer"` to determine column boundaries.
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
