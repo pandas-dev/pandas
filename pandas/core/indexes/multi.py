@@ -3689,8 +3689,7 @@ class MultiIndex(Index):
         for i, (value_level, level, level_codes) in enumerate(
             zip(subset.levels, self.levels, self.codes)
         ):
-            new_elements = value_level.difference(level)
-            new_level = level.append(new_elements)
+            new_level = level.union(value_level, sort=False)
             value_codes = new_level.get_indexer_for(subset.get_level_values(i))
             new_code = ensure_int64(level_codes)
             new_code[mask] = value_codes

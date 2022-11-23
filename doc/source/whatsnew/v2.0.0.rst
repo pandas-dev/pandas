@@ -586,6 +586,7 @@ Performance improvements
 - Performance improvement in :class:`MultiIndex` set operations with sort=None (:issue:`49010`)
 - Performance improvement in :meth:`.DataFrameGroupBy.mean`, :meth:`.SeriesGroupBy.mean`, :meth:`.DataFrameGroupBy.var`, and :meth:`.SeriesGroupBy.var` for extension array dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.isin` when ``level=None`` (:issue:`48622`, :issue:`49577`)
+- Performance improvement in :meth:`MultiIndex.putmask` (:issue:`49830`)
 - Performance improvement in :meth:`Index.union` and :meth:`MultiIndex.union` when index contains duplicates (:issue:`48900`)
 - Performance improvement in :meth:`Series.fillna` for pyarrow-backed dtypes (:issue:`49722`)
 - Performance improvement for :meth:`Series.value_counts` with nullable dtype (:issue:`48338`)
