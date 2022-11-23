@@ -147,10 +147,8 @@ class TestPivotTable:
         df = DataFrame(
             {"rows": ["a", "b", "c"], "cols": ["x", "y", "z"], "values": [1, 2, 3]}
         )
-        msg = "pivot_table dropped a column because it failed to aggregate"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs = df.pivot_table(columns="cols", aggfunc=np.sum)
-            xp = df.pivot_table(index="cols", aggfunc=np.sum).T
+        rs = df.pivot_table(columns="cols", aggfunc=np.sum)
+        xp = df.pivot_table(index="cols", aggfunc=np.sum).T
         tm.assert_frame_equal(rs, xp)
 
         rs = df.pivot_table(columns="cols", aggfunc={"values": "mean"})
@@ -911,15 +909,20 @@ class TestPivotTable:
 
         # to help with a buglet
         data.columns = [k * 2 for k in data.columns]
-        msg = "pivot_table dropped a column because it failed to aggregate"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            table = data.pivot_table(index=["AA", "BB"], margins=True, aggfunc=np.mean)
+        with pytest.raises(TypeError, match="Could not convert"):
+            data.pivot_table(index=["AA", "BB"], margins=True, aggfunc=np.mean)
+        table = data.drop(columns="CC").pivot_table(
+            index=["AA", "BB"], margins=True, aggfunc=np.mean
+        )
         for value_col in table.columns:
             totals = table.loc[("All", ""), value_col]
             assert totals == data[value_col].mean()
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            table = data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
+        with pytest.raises(TypeError, match="Could not convert"):
+            data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
+        table = data.drop(columns="CC").pivot_table(
+            index=["AA", "BB"], margins=True, aggfunc="mean"
+        )
         for item in ["DD", "EE", "FF"]:
             totals = table.loc[("All", ""), item]
             assert totals == data[item].mean()
@@ -936,7 +939,10 @@ class TestPivotTable:
             (
                 ["A", "B"],
                 "sum",
-                [[9, 13, 22, 5, 6, 11], [14, 18, 32, 11, 11, 22]],
+                [
+                    [9, 13, 22, 5, 6, 11],
+                    [14, 18, 32, 11, 11, 22],
+                ],
                 MultiIndex.from_tuples(
                     [
                         ("bar", "one"),
@@ -974,10 +980,14 @@ class TestPivotTable:
                 "E": [2, 4, 5, 5, 6, 6, 8, 9, 9],
             }
         )
-
-        msg = "pivot_table dropped a column because it failed to aggregate"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
+        if aggfunc != "sum":
+            with pytest.raises(TypeError, match="Could not convert"):
+                df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
+        if "B" not in columns:
+            df = df.drop(columns="B")
+        result = df.drop(columns="C").pivot_table(
+            columns=columns, margins=True, aggfunc=aggfunc
+        )
         expected = DataFrame(values, index=Index(["D", "E"]), columns=expected_columns)
 
         tm.assert_frame_equal(result, expected)
@@ -2003,11 +2013,9 @@ class TestPivotTable:
     def test_pivot_string_func_vs_func(self, f, f_numpy, data):
         # GH #18713
         # for consistency purposes
-
-        msg = "pivot_table dropped a column because it failed to aggregate"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = pivot_table(data, index="A", columns="B", aggfunc=f)
-            expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
+        data = data.drop(columns="C")
+        result = pivot_table(data, index="A", columns="B", aggfunc=f)
+        expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
