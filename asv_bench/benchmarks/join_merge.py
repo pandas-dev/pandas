@@ -299,7 +299,7 @@ class MergeEA:
         self.right = DataFrame(
             {
                 "key": Series(indices[2000:], dtype=dtype),
-                "value2": np.random.randn(8000),
+                "value2": np.random.randn(7999),
             }
         )
 

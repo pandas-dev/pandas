@@ -42,6 +42,7 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -2366,11 +2367,20 @@ def _factorize_keys(
     if is_numeric_dtype(lk.dtype):
         if not is_dtype_equal(lk, rk):
             dtype = find_common_type([lk.dtype, rk.dtype])
-            # Argument 1 to "astype" of "ndarray" has incompatible type
-            # "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any],
-            # Type[Any], _SupportsDType[dtype[Any]]]"
-            lk = lk.astype(dtype)  # type: ignore[arg-type]
-            rk = rk.astype(dtype)  # type: ignore[arg-type]
+            if isinstance(dtype, ExtensionDtype):
+                cls = dtype.construct_array_type()
+                if not isinstance(lk, ExtensionArray):
+                    lk = cls._from_sequence(lk, dtype=dtype, copy=False)
+                else:
+                    lk = lk.astype(dtype)
+
+                if not isinstance(rk, ExtensionArray):
+                    rk = cls._from_sequence(rk, dtype=dtype, copy=False)
+                else:
+                    rk = rk.astype(dtype)
+            else:
+                lk = lk.astype(dtype)
+                rk = rk.astype(dtype)
         if isinstance(lk, BaseMaskedArray):
             #  Invalid index type "type" for "Dict[Type[object], Type[Factorizer]]";
             #  expected type "Type[object]"
