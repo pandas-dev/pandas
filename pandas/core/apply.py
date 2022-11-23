@@ -836,9 +836,6 @@ class FrameApply(NDFrameApply):
 class FrameRowApply(FrameApply):
     axis: AxisInt = 0
 
-    def apply_broadcast(self, target: DataFrame) -> DataFrame:
-        return super().apply_broadcast(target)
-
     @property
     def series_generator(self):
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
