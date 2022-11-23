@@ -195,11 +195,11 @@ def test_format_escape_html(escape, exp):
 def test_format_escape_na_rep():
     # tests the na_rep is not escaped
     df = DataFrame([['<>&"', None]])
-    s = str(Styler(df, uuid_len=0).format("X&{0}>X", escape="html", na_rep="&"))
+    s = Styler(df, uuid_len=0).format("X&{0}>X", escape="html", na_rep="&")
     ex = '<td id="T__row0_col0" class="data row0 col0" >X&&lt;&gt;&amp;&#34;>X</td>'
     expected2 = '<td id="T__row0_col1" class="data row0 col1" >&</td>'
-    assert ex in s.to_html()
-    assert expected2 in s.to_html()
+    assert ex in str(s.to_html())
+    assert expected2 in str(s.to_html())
 
     # also test for format_index()
     df = DataFrame(columns=['<>&"', None])
