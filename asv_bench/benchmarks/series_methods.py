@@ -369,7 +369,7 @@ class Iter:
             data = np.arange(N)
         elif dtype in ["float64", "Float64"]:
             data = np.random.randn(N)
-        elif dtype == "datetime64[ns":
+        elif dtype == "datetime64[ns]":
             data = date_range("2000-01-01", freq="s", periods=N)
         else:
             raise NotImplementedError
