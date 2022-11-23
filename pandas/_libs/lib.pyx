@@ -1480,6 +1480,8 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     else:
         if not isinstance(value, list):
             value = list(value)
+        if not value:
+            return "empty"
 
         from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
         values = construct_1d_object_array_from_listlike(value)
