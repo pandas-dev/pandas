@@ -278,7 +278,7 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
         "cellstyle_map",  # render time vars..
         "cellstyle_map_columns",
         "cellstyle_map_index",
-        "cellstyle_map_columns_names",
+        "cellstyle_map_col_names",
         "cellstyle_map_index_names",
         "template_latex",  # render templates are class level
         "template_html",
@@ -336,7 +336,7 @@ def test_clear(mi_styler_comp):
         "cellstyle_map",  # execution time only
         "cellstyle_map_columns",  # execution time only
         "cellstyle_map_index",  # execution time only
-        "cellstyle_map_columns_names",
+        "cellstyle_map_col_names",
         "cellstyle_map_index_names",
         "template_latex",  # render templates are class level
         "template_html",
@@ -1081,7 +1081,7 @@ class TestStyler:
                     "is_visible": True,
                 },
                 {
-                    "class": f"columns_name level{level}",
+                    "class": f"col_name level{level}",
                     "display_value": f"colnam_{level}",
                     "is_visible": True,
                 },

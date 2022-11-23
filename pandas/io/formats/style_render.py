@@ -114,7 +114,7 @@ class StylerRenderer:
             "row_heading": "row_heading",
             "col_heading": "col_heading",
             "index_name": "index_name",
-            "columns_name": "columns_name",
+            "col_name": "col_name",
             "col": "col",
             "row": "row",
             "col_trim": "col_trim",
@@ -136,7 +136,7 @@ class StylerRenderer:
         self.ctx_index: CSSCellMap = defaultdict(list)
         self.ctx_columns: CSSCellMap = defaultdict(list)
         self.ctx_index_names: CSSCellMap = defaultdict(list)
-        self.ctx_columns_names: CSSCellMap = defaultdict(list)
+        self.ctx_col_names: CSSCellMap = defaultdict(list)
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
@@ -315,7 +315,7 @@ class StylerRenderer:
         )
 
         self.cellstyle_map_columns: CellMapStyles = defaultdict(list)
-        self.cellstyle_map_columns_names: CellMapStyles = defaultdict(list)
+        self.cellstyle_map_col_names: CellMapStyles = defaultdict(list)
         self.cellstyle_map_index_names: CellMapStyles = defaultdict(list)
         head = self._translate_header(sparse_cols, max_cols)
         d.update({"head": head})
@@ -336,7 +336,7 @@ class StylerRenderer:
             "cellstyle_index": "cellstyle_map_index",
             "cellstyle_columns": "cellstyle_map_columns",
             "cellstyle_index_names": "cellstyle_map_index_names",
-            "cellstyle_columns_names": "cellstyle_map_columns_names",
+            "cellstyle_col_names": "cellstyle_map_col_names",
         }  # add the cell_ids styles map to the render dictionary in right format
         for k, attr in ctx_maps.items():
             map = [
@@ -460,7 +460,7 @@ class StylerRenderer:
                 (
                     f"{self.css['blank']} {self.css['level']}{r}"
                     if name is None
-                    else f"{self.css['columns_name']} {self.css['level']}{r}"
+                    else f"{self.css['col_name']} {self.css['level']}{r}"
                 ),
                 name
                 if (name is not None and not self.hide_column_names)
@@ -471,13 +471,13 @@ class StylerRenderer:
 
         if (
             not all(self.hide_index_)
-            and (r, 0) in self.ctx_columns_names
-            and self.ctx_columns_names[r, 0]
+            and (r, 0) in self.ctx_col_names
+            and self.ctx_col_names[r, 0]
         ):
-            column_name[0]["id"] = f"{self.css['columns_name']}_{self.css['level']}{r}"
-            self.cellstyle_map_columns_names[
-                tuple(self.ctx_columns_names[r, 0])
-            ].append(f"{self.css['columns_name']}_{self.css['level']}{r}")
+            column_name[0]["id"] = f"{self.css['col_name']}_{self.css['level']}{r}"
+            self.cellstyle_map_col_names[
+                tuple(self.ctx_col_names[r, 0])
+            ].append(f"{self.css['col_name']}_{self.css['level']}{r}")
 
         column_headers: list = []
         visible_col_count: int = 0

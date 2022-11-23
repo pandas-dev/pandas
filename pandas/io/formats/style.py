@@ -211,7 +211,7 @@ class Styler(StylerRenderer):
 
     * Index names include ``index_name`` and ``level<k>``
       where `k` is its level in a MultiIndex
-    * Column names include ``columns_name`` and ``level<k>``
+    * Column names include ``col_name`` and ``level<k>``
       where `k` is its level in a MultiIndex
     * Index label cells include
 
@@ -1566,7 +1566,7 @@ class Styler(StylerRenderer):
             if axis == 0:
                 self.ctx_index_names[(0, i)].extend(css_list)
             else:
-                self.ctx_columns_names[(i, 0)].extend(css_list)
+                self.ctx_col_names[(i, 0)].extend(css_list)
 
     def _copy(self, deepcopy: bool = False) -> Styler:
         """
@@ -1623,7 +1623,7 @@ class Styler(StylerRenderer):
             "ctx_index",
             "ctx_columns",
             "ctx_index_names",
-            "ctx_columns_names",
+            "ctx_col_names",
             "cell_context",
             "_todo",
             "table_styles",
@@ -2444,7 +2444,7 @@ class Styler(StylerRenderer):
             css_class_names = {"row_heading": "row_heading",
                                "col_heading": "col_heading",
                                "index_name": "index_name",
-                               "columns_name": "columns_name",
+                               "col_name": "col_name",
                                "col": "col",
                                "row": "row",
                                "col_trim": "col_trim",
