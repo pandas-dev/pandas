@@ -406,6 +406,11 @@ use_nullable_dtypes : bool = False
     set to True, nullable dtypes are used for all dtypes that have a nullable
     implementation, even if no nulls are present.
 
+    The nullable dtype implementation can be configured by setting the global
+    ``io.nullable_backend`` configuration option to ``"pandas"`` to use
+    numpy-backed nullable dtypes or ``"pyarrow"`` to use pyarrow-backed
+    nullable dtypes (using ``pd.ArrowDtype``).
+
     .. versionadded:: 2.0
 
 Returns
