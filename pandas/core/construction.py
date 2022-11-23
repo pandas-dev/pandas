@@ -40,7 +40,7 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_integer_array,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
-    maybe_upcast,
+    maybe_promote,
 )
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
@@ -484,7 +484,11 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     """
     mask = ma.getmaskarray(data)
     if mask.any():
-        data, fill_value = maybe_upcast(data, copy=True)
+        dtype, fill_value = maybe_promote(data.dtype, np.nan)
+        dtype = cast(np.dtype, dtype)
+        # Incompatible types in assignment (expression has type "ndarray[Any,
+        # dtype[Any]]", variable has type "MaskedArray[Any, Any]")
+        data = data.astype(dtype, copy=True)  # type: ignore[assignment]
         data.soften_mask()  # set hardmask False if it was True
         data[mask] = fill_value
     else:

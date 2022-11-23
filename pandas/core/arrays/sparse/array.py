@@ -1884,11 +1884,7 @@ def make_sparse(
     index = make_sparse_index(length, indices, kind)
     sparsified_values = arr[mask]
     if dtype is not None:
-        # error: Argument "dtype" to "astype_nansafe" has incompatible type "Union[str,
-        # dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"
-        sparsified_values = astype_nansafe(
-            sparsified_values, dtype=dtype  # type: ignore[arg-type]
-        )
+        sparsified_values = astype_nansafe(sparsified_values, dtype=pandas_dtype(dtype))
     # TODO: copy
     return sparsified_values, index, fill_value
 

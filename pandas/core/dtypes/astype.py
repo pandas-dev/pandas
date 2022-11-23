@@ -78,9 +78,6 @@ def astype_nansafe(
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
 
-    # We get here with 0-dim from sparse
-    arr = np.atleast_1d(arr)
-
     # dispatch on extension dtype if needed
     if isinstance(dtype, ExtensionDtype):
         return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)

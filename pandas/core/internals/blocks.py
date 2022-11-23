@@ -1134,6 +1134,7 @@ class Block(PandasObject):
 
         return [self.make_block(result)]
 
+    @final
     def fillna(
         self, value, limit: int | None = None, inplace: bool = False, downcast=None
     ) -> list[Block]:

@@ -4040,16 +4040,14 @@ class Table(Fixed):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
+            mgr = cast(BlockManager, mgr)
 
-            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has no
-            # attribute "blocks"
-            blocks = list(mgr.blocks)  # type: ignore[union-attr]
+            blocks = list(mgr.blocks)
             blk_items = get_blk_items(mgr)
             for c in data_columns:
                 mgr = frame.reindex([c], axis=axis)._mgr
-                # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has
-                # no attribute "blocks"
-                blocks.extend(mgr.blocks)  # type: ignore[union-attr]
+                mgr = cast(BlockManager, mgr)
+                blocks.extend(mgr.blocks)
                 blk_items.extend(get_blk_items(mgr))
 
         # reorder the blocks in the same order as the existing table if we can

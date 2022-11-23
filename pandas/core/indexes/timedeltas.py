@@ -12,6 +12,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.common import (
+    is_dtype_equal,
     is_scalar,
     is_timedelta64_dtype,
 )
@@ -135,13 +136,21 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
                 "represent unambiguous timedelta values durations."
             )
 
-        # FIXME: need to check for dtype/data match
-        if isinstance(data, TimedeltaArray) and freq is lib.no_default:
+        if (
+            isinstance(data, TimedeltaArray)
+            and freq is lib.no_default
+            and (dtype is None or is_dtype_equal(dtype, data.dtype))
+        ):
             if copy:
                 data = data.copy()
             return cls._simple_new(data, name=name)
 
-        if isinstance(data, TimedeltaIndex) and freq is lib.no_default and name is None:
+        if (
+            isinstance(data, TimedeltaIndex)
+            and freq is lib.no_default
+            and name is None
+            and (dtype is None or is_dtype_equal(dtype, data.dtype))
+        ):
             if copy:
                 return data.copy()
             else:
