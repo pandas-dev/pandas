@@ -453,7 +453,7 @@ class TestResetIndex:
         else:
             if not flag and allow_duplicates:
                 msg = "Cannot specify 'allow_duplicates=True' when "
-                "'self.flags.allows_duplicate_labels' is False"
+                # 'self.flags.allows_duplicate_labels' is False
             else:
                 msg = r"cannot insert \('A', ''\), already exists"
             with pytest.raises(ValueError, match=msg):

@@ -141,7 +141,6 @@ disable = [
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
   "overridden-final-method",
-  "pointless-string-statement",
   "possibly-unused-variable",
   "protected-access",
   "raise-missing-from",
