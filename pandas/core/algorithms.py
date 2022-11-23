@@ -465,7 +465,11 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
         orig_values = values
         values = _ensure_arraylike(list(values))
 
-        if is_numeric_dtype(values) and not is_signed_integer_dtype(comps):
+        if (
+            len(values) > 0
+            and is_numeric_dtype(values)
+            and not is_signed_integer_dtype(comps)
+        ):
             # GH#46485 Use object to avoid upcast to float64 later
             # TODO: Share with _find_common_type_compat
             values = construct_1d_object_array_from_listlike(list(orig_values))
