@@ -4046,6 +4046,7 @@ class Table(Fixed):
             blk_items = get_blk_items(mgr)
             for c in data_columns:
                 mgr = frame.reindex([c], axis=axis)._mgr
+                mgr = cast(BlockManager, mgr)
                 blocks.extend(mgr.blocks)
                 blk_items.extend(get_blk_items(mgr))
 
