@@ -41,6 +41,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
+    pydatetime_to_dt64,
     pydatetime_to_dtstruct,
     string_to_dts,
 )
@@ -642,3 +643,94 @@ cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
     elif isinstance(dt, ABCTimestamp):
         return dt.tz_localize(tz)
     return _localize_pydatetime(dt, tz)
+
+
+cdef tzinfo validate_tzout(
+        tzinfo tz_in,
+        tzinfo tz_out,
+        bint found_naive,
+        bint found_tz,
+        bint utc_convert,
+):
+    """
+    Validate that ``tz_in`` can be converted/localized to ``tz_out``.
+
+    Parameters
+    ----------
+    tz_in : tzinfo
+        Timezone info of element being processed.
+    tz_out : tzinfo
+        Timezone info of output.
+    found_naive : bool
+        Whether a timezone-naive element has been found so far.
+    found_tz : bool
+        Whether a timezone-aware element has been found so far.
+    utc_convert : bool
+        Whether to convert/localize to UTC.
+
+    Returns
+    -------
+    tz_info
+        Timezone info of output.
+
+    Raises
+    ------
+    ValueError
+        If ``tz_in`` can't be converted/localized to ``tz_out``.
+    """
+    if tz_in is not None:
+        if utc_convert:
+            pass
+        elif found_naive:
+            raise ValueError('Tz-aware datetime.datetime '
+                             'cannot be converted to '
+                             'datetime64 unless utc=True')
+        elif tz_out is not None and not tz_compare(tz_out, tz_in):
+            raise ValueError('Tz-aware datetime.datetime '
+                             'cannot be converted to '
+                             'datetime64 unless utc=True')
+        else:
+            tz_out = tz_in
+    else:
+        if found_tz and not utc_convert:
+            raise ValueError('Cannot mix tz-aware with '
+                             'tz-naive values')
+    return tz_out
+
+cdef int64_t parse_pydatetime(
+        object val,
+        npy_datetimestruct *dts,
+        bint utc_convert,
+) except -1:
+    """
+    Convert pydatetime to datetime64.
+
+    Parameters
+    ----------
+    val
+        Element being processed.
+    dts : *npy_datetimestruct
+        Needed to use in pydatetime_to_dt64, which writes to it.
+    utc_convert : bool
+        Whether to convert/localize to UTC.
+
+    Raises
+    ------
+    OutOfBoundsDatetime
+    """
+    if val.tzinfo is not None:
+        if utc_convert:
+            _ts = convert_datetime_to_tsobject(val, None)
+            _ts.ensure_reso(NPY_FR_ns)
+            result = _ts.value
+        else:
+            _ts = convert_datetime_to_tsobject(val, None)
+            _ts.ensure_reso(NPY_FR_ns)
+            result = _ts.value
+    else:
+        if isinstance(val, _Timestamp):
+            result = val.as_unit("ns").value
+        else:
+            result = pydatetime_to_dt64(val, dts)
+            check_dts_bounds(dts)
+    return result
