@@ -50,10 +50,10 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
     convert_datetime_to_tsobject,
+    convert_timezone,
     get_datetime64_nanos,
     parse_pydatetime,
     precision_from_unit,
-    validate_tzout,
 )
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -528,7 +528,7 @@ cpdef array_to_datetime(
                         found_tz = True
                     else:
                         found_naive = True
-                    tz_out = validate_tzout(
+                    tz_out = convert_timezone(
                         val.tzinfo,
                         tz_out,
                         found_naive,

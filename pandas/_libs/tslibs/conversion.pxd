@@ -43,7 +43,7 @@ cpdef (int64_t, int) precision_from_unit(str unit)
 
 cdef maybe_localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso)
 
-cdef tzinfo validate_tzout(
+cdef tzinfo convert_timezone(
     tzinfo tz_in,
     tzinfo tz_out,
     bint found_naive,
@@ -55,4 +55,4 @@ cdef int64_t parse_pydatetime(
     object val,
     npy_datetimestruct *dts,
     bint utc_convert,
-) except *
+) except? -1

@@ -646,7 +646,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
     return _localize_pydatetime(dt, tz)
 
 
-cdef tzinfo validate_tzout(
+cdef tzinfo convert_timezone(
         tzinfo tz_in,
         tzinfo tz_out,
         bint found_naive,
@@ -698,11 +698,12 @@ cdef tzinfo validate_tzout(
                              'tz-naive values')
     return tz_out
 
+
 cdef int64_t parse_pydatetime(
         object val,
         npy_datetimestruct *dts,
         bint utc_convert,
-) except *:
+) except? -1:
     """
     Convert pydatetime to datetime64.
 
@@ -719,6 +720,10 @@ cdef int64_t parse_pydatetime(
     ------
     OutOfBoundsDatetime
     """
+    cdef:
+        _TSObject _ts
+        int64_t result
+
     if val.tzinfo is not None:
         if utc_convert:
             _ts = convert_datetime_to_tsobject(val, None)
