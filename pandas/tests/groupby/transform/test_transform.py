@@ -20,7 +20,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.core.groupby.generic import DataFrameGroupBy
 from pandas.tests.groupby import get_groupby_method_args
 
@@ -165,9 +164,6 @@ def test_transform_broadcast(tsframe, ts):
 
 def test_transform_axis_1(request, transformation_func):
     # GH 36308
-
-    # TODO(2.0) Remove after pad/backfill deprecation enforced
-    transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
 
     if transformation_func == "ngroup":
         msg = "ngroup fails with axis=1: #45986"
@@ -373,8 +369,6 @@ def test_transform_transformation_func(request, transformation_func):
         },
         index=date_range("2020-01-01", "2020-01-07"),
     )
-    # TODO(2.0) Remove after pad/backfill deprecation enforced
-    transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
     if transformation_func == "cumcount":
         test_op = lambda x: x.transform("cumcount")
         mock_op = lambda x: Series(range(len(x)), x.index)
@@ -501,9 +495,9 @@ def test_transform_coercion():
 
     expected = g.transform(np.mean)
 
-    msg = "will return a scalar mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        result = g.transform(lambda x: np.mean(x))
+    # in 2.0 np.mean on a DataFrame is equivalent to frame.mean(axis=None)
+    #  which not gives a scalar instead of Series
+    result = g.transform(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
 
     with tm.assert_produces_warning(None):

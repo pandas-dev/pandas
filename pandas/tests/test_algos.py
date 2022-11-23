@@ -102,20 +102,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_index_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("na_sentinel", [None, -1, -10])
-    def test_depr_na_sentinel(self, na_sentinel, index_or_series_obj):
-        # GH#46910
-        if na_sentinel is None:
-            msg = "Specifying `na_sentinel=None` is deprecated"
-        elif na_sentinel == -1:
-            msg = "Specifying `na_sentinel=-1` is deprecated"
-        else:
-            msg = "Specifying the specific value to use for `na_sentinel` is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            pd.factorize(index_or_series_obj, na_sentinel=na_sentinel)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            index_or_series_obj.factorize(na_sentinel=na_sentinel)
-
     def test_basic(self):
 
         codes, uniques = algos.factorize(["a", "b", "b", "a", "a", "c", "c", "c"])
@@ -230,21 +216,32 @@ class TestFactorize:
         key = np.array([1, 2, 1, np.nan], dtype="O")
         rizer = ht.ObjectFactorizer(len(key))
         for na_sentinel in (-1, 20):
-            ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
-            expected = np.array([0, 1, 0, na_sentinel], dtype="int32")
+            ids = rizer.factorize(key, na_sentinel=na_sentinel)
+            expected = np.array([0, 1, 0, na_sentinel], dtype=np.intp)
             assert len(set(key)) == len(set(expected))
             tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
+            tm.assert_numpy_array_equal(ids, expected)
 
-        # nan still maps to na_sentinel when sort=False
-        key = np.array([0, np.nan, 1], dtype="O")
-        na_sentinel = -1
+    def test_factorizer_with_mask(self):
+        # GH#49549
+        data = np.array([1, 2, 3, 1, 1, 0], dtype="int64")
+        mask = np.array([False, False, False, False, False, True])
+        rizer = ht.Int64Factorizer(len(data))
+        result = rizer.factorize(data, mask=mask)
+        expected = np.array([0, 1, 2, 0, 0, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+        expected_uniques = np.array([1, 2, 3], dtype="int64")
+        tm.assert_numpy_array_equal(rizer.uniques.to_array(), expected_uniques)
 
-        # TODO(wesm): unused?
-        ids = rizer.factorize(key, sort=False, na_sentinel=na_sentinel)  # noqa
-
-        expected = np.array([2, -1, 0], dtype="int32")
-        assert len(set(key)) == len(set(expected))
-        tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
+    def test_factorizer_object_with_nan(self):
+        # GH#49549
+        data = np.array([1, 2, 3, 1, np.nan])
+        rizer = ht.ObjectFactorizer(len(data))
+        result = rizer.factorize(data.astype(object))
+        expected = np.array([0, 1, 2, 0, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+        expected_uniques = np.array([1, 2, 3], dtype=object)
+        tm.assert_numpy_array_equal(rizer.uniques.to_array(), expected_uniques)
 
     @pytest.mark.parametrize(
         "data, expected_codes, expected_uniques",
@@ -431,7 +428,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     @pytest.mark.parametrize("sort", [True, False])
-    @pytest.mark.parametrize("na_sentinel", [-1, -10, 100])
     @pytest.mark.parametrize(
         "data, uniques",
         [
@@ -446,18 +442,13 @@ class TestFactorize:
         ],
         ids=["numpy_array", "extension_array"],
     )
-    def test_factorize_na_sentinel(self, sort, na_sentinel, data, uniques):
-        if na_sentinel == -1:
-            msg = "Specifying `na_sentinel=-1` is deprecated"
-        else:
-            msg = "the specific value to use for `na_sentinel` is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            codes, uniques = algos.factorize(data, sort=sort, na_sentinel=na_sentinel)
+    def test_factorize_use_na_sentinel(self, sort, data, uniques):
+        codes, uniques = algos.factorize(data, sort=sort, use_na_sentinel=True)
         if sort:
-            expected_codes = np.array([1, 0, na_sentinel, 1], dtype=np.intp)
+            expected_codes = np.array([1, 0, -1, 1], dtype=np.intp)
             expected_uniques = algos.safe_sort(uniques)
         else:
-            expected_codes = np.array([0, 1, na_sentinel, 0], dtype=np.intp)
+            expected_codes = np.array([0, 1, -1, 0], dtype=np.intp)
             expected_uniques = uniques
         tm.assert_numpy_array_equal(codes, expected_codes)
         if isinstance(data, np.ndarray):

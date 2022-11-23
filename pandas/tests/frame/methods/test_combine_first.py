@@ -6,10 +6,8 @@ import pytest
 from pandas.compat import pa_version_under7p0
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    is_dtype_equal,
-)
+from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 from pandas import (

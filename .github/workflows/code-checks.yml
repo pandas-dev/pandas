@@ -5,12 +5,10 @@ on:
     branches:
       - main
       - 1.5.x
-      - 1.4.x
   pull_request:
     branches:
       - main
       - 1.5.x
-      - 1.4.x
 
 env:
   ENV_FILE: environment.yml
@@ -39,8 +37,8 @@ jobs:
     - name: Run pre-commit
       uses: pre-commit/action@v2.0.3
 
-  typing_and_docstring_validation:
-    name: Docstring and typing validation
+  docstring_typing_pylint:
+    name: Docstring validation, typing, and pylint
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -88,7 +86,7 @@ jobs:
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
       if: ${{ steps.build.outcome == 'success' && always() }}
 
-    - name: Typing
+    - name: Typing + pylint
       uses: pre-commit/action@v2.0.3
       with:
         extra_args: --hook-stage manual --all-files

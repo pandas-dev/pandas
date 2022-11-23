@@ -283,15 +283,15 @@ def test_aggregate_item_by_item(df):
 
     aggfun_0 = lambda ser: ser.size
     result = grouped.agg(aggfun_0)
-    foo = (df.A == "foo").sum()
-    bar = (df.A == "bar").sum()
+    foosum = (df.A == "foo").sum()
+    barsum = (df.A == "bar").sum()
     K = len(result.columns)
 
     # GH5782
-    exp = Series(np.array([foo] * K), index=list("BCD"), name="foo")
+    exp = Series(np.array([foosum] * K), index=list("BCD"), name="foo")
     tm.assert_series_equal(result.xs("foo"), exp)
 
-    exp = Series(np.array([bar] * K), index=list("BCD"), name="bar")
+    exp = Series(np.array([barsum] * K), index=list("BCD"), name="bar")
     tm.assert_almost_equal(result.xs("bar"), exp)
 
     def aggfun_1(ser):
@@ -308,8 +308,7 @@ def test_wrap_agg_out(three_group):
     def func(ser):
         if ser.dtype == object:
             raise TypeError
-        else:
-            return ser.sum()
+        return ser.sum()
 
     with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
         result = grouped.aggregate(func)
@@ -383,21 +382,18 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
 
 def test_multiple_functions_tuples_and_non_tuples(df):
     # #1359
+    # Columns B and C would cause partial failure
+    df = df.drop(columns=["B", "C"])
+
     funcs = [("foo", "mean"), "std"]
     ex_funcs = [("foo", "mean"), ("std", "std")]
 
-    result = df.groupby("A")["C"].agg(funcs)
-    expected = df.groupby("A")["C"].agg(ex_funcs)
+    result = df.groupby("A")["D"].agg(funcs)
+    expected = df.groupby("A")["D"].agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['B'\] did not aggregate successfully"
-    ):
-        result = df.groupby("A").agg(funcs)
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['B'\] did not aggregate successfully"
-    ):
-        expected = df.groupby("A").agg(ex_funcs)
+    result = df.groupby("A").agg(funcs)
+    expected = df.groupby("A").agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -420,10 +416,10 @@ def test_more_flexible_frame_multi_function(df):
     expected = grouped.aggregate({"C": np.mean, "D": [np.mean, np.std]})
     tm.assert_frame_equal(result, expected)
 
-    def foo(x):
+    def numpymean(x):
         return np.mean(x)
 
-    def bar(x):
+    def numpystd(x):
         return np.std(x, ddof=1)
 
     # this uses column selection & renaming
@@ -433,7 +429,7 @@ def test_more_flexible_frame_multi_function(df):
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK
-    d = {"C": [np.mean], "D": [foo, bar]}
+    d = {"C": [np.mean], "D": [numpymean, numpystd]}
     grouped.aggregate(d)
 
 
