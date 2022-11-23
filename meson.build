@@ -10,7 +10,8 @@ project(
         # when buildtype = debug, this seems to be causing problems on CI
         # where provided Python is not compiled in debug mode
         'buildtype=release',
-        'werror=true',
+        # TODO: Reactivate werror, some warnings on Windows
+        #'werror=true',
         'c_std=c99'
     ]
 )
