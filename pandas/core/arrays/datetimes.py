@@ -2122,7 +2122,7 @@ def objects_to_datetime64ns(
     dayfirst : bool
     yearfirst : bool
     utc : bool, default False
-        Whether to convert timezone-aware timestamps to UTC.
+        Whether to convert/localize timestamps to UTC.
     errors : {'raise', 'ignore', 'coerce'}
     require_iso8601 : bool, default False
     allow_object : bool
