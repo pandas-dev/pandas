@@ -4407,9 +4407,8 @@ Keep all original rows and also all original values
     ) -> Series | bool:
         ...
 
-    # error: Missing return statement
     @doc(NDFrame.any, **_shared_doc_kwargs)
-    def any(  # type: ignore[empty-body]
+    def any(
         self,
         axis: Axis = 0,
         bool_only: bool | None = None,
