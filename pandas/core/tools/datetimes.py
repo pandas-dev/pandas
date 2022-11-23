@@ -26,7 +26,7 @@ from pandas._libs.tslibs import (
     iNaT,
     nat_strings,
     parsing,
-    timezones,
+    timezones as libtimezones,
 )
 from pandas._libs.tslibs.parsing import (
     DateParseError,
@@ -293,9 +293,7 @@ def _convert_and_box_cache(
     return _box_as_indexlike(result._values, utc=None, name=name)
 
 
-def _return_parsed_timezone_results(
-    result: np.ndarray, timezone_arr, tz, name
-) -> Index:
+def _return_parsed_timezone_results(result: np.ndarray, timezones, tz, name) -> Index:
     """
     Return results from array_strptime if a %z or %Z directive was passed.
 
@@ -303,7 +301,7 @@ def _return_parsed_timezone_results(
     ----------
     result : ndarray[int64]
         int64 date representations of the dates
-    timezone_arr : ndarray
+    timezones : ndarray
         pytz timezone objects
     tz : object
         None or pytz timezone object
@@ -315,7 +313,7 @@ def _return_parsed_timezone_results(
     tz_result : Index-like of parsed dates with timezone
     """
     tz_results = np.array(
-        [Timestamp(res).tz_localize(zone) for res, zone in zip(result, timezone_arr)]
+        [Timestamp(res).tz_localize(zone) for res, zone in zip(result, timezones)]
     )
     if tz is not None:
         # Convert to the same tz
@@ -402,7 +400,7 @@ def _convert_listlike_datetimes(
     # NB: this must come after unit transformation
     orig_arg = arg
     try:
-        arg, _ = maybe_convert_dtype(arg, copy=False, tz=timezones.maybe_get_tz(tz))
+        arg, _ = maybe_convert_dtype(arg, copy=False, tz=libtimezones.maybe_get_tz(tz))
     except TypeError:
         if errors == "coerce":
             npvalues = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
@@ -472,7 +470,7 @@ def _array_strptime_with_fallback(
     utc = tz == "utc"
 
     try:
-        result, timezone_arr = array_strptime(arg, fmt, exact=exact, errors=errors)
+        result, timezones = array_strptime(arg, fmt, exact=exact, errors=errors)
     except OutOfBoundsDatetime:
         if errors == "raise":
             raise
@@ -500,7 +498,7 @@ def _array_strptime_with_fallback(
             return None
     else:
         if "%Z" in fmt or "%z" in fmt:
-            return _return_parsed_timezone_results(result, timezone_arr, tz, name)
+            return _return_parsed_timezone_results(result, timezones, tz, name)
 
     return _box_as_indexlike(result, utc=utc, name=name)
 
