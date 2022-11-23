@@ -210,9 +210,10 @@ cdef class _TSObject:
         self.fold = 0
         self.creso = NPY_FR_ns  # default value
 
-    cdef void ensure_reso(self, NPY_DATETIMEUNIT creso):
+    cdef int64_t ensure_reso(self, NPY_DATETIMEUNIT creso):
         if self.creso != creso:
             self.value = convert_reso(self.value, self.creso, creso, False)
+        return self.value
 
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
