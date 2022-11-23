@@ -164,6 +164,39 @@ the appropriate rows. Also, when ``n`` is larger than the group, no rows instead
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_200.api_breaking.int_slicing_always_positional:
+
+Integer slicing on Series is always positional
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In past versions, a :class:`Series` (e.g. ``ser[1:2]`` or ``ser[2:]``) was _usually_
+positional but not always. Starting in pandas 2.0, standard integer slices are always
+treated as being positional in :meth:`Series.__getitem__` and :meth:`Series.__setitem__`.
+
+Importantly, this means the deprecation in (:issue:`45324`) is reverted.
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [5]: ser = pd.Series(range(10), index=[x / 2 for x in range(10)])
+   In [6]: ser[1:3]
+   Out[6]:
+   1.0    2
+   1.5    3
+   2.0    4
+   2.5    5
+   3.0    6
+   dtype: int64
+
+*New behavior*:
+
+.. ipython:: python
+
+   ser = pd.Series(range(10), index=[x / 2 for x in range(10)])
+   ser[1:3]
+
+To treat slice keys as labels, explicitly use ``loc`` e.g. ``ser.loc[1:3]`` (:issue:`49612`).
+
 .. _whatsnew_200.api_breaking.unsupported_datetimelike_dtype_arg:
 
 Construction with datetime64 or timedelta64 dtype with unsupported resolution

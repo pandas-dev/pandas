@@ -219,21 +219,6 @@ class NumericIndex(Index):
     def _should_fallback_to_positional(self) -> bool:
         return False
 
-    @doc(Index._convert_slice_indexer)
-    def _convert_slice_indexer(self, key: slice, kind: str, is_frame: bool = False):
-        # TODO(2.0): once #45324 deprecation is enforced we should be able
-        #  to simplify this.
-        if is_float_dtype(self.dtype):
-            assert kind in ["loc", "getitem"]
-
-            # TODO: can we write this as a condition based on
-            #  e.g. _should_fallback_to_positional?
-            # We always treat __getitem__ slicing as label-based
-            # translate to locations
-            return self.slice_indexer(key.start, key.stop, key.step)
-
-        return super()._convert_slice_indexer(key, kind=kind, is_frame=is_frame)
-
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str):
         # we will try to coerce to integers

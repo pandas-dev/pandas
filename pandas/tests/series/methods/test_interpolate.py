@@ -118,7 +118,7 @@ class TestSeriesInterpolateData:
         new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])).astype(
             float
         )
-        result = ser.reindex(new_index).interpolate(method="cubicspline")[1:3]
+        result = ser.reindex(new_index).interpolate(method="cubicspline").loc[1:3]
         tm.assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
@@ -148,7 +148,7 @@ class TestSeriesInterpolateData:
             float
         )
         interp_s = ser.reindex(new_index).interpolate(method="akima")
-        tm.assert_series_equal(interp_s[1:3], expected)
+        tm.assert_series_equal(interp_s.loc[1:3], expected)
 
         # interpolate at new_index where `der` is a non-zero int
         expected = Series(
@@ -159,7 +159,7 @@ class TestSeriesInterpolateData:
             float
         )
         interp_s = ser.reindex(new_index).interpolate(method="akima", der=1)
-        tm.assert_series_equal(interp_s[1:3], expected)
+        tm.assert_series_equal(interp_s.loc[1:3], expected)
 
     @td.skip_if_no_scipy
     def test_interpolate_piecewise_polynomial(self):
@@ -174,7 +174,7 @@ class TestSeriesInterpolateData:
             float
         )
         interp_s = ser.reindex(new_index).interpolate(method="piecewise_polynomial")
-        tm.assert_series_equal(interp_s[1:3], expected)
+        tm.assert_series_equal(interp_s.loc[1:3], expected)
 
     @td.skip_if_no_scipy
     def test_interpolate_from_derivatives(self):
@@ -189,7 +189,7 @@ class TestSeriesInterpolateData:
             float
         )
         interp_s = ser.reindex(new_index).interpolate(method="from_derivatives")
-        tm.assert_series_equal(interp_s[1:3], expected)
+        tm.assert_series_equal(interp_s.loc[1:3], expected)
 
     @pytest.mark.parametrize(
         "kwargs",

@@ -122,7 +122,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
-    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -3982,43 +3981,10 @@ class Index(IndexOpsMixin, PandasObject):
             called from the getitem slicers, validate that we are in fact
             integers
             """
-            if self.is_integer():
-                if is_frame:
-                    # unambiguously positional, no deprecation
-                    pass
-                elif start is None and stop is None:
-                    # label-based vs positional is irrelevant
-                    pass
-                elif isinstance(self, ABCRangeIndex) and self._range == range(
-                    len(self)
-                ):
-                    # In this case there is no difference between label-based
-                    #  and positional, so nothing will change.
-                    pass
-                elif (
-                    self.dtype.kind in ["i", "u"]
-                    and self._is_strictly_monotonic_increasing
-                    and len(self) > 0
-                    and self[0] == 0
-                    and self[-1] == len(self) - 1
-                ):
-                    # We are range-like, e.g. created with Index(np.arange(N))
-                    pass
-                elif not is_index_slice:
-                    # we're going to raise, so don't bother warning, e.g.
-                    #  test_integer_positional_indexing
-                    pass
-                else:
-                    warnings.warn(
-                        "The behavior of `series[i:j]` with an integer-dtype index "
-                        "is deprecated. In a future version, this will be treated "
-                        "as *label-based* indexing, consistent with e.g. `series[i]` "
-                        "lookups. To retain the old behavior, use `series.iloc[i:j]`. "
-                        "To get the future behavior, use `series.loc[i:j]`.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
+            # GH#49612 as of 2.0, all-int-or-none slices are _always_ positional
             if self.is_integer() or is_index_slice:
+                # In case with is_integer but not is_index_slice, the validation
+                #  here will raise.
                 # Note: these checks are redundant if we know is_index_slice
                 self._validate_indexer("slice", key.start, "getitem")
                 self._validate_indexer("slice", key.stop, "getitem")

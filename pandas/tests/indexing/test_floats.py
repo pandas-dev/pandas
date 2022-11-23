@@ -340,8 +340,7 @@ class TestFloatIndexers:
         """
         s = Series(range(2, 6), index=range(2, 6))
 
-        with tm.assert_produces_warning(FutureWarning, match="label-based"):
-            result = s[2:4]
+        result = s[2:4]
         expected = s.iloc[2:4]
         tm.assert_series_equal(result, expected)
 
@@ -509,14 +508,25 @@ class TestFloatIndexers:
         result2 = indexer_sl(s)[2.0:5.0]
         result3 = indexer_sl(s)[2.0:5]
         result4 = indexer_sl(s)[2.1:5]
-        tm.assert_series_equal(result1, result2)
-        tm.assert_series_equal(result1, result3)
-        tm.assert_series_equal(result1, result4)
 
-        expected = Series([1, 2], index=[2.5, 5.0])
+        tm.assert_series_equal(result2, result3)
+        tm.assert_series_equal(result2, result4)
+
+        if indexer_sl is tm.setitem:
+            # GH#49612 of 2.0, slicing with only-integers is _always_ positional
+            result1 = indexer_sl(s)[2:5]
+            tm.assert_series_equal(result1, s.iloc[2:5])
+        else:
+            tm.assert_series_equal(result1, s.loc[2:5])
+            tm.assert_series_equal(result1, result2)
+
         result = indexer_sl(s)[2:5]
-
-        tm.assert_series_equal(result, expected)
+        if indexer_sl is tm.setitem:
+            # GH#49612 of 2.0, slicing with only-integers is _always_ positional
+            tm.assert_series_equal(result, s.iloc[2:5])
+        else:
+            expected = Series([1, 2], index=[2.5, 5.0])
+            tm.assert_series_equal(result, expected)
 
         # list selection
         result1 = indexer_sl(s)[[0.0, 5, 10]]
