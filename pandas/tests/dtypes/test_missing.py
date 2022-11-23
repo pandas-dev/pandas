@@ -466,6 +466,27 @@ def test_array_equivalent_series(val):
         assert not array_equivalent(Series([arr, arr]), Series([arr, val]))
 
 
+def test_array_equivalent_array_mismatched_shape():
+    # to trigger the motivating bug, the first N elements of the arrays need
+    #  to match
+    first = np.array([1, 2, 3])
+    second = np.array([1, 2])
+
+    left = Series([first, "a"], dtype=object)
+    right = Series([second, "a"], dtype=object)
+    assert not array_equivalent(left, right)
+
+
+def test_array_equivalent_array_mismatched_dtype():
+    # same shape, different dtype can still be equivalent
+    first = np.array([1, 2], dtype=np.float64)
+    second = np.array([1, 2])
+
+    left = Series([first, "a"], dtype=object)
+    right = Series([second, "a"], dtype=object)
+    assert array_equivalent(left, right)
+
+
 def test_array_equivalent_different_dtype_but_equal():
     # Unclear if this is exposed anywhere in the public-facing API
     assert array_equivalent(np.array([1, 2]), np.array([1.0, 2.0]))
