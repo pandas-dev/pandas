@@ -18,6 +18,11 @@ import numpy as np
 import pytest
 import pytz
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
 from pandas._libs.tslibs import (
     conversion,
     timezones,
@@ -355,7 +360,17 @@ class TestDatetimeIndexTimezones:
         expected = dti.tz_convert("US/Eastern")
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("tz", [pytz.timezone("US/Eastern"), gettz("US/Eastern")])
+    easts = [pytz.timezone("US/Eastern"), gettz("US/Eastern")]
+    if ZoneInfo is not None:
+        try:
+            tz = ZoneInfo("US/Eastern")
+        except KeyError:
+            # no tzdata
+            pass
+        else:
+            easts.append(tz)
+
+    @pytest.mark.parametrize("tz", easts)
     def test_dti_tz_localize_ambiguous_infer(self, tz):
         # November 6, 2011, fall back, repeat 2 AM hour
         # With no repeated hours, we cannot infer the transition
