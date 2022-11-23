@@ -514,7 +514,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def view(self, dtype: Dtype | None = ...) -> ArrayLike:
         ...
 
-    def view(self, dtype: Dtype | None = None) -> ArrayLike:  # pylint: disable=useless-parent-delegation
+    # pylint: disable-next=useless-parent-delegation
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
         # we need to explicitly call super() method as long as the `@overload`s
         #  are present in this file.
         return super().view(dtype)
