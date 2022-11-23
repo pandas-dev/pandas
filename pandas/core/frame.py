@@ -5720,14 +5720,7 @@ class DataFrame(NDFrame, OpsMixin):
                 #  keep the same dtype (i.e. the _can_hold_element check)
                 #  then we can go through the reindex_indexer path
                 #  (and avoid casting logic in the Block method).
-                #  The exception to this (until 2.0) is datetimelike
-                #  dtypes with integers, which cast.
                 not can_hold_element(arrays[0], fill_value)
-                # TODO(2.0): remove special case for integer-with-datetimelike
-                #  once deprecation is enforced
-                and not (
-                    lib.is_integer(fill_value) and needs_i8_conversion(arrays[0].dtype)
-                )
             ):
                 # GH#35488 we need to watch out for multi-block cases
                 # We only get here with fill_value not-lib.no_default
