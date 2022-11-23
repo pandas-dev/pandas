@@ -137,6 +137,9 @@ class TestNumericOnly:
         )
         return df
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of numeric_only:FutureWarning"
+    )
     @pytest.mark.parametrize("method", ["mean", "median"])
     def test_averages(self, df, method):
         # mean / median
@@ -214,6 +217,9 @@ class TestNumericOnly:
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of numeric_only:FutureWarning"
+    )
     @pytest.mark.parametrize("method", ["sum", "cumsum"])
     def test_sum_cumsum(self, df, method):
 
@@ -227,6 +233,9 @@ class TestNumericOnly:
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of numeric_only:FutureWarning"
+    )
     @pytest.mark.parametrize("method", ["prod", "cumprod"])
     def test_prod_cumprod(self, df, method):
 

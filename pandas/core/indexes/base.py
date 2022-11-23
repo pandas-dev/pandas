@@ -206,22 +206,6 @@ str_t = str
 _dtype_obj = np.dtype("object")
 
 
-def _wrapped_sanitize(cls, data, dtype: DtypeObj | None, copy: bool):
-    """
-    Call sanitize_array with wrapping for differences between Index/Series.
-    """
-    try:
-        arr = sanitize_array(data, None, dtype=dtype, copy=copy, strict_ints=True)
-    except ValueError as err:
-        if "index must be specified when data is not list-like" in str(err):
-            raise cls._raise_scalar_data_error(data) from err
-        if "Data must be 1-dimensional" in str(err):
-            raise ValueError("Index data must be 1-dimensional") from err
-        raise
-    arr = ensure_wrapped_if_datetimelike(arr)
-    return arr
-
-
 def _maybe_return_indexers(meth: F) -> F:
     """
     Decorator to simplify 'return_indexers' checks in Index.join.
@@ -514,7 +498,16 @@ class Index(IndexOpsMixin, PandasObject):
                 # Ensure we get 1-D array of tuples instead of 2D array.
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
-        arr = _wrapped_sanitize(cls, data, dtype, copy)
+        try:
+            arr = sanitize_array(data, None, dtype=dtype, copy=copy, strict_ints=True)
+        except ValueError as err:
+            if "index must be specified when data is not list-like" in str(err):
+                raise cls._raise_scalar_data_error(data) from err
+            if "Data must be 1-dimensional" in str(err):
+                raise ValueError("Index data must be 1-dimensional") from err
+            raise
+        arr = ensure_wrapped_if_datetimelike(arr)
+
         klass = cls._dtype_to_subclass(arr.dtype)
 
         # _ensure_array _may_ be unnecessary once Int64Index etc are gone
@@ -865,19 +858,11 @@ class Index(IndexOpsMixin, PandasObject):
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
             return NotImplemented
 
-        # TODO(2.0) the 'and', 'or' and 'xor' dunder methods are currently set
-        # operations and not logical operations, so don't dispatch
-        # This is deprecated, so this full 'if' clause can be removed once
-        # deprecation is enforced in 2.0
-        if not (
-            method == "__call__"
-            and ufunc in (np.bitwise_and, np.bitwise_or, np.bitwise_xor)
-        ):
-            result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
-                self, ufunc, method, *inputs, **kwargs
-            )
-            if result is not NotImplemented:
-                return result
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
 
         if "out" in kwargs:
             # e.g. test_dti_isub_tdi
