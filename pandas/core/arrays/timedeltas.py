@@ -523,7 +523,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                 result = truediv_object_array(self._ndarray, other)
 
             if result.dtype.kind == "m":
-                result = type(self)(result)
+                return type(self)(result)
             return result
 
         else:
@@ -632,7 +632,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                 result = floordiv_object_array(self._ndarray, other)
 
             if result.dtype.kind == "m":
-                result = type(self)(result)
+                return type(self)(result)
             return result
 
         elif is_integer_dtype(other.dtype) or is_float_dtype(other.dtype):
