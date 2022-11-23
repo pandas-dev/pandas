@@ -751,7 +751,7 @@ class TestContains:
     def test_contains_top_level(self):
         midx = MultiIndex.from_product([["A", "B"], [1, 2]])
         assert "A" in midx
-        assert "A" not in midx._engine()
+        assert "A" not in list(midx._engine)
 
     def test_contains_with_nat(self):
         # MI with a NaT
