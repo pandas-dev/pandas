@@ -649,7 +649,7 @@ ujson_ext = Extension(
         "pandas/_libs/src/datetime",
         numpy.get_include(),
     ],
-    extra_compile_args=(["-D_GNU_SOURCE"] + extra_compile_args),
+    extra_compile_args=(extra_compile_args),
     extra_link_args=extra_link_args,
     define_macros=macros,
 )
