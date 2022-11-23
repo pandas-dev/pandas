@@ -29,6 +29,11 @@ from pandas import (
     Timestamp,
 )
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
 
 class TestTimestampTZOperations:
     # --------------------------------------------------------------
@@ -69,6 +74,19 @@ class TestTimestampTZOperations:
         msg = "Cannot infer dst time from 2015-11-01 01:00:03"
         with pytest.raises(pytz.AmbiguousTimeError, match=msg):
             ts.tz_localize("US/Central")
+
+        with pytest.raises(pytz.AmbiguousTimeError, match=msg):
+            ts.tz_localize("dateutil/US/Central")
+
+        if ZoneInfo is not None:
+            try:
+                tz = ZoneInfo("US/Central")
+            except KeyError:
+                # no tzdata
+                pass
+            else:
+                with pytest.raises(pytz.AmbiguousTimeError, match=msg):
+                    ts.tz_localize(tz)
 
         result = ts.tz_localize("US/Central", ambiguous=True)
         assert result == expected0
