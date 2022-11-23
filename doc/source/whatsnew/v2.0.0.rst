@@ -22,7 +22,7 @@ When installing pandas using pip, sets of optional dependencies can also be inst
 
 .. code-block:: bash
 
-  pip install pandas[performance, aws]>=2.0.0
+  pip install "pandas[performance, aws]>=2.0.0"
 
 The available extras, found in the :ref:`installation guide<install.dependencies>`, are
 ``[all, performance, computation, timezone, fss, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql,
