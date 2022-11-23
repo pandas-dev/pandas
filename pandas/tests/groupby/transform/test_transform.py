@@ -360,7 +360,7 @@ def test_dispatch_transform(tsframe):
     tm.assert_frame_equal(filled, expected)
 
 
-def test_transform_transformation_func(transformation_func, as_index):
+def test_transform_transformation_func(transformation_func):
     # GH 30918
     df = DataFrame(
         {
@@ -388,7 +388,7 @@ def test_transform_transformation_func(transformation_func, as_index):
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
 
-    result = test_op(df.groupby("A", as_index=as_index))
+    result = test_op(df.groupby("A"))
     # pass the group in same order as iterating `for ... in df.groupby(...)`
     # but reorder to match df's index since this is a transform
     groups = [df[["B"]].iloc[4:6], df[["B"]].iloc[6:], df[["B"]].iloc[:4]]
@@ -1126,15 +1126,10 @@ def test_transform_invalid_name_raises():
         Series([0, 0, 0, 1, 1, 1], index=["A", "B", "C", "D", "E", "F"]),
     ],
 )
-def test_transform_agg_by_name(request, reduction_func, obj, as_index):
+def test_transform_agg_by_name(request, reduction_func, obj):
     func = reduction_func
 
-    if obj.ndim == 1 and not as_index:
-        with pytest.raises(TypeError, match="as_index=False only valid with DataFrame"):
-            obj.groupby(np.repeat([0, 1], 3), as_index=as_index)
-        return
-
-    g = obj.groupby(np.repeat([0, 1], 3), as_index=as_index)
+    g = obj.groupby(np.repeat([0, 1], 3))
 
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
         request.node.add_marker(
@@ -1510,3 +1505,17 @@ def test_transform_aligns_depr(func, series, expected_values, keys, keys_in_inde
         if series:
             expected = expected["b"]
         tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("keys", ["A", ["A", "B"]])
+def test_as_index_no_change(keys, df, groupby_func):
+    # GH#49834 - as_index should have no impact on DataFrameGroupBy.transform
+    if keys == "A":
+        # Column B is string dtype; will fail on some ops
+        df = df.drop(columns="B")
+    args = get_groupby_method_args(groupby_func, df)
+    gb_as_index_true = df.groupby(keys, as_index=True)
+    gb_as_index_false = df.groupby(keys, as_index=False)
+    result = gb_as_index_true.transform(groupby_func, *args)
+    expected = gb_as_index_false.transform(groupby_func, *args)
+    tm.assert_equal(result, expected)
