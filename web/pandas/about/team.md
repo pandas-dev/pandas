@@ -44,21 +44,19 @@ Wes McKinney is the Benevolent Dictator for Life (BDFL).
 
 The project governance is available in the [project governance page](governance.html).
 
-## Code of conduct committee
+## Workgroups
+
+{% for workgroup in workgroups %}
+
+### {{ workgroup.name }}
 
 <ul>
     {% for person in maintainers.coc %}
-        <li>{{ person }}</li>
+        <li>{{ person }}{% if loop.first %} (lead){% endif %}</li>
     {% endfor %}
 </ul>
 
-## NumFOCUS committee
-
-<ul>
-    {% for person in maintainers.numfocus %}
-        <li>{{ person }}</li>
-    {% endfor %}
-</ul>
+{% endfor %}
 
 ## Inactive maintainers
 
