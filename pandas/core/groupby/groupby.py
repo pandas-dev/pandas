@@ -1810,7 +1810,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # and deal with possible broadcasting below.
             # Temporarily set observed for dealing with categoricals.
             with com.temp_setattr(self, "observed", True):
-                result = getattr(self, func)(*args, **kwargs)
+                with com.temp_setattr(self, "as_index", True):
+                    # GH#49834 - result needs groups in the index for
+                    # _wrap_transform_fast_result
+                    result = getattr(self, func)(*args, **kwargs)
 
             return self._wrap_transform_fast_result(result)
 
