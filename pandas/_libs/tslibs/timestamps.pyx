@@ -6,8 +6,8 @@ construction requirements, we need to do object instantiation in python
 (see Timestamp class below). This will serve as a C extension type that
 shadows the python class, where we do any heavy lifting.
 """
-import warnings
 
+import warnings
 cimport cython
 
 import numpy as np
@@ -1926,8 +1926,9 @@ default 'raise'
         >>> pd.NaT.tz_localize()
         NaT
         """
-        if ambiguous == 'infer':
-            raise ValueError('Cannot infer offset with only one time.')
+
+        if ambiguous != True and ambiguous != False and ambiguous != 'NaT' and ambiguous != 'raise':
+            raise ValueError('ambiguous parameter must be one of: True, False, 'NaT', 'raise' (default))
 
         nonexistent_options = ('raise', 'NaT', 'shift_forward', 'shift_backward')
         if nonexistent not in nonexistent_options and not PyDelta_Check(nonexistent):
