@@ -720,7 +720,7 @@ class PlotAccessor(PandasObject):
 
            Now applicable to planar plots (`scatter`, `hexbin`).
 
-        .. versionchanged:: 1.6.0
+        .. versionchanged:: 2.0.0
 
             Now applicable to histograms.
 
