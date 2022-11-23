@@ -50,8 +50,6 @@ dist
 *.egg-info
 .eggs
 .pypirc
-# type checkers
-pandas/py.typed
 
 # tox testing tool
 .tox
