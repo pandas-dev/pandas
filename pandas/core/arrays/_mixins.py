@@ -390,8 +390,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         self: NDArrayBackedExtensionArrayT, loc: int, item
     ) -> NDArrayBackedExtensionArrayT:
         """
-        Make new ExtensionArray inserting new item at location. Follows
-        Python list.append semantics for negative values.
+        Make new ExtensionArray inserting new item at location.
+
+        Follows Python list.append semantics for negative values.
 
         Parameters
         ----------
