@@ -71,9 +71,14 @@ class BaseDtypeTests(BaseExtensionTests):
         )
         result = df.dtypes == str(dtype)
 
-        # pre-numpy 1.20 this comparison could raise or in some cases
-        #  come back True
-        assert np.dtype("int64") != "Int64"
+        try:
+            new_numpy_behavior = np.dtype("int64") != "Int64"
+        except TypeError:
+            # numpy<=1.20.3 this comparison could raise or in some cases
+            #  come back True
+            new_numpy_behavior = True
+        assert new_numpy_behavior
+
         expected = pd.Series([True, True, False, False], index=list("ABCD"))
 
         self.assert_series_equal(result, expected)
