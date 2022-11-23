@@ -360,7 +360,7 @@ def test_dispatch_transform(tsframe):
     tm.assert_frame_equal(filled, expected)
 
 
-def test_transform_transformation_func(request, transformation_func):
+def test_transform_transformation_func(transformation_func, as_index):
     # GH 30918
     df = DataFrame(
         {
@@ -388,7 +388,7 @@ def test_transform_transformation_func(request, transformation_func):
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
 
-    result = test_op(df.groupby("A"))
+    result = test_op(df.groupby("A", as_index=as_index))
     # pass the group in same order as iterating `for ... in df.groupby(...)`
     # but reorder to match df's index since this is a transform
     groups = [df[["B"]].iloc[4:6], df[["B"]].iloc[6:], df[["B"]].iloc[:4]]
@@ -1126,10 +1126,15 @@ def test_transform_invalid_name_raises():
         Series([0, 0, 0, 1, 1, 1], index=["A", "B", "C", "D", "E", "F"]),
     ],
 )
-def test_transform_agg_by_name(request, reduction_func, obj):
+def test_transform_agg_by_name(request, reduction_func, obj, as_index):
     func = reduction_func
 
-    g = obj.groupby(np.repeat([0, 1], 3))
+    if obj.ndim == 1 and not as_index:
+        with pytest.raises(TypeError, match="as_index=False only valid with DataFrame"):
+            obj.groupby(np.repeat([0, 1], 3), as_index=as_index)
+        return
+
+    g = obj.groupby(np.repeat([0, 1], 3), as_index=as_index)
 
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
         request.node.add_marker(
