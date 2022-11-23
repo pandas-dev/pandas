@@ -1885,6 +1885,8 @@ class Styler(StylerRenderer):
         names : bool, optional
             Whether to apply the styles to the index/column level names (if True) or
             to the index/column values (if False, default).
+
+            .. versionadded:: 2.0.0
         **kwargs : dict
             Pass along to ``func``.
 
