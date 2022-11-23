@@ -43,7 +43,9 @@ def _cum_func(
     elif is_integer_dtype(values):
         dtype_info = np.iinfo(values.dtype.type)
     elif is_bool_dtype(values):
-        # Max value has to be greater than 0 and min value should be zero
+        # Max value of bool is 1, but since we are setting into a boolean
+        # array, 255 is fine as well. Min value has to be 0 when setting
+        # into the boolean array.
         dtype_info = np.iinfo(np.uint8)
     else:
         raise NotImplementedError(
