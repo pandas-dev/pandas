@@ -158,8 +158,7 @@ class TestCasting(base.BaseCastingTests):
 
 
 class TestGroupby(base.BaseGroupbyTests):
-    def test_groupby_agg_extension(self, data_for_grouping):
-        super().test_groupby_agg_extension(data_for_grouping)
+    pass
 
 
 class TestSetitem(base.BaseSetitemTests):
