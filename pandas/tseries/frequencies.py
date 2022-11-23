@@ -1,10 +1,5 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
-
 import numpy as np
 
 from pandas._libs.algos import unique_deltas
@@ -46,13 +41,6 @@ from pandas.core.dtypes.generic import (
 )
 
 from pandas.core.algorithms import unique
-
-if TYPE_CHECKING:
-    from pandas import (
-        DatetimeIndex,
-        TimedeltaIndex,
-    )
-    from pandas.core.arrays import TimedeltaArray
 
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
@@ -192,15 +180,18 @@ class _FrequencyInferer:
     Not sure if I can avoid the state machine here
     """
 
-    def __init__(self, index: DatetimeIndex | TimedeltaIndex | TimedeltaArray) -> None:
+    def __init__(self, index) -> None:
         self.index = index
         self.i8values = index.asi8
 
         # For get_unit_from_dtype we need the dtype to the underlying ndarray,
         #  which for tz-aware is not the same as index.dtype
         if isinstance(index, ABCIndex):
-            index = cast("DatetimeIndex | TimedeltaIndex", index)
-            self._creso = get_unit_from_dtype(index._data._ndarray.dtype)
+            # error: Item "ndarray[Any, Any]" of "Union[ExtensionArray,
+            # ndarray[Any, Any]]" has no attribute "_ndarray"
+            self._creso = get_unit_from_dtype(
+                index._data._ndarray.dtype  # type: ignore[union-attr]
+            )
         else:
             # otherwise we have DTA/TDA
             self._creso = get_unit_from_dtype(index._ndarray.dtype)
