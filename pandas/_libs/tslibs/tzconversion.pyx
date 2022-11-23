@@ -116,7 +116,7 @@ cdef class Localizer:
                 self.tdata = <int64_t*>cnp.PyArray_DATA(trans)
 
     @cython.boundscheck(False)
-    cdef inline int64_t utc_val_to_local_val(
+    cdef int64_t utc_val_to_local_val(
         self, int64_t utc_val, Py_ssize_t* pos, bint* fold=NULL
     ) except? -1:
         if self.use_utc:

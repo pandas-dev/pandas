@@ -1151,7 +1151,7 @@ cdef class _Timedelta(timedelta):
         return self._compare_mismatched_resos(ots, op)
 
     # TODO: re-use/share with Timestamp
-    cdef inline bint _compare_mismatched_resos(self, _Timedelta other, op):
+    cdef bint _compare_mismatched_resos(self, _Timedelta other, op):
         # Can't just dispatch to numpy as they silently overflow and get it wrong
         cdef:
             npy_datetimestruct dts_self

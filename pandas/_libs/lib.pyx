@@ -1206,7 +1206,7 @@ cdef class Seen:
         self.interval_ = False
         self.coerce_numeric = coerce_numeric
 
-    cdef inline bint check_uint64_conflict(self) except -1:
+    cdef bint check_uint64_conflict(self) except -1:
         """
         Check whether we can safely convert a uint64 array to a numeric dtype.
 
@@ -1240,7 +1240,7 @@ cdef class Seen:
         return (self.uint_ and (self.null_ or self.sint_)
                 and not self.coerce_numeric)
 
-    cdef inline saw_null(self):
+    cdef saw_null(self):
         """
         Set flags indicating that a null value was encountered.
         """
@@ -1655,10 +1655,10 @@ cdef class Validator:
 
 @cython.internal
 cdef class BoolValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return util.is_bool_object(value)
 
-    cdef inline bint is_array_typed(self) except -1:
+    cdef bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.bool_)
 
 
@@ -1672,10 +1672,10 @@ cpdef bint is_bool_array(ndarray values, bint skipna=False):
 
 @cython.internal
 cdef class IntegerValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return util.is_integer_object(value)
 
-    cdef inline bint is_array_typed(self) except -1:
+    cdef bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.integer)
 
 
@@ -1690,7 +1690,7 @@ cpdef bint is_integer_array(ndarray values, bint skipna=True):
 
 @cython.internal
 cdef class IntegerNaValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return (util.is_integer_object(value)
                 or (util.is_nan(value) and util.is_float_object(value)))
 
@@ -1704,10 +1704,10 @@ cdef bint is_integer_na_array(ndarray values, bint skipna=True):
 
 @cython.internal
 cdef class IntegerFloatValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return util.is_integer_object(value) or util.is_float_object(value)
 
-    cdef inline bint is_array_typed(self) except -1:
+    cdef bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.integer)
 
 
@@ -1721,10 +1721,10 @@ cdef bint is_integer_float_array(ndarray values, bint skipna=True):
 
 @cython.internal
 cdef class FloatValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return util.is_float_object(value)
 
-    cdef inline bint is_array_typed(self) except -1:
+    cdef bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.floating)
 
 
@@ -1737,13 +1737,13 @@ cpdef bint is_float_array(ndarray values):
 
 @cython.internal
 cdef class ComplexValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return (
             util.is_complex_object(value)
             or (util.is_float_object(value) and is_nan(value))
         )
 
-    cdef inline bint is_array_typed(self) except -1:
+    cdef bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.complexfloating)
 
 
@@ -1755,7 +1755,7 @@ cdef bint is_complex_array(ndarray values):
 
 @cython.internal
 cdef class DecimalValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return is_decimal(value)
 
 
@@ -1769,10 +1769,10 @@ cdef bint is_decimal_array(ndarray values, bint skipna=False):
 
 @cython.internal
 cdef class StringValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return isinstance(value, str)
 
-    cdef inline bint is_array_typed(self) except -1:
+    cdef bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.str_)
 
 
@@ -1786,10 +1786,10 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
 
 @cython.internal
 cdef class BytesValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return isinstance(value, bytes)
 
-    cdef inline bint is_array_typed(self) except -1:
+    cdef bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.bytes_)
 
 
@@ -1812,14 +1812,14 @@ cdef class TemporalValidator(Validator):
         self.skipna = skipna
         self.all_generic_na = True
 
-    cdef inline bint is_valid(self, object value) except -1:
+    cdef bint is_valid(self, object value) except -1:
         return self.is_value_typed(value) or self.is_valid_null(value)
 
     cdef bint is_valid_null(self, object value) except -1:
         raise NotImplementedError(f"{type(self).__name__} child class "
                                   "must define is_valid_null")
 
-    cdef inline bint is_valid_skipna(self, object value) except -1:
+    cdef bint is_valid_skipna(self, object value) except -1:
         cdef:
             bint is_typed_null = self.is_valid_null(value)
             bint is_generic_null = value is None or util.is_nan(value)
@@ -1840,7 +1840,7 @@ cdef class DatetimeValidator(TemporalValidator):
     cdef bint is_value_typed(self, object value) except -1:
         return PyDateTime_Check(value)
 
-    cdef inline bint is_valid_null(self, object value) except -1:
+    cdef bint is_valid_null(self, object value) except -1:
         return is_null_datetime64(value)
 
 
@@ -1853,7 +1853,7 @@ cpdef bint is_datetime_array(ndarray values, bint skipna=True):
 
 @cython.internal
 cdef class Datetime64Validator(DatetimeValidator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return util.is_datetime64_object(value)
 
 
@@ -1867,7 +1867,7 @@ cpdef bint is_datetime64_array(ndarray values, bint skipna=True):
 
 @cython.internal
 cdef class AnyDatetimeValidator(DatetimeValidator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return util.is_datetime64_object(value) or (
             PyDateTime_Check(value) and value.tzinfo is None
         )
@@ -1919,13 +1919,13 @@ cdef class TimedeltaValidator(TemporalValidator):
     cdef bint is_value_typed(self, object value) except -1:
         return PyDelta_Check(value)
 
-    cdef inline bint is_valid_null(self, object value) except -1:
+    cdef bint is_valid_null(self, object value) except -1:
         return is_null_timedelta64(value)
 
 
 @cython.internal
 cdef class AnyTimedeltaValidator(TimedeltaValidator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return is_timedelta(value)
 
 
@@ -1942,7 +1942,7 @@ cpdef bint is_timedelta_or_timedelta64_array(ndarray values, bint skipna=True):
 
 @cython.internal
 cdef class DateValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return PyDate_Check(value)
 
 
@@ -1955,7 +1955,7 @@ cpdef bint is_date_array(ndarray values, bint skipna=False):
 
 @cython.internal
 cdef class TimeValidator(Validator):
-    cdef inline bint is_value_typed(self, object value) except -1:
+    cdef bint is_value_typed(self, object value) except -1:
         return PyTime_Check(value)
 
 

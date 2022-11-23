@@ -361,7 +361,7 @@ cdef class _Timestamp(ABCTimestamp):
         return self._compare_mismatched_resos(ots, op)
 
     # TODO: copied from Timedelta; try to de-duplicate
-    cdef inline bint _compare_mismatched_resos(self, _Timestamp other, int op):
+    cdef bint _compare_mismatched_resos(self, _Timestamp other, int op):
         # Can't just dispatch to numpy as they silently overflow and get it wrong
         cdef:
             npy_datetimestruct dts_self

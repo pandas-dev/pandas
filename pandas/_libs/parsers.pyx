@@ -1078,7 +1078,7 @@ cdef class TextReader:
         return results
 
     # -> tuple["ArrayLike", int]:
-    cdef inline _convert_tokens(self, Py_ssize_t i, int64_t start,
+    cdef _convert_tokens(self, Py_ssize_t i, int64_t start,
                                 int64_t end, object name, bint na_filter,
                                 kh_str_starts_t *na_hashset,
                                 object na_flist, object col_dtype):
