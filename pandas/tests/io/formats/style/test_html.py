@@ -5,6 +5,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     option_context,
 )
@@ -18,7 +19,11 @@ env = jinja2.Environment(loader=loader, trim_blocks=True)
 
 @pytest.fixture
 def styler():
-    return Styler(DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"]))
+    return Styler(DataFrame(
+      [[2.61], [2.69]],
+      index=Index(["a", "b"], name="INDEX"),
+      columns=Index(["A"], name="COLUMNS")
+    ))
 
 
 @pytest.fixture
@@ -425,14 +430,15 @@ def test_sparse_options(sparse_index, sparse_columns):
 
 @pytest.mark.parametrize("index", [True, False])
 @pytest.mark.parametrize("columns", [True, False])
-def test_applymap_header_cell_ids(styler, index, columns):
+@pytest.mark.parametrize("names", [True, False])
+def test_applymap_header_cell_ids(styler, index, columns, names):
     # GH 41893
     func = lambda v: "attr: val;"
     styler.uuid, styler.cell_ids = "", False
     if index:
-        styler.applymap_index(func, axis="index")
+        styler.applymap_index(func, axis="index", names=names)
     if columns:
-        styler.applymap_index(func, axis="columns")
+        styler.applymap_index(func, axis="columns", names=names)
 
     result = styler.to_html()
 
@@ -443,17 +449,36 @@ def test_applymap_header_cell_ids(styler, index, columns):
     # test index header ids where needed and css styles
     assert (
         '<th id="T__level0_row0" class="row_heading level0 row0" >a</th>' in result
-    ) is index
+    ) is index and not names
     assert (
         '<th id="T__level0_row1" class="row_heading level0 row1" >b</th>' in result
-    ) is index
-    assert ("#T__level0_row0, #T__level0_row1 {\n  attr: val;\n}" in result) is index
+    ) is index and not names
+    assert (
+      "#T__level0_row0, #T__level0_row1 {\n  attr: val;\n}" in result
+    ) is index and not names
+
+    # test index name ids
+    assert (
+      '<th id="T__index_name_level0" class="index_name level0" >INDEX</th>' in result
+    ) is index and names
+    assert (
+      "#T__index_name_level0 {\n  attr: val;\n}" in result
+    ) is index and names
 
     # test column header ids where needed and css styles
     assert (
         '<th id="T__level0_col0" class="col_heading level0 col0" >A</th>' in result
-    ) is columns
-    assert ("#T__level0_col0 {\n  attr: val;\n}" in result) is columns
+    ) is columns and not names
+    assert ("#T__level0_col0 {\n  attr: val;\n}" in result) is columns and not names
+
+    # test column name ids
+    assert (
+      '<th id="T__col_name_level0" class="col_name level0" >COLUMNS</th>' in result
+    ) is columns and names
+    assert (
+      "#T__col_name_level0 {\n  attr: val;\n}" in result
+    ) is columns and names
+
 
 
 @pytest.mark.parametrize("rows", [True, False])

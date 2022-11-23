@@ -579,6 +579,18 @@ class TestStyler:
             "display_value": "A",
         }
         assert expected.items() <= result["head"][1][0].items()
+    
+    def test_col_name(self):
+        df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
+        result = df.rename_axis(columns=["COLNAME"]).style._translate(True, True)
+        expected = {
+            "class": "col_name level0",
+            "type": "th",
+            "value": "COLNAME",
+            "is_visible": True,
+            "display_value": "COLNAME",
+        }
+        assert expected.items() <= result["head"][0][0].items()
 
     def test_numeric_columns(self):
         # https://github.com/pandas-dev/pandas/issues/12125
