@@ -38,7 +38,6 @@ disable = [
   "R",
   "W",
   "abstract-class-instantiated",
-  "access-member-before-definition",
   "bad-super-call",
   "c-extension-no-member",
   "function-redefined",
