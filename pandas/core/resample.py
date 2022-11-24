@@ -483,6 +483,7 @@ class Resampler(BaseGroupBy, PandasObject):
         result = self._apply_loffset(result)
         return self._wrap_result(result)
 
+    # pylint: disable=access-member-before-definition
     def _apply_loffset(self, result):
         """
         If loffset is set, offset the result index.
@@ -495,6 +496,7 @@ class Resampler(BaseGroupBy, PandasObject):
         result : Series or DataFrame
             the result of resample
         """
+        
         # error: Cannot determine type of 'loffset'
         needs_offset = (
             isinstance(
