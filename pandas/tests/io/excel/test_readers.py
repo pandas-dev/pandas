@@ -509,6 +509,7 @@ class TestReaders:
                 return str(cell.value)
             else:
                 return str(cell.value)
+
         basename = "testdtype"
         actual = pd.read_excel(basename + read_ext)
 
@@ -523,9 +524,7 @@ class TestReaders:
 
         tm.assert_frame_equal(actual, expected)
 
-        actual = pd.read_excel(
-            basename + read_ext, convert_cell=convert_cell
-        )
+        actual = pd.read_excel(basename + read_ext, convert_cell=convert_cell)
 
         expected["a"] = expected["a"].astype("str")
         expected["b"] = expected["b"].astype("str")
@@ -535,7 +534,6 @@ class TestReaders:
         msg = "Unable to convert column d to type int64"
         with pytest.raises(ValueError, match=msg):
             pd.read_excel(basename + read_ext, dtype={"d": "int64"})
-
 
     @pytest.mark.parametrize(
         "dtype,expected",
