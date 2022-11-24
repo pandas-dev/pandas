@@ -232,7 +232,7 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
 
 
 @register_vcs_handler("git", "pieces_from_vcs")
-def git_pieces_from_vcs(tag_prefix, root, verbose, run_cmd=run_command):
+def git_pieces_from_vcs(tag_prefix, root, verbose):
     """Get version from 'git describe' in the root of the source tree.
 
     This only gets called if the git-archive 'subst' keywords were *not*
@@ -243,7 +243,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_cmd=run_command):
     if sys.platform == "win32":
         GITS = ["git.cmd", "git.exe"]
 
-    out, rc = run_cmd(GITS, ["rev-parse", "--git-dir"], cwd=root, hide_stderr=True)
+    out, rc = run_command(GITS, ["rev-parse", "--git-dir"], cwd=root, hide_stderr=True)
     if rc != 0:
         if verbose:
             print("Directory %s not under git control" % root)
@@ -251,7 +251,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_cmd=run_command):
 
     # if there is a tag matching tag_prefix, this yields TAG-NUM-gHEX[-dirty]
     # if there isn't one, this yields HEX[-dirty] (no NUM)
-    describe_out, rc = run_cmd(
+    describe_out, rc = run_command(
         GITS,
         [
             "describe",
@@ -268,7 +268,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_cmd=run_command):
     if describe_out is None:
         raise NotThisMethod("'git describe' failed")
     describe_out = describe_out.strip()
-    full_out, rc = run_cmd(GITS, ["rev-parse", "HEAD"], cwd=root)
+    full_out, rc = run_command(GITS, ["rev-parse", "HEAD"], cwd=root)
     if full_out is None:
         raise NotThisMethod("'git rev-parse' failed")
     full_out = full_out.strip()
@@ -320,11 +320,11 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_cmd=run_command):
     else:
         # HEX: no tags
         pieces["closest-tag"] = None
-        count_out, rc = run_cmd(GITS, ["rev-list", "HEAD", "--count"], cwd=root)
+        count_out, rc = run_command(GITS, ["rev-list", "HEAD", "--count"], cwd=root)
         pieces["distance"] = int(count_out)  # total number of commits
 
     # commit date: see ISO-8601 comment in git_versions_from_keywords()
-    date = run_cmd(GITS, ["show", "-s", "--format=%ci", "HEAD"], cwd=root)[
+    date = run_command(GITS, ["show", "-s", "--format=%ci", "HEAD"], cwd=root)[
         0
     ].strip()
     # Use only the last line.  Previous lines may contain GPG signature
