@@ -102,7 +102,6 @@ disable = [
   "abstract-class-instantiated",
   "redundant-keyword-arg",
   "no-value-for-parameter",
-  "undefined-variable",
   "unpacking-non-sequence",
 
  # pylint type "C": convention, for programming standard violation

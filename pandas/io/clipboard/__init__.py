@@ -124,6 +124,12 @@ def init_osx_pbcopy_clipboard():
 
 
 def init_osx_pyobjc_clipboard():
+    try:
+        import AppKit
+        import Foundation  # check if pyobjc is installed
+    except ImportError:
+        return init_osx_pbcopy_clipboard()
+
     def copy_osx_pyobjc(text):
         """Copy string argument to clipboard"""
         text = _stringifyText(text)  # Converts non-str values to str.
@@ -512,7 +518,7 @@ def determine_clipboard():
     Determine the OS/platform and set the copy() and paste() functions
     accordingly.
     """
-    global Foundation, AppKit, qtpy, PyQt4, PyQt5
+    global qtpy, PyQt4, PyQt5
 
     # Setup for the CYGWIN platform:
     if (
@@ -539,13 +545,7 @@ def determine_clipboard():
 
     # Setup for the macOS platform:
     if os.name == "mac" or platform.system() == "Darwin":
-        try:
-            import AppKit
-            import Foundation  # check if pyobjc is installed
-        except ImportError:
-            return init_osx_pbcopy_clipboard()
-        else:
-            return init_osx_pyobjc_clipboard()
+        return init_osx_pyobjc_clipboard()
 
     # Setup for the LINUX platform:
     if HAS_DISPLAY:
