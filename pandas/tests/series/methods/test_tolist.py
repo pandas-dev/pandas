@@ -31,13 +31,13 @@ from pandas import (
             marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
         ),
         pytest.param(
-            [1],
+            [1.0],
             "float64[pyarrow]",
             float,
             marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
         ),
         pytest.param(
-            [1],
+            ["abc"],
             "string[pyarrow]",
             str,
             marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
