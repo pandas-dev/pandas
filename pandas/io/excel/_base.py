@@ -383,6 +383,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     use_nullable_dtypes: bool = ...,
+    convert_cell: Callable | None = ...,
 ) -> DataFrame:
     ...
 
@@ -422,6 +423,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     use_nullable_dtypes: bool = ...,
+    convert_cell: Callable | None = ...,
 ) -> dict[IntStrT, DataFrame]:
     ...
 
@@ -461,6 +463,7 @@ def read_excel(
     skipfooter: int = 0,
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool = False,
+    convert_cell: Callable | None = None,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
 
     should_close = False
@@ -498,6 +501,7 @@ def read_excel(
             comment=comment,
             skipfooter=skipfooter,
             use_nullable_dtypes=use_nullable_dtypes,
+            convert_cell=convert_cell,
         )
     finally:
         # make sure to close opened file handles
@@ -1624,6 +1628,7 @@ class ExcelFile:
         comment: str | None = None,
         skipfooter: int = 0,
         use_nullable_dtypes: bool = False,
+        convert_cell: Callable | None = None,
         **kwds,
     ) -> DataFrame | dict[str, DataFrame] | dict[int, DataFrame]:
         """
@@ -1656,6 +1661,7 @@ class ExcelFile:
             comment=comment,
             skipfooter=skipfooter,
             use_nullable_dtypes=use_nullable_dtypes,
+            convert_cell=convert_cell,
             **kwds,
         )
 
