@@ -376,7 +376,7 @@ def test_dispatch_transform(tsframe):
     tm.assert_frame_equal(filled, expected)
 
 
-def test_transform_transformation_func(transformation_func):
+def test_transform_transformation_func(request, transformation_func):
     # GH 30918
     df = DataFrame(
         {
