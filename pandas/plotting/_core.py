@@ -1694,19 +1694,7 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        size = kwargs.pop("size", None)
-        if s is not None and size is not None:
-            raise TypeError("Specify exactly one of `s` and `size`")
-        elif s is not None or size is not None:
-            kwargs["s"] = s if s is not None else size
-
-        color = kwargs.pop("color", None)
-        if c is not None and color is not None:
-            raise TypeError("Specify exactly one of `c` and `color`")
-        elif c is not None or color is not None:
-            kwargs["c"] = c if c is not None else color
-
-        return self(kind="scatter", x=x, y=y, **kwargs)
+        return self(kind="scatter", x=x, y=y, s=s, c=c, **kwargs)
 
     def hexbin(
         self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs
