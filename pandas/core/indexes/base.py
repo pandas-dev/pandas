@@ -2065,10 +2065,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
     @final
-    def _get_grouper_for_level(
-        self,
-        mapper
-    ) -> Index:
+    def _get_grouper_for_level(self, mapper) -> Index:
         """
         Get index grouper from a mapping function
 
@@ -2076,7 +2073,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         mapper: Group mapping function or None
             Function mapping index values to groups
-        
+
         Returns
         -------
         grouper : Index
