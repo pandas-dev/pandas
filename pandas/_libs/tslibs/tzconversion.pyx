@@ -36,6 +36,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
+    pydatetime_to_dt64,
 )
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
@@ -43,6 +44,7 @@ from pandas._libs.tslibs.timezones cimport (
     is_tzlocal,
     is_utc,
     is_zoneinfo,
+    utc_stdlib,
 )
 
 
@@ -154,7 +156,7 @@ cdef int64_t tz_localize_to_utc_single(
         # TODO: test with non-nano
         return val
 
-    elif is_tzlocal(tz) or is_zoneinfo(tz):
+    elif is_tzlocal(tz):
         return val - _tz_localize_using_tzinfo_api(val, tz, to_utc=True, creso=creso)
 
     elif is_fixed_offset(tz):
@@ -242,29 +244,6 @@ timedelta-like}
     if info.use_utc:
         return vals.copy()
 
-    result = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
-
-    if info.use_tzlocal:
-        for i in range(n):
-            v = vals[i]
-            if v == NPY_NAT:
-                result[i] = NPY_NAT
-            else:
-                result[i] = v - _tz_localize_using_tzinfo_api(
-                    v, tz, to_utc=True, creso=creso
-                )
-        return result.base  # to return underlying ndarray
-
-    elif info.use_fixed:
-        delta = info.delta
-        for i in range(n):
-            v = vals[i]
-            if v == NPY_NAT:
-                result[i] = NPY_NAT
-            else:
-                result[i] = v - delta
-        return result.base  # to return underlying ndarray
-
     # silence false-positive compiler warning
     ambiguous_array = np.empty(0, dtype=bool)
     if isinstance(ambiguous, str):
@@ -299,11 +278,39 @@ timedelta-like}
                "shift_backwards} or a timedelta object")
         raise ValueError(msg)
 
+    result = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
+
+    if info.use_tzlocal and not is_zoneinfo(tz):
+        for i in range(n):
+            v = vals[i]
+            if v == NPY_NAT:
+                result[i] = NPY_NAT
+            else:
+                result[i] = v - _tz_localize_using_tzinfo_api(
+                    v, tz, to_utc=True, creso=creso
+                )
+        return result.base  # to return underlying ndarray
+
+    elif info.use_fixed:
+        delta = info.delta
+        for i in range(n):
+            v = vals[i]
+            if v == NPY_NAT:
+                result[i] = NPY_NAT
+            else:
+                result[i] = v - delta
+        return result.base  # to return underlying ndarray
+
     # Determine whether each date lies left of the DST transition (store in
     # result_a) or right of the DST transition (store in result_b)
-    result_a, result_b =_get_utc_bounds(
-        vals, info.tdata, info.ntrans, info.deltas, creso=creso
-    )
+    if is_zoneinfo(tz):
+        result_a, result_b =_get_utc_bounds_zoneinfo(
+            vals, tz, creso=creso
+        )
+    else:
+        result_a, result_b =_get_utc_bounds(
+            vals, info.tdata, info.ntrans, info.deltas, creso=creso
+        )
 
     # silence false-positive compiler warning
     dst_hours = np.empty(0, dtype=np.int64)
@@ -391,8 +398,7 @@ timedelta-like}
     return result.base  # .base to get underlying ndarray
 
 
-cdef inline Py_ssize_t bisect_right_i8(int64_t *data,
-                                       int64_t val, Py_ssize_t n):
+cdef inline Py_ssize_t bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
     # Caller is responsible for checking n > 0
     # This looks very similar to local_search_right in the ndarray.searchsorted
     #  implementation.
@@ -479,6 +485,72 @@ cdef _get_utc_bounds(
         # timestamp falls to the right side of the DST transition
         if v_right + deltas[pos_right] == val:
             result_b[i] = v_right
+
+    return result_a, result_b
+
+
+cdef _get_utc_bounds_zoneinfo(ndarray vals, tz, NPY_DATETIMEUNIT creso):
+    """
+    For each point in 'vals', find the UTC time that it corresponds to if
+    with fold=0 and fold=1. In non-ambiguous cases, these will match.
+
+    Parameters
+    ----------
+    vals : ndarray[int64_t]
+    tz : ZoneInfo
+    creso : NPY_DATETIMEUNIT
+
+    Returns
+    -------
+    ndarray[int64_t]
+    ndarray[int64_t]
+    """
+    cdef:
+        Py_ssize_t i, n = vals.size
+        npy_datetimestruct dts
+        datetime dt, rt, left, right, aware, as_utc
+        int64_t val, pps = periods_per_second(creso)
+        ndarray result_a, result_b
+
+    result_a = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
+    result_b = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
+
+    for i in range(n):
+        val = vals[i]
+        if val == NPY_NAT:
+            result_a[i] = NPY_NAT
+            result_b[i] = NPY_NAT
+            continue
+
+        pandas_datetime_to_datetimestruct(val, creso, &dts)
+        # casting to pydatetime drops nanoseconds etc, which we will
+        #  need to re-add later as 'extra''
+        extra = (dts.ps // 1000) * (pps // 1_000_000_000)
+
+        dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
+                          dts.min, dts.sec, dts.us, None)
+
+        aware = dt.replace(tzinfo=tz)
+        as_utc = aware.astimezone(utc_stdlib)
+        rt = as_utc.astimezone(tz)
+        if aware != rt:
+            # AFAICT this means that 'aware' is non-existent
+            # TODO: better way to check this?
+            #  mail.python.org/archives/list/datetime-sig@python.org/
+            #  thread/57Y3IQAASJOKHX4D27W463XTZIS2NR3M/
+            result_a[i] = NPY_NAT
+        else:
+            left = as_utc.replace(tzinfo=None)
+            result_a[i] = pydatetime_to_dt64(left, &dts, creso) + extra
+
+        aware = dt.replace(fold=1, tzinfo=tz)
+        as_utc = aware.astimezone(utc_stdlib)
+        rt = as_utc.astimezone(tz)
+        if aware != rt:
+            result_b[i] = NPY_NAT
+        else:
+            right = as_utc.replace(tzinfo=None)
+            result_b[i] = pydatetime_to_dt64(right, &dts, creso) + extra
 
     return result_a, result_b
 
