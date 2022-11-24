@@ -50,7 +50,9 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
     convert_datetime_to_tsobject,
+    convert_timezone,
     get_datetime64_nanos,
+    parse_pydatetime,
     precision_from_unit,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -59,7 +61,6 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
-from pandas._libs.tslibs.timezones cimport tz_compare
 
 from pandas._libs.tslibs import (
     Resolution,
@@ -446,7 +447,8 @@ cpdef array_to_datetime(
     bint yearfirst=False,
     bint utc=False,
     bint require_iso8601=False,
-    bint allow_mixed=False,
+    format: str | None=None,
+    bint exact=True,
 ):
     """
     Converts a 1D array of date-like values to a numpy array of either:
@@ -475,8 +477,6 @@ cpdef array_to_datetime(
          indicator whether the dates should be UTC
     require_iso8601 : bool, default False
          indicator whether the datetime string should be iso8601
-    allow_mixed : bool, default False
-        Whether to allow mixed datetimes and integers.
 
     Returns
     -------
@@ -526,35 +526,16 @@ cpdef array_to_datetime(
                     seen_datetime = True
                     if val.tzinfo is not None:
                         found_tz = True
-                        if utc_convert:
-                            _ts = convert_datetime_to_tsobject(val, None)
-                            _ts.ensure_reso(NPY_FR_ns)
-                            iresult[i] = _ts.value
-                        elif found_naive:
-                            raise ValueError('Tz-aware datetime.datetime '
-                                             'cannot be converted to '
-                                             'datetime64 unless utc=True')
-                        elif tz_out is not None and not tz_compare(tz_out, val.tzinfo):
-                            raise ValueError('Tz-aware datetime.datetime '
-                                             'cannot be converted to '
-                                             'datetime64 unless utc=True')
-                        else:
-                            found_tz = True
-                            tz_out = val.tzinfo
-                            _ts = convert_datetime_to_tsobject(val, None)
-                            _ts.ensure_reso(NPY_FR_ns)
-                            iresult[i] = _ts.value
-
                     else:
                         found_naive = True
-                        if found_tz and not utc_convert:
-                            raise ValueError('Cannot mix tz-aware with '
-                                             'tz-naive values')
-                        if isinstance(val, _Timestamp):
-                            iresult[i] = val.as_unit("ns").value
-                        else:
-                            iresult[i] = pydatetime_to_dt64(val, &dts)
-                            check_dts_bounds(&dts)
+                    tz_out = convert_timezone(
+                        val.tzinfo,
+                        tz_out,
+                        found_naive,
+                        found_tz,
+                        utc_convert,
+                    )
+                    result[i] = parse_pydatetime(val, &dts, utc_convert)
 
                 elif PyDate_Check(val):
                     seen_datetime = True
@@ -566,6 +547,16 @@ cpdef array_to_datetime(
                     iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
 
                 elif is_integer_object(val) or is_float_object(val):
+                    if require_iso8601:
+                        if is_coerce:
+                            iresult[i] = NPY_NAT
+                            continue
+                        elif is_raise:
+                            raise ValueError(
+                                f"time data \"{val}\" at position {i} doesn't "
+                                f"match format \"{format}\""
+                            )
+                        return values, tz_out
                     # these must be ns unit by-definition
                     seen_integer = True
 
@@ -596,7 +587,7 @@ cpdef array_to_datetime(
 
                     string_to_dts_failed = string_to_dts(
                         val, &dts, &out_bestunit, &out_local,
-                        &out_tzoffset, False
+                        &out_tzoffset, False, format, exact
                     )
                     if string_to_dts_failed:
                         # An error at this point is a _parsing_ error
@@ -612,7 +603,7 @@ cpdef array_to_datetime(
                             elif is_raise:
                                 raise ValueError(
                                     f"time data \"{val}\" at position {i} doesn't "
-                                    "match format specified"
+                                    f"match format \"{format}\""
                                 )
                             return values, tz_out
 
@@ -710,12 +701,6 @@ cpdef array_to_datetime(
                 val = values[i]
                 if is_integer_object(val) or is_float_object(val):
                     result[i] = NPY_NAT
-        elif allow_mixed:
-            pass
-        elif is_raise:
-            raise ValueError("mixed datetimes and integers in passed array")
-        else:
-            return _array_to_datetime_object(values, errors, dayfirst, yearfirst)
 
     if seen_datetime_offset and not utc_convert:
         # GH#17697

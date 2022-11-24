@@ -479,15 +479,14 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(df, recons)
 
-    @pytest.mark.parametrize("np_type", [np.bool8, np.bool_])
-    def test_bool_types(self, np_type, path):
-        # Test np.bool8 and np.bool_ values read come back as float.
-        df = DataFrame([1, 0, True, False], dtype=np_type)
+    def test_bool_types(self, path):
+        # Test np.bool_ values read come back as float.
+        df = DataFrame([1, 0, True, False], dtype=np.bool_)
         df.to_excel(path, "test1")
 
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0).astype(
-                np_type
+                np.bool_
             )
 
         tm.assert_frame_equal(df, recons)
@@ -865,11 +864,10 @@ class TestExcelWriter:
     def test_to_excel_unicode_filename(self, ext):
         with tm.ensure_clean("\u0192u." + ext) as filename:
             try:
-                f = open(filename, "wb")
+                with open(filename, "wb"):
+                    pass
             except UnicodeEncodeError:
                 pytest.skip("No unicode file names on this system")
-            finally:
-                f.close()
 
             df = DataFrame(
                 [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],

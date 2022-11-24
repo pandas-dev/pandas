@@ -3,7 +3,7 @@ SQL-style merge routines
 """
 from __future__ import annotations
 
-import copy
+import copy as cp
 import datetime
 from functools import partial
 import string
@@ -1637,7 +1637,7 @@ def get_join_indexers(
 
     lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
-    kwargs = copy.copy(kwargs)
+    kwargs = cp.copy(kwargs)
     if how in ("left", "right"):
         kwargs["sort"] = sort
     join_func = {
@@ -2362,14 +2362,8 @@ def _factorize_keys(
 
     rizer = klass(max(len(lk), len(rk)))
 
-    # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
-    # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
-    # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
-    llab = rizer.factorize(lk)  # type: ignore[arg-type]
-    # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
-    # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
-    # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
-    rlab = rizer.factorize(rk)  # type: ignore[arg-type]
+    llab = rizer.factorize(lk)
+    rlab = rizer.factorize(rk)
     assert llab.dtype == np.dtype(np.intp), llab.dtype
     assert rlab.dtype == np.dtype(np.intp), rlab.dtype
 
