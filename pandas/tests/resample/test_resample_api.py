@@ -871,6 +871,7 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
         "first",
         "last",
         "prod",
+        "std",
     ):
         warn = FutureWarning
         msg = (
