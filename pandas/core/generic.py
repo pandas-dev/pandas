@@ -172,8 +172,8 @@ from pandas.core.window import (
 )
 
 from pandas.io.formats import (
-    format as fmt,
-    json
+    json,
+    format as fmt
 )
 from pandas.io.formats.format import (
     DataFrameFormatter,
