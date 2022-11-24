@@ -1549,3 +1549,17 @@ def test_transform_aligns_depr(func, series, expected_values, keys, keys_in_inde
         if series:
             expected = expected["b"]
         tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("keys", ["A", ["A", "B"]])
+def test_as_index_no_change(keys, df, groupby_func):
+    # GH#49834 - as_index should have no impact on DataFrameGroupBy.transform
+    if keys == "A":
+        # Column B is string dtype; will fail on some ops
+        df = df.drop(columns="B")
+    args = get_groupby_method_args(groupby_func, df)
+    gb_as_index_true = df.groupby(keys, as_index=True)
+    gb_as_index_false = df.groupby(keys, as_index=False)
+    result = gb_as_index_true.transform(groupby_func, *args)
+    expected = gb_as_index_false.transform(groupby_func, *args)
+    tm.assert_equal(result, expected)
