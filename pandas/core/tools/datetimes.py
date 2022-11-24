@@ -504,7 +504,7 @@ def _array_strptime_with_fallback(
             # Indicates to the caller to fallback to objects_to_datetime64ns
             return None
     else:
-        if any([i is not None for i in timezones]):
+        if any(tz is not None for tz in timezones):
             return _return_parsed_timezone_results(result, timezones, utc, name)
 
     return _box_as_indexlike(result, utc=utc, name=name)
