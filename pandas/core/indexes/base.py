@@ -2079,6 +2079,9 @@ class Index(IndexOpsMixin, PandasObject):
         grouper : Index
             Index of values to group on.
         """
+        if self._multi:
+            raise NotImplementedError
+            
         if mapper is None:
             grouper = self
         else:
