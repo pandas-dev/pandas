@@ -242,20 +242,6 @@ def test_pyarrow(df):
     tm.assert_frame_equal(result, df)
 
 
-def test_torch_frame_construction(using_array_manager):
-    # GH#44616
-    torch = import_module("torch")
-    val_tensor = torch.randn(700, 64)
-
-    df = DataFrame(val_tensor)
-
-    if not using_array_manager:
-        assert np.shares_memory(df, val_tensor)
-
-    ser = Series(val_tensor[0])
-    assert np.shares_memory(ser, val_tensor)
-
-
 def test_yaml_dump(df):
     # GH#42748
     yaml = import_module("yaml")
