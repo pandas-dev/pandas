@@ -4,7 +4,6 @@ from __future__ import annotations
 import collections
 import datetime as dt
 import gc
-import json
 import operator
 import pickle
 import re
@@ -172,7 +171,10 @@ from pandas.core.window import (
     Window,
 )
 
-from pandas.io.formats import format as fmt
+from pandas.io.formats import (
+    format as fmt,
+    json
+)
 from pandas.io.formats.format import (
     DataFrameFormatter,
     DataFrameRenderer,
@@ -2546,7 +2548,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ]
         }}
         """
-        from pandas.io import json
 
         if date_format is None and orient == "table":
             date_format = "iso"
@@ -7676,13 +7677,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         locs = self.index.asof_locs(where, ~(nulls._values))
 
         # mask the missing
-        missing = locs == -1
+        is_missing = locs == -1
         data = self.take(locs)
         data.index = where
-        if missing.any():
+        if is_missing.any():
             # GH#16063 only do this setting when necessary, otherwise
             #  we'd cast e.g. bools to floats
-            data.loc[missing] = np.nan
+            data.loc[is_missing] = np.nan
         return data if is_list else data.iloc[-1]
 
     # ----------------------------------------------------------------------
