@@ -92,6 +92,7 @@ disable = [
   "unsupported-assignment-operation",
   "unsupported-membership-test",
   "unused-import",
+  "use-a-generator",
   "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
   "wrong-import-order",
