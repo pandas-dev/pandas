@@ -221,8 +221,8 @@ class TestSetitemSlices:
         ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
 
         ser[:4] = 0
-        assert (ser[:4] == 0).all()
-        assert not (ser[4:] == 0).any()
+        assert (ser.iloc[:4] == 0).all()
+        assert not (ser.iloc[4:] == 0).any()
 
     def test_setitem_slicestep(self):
         # caught this bug when writing tests
