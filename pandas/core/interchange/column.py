@@ -315,7 +315,7 @@ class PandasColumn(Column):
             valid = invalid == 0
             invalid = not valid
 
-            mask = np.zeros(shape=(len(buf),), dtype=np.bool8)
+            mask = np.zeros(shape=(len(buf),), dtype=np.bool_)
             for i, obj in enumerate(buf):
                 mask[i] = valid if isinstance(obj, str) else invalid
 

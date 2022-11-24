@@ -59,9 +59,9 @@ class TestUnaryMethods:
         tm.assert_sp_array_equal(exp, res)
 
     def test_invert_operator(self):
-        arr = SparseArray([False, True, False, True], fill_value=False, dtype=np.bool8)
+        arr = SparseArray([False, True, False, True], fill_value=False, dtype=np.bool_)
         exp = SparseArray(
-            np.invert([False, True, False, True]), fill_value=True, dtype=np.bool8
+            np.invert([False, True, False, True]), fill_value=True, dtype=np.bool_
         )
         res = ~arr
         tm.assert_sp_array_equal(exp, res)
