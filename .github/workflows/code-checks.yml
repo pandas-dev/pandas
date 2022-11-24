@@ -117,12 +117,15 @@ jobs:
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
 
+    - name: Build Pandas
+      id: build
+      uses: ./.github/actions/build_pandas
+
     - name: Run ASV benchmarks
       run: |
         cd asv_bench
         asv machine --yes
-        git fetch origin main:main
-        asv run --quick --dry-run --strict --durations=30
+        asv run --quick --dry-run --strict --durations=30 --python=same
 
   build_docker_dev_environment:
     name: Build Docker Dev Environment
