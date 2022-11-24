@@ -481,6 +481,14 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         iv = Period(parsed, freq=reso.attr_abbrev)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
+    @doc(DatetimeIndexOpsMixin.shift)
+    def shift(self, periods: int = 1, freq=None):
+        if freq is not None:
+            raise TypeError(
+                f"`freq` argument is not supported for {type(self).__name__}.shift"
+            )
+        return self + periods
+
 
 def period_range(
     start=None, end=None, periods: int | None = None, freq=None, name=None
