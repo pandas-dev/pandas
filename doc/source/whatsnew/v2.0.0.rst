@@ -14,17 +14,17 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_200.enhancements.optional_dependency_management:
+.. _whatsnew_200.enhancements.optional_dependency_management_pip:
 
-Optional dependencies version management
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Optional pandas dependencies can be managed as extras in a requirements/setup file, for example:
+Installing optional dependencies with pip extras
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When installing pandas using pip, sets of optional dependencies can also be installed by specifying extras.
 
-.. code-block:: python
+.. code-block:: bash
 
-  pandas[performance, aws]>=2.0.0
+  pip install "pandas[performance, aws]>=2.0.0"
 
-Available optional dependencies (listed in order of appearance at `install guide <https://pandas.pydata.org/docs/getting_started/install>`_) are
+The available extras, found in the :ref:`installation guide<install.dependencies>`, are
 ``[all, performance, computation, timezone, fss, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql,
 sql-other, html, xml, plot, output_formatting, clipboard, compression, test]`` (:issue:`39164`).
 
