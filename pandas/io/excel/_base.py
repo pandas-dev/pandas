@@ -573,7 +573,11 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_sheet_data(self, sheet, rows: int | None = None):
+    def get_sheet_data(
+        self,
+        sheet,
+        rows: int | None = None,
+    ):
         pass
 
     def raise_if_bad_sheet_by_index(self, index: int) -> None:
@@ -702,6 +706,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         comment: str | None = None,
         skipfooter: int = 0,
         use_nullable_dtypes: bool = False,
+        convert_cell: Callable | None = None,
         **kwds,
     ):
 
@@ -738,7 +743,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 sheet = self.get_sheet_by_index(asheetname)
 
             file_rows_needed = self._calc_rows(header, index_col, skiprows, nrows)
-            data = self.get_sheet_data(sheet, file_rows_needed)
+            data = self.get_sheet_data(sheet, file_rows_needed, convert_cell)
             if hasattr(sheet, "close"):
                 # pyxlsb opens two TemporaryFiles
                 sheet.close()

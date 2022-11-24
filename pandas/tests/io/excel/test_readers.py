@@ -502,6 +502,41 @@ class TestReaders:
         with pytest.raises(ValueError, match=msg):
             pd.read_excel(basename + read_ext, dtype={"d": "int64"})
 
+    def test_reader_dtype_with_convert_cell(self, read_ext):
+        # GH 8212
+        def convert_cell(cell):
+            if cell.number_format == "0.00%":
+                return str(cell.value)
+            else:
+                return str(cell.value)
+        basename = "testdtype"
+        actual = pd.read_excel(basename + read_ext)
+
+        expected = DataFrame(
+            {
+                "a": [1, 2, 3, 4],
+                "b": [2.5, 3.5, 4.5, 5.5],
+                "c": [1, 2, 3, 4],
+                "d": [1.0, 2.0, np.nan, 4.0],
+            }
+        ).reindex(columns=["a", "b", "c", "d"])
+
+        tm.assert_frame_equal(actual, expected)
+
+        actual = pd.read_excel(
+            basename + read_ext, convert_cell=convert_cell
+        )
+
+        expected["a"] = expected["a"].astype("str")
+        expected["b"] = expected["b"].astype("str")
+        expected["c"] = ["001", "002", "003", "004"]
+        tm.assert_frame_equal(actual, expected)
+
+        msg = "Unable to convert column d to type int64"
+        with pytest.raises(ValueError, match=msg):
+            pd.read_excel(basename + read_ext, dtype={"d": "int64"})
+
+
     @pytest.mark.parametrize(
         "dtype,expected",
         [

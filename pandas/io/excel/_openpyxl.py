@@ -4,6 +4,7 @@ import mmap
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Tuple,
     cast,
 )
@@ -594,7 +595,10 @@ class OpenpyxlReader(BaseExcelReader):
         return cell.value
 
     def get_sheet_data(
-        self, sheet, file_rows_needed: int | None = None
+        self,
+        sheet,
+        file_rows_needed: int | None = None,
+        convert_cell: Callable | None = None,
     ) -> list[list[Scalar]]:
 
         if self.book.read_only:
@@ -603,7 +607,8 @@ class OpenpyxlReader(BaseExcelReader):
         data: list[list[Scalar]] = []
         last_row_with_data = -1
         for row_number, row in enumerate(sheet.rows):
-            converted_row = [self._convert_cell(cell) for cell in row]
+            convert_cell = convert_cell or self._convert_cell
+            converted_row = [convert_cell(cell) for cell in row]
             while converted_row and converted_row[-1] == "":
                 # trim trailing empty elements
                 converted_row.pop()

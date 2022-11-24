@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import time
+from typing import Callable
+import warnings
 
 import numpy as np
 
@@ -10,6 +12,7 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.shared_docs import _shared_docs
 
@@ -62,8 +65,16 @@ class XlrdReader(BaseExcelReader):
         return self.book.sheet_by_index(index)
 
     def get_sheet_data(
-        self, sheet, file_rows_needed: int | None = None
+        self,
+        sheet,
+        file_rows_needed: int | None = None,
+        convert_cell: Callable | None = None,
     ) -> list[list[Scalar]]:
+        if convert_cell:
+            warnings.warn(
+                "convert_cell is not implemented in xlrd engine, it will be ignored",
+                stacklevel=find_stack_level(),
+            )
         from xlrd import (
             XL_CELL_BOOLEAN,
             XL_CELL_DATE,

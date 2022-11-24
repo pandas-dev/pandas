@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Callable,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -15,6 +17,7 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 from pandas.core.shared_docs import _shared_docs
@@ -90,11 +93,19 @@ class ODFReader(BaseExcelReader):
         raise ValueError(f"sheet {name} not found")
 
     def get_sheet_data(
-        self, sheet, file_rows_needed: int | None = None
+        self,
+        sheet,
+        file_rows_needed: int | None = None,
+        convert_cell: Callable | None = None,
     ) -> list[list[Scalar | NaTType]]:
         """
         Parse an ODF Table into a list of lists
         """
+        if convert_cell:
+            warnings.warn(
+                "convert_cell is not implemented in odf engine, it will be ignored",
+                stacklevel=find_stack_level(),
+            )
         from odf.table import (
             CoveredTableCell,
             TableCell,

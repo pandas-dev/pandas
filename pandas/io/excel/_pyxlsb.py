@@ -1,6 +1,8 @@
 # pyright: reportMissingImports=false
 from __future__ import annotations
 
+from typing import Callable
+
 from pandas._typing import (
     FilePath,
     ReadBuffer,
@@ -83,6 +85,7 @@ class PyxlsbReader(BaseExcelReader):
         self,
         sheet,
         file_rows_needed: int | None = None,
+        convert_cell: Callable | None = None,
     ) -> list[list[Scalar]]:
         data: list[list[Scalar]] = []
         prevous_row_number = -1
@@ -90,7 +93,8 @@ class PyxlsbReader(BaseExcelReader):
         # not returned. The cells are namedtuples of row, col, value (r, c, v).
         for row in sheet.rows(sparse=True):
             row_number = row[0].r
-            converted_row = [self._convert_cell(cell) for cell in row]
+            convert_cell = convert_cell or self._convert_cell
+            converted_row = [convert_cell(cell) for cell in row]
             while converted_row and converted_row[-1] == "":
                 # trim trailing empty elements
                 converted_row.pop()
