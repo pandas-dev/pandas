@@ -427,6 +427,7 @@ class MilliSecondLocator(mdates.DateLocator):
             if len(all_dates) > 0:
                 locs = self.raise_if_exceeds(mdates.date2num(all_dates))
                 return locs
+        # pylint: disable-next=broad-except
         except Exception:  # pragma: no cover
             pass
 
