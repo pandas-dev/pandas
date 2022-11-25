@@ -46,12 +46,14 @@ The project governance is available in the [project governance page](governance.
 
 ## Workgroups
 
-{% for workgroup in workgroups %}
+{% for k, workgroup in workgroups.items() %}
 
 ### {{ workgroup.name }}
 
+Responsibilities: {{ workgroup.responsibilities }}
+
 <ul>
-    {% for person in maintainers.coc %}
+    {% for person in workgroup.members %}
         <li>{{ person }}{% if loop.first %} (lead){% endif %}</li>
     {% endfor %}
 </ul>

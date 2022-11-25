@@ -104,7 +104,7 @@ maintainers:
 workgroups:
   coc:
     name: Code of Conduct
-    responsibilities: "Make sure the pandas is the welcoming and inclusive community we want it to be. Keeping the CoC updated, and addressing violation reports."
+    responsibilities: "Make sure pandas is the welcoming and inclusive community we want it to be. Keeping the CoC updated, and addressing violation reports."
     members:
     - Tom Augspurger
     - Bijay Regmi
@@ -121,7 +121,7 @@ workgroups:
     - Matthew Roeschke
   infrastructure:
     name: Infrastructure
-    responsibilities: "Keep the pandas infrastructure up and working. In particular the servers for the website, benchmark, CI and others needed."
+    responsibilities: "Keep the pandas infrastructure up and working. In particular the servers for the website, benchmarks, CI and others needed."
     members:
     - Marc Garcia
     - Matthew Roeschke
