@@ -281,7 +281,7 @@ class Apply(metaclass=abc.ABCMeta):
         # Two possible ways to use a UDF - apply or call directly
         try:
             return obj.apply(func, args=args, **kwargs)
-        except Exception:
+        except Exception: # pylint: disable=broad-except
             return func(obj, *args, **kwargs)
 
     def agg_list_like(self) -> DataFrame | Series:
@@ -706,7 +706,7 @@ class FrameApply(NDFrameApply):
                     r = self.f(Series([], dtype=np.float64))
                 else:
                     r = self.f(Series(index=self.columns, dtype=np.float64))
-            except Exception:
+            except Exception: # pylint: disable=broad-except
                 pass
             else:
                 should_reduce = not isinstance(r, Series)

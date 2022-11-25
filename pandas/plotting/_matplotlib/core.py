@@ -1479,7 +1479,7 @@ class LinePlot(MPLPlot):
                 i = int(i)
             try:
                 return pprint_thing(data.index[i])
-            except Exception:
+            except Exception: # pylint: disable=broad-except
                 return ""
 
         if self._need_to_set_index:
