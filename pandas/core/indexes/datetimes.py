@@ -42,7 +42,6 @@ from pandas.util._decorators import (
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_dtype_equal,
     is_scalar,
 )
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
@@ -328,18 +327,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ):
             # fastpath, similar logic in TimedeltaIndex.__new__;
             # Note in this particular case we retain non-nano.
-            if copy:
-                data = data.copy()
-            return cls._simple_new(data, name=name)
-        elif (
-            isinstance(data, DatetimeArray)
-            and freq is lib.no_default
-            and tz is lib.no_default
-            and is_dtype_equal(data.dtype, dtype)
-        ):
-            # Reached via Index.__new__ when we call .astype
-            # TODO(2.0): special casing can be removed once _from_sequence_not_strict
-            #  no longer chokes on non-nano
             if copy:
                 data = data.copy()
             return cls._simple_new(data, name=name)
@@ -849,7 +836,7 @@ def date_range(
     tz : str or tzinfo, optional
         Time zone name for returning localized DatetimeIndex, for example
         'Asia/Hong_Kong'. By default, the resulting DatetimeIndex is
-        timezone-naive.
+        timezone-naive unless timezone-aware datetime-likes are passed.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     name : str, default None
@@ -899,6 +886,18 @@ def date_range(
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
                    '2018-01-05', '2018-01-06', '2018-01-07', '2018-01-08'],
                   dtype='datetime64[ns]', freq='D')
+
+    Specify timezone-aware `start` and `end`, with the default daily frequency.
+
+    >>> pd.date_range(
+    ...     start=pd.to_datetime("1/1/2018").tz_localize("Europe/Berlin"),
+    ...     end=pd.to_datetime("1/08/2018").tz_localize("Europe/Berlin"),
+    ... )
+    DatetimeIndex(['2018-01-01 00:00:00+01:00', '2018-01-02 00:00:00+01:00',
+                   '2018-01-03 00:00:00+01:00', '2018-01-04 00:00:00+01:00',
+                   '2018-01-05 00:00:00+01:00', '2018-01-06 00:00:00+01:00',
+                   '2018-01-07 00:00:00+01:00', '2018-01-08 00:00:00+01:00'],
+                  dtype='datetime64[ns, Europe/Berlin]', freq='D')
 
     Specify `start` and `periods`, the number of periods (days).
 

@@ -32,6 +32,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
+from pandas.core.construction import sanitize_array
 from pandas.core.indexes.base import (
     Index,
     maybe_extract_name,
@@ -144,14 +145,16 @@ class NumericIndex(Index):
                 data = list(data)
 
             orig = data
-            data = np.asarray(data, dtype=dtype)
+            if isinstance(data, (list, tuple)):
+                if len(data):
+                    data = sanitize_array(data, index=None)
+                else:
+                    data = np.array([], dtype=np.int64)
+
             if dtype is None and data.dtype.kind == "f":
                 if cls is UInt64Index and (data >= 0).all():
                     # https://github.com/numpy/numpy/issues/19146
                     data = np.asarray(orig, dtype=np.uint64)
-
-        if issubclass(data.dtype.type, str):
-            cls._string_data_error(data)
 
         dtype = cls._ensure_dtype(dtype)
 
@@ -198,7 +201,8 @@ class NumericIndex(Index):
             return cls._default_dtype
 
         dtype = pandas_dtype(dtype)
-        assert isinstance(dtype, np.dtype)
+        if not isinstance(dtype, np.dtype):
+            raise TypeError(f"{dtype} not a numpy type")
 
         if cls._is_backward_compat_public_numeric_index:
             # dtype for NumericIndex
