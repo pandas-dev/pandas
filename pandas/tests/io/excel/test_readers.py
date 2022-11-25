@@ -506,9 +506,9 @@ class TestReaders:
         # GH 8212
         def convert_cell(cell):
             if cell.number_format == "0.00%":
-                return str(cell.value)
+                return "'" + str(cell.value)
             else:
-                return str(cell.value)
+                return "'" + str(cell.value)
 
         basename = "testdtype"
         actual = pd.read_excel(basename + read_ext)
