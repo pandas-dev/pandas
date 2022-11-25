@@ -348,4 +348,37 @@ class Rank:
         self.s.rank()
 
 
+class Iter:
+
+    param_names = ["dtype"]
+    params = [
+        "bool",
+        "boolean",
+        "int64",
+        "Int64",
+        "float64",
+        "Float64",
+        "datetime64[ns]",
+    ]
+
+    def setup(self, dtype):
+        N = 10**5
+        if dtype in ["bool", "boolean"]:
+            data = np.repeat([True, False], N // 2)
+        elif dtype in ["int64", "Int64"]:
+            data = np.arange(N)
+        elif dtype in ["float64", "Float64"]:
+            data = np.random.randn(N)
+        elif dtype == "datetime64[ns]":
+            data = date_range("2000-01-01", freq="s", periods=N)
+        else:
+            raise NotImplementedError
+
+        self.s = Series(data, dtype=dtype)
+
+    def time_iter(self, dtype):
+        for v in self.s:
+            pass
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
