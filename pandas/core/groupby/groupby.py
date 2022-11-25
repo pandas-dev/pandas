@@ -1176,10 +1176,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             values = reset_identity(values)
             result = concat(values, axis=self.axis)
 
-        name = self.obj.name if self.obj.ndim == 1 else self._selection
-        if isinstance(result, Series) and name is not None:
-
-            result.name = name
+        if result.name is None:
+            name = self.obj.name if self.obj.ndim == 1 else self._selection
+            if isinstance(result, Series) and name is not None:
+                result.name = name
 
         return result
 

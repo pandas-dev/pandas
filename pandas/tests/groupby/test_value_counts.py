@@ -162,7 +162,7 @@ def test_series_groupby_value_counts_one_row(columns):
     dfg = df.groupby(columns[:-1])
 
     result = dfg[columns[-1]].value_counts()
-    expected = df.value_counts().rename(columns[-1])
+    expected = df.value_counts()
 
     tm.assert_series_equal(result, expected)
 
@@ -183,6 +183,7 @@ def test_series_groupby_value_counts_on_categorical():
                 ),
             ]
         ),
+        name="count",
     )
 
     # Expected:
