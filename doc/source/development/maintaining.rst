@@ -354,7 +354,7 @@ in the next places:
 - Pip packages in the [PyPI](https://pypi.org/project/pandas/)
 - Conda/Mamba packages in [conda-forge](https://anaconda.org/conda-forge/pandas)
 
-The process for releasing a new version of pandas is detailed next.
+The process for releasing a new version of pandas is detailed next section.
 
 The instructions contain ``<version>`` which needs to be replaced with the version
 to be released (e.g. ``1.5.2``). Also the branch to be released ``<branch>``, which
