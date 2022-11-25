@@ -58,7 +58,6 @@ coverage
 pandas-datareader
 pyyaml
 py
-torch
 moto
 flask
 asv
