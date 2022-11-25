@@ -233,17 +233,25 @@ and the index will be named after the original object.
 
 .. code-block:: ipython
 
-    In [8]: pd.Series(['quetzal', 'quetzal', 'elk'], name='animal').value_counts()
+    In [8]: (
+       ...:     pd.Series(['quetzal', 'quetzal', 'elk'], name='animal')
+       ...:     .value_counts()
+       ...:     .reset_index()
+       ...: )
     Out[8]:
-    quetzal    2
-    elk        1
-    Name: animal, dtype: int64
+         index  animal
+    0  quetzal       2
+    1      elk       1
 
 *New behavior*:
 
 .. ipython:: python
 
-   pd.Series(['quetzal', 'quetzal', 'elk'], name='animal').value_counts()
+    (
+        pd.Series(['quetzal', 'quetzal', 'elk'], name='animal')
+        .value_counts()
+        .reset_index()
+    )
 
 Likewise for other ``value_counts`` methods (for example, :meth:`DataFrame.value_counts`).
 
