@@ -7107,7 +7107,8 @@ class DataFrame(NDFrame, OpsMixin):
         if subset is None:
             subset = self.columns.tolist()
 
-        counts = self.groupby(subset, dropna=dropna).grouper.size()
+        name = "proportion" if normalize else "count"
+        counts = self.groupby(subset, dropna=dropna).grouper.size().rename(name)
 
         if sort:
             counts = counts.sort_values(ascending=ascending)
