@@ -37,12 +37,12 @@ def _compare_local_to_utc(tz_didx, naive_didx):
     try:
         result = tzconversion.tz_localize_to_utc(naive_didx.asi8, tz_didx.tz)
         err1 = None
-    except Exception as err:
+    except Exception as err: # pylint: disable=broad-except
         err1 = err
 
     try:
         expected = naive_didx.map(lambda x: x.tz_localize(tz_didx.tz)).asi8
-    except Exception as err:
+    except Exception as err: # pylint: disable=broad-except
         err2 = err
 
     if err1 is not None:

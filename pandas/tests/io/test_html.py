@@ -1276,7 +1276,7 @@ class TestReadHtml:
             def run(self):
                 try:
                     super().run()
-                except Exception as err:
+                except Exception as err: # pylint: disable=broad-except
                     self.err = err
                 else:
                     self.err = None
