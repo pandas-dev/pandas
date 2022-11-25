@@ -2015,10 +2015,7 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 return
 
             elif df.dtypes[0] == object:
-                # FIXME: the test is actually wrong here, xref #41341
                 result = get_result()
-                # In this case we have list-of-list, will raise TypeError,
-                # and subsequently be dropped as nuisance columns
                 expected = df.set_index(keys)[["C"]]
                 tm.assert_equal(result, expected)
                 return
