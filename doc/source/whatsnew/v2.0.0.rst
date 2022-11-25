@@ -214,18 +214,7 @@ Value counts behaviour change
 In past versions, when running :meth:`Series.value_counts`, the result would inherit
 the original object's name, and the result index would be nameless. This would cause
 confusion when resetting the index, and the column names would not correspond with the
-column values:
-
-.. code-block:: ipython
-
-    In [5]: df = pd.DataFrame({'animal': ['quetzal', 'quetzal', 'elk']})
-
-    In [6]: df['animal'].value_counts().reset_index()
-    Out[6]:
-         index  animal
-    0  quetzal       2
-    1      elk       1
-
+column values.
 Now, the result name will be ``'count'`` (or ``'proportion'`` if ``normalize=True`` was passed),
 and the index will be named after the original object.
 
