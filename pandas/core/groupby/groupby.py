@@ -1178,6 +1178,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         name = self.obj.name if self.obj.ndim == 1 else self._selection
         if isinstance(result, Series) and name is not None:
+
             result.name = name
 
         return result

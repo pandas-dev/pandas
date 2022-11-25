@@ -986,7 +986,7 @@ class IndexOpsMixin(OpsMixin):
         NaN    1
         dtype: int64
         """
-        ret = algorithms.value_counts(
+        return algorithms.value_counts(
             self,
             sort=sort,
             ascending=ascending,
@@ -994,7 +994,6 @@ class IndexOpsMixin(OpsMixin):
             bins=bins,
             dropna=dropna,
         )
-        return ret
 
     def unique(self):
         values = self._values

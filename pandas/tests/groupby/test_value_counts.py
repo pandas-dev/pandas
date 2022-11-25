@@ -82,12 +82,18 @@ for seed_nans in [True, False]:
 @pytest.mark.slow
 @pytest.mark.parametrize("df, keys, bins, n, m", binned, ids=ids)
 @pytest.mark.parametrize("isort", [True, False])
-@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize(
+    "normalize, name",
+    [
+        (True, "proportion"),
+        (False, "count"),
+    ],
+)
 @pytest.mark.parametrize("sort", [True, False])
 @pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("dropna", [True, False])
 def test_series_groupby_value_counts(
-    df, keys, bins, n, m, isort, normalize, sort, ascending, dropna
+    df, keys, bins, n, m, isort, normalize, name, sort, ascending, dropna
 ):
     def rebuild_index(df):
         arr = list(map(df.index.get_level_values, range(df.index.nlevels)))
@@ -108,6 +114,8 @@ def test_series_groupby_value_counts(
     gr = df.groupby(keys, sort=isort)
     right = gr["3rd"].apply(Series.value_counts, **kwargs)
     right.index.names = right.index.names[:-1] + ["3rd"]
+    # https://github.com/pandas-dev/pandas/issues/49909
+    right = right.rename(name)
 
     # have to sort on index because of unstable sort on values
     left, right = map(rebuild_index, (left, right))  # xref GH9212
@@ -138,6 +146,8 @@ def test_series_groupby_value_counts_with_grouper():
     result = dfg["Food"].value_counts().sort_index()
     expected = dfg["Food"].apply(Series.value_counts).sort_index()
     expected.index.names = result.index.names
+    # https://github.com/pandas-dev/pandas/issues/49909
+    expected = expected.rename("count")
 
     tm.assert_series_equal(result, expected)
 
