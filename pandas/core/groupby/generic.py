@@ -1923,7 +1923,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         male    low        FR         2
                            US         1
                 medium     FR         1
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.groupby('gender').value_counts(ascending=True)
         gender  education  country
@@ -1932,7 +1932,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         male    low        US         1
                 medium     FR         1
                 low        FR         2
-        dtype: int64
+        Name: count, dtype: int64
 
         >>> df.groupby('gender').value_counts(normalize=True)
         gender  education  country
@@ -1941,7 +1941,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         male    low        FR         0.50
                            US         0.25
                 medium     FR         0.25
-        dtype: float64
+        Name: proportion, dtype: float64
 
         >>> df.groupby('gender', as_index=False).value_counts()
            gender education country  count

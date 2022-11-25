@@ -169,7 +169,7 @@ def test_value_counts_bins(index_or_series):
     exp1 = Series({Interval(0.997, 3.0): 4}, name="count")
     tm.assert_series_equal(res1, exp1)
     res1n = s1.value_counts(bins=1, normalize=True)
-    exp1n = Series({Interval(0.997, 3.0): 1.0}, name="count")
+    exp1n = Series({Interval(0.997, 3.0): 1.0}, name="proportion")
     tm.assert_series_equal(res1n, exp1n)
 
     if isinstance(s1, Index):
@@ -193,7 +193,7 @@ def test_value_counts_bins(index_or_series):
 
     res4n = s1.value_counts(bins=4, normalize=True)
     exp4n = Series(
-        [0.5, 0.25, 0.25, 0], index=intervals.take([0, 1, 3, 2]), name="count"
+        [0.5, 0.25, 0.25, 0], index=intervals.take([0, 1, 3, 2]), name="proportion"
     )
     tm.assert_series_equal(res4n, exp4n)
 
