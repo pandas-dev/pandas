@@ -106,7 +106,7 @@ def s3_base(worker_id):
                         r = requests.get(endpoint_uri)
                         if r.ok:
                             break
-                    except Exception:
+                    except Exception: # pylint: disable=broad-except
                         pass
                     timeout -= 0.1
                     time.sleep(0.1)
@@ -154,12 +154,12 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
 
     try:
         cli.create_bucket(Bucket=bucket)
-    except Exception:
+    except Exception: # pylint: disable=broad-except
         # OK is bucket already exists
         pass
     try:
         cli.create_bucket(Bucket="cant_get_it", ACL="private")
-    except Exception:
+    except Exception: # pylint: disable=broad-except
         # OK is bucket already exists
         pass
     timeout = 2
@@ -176,11 +176,11 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
 
     try:
         s3.rm(bucket, recursive=True)
-    except Exception:
+    except Exception: # pylint: disable=broad-except
         pass
     try:
         s3.rm("cant_get_it", recursive=True)
-    except Exception:
+    except Exception: # pylint: disable=broad-except
         pass
     timeout = 2
     while cli.list_buckets()["Buckets"] and timeout > 0:

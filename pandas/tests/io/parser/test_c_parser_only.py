@@ -68,7 +68,7 @@ def test_buffer_rd_bytes(c_parser_only):
                 compression="gzip",
                 delim_whitespace=True,
             )
-        except Exception:
+        except Exception: # pylint: disable=broad-except
             pass
 
 

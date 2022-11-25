@@ -173,12 +173,12 @@ class Dim2CompatTests(BaseExtensionTests):
         err_result = None
         try:
             expected = getattr(data, method)()
-        except Exception as err:
+        except Exception as err: # pylint: disable=broad-except
             # if the 1D reduction is invalid, the 2D reduction should be as well
             err_expected = err
             try:
                 result = getattr(arr2d, method)(axis=None)
-            except Exception as err2:
+            except Exception as err2: # pylint: disable=broad-except
                 err_result = err2
 
         else:
@@ -206,10 +206,10 @@ class Dim2CompatTests(BaseExtensionTests):
                     result = getattr(arr2d, method)(axis=0, **kwargs)
             else:
                 result = getattr(arr2d, method)(axis=0, **kwargs)
-        except Exception as err:
+        except Exception as err: # pylint: disable=broad-except
             try:
                 getattr(data, method)()
-            except Exception as err2:
+            except Exception as err2: # pylint: disable=broad-except
                 assert type(err) == type(err2)
                 return
             else:
@@ -255,10 +255,10 @@ class Dim2CompatTests(BaseExtensionTests):
 
         try:
             result = getattr(arr2d, method)(axis=1)
-        except Exception as err:
+        except Exception as err: # pylint: disable=broad-except
             try:
                 getattr(data, method)()
-            except Exception as err2:
+            except Exception as err2: # pylint: disable=broad-except
                 assert type(err) == type(err2)
                 return
             else:

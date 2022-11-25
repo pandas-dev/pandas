@@ -1160,7 +1160,7 @@ class HDFStore:
         except AssertionError:
             # surface any assertion errors for e.g. debugging
             raise
-        except Exception as err:
+        except Exception as err: # pylint: disable=broad-except
             # In tests we get here with ClosedFileError, TypeError, and
             #  _table_mod.NoSuchNodeError.  TODO: Catch only these?
 
@@ -1601,7 +1601,7 @@ class HDFStore:
                     except AssertionError:
                         # surface any assertion errors for e.g. debugging
                         raise
-                    except Exception as detail:
+                    except Exception as detail: # pylint: disable=broad-except
                         keys.append(k)
                         dstr = pprint_thing(detail)
                         values.append(f"[invalid_HDFStore node: {dstr}]")

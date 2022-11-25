@@ -346,7 +346,7 @@ class BaseMethodsTests(BaseExtensionTests):
         try:
             # does this array implement ops?
             op(data, data)
-        except Exception:
+        except Exception: # pylint: disable=broad-except
             pytest.skip(f"{type(data)} does not support diff")
         s = pd.Series(data)
         result = s.diff(periods)
