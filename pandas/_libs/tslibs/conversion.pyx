@@ -75,8 +75,8 @@ from pandas._libs.tslibs.tzconversion cimport (
 # ----------------------------------------------------------------------
 # Constants
 
-DT64NS_DTYPE = np.dtype('M8[ns]')
-TD64NS_DTYPE = np.dtype('m8[ns]')
+DT64NS_DTYPE = np.dtype("M8[ns]")
+TD64NS_DTYPE = np.dtype("m8[ns]")
 
 
 # ----------------------------------------------------------------------
@@ -298,8 +298,8 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         if isinstance(ts, Period):
             raise ValueError("Cannot convert Period to Timestamp "
                              "unambiguously. Use to_timestamp")
-        raise TypeError(f'Cannot convert input [{ts}] of type {type(ts)} to '
-                        f'Timestamp')
+        raise TypeError(f"Cannot convert input [{ts}] of type {type(ts)} to "
+                        f"Timestamp")
 
     maybe_localize_tso(obj, tz, obj.creso)
     return obj
@@ -479,11 +479,11 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
         obj.value = NPY_NAT
         obj.tzinfo = tz
         return obj
-    elif ts == 'now':
+    elif ts == "now":
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns utc
         dt = datetime.now(tz)
-    elif ts == 'today':
+    elif ts == "today":
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns a normalized datetime
         dt = datetime.now(tz)
@@ -684,19 +684,19 @@ cdef tzinfo convert_timezone(
         if utc_convert:
             pass
         elif found_naive:
-            raise ValueError('Tz-aware datetime.datetime '
-                             'cannot be converted to '
-                             'datetime64 unless utc=True')
+            raise ValueError("Tz-aware datetime.datetime "
+                             "cannot be converted to "
+                             "datetime64 unless utc=True")
         elif tz_out is not None and not tz_compare(tz_out, tz_in):
-            raise ValueError('Tz-aware datetime.datetime '
-                             'cannot be converted to '
-                             'datetime64 unless utc=True')
+            raise ValueError("Tz-aware datetime.datetime "
+                             "cannot be converted to "
+                             "datetime64 unless utc=True")
         else:
             tz_out = tz_in
     else:
         if found_tz and not utc_convert:
-            raise ValueError('Cannot mix tz-aware with '
-                             'tz-naive values')
+            raise ValueError("Cannot mix tz-aware with "
+                             "tz-naive values")
     return tz_out
 
 

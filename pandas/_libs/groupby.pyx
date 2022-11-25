@@ -604,12 +604,12 @@ def group_any_all(
         intp_t lab
         int8_t flag_val, val
 
-    if val_test == 'all':
+    if val_test == "all":
         # Because the 'all' value of an empty iterable in Python is True we can
         # start with an array full of ones and set to zero when a False value
         # is encountered
         flag_val = 0
-    elif val_test == 'any':
+    elif val_test == "any":
         # Because the 'any' value of an empty iterable in Python is False we
         # can start with an array full of zeros and set to one only if any
         # value encountered is True
@@ -1061,7 +1061,7 @@ def group_ohlc(
     N, K = (<object>values).shape
 
     if out.shape[1] != 4:
-        raise ValueError('Output array must have 4 columns')
+        raise ValueError("Output array must have 4 columns")
 
     if K > 1:
         raise NotImplementedError("Argument 'values' must have only one dimension")
@@ -1157,11 +1157,11 @@ def group_quantile(
         )
 
     inter_methods = {
-        'linear': INTERPOLATION_LINEAR,
-        'lower': INTERPOLATION_LOWER,
-        'higher': INTERPOLATION_HIGHER,
-        'nearest': INTERPOLATION_NEAREST,
-        'midpoint': INTERPOLATION_MIDPOINT,
+        "linear": INTERPOLATION_LINEAR,
+        "lower": INTERPOLATION_LOWER,
+        "higher": INTERPOLATION_HIGHER,
+        "nearest": INTERPOLATION_NEAREST,
+        "midpoint": INTERPOLATION_MIDPOINT,
     }
     interp = inter_methods[interpolation]
 

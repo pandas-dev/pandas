@@ -247,9 +247,9 @@ timedelta-like}
     # silence false-positive compiler warning
     ambiguous_array = np.empty(0, dtype=bool)
     if isinstance(ambiguous, str):
-        if ambiguous == 'infer':
+        if ambiguous == "infer":
             infer_dst = True
-        elif ambiguous == 'NaT':
+        elif ambiguous == "NaT":
             fill = True
     elif isinstance(ambiguous, bool):
         is_dst = True
@@ -257,23 +257,23 @@ timedelta-like}
             ambiguous_array = np.ones(len(vals), dtype=bool)
         else:
             ambiguous_array = np.zeros(len(vals), dtype=bool)
-    elif hasattr(ambiguous, '__iter__'):
+    elif hasattr(ambiguous, "__iter__"):
         is_dst = True
         if len(ambiguous) != len(vals):
             raise ValueError("Length of ambiguous bool-array must be "
                              "the same size as vals")
         ambiguous_array = np.asarray(ambiguous, dtype=bool)
 
-    if nonexistent == 'NaT':
+    if nonexistent == "NaT":
         fill_nonexist = True
-    elif nonexistent == 'shift_forward':
+    elif nonexistent == "shift_forward":
         shift_forward = True
-    elif nonexistent == 'shift_backward':
+    elif nonexistent == "shift_backward":
         shift_backward = True
     elif PyDelta_Check(nonexistent):
         from .timedeltas import delta_to_nanoseconds
         shift_delta = delta_to_nanoseconds(nonexistent, reso=creso)
-    elif nonexistent not in ('raise', None):
+    elif nonexistent not in ("raise", None):
         msg = ("nonexistent must be one of {'NaT', 'raise', 'shift_forward', "
                "shift_backwards} or a timedelta object")
         raise ValueError(msg)
