@@ -238,6 +238,7 @@ and the index will be named after the original object.
        ...:     .value_counts()
        ...:     .reset_index()
        ...: )
+       ...:
     Out[8]:
          index  animal
     0  quetzal       2
