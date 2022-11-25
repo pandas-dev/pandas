@@ -842,7 +842,8 @@ def value_counts(
         Series,
     )
 
-    name = getattr(values, "name", None)
+    index_name = getattr(values, "name", None)
+    name = "proportion" if normalize else "count"
 
     if bins is not None:
         from pandas.core.reshape.tile import cut
@@ -869,18 +870,22 @@ def value_counts(
     else:
 
         if is_extension_array_dtype(values):
-
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
             result.name = name
+            result.index.name = index_name
             counts = result._values
 
         elif isinstance(values, ABCMultiIndex):
             # GH49558
             levels = list(range(values.nlevels))
-            result = Series(index=values).groupby(level=levels, dropna=dropna).size()
+            result = (
+                Series(index=values, name=name)
+                .groupby(level=levels, dropna=dropna)
+                .size()
+            )
             # TODO: allow index names to remain (see discussion in GH49497)
-            result.index.names = [None] * values.nlevels
+            result.index.names = values.names
             counts = result._values
 
         else:
@@ -892,6 +897,7 @@ def value_counts(
             idx = Index._with_infer(keys)
             if idx.dtype == bool and keys.dtype == object:
                 idx = idx.astype(object)
+            idx.name = index_name
 
             result = Series(counts, index=idx, name=name)
 
