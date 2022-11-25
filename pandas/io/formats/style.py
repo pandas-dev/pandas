@@ -319,9 +319,9 @@ class Styler(StylerRenderer):
           - ``css`` will be inherited from the original Styler, and the value of
             keys ``data``, ``row_heading`` and ``row`` will be prepended with
             ``foot0_``. If more concats are chained, their styles will be prepended
-             with ``foot1_``, ''foot_2'', etc., and if a concatenated style have
-             another concatanated style, the second style will be prepended with
-             ``foot{parent}_foot{child}_``.
+            with ``foot1_``, ''foot_2'', etc., and if a concatenated style have
+            another concatanated style, the second style will be prepended with
+            ``foot{parent}_foot{child}_``.
 
         A common use case is to concatenate user defined functions with
         ``DataFrame.agg`` or with described statistics via ``DataFrame.describe``.
