@@ -334,7 +334,7 @@ def test_apply_series_to_frame():
     result = grouped.apply(f)
 
     assert isinstance(result, DataFrame)
-    assert not hasattr(result, "name")
+    assert not hasattr(result, "name")  # GH49907
     tm.assert_index_equal(result.index, ts.index)
 
 

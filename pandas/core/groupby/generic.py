@@ -401,7 +401,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 not_indexed_same=not_indexed_same,
                 is_transform=is_transform,
             )
-            if isinstance(result, Series):
+            if result.ndim == 1:
                 result.name = self.obj.name
             return result
         else:
