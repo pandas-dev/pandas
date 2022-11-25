@@ -147,7 +147,7 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             exc = None
             try:
                 result = op(ser, other)
-            except Exception as err: # pylint: disable=broad-except
+            except Exception as err:  # pylint: disable=broad-except
                 exc = err
 
             if exc is None:
@@ -206,7 +206,7 @@ class BaseUnaryOpsTests(BaseOpsUtil):
         exc = None
         try:
             result = getattr(data, attr)()
-        except Exception as err: # pylint: disable=broad-except
+        except Exception as err:  # pylint: disable=broad-except
             exc = err
 
             # if __pos__ raised, then so should the ufunc

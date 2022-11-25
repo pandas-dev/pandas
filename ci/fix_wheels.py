@@ -48,7 +48,7 @@ with zipfile.ZipFile(repaired_wheel_path, "a") as zipf:
                 os.path.join(base_redist_dir, "vcruntime140_1.dll"),
                 "pandas/_libs/window/vcruntime140_1.dll",
             )
-    except Exception as e: # pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
         success = False
         exception = e
 

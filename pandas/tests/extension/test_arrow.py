@@ -1257,7 +1257,7 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             exc = None
             try:
                 result = comparison_op(ser, other)
-            except Exception as err: # pylint: disable=broad-except
+            except Exception as err:  # pylint: disable=broad-except
                 exc = err
 
             if exc is None:

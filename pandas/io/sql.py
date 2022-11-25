@@ -575,7 +575,7 @@ def read_sql(
 
         try:
             _is_table_name = pandas_sql.has_table(sql)
-        except Exception: # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             # using generic exception to catch errors from sql drivers (GH24988)
             _is_table_name = False
 

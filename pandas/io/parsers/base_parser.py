@@ -1134,7 +1134,7 @@ def _make_date_converter(
                 if isinstance(result, datetime.datetime):
                     raise Exception("scalar parser")
                 return result
-            except Exception: # pylint: disable=broad-except
+            except Exception:  # pylint: disable=broad-except
                 return tools.to_datetime(
                     parsing.try_parse_dates(
                         parsing.concat_date_cols(date_cols),

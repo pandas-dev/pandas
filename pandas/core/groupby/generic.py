@@ -1464,7 +1464,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             res_fast = fast_path(group)
         except AssertionError:
             raise  # pragma: no cover
-        except Exception: # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             # GH#29631 For user-defined function, we can't predict what may be
             #  raised; see test_transform.test_transform_fastpath_raises
             return path, res

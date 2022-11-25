@@ -167,7 +167,7 @@ class ExtensionIndex(Index):
             if not isinstance(result, Index):
                 raise TypeError("The map function must return an Index object")
             return result
-        except Exception: # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             return self.astype(object).map(mapper)
 
     @cache_readonly

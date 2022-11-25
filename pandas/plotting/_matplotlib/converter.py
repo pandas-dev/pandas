@@ -290,7 +290,7 @@ class DatetimeConverter(mdates.DateConverter):
         def try_parse(values):
             try:
                 return mdates.date2num(tools.to_datetime(values))
-            except Exception: # pylint: disable=broad-except
+            except Exception:  # pylint: disable=broad-except
                 return values
 
         if isinstance(values, (datetime, pydt.date, np.datetime64, pydt.time)):
@@ -314,7 +314,7 @@ class DatetimeConverter(mdates.DateConverter):
 
             try:
                 values = tools.to_datetime(values)
-            except Exception: # pylint: disable=broad-except
+            except Exception:  # pylint: disable=broad-except
                 pass
 
             values = mdates.date2num(values)
