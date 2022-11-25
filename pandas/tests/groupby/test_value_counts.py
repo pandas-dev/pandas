@@ -37,7 +37,7 @@ def tests_value_counts_index_names_category_column():
     df_mi_expected = DataFrame([["US", "female"]], columns=["country", "gender"])
     df_mi_expected["gender"] = df_mi_expected["gender"].astype("category")
     mi_expected = MultiIndex.from_frame(df_mi_expected)
-    expected = Series([1], index=mi_expected, name="gender")
+    expected = Series([1], index=mi_expected, name="count")
 
     tm.assert_series_equal(result, expected)
 
@@ -149,7 +149,7 @@ def test_series_groupby_value_counts_empty(columns):
     dfg = df.groupby(columns[:-1])
 
     result = dfg[columns[-1]].value_counts()
-    expected = Series([], name=columns[-1], dtype=result.dtype)
+    expected = Series([], dtype=result.dtype, name="count")
     expected.index = MultiIndex.from_arrays([[]] * len(columns), names=columns)
 
     tm.assert_series_equal(result, expected)

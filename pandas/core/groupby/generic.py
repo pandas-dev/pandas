@@ -611,7 +611,8 @@ class SeriesGroupBy(GroupBy[Series]):
         ids, _, _ = self.grouper.group_info
         val = self.obj._values
 
-        names = self.grouper.names + [self.obj.name]
+        index_names = self.grouper.names + [self.obj.name]
+        name = "proportion" if normalize else "count"
 
         if is_categorical_dtype(val.dtype) or (
             bins is not None and not np.iterable(bins)
@@ -625,8 +626,8 @@ class SeriesGroupBy(GroupBy[Series]):
                 sort=sort,
                 ascending=ascending,
                 bins=bins,
-            )
-            ser.index.names = names
+            ).rename(name)
+            ser.index.names = index_names
             return ser
 
         # groupby removes null keys from groupings
@@ -736,11 +737,13 @@ class SeriesGroupBy(GroupBy[Series]):
             codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
             codes.append(left[-1])
 
-        mi = MultiIndex(levels=levels, codes=codes, names=names, verify_integrity=False)
+        mi = MultiIndex(
+            levels=levels, codes=codes, names=index_names, verify_integrity=False
+        )
 
         if is_integer_dtype(out.dtype):
             out = ensure_int64(out)
-        return self.obj._constructor(out, index=mi, name=self.obj.name)
+        return self.obj._constructor(out, index=mi, name=name)
 
     def fillna(
         self,
@@ -1960,6 +1963,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             raise NotImplementedError(
                 "DataFrameGroupBy.value_counts only handles axis=0"
             )
+        name = "proportion" if normalize else "count"
 
         with self._group_selection_context():
             df = self.obj
@@ -1968,8 +1972,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 grouping.name for grouping in self.grouper.groupings if grouping.in_axis
             }
             if isinstance(self._selected_obj, Series):
-                name = self._selected_obj.name
-                keys = [] if name in in_axis_names else [self._selected_obj]
+                _name = self._selected_obj.name
+                keys = [] if _name in in_axis_names else [self._selected_obj]
             else:
                 unique_cols = set(self._selected_obj.columns)
                 if subset is not None:
@@ -1992,8 +1996,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 keys = [
                     # Can't use .values because the column label needs to be preserved
                     self._selected_obj.iloc[:, idx]
-                    for idx, name in enumerate(self._selected_obj.columns)
-                    if name not in in_axis_names and name in subsetted
+                    for idx, _name in enumerate(self._selected_obj.columns)
+                    if _name not in in_axis_names and _name in subsetted
                 ]
 
             groupings = list(self.grouper.groupings)
@@ -2015,7 +2019,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 observed=self.observed,
                 dropna=self.dropna,
             )
-            result_series = cast(Series, gb.size())
+            result_series = cast(Series, gb.size().rename(name))
 
             # GH-46357 Include non-observed categories
             # of non-grouping columns regardless of `observed`
@@ -2059,14 +2063,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = result_series
             else:
                 # Convert to frame
-                name = "proportion" if normalize else "count"
                 index = result_series.index
                 columns = com.fill_missing_names(index.names)
                 if name in columns:
                     raise ValueError(
                         f"Column label '{name}' is duplicate of result column"
                     )
-                result_series.name = name
                 result_series.index = index.set_names(range(len(columns)))
                 result_frame = result_series.reset_index()
                 result_frame.columns = columns + [name]
