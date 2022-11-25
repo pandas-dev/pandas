@@ -103,7 +103,10 @@ def test_basic():  # TODO: split this test
     gb = df.groupby("A", observed=False)
     exp_idx = CategoricalIndex(["a", "b", "z"], name="A", ordered=True)
     expected = DataFrame({"values": Series([3, 7, 0], index=exp_idx)})
-    result = gb.sum()
+    msg = "category type does not support sum operations"
+    with pytest.raises(TypeError, match=msg):
+        gb.sum()
+    result = gb.sum(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
     # GH 8623
@@ -338,7 +341,9 @@ def test_observed(observed):
 
     gb = df.groupby(["A", "B"], observed=observed)
     exp_index = MultiIndex.from_arrays([cat1, cat2], names=["A", "B"])
-    expected = DataFrame({"values": [1, 2, 3, 4]}, index=exp_index)
+    expected = DataFrame(
+        {"values": [1, 2, 3, 4], "C": ["foo", "bar", "foo", "bar"]}, index=exp_index
+    )
     result = gb.sum()
     if not observed:
         expected = cartesian_product_for_groupers(
