@@ -58,51 +58,68 @@ exclude = '''
 [tool.pylint.messages_control]
 max-line-length = 88
 disable = [
-  "abstract-class-instantiated",
+ # intentionally turned off
   "c-extension-no-member",
+  "comparison-with-itself",
   "import-error",
+  "import-outside-toplevel",
+  "invalid-name",
   "invalid-unary-operand-type",
+  "line-too-long",
+  "no-else-continue",
+  "no-else-raise",
+  "no-else-return",
   "no-member",
   "no-name-in-module",
-  "no-value-for-parameter",
   "not-an-iterable",
-  "not-callable",
+  "pointless-statement",
   "redundant-keyword-arg",
+  "singleton-comparison",
+  "too-many-ancestors",
+  "too-many-arguments",
+  "too-many-boolean-expressions",
+  "too-many-branches",
   "too-many-function-args",
-  "undefined-variable",
+  "too-many-instance-attributes",
+  "too-many-locals",
+  "too-many-nested-blocks",
+  "too-many-public-methods",
+  "too-many-return-statements",
+  "too-many-statements",
   "unexpected-keyword-arg",
-  "unpacking-non-sequence",
+  "ungrouped-imports",
   "unsubscriptable-object",
   "unsupported-assignment-operation",
   "unsupported-membership-test",
-
- # pylint type "C": convention, for programming standard violation
-  "import-outside-toplevel",
-  "invalid-name",
-  "line-too-long",
-  "missing-class-docstring",
-  "missing-function-docstring",
-  "missing-module-docstring",
-  "singleton-comparison",
-  "too-many-lines",
-  "typevar-name-incorrect-variance",
-  "ungrouped-imports",
-  "unidiomatic-typecheck",
-  "unnecessary-dunder-call",
-  "unnecessary-lambda-assignment",
+  "unused-import",
   "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
   "wrong-import-order",
+  "wrong-import-order",
   "wrong-import-position",
 
+ # misc
+  "abstract-class-instantiated",
+  "redundant-keyword-arg",
+  "no-value-for-parameter",
+  "undefined-variable",
+  "unpacking-non-sequence",
+
+ # pylint type "C": convention, for programming standard violation
+  "missing-class-docstring",
+  "missing-function-docstring",
+  "missing-module-docstring",
+  "too-many-lines",
+  "unidiomatic-typecheck",
+  "unnecessary-dunder-call",
+  "unnecessary-lambda-assignment",
+
   # pylint type "R": refactor, for bad code smell
-  "comparison-with-itself",
   "consider-using-ternary",
   "consider-using-with",
   "cyclic-import",
   "duplicate-code",
   "inconsistent-return-statements",
-  "no-else-return",
   "redefined-argument-from-local",
   "too-few-public-methods",
   "too-many-ancestors",
@@ -124,20 +141,15 @@ disable = [
   "attribute-defined-outside-init",
   "broad-except",
   "comparison-with-callable",
-  "confusing-with-statement",
   "dangerous-default-value",
   "deprecated-module",
   "eval-used",
   "expression-not-assigned",
   "fixme",
   "global-statement",
-  "invalid-envvar-default",
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
-  "method-cache-max-size-none",
-  "non-parent-init-called",
   "overridden-final-method",
-  "pointless-statement",
   "pointless-string-statement",
   "possibly-unused-variable",
   "protected-access",
@@ -147,17 +159,14 @@ disable = [
   "self-assigning-variable",
   "self-cls-assignment",
   "signature-differs",
-  "subprocess-run-check",
   "super-init-not-called",
   "try-except-raise",
   "undefined-loop-variable",
   "unnecessary-lambda",
   "unspecified-encoding",
   "unused-argument",
-  "unused-import",
   "unused-variable",
-  "using-constant-test",
-  "useless-parent-delegation"
+  "using-constant-test"
 ]
 
 [tool.pytest.ini_options]
@@ -306,3 +315,32 @@ reportOptionalOperand = false
 reportOptionalSubscript = false
 reportPrivateImportUsage = false
 reportUnboundVariable = false
+
+[tool.coverage.run]
+branch = true
+omit = ["pandas/_typing.py", "pandas/_version.py"]
+plugins = ["Cython.Coverage"]
+source = ["pandas"]
+
+[tool.coverage.report]
+ignore_errors = false
+show_missing = true
+omit = ["pandas/_version.py"]
+exclude_lines = [
+  # Have to re-enable the standard pragma
+  "pragma: no cover",
+  # Don't complain about missing debug-only code:s
+  "def __repr__",
+  "if self.debug",
+  # Don't complain if tests don't hit defensive assertion code:
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "AbstractMethodError",
+  # Don't complain if non-runnable code isn't run:
+  "if 0:",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+
+[tool.coverage.html]
+directory = "coverage_html_report"
