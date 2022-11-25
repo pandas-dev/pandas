@@ -581,6 +581,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         self,
         sheet,
         rows: int | None = None,
+        convert_cell: Callable | None = None,
     ):
         pass
 
