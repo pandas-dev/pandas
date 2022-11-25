@@ -130,7 +130,7 @@ disable = [
   "arguments-out-of-order",
   "arguments-renamed",
   "attribute-defined-outside-init",
-  "broad-except",
+  #"broad-except",
   "comparison-with-callable",
   "dangerous-default-value",
   "deprecated-module",
@@ -159,6 +159,7 @@ disable = [
   "unused-variable",
   "using-constant-test"
 ]
+enable = [ "broad-except" ]
 
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
