@@ -248,13 +248,13 @@ _shared_doc_kwargs = {
     inplace : bool, default False
         Whether to modify the DataFrame rather than creating a new one.""",
     "optional_by": """
-        by : str or list of str
-            Name or list of names to sort by.
+by : str or list of str
+    Name or list of names to sort by.
 
-            - if `axis` is 0 or `'index'` then `by` may contain index
-              levels and/or column labels.
-            - if `axis` is 1 or `'columns'` then `by` may contain column
-              levels and/or index labels.""",
+    - if `axis` is 0 or `'index'` then `by` may contain index
+      levels and/or column labels.
+    - if `axis` is 1 or `'columns'` then `by` may contain column
+      levels and/or index labels.""",
     "optional_labels": """labels : array-like, optional
             New labels / index to conform the axis specified by 'axis' to.""",
     "optional_axis": """axis : int or str, optional
