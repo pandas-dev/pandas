@@ -349,7 +349,7 @@ The release process makes a snapshot of pandas (a git commit) available to users
 a particular version number. After the release the new pandas version will be available
 in the next places:
 
-- Git repo with a new tag
+- Git repo with a [new tag](https://github.com/pandas-dev/pandas/tags)
 - Source distribution in a [GitHub release](https://github.com/pandas-dev/pandas/releases)
 - Pip packages in the [PyPI](https://pypi.org/project/pandas/)
 - Conda/Mamba packages in [conda-forge](https://anaconda.org/conda-forge/pandas)
@@ -363,12 +363,25 @@ or any other version. Release candidates are released from ``main``, while other
 versions are released from their branch (e.g. ``1.5.x``).
 
 
+Prerequisites
+`````````````
+
+In order to be able to release a new pandas version, the next permissions are needed:
+
+- Merge rights to the [pandas](https://github.com/pandas-dev/pandas/),
+  [pandas-wheels](https://github.com/MacPython/pandas-wheels), and
+  [pandas-feedstock](https://github.com/conda-forge/pandas-feedstock/) repositories.
+- Permissions to push to main in the pandas repository, to push the new tags.
+- Write permissions to [PyPI](https://github.com/conda-forge/pandas-feedstock/pulls)
+- Access to the social media accounts, to publish the announcements.
+
 Pre-release
 ```````````
 
 1. Agree with the core team on the next topics:
 
-   - Release date
+   - Release date (major/minor releases happen usually every 6 months, and patch releases
+     monthly until x.x.5, just before the next major/minor)
    - Blockers (issues and PRs that must be part of the release)
    - Next version after the one being released
 
@@ -384,8 +397,10 @@ Pre-release
    being released are merged.
 
 5. Create a new issue and milestone for the version after the one being released.
-   Add the description ``on-merge: backport to <branch>`` to the milestone, so tagged
-   PRs are automatically backported by our bot.
+   If the release was a release candidate, we would usually want to create issues and
+   milestones for both the next major/minor, and the next patch release. In the
+   milestone of a patch release, we add the description ``on-merge: backport to <branch>``,
+   so tagged PRs are automatically backported to the release branch by our bot.
 
 6. Change the milestone of all issues and PRs in the milestone being released to the
    next milestone.
@@ -395,59 +410,66 @@ Release
 
 1. Create an empty commit and a tag in the last commit of the branch to be released:
 
-```sh
-git checkout <branch>
-git pull --ff-only upstream <branch>
-git clean -xdf
-git commit --allow-empty --author="Pandas Development Team <pandas-dev@python.org>" -m "RLS: <version>"
-git tag -a v<version> -m "Version <version>"  # NOTE that the tag is v1.5.2 with `v` not 1.5.2
-git push upstream <branch> --follow-tags
-```
+    git checkout <branch>
+    git pull --ff-only upstream <branch>
+    git clean -xdf
+    git commit --allow-empty --author="Pandas Development Team <pandas-dev@python.org>" -m "RLS: <version>"
+    git tag -a v<version> -m "Version <version>"  # NOTE that the tag is v1.5.2 with "v" not 1.5.2
+    git push upstream <branch> --follow-tags
 
-2. Build the source distribution (git must be in the tag commit):
+The docs for the new version will be built and published automatically with the docs job in the CI,
+which will be triggered when the tag is pushed.
 
-```sh
-./setup.py sdist --formats=gztar --quiet
-```
+2. Only if the release is a release candidate, we want to create a new branch for it, immediately
+   after creating the tag. For example, if we are releasing pandas 1.4.0rc0, we would like to
+   create the branch 1.4.x to backport commits to the 1.4 versions. As well as create a tag to
+   mark the start of the development of 1.5.0 (assuming it is the next version):
 
-3. Create a [new GitHub release](https://github.com/pandas-dev/pandas/releases/new):
+    git checkout -b 1.4.x
+    git push upstream 1.4.x
+    git checkout main
+    git commit --allow-empty -m "Start 1.5.0"
+    git tag -a v1.5.0.dev0 -m "DEV: Start 1.5.0"
+    git push upstream main --follow-tags
+
+3. Build the source distribution (git must be in the tag commit):
+
+    ./setup.py sdist --formats=gztar --quiet
+
+4. Create a [new GitHub release](https://github.com/pandas-dev/pandas/releases/new):
 
    - Title: ``Pandas <version>``
    - Tag: ``<version>``
    - Files: ``pandas-<version>.tar.gz`` source distribution just generated
    - Description: Copy the description of the last release of the same kind (release candidate, major/minor or patch release)
+   - Set as a pre-release: Only check for a release candidate
+   - Set as the latest release: Leave checked, unless releasing a patch release for an older version
+     (e.g. releasing 1.4.5 after 1.5 has been released)
 
-4. The GitHub release will after some hours trigger an
+5. The GitHub release will after some hours trigger an
    [automated conda-forge PR](https://github.com/conda-forge/pandas-feedstock/pulls).
    Merge it once the CI is green, and it will generate the conda-forge packages.
 
-5. Packages for supported versions in PyPI are built in the
+6. Packages for supported versions in PyPI are built in the
    [MacPython repo](https://github.com/MacPython/pandas-wheels).
    Open a PR updating the build commit to the released version, and merge it once the
    CI is green.
 
-```sh
-git checkout master
-git pull --ff-only upstream master
-git checkout -B RLS-<version>
+    git checkout master
+    git pull --ff-only upstream master
+    git checkout -B RLS-<version>
+    sed -i 's/BUILD_COMMIT: "v.*/BUILD_COMMIT: "'<version>'"/' azure/windows.yml azure/posix.yml
+    sed -i 's/BUILD_COMMIT="v.*/BUILD_COMMIT="'<version>'"/' .travis.yml
+    git commit -am "RLS <version>"
+    git push -u origin RLS-<version>
 
-sed -i 's/BUILD_COMMIT: "v.*/BUILD_COMMIT: "'<version>'"/' azure/windows.yml azure/posix.yml
-sed -i 's/BUILD_COMMIT="v.*/BUILD_COMMIT="'<version>'"/' .travis.yml
-
-git commit -am "RLS <version>"
-
-git push -u origin RLS-<version>
-```
-
-6. Download all wheels from the Anaconda repository where MacPython uploads them:
+7. Download all wheels from the Anaconda repository where MacPython uploads them:
    https://anaconda.org/multibuild-wheels-staging/pandas/files?version=<version>
    to the ``dist/`` directory in the local pandas copy.
 
-7. Upload wheels to PyPI:
+8. Upload wheels to PyPI:
 
-```sh
-twine upload pandas/dist/pandas-<version>*.{whl,tar.gz} --skip-existing
-```
+    twine upload pandas/dist/pandas-<version>*.{whl,tar.gz} --skip-existing
 
 Post-Release
 ````````````
