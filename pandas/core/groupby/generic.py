@@ -384,6 +384,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 dtype=data.dtype,
             )
         assert values is not None
+
         if isinstance(values[0], dict):
             # GH #823 #24880
             index = self.grouper.result_index
@@ -400,8 +401,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 not_indexed_same=not_indexed_same,
                 is_transform=is_transform,
             )
-            if result.name is None:
-                result.name = self.obj.name
+            result.name = self.obj.name
             return result
         else:
             # GH #6265 #24880
