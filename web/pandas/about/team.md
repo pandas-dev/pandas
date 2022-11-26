@@ -50,12 +50,16 @@ The project governance is available in the [project governance page](governance.
 
 ### {{ workgroup.name }}
 
-Responsibilities: {{ workgroup.responsibilities }}
-
 <ul>
-    {% for person in workgroup.members %}
-        <li>{{ person }}{% if loop.first %} (lead){% endif %}</li>
-    {% endfor %}
+    <li><b>Contact:</b> <a href="mailto:{{ workgroup.contact }}">{{ workgroup.contact }}</a></li>
+    <li><b>Responsibilities:</b> {{ workgroup.responsibilities }}</li>
+    <li><b>Members:</b>
+        <ul>
+            {% for person in workgroup.members %}
+                <li>{{ person }}{% if loop.first %} (lead){% endif %}</li>
+            {% endfor %}
+        </ul>
+    </li>
 </ul>
 
 {% endfor %}

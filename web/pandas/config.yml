@@ -104,6 +104,7 @@ maintainers:
 workgroups:
   coc:
     name: Code of Conduct
+    contact: coc@pandas.pydata.org
     responsibilities: "Make sure pandas is the welcoming and inclusive community we want it to be. Keeping the CoC updated, and addressing violation reports."
     members:
     - Tom Augspurger
@@ -112,6 +113,7 @@ workgroups:
     - Мария Чакчурина
   finance:
     name: Finance
+    contact: finance@pandas.pydata.org
     responsibilities: "Approve the project expenses."
     members:
     - Wes McKinney
@@ -121,6 +123,7 @@ workgroups:
     - Matthew Roeschke
   infrastructure:
     name: Infrastructure
+    contact: infrastructure@pandas.pydata.org
     responsibilities: "Keep the pandas infrastructure up and working. In particular the servers for the website, benchmarks, CI and others needed."
     members:
     - Marc Garcia
@@ -128,6 +131,7 @@ workgroups:
     - Thomas Li
   communications:
     name: Communications
+    contact: communications@pandas.pydata.org
     responsibilities: "Share relevant information with the broader community, mainly via our social networks, as well as being the main point of contact between NumFOCUS and the core team."
     members:
     - Marco Gorelli
