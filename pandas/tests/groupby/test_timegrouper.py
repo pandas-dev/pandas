@@ -108,10 +108,8 @@ class TestGroupBy:
             expected.iloc[18, 0] = "Joe"
             expected.iloc[[0, 6, 18], 1] = np.array([24, 6, 9], dtype="int64")
 
-            msg = "The default value of numeric_only"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                result1 = df.resample("5D").sum()
-            tm.assert_frame_equal(result1, expected[["Quantity"]])
+            result1 = df.resample("5D").sum()
+            tm.assert_frame_equal(result1, expected)
 
             df_sorted = df.sort_index()
             result2 = df_sorted.groupby(Grouper(freq="5D")).sum()

@@ -1789,10 +1789,9 @@ Thu,Lunch,Yes,51.51,17"""
         multi = df.set_index(["DATE", "ID"])
         multi.columns.name = "Params"
         unst = multi.unstack("ID")
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            down = unst.resample("W-THU").mean()
-
+        with pytest.raises(TypeError, match="Could not convert"):
+            unst.resample("W-THU").mean()
+        down = unst.resample("W-THU").mean(numeric_only=True)
         rs = down.stack("ID")
         xp = unst.loc[:, ["VAR1"]].resample("W-THU").mean().stack("ID")
         xp.columns.name = "Params"
