@@ -10,7 +10,7 @@ from typing import (
     cast,
 )
 
-import pandas._libs.json as json
+from pandas._libs import json
 from pandas._typing import (
     FilePath,
     StorageOptions,
@@ -24,6 +24,8 @@ from pandas.io.excel._util import (
 )
 
 if TYPE_CHECKING:
+    from odf.opendocument import OpenDocumentSpreadsheet
+
     from pandas.io.formats.excel import ExcelCell
 
 
@@ -69,6 +71,14 @@ class ODSWriter(ExcelWriter):
         This attribute can be used to access engine-specific features.
         """
         return self._book
+
+    @book.setter
+    def book(self, other: OpenDocumentSpreadsheet) -> None:
+        """
+        Set book instance. Class type will depend on the engine used.
+        """
+        self._deprecate_set_book()
+        self._book = other
 
     @property
     def sheets(self) -> dict[str, Any]:

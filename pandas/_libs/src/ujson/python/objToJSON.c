@@ -50,18 +50,17 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include "date_conversions.h"
 #include "datetime.h"
 
-static PyTypeObject *type_decimal;
-static PyTypeObject *cls_dataframe;
-static PyTypeObject *cls_series;
-static PyTypeObject *cls_index;
-static PyTypeObject *cls_nat;
-static PyTypeObject *cls_na;
-PyObject *cls_timedelta;
-
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
 typedef char *(*PFN_PyTypeToUTF8)(JSOBJ obj, JSONTypeContext *ti,
                                   size_t *_outLen);
+
+int object_is_decimal_type(PyObject *obj);
+int object_is_dataframe_type(PyObject *obj);
+int object_is_series_type(PyObject *obj);
+int object_is_index_type(PyObject *obj);
+int object_is_nat_type(PyObject *obj);
+int object_is_na_type(PyObject *obj);
 
 typedef struct __NpyArrContext {
     PyObject *array;
@@ -146,44 +145,6 @@ enum PANDAS_FORMAT { SPLIT, RECORDS, INDEX, COLUMNS, VALUES };
 
 int PdBlock_iterNext(JSOBJ, JSONTypeContext *);
 
-void *initObjToJSON(void) {
-    PyObject *mod_pandas;
-    PyObject *mod_nattype;
-    PyObject *mod_natype;
-    PyObject *mod_decimal = PyImport_ImportModule("decimal");
-    type_decimal =
-        (PyTypeObject *)PyObject_GetAttrString(mod_decimal, "Decimal");
-    Py_DECREF(mod_decimal);
-
-    PyDateTime_IMPORT;
-
-    mod_pandas = PyImport_ImportModule("pandas");
-    if (mod_pandas) {
-        cls_dataframe =
-            (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "DataFrame");
-        cls_index = (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Index");
-        cls_series =
-            (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Series");
-        Py_DECREF(mod_pandas);
-    }
-
-    mod_nattype = PyImport_ImportModule("pandas._libs.tslibs.nattype");
-    if (mod_nattype) {
-        cls_nat =
-            (PyTypeObject *)PyObject_GetAttrString(mod_nattype, "NaTType");
-        Py_DECREF(mod_nattype);
-    }
-
-    mod_natype = PyImport_ImportModule("pandas._libs.missing");
-    if (mod_natype) {
-        cls_na = (PyTypeObject *)PyObject_GetAttrString(mod_natype, "NAType");
-        Py_DECREF(mod_natype);
-    }
-
-    // GH 31463
-    return NULL;
-}
-
 static TypeContext *createTypeContext(void) {
     TypeContext *pc;
 
@@ -216,8 +177,7 @@ static TypeContext *createTypeContext(void) {
 static PyObject *get_values(PyObject *obj) {
     PyObject *values = NULL;
 
-    if (PyObject_TypeCheck(obj, cls_index) ||
-        PyObject_TypeCheck(obj, cls_series)) {
+    if (object_is_index_type(obj) || object_is_series_type(obj)) {
         // The special cases to worry about are dt64tz and category[dt64tz].
         //  In both cases we want the UTC-localized datetime64 ndarray,
         //  without going through and object array of Timestamps.
@@ -1510,12 +1470,12 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         pc->PyTypeToUTF8 = PyUnicodeToUTF8;
         tc->type = JT_UTF8;
         return;
-    } else if (PyObject_TypeCheck(obj, type_decimal)) {
+    } else if (object_is_decimal_type(obj)) {
         GET_TC(tc)->doubleValue = PyFloat_AsDouble(obj);
         tc->type = JT_DOUBLE;
         return;
     } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
-        if (PyObject_TypeCheck(obj, cls_nat)) {
+        if (object_is_nat_type(obj)) {
             tc->type = JT_NULL;
             return;
         }
@@ -1606,14 +1566,14 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
                      "%R (0d array) is not JSON serializable at the moment",
                      obj);
         goto INVALID;
-    } else if (PyObject_TypeCheck(obj, cls_na)) {
+    } else if (object_is_na_type(obj)) {
         tc->type = JT_NULL;
         return;
     }
 
 ISITERABLE:
 
-    if (PyObject_TypeCheck(obj, cls_index)) {
+    if (object_is_index_type(obj)) {
         if (enc->outputFormat == SPLIT) {
             tc->type = JT_OBJECT;
             pc->iterBegin = Index_iterBegin;
@@ -1637,7 +1597,7 @@ ISITERABLE:
         }
 
         return;
-    } else if (PyObject_TypeCheck(obj, cls_series)) {
+    } else if (object_is_series_type(obj)) {
         if (enc->outputFormat == SPLIT) {
             tc->type = JT_OBJECT;
             pc->iterBegin = Series_iterBegin;
@@ -1701,7 +1661,7 @@ ISITERABLE:
         pc->iterGetValue = NpyArr_iterGetValue;
         pc->iterGetName = NpyArr_iterGetName;
         return;
-    } else if (PyObject_TypeCheck(obj, cls_dataframe)) {
+    } else if (object_is_dataframe_type(obj)) {
         if (enc->blkCtxtPassthru) {
             pc->pdblock = enc->blkCtxtPassthru;
             tc->type =
@@ -1969,6 +1929,11 @@ char *Object_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
 
 PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
                     PyObject *kwargs) {
+    PyDateTime_IMPORT;
+    if (PyDateTimeAPI == NULL) {
+        return NULL;
+    }
+
     static char *kwlist[] = {"obj",
                              "ensure_ascii",
                              "double_precision",

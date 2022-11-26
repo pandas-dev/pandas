@@ -10,7 +10,6 @@ from datetime import (
     date,
     tzinfo,
 )
-import inspect
 import itertools
 import os
 import re
@@ -619,7 +618,7 @@ class HDFStore:
         node = self.get_node(key)
         if node is not None:
             name = node._v_pathname
-            if name == key or name[1:] == key:
+            if key in (name, name[1:]):
                 return True
         return False
 
@@ -684,18 +683,6 @@ class HDFStore:
         """
         for g in self.groups():
             yield g._v_pathname, g
-
-    def iteritems(self):
-        """
-        iterate on key->group
-        """
-        warnings.warn(
-            "iteritems is deprecated and will be removed in a future version. "
-            "Use .items instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        yield from self.items()
 
     def open(self, mode: str = "a", **kwargs) -> None:
         """
@@ -1658,13 +1645,6 @@ class HDFStore:
         if value is not None and not isinstance(value, (Series, DataFrame)):
             raise TypeError("value must be None, Series, or DataFrame")
 
-        def error(t):
-            # return instead of raising so mypy can tell where we are raising
-            return TypeError(
-                f"cannot properly create the storer for: [{t}] [group->"
-                f"{group},value->{type(value)},format->{format}"
-            )
-
         pt = _ensure_decoded(getattr(group._v_attrs, "pandas_type", None))
         tt = _ensure_decoded(getattr(group._v_attrs, "table_type", None))
 
@@ -1699,7 +1679,10 @@ class HDFStore:
             try:
                 cls = _STORER_MAP[pt]
             except KeyError as err:
-                raise error("_STORER_MAP") from err
+                raise TypeError(
+                    f"cannot properly create the storer for: [_STORER_MAP] [group->"
+                    f"{group},value->{type(value)},format->{format}"
+                ) from err
             return cls(self, group, encoding=encoding, errors=errors)
 
         # existing node (and must be a table)
@@ -1732,7 +1715,10 @@ class HDFStore:
         try:
             cls = _TABLE_MAP[tt]
         except KeyError as err:
-            raise error("_TABLE_MAP") from err
+            raise TypeError(
+                f"cannot properly create the storer for: [_TABLE_MAP] [group->"
+                f"{group},value->{type(value)},format->{format}"
+            ) from err
 
         return cls(self, group, encoding=encoding, errors=errors)
 
@@ -2199,9 +2185,7 @@ class IndexCol:
                 if key in ["freq", "index_name"]:
                     ws = attribute_conflict_doc % (key, existing_value, value)
                     warnings.warn(
-                        ws,
-                        AttributeConflictWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
+                        ws, AttributeConflictWarning, stacklevel=find_stack_level()
                     )
 
                     # reset
@@ -2597,8 +2581,6 @@ class DataIndexableCol(DataCol):
 class GenericDataIndexableCol(DataIndexableCol):
     """represent a generic pytables data column"""
 
-    pass
-
 
 class Fixed:
     """
@@ -2705,11 +2687,9 @@ class Fixed:
 
     def set_attrs(self) -> None:
         """set our object attributes"""
-        pass
 
     def get_attrs(self) -> None:
         """get our object attributes"""
-        pass
 
     @property
     def storable(self):
@@ -2732,7 +2712,6 @@ class Fixed:
 
     def validate_version(self, where=None) -> None:
         """are we trying to operate on an old version?"""
-        pass
 
     def infer_axes(self) -> bool:
         """
@@ -3010,7 +2989,7 @@ class GenericFixed(Fixed):
         attrs = node._v_attrs
         factory, kwargs = self._get_index_factory(attrs)
 
-        if kind == "date":
+        if kind in ("date", "object"):
             index = factory(
                 _unconvert_index(
                     data, kind, encoding=self.encoding, errors=self.errors
@@ -3096,11 +3075,7 @@ class GenericFixed(Fixed):
                 pass
             else:
                 ws = performance_doc % (inferred_type, key, items)
-                warnings.warn(
-                    ws,
-                    PerformanceWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
-                )
+                warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
@@ -3541,7 +3516,7 @@ class Table(Fixed):
                 warnings.warn(
                     ws,
                     IncompatibilityWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
 
     def validate_min_itemsize(self, min_itemsize) -> None:
@@ -4065,16 +4040,14 @@ class Table(Fixed):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
+            mgr = cast(BlockManager, mgr)
 
-            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has no
-            # attribute "blocks"
-            blocks = list(mgr.blocks)  # type: ignore[union-attr]
+            blocks = list(mgr.blocks)
             blk_items = get_blk_items(mgr)
             for c in data_columns:
                 mgr = frame.reindex([c], axis=axis)._mgr
-                # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has
-                # no attribute "blocks"
-                blocks.extend(mgr.blocks)  # type: ignore[union-attr]
+                mgr = cast(BlockManager, mgr)
+                blocks.extend(mgr.blocks)
                 blk_items.extend(get_blk_items(mgr))
 
         # reorder the blocks in the same order as the existing table if we can
@@ -4119,44 +4092,44 @@ class Table(Fixed):
         for axis, labels in self.non_index_axes:
             obj = _reindex_axis(obj, axis, labels, columns)
 
+            def process_filter(field, filt, op):
+
+                for axis_name in obj._AXIS_ORDERS:
+                    axis_number = obj._get_axis_number(axis_name)
+                    axis_values = obj._get_axis(axis_name)
+                    assert axis_number is not None
+
+                    # see if the field is the name of an axis
+                    if field == axis_name:
+
+                        # if we have a multi-index, then need to include
+                        # the levels
+                        if self.is_multi_index:
+                            filt = filt.union(Index(self.levels))
+
+                        takers = op(axis_values, filt)
+                        return obj.loc(axis=axis_number)[takers]
+
+                    # this might be the name of a file IN an axis
+                    elif field in axis_values:
+
+                        # we need to filter on this dimension
+                        values = ensure_index(getattr(obj, field).values)
+                        filt = ensure_index(filt)
+
+                        # hack until we support reversed dim flags
+                        if isinstance(obj, DataFrame):
+                            axis_number = 1 - axis_number
+
+                        takers = op(values, filt)
+                        return obj.loc(axis=axis_number)[takers]
+
+                raise ValueError(f"cannot find the field [{field}] for filtering!")
+
         # apply the selection filters (but keep in the same order)
         if selection.filter is not None:
             for field, op, filt in selection.filter.format():
-
-                def process_filter(field, filt):
-
-                    for axis_name in obj._AXIS_ORDERS:
-                        axis_number = obj._get_axis_number(axis_name)
-                        axis_values = obj._get_axis(axis_name)
-                        assert axis_number is not None
-
-                        # see if the field is the name of an axis
-                        if field == axis_name:
-
-                            # if we have a multi-index, then need to include
-                            # the levels
-                            if self.is_multi_index:
-                                filt = filt.union(Index(self.levels))
-
-                            takers = op(axis_values, filt)
-                            return obj.loc(axis=axis_number)[takers]
-
-                        # this might be the name of a file IN an axis
-                        elif field in axis_values:
-
-                            # we need to filter on this dimension
-                            values = ensure_index(getattr(obj, field).values)
-                            filt = ensure_index(filt)
-
-                            # hack until we support reversed dim flags
-                            if isinstance(obj, DataFrame):
-                                axis_number = 1 - axis_number
-                            takers = op(values, filt)
-                            return obj.loc(axis=axis_number)[takers]
-
-                    raise ValueError(f"cannot find the field [{field}] for filtering!")
-
-                obj = process_filter(field, filt)
+                obj = process_filter(field, filt, op)
 
         return obj
 
@@ -4953,7 +4926,7 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
     elif kind == "date":
         try:
             index = np.asarray([date.fromordinal(v) for v in data], dtype=object)
-        except (ValueError):
+        except ValueError:
             index = np.asarray([date.fromtimestamp(v) for v in data], dtype=object)
     elif kind in ("integer", "float", "bool"):
         index = np.asarray(data)
@@ -4989,14 +4962,14 @@ def _maybe_convert_for_string_atom(
 
     if inferred_type == "date":
         raise TypeError("[date] is not implemented as a table column")
-    elif inferred_type == "datetime":
+    if inferred_type == "datetime":
         # after GH#8260
         # this only would be hit for a multi-timezone dtype which is an error
         raise TypeError(
             "too many timezones in this block, create separate data columns"
         )
 
-    elif not (inferred_type == "string" or dtype_name == "object"):
+    if not (inferred_type == "string" or dtype_name == "object"):
         return bvalues
 
     mask = isna(bvalues)
@@ -5251,7 +5224,7 @@ class Selection:
             # see if we have a passed coordinate like
             with suppress(ValueError):
                 inferred = lib.infer_dtype(where, skipna=False)
-                if inferred == "integer" or inferred == "boolean":
+                if inferred in ("integer", "boolean"):
                     where = np.asarray(where)
                     if where.dtype == np.bool_:
                         start, stop = self.start, self.stop

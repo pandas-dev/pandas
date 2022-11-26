@@ -258,7 +258,6 @@ def interpolate_array_2d(
             fill_value=fill_value,
             **kwargs,
         )
-    return
 
 
 def _interpolate_2d_with_fill(
@@ -341,7 +340,6 @@ def _interpolate_2d_with_fill(
     # Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]],
     # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]]]]]"
     np.apply_along_axis(func, axis, data)  # type: ignore[arg-type]
-    return
 
 
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
@@ -418,7 +416,7 @@ def _interpolate_1d(
 
     # For example if limit_direction='forward' then preserve_nans will
     # contain indices of NaNs at the beginning of the series, and NaNs that
-    # are more than'limit' away from the prior non-NaN.
+    # are more than 'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
     preserve_nans: list | set
@@ -761,8 +759,6 @@ def _interpolate_with_limit_area(
             invalid[:first] = invalid[last + 1 :] = False
 
         values[invalid] = np.nan
-
-    return
 
 
 def interpolate_2d(

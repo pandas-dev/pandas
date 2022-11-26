@@ -4,7 +4,6 @@ Base and utility classes for tseries type pandas objects.
 from __future__ import annotations
 
 from datetime import datetime
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -14,7 +13,6 @@ from typing import (
     cast,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -30,14 +28,17 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
-from pandas._typing import Axis
+from pandas._typing import (
+    Axis,
+    npt,
+)
 from pandas.compat.numpy import function as nv
+from pandas.errors import NullFrequencyError
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -81,7 +82,7 @@ _TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
     DatetimeLikeArrayMixin,
     cache=True,
 )
-@inherit_names(["mean", "asi8", "freq", "freqstr"], DatetimeLikeArrayMixin)
+@inherit_names(["mean", "freq", "freqstr"], DatetimeLikeArrayMixin)
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     """
     Common ops mixin to support a unified interface datetimelike Index.
@@ -93,6 +94,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     freq: BaseOffset | None
     freqstr: str | None
     _resolution_obj: Resolution
+
+    @property
+    def asi8(self) -> npt.NDArray[np.int64]:
+        return self._data.asi8
 
     # ------------------------------------------------------------------------
 
@@ -286,7 +291,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+    def _maybe_cast_slice_bound(self, label, side: str):
         """
         If label is a string, cast it to scalar type according to resolution.
 
@@ -294,7 +299,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'loc', 'getitem'} or None
 
         Returns
         -------
@@ -304,9 +308,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         -----
         Value of `side` parameter should be validated in caller.
         """
-        assert kind in ["loc", "getitem", None, lib.no_default]
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
-
         if isinstance(label, str):
             try:
                 parsed, reso = self._parse_with_reso(label)
@@ -314,12 +315,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                 # DTI -> parsing.DateParseError
                 # TDI -> 'unit abbreviation w/o a number'
                 # PI -> string cannot be parsed as datetime-like
-                raise self._invalid_indexer("slice", label) from err
+                self._raise_invalid_indexer("slice", label, err)
 
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             return lower if side == "left" else upper
         elif not isinstance(label, self._data._recognized_scalars):
-            raise self._invalid_indexer("slice", label)
+            self._raise_invalid_indexer("slice", label)
 
         return label
 
@@ -353,10 +354,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         Index.shift : Shift values of Index.
         PeriodIndex.shift : Shift values of PeriodIndex.
         """
-        arr = self._data.view()
-        arr._freq = self.freq
-        result = arr._time_shift(periods, freq=freq)
-        return type(self)._simple_new(result, name=self.name)
+        raise NotImplementedError
 
     # --------------------------------------------------------------------
 
@@ -395,19 +393,36 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
 
-    def is_type_compatible(self, kind: str) -> bool:
-        warnings.warn(
-            f"{type(self).__name__}.is_type_compatible is deprecated and will be "
-            "removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return kind in self._data._infer_matches
-
     @property
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
         return self._data._ndarray
+
+    @doc(DatetimeIndexOpsMixin.shift)
+    def shift(self: _TDT, periods: int = 1, freq=None) -> _TDT:
+        if freq is not None and freq != self.freq:
+            if isinstance(freq, str):
+                freq = to_offset(freq)
+            offset = periods * freq
+            return self + offset
+
+        if periods == 0 or len(self) == 0:
+            # GH#14811 empty case
+            return self.copy()
+
+        if self.freq is None:
+            raise NullFrequencyError("Cannot shift with no freq")
+
+        start = self[0] + periods * self.freq
+        end = self[-1] + periods * self.freq
+
+        # Note: in the DatetimeTZ case, _generate_range will infer the
+        #  appropriate timezone from `start` and `end`, so tz does not need
+        #  to be passed explicitly.
+        result = self._data._generate_range(
+            start=start, end=end, periods=None, freq=self.freq
+        )
+        return type(self)._simple_new(result, name=self.name)
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -431,9 +446,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             new_freq = self.freq
         elif isinstance(res_i8, RangeIndex):
             new_freq = to_offset(Timedelta(res_i8.step))
-            res_i8 = res_i8
 
-        # TODO: we cannot just do
+        # TODO(GH#41493): we cannot just do
         #  type(self._data)(res_i8.values, dtype=self.dtype, freq=new_freq)
         # because test_setops_preserve_freq fails with _validate_frequency raising.
         # This raising is incorrect, as 'on_freq' is incorrect. This will
@@ -664,7 +678,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             if self.size:
                 if item is NaT:
                     pass
-                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                elif loc in (0, -len(self)) and item + self.freq == self[0]:
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq

@@ -10,34 +10,6 @@ import pandas._testing as tm
 import pandas.core.algorithms as algos
 
 
-@pytest.fixture(params=[True, False])
-def writeable(request):
-    return request.param
-
-
-# Check that take_nd works both with writeable arrays
-# (in which case fast typed memory-views implementation)
-# and read-only arrays alike.
-@pytest.fixture(
-    params=[
-        (np.float64, True),
-        (np.float32, True),
-        (np.uint64, False),
-        (np.uint32, False),
-        (np.uint16, False),
-        (np.uint8, False),
-        (np.int64, False),
-        (np.int32, False),
-        (np.int16, False),
-        (np.int8, False),
-        (np.object_, True),
-        (np.bool_, False),
-    ]
-)
-def dtype_can_hold_na(request):
-    return request.param
-
-
 @pytest.fixture(
     params=[
         (np.int8, np.int16(127), np.int8),

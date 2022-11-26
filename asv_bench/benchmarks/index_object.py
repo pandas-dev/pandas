@@ -4,7 +4,6 @@ import numpy as np
 
 from pandas import (
     DatetimeIndex,
-    Float64Index,
     Index,
     IntervalIndex,
     MultiIndex,
@@ -63,6 +62,15 @@ class SetDisjoint:
 
     def time_datetime_difference_disjoint(self):
         self.datetime_left.difference(self.datetime_right)
+
+
+class UnionWithDuplicates:
+    def setup(self):
+        self.left = Index(np.repeat(np.arange(1000), 100))
+        self.right = Index(np.tile(np.arange(500, 1500), 50))
+
+    def time_union_with_duplicates(self):
+        self.left.union(self.right)
 
 
 class Range:
@@ -193,8 +201,8 @@ class Float64IndexMethod:
     # GH 13166
     def setup(self):
         N = 100_000
-        a = np.arange(N)
-        self.ind = Float64Index(a * 4.8000000418824129e-08)
+        a = np.arange(N, dtype=np.float64)
+        self.ind = Index(a * 4.8000000418824129e-08)
 
     def time_get_loc(self):
         self.ind.get_loc(0)

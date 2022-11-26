@@ -20,7 +20,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.core.groupby.generic import DataFrameGroupBy
 from pandas.tests.groupby import get_groupby_method_args
 
@@ -166,20 +165,14 @@ def test_transform_broadcast(tsframe, ts):
 def test_transform_axis_1(request, transformation_func):
     # GH 36308
 
-    # TODO(2.0) Remove after pad/backfill deprecation enforced
-    transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
-
     if transformation_func == "ngroup":
         msg = "ngroup fails with axis=1: #45986"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
-    warn = FutureWarning if transformation_func == "tshift" else None
-
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     args = get_groupby_method_args(transformation_func, df)
-    with tm.assert_produces_warning(warn):
-        result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
-        expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
+    result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
+    expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
 
     if transformation_func in ["diff", "shift"]:
         # Result contains nans, so transpose coerces to float
@@ -200,22 +193,13 @@ def test_transform_axis_1_reducer(request, reduction_func):
     ):
         marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
         request.node.add_marker(marker)
-    if reduction_func == "mad":
-        warn = FutureWarning
-        msg = "The 'mad' method is deprecated"
-    elif reduction_func in ("sem", "std"):
-        warn = FutureWarning
-        msg = "The default value of numeric_only"
-    else:
-        warn = None
-        msg = ""
+    warn = FutureWarning if reduction_func in ("sem", "std") else None
+    msg = "The default value of numeric_only"
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     with tm.assert_produces_warning(warn, match=msg):
         result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
-    warn = FutureWarning if reduction_func == "mad" else None
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
+    expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
 
 
@@ -376,7 +360,7 @@ def test_dispatch_transform(tsframe):
     tm.assert_frame_equal(filled, expected)
 
 
-def test_transform_transformation_func(request, transformation_func):
+def test_transform_transformation_func(transformation_func):
     # GH 30918
     df = DataFrame(
         {
@@ -385,8 +369,6 @@ def test_transform_transformation_func(request, transformation_func):
         },
         index=date_range("2020-01-01", "2020-01-07"),
     )
-    # TODO(2.0) Remove after pad/backfill deprecation enforced
-    transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
     if transformation_func == "cumcount":
         test_op = lambda x: x.transform("cumcount")
         mock_op = lambda x: Series(range(len(x)), x.index)
@@ -402,12 +384,6 @@ def test_transform_transformation_func(request, transformation_func):
             counter += 1
             return Series(counter, index=x.index)
 
-    elif transformation_func == "tshift":
-        msg = (
-            "Current behavior of groupby.tshift is inconsistent with other "
-            "transformations. See GH34452 for more details"
-        )
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
     else:
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
@@ -464,10 +440,12 @@ def test_transform_exclude_nuisance(df):
 
 
 def test_transform_function_aliases(df):
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").transform("mean")
-        expected = df.groupby("A").transform(np.mean)
+    with pytest.raises(TypeError, match="Could not convert"):
+        df.groupby("A").transform("mean")
+    result = df.groupby("A").transform("mean", numeric_only=True)
+    with pytest.raises(TypeError, match="Could not convert"):
+        df.groupby("A").transform(np.mean)
+    expected = df.groupby("A")[["C", "D"]].transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby("A")["C"].transform("mean")
@@ -519,8 +497,9 @@ def test_transform_coercion():
 
     expected = g.transform(np.mean)
 
-    msg = "will return a scalar mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+    # in 2.0 np.mean on a DataFrame is equivalent to frame.mean(axis=None)
+    #  which not gives a scalar instead of Series
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = g.transform(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
 
@@ -1152,7 +1131,6 @@ def test_transform_invalid_name_raises():
 )
 def test_transform_agg_by_name(request, reduction_func, obj):
     func = reduction_func
-    warn = FutureWarning if func == "mad" else None
 
     g = obj.groupby(np.repeat([0, 1], 3))
 
@@ -1162,8 +1140,7 @@ def test_transform_agg_by_name(request, reduction_func, obj):
         )
 
     args = get_groupby_method_args(reduction_func, obj)
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result = g.transform(func, *args)
+    result = g.transform(func, *args)
 
     # this is the *definition* of a transformation
     tm.assert_index_equal(result.index, obj.index)
@@ -1353,7 +1330,6 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
     if reduction_func == "corrwith":
         msg = "incorrectly raises"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
-    warn = FutureWarning if reduction_func == "mad" else None
 
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
     df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=index)
@@ -1377,10 +1353,7 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
         expected_gb = df.groupby("A", dropna=False)
         buffer = []
         for idx, group in expected_gb:
-            with tm.assert_produces_warning(
-                warn, match="The 'mad' method is deprecated"
-            ):
-                res = getattr(group["B"], reduction_func)()
+            res = getattr(group["B"], reduction_func)()
             buffer.append(Series(res, index=group.index))
         expected = concat(buffer).to_frame("B")
     if dropna:
@@ -1391,17 +1364,12 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
         else:
             expected.iloc[[2, 3]] = np.nan
 
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result = gb.transform(reduction_func, *args)
+    result = gb.transform(reduction_func, *args)
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_null_group_str_transformer(request, dropna, transformation_func):
     # GH 17093
-    if transformation_func == "tshift":
-        msg = "tshift requires timeseries"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
     df = DataFrame({"A": [1, 1, np.nan], "B": [1, 2, 2]}, index=[1, 2, 3])
     args = get_groupby_method_args(transformation_func, df)
     gb = df.groupby("A", dropna=dropna)
@@ -1438,7 +1406,6 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
     if reduction_func == "corrwith":
         msg = "corrwith not implemented for SeriesGroupBy"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
-    warn = FutureWarning if reduction_func == "mad" else None
 
     # GH 17093
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
@@ -1463,10 +1430,7 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
         expected_gb = ser.groupby([1, 1, np.nan, np.nan], dropna=False)
         buffer = []
         for idx, group in expected_gb:
-            with tm.assert_produces_warning(
-                warn, match="The 'mad' method is deprecated"
-            ):
-                res = getattr(group, reduction_func)()
+            res = getattr(group, reduction_func)()
             buffer.append(Series(res, index=group.index))
         expected = concat(buffer)
     if dropna:
@@ -1474,17 +1438,12 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
         expected = expected.astype(dtype)
         expected.iloc[[2, 3]] = np.nan
 
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-        result = gb.transform(reduction_func, *args)
+    result = gb.transform(reduction_func, *args)
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_null_group_str_transformer_series(request, dropna, transformation_func):
     # GH 17093
-    if transformation_func == "tshift":
-        msg = "tshift requires timeseries"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
     ser = Series([1, 2, 2], index=[1, 2, 3])
     args = get_groupby_method_args(transformation_func, ser)
     gb = ser.groupby([1, 1, np.nan], dropna=dropna)
@@ -1549,3 +1508,17 @@ def test_transform_aligns_depr(func, series, expected_values, keys, keys_in_inde
         if series:
             expected = expected["b"]
         tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("keys", ["A", ["A", "B"]])
+def test_as_index_no_change(keys, df, groupby_func):
+    # GH#49834 - as_index should have no impact on DataFrameGroupBy.transform
+    if keys == "A":
+        # Column B is string dtype; will fail on some ops
+        df = df.drop(columns="B")
+    args = get_groupby_method_args(groupby_func, df)
+    gb_as_index_true = df.groupby(keys, as_index=True)
+    gb_as_index_false = df.groupby(keys, as_index=False)
+    result = gb_as_index_true.transform(groupby_func, *args)
+    expected = gb_as_index_false.transform(groupby_func, *args)
+    tm.assert_equal(result, expected)

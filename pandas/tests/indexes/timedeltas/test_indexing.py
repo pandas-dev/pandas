@@ -77,19 +77,14 @@ class TestGetItem:
 class TestGetLoc:
     def test_get_loc_key_unit_mismatch(self):
         idx = to_timedelta(["0 days", "1 days", "2 days"])
-        key = idx[1]._as_unit("ms")
+        key = idx[1].as_unit("ms")
         loc = idx.get_loc(key)
         assert loc == 1
 
     def test_get_loc_key_unit_mismatch_not_castable(self):
-        # TODO(2.0): once TDA.astype supports m8[s] directly, tdi
-        #  can be constructed directly
-        tda = to_timedelta(["0 days", "1 days", "2 days"])._data
-        arr = np.array(tda).astype("m8[s]")
-        tda2 = type(tda)._simple_new(arr, dtype=arr.dtype)
-        tdi = TimedeltaIndex(tda2)
+        tdi = to_timedelta(["0 days", "1 days", "2 days"]).astype("m8[s]")
         assert tdi.dtype == "m8[s]"
-        key = tda[0]._as_unit("ns") + Timedelta(1)
+        key = tdi[0].as_unit("ns") + Timedelta(1)
 
         with pytest.raises(KeyError, match=r"Timedelta\('0 days 00:00:00.000000001'\)"):
             tdi.get_loc(key)
@@ -374,7 +369,7 @@ class TestContains:
         # GH#13603
         td = to_timedelta(range(5), unit="d") + offsets.Hour(1)
         for v in [NaT, None, float("nan"), np.nan]:
-            assert not (v in td)
+            assert v not in td
 
         td = to_timedelta([NaT])
         for v in [NaT, None, float("nan"), np.nan]:
