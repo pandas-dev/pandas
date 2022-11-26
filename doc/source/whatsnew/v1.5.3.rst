@@ -23,7 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in inconsistent DataFrame.agg behavior when passing as kwargs ``numeric_only=True`` with their associated string alias as functions (:issue:`49352`)
 -
 
 .. ---------------------------------------------------------------------------
