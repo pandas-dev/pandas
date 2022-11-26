@@ -896,20 +896,20 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         Read the whole JSON input into a pandas object.
         """
         obj: DataFrame | Series
-        if self.lines:
-            if self.chunksize:
-                obj = concat(self)
-            elif self.nrows:
-                lines = list(islice(self.data, self.nrows))
-                lines_json = self._combine_lines(lines)
-                obj = self._get_object_parser(lines_json)
+        with self:
+            if self.lines:
+                if self.chunksize:
+                    obj = concat(self)
+                elif self.nrows:
+                    lines = list(islice(self.data, self.nrows))
+                    lines_json = self._combine_lines(lines)
+                    obj = self._get_object_parser(lines_json)
+                else:
+                    data = ensure_str(self.data)
+                    data_lines = data.split("\n")
+                    obj = self._get_object_parser(self._combine_lines(data_lines))
             else:
-                data = ensure_str(self.data)
-                data_lines = data.split("\n")
-                obj = self._get_object_parser(self._combine_lines(data_lines))
-        else:
-            obj = self._get_object_parser(self.data)
-        self.close()
+                obj = self._get_object_parser(self.data)
         return obj
 
     def _get_object_parser(self, json) -> DataFrame | Series:
