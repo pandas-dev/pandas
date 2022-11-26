@@ -147,7 +147,6 @@ disable = [
   "raise-missing-from",
   "redefined-builtin",
   "redefined-outer-name",
-  "self-assigning-variable",
   "self-cls-assignment",
   "signature-differs",
   "super-init-not-called",
