@@ -14,6 +14,9 @@ First, be sure to compile the extensions with the appropriate flags to generate 
 
    python setup.py build_ext --inplace -j4 --with-debugging-symbols
 
+   # If using meson, this would be
+   pip install . --no-build-isolation --config-settings builddir="builddir" --config-settings setup-args="-Ddebug=true"
+
 Using a debugger
 ================
 

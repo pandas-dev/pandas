@@ -126,6 +126,10 @@ We'll now kick off a three-step process:
    python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
+   # Alternatively, if you would like to try out our new build system
+   # based on meson
+   pip install . --no-build-isolation --config-settings="builddir=builddir"
+
 At this point you should be able to import pandas from your locally built version::
 
    $ python
@@ -164,7 +168,11 @@ You also need to have ``setuptools`` 51.0.0 or later to build pandas.
 
    # Build and install pandas
    python setup.py build_ext -j 4
-   python -m pip install -e . --no-build-isolation --no-use-pep517
+   python setup.py develop
+
+   # Alternatively, if you would like to try out our new build system
+   # based on meson
+   pip install . --no-build-isolation --config-settings="builddir=builddir"
 
 **Unix**/**macOS with pyenv**
 
@@ -188,7 +196,11 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
 
    # Build and install pandas
    python setup.py build_ext -j 4
-   python -m pip install -e . --no-build-isolation --no-use-pep517
+   python setup.py develop
+
+   # Alternatively, if you would like to try out our new build system
+   # based on meson
+   pip install . --no-build-isolation --config-settings="builddir=builddir"
 
 **Windows**
 
@@ -214,7 +226,11 @@ should already exist.
 
    # Build and install pandas
    python setup.py build_ext -j 4
-   python -m pip install -e . --no-build-isolation --no-use-pep517
+   python setup.py develop
+
+   # Alternatively, if you would like to try out our new build system
+   # based on meson
+   pip install . --no-build-isolation --config-settings="builddir=builddir"
 
 Option 2: creating an environment using Docker
 ----------------------------------------------
