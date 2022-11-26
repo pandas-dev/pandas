@@ -863,31 +863,14 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
         kwargs = {"numeric_only": numeric_only}
 
     func = getattr(resampled, method)
-    if numeric_only is lib.no_default and method not in (
-        "min",
-        "max",
-        "first",
-        "last",
-        "prod",
-    ):
-        warn = None
-        msg = (
-            f"default value of numeric_only in DataFrameGroupBy.{method} is deprecated"
-        )
+    if isinstance(expected_data, str):
+        klass = TypeError if method in ("var", "mean", "median", "prod") else ValueError
+        with pytest.raises(klass, match=expected_data):
+            _ = func(**kwargs)
     else:
-        warn = None
-        msg = ""
-    with tm.assert_produces_warning(warn, match=msg):
-        if isinstance(expected_data, str):
-            klass = (
-                TypeError if method in ("var", "mean", "median", "prod") else ValueError
-            )
-            with pytest.raises(klass, match=expected_data):
-                _ = func(**kwargs)
-        else:
-            result = func(**kwargs)
-            expected = DataFrame(expected_data, index=expected_index)
-            tm.assert_frame_equal(result, expected)
+        result = func(**kwargs)
+        expected = DataFrame(expected_data, index=expected_index)
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
