@@ -55,7 +55,7 @@ jobs:
         python: [["cp38", "3.8"], ["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11"]]# "pp38", "pp39"]
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
-      IS_SCHEDULE_DISPATCH: true #${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+      IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout pandas
         uses: actions/checkout@v3
