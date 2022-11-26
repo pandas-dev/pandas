@@ -1,4 +1,5 @@
 # Version: 0.28
+# pylint: disable=consider-using-f-string
 
 """The Versioneer - like a rocketeer, but for versions.
 
@@ -449,8 +450,8 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False, env=
         popen_kwargs["startupinfo"] = startupinfo
 
     for command in commands:
+        dispcmd = str([command] + args)
         try:
-            dispcmd = str([command] + args)
             # remember shell=False, so use git.cmd on windows, not just git
             process = subprocess.Popen(
                 [command] + args,
