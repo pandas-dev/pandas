@@ -862,7 +862,7 @@ def test_with_dictlike_functions():
     # GH 49352
 
     df = DataFrame({"a": [1, 2, 3], "b": list("abc"), "c": [3, 4, 5]})
-    functions = {"b": "mean", "a": "std", "c": [DataFrame.mean, "sum"]}
+    functions = {"a": "std", "c": ["mean", "sum"]}
     result = df.agg(functions, numeric_only=True)
     expected = DataFrame(
         index=["std", "mean", "sum"],
@@ -907,7 +907,7 @@ def test_with_listlike_functions():
     # GH 49352
 
     df = DataFrame({"a": [1, 2, 3], "b": list("abc"), "c": [3, 4, 5]})
-    functions = [DataFrame.mean, "std"]
+    functions = ["mean", "std"]
     result = df.agg(functions, numeric_only=True)
     expected = DataFrame(index=["mean", "std"], data={"a": [2.0, 1.0], "c": [4.0, 1.0]})
     tm.assert_frame_equal(result, expected)
