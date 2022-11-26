@@ -9221,10 +9221,10 @@ Parrot 2  Parrot       24.0
     ...                    ['c', 3, 6]],
     ...                   columns=['A', 'B', 'C'])
 
-    Works equivalently as above. Add argument `numeric_only=True` to avoid
-    exceptions or warnings.
+    Works equivalently as above. Add argument `numeric_only=True` to
+    aggregate only numeric columns.
 
-    >>> df.agg({'A': 'mean', 'B': [pd.DataFrame.mean, 'std'], 'C': ['sum', 'mean']},
+    >>> df.agg({'B': ['mean', 'std'], 'C': ['sum', 'mean']},
     ...                    numeric_only=True)
             B     C
     mean  2.0   5.0
@@ -9394,6 +9394,9 @@ Parrot 2  Parrot       24.0
         Functions that mutate the passed object can produce unexpected
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
+        Use the keyword argument `numeric_only=True` to apply functions
+        only to numeric columns and to skip the non-numeric columns.
+        e.g. the column contains a string.
 
         Examples
         --------

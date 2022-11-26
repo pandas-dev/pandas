@@ -46,6 +46,10 @@ behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
 for more details.
 
 A passed user-defined-function will be passed a Series for evaluation.
+
+Use the keyword argument `numeric_only=True` to apply functions
+only to numeric columns and to skip the non-numeric columns.
+e.g. the column contains a string.
 {examples}"""
 
 _shared_docs[

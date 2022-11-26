@@ -64,7 +64,6 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
-
 ResType = Dict[int, Any]
 
 
@@ -285,10 +284,9 @@ class Apply(metaclass=abc.ABCMeta):
             return func(obj, *args, **kwargs)
 
     def _filter_numeric_only(self) -> list[Any]:
-        if "numeric_only" in self.kwargs and self.kwargs["numeric_only"] is True:
+        if "numeric_only" in self.kwargs and bool(self.kwargs["numeric_only"]) is True:
             obj = self.obj._get_numeric_data()
-            filtered_cols = list(set(self.obj) - set(obj))
-            self.obj = obj
+            filtered_cols = list(obj)
             return filtered_cols
         return []
 
@@ -302,8 +300,9 @@ class Apply(metaclass=abc.ABCMeta):
         """
         from pandas.core.reshape.concat import concat
 
-        self._filter_numeric_only()
-        obj = self.obj
+        filtered_cols = self._filter_numeric_only()
+        n = len(filtered_cols)
+        obj = self.obj if n == 0 else self.obj[filtered_cols].astype("O")
         arg = cast(List[AggFuncTypeBase], self.f)
 
         if getattr(obj, "axis", 0) == 1:
@@ -377,11 +376,8 @@ class Apply(metaclass=abc.ABCMeta):
         from pandas import Index
         from pandas.core.reshape.concat import concat
 
-        filtered_col = self._filter_numeric_only()
-
         obj = self.obj
         arg = cast(AggFuncTypeDict, self.f)
-        arg = {k: arg[k] for k in arg.keys() if k not in filtered_col}
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -1181,7 +1177,6 @@ def reconstruct_func(
 
     if not relabeling:
         if isinstance(func, list) and len(func) > len(set(func)):
-
             # GH 28426 will raise error if duplicated function names are used and
             # there is no reassigned name
             raise SpecificationError(
