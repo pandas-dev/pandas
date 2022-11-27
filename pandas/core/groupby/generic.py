@@ -401,7 +401,8 @@ class SeriesGroupBy(GroupBy[Series]):
                 not_indexed_same=not_indexed_same,
                 is_transform=is_transform,
             )
-            result.name = self.obj.name
+            if isinstance(result, Series):
+                result.name = self.obj.name
             return result
         else:
             # GH #6265 #24880
