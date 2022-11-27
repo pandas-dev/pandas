@@ -23,7 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- Bug in :func:`read_sql_query` where the type hint for :param:`params` incorrectly stricts input data types to ``str`` only (:issue:`49716`)
+- Bug in :func:`read_sql_query` where the type hint for ``params`` incorrectly stricts input data types to ``str`` only (:issue:`49716`)
 -
 
 .. ---------------------------------------------------------------------------
