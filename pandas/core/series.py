@@ -5950,7 +5950,7 @@ Keep all original rows and also all original values
 
     def _arith_method(self, other, op):
         self, other = ops.align_method_SERIES(self, other)
-        return base.IndexOpsMixin._arith_method(self, other, op)
+        return base.IndexOpsMixin._arith_method(self, other, op).__finalize__(other)
 
 
 Series._add_numeric_operations()
