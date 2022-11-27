@@ -569,9 +569,9 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            mn = grouped.mean()
+        with pytest.raises(TypeError, match="Could not convert"):
+            grouped.mean()
+        mn = grouped.mean(numeric_only=True)
         cn = grouped.count()
 
         # it works!

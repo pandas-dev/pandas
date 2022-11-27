@@ -91,7 +91,7 @@ def _process_parse_dates_argument(parse_dates):
 
 
 def _handle_date_column(
-    col, utc: bool | None = None, format: str | dict[str, Any] | None = None
+    col, utc: bool = False, format: str | dict[str, Any] | None = None
 ):
     if isinstance(format, dict):
         # GH35185 Allow custom error values in parse_dates argument of
