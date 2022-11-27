@@ -21,6 +21,7 @@ from pandas._typing import (
     Scalar,
 )
 from pandas.util._decorators import deprecate
+from pandas.util._str_methods import removeprefix
 
 import pandas as pd
 from pandas import DataFrame
@@ -148,13 +149,13 @@ def _normalise_json(
     if isinstance(data, dict):
         for key, value in data.items():
             new_key = f"{key_string}{separator}{key}"
+
+            if not key_string:
+                new_key = removeprefix(new_key, separator)
+
             _normalise_json(
                 data=value,
-                # to avoid adding the separator to the start of every key
-                # GH#43831 avoid adding key if key_string blank
-                key_string=new_key
-                if key_string or new_key[: len(separator)] != separator
-                else new_key[len(separator) :],
+                key_string=new_key,
                 normalized_dict=normalized_dict,
                 separator=separator,
             )
