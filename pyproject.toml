@@ -341,3 +341,7 @@ exclude_lines = [
 
 [tool.coverage.html]
 directory = "coverage_html_report"
+
+[tool.codespell]
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse"
+ignore-regex = 'https://([\w/\.])+'
