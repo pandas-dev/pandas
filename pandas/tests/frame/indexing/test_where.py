@@ -18,10 +18,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas._testing._hypothesis import (
-    DATETIME_JAN_1_1900_OPTIONAL_TZ,
-    OPTIONAL_ONE_OF_ALL,
-)
+from pandas._testing._hypothesis import OPTIONAL_ONE_OF_ALL
 
 
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
@@ -1023,12 +1020,12 @@ def test_where_producing_ea_cond_for_np_dtype():
 
 
 @pytest.mark.parametrize(
-    "replacement", [0.001, True, "snake", DATETIME_JAN_1_1900_OPTIONAL_TZ]
+    "replacement", [0.001, True, "snake", None, datetime(2022, 5, 4)]
 )
 def test_where_int_overflow(replacement):
     # GH 31687
-    df = DataFrame([[1.0, 2e19, "nine"], [np.nan, 0.1, None]])
+    df = DataFrame([[1.0, 2e25, "nine"], [np.nan, 0.1, None]])
     result = df.where(pd.notnull(df), replacement)
-    expected = DataFrame([[1.0, 2e19, "nine"], [replacement, 0.1, replacement]])
+    expected = DataFrame([[1.0, 2e25, "nine"], [replacement, 0.1, replacement]])
 
     tm.assert_frame_equal(result, expected)
