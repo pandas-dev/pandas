@@ -7,7 +7,7 @@ dependencies:
   - pip
 
   # build dependencies
-  - versioneer
+  - versioneer[toml]
   - cython=0.29.32
 
   # test dependencies
