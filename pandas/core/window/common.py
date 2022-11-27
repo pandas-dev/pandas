@@ -30,6 +30,8 @@ def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
             result = DataFrame(data, index=frame_template.index)
             if len(result.columns) > 0:
                 result.columns = frame_template.columns[result.columns]
+            else:
+                result.columns = frame_template.columns.copy()
             return result
 
         results = {}
