@@ -4,6 +4,9 @@ channels:
 dependencies:
   - python=3.10
 
+  # build dependencies
+  - versioneer
+
   # tools
   - pytest>=6.0
   - pytest-cov
