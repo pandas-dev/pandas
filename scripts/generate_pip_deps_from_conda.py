@@ -22,7 +22,7 @@ import yaml
 
 EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
 REMAP_VERSION = {"tzdata": "2022.1"}
-RENAME = {"pytables": "tables", "geopandas-base": "geopandas", "pytorch": "torch"}
+RENAME = {"pytables": "tables", "geopandas-base": "geopandas"}
 
 
 def conda_package_to_pip(package: str):

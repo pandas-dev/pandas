@@ -64,6 +64,25 @@ repos:
     hooks:
     -   id: pylint
         stages: [manual]
+-   repo: https://github.com/pycqa/pylint
+    rev: v2.15.5
+    hooks:
+    -   id: pylint
+        alias: redefined-outer-name
+        name: Redefining name from outer scope
+        files: ^pandas/
+        exclude: |
+            (?x)
+            ^pandas/tests  # keep excluded
+            |/_testing/  # keep excluded
+            |^pandas/util/_test_decorators\.py  # keep excluded
+            |^pandas/_version\.py  # keep excluded
+            |^pandas/conftest\.py  # keep excluded
+            |^pandas/core/tools/datetimes\.py
+            |^pandas/io/formats/format\.py
+            |^pandas/core/generic\.py
+        args: [--disable=all, --enable=redefined-outer-name]
+        stages: [manual]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
@@ -201,7 +220,7 @@ repos:
         entry: python scripts/sync_flake8_versions.py
         files: ^(\.pre-commit-config\.yaml|environment\.yml)$
         pass_filenames: false
-        additional_dependencies: [pyyaml]
+        additional_dependencies: [pyyaml, toml]
     -   id: title-capitalization
         name: Validate correct capitalization among titles in documentation
         entry: python scripts/validate_rst_title_capitalization.py
@@ -287,5 +306,4 @@ repos:
         language: python
         additional_dependencies:
         - autotyping==22.9.0
-        - black==22.6.0
         - libcst==0.4.7

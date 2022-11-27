@@ -69,7 +69,6 @@ dependencies:
   - pandas-datareader
   - pyyaml
   - py
-  - pytorch
 
   # local testing dependencies
   - moto
@@ -88,7 +87,7 @@ dependencies:
   - flake8=5.0.4
   - flake8-bugbear=22.7.1 # used by flake8, find likely bugs
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.981
+  - mypy=0.990
   - pre-commit>=2.15.0
   - pycodestyle  # used by flake8
   - pyupgrade
@@ -125,8 +124,5 @@ dependencies:
   - pyyaml
   - requests
 
-  # build the interactive terminal
-  - jupyterlab >=3.4,<4
   - pip:
-      - jupyterlite==0.1.0b12
       - sphinx-toggleprompt

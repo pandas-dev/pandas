@@ -58,7 +58,6 @@ coverage
 pandas-datareader
 pyyaml
 py
-torch
 moto
 flask
 asv
@@ -67,7 +66,7 @@ cpplint
 flake8==5.0.4
 flake8-bugbear==22.7.1
 isort>=5.2.1
-mypy==0.981
+mypy==0.990
 pre-commit>=2.15.0
 pycodestyle
 pyupgrade
@@ -97,7 +96,5 @@ markdown
 feedparser
 pyyaml
 requests
-jupyterlab >=3.4,<4
-jupyterlite==0.1.0b12
 sphinx-toggleprompt
 setuptools>=51.0.0

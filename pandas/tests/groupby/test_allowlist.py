@@ -62,21 +62,16 @@ def df_letters():
 
 
 @pytest.fixture
-def raw_frame(multiindex_dataframe_random_data):
-    df = multiindex_dataframe_random_data
-    df.iloc[1, [1, 2]] = np.nan
-    df.iloc[7, [0, 1]] = np.nan
-    return df
+def raw_frame():
+    return DataFrame([0])
 
 
 @pytest.mark.parametrize("op", AGG_FUNCTIONS)
-@pytest.mark.parametrize("level", [0, 1])
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("sort", [True, False])
-@pytest.mark.filterwarnings("ignore:Using the level keyword:FutureWarning")
 @pytest.mark.filterwarnings("ignore:The default value of numeric_only:FutureWarning")
-def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
+def test_regression_allowlist_methods(raw_frame, op, axis, skipna, sort):
     # GH6944
     # GH 17537
     # explicitly test the allowlist methods
@@ -86,18 +81,20 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
         frame = raw_frame.T
 
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
-        grouped = frame.groupby(level=level, axis=axis, sort=sort)
+        grouped = frame.groupby(level=0, axis=axis, sort=sort)
         result = getattr(grouped, op)(skipna=skipna)
-        expected = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
+        expected = frame.groupby(level=0).apply(
+            lambda h: getattr(h, op)(axis=axis, skipna=skipna)
+        )
         if sort:
-            expected = expected.sort_index(axis=axis, level=level)
+            expected = expected.sort_index(axis=axis)
         tm.assert_frame_equal(result, expected)
     else:
-        grouped = frame.groupby(level=level, axis=axis, sort=sort)
+        grouped = frame.groupby(level=0, axis=axis, sort=sort)
         result = getattr(grouped, op)()
-        expected = getattr(frame, op)(level=level, axis=axis)
+        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(axis=axis))
         if sort:
-            expected = expected.sort_index(axis=axis, level=level)
+            expected = expected.sort_index(axis=axis)
         tm.assert_frame_equal(result, expected)
 
 

@@ -435,7 +435,6 @@ class TestLocBaseIndependent:
             np.random.random((3, 3)), index=["a", "b", "c"], columns=["e", "f", "g"]
         )
 
-        # raise a KeyError?
         msg = (
             r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are "
             r"in the \[index\]\""
@@ -953,11 +952,7 @@ class TestLocBaseIndependent:
 
     def test_loc_coercion2(self):
         # GH#12045
-        import datetime
-
-        df = DataFrame(
-            {"date": [datetime.datetime(2012, 1, 1), datetime.datetime(1012, 1, 2)]}
-        )
+        df = DataFrame({"date": [datetime(2012, 1, 1), datetime(1012, 1, 2)]})
         expected = df.dtypes
 
         result = df.iloc[[0]]
