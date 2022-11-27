@@ -147,7 +147,6 @@ disable = [
   "raise-missing-from",
   "redefined-builtin",
   "redefined-outer-name",
-  "self-assigning-variable",
   "self-cls-assignment",
   "signature-differs",
   "super-init-not-called",
@@ -335,3 +334,7 @@ exclude_lines = [
 
 [tool.coverage.html]
 directory = "coverage_html_report"
+
+[tool.codespell]
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse"
+ignore-regex = 'https://([\w/\.])+'
