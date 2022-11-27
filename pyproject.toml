@@ -146,7 +146,6 @@ disable = [
   "raise-missing-from",
   "redefined-builtin",
   "redefined-outer-name",
-  "self-assigning-variable",
   "self-cls-assignment",
   "signature-differs",
   "super-init-not-called",
@@ -305,3 +304,32 @@ reportOptionalOperand = false
 reportOptionalSubscript = false
 reportPrivateImportUsage = false
 reportUnboundVariable = false
+
+[tool.coverage.run]
+branch = true
+omit = ["pandas/_typing.py", "pandas/_version.py"]
+plugins = ["Cython.Coverage"]
+source = ["pandas"]
+
+[tool.coverage.report]
+ignore_errors = false
+show_missing = true
+omit = ["pandas/_version.py"]
+exclude_lines = [
+  # Have to re-enable the standard pragma
+  "pragma: no cover",
+  # Don't complain about missing debug-only code:s
+  "def __repr__",
+  "if self.debug",
+  # Don't complain if tests don't hit defensive assertion code:
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "AbstractMethodError",
+  # Don't complain if non-runnable code isn't run:
+  "if 0:",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+
+[tool.coverage.html]
+directory = "coverage_html_report"
