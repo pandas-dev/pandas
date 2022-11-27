@@ -771,7 +771,7 @@ Styler
 Metadata
 ^^^^^^^^
 - Fixed metadata propagation in :meth:`DataFrame.corr` and :meth:`DataFrame.cov` (:issue:`28283`)
--
+- Fixed metadata propagation in binary operations (:issue:`49931`)
 
 Other
 ^^^^^

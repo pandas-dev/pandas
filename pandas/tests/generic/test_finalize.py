@@ -498,10 +498,14 @@ def test_binops(request, args, annotate, all_binary_operators):
     left, right = args
     if annotate == "both" and isinstance(left, int) or isinstance(right, int):
         return
+    elif annotate == "left" and isinstance(left, int):
+        return
+    elif annotate == "right" and isinstance(right, int):
+        return
 
     if annotate in {"left", "both"} and not isinstance(left, int):
         left.attrs = {"a": 1}
-    if annotate in {"left", "both"} and not isinstance(right, int):
+    if annotate in {"right", "both"} and not isinstance(right, int):
         right.attrs = {"a": 1}
 
     result = all_binary_operators(left, right)

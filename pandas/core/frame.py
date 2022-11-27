@@ -7484,7 +7484,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, other = ops.align_method_FRAME(self, other, axis, flex=True, level=None)
 
         new_data = self._dispatch_frame_op(other, op, axis=axis)
-        return self._construct_result(new_data)
+        return self._construct_result(new_data).__finalize__(other)
 
     _logical_method = _arith_method
 
