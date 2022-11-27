@@ -103,7 +103,9 @@ def test_cython_agg_nothing_to_agg():
     with pytest.raises(TypeError, match="Could not convert"):
         frame[["b"]].groupby(frame["a"]).mean()
     result = frame[["b"]].groupby(frame["a"]).mean(numeric_only=True)
-    expected = DataFrame([], index=frame["a"].sort_values().drop_duplicates())
+    expected = DataFrame(
+        [], index=frame["a"].sort_values().drop_duplicates(), columns=[]
+    )
     tm.assert_frame_equal(result, expected)
 
 

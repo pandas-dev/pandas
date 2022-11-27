@@ -97,7 +97,7 @@ def test_reindex_with_datetimes():
 
 def test_reindex_corner(datetime_series):
     # (don't forget to fix this) I think it's fixed
-    empty = Series(dtype=object)
+    empty = Series(index=[])
     empty.reindex(datetime_series.index, method="pad")  # it works
 
     # corner case: pad empty series

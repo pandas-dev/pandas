@@ -152,8 +152,8 @@ class TestToLatex:
             \begin{tabular}{l}
             \toprule
             Empty DataFrame
-            Columns: Index([], dtype='object')
-            Index: Index([], dtype='object') \\
+            Columns: RangeIndex(start=0, stop=0, step=1)
+            Index: RangeIndex(start=0, stop=0, step=1) \\
             \bottomrule
             \end{tabular}
             """
@@ -207,8 +207,8 @@ class TestToLatexLongtable:
             \begin{longtable}{l}
             \toprule
             Empty DataFrame
-            Columns: Index([], dtype='object')
-            Index: Index([], dtype='object') \\
+            Columns: RangeIndex(start=0, stop=0, step=1)
+            Index: RangeIndex(start=0, stop=0, step=1) \\
             \end{longtable}
             """
         )

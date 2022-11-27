@@ -516,7 +516,7 @@ def test_moment_functions_zero_length(f):
     s = Series(dtype=np.float64)
     s_expected = s
     df1 = DataFrame()
-    df1_expected = df1
+    df1_expected = df1.set_axis([], axis=1)
     df2 = DataFrame(columns=["a"])
     df2["a"] = df2["a"].astype("float64")
     df2_expected = df2

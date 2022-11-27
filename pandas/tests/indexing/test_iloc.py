@@ -246,7 +246,7 @@ class TestiLocBaseIndependent:
             tm.assert_frame_equal(result, expected)
 
         dfl = DataFrame(np.random.randn(5, 2), columns=list("AB"))
-        check(dfl.iloc[:, 2:3], DataFrame(index=dfl.index))
+        check(dfl.iloc[:, 2:3], DataFrame(index=dfl.index, columns=[]))
         check(dfl.iloc[:, 1:3], dfl.iloc[:, [1]])
         check(dfl.iloc[4:6], dfl.iloc[[4]])
 

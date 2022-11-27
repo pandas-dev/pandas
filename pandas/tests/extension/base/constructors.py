@@ -119,7 +119,7 @@ class BaseConstructorsTests(BaseExtensionTests):
         # GH 33623
         result = pd.DataFrame(columns=["a"], dtype=dtype)
         expected = pd.DataFrame(
-            {"a": pd.array([], dtype=dtype)}, index=pd.Index([], dtype="object")
+            {"a": pd.array([], dtype=dtype)}, index=pd.RangeIndex(0)
         )
         self.assert_frame_equal(result, expected)
 

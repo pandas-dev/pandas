@@ -951,7 +951,7 @@ def test_join_empty(left_empty, how, exp):
         expected = DataFrame({"B": [np.nan], "A": [1], "C": [5]})
         expected = expected.set_index("A")
     elif exp == "empty":
-        expected = DataFrame(index=Index([]), columns=["B", "C"], dtype="int64")
+        expected = DataFrame(columns=["B", "C"], dtype="int64")
         if how != "cross":
             expected = expected.rename_axis("A")
 

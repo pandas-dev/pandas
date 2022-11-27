@@ -899,7 +899,7 @@ class TestParquetPyArrow(Base):
 
     def test_empty_dataframe(self, pa):
         # GH #27339
-        df = pd.DataFrame()
+        df = pd.DataFrame(index=[], columns=[])
         check_round_trip(df, pa)
 
     def test_write_with_schema(self, pa):
@@ -1174,7 +1174,7 @@ class TestParquetFastParquet(Base):
 
     def test_empty_dataframe(self, fp):
         # GH #27339
-        df = pd.DataFrame()
+        df = pd.DataFrame(index=[], columns=[])
         expected = df.copy()
         expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)
