@@ -8,10 +8,10 @@ dependencies:
   - python=3.8[build=*_pypy] # TODO: use this once pypy3.8 is available
 
   # build dependencies
-  - versioneer
+  - versioneer[toml]
   - cython>=0.29.32
 
-  # tools
+  # test dependencies
   - pytest>=6.0
   - pytest-cov
   - pytest-asyncio

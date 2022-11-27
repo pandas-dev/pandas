@@ -5,9 +5,9 @@ dependencies:
   - python=3.10
 
   # build dependencies
-  - versioneer
+  - versioneer[toml]
 
-  # tools
+  # test dependencies
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
