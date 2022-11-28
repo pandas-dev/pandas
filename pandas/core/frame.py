@@ -4221,7 +4221,8 @@ class DataFrame(NDFrame, OpsMixin):
         except (KeyError, TypeError, ValueError, LossySetitemError):
             # get_loc might raise a KeyError for missing labels (falling back
             #  to (i)loc will do expansion of the index)
-            # column_setitem will do validation that may raise TypeError or ValueError
+            # column_setitem will do validation that may raise TypeError,
+            #  ValueError, or LossySetitemError
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
