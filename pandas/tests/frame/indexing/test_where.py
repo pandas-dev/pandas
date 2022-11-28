@@ -1020,7 +1020,7 @@ def test_where_producing_ea_cond_for_np_dtype():
 
 
 @pytest.mark.parametrize(
-    "replacement", [0.001, True, "snake", None, datetime.date(2022, 5, 4)]
+    "replacement", [0.001, True, "snake", None, datetime(2022, 5, 4)]
 )
 def test_where_int_overflow(replacement):
     # GH 31687
