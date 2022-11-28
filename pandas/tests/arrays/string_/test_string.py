@@ -408,14 +408,6 @@ def test_min_max_numpy(method, box, dtype, request):
 def test_fillna_args(dtype, request):
     # GH 37987
 
-    if dtype.storage == "pyarrow":
-        reason = (
-            "Regex pattern \"Cannot set non-string value '1' into "
-            "a StringArray.\" does not match 'Scalar must be NA or str'"
-        )
-        mark = pytest.mark.xfail(raises=AssertionError, reason=reason)
-        request.node.add_marker(mark)
-
     arr = pd.array(["a", pd.NA], dtype=dtype)
 
     res = arr.fillna(value="b")
@@ -426,8 +418,13 @@ def test_fillna_args(dtype, request):
     expected = pd.array(["a", "b"], dtype=dtype)
     tm.assert_extension_array_equal(res, expected)
 
-    msg = "Cannot set non-string value '1' into a StringArray."
-    with pytest.raises(ValueError, match=msg):
+    if dtype.storage == "pyarrow":
+        err = TypeError
+        msg = "Invalid value '1' for dtype string"
+    else:
+        err = ValueError
+        msg = "Cannot set non-string value '1' into a StringArray."
+    with pytest.raises(err, match=msg):
         arr.fillna(value=1)
 
 

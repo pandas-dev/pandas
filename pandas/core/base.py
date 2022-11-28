@@ -134,7 +134,7 @@ class PandasObject(DirNamesMixin):
         """
         memory_usage = getattr(self, "memory_usage", None)
         if memory_usage:
-            mem = memory_usage(deep=True)
+            mem = memory_usage(deep=True)  # pylint: disable=not-callable
             return int(mem if is_scalar(mem) else mem.sum())
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
