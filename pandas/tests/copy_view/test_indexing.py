@@ -631,14 +631,8 @@ def test_null_slice(request, method, using_copy_on_write):
 
     df2 = method(df)
 
-    # with CoW, we always return new objects
-    if using_copy_on_write:
-        assert df2 is not df
-    else:
-        if request.node.callspec.id in ("loc", "iloc"):
-            assert df2 is df
-        else:
-            assert df2 is not df
+    # we always return new objects (shallow copy), regardless of CoW or not
+    assert df2 is not df
 
     # and those trigger CoW when mutated
     df2.iloc[0, 0] = 0
@@ -663,7 +657,7 @@ def test_null_slice_series(request, method, using_copy_on_write):
 
     s2 = method(s)
 
-    # with CoW, we always return new objects (also for non-CoW this is the case)
+    # we always return new objects, regardless of CoW or not
     assert s2 is not s
 
     # and those trigger CoW when mutated
