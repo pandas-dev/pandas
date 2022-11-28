@@ -43,6 +43,7 @@ jobs:
       - name: Install required dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel python-dateutil pytz numpy cython
+          python -m pip install versioneer[toml]
         shell: bash -el {0}
 
       - name: Pip install with extra

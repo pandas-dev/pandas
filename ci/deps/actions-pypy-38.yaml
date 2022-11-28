@@ -7,8 +7,11 @@ dependencies:
   # with base pandas has been dealt with
   - python=3.8[build=*_pypy] # TODO: use this once pypy3.8 is available
 
-  # tools
+  # build dependencies
+  - versioneer[toml]
   - cython>=0.29.32
+
+  # test dependencies
   - pytest>=6.0
   - pytest-cov
   - pytest-asyncio
