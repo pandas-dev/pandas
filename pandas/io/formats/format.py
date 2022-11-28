@@ -108,6 +108,7 @@ from pandas.io.common import (
 )
 from pandas.io.formats.printing import (
     adjoin,
+    justify as jst,
     pprint_thing,
 )
 
@@ -432,7 +433,7 @@ class TextAdjustment:
         return len(text)
 
     def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
-        return justify(texts, max_len, mode=mode)
+        return jst(texts, max_len, mode=mode)
 
     def adjoin(self, space: int, *lists, **kwargs) -> str:
         return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
