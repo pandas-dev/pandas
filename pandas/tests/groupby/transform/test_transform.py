@@ -499,7 +499,8 @@ def test_transform_coercion():
 
     # in 2.0 np.mean on a DataFrame is equivalent to frame.mean(axis=None)
     #  which not gives a scalar instead of Series
-    result = g.transform(lambda x: np.mean(x))
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = g.transform(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
 
     with tm.assert_produces_warning(None):
