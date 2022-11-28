@@ -1034,6 +1034,7 @@ def all_arithmetic_functions(request):
 
 
 _all_numeric_reductions = [
+    "count",
     "sum",
     "max",
     "min",
@@ -1044,6 +1045,7 @@ _all_numeric_reductions = [
     "median",
     "kurt",
     "skew",
+    "sem",
 ]
 
 

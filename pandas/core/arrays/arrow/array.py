@@ -842,13 +842,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         if name == "sem":
 
-            def pyarrow_meth(data, skipna, **kwargs):
-                numerator = pc.stddev(data, skip_nulls=skipna, **kwargs)
-                denominator = pc.sqrt_checked(
-                    pc.subtract_checked(
-                        pc.count(self._data, skip_nulls=skipna), kwargs["ddof"]
-                    )
-                )
+            def pyarrow_meth(data, skip_nulls, **kwargs):
+                numerator = pc.stddev(data, skip_nulls=skip_nulls, **kwargs)
+                denominator = pc.sqrt_checked(pc.count(self._data))
                 return pc.divide_checked(numerator, denominator)
 
         else:
