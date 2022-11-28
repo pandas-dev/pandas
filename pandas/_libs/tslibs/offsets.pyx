@@ -2410,13 +2410,19 @@ cdef class MonthOffset(SingleConstructorOffset):
 
 cdef class MonthEnd(MonthOffset):
     """
-    DateOffset of one month end.
+    DateOffset of one month end. MonthEnd goes to the next date which is an end
+    of the month.
+    To get the end of the current month pass the parameter n equals 0: MonthEnd(0).
 
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts = pd.Timestamp(2022, 1, 30)
     >>> ts + pd.offsets.MonthEnd()
     Timestamp('2022-01-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 1, 31)
+    >>> ts + pd.offsets.MonthEnd()
+    Timestamp('2022-02-28 00:00:00')
     """
     _period_dtype_code = PeriodDtypeCode.M
     _prefix = "M"
