@@ -12,7 +12,7 @@
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh single-docs   # check single-page docs build warning-free
-#   $ ./ci/code_checks.sh notebooks     # check correctness of documentation of notebooks
+#   $ ./ci/code_checks.sh notebooks     # check execution of documentation notebooks
 
 [[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "single-docs" || "$1" == "notebooks" ]] || \
     { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 9999; }
