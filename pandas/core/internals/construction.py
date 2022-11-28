@@ -623,7 +623,6 @@ def _extract_index(data) -> Index:
             )
 
         if have_series:
-            assert index is not None  # for mypy
             if lengths[0] != len(index):
                 msg = (
                     f"array length {lengths[0]} does not match index "
