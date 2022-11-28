@@ -456,14 +456,13 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             #  and much more performant than `self.freq == key.freq`
             raise KeyError(key)
 
-    def _cast_partial_indexing_scalar(self, label):
+    def _cast_partial_indexing_scalar(self, label: datetime) -> Period:
         try:
-            key = Period(label, freq=self.freq)
+            period = Period(label, freq=self.freq)
         except ValueError as err:
             # we cannot construct the Period
-            # TODO: not hit in tests; possible?
             raise KeyError(label) from err
-        return key
+        return period
 
     @doc(DatetimeIndexOpsMixin._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str):
