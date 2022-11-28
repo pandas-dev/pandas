@@ -59,6 +59,7 @@ exclude = '''
 max-line-length = 88
 disable = [
  # intentionally turned off
+  "broad-except",
   "c-extension-no-member",
   "comparison-with-itself",
   "import-error",
@@ -72,6 +73,7 @@ disable = [
   "no-member",
   "no-name-in-module",
   "not-an-iterable",
+  "overridden-final-method",
   "pointless-statement",
   "redundant-keyword-arg",
   "singleton-comparison",
@@ -94,7 +96,6 @@ disable = [
   "unused-import",
   "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
-  "wrong-import-order",
   "wrong-import-order",
   "wrong-import-position",
 
@@ -122,7 +123,6 @@ disable = [
   "inconsistent-return-statements",
   "redefined-argument-from-local",
   "too-few-public-methods",
-  "unnecessary-list-index-lookup",
 
   # pylint type "W": warning, for python specific problems
   "abstract-method",
@@ -130,7 +130,6 @@ disable = [
   "arguments-out-of-order",
   "arguments-renamed",
   "attribute-defined-outside-init",
-  "broad-except",
   "comparison-with-callable",
   "dangerous-default-value",
   "deprecated-module",
@@ -140,7 +139,6 @@ disable = [
   "global-statement",
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
-  "overridden-final-method",
   "pointless-string-statement",
   "possibly-unused-variable",
   "protected-access",
