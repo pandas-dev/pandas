@@ -9,7 +9,7 @@ from csv import (
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
-import decimal
+from decimal import Decimal
 from functools import partial
 from io import StringIO
 import math
@@ -2071,12 +2071,12 @@ class EngFormatter:
 
         @return: engineering formatted string
         """
-        dnum = decimal.Decimal(str(num))
+        dnum = Decimal(str(num))
 
-        if decimal.Decimal.is_nan(dnum):
+        if Decimal.is_nan(dnum):
             return "NaN"
 
-        if decimal.Decimal.is_infinite(dnum):
+        if Decimal.is_infinite(dnum):
             return "inf"
 
         sign = 1
@@ -2086,9 +2086,9 @@ class EngFormatter:
             dnum = -dnum
 
         if dnum != 0:
-            pow10 = decimal.Decimal(int(math.floor(dnum.log10() / 3) * 3))
+            pow10 = Decimal(int(math.floor(dnum.log10() / 3) * 3))
         else:
-            pow10 = decimal.Decimal(0)
+            pow10 = Decimal(0)
 
         pow10 = pow10.min(max(self.ENG_PREFIXES.keys()))
         pow10 = pow10.max(min(self.ENG_PREFIXES.keys()))
