@@ -137,6 +137,9 @@ class TestNumericOnly:
         )
         return df
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of numeric_only:FutureWarning"
+    )
     @pytest.mark.parametrize("method", ["mean", "median"])
     def test_averages(self, df, method):
         # mean / median
@@ -166,12 +169,9 @@ class TestNumericOnly:
             ],
         )
 
-        if method == "mean":
-            with pytest.raises(TypeError, match="[Cc]ould not convert"):
-                getattr(gb, method)()
-            result = getattr(gb, method)(numeric_only=True)
-        else:
-            result = getattr(gb, method)()
+        with pytest.raises(TypeError, match="[Cc]ould not convert"):
+            getattr(gb, method)()
+        result = getattr(gb, method)(numeric_only=True)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         expected_columns = expected.columns
@@ -217,6 +217,9 @@ class TestNumericOnly:
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of numeric_only:FutureWarning"
+    )
     @pytest.mark.parametrize("method", ["sum", "cumsum"])
     def test_sum_cumsum(self, df, method):
 
@@ -230,6 +233,9 @@ class TestNumericOnly:
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of numeric_only:FutureWarning"
+    )
     @pytest.mark.parametrize("method", ["prod", "cumprod"])
     def test_prod_cumprod(self, df, method):
 
@@ -267,11 +273,12 @@ class TestNumericOnly:
             )
             with pytest.raises(exception, match=msg):
                 getattr(gb, method)()
-        elif method in ("sum", "mean"):
+        elif method in ("sum", "mean", "median", "prod"):
             msg = "|".join(
                 [
                     "category type does not support sum operations",
-                    "Could not convert",
+                    "[Cc]ould not convert",
+                    "can't multiply sequence by non-int of type 'str'",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -1388,18 +1395,18 @@ def test_groupby_sum_timedelta_with_nat():
         ("last", False, True),
         ("max", False, True),
         ("mean", False, True),
-        ("median", True, True),
+        ("median", False, True),
         ("min", False, True),
         ("nth", False, False),
         ("nunique", False, False),
         ("pct_change", False, False),
-        ("prod", True, True),
+        ("prod", False, True),
         ("quantile", True, True),
-        ("sem", True, True),
-        ("skew", True, True),
-        ("std", True, True),
+        ("sem", False, True),
+        ("skew", False, True),
+        ("std", False, True),
         ("sum", False, True),
-        ("var", True, True),
+        ("var", False, True),
     ],
 )
 @pytest.mark.parametrize("numeric_only", [True, False, lib.no_default])
@@ -1583,6 +1590,11 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
             warn_msg = ""
             err_category = TypeError
             err_msg = "Series.skew does not allow numeric_only=True with non-numeric"
+        elif groupby_func == "sem":
+            warn_category = None
+            warn_msg = ""
+            err_category = TypeError
+            err_msg = "called with numeric_only=True and dtype object"
         else:
             warn_category = FutureWarning
             warn_msg = "This will raise a TypeError"

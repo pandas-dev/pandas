@@ -346,7 +346,10 @@ class TestGetitemTests(base.BaseGetitemTests):
 class TestBaseNumericReduce(base.BaseNumericReduceTests):
     def check_reduce(self, ser, op_name, skipna):
         pa_dtype = ser.dtype.pyarrow_dtype
-        result = getattr(ser, op_name)(skipna=skipna)
+        if op_name == "count":
+            result = getattr(ser, op_name)()
+        else:
+            result = getattr(ser, op_name)(skipna=skipna)
         if pa.types.is_boolean(pa_dtype):
             # Can't convert if ser contains NA
             pytest.skip(
@@ -354,7 +357,10 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             )
         elif pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
             ser = ser.astype("Float64")
-        expected = getattr(ser, op_name)(skipna=skipna)
+        if op_name == "count":
+            expected = getattr(ser, op_name)()
+        else:
+            expected = getattr(ser, op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("skipna", [True, False])
@@ -374,6 +380,8 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             and pa_version_under6p0
         ):
             request.node.add_marker(xfail_mark)
+        elif all_numeric_reductions == "sem" and pa_version_under8p0:
+            request.node.add_marker(xfail_mark)
         elif (
             all_numeric_reductions in {"sum", "mean"}
             and skipna is False
@@ -389,20 +397,28 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
                     ),
                 )
             )
-        elif not (
-            pa.types.is_integer(pa_dtype)
-            or pa.types.is_floating(pa_dtype)
-            or pa.types.is_boolean(pa_dtype)
-        ) and not (
-            all_numeric_reductions in {"min", "max"}
-            and (
-                (pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype))
-                or pa.types.is_string(pa_dtype)
-                or pa.types.is_binary(pa_dtype)
+        elif (
+            not (
+                pa.types.is_integer(pa_dtype)
+                or pa.types.is_floating(pa_dtype)
+                or pa.types.is_boolean(pa_dtype)
             )
+            and not (
+                all_numeric_reductions in {"min", "max"}
+                and (
+                    (
+                        pa.types.is_temporal(pa_dtype)
+                        and not pa.types.is_duration(pa_dtype)
+                    )
+                    or pa.types.is_string(pa_dtype)
+                    or pa.types.is_binary(pa_dtype)
+                )
+            )
+            and not all_numeric_reductions == "count"
         ):
             request.node.add_marker(xfail_mark)
         elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
+            "sem",
             "std",
             "var",
             "median",
