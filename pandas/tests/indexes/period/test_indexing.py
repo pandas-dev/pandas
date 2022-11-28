@@ -373,7 +373,7 @@ class TestGetLoc:
         msg = "Input has different freq=None from PeriodArray\\(freq=D\\)"
         with pytest.raises(ValueError, match=msg):
             idx.get_loc("2000-01-10", method="nearest", tolerance="1 hour")
-        with pytest.raises(KeyError, match=r"^Period\('2000-01-10', 'D'\)$"):
+        with pytest.raises(KeyError, match=r"^'2000-01-10'$"):
             idx.get_loc("2000-01-10", method="nearest", tolerance="1 day")
         with pytest.raises(
             ValueError, match="list-like tolerance size must match target index size"
