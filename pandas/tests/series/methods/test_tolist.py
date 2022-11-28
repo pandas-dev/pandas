@@ -24,24 +24,9 @@ from pandas import (
         ([Period("2000-01-01", "D")], "period[D]", Period),
         ([Timedelta(days=1)], "timedelta64[ns]", Timedelta),
         ([Timestamp("2000-01-01")], "datetime64[ns]", Timestamp),
-        pytest.param(
-            [1],
-            "int64[pyarrow]",
-            int,
-            marks=td.skip_if_no("pyarrow"),
-        ),
-        pytest.param(
-            [1.0],
-            "float64[pyarrow]",
-            float,
-            marks=td.skip_if_no("pyarrow"),
-        ),
-        pytest.param(
-            ["abc"],
-            "string[pyarrow]",
-            str,
-            marks=td.skip_if_no("pyarrow"),
-        ),
+        pytest.param([1], "int64[pyarrow]", int, marks=td.skip_if_no("pyarrow")),
+        pytest.param([1.0], "float64[pyarrow]", float, marks=td.skip_if_no("pyarrow")),
+        pytest.param(["abc"], "string[pyarrow]", str, marks=td.skip_if_no("pyarrow")),
     ),
 )
 def test_tolist_scalar_dtype(values, dtype, expected_dtype):
