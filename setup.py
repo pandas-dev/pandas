@@ -23,7 +23,6 @@ from setuptools import (
     setup,
 )
 from setuptools.command.build_ext import build_ext as _build_ext
-
 import versioneer
 
 cmdclass = versioneer.get_cmdclass()
@@ -649,7 +648,7 @@ ujson_ext = Extension(
         "pandas/_libs/src/datetime",
         numpy.get_include(),
     ],
-    extra_compile_args=(["-D_GNU_SOURCE"] + extra_compile_args),
+    extra_compile_args=(extra_compile_args),
     extra_link_args=extra_link_args,
     define_macros=macros,
 )
