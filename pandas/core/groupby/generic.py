@@ -2220,7 +2220,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
         **kwargs,
     ) -> DataFrame:
         result = self._op_via_apply(
