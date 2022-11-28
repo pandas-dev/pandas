@@ -137,6 +137,9 @@ class TestNumericOnly:
         )
         return df
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of numeric_only:FutureWarning"
+    )
     @pytest.mark.parametrize("method", ["mean", "median"])
     def test_averages(self, df, method):
         # mean / median
@@ -166,9 +169,12 @@ class TestNumericOnly:
             ],
         )
 
-        with pytest.raises(TypeError, match="[Cc]ould not convert"):
-            getattr(gb, method)(numeric_only=False)
-        result = getattr(gb, method)()
+        if method == "mean":
+            with pytest.raises(TypeError, match="[Cc]ould not convert"):
+                getattr(gb, method)()
+            result = getattr(gb, method)(numeric_only=True)
+        else:
+            result = getattr(gb, method)()
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         expected_columns = expected.columns
@@ -214,6 +220,9 @@ class TestNumericOnly:
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of numeric_only:FutureWarning"
+    )
     @pytest.mark.parametrize("method", ["sum", "cumsum"])
     def test_sum_cumsum(self, df, method):
 
@@ -227,6 +236,9 @@ class TestNumericOnly:
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of numeric_only:FutureWarning"
+    )
     @pytest.mark.parametrize("method", ["prod", "cumprod"])
     def test_prod_cumprod(self, df, method):
 
@@ -260,6 +272,15 @@ class TestNumericOnly:
                 [
                     "Categorical is not ordered",
                     "function is not implemented for this dtype",
+                ]
+            )
+            with pytest.raises(exception, match=msg):
+                getattr(gb, method)()
+        elif method in ("sum", "mean"):
+            msg = "|".join(
+                [
+                    "category type does not support sum operations",
+                    "Could not convert",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -1375,7 +1396,7 @@ def test_groupby_sum_timedelta_with_nat():
         ("idxmin", True, True),
         ("last", False, True),
         ("max", False, True),
-        ("mean", True, True),
+        ("mean", False, True),
         ("median", True, True),
         ("min", False, True),
         ("nth", False, False),
@@ -1386,7 +1407,7 @@ def test_groupby_sum_timedelta_with_nat():
         ("sem", True, True),
         ("skew", True, True),
         ("std", True, True),
-        ("sum", True, True),
+        ("sum", False, True),
         ("var", True, True),
     ],
 )

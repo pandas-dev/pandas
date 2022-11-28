@@ -3777,7 +3777,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See the docstring of `take` for full explanation of the parameters.
         """
-        self._consolidate_inplace()
 
         new_data = self._mgr.take(
             indices,
@@ -3933,8 +3932,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             index = self.columns
         else:
             index = self.index
-
-        self._consolidate_inplace()
 
         if isinstance(index, MultiIndex):
             loc, new_index = index._get_loc_level(key, level=0)
@@ -5189,8 +5186,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "reindex() got an unexpected keyword "
                 f'argument "{list(kwargs.keys())[0]}"'
             )
-
-        self._consolidate_inplace()
 
         # if all axes that are requested to reindex are equal, then only copy
         # if indicated must have index names equal here as well as values
@@ -6730,8 +6725,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         value, method = validate_fillna_kwargs(value, method)
 
-        self._consolidate_inplace()
-
         # set the default here, so functions examining the signaure
         # can detect if something was set (e.g. in groupby) (GH9221)
         if axis is None:
@@ -7048,8 +7041,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_bool(regex) and to_replace is not None:
             raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
-
-        self._consolidate_inplace()
 
         if value is lib.no_default or method is not lib.no_default:
             # GH#36984 if the user explicitly passes value=None we want to
