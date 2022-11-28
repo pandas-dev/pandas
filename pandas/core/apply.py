@@ -283,12 +283,11 @@ class Apply(metaclass=abc.ABCMeta):
         except Exception:
             return func(obj, *args, **kwargs)
 
-    def _filter_numeric_only(self) -> list[Any]:
-        if "numeric_only" in self.kwargs and bool(self.kwargs["numeric_only"]) is True:
+    def _maybe_filter_numeric_only(self) -> Any:
+        if "numeric_only" in self.kwargs and self.kwargs["numeric_only"] is True:
             obj = self.obj._get_numeric_data()
-            filtered_cols = list(obj)
-            return filtered_cols
-        return []
+            return obj
+        return self.obj
 
     def agg_list_like(self) -> DataFrame | Series:
         """
@@ -300,9 +299,7 @@ class Apply(metaclass=abc.ABCMeta):
         """
         from pandas.core.reshape.concat import concat
 
-        filtered_cols = self._filter_numeric_only()
-        n = len(filtered_cols)
-        obj = self.obj if n == 0 else self.obj[filtered_cols].astype("O")
+        obj = self._maybe_filter_numeric_only()
         arg = cast(List[AggFuncTypeBase], self.f)
 
         if getattr(obj, "axis", 0) == 1:

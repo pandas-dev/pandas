@@ -9224,12 +9224,10 @@ Parrot 2  Parrot       24.0
     Works equivalently as above. Add argument `numeric_only=True` to
     aggregate only numeric columns.
 
-    >>> df.agg({'B': ['mean', 'std'], 'C': ['sum', 'mean']},
-    ...                    numeric_only=True)
+    >>> df.agg(['mean', 'std'], numeric_only=True)
             B     C
     mean  2.0   5.0
-    std   1.0   NaN
-    sum   NaN  15.0
+    std   1.0   15.0
     """
     )
 
@@ -9395,7 +9393,7 @@ Parrot 2  Parrot       24.0
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
         Use the keyword argument `numeric_only=True` to apply functions
-        only to numeric columns and to skip the non-numeric columns.
+        only to numeric columns and to skip the non-numeric columns,
         e.g. the column contains a string.
 
         Examples
