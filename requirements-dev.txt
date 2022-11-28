@@ -62,7 +62,7 @@ py
 moto
 flask
 asv
-black==22.3.0
+black==22.10.0
 cpplint
 flake8==5.0.4
 flake8-bugbear==22.7.1
