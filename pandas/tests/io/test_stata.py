@@ -456,19 +456,13 @@ class TestStata:
         parsed = self.read_dta(file)
         parsed.index.name = "index"
 
-        expected = self.read_csv(datapath("io", "data", "stata", "stata5.csv"))
-        cols = ["byte_", "int_", "long_", "float_", "double_"]
-        for col in cols:
-            expected[col] = expected[col]._convert(datetime=True, numeric=True)
-        expected["float_"] = expected["float_"].astype(np.float32)
-        expected["date_td"] = pd.to_datetime(expected["date_td"], errors="coerce")
-
         tm.assert_frame_equal(parsed_114, parsed)
 
         with tm.ensure_clean() as path:
             parsed_114.to_stata(path, convert_dates={"date_td": "td"}, version=version)
             written_and_read_again = self.read_dta(path)
-            tm.assert_frame_equal(written_and_read_again.set_index("index"), parsed_114)
+
+        tm.assert_frame_equal(written_and_read_again.set_index("index"), parsed_114)
 
     @pytest.mark.parametrize(
         "file", ["stata6_113", "stata6_114", "stata6_115", "stata6_117"]
