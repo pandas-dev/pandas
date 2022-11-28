@@ -42,6 +42,7 @@
     // followed by the pip installed packages).
     "matrix": {
         "numpy": [],
+        "versioneer[toml]": [],
         "Cython": ["0.29.32"],
         "matplotlib": [],
         "sqlalchemy": [],
