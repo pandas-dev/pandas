@@ -108,7 +108,6 @@ from pandas.io.common import (
 )
 from pandas.io.formats.printing import (
     adjoin,
-    justify,
     pprint_thing,
 )
 
