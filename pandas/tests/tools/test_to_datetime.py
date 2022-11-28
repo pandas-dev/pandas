@@ -508,7 +508,7 @@ class TestToDatetime:
     )
     @pytest.mark.parametrize(
         "constructor",
-        [Timestamp, lambda x: Timestamp(x).to_pydatetime()],
+        [Timestamp, datetime.fromisoformat],
     )
     def test_to_datetime_mixed_datetime_and_string_with_format(
         self, fmt, utc, input, expected, constructor
