@@ -320,7 +320,7 @@ When users don't specify indexes or columns when instantiating :class:`DataFrame
 objects, pandas infers the index type for them. Previously, if it was not possible to
 infer the index type from the data, pandas used to infer the index to be a :class:`RangeIndex`,
 except when the frame/series was empty, then the index was inferred to be an :class:`Index`
-with dtype `object`.
+with dtype ``object``.
 
 This has been changed, so the type of index/columns will always be :class:`RangeIndex`,
 when users don't declare the index and it's not possible to infer the index type from the data (:issue:`49572`).
