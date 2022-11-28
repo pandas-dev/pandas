@@ -59,6 +59,7 @@ exclude = '''
 max-line-length = 88
 disable = [
  # intentionally turned off
+  "broad-except",
   "c-extension-no-member",
   "comparison-with-itself",
   "import-error",
@@ -72,6 +73,7 @@ disable = [
   "no-member",
   "no-name-in-module",
   "not-an-iterable",
+  "overridden-final-method",
   "pointless-statement",
   "redundant-keyword-arg",
   "singleton-comparison",
@@ -94,7 +96,6 @@ disable = [
   "unused-import",
   "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
-  "wrong-import-order",
   "wrong-import-order",
   "wrong-import-position",
 
@@ -122,7 +123,6 @@ disable = [
   "inconsistent-return-statements",
   "redefined-argument-from-local",
   "too-few-public-methods",
-  "unnecessary-list-index-lookup",
 
   # pylint type "W": warning, for python specific problems
   "abstract-method",
@@ -130,7 +130,6 @@ disable = [
   "arguments-out-of-order",
   "arguments-renamed",
   "attribute-defined-outside-init",
-  "broad-except",
   "comparison-with-callable",
   "dangerous-default-value",
   "deprecated-module",
@@ -140,14 +139,12 @@ disable = [
   "global-statement",
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
-  "overridden-final-method",
   "pointless-string-statement",
   "possibly-unused-variable",
   "protected-access",
   "raise-missing-from",
   "redefined-builtin",
   "redefined-outer-name",
-  "self-assigning-variable",
   "self-cls-assignment",
   "signature-differs",
   "super-init-not-called",
@@ -306,3 +303,36 @@ reportOptionalOperand = false
 reportOptionalSubscript = false
 reportPrivateImportUsage = false
 reportUnboundVariable = false
+
+[tool.coverage.run]
+branch = true
+omit = ["pandas/_typing.py", "pandas/_version.py"]
+plugins = ["Cython.Coverage"]
+source = ["pandas"]
+
+[tool.coverage.report]
+ignore_errors = false
+show_missing = true
+omit = ["pandas/_version.py"]
+exclude_lines = [
+  # Have to re-enable the standard pragma
+  "pragma: no cover",
+  # Don't complain about missing debug-only code:s
+  "def __repr__",
+  "if self.debug",
+  # Don't complain if tests don't hit defensive assertion code:
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "AbstractMethodError",
+  # Don't complain if non-runnable code isn't run:
+  "if 0:",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+
+[tool.coverage.html]
+directory = "coverage_html_report"
+
+[tool.codespell]
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse"
+ignore-regex = 'https://([\w/\.])+'

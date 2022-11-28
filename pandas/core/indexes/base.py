@@ -5144,7 +5144,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Index._with_infer(result, name=name)
 
-    @final
     def putmask(self, mask, value) -> Index:
         """
         Return a new Index of the values set with the mask.
