@@ -162,7 +162,10 @@ def test_error_invalid_values(data, all_arithmetic_operators):
             "not all arguments converted during string formatting",
             "can't multiply sequence by non-int of type 'float'",
             "ufunc 'subtract' cannot use operands with types dtype",
-            r"ufunc 'add' cannot use operands with types dtype\('<M8\[ns\]'\)",
+            (
+                "ufunc 'add' cannot use operands with types "
+                rf"dtype\('{tm.ENDIAN}M8\[ns\]'\)"
+            ),
             r"ufunc 'add' cannot use operands with types dtype\('float\d{2}'\)",
             "cannot subtract DatetimeArray from ndarray",
         ]
