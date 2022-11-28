@@ -1164,19 +1164,15 @@ def test_frame_with_zero_len_series_corner_cases():
     expected = DataFrame(df.values * np.nan, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning):
-        # Automatic alignment for comparisons deprecated
-        result = df == ser
-    expected = DataFrame(False, index=df.index, columns=df.columns)
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match="not aligned"):
+        # Automatic alignment for comparisons deprecated GH#36795, enforced 2.0
+        df == ser
 
-    # non-float case should not raise on comparison
+    # non-float case should not raise TypeError on comparison
     df2 = DataFrame(df.values.view("M8[ns]"), columns=df.columns)
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(ValueError, match="not aligned"):
         # Automatic alignment for comparisons deprecated
-        result = df2 == ser
-    expected = DataFrame(False, index=df.index, columns=df.columns)
-    tm.assert_frame_equal(result, expected)
+        df2 == ser
 
 
 def test_zero_len_frame_with_series_corner_cases():
