@@ -401,7 +401,8 @@ class SeriesGroupBy(GroupBy[Series]):
                 not_indexed_same=not_indexed_same,
                 is_transform=is_transform,
             )
-            result.name = self.obj.name
+            if isinstance(result, Series):
+                result.name = self.obj.name
             return result
         else:
             # GH #6265 #24880
@@ -2219,7 +2220,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
         **kwargs,
     ) -> DataFrame:
         result = self._op_via_apply(

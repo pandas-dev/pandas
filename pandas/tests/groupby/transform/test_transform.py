@@ -193,12 +193,9 @@ def test_transform_axis_1_reducer(request, reduction_func):
     ):
         marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
         request.node.add_marker(marker)
-    warn = FutureWarning if reduction_func in ("sem", "std") else None
-    msg = "The default value of numeric_only"
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    with tm.assert_produces_warning(warn, match=msg):
-        result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
+    result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
     expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
 

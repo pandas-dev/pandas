@@ -5,11 +5,18 @@ requires = [
     "setuptools>=51.0.0",
     "wheel",
     "Cython>=0.29.32,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    "oldest-supported-numpy>=2022.8.16"
+    "oldest-supported-numpy>=2022.8.16",
+    "versioneer[toml]"
 ]
-# uncomment to enable pep517 after versioneer problem is fixed.
-# https://github.com/python-versioneer/python-versioneer/issues/193
 # build-backend = "setuptools.build_meta"
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "pandas/_version.py"
+versionfile_build = "pandas/_version.py"
+tag_prefix = "v"
+parentdir_prefix = "pandas-"
 
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
@@ -59,6 +66,7 @@ exclude = '''
 max-line-length = 88
 disable = [
  # intentionally turned off
+  "broad-except",
   "c-extension-no-member",
   "comparison-with-itself",
   "import-error",
@@ -72,6 +80,7 @@ disable = [
   "no-member",
   "no-name-in-module",
   "not-an-iterable",
+  "overridden-final-method",
   "pointless-statement",
   "redundant-keyword-arg",
   "singleton-comparison",
@@ -94,7 +103,6 @@ disable = [
   "unused-import",
   "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
-  "wrong-import-order",
   "wrong-import-order",
   "wrong-import-position",
 
@@ -122,7 +130,6 @@ disable = [
   "inconsistent-return-statements",
   "redefined-argument-from-local",
   "too-few-public-methods",
-  "unnecessary-list-index-lookup",
 
   # pylint type "W": warning, for python specific problems
   "abstract-method",
@@ -130,7 +137,6 @@ disable = [
   "arguments-out-of-order",
   "arguments-renamed",
   "attribute-defined-outside-init",
-  "broad-except",
   "comparison-with-callable",
   "dangerous-default-value",
   "deprecated-module",
@@ -140,14 +146,12 @@ disable = [
   "global-statement",
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
-  "overridden-final-method",
   "pointless-string-statement",
   "possibly-unused-variable",
   "protected-access",
   "raise-missing-from",
   "redefined-builtin",
   "redefined-outer-name",
-  "self-assigning-variable",
   "self-cls-assignment",
   "signature-differs",
   "super-init-not-called",
@@ -335,3 +339,7 @@ exclude_lines = [
 
 [tool.coverage.html]
 directory = "coverage_html_report"
+
+[tool.codespell]
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse"
+ignore-regex = 'https://([\w/\.])+'
