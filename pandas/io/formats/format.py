@@ -106,11 +106,7 @@ from pandas.io.common import (
     check_parent_directory,
     stringify_path,
 )
-from pandas.io.formats.printing import (
-    adjoin,
-    justify as jst,
-    pprint_thing,
-)
+from pandas.io.formats import printing
 
 if TYPE_CHECKING:
     from pandas import (
@@ -339,7 +335,7 @@ class SeriesFormatter:
             if footer:
                 footer += ", "
 
-            series_name = pprint_thing(name, escape_chars=("\t", "\r", "\n"))
+            series_name = printing.pprint_thing(name, escape_chars=("\t", "\r", "\n"))
             footer += f"Name: {series_name}"
 
         if self.length is True or (
@@ -354,7 +350,7 @@ class SeriesFormatter:
             if dtype_name:
                 if footer:
                     footer += ", "
-                footer += f"dtype: {pprint_thing(dtype_name)}"
+                footer += f"dtype: {printing.pprint_thing(dtype_name)}"
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
@@ -433,10 +429,12 @@ class TextAdjustment:
         return len(text)
 
     def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
-        return jst(texts, max_len, mode=mode)
+        return printing.justify(texts, max_len, mode=mode)
 
     def adjoin(self, space: int, *lists, **kwargs) -> str:
-        return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
+        return printing.adjoin(
+            space, *lists, strlen=self.len, justfunc=self.justify, **kwargs
+        )
 
 
 class EastAsianTextAdjustment(TextAdjustment):
@@ -1375,7 +1373,7 @@ class GenericArrayFormatter:
         else:
             quote_strings = self.quoting is not None and self.quoting != QUOTE_NONE
             formatter = partial(
-                pprint_thing,
+                printing.pprint_thing,
                 escape_chars=("\t", "\r", "\n"),
                 quote_strings=quote_strings,
             )
