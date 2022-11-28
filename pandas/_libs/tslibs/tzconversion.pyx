@@ -233,6 +233,7 @@ timedelta-like}
         int64_t shift_delta = 0
         ndarray[int64_t] result_a, result_b, dst_hours
         int64_t[::1] result
+        bint is_zi = False
         bint infer_dst = False, is_dst = False, fill = False
         bint shift_forward = False, shift_backward = False
         bint fill_nonexist = False
@@ -304,6 +305,7 @@ timedelta-like}
     # Determine whether each date lies left of the DST transition (store in
     # result_a) or right of the DST transition (store in result_b)
     if is_zoneinfo(tz):
+        is_zi = True
         result_a, result_b =_get_utc_bounds_zoneinfo(
             vals, tz, creso=creso
         )
@@ -384,6 +386,11 @@ timedelta-like}
                     # Subtract 1 since the beginning hour is _inclusive_ of
                     # nonexistent times
                     new_local = val - remaining_mins - 1
+
+                if is_zi:
+                    raise NotImplementedError(
+                        "nonexistent shifting is not implemented with ZoneInfo tzinfos"
+                    )
 
                 delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
 

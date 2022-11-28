@@ -872,10 +872,16 @@ class TestDatetimeIndex:
         result = date_range(end=end, periods=2, ambiguous=False)
         tm.assert_index_equal(result, expected)
 
-    def test_constructor_with_nonexistent_keyword_arg(self):
+    def test_constructor_with_nonexistent_keyword_arg(self, warsaw, request):
         # GH 35297
+        if type(warsaw).__name__ == "ZoneInfo":
+            mark = pytest.mark.xfail(
+                reason="nonexistent-shift not yet implemented for ZoneInfo",
+                raises=NotImplementedError,
+            )
+            request.node.add_marker(mark)
 
-        timezone = "Europe/Warsaw"
+        timezone = warsaw
 
         # nonexistent keyword in start
         start = Timestamp("2015-03-29 02:30:00").tz_localize(

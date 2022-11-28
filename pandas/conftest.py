@@ -1895,3 +1895,16 @@ def using_copy_on_write() -> bool:
     Fixture to check if Copy-on-Write is enabled.
     """
     return pd.options.mode.copy_on_write and pd.options.mode.data_manager == "block"
+
+
+warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
+if zoneinfo is not None:
+    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))
+
+
+@pytest.fixture(params=warsaws)
+def warsaw(request):
+    """
+    tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
+    """
+    return request.param
