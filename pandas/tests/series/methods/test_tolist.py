@@ -28,19 +28,19 @@ from pandas import (
             [1],
             "int64[pyarrow]",
             int,
-            marks=td.skip_if_no("pyarrow", min_version="6.0.0"),
+            marks=td.skip_if_no("pyarrow"),
         ),
         pytest.param(
             [1.0],
             "float64[pyarrow]",
             float,
-            marks=td.skip_if_no("pyarrow", min_version="6.0.0"),
+            marks=td.skip_if_no("pyarrow"),
         ),
         pytest.param(
             ["abc"],
             "string[pyarrow]",
             str,
-            marks=td.skip_if_no("pyarrow", min_version="6.0.0"),
+            marks=td.skip_if_no("pyarrow"),
         ),
     ),
 )
