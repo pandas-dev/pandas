@@ -777,6 +777,14 @@ install pandas) by typing::
 
     pytest pandas
 
+.. note::
+
+    If a handful of tests don't pass, it may not be an issue with your pandas installation.
+    Some tests (e.g. some SQLAlchemy ones) require additional setup, others might start
+    failing because a non-pinned library released a new version, and others might be flaky
+    if run in parallel. As long as you can import pandas from your locally built version,
+    your installation is probably fine and you can start contributing!
+
 Often it is worth running only a subset of tests first around your changes before running the
 entire suite.
 
