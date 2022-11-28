@@ -4,10 +4,11 @@ from __future__ import annotations
 import io
 from types import ModuleType
 from typing import (
-    TYPE_CHECKING,
     Any,
     Literal,
 )
+
+from pandas._config import get_option
 
 from pandas._typing import (
     FilePath,
@@ -23,14 +24,17 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
 )
 
-from pandas.io.common import get_handle
+from pandas.core.arrays import ArrowExtensionArray
+from pandas.core.frame import DataFrame
 
-if TYPE_CHECKING:
-    from pandas import DataFrame
+from pandas.io.common import get_handle
 
 
 def read_orc(
-    path: FilePath | ReadBuffer[bytes], columns: list[str] | None = None, **kwargs
+    path: FilePath | ReadBuffer[bytes],
+    columns: list[str] | None = None,
+    use_nullable_dtypes: bool = False,
+    **kwargs,
 ) -> DataFrame:
     """
     Load an ORC object from the file path, returning a DataFrame.
@@ -47,6 +51,24 @@ def read_orc(
         ``file://localhost/path/to/table.orc``.
     columns : list, default None
         If not None, only these columns will be read from the file.
+        Output always follows the ordering of the file and not the columns list.
+        This mirrors the original behaviour of
+        :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
+    use_nullable_dtypes : bool, default False
+        If True, use dtypes that use ``pd.NA`` as missing value indicator
+        for the resulting DataFrame.
+
+        The nullable dtype implementation can be configured by setting the global
+        ``io.nullable_backend`` configuration option to ``"pandas"`` to use
+        numpy-backed nullable dtypes or ``"pyarrow"`` to use pyarrow-backed
+        nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0.0
+
+        .. note
+
+            Currently only ``io.nullable_backend`` set to ``"pyarrow"`` is supported.
+
     **kwargs
         Any additional kwargs are passed to pyarrow.
 
@@ -65,7 +87,24 @@ def read_orc(
 
     with get_handle(path, "rb", is_text=False) as handles:
         orc_file = orc.ORCFile(handles.handle)
-        return orc_file.read(columns=columns, **kwargs).to_pandas()
+        pa_table = orc_file.read(columns=columns, **kwargs)
+    if use_nullable_dtypes:
+        nullable_backend = get_option("io.nullable_backend")
+        if nullable_backend != "pyarrow":
+            raise NotImplementedError(
+                f"io.nullable_backend set to {nullable_backend} is not implemented."
+            )
+        df = DataFrame(
+            {
+                col_name: ArrowExtensionArray(pa_col)
+                for col_name, pa_col in zip(
+                    pa_table.column_names, pa_table.itercolumns()
+                )
+            }
+        )
+        return df
+    else:
+        return pa_table.to_pandas()
 
 
 def to_orc(

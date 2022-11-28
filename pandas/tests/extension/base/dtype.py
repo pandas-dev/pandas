@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 
@@ -45,10 +43,10 @@ class BaseDtypeTests(BaseExtensionTests):
         assert dtype.is_dtype([1, 2, 3]) is False
 
     def test_is_not_string_type(self, dtype):
-        return not is_string_dtype(dtype)
+        assert not is_string_dtype(dtype)
 
     def test_is_not_object_type(self, dtype):
-        return not is_object_dtype(dtype)
+        assert not is_object_dtype(dtype)
 
     def test_eq_with_str(self, dtype):
         assert dtype == dtype.name
@@ -71,23 +69,17 @@ class BaseDtypeTests(BaseExtensionTests):
         df = pd.DataFrame(
             {"A": pd.Series(data, dtype=dtype), "B": data, "C": "foo", "D": 1}
         )
+        result = df.dtypes == str(dtype)
 
-        # TODO(numpy-1.20): This warnings filter and if block can be removed
-        # once we require numpy>=1.20
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            result = df.dtypes == str(dtype)
-            # NumPy>=1.20.0, but not pandas.compat.numpy till there
-            # is a wheel available with this change.
-            try:
-                new_numpy_behavior = np.dtype("int64") != "Int64"
-            except TypeError:
-                new_numpy_behavior = True
+        try:
+            new_numpy_behavior = np.dtype("int64") != "Int64"
+        except TypeError:
+            # numpy<=1.20.3 this comparison could raise or in some cases
+            #  come back True
+            new_numpy_behavior = True
+        assert new_numpy_behavior
 
-        if dtype.name == "Int64" and not new_numpy_behavior:
-            expected = pd.Series([True, True, False, True], index=list("ABCD"))
-        else:
-            expected = pd.Series([True, True, False, False], index=list("ABCD"))
+        expected = pd.Series([True, True, False, False], index=list("ABCD"))
 
         self.assert_series_equal(result, expected)
 

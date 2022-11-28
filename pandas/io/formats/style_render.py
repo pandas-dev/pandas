@@ -98,7 +98,7 @@ class StylerRenderer:
         self.data: DataFrame = data
         self.index: Index = data.index
         self.columns: Index = data.columns
-        if not isinstance(uuid_len, int) or not uuid_len >= 0:
+        if not isinstance(uuid_len, int) or uuid_len < 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
         self.uuid = uuid or uuid4().hex[: min(32, uuid_len)]
         self.uuid_len = len(self.uuid)
@@ -399,11 +399,11 @@ class StylerRenderer:
         for r, hide in enumerate(self.hide_columns_):
             if hide or not clabels:
                 continue
-            else:
-                header_row = self._generate_col_header_row(
-                    (r, clabels), max_cols, col_lengths
-                )
-                head.append(header_row)
+
+            header_row = self._generate_col_header_row(
+                (r, clabels), max_cols, col_lengths
+            )
+            head.append(header_row)
 
         # 2) index names
         if (
@@ -904,7 +904,7 @@ class StylerRenderer:
                 f"`clines` value of {clines} is invalid. Should either be None or one "
                 f"of 'all;data', 'all;index', 'skip-last;data', 'skip-last;index'."
             )
-        elif clines is not None:
+        if clines is not None:
             data_len = len(row_body_cells) if "data" in clines and d["body"] else 0
 
             d["clines"] = defaultdict(list)

@@ -69,7 +69,7 @@ from pandas.util._exceptions import find_stack_level
 # `import PyQt4` sys.exit()s if DISPLAY is not in the environment.
 # Thus, we need to detect the presence of $DISPLAY manually
 # and not load PyQt4 if it is absent.
-HAS_DISPLAY = os.getenv("DISPLAY", False)
+HAS_DISPLAY = os.getenv("DISPLAY")
 
 EXCEPT_MSG = """
     Pyperclip could not find a copy/paste mechanism for your system.
@@ -282,7 +282,7 @@ def init_dev_clipboard_clipboard():
                 stacklevel=find_stack_level(),
             )
 
-        with open("/dev/clipboard", "wt") as fd:
+        with open("/dev/clipboard", "w") as fd:
             fd.write(text)
 
     def paste_dev_clipboard() -> str:

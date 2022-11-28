@@ -18,6 +18,11 @@ import numpy as np
 import pytest
 import pytz
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
 from pandas._libs.tslibs import (
     conversion,
     timezones,
@@ -355,7 +360,17 @@ class TestDatetimeIndexTimezones:
         expected = dti.tz_convert("US/Eastern")
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("tz", [pytz.timezone("US/Eastern"), gettz("US/Eastern")])
+    easts = [pytz.timezone("US/Eastern"), gettz("US/Eastern")]
+    if ZoneInfo is not None:
+        try:
+            tz = ZoneInfo("US/Eastern")
+        except KeyError:
+            # no tzdata
+            pass
+        else:
+            easts.append(tz)
+
+    @pytest.mark.parametrize("tz", easts)
     def test_dti_tz_localize_ambiguous_infer(self, tz):
         # November 6, 2011, fall back, repeat 2 AM hour
         # With no repeated hours, we cannot infer the transition
@@ -1155,19 +1170,21 @@ class TestDatetimeIndexTimezones:
     @pytest.mark.parametrize("setop", ["union", "intersection", "symmetric_difference"])
     def test_dti_setop_aware(self, setop):
         # non-overlapping
+        # GH#39328 as of 2.0 we cast these to UTC instead of object
         rng = date_range("2012-11-15 00:00:00", periods=6, freq="H", tz="US/Central")
 
         rng2 = date_range("2012-11-15 12:00:00", periods=6, freq="H", tz="US/Eastern")
 
-        with tm.assert_produces_warning(FutureWarning):
-            # # GH#39328 will cast both to UTC
-            result = getattr(rng, setop)(rng2)
+        result = getattr(rng, setop)(rng2)
 
-        expected = getattr(rng.astype("O"), setop)(rng2.astype("O"))
+        left = rng.tz_convert("UTC")
+        right = rng2.tz_convert("UTC")
+        expected = getattr(left, setop)(right)
         tm.assert_index_equal(result, expected)
+        assert result.tz == left.tz
         if len(result):
-            assert result[0].tz.zone == "US/Central"
-            assert result[-1].tz.zone == "US/Eastern"
+            assert result[0].tz.zone == "UTC"
+            assert result[-1].tz.zone == "UTC"
 
     def test_dti_union_mixed(self):
         # GH 21671

@@ -336,7 +336,7 @@ cpdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
         raise NotImplementedError(unit)
 
 
-cdef NPY_DATETIMEUNIT abbrev_to_npy_unit(str abbrev):
+cpdef NPY_DATETIMEUNIT abbrev_to_npy_unit(str abbrev):
     if abbrev == "Y":
         return NPY_DATETIMEUNIT.NPY_FR_Y
     elif abbrev == "M":
@@ -396,7 +396,9 @@ cdef NPY_DATETIMEUNIT freq_group_code_to_npy_unit(int freq) nogil:
 
 
 # TODO: use in _matplotlib.converter?
-cpdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns) except? -1:
+cpdef int64_t periods_per_day(
+    NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns
+) except? -1:
     """
     How many of the given time units fit into a single day?
     """

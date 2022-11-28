@@ -734,8 +734,6 @@ class TestMerge:
 
         if unit in ["D", "h", "m"]:
             # not supported so we cast to the nearest supported unit, seconds
-            # TODO(2.0): cast to nearest (second) instead of ns
-            # coerces to datetime64[ns], thus should not be affected
             exp_dtype = "datetime64[s]"
         else:
             exp_dtype = dtype
@@ -1255,7 +1253,18 @@ class TestMerge:
             merge(left_w_dups, right_w_dups, on="a", validate="one_to_many")
 
         # Check invalid arguments
-        msg = "Not a valid argument for validate"
+        msg = (
+            '"jibberish" is not a valid argument. '
+            "Valid arguments are:\n"
+            '- "1:1"\n'
+            '- "1:m"\n'
+            '- "m:1"\n'
+            '- "m:m"\n'
+            '- "one_to_one"\n'
+            '- "one_to_many"\n'
+            '- "many_to_one"\n'
+            '- "many_to_many"'
+        )
         with pytest.raises(ValueError, match=msg):
             merge(left, right, on="a", validate="jibberish")
 

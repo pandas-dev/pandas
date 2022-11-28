@@ -936,7 +936,7 @@ class PlotAccessor(PandasObject):
                     raise ValueError(
                         f"{kind} requires either y column or 'subplots=True'"
                     )
-                elif y is not None:
+                if y is not None:
                     if is_integer(y) and not data.columns.holds_integer():
                         y = data.columns[y]
                     # converted to series actually. copy to not modify
@@ -1131,7 +1131,9 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def bar(self, x=None, y=None, **kwargs) -> PlotAccessor:
+    def bar(  # pylint: disable=disallowed-name
+        self, x=None, y=None, **kwargs
+    ) -> PlotAccessor:
         """
         Vertical bar plot.
 
@@ -1628,11 +1630,6 @@ class PlotAccessor(PandasObject):
 
               .. versionchanged:: 1.1.0
 
-        size : str, scalar or array-like, optional
-            Alias for s.
-
-            .. versionadded:: 1.5.0
-
         c : str, int or array-like, optional
             The color of each point. Possible values are:
 
@@ -1646,10 +1643,6 @@ class PlotAccessor(PandasObject):
 
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
-        color : str, int or array-like, optional
-            Alias for c.
-
-            .. versionadded:: 1.5.0
 
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
@@ -1688,19 +1681,7 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        size = kwargs.pop("size", None)
-        if s is not None and size is not None:
-            raise TypeError("Specify exactly one of `s` and `size`")
-        elif s is not None or size is not None:
-            kwargs["s"] = s if s is not None else size
-
-        color = kwargs.pop("color", None)
-        if c is not None and color is not None:
-            raise TypeError("Specify exactly one of `c` and `color`")
-        elif c is not None or color is not None:
-            kwargs["c"] = c if c is not None else color
-
-        return self(kind="scatter", x=x, y=y, **kwargs)
+        return self(kind="scatter", x=x, y=y, s=s, c=c, **kwargs)
 
     def hexbin(
         self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs
@@ -1833,8 +1814,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     # entry_points lost dict API ~ PY 3.10
     # https://github.com/python/importlib_metadata/issues/298
     if hasattr(eps, "select"):
-        # error: "Dict[str, Tuple[EntryPoint, ...]]" has no attribute "select"
-        entry = eps.select(group=key)  # type: ignore[attr-defined]
+        entry = eps.select(group=key)  # pyright: ignore[reportGeneralTypeIssues]
     else:
         entry = eps.get(key, ())
     for entry_point in entry:

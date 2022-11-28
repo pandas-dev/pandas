@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import copy
+import copy as cp
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -24,6 +24,7 @@ from pandas._typing import (
 )
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
     find_common_type,
@@ -34,10 +35,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.concat import (
-    cast_to_common_type,
-    concat_compat,
-)
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
@@ -153,7 +151,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
     to_concat = [
         arr.to_array(target_dtype)
         if isinstance(arr, NullArrayProxy)
-        else cast_to_common_type(arr, target_dtype)
+        else astype_array(arr, target_dtype, copy=False)
         for arr in to_concat
     ]
 
@@ -693,7 +691,7 @@ def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
     else:
         extra_block = join_unit.block
 
-        extra_indexers = copy.copy(join_unit.indexers)
+        extra_indexers = cp.copy(join_unit.indexers)
         extra_indexers[0] = extra_indexers[0][length:]
         join_unit.indexers[0] = join_unit.indexers[0][:length]
 

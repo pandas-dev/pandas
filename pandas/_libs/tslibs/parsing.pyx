@@ -418,7 +418,9 @@ cdef parse_datetime_string_with_reso(
             from pandas import Timestamp
             parsed = Timestamp(date_string)
         else:
-            parsed = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us)
+            parsed = datetime(
+                dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us
+            )
         reso = {
             NPY_DATETIMEUNIT.NPY_FR_Y: "year",
             NPY_DATETIMEUNIT.NPY_FR_M: "month",
@@ -717,7 +719,8 @@ def try_parse_dates(
             date = datetime.now()
             default = datetime(date.year, date.month, 1)
 
-        parse_date = lambda x: du_parse(x, dayfirst=dayfirst, default=default)
+        def parse_date(x):
+            return du_parse(x, dayfirst=dayfirst, default=default)
 
         # EAFP here
         try:
@@ -891,7 +894,7 @@ def format_is_iso(f: str) -> bint:
 
     for date_sep in [' ', '/', '\\', '-', '.', '']:
         for time_sep in [' ', 'T']:
-            for micro_or_tz in ['', '%z', '%Z', '.%f', '.%f%z', '.%f%Z']:
+            for micro_or_tz in ['', '%z', '.%f', '.%f%z']:
                 if (iso_template(date_sep=date_sep,
                                  time_sep=time_sep,
                                  micro_or_tz=micro_or_tz,
@@ -1010,12 +1013,15 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
                 found_attrs.update(attrs)
                 break
 
-    # Only consider it a valid guess if we have a year, month and day,
-    # unless it's %Y or %Y-%m which conform with ISO8601. Note that we don't
-    # make an exception for %Y%m because it's explicitly not considered ISO8601.
+    # Only consider it a valid guess if we have a year, month and day.
+    # We make exceptions for %Y and %Y-%m (only with the `-` separator)
+    # as they conform with ISO8601.
     if (
         len({'year', 'month', 'day'} & found_attrs) != 3
-        and format_guess not in (['%Y'], ['%Y', None, '%m'])
+        and format_guess != ['%Y']
+        and not (
+            format_guess == ['%Y', None, '%m'] and tokens[1] == '-'
+        )
     ):
         return None
 
@@ -1050,6 +1056,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     else:
         return None
 
+
 cdef str _fill_token(token: str, padding: int):
     cdef str token_filled
     if '.' not in token:
@@ -1063,6 +1070,7 @@ cdef str _fill_token(token: str, padding: int):
         nanoseconds = nanoseconds.ljust(9, '0')[:6]
         token_filled = f'{seconds}.{nanoseconds}'
     return token_filled
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

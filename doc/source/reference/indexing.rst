@@ -25,7 +25,6 @@ Properties
    :toctree: api/
 
    Index.values
-   Index.is_monotonic
    Index.is_monotonic_increasing
    Index.is_monotonic_decreasing
    Index.is_unique
@@ -33,7 +32,6 @@ Properties
    Index.hasnans
    Index.dtype
    Index.inferred_type
-   Index.is_all_dates
    Index.shape
    Index.name
    Index.names
@@ -168,9 +166,6 @@ Numeric Index
    :template: autosummary/class_without_autosummary.rst
 
    RangeIndex
-   Int64Index
-   UInt64Index
-   Float64Index
 
 .. We need this autosummary so that the methods are generated.
 .. Separate block, since they aren't classes.

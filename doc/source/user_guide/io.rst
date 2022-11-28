@@ -154,25 +154,6 @@ usecols : list-like or callable, default ``None``
   Using this parameter results in much faster parsing time and lower memory usage
   when using the c engine. The Python engine loads the data first before deciding
   which columns to drop.
-squeeze : boolean, default ``False``
-  If the parsed data only contains one column then return a ``Series``.
-
-  .. deprecated:: 1.4.0
-     Append ``.squeeze("columns")`` to the call to ``{func_name}`` to squeeze
-     the data.
-prefix : str, default ``None``
-  Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
-
-  .. deprecated:: 1.4.0
-     Use a list comprehension on the DataFrame's columns after calling ``read_csv``.
-
-  .. ipython:: python
-
-     data = "col1,col2,col3\na,b,1"
-
-     df = pd.read_csv(StringIO(data))
-     df.columns = [f"pre_{col}" for col in df.columns]
-     df
 
 mangle_dupe_cols : boolean, default ``True``
   Duplicate columns will be specified as 'X', 'X.1'...'X.N', rather than 'X'...'X'.
@@ -395,23 +376,6 @@ dialect : str or :class:`python:csv.Dialect` instance, default ``None``
 Error handling
 ++++++++++++++
 
-error_bad_lines : boolean, optional, default ``None``
-  Lines with too many fields (e.g. a csv line with too many commas) will by
-  default cause an exception to be raised, and no ``DataFrame`` will be
-  returned. If ``False``, then these "bad lines" will dropped from the
-  ``DataFrame`` that is returned. See :ref:`bad lines <io.bad_lines>`
-  below.
-
-  .. deprecated:: 1.3.0
-     The ``on_bad_lines`` parameter should be used instead to specify behavior upon
-     encountering a bad line instead.
-warn_bad_lines : boolean, optional, default ``None``
-  If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
-  each "bad line" will be output.
-
-  .. deprecated:: 1.3.0
-     The ``on_bad_lines`` parameter should be used instead to specify behavior upon
-     encountering a bad line instead.
 on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
     Specifies what to do upon encountering a bad line (a line with too many fields).
     Allowed values are :
@@ -1221,37 +1185,6 @@ Infinity
 ``inf`` like values will be parsed as ``np.inf`` (positive infinity), and ``-inf`` as ``-np.inf`` (negative infinity).
 These will ignore the case of the value, meaning ``Inf``, will also be parsed as ``np.inf``.
 
-
-Returning Series
-''''''''''''''''
-
-Using the ``squeeze`` keyword, the parser will return output with a single column
-as a ``Series``:
-
-.. deprecated:: 1.4.0
-   Users should append ``.squeeze("columns")`` to the DataFrame returned by
-   ``read_csv`` instead.
-
-.. ipython:: python
-   :okwarning:
-
-   data = "level\nPatient1,123000\nPatient2,23000\nPatient3,1234018"
-
-   with open("tmp.csv", "w") as fh:
-       fh.write(data)
-
-   print(open("tmp.csv").read())
-
-   output = pd.read_csv("tmp.csv", squeeze=True)
-   output
-
-   type(output)
-
-.. ipython:: python
-   :suppress:
-
-   os.remove("tmp.csv")
-
 .. _io.boolean:
 
 Boolean values
@@ -1708,8 +1641,6 @@ Options that are unsupported by the pyarrow engine which are not covered by the 
 * ``thousands``
 * ``memory_map``
 * ``dialect``
-* ``warn_bad_lines``
-* ``error_bad_lines``
 * ``on_bad_lines``
 * ``delim_whitespace``
 * ``quoting``
@@ -3896,22 +3827,28 @@ format of an Excel worksheet created with the ``to_excel`` method.  Excellent ex
 OpenDocument Spreadsheets
 -------------------------
 
-.. versionadded:: 0.25
-
-The :func:`~pandas.read_excel` method can also read OpenDocument spreadsheets
-using the ``odfpy`` module. The semantics and features for reading
+The io methods for `Excel files`_ also support reading and writing OpenDocument spreadsheets
+using the `odfpy <https://pypi.org/project/odfpy/>`__ module. The semantics and features for reading and writing
 OpenDocument spreadsheets match what can be done for `Excel files`_ using
 ``engine='odf'``.
+
+.. versionadded:: 0.25
+
+The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
 
 .. code-block:: python
 
    # Returns a DataFrame
    pd.read_excel("path_to_file.ods", engine="odf")
 
-.. note::
+.. versionadded:: 1.1.0
 
-   Currently pandas only supports *reading* OpenDocument spreadsheets. Writing
-   is not implemented.
+Similarly, the :func:`~pandas.to_excel` method can write OpenDocument spreadsheets
+
+.. code-block:: python
+
+   # Writes DataFrame to a .ods file
+   df.to_excel("path_to_file.ods", engine="odf")
 
 .. _io.xlsb:
 

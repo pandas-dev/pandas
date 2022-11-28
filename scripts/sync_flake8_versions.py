@@ -55,8 +55,7 @@ def _get_repo_hook(repos: Sequence[Repo], hook_name: str) -> tuple[Repo, YamlMap
         for hook in repo["hooks"]:
             if hook["id"] == hook_name:
                 return repo, hook
-    else:  # pragma: no cover
-        raise RuntimeError(f"Repo with hook {hook_name} not found")
+    raise RuntimeError(f"Repo with hook {hook_name} not found")  # pragma: no cover
 
 
 def _conda_to_pip_compat(dep):
