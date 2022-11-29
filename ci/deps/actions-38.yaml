@@ -4,8 +4,11 @@ channels:
 dependencies:
   - python=3.8
 
-  # test dependencies
+  # build dependencies
+  - versioneer[toml]
   - cython>=0.29.32
+
+  # test dependencies
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31

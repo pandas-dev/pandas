@@ -4,7 +4,10 @@ channels:
 dependencies:
   - python=3.10
 
-  # tools
+  # build dependencies
+  - versioneer[toml]
+
+  # test dependencies
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31

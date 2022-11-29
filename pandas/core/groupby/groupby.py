@@ -2136,7 +2136,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def median(self, numeric_only: bool | lib.NoDefault = lib.no_default):
+    def median(self, numeric_only: bool = False):
         """
         Compute median of groups, excluding missing values.
 
@@ -2173,7 +2173,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof: int = 1,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ):
         """
         Compute standard deviation of groups, excluding missing values.
@@ -2202,10 +2202,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 1.4.0
 
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
 
         Returns
         -------
@@ -2236,7 +2240,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 post_processing=lambda vals, inference: np.sqrt(vals),
                 ddof=ddof,
             )
-            self._maybe_warn_numeric_only_depr("std", result, numeric_only)
             return result
 
     @final
@@ -2247,7 +2250,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof: int = 1,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ):
         """
         Compute variance of groups, excluding missing values.
@@ -2276,10 +2279,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 1.4.0
 
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
 
         Returns
         -------
@@ -2301,7 +2308,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def sem(self, ddof: int = 1, numeric_only: bool | lib.NoDefault = lib.no_default):
+    def sem(self, ddof: int = 1, numeric_only: bool = False):
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -2317,23 +2324,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 1.5.0
 
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
+
         Returns
         -------
         Series or DataFrame
             Standard error of the mean of values within each group.
         """
         # Reolve numeric_only so that std doesn't warn
-        numeric_only_bool = self._resolve_numeric_only("sem", numeric_only, axis=0)
-        if (
-            numeric_only_bool
-            and self.obj.ndim == 1
-            and not is_numeric_dtype(self.obj.dtype)
-        ):
+        if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             raise TypeError(
                 f"{type(self).__name__}.sem called with "
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
-        result = self.std(ddof=ddof, numeric_only=numeric_only_bool)
+        result = self.std(ddof=ddof, numeric_only=numeric_only)
         self._maybe_warn_numeric_only_depr("sem", result, numeric_only)
 
         if result.ndim == 1:
@@ -2411,10 +2417,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return self._reindex_output(result, fill_value=0)
 
     @final
-    @doc(_groupby_agg_method_template, fname="prod", no=True, mc=0)
-    def prod(
-        self, numeric_only: bool | lib.NoDefault = lib.no_default, min_count: int = 0
-    ):
+    @doc(_groupby_agg_method_template, fname="prod", no=False, mc=0)
+    def prod(self, numeric_only: bool = False, min_count: int = 0):
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )

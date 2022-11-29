@@ -47,6 +47,7 @@ jobs:
           python -m pip install --upgrade pip wheel python-dateutil pytz numpy cython
           python -m pip install "meson[ninja] @ git+https://github.com/mesonbuild/meson.git@master"
           python -m pip install git+https://github.com/mesonbuild/meson-python.git@main
+          python -m pip install versioneer[toml]
         shell: bash -el {0}
 
       - name: Pip install with extra

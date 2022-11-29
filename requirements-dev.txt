@@ -2,6 +2,7 @@
 # See that file for comments about the need/usage of each dependency.
 
 pip
+versioneer[toml]
 cython==0.29.32
 pytest>=6.0
 pytest-cov
@@ -96,8 +97,6 @@ markdown
 feedparser
 pyyaml
 requests
-jupyterlab >=3.4,<4
-jupyterlite==0.1.0b12
 sphinx-toggleprompt
 meson[ninja] @ git+https://github.com/mesonbuild/meson.git@master
 git+https://github.com/mesonbuild/meson-python.git@main

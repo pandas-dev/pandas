@@ -6,8 +6,11 @@ dependencies:
   - python=3.8
   - pip
 
-  # test dependencies
+  # build dependencies
+  - versioneer[toml]
   - cython=0.29.32
+
+  # test dependencies
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
@@ -124,10 +127,7 @@ dependencies:
   - pyyaml
   - requests
 
-  # build the interactive terminal
-  - jupyterlab >=3.4,<4
   - pip:
-      - jupyterlite==0.1.0b12
       - sphinx-toggleprompt
       - "meson[ninja] @ git+https://github.com/mesonbuild/meson.git@master"
       - "git+https://github.com/mesonbuild/meson-python.git@main"

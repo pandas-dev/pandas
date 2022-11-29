@@ -41,6 +41,7 @@ jobs:
           pip install cython numpy python-dateutil pytz pytest pytest-xdist pytest-asyncio>=0.17 hypothesis && \
           pip install "meson[ninja] @ git+https://github.com/mesonbuild/meson.git@master" && \
           pip install "git+https://github.com/mesonbuild/meson-python.git@main" && \
+          python -m pip install versioneer[toml] && \
           export PANDAS_CI=1 && \
           python -m pip install --no-build-isolation -v . && \
           python -m pip list && \
