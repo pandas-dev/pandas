@@ -57,7 +57,7 @@
         "odfpy": [],
         "jinja2": [],
     },
-    "conda_channels": ["defaults", "conda-forge"],
+    "conda_channels": ["conda-forge"],
     // Combinations of libraries/python versions can be excluded/included
     // from the set to test. Each entry is a dictionary containing additional
     // key-value pairs to include/exclude.
