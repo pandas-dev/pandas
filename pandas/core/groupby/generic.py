@@ -87,7 +87,6 @@ from pandas.core.groupby.groupby import (
     _agg_template,
     _apply_docs,
     _transform_template,
-    warn_dropping_nuisance_columns_deprecated,
 )
 from pandas.core.groupby.grouper import get_grouper
 from pandas.core.indexes.api import (
@@ -438,7 +437,7 @@ class SeriesGroupBy(GroupBy[Series]):
         )
 
     def _cython_transform(
-        self, how: str, numeric_only: bool = True, axis: AxisInt = 0, **kwargs
+        self, how: str, numeric_only: bool = False, axis: AxisInt = 0, **kwargs
     ):
         assert axis == 0  # handled by caller
 
@@ -1333,13 +1332,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _cython_transform(
         self,
         how: str,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
         axis: AxisInt = 0,
         **kwargs,
     ) -> DataFrame:
         assert axis == 0  # handled by caller
         # TODO: no tests with self.ndim == 1 for DataFrameGroupBy
-        numeric_only_bool = self._resolve_numeric_only(how, numeric_only, axis)
 
         # With self.axis == 0, we have multi-block tests
         #  e.g. test_rank_min_int, test_cython_transform_frame
@@ -1347,8 +1345,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # With self.axis == 1, _get_data_to_aggregate does a transpose
         #  so we always have a single block.
         mgr: Manager2D = self._get_data_to_aggregate()
-        orig_mgr_len = len(mgr)
-        if numeric_only_bool:
+        if numeric_only:
             mgr = mgr.get_numeric_data(copy=False)
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
@@ -1358,11 +1355,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         # We could use `mgr.apply` here and not have to set_axis, but
         #  we would have to do shape gymnastics for ArrayManager compat
-        res_mgr = mgr.grouped_reduce(arr_func, ignore_failures=False)
+        res_mgr = mgr.grouped_reduce(arr_func)
         res_mgr.set_axis(1, mgr.axes[1])
-
-        if len(res_mgr) < orig_mgr_len:
-            warn_dropping_nuisance_columns_deprecated(type(self), how, numeric_only)
 
         res_df = self.obj._constructor(res_mgr)
         if self.axis == 1:
@@ -1493,15 +1487,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         output = {}
         inds = []
         for i, (colname, sgb) in enumerate(self._iterate_column_groupbys(obj)):
-            try:
-                output[i] = sgb.transform(wrapper)
-            except TypeError:
-                # e.g. trying to call nanmean with string values
-                warn_dropping_nuisance_columns_deprecated(
-                    type(self), "transform", numeric_only=False
-                )
-            else:
-                inds.append(i)
+            output[i] = sgb.transform(wrapper)
+            inds.append(i)
 
         if not output:
             raise TypeError("Transform function invalid for data types")
@@ -2243,7 +2230,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
         min_periods: int = 1,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ) -> DataFrame:
         result = self._op_via_apply(
             "corr", method=method, min_periods=min_periods, numeric_only=numeric_only
@@ -2255,7 +2242,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         min_periods: int | None = None,
         ddof: int | None = 1,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ) -> DataFrame:
         result = self._op_via_apply(
             "cov", min_periods=min_periods, ddof=ddof, numeric_only=numeric_only
@@ -2316,7 +2303,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis: Axis = 0,
         drop: bool = False,
         method: CorrelationMethod = "pearson",
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ) -> DataFrame:
         result = self._op_via_apply(
             "corrwith",

@@ -996,12 +996,11 @@ def test_wrap_aggregated_output_multindex(mframe):
 
     def aggfun(ser):
         if ser.name == ("foo", "one"):
-            raise TypeError
+            raise TypeError("Test error message")
         return ser.sum()
 
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        agged2 = df.groupby(keys).aggregate(aggfun)
-    assert len(agged2.columns) + 1 == len(df.columns)
+    with pytest.raises(TypeError, match="Test error message"):
+        df.groupby(keys).aggregate(aggfun)
 
 
 def test_groupby_level_apply(mframe):

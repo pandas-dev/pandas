@@ -293,8 +293,7 @@ def test_agg_item_by_item_raise_typeerror():
         raise TypeError("test")
 
     with pytest.raises(TypeError, match="test"):
-        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
-            df.groupby(0).agg(raiseException)
+        df.groupby(0).agg(raiseException)
 
 
 def test_series_agg_multikey():

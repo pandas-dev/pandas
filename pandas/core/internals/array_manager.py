@@ -213,7 +213,7 @@ class BaseArrayManager(DataManager):
         -------
         ArrayManager
         """
-        assert "filter" not in kwargs and "ignore_failures" not in kwargs
+        assert "filter" not in kwargs
 
         align_keys = align_keys or []
         result_arrays: list[np.ndarray] = []
@@ -923,15 +923,13 @@ class ArrayManager(BaseArrayManager):
     # --------------------------------------------------------------------
     # Array-wise Operation
 
-    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
+    def grouped_reduce(self: T, func: Callable) -> T:
         """
         Apply grouped reduction function columnwise, returning a new ArrayManager.
 
         Parameters
         ----------
         func : grouped reduction function
-        ignore_failures : bool, default False
-            Whether to drop columns where func raises TypeError.
 
         Returns
         -------
@@ -943,13 +941,7 @@ class ArrayManager(BaseArrayManager):
         for i, arr in enumerate(self.arrays):
             # grouped_reduce functions all expect 2D arrays
             arr = ensure_block_shape(arr, ndim=2)
-            try:
-                res = func(arr)
-            except (TypeError, NotImplementedError):
-                if not ignore_failures:
-                    raise
-                continue
-
+            res = func(arr)
             if res.ndim == 2:
                 # reverse of ensure_block_shape
                 assert res.shape[0] == 1
@@ -963,10 +955,7 @@ class ArrayManager(BaseArrayManager):
         else:
             index = Index(range(result_arrays[0].shape[0]))
 
-        if ignore_failures:
-            columns = self.items[np.array(result_indices, dtype="int64")]
-        else:
-            columns = self.items
+        columns = self.items
 
         # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
         # expected "List[Union[ndarray, ExtensionArray]]"
