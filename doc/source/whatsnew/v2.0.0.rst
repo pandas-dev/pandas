@@ -572,7 +572,7 @@ Removal of prior version deprecations/changes
 - Changed default of ``numeric_only`` to ``False`` in all DataFrame methods with that argument (:issue:`46096`, :issue:`46906`)
 - Changed default of ``numeric_only`` to ``False`` in :meth:`Series.rank` (:issue:`47561`)
 - Enforced deprecation of silently dropping nuisance columns in groupby and resample operations when ``numeric_only=False`` (:issue:`41475`)
-- Changed default of ``numeric_only`` to ``False`` in :meth:`.DataFrameGroupBy.sum` and :meth:`.DataFrameGroupBy.mean` (:issue:`46072`)
+- Changed default of ``numeric_only`` to ``False`` in various :class:`.DataFrameGroupBy` methods (:issue:`46072`)
 - Changed default of ``numeric_only`` to ``False`` in :class:`.Resampler` methods (:issue:`47177`)
 -
 
@@ -624,6 +624,8 @@ Categorical
 ^^^^^^^^^^^
 - Bug in :meth:`Categorical.set_categories` losing dtype information (:issue:`48812`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` would reorder categories when used as a grouper (:issue:`48749`)
+- Bug in :class:`Categorical` constructor when constructing from a :class:`Categorical` object and ``dtype="category"`` losing ordered-ness (:issue:`49309`)
+-
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -652,7 +654,7 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.add` cannot apply ufunc when inputs contain mixed DataFrame type and Series type (:issue:`39853`)
 - Bug in DataFrame reduction methods (e.g. :meth:`DataFrame.sum`) with object dtype, ``axis=1`` and ``numeric_only=False`` would not be coerced to float (:issue:`49551`)
--
+- Bug in :meth:`DataFrame.sem` and :meth:`Series.sem` where an erroneous ``TypeError`` would always raise when using data backed by an :class:`ArrowDtype` (:issue:`49759`)
 
 Conversion
 ^^^^^^^^^^
@@ -717,6 +719,7 @@ I/O
 - Bug in :func:`read_csv` for a single-line csv with fewer columns than ``names`` raised :class:`.errors.ParserError` with ``engine="c"`` (:issue:`47566`)
 - Bug in :func:`DataFrame.to_string` with ``header=False`` that printed the index name on the same line as the first row of the data (:issue:`49230`)
 - Fixed memory leak which stemmed from the initialization of the internal JSON module (:issue:`49222`)
+- Fixed issue where :func:`json_normalize` would incorrectly remove leading characters from column names that matched the ``sep`` argument (:issue:`49861`)
 -
 
 Period
@@ -751,6 +754,8 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot_table` raising ``ValueError`` with parameter ``margins=True`` when result is an empty :class:`DataFrame` (:issue:`49240`)
 - Clarified error message in :func:`merge` when passing invalid ``validate`` option (:issue:`49417`)
 - Bug in :meth:`DataFrame.explode` raising ``ValueError`` on multiple columns with ``NaN`` values or empty lists (:issue:`46084`)
+- Bug in :meth:`DataFrame.transpose` with ``IntervalDtype`` column with ``timedelta64[ns]`` endpoints (:issue:`44917`)
+-
 
 Sparse
 ^^^^^^
