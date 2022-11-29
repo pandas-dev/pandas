@@ -568,7 +568,7 @@ Removal of prior version deprecations/changes
 - Enforced deprecation of calling numpy "ufunc"s on :class:`DataFrame` with ``method="outer"``; this now raises ``NotImplementedError`` (:issue:`36955`)
 - Enforced deprecation disallowing passing ``numeric_only=True`` to :class:`Series` reductions (``rank``, ``any``, ``all``, ...) with non-numeric dtype (:issue:`47500`)
 - Changed behavior of :meth:`DataFrameGroupBy.apply` and :meth:`SeriesGroupBy.apply` so that ``group_keys`` is respected even if a transformer is detected (:issue:`34998`)
-- Comparisons between a :class:`DataFrame` and a :class:`Series` where the frame's columns do not match the series's index raise ``ValueError`` instead of automatically aligning, do ``left, right = left.align(right, axis=1, copy=False)`` before comparing (:issue:`46795`)
+- Comparisons between a :class:`DataFrame` and a :class:`Series` where the frame's columns do not match the series's index raise ``ValueError`` instead of automatically aligning, do ``left, right = left.align(right, axis=1, copy=False)`` before comparing (:issue:`36795`)
 - Enforced deprecation ``numeric_only=None`` (the default) in DataFrame reductions that would silently drop columns that raised; ``numeric_only`` now defaults to ``False`` (:issue:`41480`)
 - Changed default of ``numeric_only`` to ``False`` in all DataFrame methods with that argument (:issue:`46096`, :issue:`46906`)
 - Changed default of ``numeric_only`` to ``False`` in :meth:`Series.rank` (:issue:`47561`)
