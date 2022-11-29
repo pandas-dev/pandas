@@ -472,7 +472,6 @@ class Grouping:
 
         ilevel = self._ilevel
         if ilevel is not None:
-            mapper = self.grouping_vector
             # In extant tests, the new self.grouping_vector matches
             #  `index.get_level_values(ilevel)` whenever
             #  mapper is None and isinstance(index, MultiIndex)
@@ -480,7 +479,12 @@ class Grouping:
                 index_level = index.get_level_values(ilevel)
             else:
                 index_level = index
-            self.grouping_vector = index_level._get_grouper_for_level(mapper)
+            
+            if self.grouping_vector is None:
+                self.grouping_vector = index_level
+            else:
+                mapper = self.grouping_vector
+                self.grouping_vector = index_level.map(mapper)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes

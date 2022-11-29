@@ -2064,31 +2064,6 @@ class Index(IndexOpsMixin, PandasObject):
                 verify_integrity=False,
             )
 
-    @final
-    def _get_grouper_for_level(self, mapper) -> Index:
-        """
-        Get index grouper from a mapping function
-
-        Parameters
-        ----------
-        mapper: Group mapping function or None
-            Function mapping index values to groups
-
-        Returns
-        -------
-        grouper : Index
-            Index of values to group on.
-        """
-        if self._is_multi:
-            raise NotImplementedError
-
-        if mapper is None:
-            grouper = self
-        else:
-            grouper = self.map(mapper)
-
-        return grouper
-
     # --------------------------------------------------------------------
     # Introspection Methods
 
