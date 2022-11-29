@@ -627,6 +627,7 @@ class DataFrame(NDFrame, OpsMixin):
         data=None,
         index: Axes | None = None,
         columns: Axes | None = None,
+        direction: list =["arrow",None], 
         dtype: Dtype | None = None,
         copy: bool | None = None,
     ) -> None:
@@ -635,18 +636,59 @@ class DataFrame(NDFrame, OpsMixin):
             data = {}
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
+        
+
+        
+            
+            
 
         if isinstance(data,list) and columns is not None: 
+            nested_list = False
             len_columns = len(columns)
             len_data = len(data)
-            if index is None:
-                index=[0]
-            if len_columns > 1:
-                if len_columns == len_data:
-                    dict_data = dict()
-                    for i,j in zip(range(len(columns)),range(len(data))):
-                        dict_data[columns[i]] = data[j]   
-                    data = dict_data  
+            dict_data = dict()       
+            for i in data:
+                if type(i) == list:
+                   nested_list = True 
+            if nested_list is not True:
+                if len_columns > 1:
+                    if len_columns == len_data:
+                        if len(direction)<2 and len(direction)>2:
+                            print(f'Error: direction has length equal to 2')
+                            exit(1)
+                        elif direction == ["arrow",None]:
+                            if index is None:
+                                index=[0]
+                            for i,j in zip(range(len(columns)),range(len(data))):
+                                dict_data[columns[i]] = data[j]   
+                            data = dict_data
+                        elif direction[0] == "columns" and direction[1] != None:
+                            if direction[1] not in columns:
+                                print("Error: direction not in columns")
+                                exit(1)
+                            index_column = direction[1]
+                            index = None
+                            NaN_list = list()
+                            for i in range(len(data)):
+                                NaN_list.append(None)
+                            for i in columns:
+                                if i == index_column:
+                                    dict_data[i] = data
+                                    continue
+                                dict_data[i] = NaN_list
+                            data = dict_data
+                           
+                        elif direction[0] == "arrow" and direction[1] != None:
+
+                            print(f'Error: direction[1] needs to be None when direction[0] is "arrow"')
+                            exit(1)   
+                            
+                        elif direction == ["columns",None]:
+                            print(f'Error: When direction[0] is set as "columns", direction[1] requires a column name.')
+                            exit(1) 
+                        else:
+                            print(f'Error: invalid parameters.')
+                            exit(1) 
                 
         if isinstance(data, DataFrame):
             data = data._mgr
