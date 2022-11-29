@@ -1,3 +1,8 @@
+"""
+masked_accumulations.py is for accumulation algorithms using a mask-based approach
+for missing values.
+"""
+
 from __future__ import annotations
 
 from typing import Callable
@@ -9,11 +14,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
 )
-
-"""
-masked_accumulations.py is for accumulation algorithms using a mask-based approach
-for missing values.
-"""
 
 
 def _cum_func(
