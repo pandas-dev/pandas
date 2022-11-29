@@ -367,8 +367,12 @@ class TestGroupby(base.BaseGroupbyTests):
 
 class TestNumericReduce(base.BaseNumericReduceTests):
     def check_reduce(self, s, op_name, skipna):
-        result = getattr(s, op_name)(skipna=skipna)
-        expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
+        if op_name == "count":
+            result = getattr(s, op_name)()
+            expected = getattr(s.astype("float64"), op_name)()
+        else:
+            result = getattr(s, op_name)(skipna=skipna)
+            expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
         # override parent function to cast to bool for min/max
         if np.isnan(expected):
             expected = pd.NA
