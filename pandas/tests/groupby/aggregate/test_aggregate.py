@@ -301,11 +301,12 @@ def test_wrap_agg_out(three_group):
 
     def func(ser):
         if ser.dtype == object:
-            raise TypeError
+            raise TypeError("Test error message")
         return ser.sum()
 
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        result = grouped.aggregate(func)
+    with pytest.raises(TypeError, match="Test error message"):
+        grouped.aggregate(func)
+    result = grouped[[c for c in three_group if c != "C"]].aggregate(func)
     exp_grouped = three_group.loc[:, three_group.columns != "C"]
     expected = exp_grouped.groupby(["A", "B"]).aggregate(func)
     tm.assert_frame_equal(result, expected)
