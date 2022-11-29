@@ -206,22 +206,6 @@ str_t = str
 _dtype_obj = np.dtype("object")
 
 
-def _wrapped_sanitize(cls, data, dtype: DtypeObj | None, copy: bool):
-    """
-    Call sanitize_array with wrapping for differences between Index/Series.
-    """
-    try:
-        arr = sanitize_array(data, None, dtype=dtype, copy=copy, strict_ints=True)
-    except ValueError as err:
-        if "index must be specified when data is not list-like" in str(err):
-            raise cls._raise_scalar_data_error(data) from err
-        if "Data must be 1-dimensional" in str(err):
-            raise ValueError("Index data must be 1-dimensional") from err
-        raise
-    arr = ensure_wrapped_if_datetimelike(arr)
-    return arr
-
-
 def _maybe_return_indexers(meth: F) -> F:
     """
     Decorator to simplify 'return_indexers' checks in Index.join.
@@ -514,7 +498,16 @@ class Index(IndexOpsMixin, PandasObject):
                 # Ensure we get 1-D array of tuples instead of 2D array.
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
-        arr = _wrapped_sanitize(cls, data, dtype, copy)
+        try:
+            arr = sanitize_array(data, None, dtype=dtype, copy=copy, strict_ints=True)
+        except ValueError as err:
+            if "index must be specified when data is not list-like" in str(err):
+                raise cls._raise_scalar_data_error(data) from err
+            if "Data must be 1-dimensional" in str(err):
+                raise ValueError("Index data must be 1-dimensional") from err
+            raise
+        arr = ensure_wrapped_if_datetimelike(arr)
+
         klass = cls._dtype_to_subclass(arr.dtype)
 
         # _ensure_array _may_ be unnecessary once Int64Index etc are gone
@@ -594,20 +587,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise NotImplementedError(dtype)
 
-    """
-    NOTE for new Index creation:
+    # NOTE for new Index creation:
 
-    - _simple_new: It returns new Index with the same type as the caller.
-      All metadata (such as name) must be provided by caller's responsibility.
-      Using _shallow_copy is recommended because it fills these metadata
-      otherwise specified.
+    # - _simple_new: It returns new Index with the same type as the caller.
+    #   All metadata (such as name) must be provided by caller's responsibility.
+    #   Using _shallow_copy is recommended because it fills these metadata
+    #   otherwise specified.
 
-    - _shallow_copy: It returns new Index with the same type (using
-      _simple_new), but fills caller's metadata otherwise specified. Passed
-      kwargs will overwrite corresponding metadata.
+    # - _shallow_copy: It returns new Index with the same type (using
+    #   _simple_new), but fills caller's metadata otherwise specified. Passed
+    #   kwargs will overwrite corresponding metadata.
 
-    See each method's docstring.
-    """
+    # See each method's docstring.
 
     @classmethod
     def _simple_new(cls: type[_IndexT], values, name: Hashable = None) -> _IndexT:
@@ -865,19 +856,11 @@ class Index(IndexOpsMixin, PandasObject):
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
             return NotImplemented
 
-        # TODO(2.0) the 'and', 'or' and 'xor' dunder methods are currently set
-        # operations and not logical operations, so don't dispatch
-        # This is deprecated, so this full 'if' clause can be removed once
-        # deprecation is enforced in 2.0
-        if not (
-            method == "__call__"
-            and ufunc in (np.bitwise_and, np.bitwise_or, np.bitwise_xor)
-        ):
-            result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
-                self, ufunc, method, *inputs, **kwargs
-            )
-            if result is not NotImplemented:
-                return result
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
 
         if "out" in kwargs:
             # e.g. test_dti_isub_tdi
@@ -3978,10 +3961,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_positional = is_index_slice and ints_are_positional
 
         if kind == "getitem":
-            """
-            called from the getitem slicers, validate that we are in fact
-            integers
-            """
+            # called from the getitem slicers, validate that we are in fact integers
             if self.is_integer():
                 if is_frame:
                     # unambiguously positional, no deprecation
@@ -5159,7 +5139,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Index._with_infer(result, name=name)
 
-    @final
     def putmask(self, mask, value) -> Index:
         """
         Return a new Index of the values set with the mask.

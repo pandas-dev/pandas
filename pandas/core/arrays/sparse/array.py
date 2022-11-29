@@ -716,7 +716,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         dtype = SparseDtype(bool, self._null_fill_value)
         if self._null_fill_value:
             return type(self)._simple_new(isna(self.sp_values), self.sp_index, dtype)
-        mask = np.full(len(self), False, dtype=np.bool8)
+        mask = np.full(len(self), False, dtype=np.bool_)
         mask[self.sp_index.indices] = isna(self.sp_values)
         return type(self)(mask, fill_value=False, dtype=dtype)
 
@@ -1003,7 +1003,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                     if not key.fill_value:
                         return self.take(key.sp_index.indices)
                     n = len(self)
-                    mask = np.full(n, True, dtype=np.bool8)
+                    mask = np.full(n, True, dtype=np.bool_)
                     mask[key.sp_index.indices] = False
                     return self.take(np.arange(n)[mask])
                 else:
@@ -1884,11 +1884,7 @@ def make_sparse(
     index = make_sparse_index(length, indices, kind)
     sparsified_values = arr[mask]
     if dtype is not None:
-        # error: Argument "dtype" to "astype_nansafe" has incompatible type "Union[str,
-        # dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"
-        sparsified_values = astype_nansafe(
-            sparsified_values, dtype=dtype  # type: ignore[arg-type]
-        )
+        sparsified_values = astype_nansafe(sparsified_values, dtype=pandas_dtype(dtype))
     # TODO: copy
     return sparsified_values, index, fill_value
 

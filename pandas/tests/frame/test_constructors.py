@@ -870,12 +870,7 @@ class TestDataFrameConstructors:
             index=[Timedelta(td, "D") for td in td_as_int],
         )
 
-        if name == "Timedelta[s]":
-            # TODO(2.0): passing index here shouldn't be necessary, is for now
-            #  otherwise we raise in _extract_index
-            result = DataFrame(data, index=expected.index)
-        else:
-            result = DataFrame(data)
+        result = DataFrame(data)
 
         tm.assert_frame_equal(result, expected)
 
