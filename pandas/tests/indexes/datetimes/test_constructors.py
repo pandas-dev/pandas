@@ -37,6 +37,14 @@ if PY39:
 
 
 class TestDatetimeIndex:
+    def test_from_dt64_unsupported_unit(self):
+        # GH#49292
+        val = np.datetime64(1, "D")
+        result = DatetimeIndex([val], tz="US/Pacific")
+
+        expected = DatetimeIndex([val.astype("M8[s]")], tz="US/Pacific")
+        tm.assert_index_equal(result, expected)
+
     def test_explicit_tz_none(self):
         # GH#48659
         dti = date_range("2016-01-01", periods=10, tz="UTC")
@@ -872,10 +880,16 @@ class TestDatetimeIndex:
         result = date_range(end=end, periods=2, ambiguous=False)
         tm.assert_index_equal(result, expected)
 
-    def test_constructor_with_nonexistent_keyword_arg(self):
+    def test_constructor_with_nonexistent_keyword_arg(self, warsaw, request):
         # GH 35297
+        if type(warsaw).__name__ == "ZoneInfo":
+            mark = pytest.mark.xfail(
+                reason="nonexistent-shift not yet implemented for ZoneInfo",
+                raises=NotImplementedError,
+            )
+            request.node.add_marker(mark)
 
-        timezone = "Europe/Warsaw"
+        timezone = warsaw
 
         # nonexistent keyword in start
         start = Timestamp("2015-03-29 02:30:00").tz_localize(
