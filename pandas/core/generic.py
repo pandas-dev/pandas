@@ -4,7 +4,7 @@ from __future__ import annotations
 import collections
 import datetime as dt
 import gc
-from json import loads, jumps
+from json import loads, dumps
 import operator
 import pickle
 import re
