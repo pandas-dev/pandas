@@ -2716,20 +2716,20 @@ def test_merge_different_index_names():
     tm.assert_frame_equal(result, expected)
 
 
-def test_merge_ea(any_numeric_ea_dtype, how):
+def test_merge_ea(any_numeric_ea_dtype, join_type):
     # GH#44240
     left = DataFrame({"a": [1, 2, 3], "b": 1}, dtype=any_numeric_ea_dtype)
     right = DataFrame({"a": [1, 2, 3], "c": 2}, dtype=any_numeric_ea_dtype)
-    result = left.merge(right, how=how)
+    result = left.merge(right, how=join_type)
     expected = DataFrame({"a": [1, 2, 3], "b": 1, "c": 2}, dtype=any_numeric_ea_dtype)
     tm.assert_frame_equal(result, expected)
 
 
-def test_merge_ea_and_non_ea(any_numeric_ea_dtype, how):
+def test_merge_ea_and_non_ea(any_numeric_ea_dtype, join_type):
     # GH#44240
     left = DataFrame({"a": [1, 2, 3], "b": 1}, dtype=any_numeric_ea_dtype)
     right = DataFrame({"a": [1, 2, 3], "c": 2}, dtype=any_numeric_ea_dtype.lower())
-    result = left.merge(right, how=how)
+    result = left.merge(right, how=join_type)
     expected = DataFrame(
         {
             "a": Series([1, 2, 3], dtype=any_numeric_ea_dtype),
