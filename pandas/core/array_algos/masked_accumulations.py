@@ -9,6 +9,8 @@ from typing import Callable
 
 import numpy as np
 
+from pandas._typing import npt
+
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_float_dtype,
@@ -19,12 +21,14 @@ from pandas.core.dtypes.common import (
 def _cum_func(
     func: Callable,
     values: np.ndarray,
-    mask: np.ndarray,
+    mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
 ):
     """
     Accumulations for 1D masked array.
+
+    We will modify values in place to replace NAs with the appropriate fill value.
 
     Parameters
     ----------
@@ -72,17 +76,17 @@ def _cum_func(
     return values, mask
 
 
-def cumsum(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
+def cumsum(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
     return _cum_func(np.cumsum, values, mask, skipna=skipna)
 
 
-def cumprod(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
+def cumprod(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
     return _cum_func(np.cumprod, values, mask, skipna=skipna)
 
 
-def cummin(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
+def cummin(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
     return _cum_func(np.minimum.accumulate, values, mask, skipna=skipna)
 
 
-def cummax(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
+def cummax(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
     return _cum_func(np.maximum.accumulate, values, mask, skipna=skipna)

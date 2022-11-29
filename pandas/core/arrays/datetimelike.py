@@ -1411,9 +1411,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 result, freq=self.freq, dtype=self.dtype  # type: ignore[call-arg]
             )
 
-        raise NotImplementedError(
-            f"Accumlation {name} not implemented for {type(self)}"
-        )
+        raise TypeError(f"Accumlation {name} not supported for {type(self)}")
 
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):
