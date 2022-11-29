@@ -9227,7 +9227,7 @@ Parrot 2  Parrot       24.0
     >>> df.agg(['mean', 'std'], numeric_only=True)
             B     C
     mean  2.0   5.0
-    std   1.0   15.0
+    std   1.0   1.0
     """
     )
 
