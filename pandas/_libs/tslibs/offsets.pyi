@@ -14,6 +14,7 @@ import numpy as np
 
 from pandas._typing import npt
 
+from .nattype import NaTType
 from .timedeltas import Timedelta
 
 _BaseOffsetT = TypeVar("_BaseOffsetT", bound=BaseOffset)
@@ -51,6 +52,8 @@ class BaseOffset:
     def __radd__(self, other: _DatetimeT) -> _DatetimeT: ...
     @overload
     def __radd__(self, other: _TimedeltaT) -> _TimedeltaT: ...
+    @overload
+    def __radd__(self, other: NaTType) -> NaTType: ...
     def __sub__(self: _BaseOffsetT, other: BaseOffset) -> _BaseOffsetT: ...
     @overload
     def __rsub__(self, other: npt.NDArray[np.object_]) -> npt.NDArray[np.object_]: ...

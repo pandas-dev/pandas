@@ -1350,9 +1350,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return TimedeltaArray(result)
         return result
 
-    # error: No overload variant of "__radd__" of "BaseOffset" matches argument
-    # type "NaTType"
-    def __radd__(self, other):  # type: ignore[operator]
+    def __radd__(self, other):
         # alias for __add__
         return self.__add__(other)
 
