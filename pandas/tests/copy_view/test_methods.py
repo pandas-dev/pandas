@@ -261,7 +261,7 @@ def test_set_index(using_copy_on_write):
         lambda df: df.tail(3),
     ],
 )
-def test_head_tail(using_copy_on_write, method):
+def test_head_tail(method, using_copy_on_write):
     df = DataFrame({"a": [1, 1, 1], "b": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = method(df)
