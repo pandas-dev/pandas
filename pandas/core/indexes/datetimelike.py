@@ -22,7 +22,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import (
-    BaseOffset,
     Resolution,
     Tick,
     parsing,
@@ -91,7 +90,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     _is_numeric_dtype = False
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
-    freq: BaseOffset | None
     freqstr: str | None
     _resolution_obj: Resolution
 
@@ -452,7 +450,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         rng = range(self[0].value, self[-1].value + tick, tick)
         return RangeIndex(rng)
 
-    @final
     def _can_range_setop(self, other):
         return isinstance(self.freq, Tick) and isinstance(other.freq, Tick)
 
