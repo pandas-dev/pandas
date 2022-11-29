@@ -14,16 +14,20 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 """
 from __future__ import annotations
 
-import configparser
 import pathlib
 import sys
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 DOC_PATH = pathlib.Path("doc/source/getting_started/install.rst").resolve()
 CI_PATH = next(
     pathlib.Path("ci/deps").absolute().glob("actions-*-minimum_versions.yaml")
 )
 CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
-SETUP_PATH = pathlib.Path("setup.cfg").resolve()
+SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
 EXCLUDE_DEPS = {"tzdata", "blosc"}
 # pandas package is not available
 # in pre-commit environment
@@ -80,22 +84,20 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
     return required_deps, optional_deps
 
 
-def get_versions_from_setup() -> dict[str, str]:
-    """Min versions in setup.cfg for pip install pandas[extra]."""
+def get_versions_from_toml() -> dict[str, str]:
+    """Min versions in pyproject.toml for pip install pandas[extra]."""
     install_map = _optional.INSTALL_MAPPING
+    dependencies = set()
     optional_dependencies = {}
 
-    parser = configparser.ConfigParser()
-    parser.read(SETUP_PATH)
-    setup_optional = parser["options.extras_require"]["all"]
-    dependencies = setup_optional[1:].split("\n")
+    with open(SETUP_PATH, "rb") as pyproject_f:
+        pyproject_toml = tomllib.load(pyproject_f)
+        opt_deps = pyproject_toml["project"]["optional-dependencies"]
+        dependencies = set(opt_deps["all"])
 
-    # remove test dependencies
-    test = parser["options.extras_require"]["test"]
-    test_dependencies = set(test[1:].split("\n"))
-    dependencies = [
-        package for package in dependencies if package not in test_dependencies
-    ]
+        # remove test dependencies
+        test_deps = set(opt_deps["test"])
+        dependencies = dependencies.difference(test_deps)
 
     for dependency in dependencies:
         package, version = dependency.strip().split(">=")
@@ -111,7 +113,7 @@ def main():
     with open(CI_PATH, encoding="utf-8") as f:
         _, ci_optional = get_versions_from_ci(f.readlines())
     code_optional = get_versions_from_code()
-    setup_optional = get_versions_from_setup()
+    setup_optional = get_versions_from_toml()
 
     diff = (ci_optional.items() | code_optional.items() | setup_optional.items()) - (
         ci_optional.items() & code_optional.items() & setup_optional.items()
