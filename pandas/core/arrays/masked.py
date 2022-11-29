@@ -436,10 +436,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def tolist(self):
         if self.ndim > 1:
             return [x.tolist() for x in self]
-        if not self._hasna:
-            # faster than list(self)
-            return list(self._data)
-        return list(self)
+        dtype = None if self._hasna else self._data.dtype
+        return self.to_numpy(dtype=dtype).tolist()
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
