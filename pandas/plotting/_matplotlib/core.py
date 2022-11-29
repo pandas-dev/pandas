@@ -839,12 +839,10 @@ class MPLPlot(ABC):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
             elif index.is_numeric():
-                """
-                Matplotlib supports numeric values or datetime objects as
-                xaxis values. Taking LBYL approach here, by the time
-                matplotlib raises exception when using non numeric/datetime
-                values for xaxis, several actions are already taken by plt.
-                """
+                # Matplotlib supports numeric values or datetime objects as
+                # xaxis values. Taking LBYL approach here, by the time
+                # matplotlib raises exception when using non numeric/datetime
+                # values for xaxis, several actions are already taken by plt.
                 x = index._mpl_repr()
             elif is_datetype:
                 self.data = self.data[notna(self.data.index)]
