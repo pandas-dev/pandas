@@ -587,20 +587,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise NotImplementedError(dtype)
 
-    """
-    NOTE for new Index creation:
+    # NOTE for new Index creation:
 
-    - _simple_new: It returns new Index with the same type as the caller.
-      All metadata (such as name) must be provided by caller's responsibility.
-      Using _shallow_copy is recommended because it fills these metadata
-      otherwise specified.
+    # - _simple_new: It returns new Index with the same type as the caller.
+    #   All metadata (such as name) must be provided by caller's responsibility.
+    #   Using _shallow_copy is recommended because it fills these metadata
+    #   otherwise specified.
 
-    - _shallow_copy: It returns new Index with the same type (using
-      _simple_new), but fills caller's metadata otherwise specified. Passed
-      kwargs will overwrite corresponding metadata.
+    # - _shallow_copy: It returns new Index with the same type (using
+    #   _simple_new), but fills caller's metadata otherwise specified. Passed
+    #   kwargs will overwrite corresponding metadata.
 
-    See each method's docstring.
-    """
+    # See each method's docstring.
 
     @classmethod
     def _simple_new(cls: type[_IndexT], values, name: Hashable = None) -> _IndexT:
@@ -3963,10 +3961,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_positional = is_index_slice and ints_are_positional
 
         if kind == "getitem":
-            """
-            called from the getitem slicers, validate that we are in fact
-            integers
-            """
+            # called from the getitem slicers, validate that we are in fact integers
             if self.is_integer():
                 if is_frame:
                     # unambiguously positional, no deprecation

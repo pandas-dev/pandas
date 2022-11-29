@@ -5,11 +5,18 @@ requires = [
     "setuptools>=51.0.0",
     "wheel",
     "Cython>=0.29.32,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    "oldest-supported-numpy>=2022.8.16"
+    "oldest-supported-numpy>=2022.8.16",
+    "versioneer[toml]"
 ]
-# uncomment to enable pep517 after versioneer problem is fixed.
-# https://github.com/python-versioneer/python-versioneer/issues/193
 # build-backend = "setuptools.build_meta"
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "pandas/_version.py"
+versionfile_build = "pandas/_version.py"
+tag_prefix = "v"
+parentdir_prefix = "pandas-"
 
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
@@ -139,7 +146,6 @@ disable = [
   "global-statement",
   "invalid-overridden-method",
   "keyword-arg-before-vararg",
-  "pointless-string-statement",
   "possibly-unused-variable",
   "protected-access",
   "raise-missing-from",
