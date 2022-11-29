@@ -17,10 +17,6 @@ repos:
         entry: python scripts/run_vulture.py
         pass_filenames: true
         require_serial: false
--   repo: https://github.com/python/black
-    rev: 22.10.0
-    hooks:
-    -   id: black
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.2.2
     hooks:
