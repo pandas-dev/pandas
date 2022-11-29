@@ -174,7 +174,7 @@ jobs:
           # no-isolation from build flag
           pip install "meson[ninja] @ git+https://github.com/mesonbuild/meson.git@master"
           pip install git+https://github.com/mesonbuild/meson-python.git@main
-          pip install build Cython oldest-supported-numpy
+          pip install build Cython oldest-supported-numpy versioneer[toml]
           python -m build --sdist --no-isolation
       - name: Test the sdist
         shell: bash -el {0}
