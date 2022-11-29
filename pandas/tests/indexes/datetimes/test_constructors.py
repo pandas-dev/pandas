@@ -37,6 +37,14 @@ if PY39:
 
 
 class TestDatetimeIndex:
+    def test_from_dt64_unsupported_unit(self):
+        # GH#49292
+        val = np.datetime64(1, "D")
+        result = DatetimeIndex([val], tz="US/Pacific")
+
+        expected = DatetimeIndex([val.astype("M8[s]")], tz="US/Pacific")
+        tm.assert_index_equal(result, expected)
+
     def test_explicit_tz_none(self):
         # GH#48659
         dti = date_range("2016-01-01", periods=10, tz="UTC")

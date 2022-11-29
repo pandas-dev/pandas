@@ -278,6 +278,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # The dtype argument takes precedence over values.dtype (if any)
             if isinstance(dtype, str):
                 if dtype == "category":
+                    if ordered is None and cls.is_dtype(values):
+                        # GH#49309 preserve orderedness
+                        ordered = values.dtype.ordered
+
                     dtype = CategoricalDtype(categories, ordered)
                 else:
                     raise ValueError(f"Unknown dtype {repr(dtype)}")

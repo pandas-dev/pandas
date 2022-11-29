@@ -6,12 +6,25 @@ import pandas.util._test_decorators as td
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    IntervalIndex,
     date_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 
 
 class TestTranspose:
+    def test_transpose_td64_intervals(self):
+        # GH#44917
+        tdi = timedelta_range("0 Days", "3 Days")
+        ii = IntervalIndex.from_breaks(tdi)
+        ii = ii.insert(-1, np.nan)
+        df = DataFrame(ii)
+
+        result = df.T
+        expected = DataFrame({i: ii[i : i + 1] for i in range(len(ii))})
+        tm.assert_frame_equal(result, expected)
+
     def test_transpose_empty_preserves_datetimeindex(self):
         # GH#41382
         df = DataFrame(index=DatetimeIndex([]))
