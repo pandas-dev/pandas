@@ -316,14 +316,12 @@ The new behavior, as for datetime64, either gives exactly the requested dtype or
 Empty DataFrames/Series will now default to have a ``RangeIndex``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When users don't specify indexes or columns when instantiating :class:`DataFrame` or :class:`Series`
-objects, pandas infers the index type for them. Previously, if it was not possible to
-infer the index type from the data, pandas used to infer the index to be a :class:`RangeIndex`,
-except when the frame/series was empty, then the index was inferred to be an :class:`Index`
-with dtype ``object``.
-
-This has been changed, so the type of index/columns will always be :class:`RangeIndex`,
-when users don't declare the index and it's not possible to infer the index type from the data (:issue:`49572`).
+When users instantiate :class:`DataFrame` or :class:`Series` objects without specifying the axes (``index=None``
+and/or ``columns=None``), pandas infers the index type for them. Previously, when instantiating
+in such cases, and it was not possible to infer the index type from the passed-in ``data``,
+pandas used to infer the index to be a :class:`RangeIndex`, except when constructing an empty (length 0)
+``Series`` or ``DataFrame`` without specifying the axes (``index=None``, ``columns=None``)
+then it would return the axes as empty Indexes with object dtype. Now, the axes return an ``RangeIndex`` in that case also (:issue:`49572`).
 
 *Previous behavior*:
 
