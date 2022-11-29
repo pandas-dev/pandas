@@ -4736,8 +4736,8 @@ class Index(IndexOpsMixin, PandasObject):
             ret_index = other if how == "right" else self
             return ret_index, None, None
 
-        ridx: np.ndarray | None
-        lidx: np.ndarray | None
+        ridx: npt.NDArray[np.intp] | None
+        lidx: npt.NDArray[np.intp] | None
 
         if self.is_unique and other.is_unique:
             # We can perform much better than the general case
@@ -4765,6 +4765,9 @@ class Index(IndexOpsMixin, PandasObject):
             elif how == "outer":
                 join_array, lidx, ridx = self._outer_indexer(other)
 
+            assert lidx is not None
+            assert ridx is not None
+
             join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
 
         lidx = None if lidx is None else ensure_platform_int(lidx)
@@ -4772,7 +4775,11 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, lidx, ridx
 
     def _wrap_joined_index(
-        self: _IndexT, joined: ArrayLike, other: _IndexT, lidx, ridx
+        self: _IndexT,
+        joined: ArrayLike,
+        other: _IndexT,
+        lidx: npt.NDArray[np.intp],
+        ridx: npt.NDArray[np.intp],
     ) -> _IndexT:
         assert other.dtype == self.dtype
 
