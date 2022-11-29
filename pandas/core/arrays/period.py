@@ -538,28 +538,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
     # --------------------------------------------------------------------
 
-    def _time_shift(self, periods: int, freq=None) -> PeriodArray:
-        """
-        Shift each value by `periods`.
-
-        Note this is different from ExtensionArray.shift, which
-        shifts the *position* of each element, padding the end with
-        missing values.
-
-        Parameters
-        ----------
-        periods : int
-            Number of periods to shift by.
-        freq : pandas.DateOffset, pandas.Timedelta, or str
-            Frequency increment to shift by.
-        """
-        if freq is not None:
-            raise TypeError(
-                "`freq` argument is not supported for "
-                f"{type(self).__name__}._time_shift"
-            )
-        return self + periods
-
     def _box_func(self, x) -> Period | NaTType:
         return Period._from_ordinal(ordinal=x, freq=self.freq)
 
@@ -692,7 +670,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        npvalue = self._validate_searchsorted_value(value).view("M8[ns]")
+        npvalue = self._validate_setitem_value(value).view("M8[ns]")
 
         # Cast to M8 to get datetime-like NaT placement
         m8arr = self._ndarray.view("M8[ns]")
@@ -726,8 +704,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         self, other: np.ndarray | int, op: Callable[[Any, Any], Any]
     ) -> PeriodArray:
         """
-        Add or subtract array of integers; equivalent to applying
-        `_time_shift` pointwise.
+        Add or subtract array of integers.
 
         Parameters
         ----------

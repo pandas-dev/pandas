@@ -334,6 +334,7 @@ def test_apply_series_to_frame():
     result = grouped.apply(f)
 
     assert isinstance(result, DataFrame)
+    assert not hasattr(result, "name")  # GH49907
     tm.assert_index_equal(result.index, ts.index)
 
 
@@ -930,7 +931,7 @@ def test_apply_index_has_complex_internals(index):
         (lambda x: set(x.index.to_list()), [{0, 1}, {2, 3}]),
         (lambda x: tuple(x.index.to_list()), [(0, 1), (2, 3)]),
         (
-            lambda x: {n: i for (n, i) in enumerate(x.index.to_list())},
+            lambda x: dict(enumerate(x.index.to_list())),
             [{0: 0, 1: 1}, {0: 2, 1: 3}],
         ),
         (
@@ -974,16 +975,20 @@ def test_apply_function_index_return(function):
 
 
 def test_apply_function_with_indexing_return_column():
-    # GH: 7002
+    # GH#7002, GH#41480, GH#49256
     df = DataFrame(
         {
             "foo1": ["one", "two", "two", "three", "one", "two"],
             "foo2": [1, 2, 4, 4, 5, 6],
         }
     )
-    with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
-        result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
-    expected = DataFrame({"foo1": ["one", "three", "two"], "foo2": [3.0, 4.0, 4.0]})
+    result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
+    expected = DataFrame(
+        {
+            "foo1": ["one", "three", "two"],
+            "foo2": [3.0, 4.0, 4.0],
+        }
+    )
     tm.assert_frame_equal(result, expected)
 
 

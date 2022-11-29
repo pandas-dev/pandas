@@ -169,9 +169,6 @@ def ensure_string_array(
     copy: bool = ...,
     skipna: bool = ...,
 ) -> npt.NDArray[np.object_]: ...
-def infer_datetimelike_array(
-    arr: npt.NDArray[np.object_],
-) -> str: ...
 def convert_nans_to_NA(
     arr: npt.NDArray[np.object_],
 ) -> npt.NDArray[np.object_]: ...
@@ -233,8 +230,8 @@ def generate_bins_dt64(
     hasnans: bool = ...,
 ) -> np.ndarray: ...  # np.ndarray[np.int64, ndim=1]
 def array_equivalent_object(
-    left: np.ndarray,  # object[:]
-    right: np.ndarray,  # object[:]
+    left: npt.NDArray[np.object_],
+    right: npt.NDArray[np.object_],
 ) -> bool: ...
 def has_infs(arr: np.ndarray) -> bool: ...  # const floating[:]
 def get_reverse_indexer(

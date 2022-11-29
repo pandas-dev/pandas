@@ -15,6 +15,7 @@ from cpython.iterator cimport PyIter_Check
 from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
     Py_EQ,
+    PyObject,
     PyObject_RichCompareBool,
     PyTypeObject,
 )
@@ -571,25 +572,42 @@ def maybe_booleans_to_slice(ndarray[uint8_t, ndim=1] mask):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def array_equivalent_object(left: object[:], right: object[:]) -> bool:
+def array_equivalent_object(ndarray left, ndarray right) -> bool:
     """
-    Perform an element by element comparison on 1-d object arrays
+    Perform an element by element comparison on N-d object arrays
     taking into account nan positions.
     """
+    # left and right both have object dtype, but we cannot annotate that
+    #  without limiting ndim.
     cdef:
-        Py_ssize_t i, n = left.shape[0]
+        Py_ssize_t i, n = left.size
         object x, y
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(left, right)
+
+    # Caller is responsible for checking left.shape == right.shape
 
     for i in range(n):
-        x = left[i]
-        y = right[i]
+        # Analogous to: x = left[i]
+        x = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 0))[0]
+        y = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
         # we are either not equal or both nan
         # I think None == None will be true here
         try:
             if PyArray_Check(x) and PyArray_Check(y):
-                if not array_equivalent_object(x, y):
+                if x.shape != y.shape:
                     return False
+                if x.dtype == y.dtype == object:
+                    if not array_equivalent_object(x, y):
+                        return False
+                else:
+                    # Circular import isn't great, but so it goes.
+                    # TODO: could use np.array_equal?
+                    from pandas.core.dtypes.missing import array_equivalent
+
+                    if not array_equivalent(x, y):
+                        return False
+
             elif (x is C_NA) ^ (y is C_NA):
                 return False
             elif not (
@@ -611,6 +629,8 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                 # Only condition we may end up with a TypeError
                 return False
             raise
+
+        cnp.PyArray_MultiIter_NEXT(mi)
 
     return True
 
@@ -1438,6 +1458,8 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     else:
         if not isinstance(value, list):
             value = list(value)
+        if not value:
+            return "empty"
 
         from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
         values = construct_1d_object_array_from_listlike(value)
@@ -1561,99 +1583,6 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
         if util.is_integer_object(val):
             return "mixed-integer"
-
-    return "mixed"
-
-
-def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
-    """
-    Infer if we have a datetime or timedelta array.
-    - date: we have *only* date and maybe strings, nulls
-    - datetime: we have *only* datetimes and maybe strings, nulls
-    - timedelta: we have *only* timedeltas and maybe strings, nulls
-    - nat: we do not have *any* date, datetimes or timedeltas, but do have
-      at least a NaT
-    - mixed: other objects (strings, a mix of tz-aware and tz-naive, or
-                            actual objects)
-
-    Parameters
-    ----------
-    arr : ndarray[object]
-
-    Returns
-    -------
-    str: {datetime, timedelta, date, nat, mixed}
-    """
-    cdef:
-        Py_ssize_t i, n = len(arr)
-        bint seen_timedelta = False, seen_date = False, seen_datetime = False
-        bint seen_tz_aware = False, seen_tz_naive = False
-        bint seen_nat = False
-        bint seen_period = False, seen_interval = False
-        object v
-
-    for i in range(n):
-        v = arr[i]
-        if isinstance(v, str):
-            return "mixed"
-
-        elif v is None or util.is_nan(v):
-            # nan or None
-            pass
-        elif v is NaT:
-            seen_nat = True
-        elif PyDateTime_Check(v):
-            # datetime
-            seen_datetime = True
-
-            # disambiguate between tz-naive and tz-aware
-            if v.tzinfo is None:
-                seen_tz_naive = True
-            else:
-                seen_tz_aware = True
-
-            if seen_tz_naive and seen_tz_aware:
-                return "mixed"
-        elif util.is_datetime64_object(v):
-            # np.datetime64
-            seen_datetime = True
-        elif PyDate_Check(v):
-            seen_date = True
-        elif is_timedelta(v):
-            # timedelta, or timedelta64
-            seen_timedelta = True
-        elif is_period_object(v):
-            seen_period = True
-            break
-        elif is_interval(v):
-            seen_interval = True
-            break
-        else:
-            return "mixed"
-
-    if seen_period:
-        if is_period_array(arr):
-            return "period"
-        return "mixed"
-
-    if seen_interval:
-        if is_interval_array(arr):
-            return "interval"
-        return "mixed"
-
-    if seen_date:
-        if not seen_datetime and not seen_timedelta:
-            return "date"
-        return "mixed"
-
-    elif seen_datetime and not seen_timedelta:
-        return "datetime"
-    elif seen_timedelta and not seen_datetime:
-        return "timedelta"
-    elif seen_datetime and seen_timedelta:
-        return "mixed"
-    elif seen_nat:
-        return "nat"
 
     return "mixed"
 
