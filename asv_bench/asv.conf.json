@@ -60,7 +60,7 @@
         "meson-python": [],
         "python-build": [],
     },
-    "conda_channels": ["conda-forge","defaults"],
+    "conda_channels": ["conda-forge"],
     // Combinations of libraries/python versions can be excluded/included
     // from the set to test. Each entry is a dictionary containing additional
     // key-value pairs to include/exclude.
@@ -128,6 +128,5 @@
     "regression_thresholds": {
     },
     "build_command":
-    // TODO: Caching?
-    ["python -m build -Cbuildir=buildir --wheel --no-isolation --outdir {build_cache_dir}"]
+    ["python -m build -Cbuilddir=builddir --wheel --no-isolation --outdir {build_cache_dir} {build_dir}"]
 }
