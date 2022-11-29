@@ -28,7 +28,7 @@ from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
     PyTZInfo_Check,
     datetime,
     import_datetime,
-    time,
+    time as dt_time,
     tzinfo as tzinfo_type,
 )
 from cpython.object cimport (
@@ -120,7 +120,7 @@ from pandas._libs.tslibs.tzconversion cimport (
 
 # ----------------------------------------------------------------------
 # Constants
-_zero_time = time(0, 0)
+_zero_time = dt_time(0, 0)
 _no_input = object()
 
 # ----------------------------------------------------------------------

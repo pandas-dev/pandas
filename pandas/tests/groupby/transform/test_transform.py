@@ -193,12 +193,9 @@ def test_transform_axis_1_reducer(request, reduction_func):
     ):
         marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
         request.node.add_marker(marker)
-    warn = FutureWarning if reduction_func in ("sem", "std") else None
-    msg = "The default value of numeric_only"
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    with tm.assert_produces_warning(warn, match=msg):
-        result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
+    result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
     expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
 
@@ -499,7 +496,8 @@ def test_transform_coercion():
 
     # in 2.0 np.mean on a DataFrame is equivalent to frame.mean(axis=None)
     #  which not gives a scalar instead of Series
-    result = g.transform(lambda x: np.mean(x))
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = g.transform(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
 
     with tm.assert_produces_warning(None):
