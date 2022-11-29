@@ -4,7 +4,7 @@ from __future__ import annotations
 import collections
 import datetime as dt
 import gc
-from json import loads, dumps
+from json import loads
 import operator
 import pickle
 import re
@@ -159,7 +159,11 @@ from pandas.core.internals import (
     SingleArrayManager,
 )
 from pandas.core.internals.construction import mgr_to_mgr
-from pandas.core.missing import find_valid_index, clean_reindex_fill_method, clean_fill_method
+from pandas.core.missing import (
+    clean_fill_method,
+    clean_reindex_fill_method,
+    find_valid_index,
+)
 from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
