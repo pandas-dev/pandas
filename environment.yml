@@ -85,7 +85,7 @@ dependencies:
   - cxx-compiler
 
   # code checks
-  - black=22.3.0
+  - black=22.10.0
   - cpplint
   - flake8=6.0.0
   - flake8-bugbear=22.7.1 # used by flake8, find likely bugs
