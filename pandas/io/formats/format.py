@@ -9,7 +9,7 @@ from csv import (
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
-import decimal as dec
+import decimal
 from functools import partial
 from io import StringIO
 import math
@@ -108,7 +108,7 @@ from pandas.io.common import (
 )
 from pandas.io.formats.printing import (
     adjoin,
-    justify as jtf,
+    justify,
     pprint_thing,
 )
 
@@ -433,7 +433,7 @@ class TextAdjustment:
         return len(text)
 
     def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
-        return jtf(texts, max_len, mode=mode)
+        return justify(texts, max_len, mode=mode)
 
     def adjoin(self, space: int, *lists, **kwargs) -> str:
         return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
@@ -2071,12 +2071,12 @@ class EngFormatter:
 
         @return: engineering formatted string
         """
-        dnum = dec.Decimal(str(num))
+        dnum = decimal.Decimal(str(num))
 
-        if dec.Decimal.is_nan(dnum):
+        if decimal.Decimal.is_nan(dnum):
             return "NaN"
 
-        if dec.Decimal.is_infinite(dnum):
+        if decimal.Decimal.is_infinite(dnum):
             return "inf"
 
         sign = 1
@@ -2086,9 +2086,9 @@ class EngFormatter:
             dnum = -dnum
 
         if dnum != 0:
-            pow10 = dec.Decimal(int(math.floor(dnum.log10() / 3) * 3))
+            pow10 = decimal.Decimal(int(math.floor(dnum.log10() / 3) * 3))
         else:
-            pow10 = dec.Decimal(0)
+            pow10 = decimal.Decimal(0)
 
         pow10 = pow10.min(max(self.ENG_PREFIXES.keys()))
         pow10 = pow10.max(min(self.ENG_PREFIXES.keys()))
