@@ -243,7 +243,7 @@ def test_bad_header_uniform_error(all_parsers):
     if parser.engine == "c":
         msg = (
             "Could not construct index. Requested to use 1 "
-            + "number of columns, but 3 left to parse."
+            "number of columns, but 3 left to parse."
         )
 
     with pytest.raises(ParserError, match=msg):
