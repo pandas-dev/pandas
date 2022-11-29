@@ -4,7 +4,7 @@ from __future__ import annotations
 import collections
 import datetime as dt
 import gc
-import json
+import json as js
 import operator
 import pickle
 import re
@@ -134,7 +134,7 @@ from pandas.core import (
     algorithms as algos,
     arraylike,
     indexing,
-    missing,
+    missing as miss,
     nanops,
     sample,
 )
@@ -2122,7 +2122,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             as_json = data.to_json(orient="table")
             as_json = cast(str, as_json)
-            return json.loads(as_json, object_pairs_hook=collections.OrderedDict)
+            return js.loads(as_json, object_pairs_hook=collections.OrderedDict)
 
     # ----------------------------------------------------------------------
     # I/O Methods
@@ -2410,7 +2410,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> import json
+        >>> import json as js
         >>> df = pd.DataFrame(
         ...     [["a", "b"], ["c", "d"]],
         ...     index=["row 1", "row 2"],
@@ -2418,8 +2418,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ... )
 
         >>> result = df.to_json(orient="split")
-        >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        >>> parsed = js.loads(result)
+        >>> js.dumps(parsed, indent=4)  # doctest: +SKIP
         {{
             "columns": [
                 "col 1",
@@ -2445,8 +2445,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Note that index labels are not preserved with this encoding.
 
         >>> result = df.to_json(orient="records")
-        >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        >>> parsed = js.loads(result)
+        >>> js.dumps(parsed, indent=4)  # doctest: +SKIP
         [
             {{
                 "col 1": "a",
@@ -2461,8 +2461,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
 
         >>> result = df.to_json(orient="index")
-        >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        >>> parsed = js.loads(result)
+        >>> js.dumps(parsed, indent=4)  # doctest: +SKIP
         {{
             "row 1": {{
                 "col 1": "a",
@@ -2477,8 +2477,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Encoding/decoding a Dataframe using ``'columns'`` formatted JSON:
 
         >>> result = df.to_json(orient="columns")
-        >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        >>> parsed = js.loads(result)
+        >>> js.dumps(parsed, indent=4)  # doctest: +SKIP
         {{
             "col 1": {{
                 "row 1": "a",
@@ -2493,8 +2493,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Encoding/decoding a Dataframe using ``'values'`` formatted JSON:
 
         >>> result = df.to_json(orient="values")
-        >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        >>> parsed = js.loads(result)
+        >>> js.dumps(parsed, indent=4)  # doctest: +SKIP
         [
             [
                 "a",
@@ -2509,8 +2509,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Encoding with Table Schema:
 
         >>> result = df.to_json(orient="table")
-        >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        >>> parsed = js.loads(result)
+        >>> js.dumps(parsed, indent=4)  # doctest: +SKIP
         {{
             "schema": {{
                 "fields": [
@@ -5169,7 +5169,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        method = missing.clean_reindex_fill_method(kwargs.pop("method", None))
+        method = miss.clean_reindex_fill_method(kwargs.pop("method", None))
         level = kwargs.pop("level", None)
         copy = kwargs.pop("copy", None)
         limit = kwargs.pop("limit", None)
@@ -9201,7 +9201,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4  600.0  700.0  800.0  900.0 NaN
         """
 
-        method = missing.clean_fill_method(method)
+        method = miss.clean_fill_method(method)
 
         if broadcast_axis == 1 and self.ndim != other.ndim:
             if isinstance(self, ABCSeries):
