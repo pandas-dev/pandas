@@ -325,8 +325,12 @@ Compute {fname} of group values.
 Parameters
 ----------
 numeric_only : bool, default {no}
-    Include only float, int, boolean columns. If None, will attempt to use
-    everything, then use only numeric data.
+    Include only float, int, boolean columns.
+
+    .. versionchanged:: 2.0.0
+
+        numeric_only no longer accepts ``None``.
+
 min_count : int, default {mc}
     The required number of valid values to perform the operation. If fewer
     than ``min_count`` non-NA values are present the result will be NA.
@@ -1655,7 +1659,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 alt=npfunc,
                 numeric_only=numeric_only,
                 min_count=min_count,
-                ignore_failures=numeric_only is lib.no_default,
             )
             return result.__finalize__(self.obj, method="groupby")
 
@@ -1706,7 +1709,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         alt: Callable,
         numeric_only: bool | lib.NoDefault,
         min_count: int = -1,
-        ignore_failures: bool = True,
         **kwargs,
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
@@ -1750,7 +1752,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
-        new_mgr = data.grouped_reduce(array_func, ignore_failures=ignore_failures)
+        new_mgr = data.grouped_reduce(array_func, ignore_failures=False)
 
         if not is_ser and len(new_mgr) < orig_len:
             warn_dropping_nuisance_columns_deprecated(type(self), how, numeric_only)
@@ -1809,7 +1811,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # and deal with possible broadcasting below.
             # Temporarily set observed for dealing with categoricals.
             with com.temp_setattr(self, "observed", True):
-                result = getattr(self, func)(*args, **kwargs)
+                with com.temp_setattr(self, "as_index", True):
+                    # GH#49834 - result needs groups in the index for
+                    # _wrap_transform_fast_result
+                    result = getattr(self, func)(*args, **kwargs)
 
             return self._wrap_transform_fast_result(result)
 
@@ -2045,7 +2050,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Substitution(see_also=_common_see_also)
     def mean(
         self,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
         engine: str = "cython",
         engine_kwargs: dict[str, bool] | None = None,
     ):
@@ -2054,9 +2059,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
-        numeric_only : bool, default True
-            Include only float, int, boolean columns. If None, will attempt to use
-            everything, then use only numeric data.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only no longer accepts ``None`` and defaults to ``False``.
 
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
@@ -2113,7 +2121,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2    4.0
         Name: B, dtype: float64
         """
-        numeric_only_bool = self._resolve_numeric_only("mean", numeric_only, axis=0)
 
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
@@ -2122,16 +2129,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             result = self._cython_agg_general(
                 "mean",
-                alt=lambda x: Series(x).mean(numeric_only=numeric_only_bool),
+                alt=lambda x: Series(x).mean(numeric_only=numeric_only),
                 numeric_only=numeric_only,
-                ignore_failures=numeric_only is lib.no_default,
             )
             return result.__finalize__(self.obj, method="groupby")
 
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def median(self, numeric_only: bool | lib.NoDefault = lib.no_default):
+    def median(self, numeric_only: bool = False):
         """
         Compute median of groups, excluding missing values.
 
@@ -2140,8 +2146,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Parameters
         ----------
         numeric_only : bool, default True
-            Include only float, int, boolean columns. If None, will attempt to use
-            everything, then use only numeric data.
+            Include only float, int, boolean columns.
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only no longer accepts ``None``.
 
         Returns
         -------
@@ -2154,7 +2163,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             "median",
             alt=lambda x: Series(x).median(numeric_only=numeric_only_bool),
             numeric_only=numeric_only,
-            ignore_failures=numeric_only is lib.no_default,
         )
         return result.__finalize__(self.obj, method="groupby")
 
@@ -2166,7 +2174,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof: int = 1,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ):
         """
         Compute standard deviation of groups, excluding missing values.
@@ -2195,10 +2203,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 1.4.0
 
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
 
         Returns
         -------
@@ -2229,7 +2241,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 post_processing=lambda vals, inference: np.sqrt(vals),
                 ddof=ddof,
             )
-            self._maybe_warn_numeric_only_depr("std", result, numeric_only)
             return result
 
     @final
@@ -2240,7 +2251,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof: int = 1,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ):
         """
         Compute variance of groups, excluding missing values.
@@ -2269,10 +2280,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 1.4.0
 
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
 
         Returns
         -------
@@ -2288,14 +2303,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 "var",
                 alt=lambda x: Series(x).var(ddof=ddof),
                 numeric_only=numeric_only,
-                ignore_failures=numeric_only is lib.no_default,
                 ddof=ddof,
             )
 
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def sem(self, ddof: int = 1, numeric_only: bool | lib.NoDefault = lib.no_default):
+    def sem(self, ddof: int = 1, numeric_only: bool = False):
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -2311,23 +2325,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 1.5.0
 
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
+
         Returns
         -------
         Series or DataFrame
             Standard error of the mean of values within each group.
         """
         # Reolve numeric_only so that std doesn't warn
-        numeric_only_bool = self._resolve_numeric_only("sem", numeric_only, axis=0)
-        if (
-            numeric_only_bool
-            and self.obj.ndim == 1
-            and not is_numeric_dtype(self.obj.dtype)
-        ):
+        if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             raise TypeError(
                 f"{type(self).__name__}.sem called with "
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
-        result = self.std(ddof=ddof, numeric_only=numeric_only_bool)
+        result = self.std(ddof=ddof, numeric_only=numeric_only)
         self._maybe_warn_numeric_only_depr("sem", result, numeric_only)
 
         if result.ndim == 1:
@@ -2378,10 +2391,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
+    @doc(_groupby_agg_method_template, fname="sum", no=False, mc=0)
     def sum(
         self,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
         min_count: int = 0,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
@@ -2408,10 +2421,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return self._reindex_output(result, fill_value=0)
 
     @final
-    @doc(_groupby_agg_method_template, fname="prod", no=True, mc=0)
-    def prod(
-        self, numeric_only: bool | lib.NoDefault = lib.no_default, min_count: int = 0
-    ):
+    @doc(_groupby_agg_method_template, fname="prod", no=False, mc=0)
+    def prod(self, numeric_only: bool = False, min_count: int = 0):
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
@@ -3290,8 +3301,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         is_ser = obj.ndim == 1
         mgr = self._get_data_to_aggregate()
         data = mgr.get_numeric_data() if numeric_only_bool else mgr
-        ignore_failures = numeric_only_bool
-        res_mgr = data.grouped_reduce(blk_func, ignore_failures=ignore_failures)
+        res_mgr = data.grouped_reduce(blk_func, ignore_failures=False)
 
         if (
             numeric_only is lib.no_default
@@ -3773,9 +3783,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if numeric_only_bool:
             mgr = mgr.get_numeric_data()
 
-        res_mgr = mgr.grouped_reduce(
-            blk_func, ignore_failures=numeric_only is lib.no_default
-        )
+        res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=False)
 
         if not is_ser and len(res_mgr.items) != orig_mgr_len:
             howstr = how.replace("group_", "")

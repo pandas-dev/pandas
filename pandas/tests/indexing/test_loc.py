@@ -435,7 +435,6 @@ class TestLocBaseIndependent:
             np.random.random((3, 3)), index=["a", "b", "c"], columns=["e", "f", "g"]
         )
 
-        # raise a KeyError?
         msg = (
             r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are "
             r"in the \[index\]\""
