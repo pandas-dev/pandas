@@ -479,7 +479,7 @@ class Grouping:
                 index_level = index.get_level_values(ilevel)
             else:
                 index_level = index
-            
+
             if self.grouping_vector is None:
                 self.grouping_vector = index_level
             else:
