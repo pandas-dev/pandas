@@ -744,8 +744,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
         pattern = match.pattern
 
         # 1. check all descendants for the given pattern and only search tables
-        # 2. go up the tree until we find a table
-        xpath_expr = f"//table//*[re:test(text(), {repr(pattern)})]/ancestor::table"
+        # GH 49929
+        xpath_expr = f"//table[.//text()[re:test(., {repr(pattern)})]]"
 
         # if any table attributes were given build an xpath expression to
         # search for them
