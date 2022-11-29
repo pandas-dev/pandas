@@ -82,7 +82,7 @@ _TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
     DatetimeLikeArrayMixin,
     cache=True,
 )
-@inherit_names(["mean", "freq", "freqstr"], DatetimeLikeArrayMixin)
+@inherit_names(["mean", "freqstr"], DatetimeLikeArrayMixin)
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     """
     Common ops mixin to support a unified interface datetimelike Index.
@@ -96,15 +96,22 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     _resolution_obj: Resolution
 
     @property
+    def freq(self):
+        return self._data.freq
+
+    @final
+    @property
     def asi8(self) -> npt.NDArray[np.int64]:
         return self._data.asi8
 
     # ------------------------------------------------------------------------
 
+    @final
     @cache_readonly
     def hasnans(self) -> bool:
         return self._data._hasna
 
+    @final
     def equals(self, other: Any) -> bool:
         """
         Determines if two Index objects contain the same elements.
@@ -141,6 +148,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
         return np.array_equal(self.asi8, other.asi8)
 
+    @final
     @Appender(Index.__contains__.__doc__)
     def __contains__(self, key: Any) -> bool:
         hash(key)
@@ -157,6 +165,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Rendering Methods
 
+    @final
     def format(
         self,
         name: bool = False,
@@ -180,6 +189,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
         return self._format_with_header(header, na_rep=na_rep, date_format=date_format)
 
+    @final
     def _format_with_header(
         self, header: list[str], na_rep: str = "NaT", date_format: str | None = None
     ) -> list[str]:
@@ -192,6 +202,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _formatter_func(self):
         return self._data._formatter()
 
+    @final
     def _format_attrs(self):
         """
         Return a list of tuples of the (attr,formatted_value).
@@ -206,6 +217,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                 attrs.append(("freq", freq))
         return attrs
 
+    @final
     @Appender(Index._summary.__doc__)
     def _summary(self, name=None) -> str:
         result = super()._summary(name=name)
@@ -389,15 +401,18 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     _join_precedence = 10
 
-    def _with_freq(self, freq):
+    @final
+    def _with_freq(self: _TDT, freq) -> _TDT:
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
 
+    @final
     @property
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
         return self._data._ndarray
 
+    @final
     @doc(DatetimeIndexOpsMixin.shift)
     def shift(self: _TDT, periods: int = 1, freq=None) -> _TDT:
         if freq is not None and freq != self.freq:
@@ -427,6 +442,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
+    @final
     @cache_readonly
     def _as_range_index(self) -> RangeIndex:
         # Convert our i8 representations to RangeIndex
@@ -436,9 +452,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         rng = range(self[0].value, self[-1].value + tick, tick)
         return RangeIndex(rng)
 
+    @final
     def _can_range_setop(self, other):
         return isinstance(self.freq, Tick) and isinstance(other.freq, Tick)
 
+    @final
     def _wrap_range_setop(self, other, res_i8):
         new_freq = None
         if not len(res_i8):
@@ -458,6 +476,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         )
         return self._wrap_setop_result(other, result)
 
+    @final
     def _range_intersect(self, other, sort):
         # Dispatch to RangeIndex intersection logic.
         left = self._as_range_index
@@ -465,6 +484,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         res_i8 = left.intersection(right, sort=sort)
         return self._wrap_range_setop(other, res_i8)
 
+    @final
     def _range_union(self, other, sort):
         # Dispatch to RangeIndex union logic.
         left = self._as_range_index
@@ -472,6 +492,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         res_i8 = left.union(right, sort=sort)
         return self._wrap_range_setop(other, res_i8)
 
+    @final
     def _intersection(self, other: Index, sort: bool = False) -> Index:
         """
         intersection specialized to the case with matching dtypes and both non-empty.
@@ -494,6 +515,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         else:
             return self._fast_intersect(other, sort)
 
+    @final
     def _fast_intersect(self, other, sort):
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -514,6 +536,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
         return result
 
+    @final
     def _can_fast_intersect(self: _T, other: _T) -> bool:
         # Note: we only get here with len(self) > 0 and len(other) > 0
         if self.freq is None:
@@ -532,6 +555,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # GH#42104
         return self.freq.n == 1
 
+    @final
     def _can_fast_union(self: _T, other: _T) -> bool:
         # Assumes that type(self) == type(other), as per the annotation
         # The ability to fast_union also implies that `freq` should be
@@ -562,6 +586,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # Only need to "adjoin", not overlap
         return (right_start == left_end + freq) or right_start in left
 
+    @final
     def _fast_union(self: _TDT, other: _TDT, sort=None) -> _TDT:
         # Caller is responsible for ensuring self and other are non-empty
 
@@ -597,6 +622,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         else:
             return left
 
+    @final
     def _union(self, other, sort):
         # We are called by `union`, which is responsible for this validation
         assert isinstance(other, type(self))
@@ -616,6 +642,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     # --------------------------------------------------------------------
     # Join Methods
 
+    @final
     def _get_join_freq(self, other):
         """
         Get the freq to attach to the result of a join operation.
@@ -625,16 +652,19 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             freq = self.freq
         return freq
 
+    @final
     def _wrap_joined_index(self, joined, other):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
         result = super()._wrap_joined_index(joined, other)
         result._data._freq = self._get_join_freq(other)
         return result
 
+    @final
     def _get_engine_target(self) -> np.ndarray:
         # engine methods and libjoin methods need dt64/td64 values cast to i8
         return self._data._ndarray.view("i8")
 
+    @final
     def _from_join_target(self, result: np.ndarray):
         # view e.g. i8 back to M8[ns]
         result = result.view(self._data._ndarray.dtype)
@@ -643,6 +673,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     # --------------------------------------------------------------------
     # List-like Methods
 
+    @final
     def _get_delete_freq(self, loc: int | slice | Sequence[int]):
         """
         Find the `freq` for self.delete(loc).
@@ -665,6 +696,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
                         freq = self.freq
         return freq
 
+    @final
     def _get_insert_freq(self, loc: int, item):
         """
         Find the `freq` for self.insert(loc, item).
@@ -692,12 +724,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
                     freq = self.freq
         return freq
 
+    @final
     @doc(NDArrayBackedExtensionIndex.delete)
     def delete(self, loc) -> DatetimeTimedeltaMixin:
         result = super().delete(loc)
         result._data._freq = self._get_delete_freq(loc)
         return result
 
+    @final
     @doc(NDArrayBackedExtensionIndex.insert)
     def insert(self, loc: int, item):
         result = super().insert(loc, item)
@@ -709,6 +743,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     # --------------------------------------------------------------------
     # NDArray-Like Methods
 
+    @final
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
         self,
