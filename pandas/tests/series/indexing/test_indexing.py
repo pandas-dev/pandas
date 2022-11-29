@@ -286,9 +286,7 @@ def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer
     assert result.name == ser.name
 
 
-"""
-miscellaneous methods
-"""
+# miscellaneous methods
 
 
 @pytest.mark.parametrize(
