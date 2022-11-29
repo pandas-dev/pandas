@@ -40,7 +40,7 @@ from pandas._libs.missing cimport (
 multiindex_nulls_shift = 2
 
 
-cdef inline bint is_definitely_invalid_key(object val):
+cdef bint is_definitely_invalid_key(object val):
     try:
         hash(val)
     except TypeError:

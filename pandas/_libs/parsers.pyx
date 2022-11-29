@@ -1585,7 +1585,7 @@ cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
     return result
 
 
-cdef inline void _to_fw_string_nogil(parser_t *parser, int64_t col,
+cdef void _to_fw_string_nogil(parser_t *parser, int64_t col,
                                      int64_t line_start, int64_t line_end,
                                      size_t width, char *data) nogil:
     cdef:
@@ -1640,7 +1640,7 @@ cdef _try_double(parser_t *parser, int64_t col,
     return result, na_count
 
 
-cdef inline int _try_double_nogil(parser_t *parser,
+cdef int _try_double_nogil(parser_t *parser,
                                   float64_t (*double_converter)(
                                       const char *, char **, char,
                                       char, char, int, int *, int *) nogil,
@@ -1749,7 +1749,7 @@ cdef _try_uint64(parser_t *parser, int64_t col,
     return result
 
 
-cdef inline int _try_uint64_nogil(parser_t *parser, int64_t col,
+cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                                   int64_t line_start,
                                   int64_t line_end, bint na_filter,
                                   const kh_str_starts_t *na_hashset,
@@ -1813,7 +1813,7 @@ cdef _try_int64(parser_t *parser, int64_t col,
     return result, na_count
 
 
-cdef inline int _try_int64_nogil(parser_t *parser, int64_t col,
+cdef int _try_int64_nogil(parser_t *parser, int64_t col,
                                  int64_t line_start,
                                  int64_t line_end, bint na_filter,
                                  const kh_str_starts_t *na_hashset, int64_t NA,
@@ -1876,7 +1876,7 @@ cdef _try_bool_flex(parser_t *parser, int64_t col,
     return result.view(np.bool_), na_count
 
 
-cdef inline int _try_bool_flex_nogil(parser_t *parser, int64_t col,
+cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
                                      int64_t line_start,
                                      int64_t line_end, bint na_filter,
                                      const kh_str_starts_t *na_hashset,

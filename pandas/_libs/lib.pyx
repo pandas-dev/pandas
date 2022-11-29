@@ -231,7 +231,7 @@ def is_scalar(val: object) -> bool:
             or is_offset_object(val))
 
 
-cdef inline int64_t get_itemsize(object val):
+cdef int64_t get_itemsize(object val):
     """
     Get the itemsize of a NumPy scalar, -1 if not a NumPy scalar.
 
@@ -1083,7 +1083,7 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     return c_is_list_like(obj, allow_sets)
 
 
-cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
+cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
     # first, performance short-cuts for the most common cases
     if util.is_array(obj):
         # exclude zero-dimensional numpy arrays, effectively scalars
@@ -1567,7 +1567,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     return "mixed"
 
 
-cdef inline bint is_timedelta(object o):
+cdef bint is_timedelta(object o):
     return PyDelta_Check(o) or util.is_timedelta64_object(o)
 
 

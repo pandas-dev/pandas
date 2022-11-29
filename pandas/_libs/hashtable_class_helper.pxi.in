@@ -140,7 +140,7 @@ ctypedef struct {{name}}VectorData:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline void append_data_{{dtype}}({{name}}VectorData *data,
+cdef void append_data_{{dtype}}({{name}}VectorData *data,
                                        {{c_type}} x) nogil:
 
     data.data[data.n] = x
@@ -163,7 +163,7 @@ ctypedef fused vector_data:
     Complex64VectorData
     StringVectorData
 
-cdef inline bint needs_resize(vector_data *data) nogil:
+cdef bint needs_resize(vector_data *data) nogil:
     return data.n == data.m
 
 # ----------------------------------------------------------------------

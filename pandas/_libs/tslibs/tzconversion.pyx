@@ -398,7 +398,7 @@ timedelta-like}
     return result.base  # .base to get underlying ndarray
 
 
-cdef inline Py_ssize_t bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
+cdef Py_ssize_t bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
     # Caller is responsible for checking n > 0
     # This looks very similar to local_search_right in the ndarray.searchsorted
     #  implementation.
@@ -427,7 +427,7 @@ cdef inline Py_ssize_t bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n)
     return left
 
 
-cdef inline str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
+cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
     """ Helper function to render exception messages"""
     from pandas._libs.tslibs.timestamps import Timestamp
     ts = Timestamp._from_value_and_reso(val, creso, None)

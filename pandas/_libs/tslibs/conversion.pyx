@@ -80,7 +80,7 @@ TD64NS_DTYPE = np.dtype('m8[ns]')
 # ----------------------------------------------------------------------
 # Unit Conversion Helpers
 
-cdef inline int64_t cast_from_unit(object ts, str unit) except? -1:
+cdef int64_t cast_from_unit(object ts, str unit) except? -1:
     """
     Return a casting of the unit represented to nanoseconds
     round the fractional part of a float to our precision, p.
@@ -167,7 +167,7 @@ cpdef inline (int64_t, int) precision_from_unit(str unit):
     return m, p
 
 
-cdef inline int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
+cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
     """
     Extract the value and unit from a np.datetime64 object, then convert the
     value to nanoseconds if necessary.
@@ -524,7 +524,7 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
     return convert_datetime_to_tsobject(dt, tz)
 
 
-cdef inline check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
+cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
     """
     Check that we haven't silently overflowed in timezone conversion
 
@@ -567,7 +567,7 @@ cdef inline check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
 # ----------------------------------------------------------------------
 # Localization
 
-cdef inline void _localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso):
+cdef void _localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso):
     """
     Given the UTC nanosecond timestamp in obj.value, find the wall-clock
     representation of that timestamp in the given timezone.
@@ -609,7 +609,7 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso):
     obj.tzinfo = tz
 
 
-cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
+cdef datetime _localize_pydatetime(datetime dt, tzinfo tz):
     """
     Take a datetime/Timestamp in UTC and localizes to timezone tz.
 

@@ -52,14 +52,14 @@ cdef extern from "numpy/npy_common.h":
     int64_t NPY_MIN_INT64
 
 
-cdef inline int64_t get_nat():
+cdef int64_t get_nat():
     return NPY_MIN_INT64
 
 
 # --------------------------------------------------------------------
 # Type Checking
 
-cdef inline bint is_integer_object(object obj) nogil:
+cdef bint is_integer_object(object obj) nogil:
     """
     Cython equivalent of
 
@@ -81,7 +81,7 @@ cdef inline bint is_integer_object(object obj) nogil:
             and not is_timedelta64_object(obj))
 
 
-cdef inline bint is_float_object(object obj) nogil:
+cdef bint is_float_object(object obj) nogil:
     """
     Cython equivalent of `isinstance(val, (float, np.complex_))`
 
@@ -97,7 +97,7 @@ cdef inline bint is_float_object(object obj) nogil:
             (PyObject_TypeCheck(obj, &PyFloatingArrType_Type)))
 
 
-cdef inline bint is_complex_object(object obj) nogil:
+cdef bint is_complex_object(object obj) nogil:
     """
     Cython equivalent of `isinstance(val, (complex, np.complex_))`
 
@@ -113,7 +113,7 @@ cdef inline bint is_complex_object(object obj) nogil:
             PyObject_TypeCheck(obj, &PyComplexFloatingArrType_Type))
 
 
-cdef inline bint is_bool_object(object obj) nogil:
+cdef bint is_bool_object(object obj) nogil:
     """
     Cython equivalent of `isinstance(val, (bool, np.bool_))`
 
@@ -129,11 +129,11 @@ cdef inline bint is_bool_object(object obj) nogil:
             PyObject_TypeCheck(obj, &PyBoolArrType_Type))
 
 
-cdef inline bint is_real_number_object(object obj) nogil:
+cdef bint is_real_number_object(object obj) nogil:
     return is_bool_object(obj) or is_integer_object(obj) or is_float_object(obj)
 
 
-cdef inline bint is_timedelta64_object(object obj) nogil:
+cdef bint is_timedelta64_object(object obj) nogil:
     """
     Cython equivalent of `isinstance(val, np.timedelta64)`
 
@@ -148,7 +148,7 @@ cdef inline bint is_timedelta64_object(object obj) nogil:
     return PyObject_TypeCheck(obj, &PyTimedeltaArrType_Type)
 
 
-cdef inline bint is_datetime64_object(object obj) nogil:
+cdef bint is_datetime64_object(object obj) nogil:
     """
     Cython equivalent of `isinstance(val, np.datetime64)`
 
@@ -163,7 +163,7 @@ cdef inline bint is_datetime64_object(object obj) nogil:
     return PyObject_TypeCheck(obj, &PyDatetimeArrType_Type)
 
 
-cdef inline bint is_array(object val):
+cdef bint is_array(object val):
     """
     Cython equivalent of `isinstance(val, np.ndarray)`
 
@@ -178,7 +178,7 @@ cdef inline bint is_array(object val):
     return PyArray_Check(val)
 
 
-cdef inline bint is_nan(object val):
+cdef bint is_nan(object val):
     """
     Check if val is a Not-A-Number float or complex, including
     float('NaN') and np.nan.
@@ -198,7 +198,7 @@ cdef inline bint is_nan(object val):
     return is_complex_object(val) and val != val
 
 
-cdef inline const char* get_c_string_buf_and_size(str py_string,
+cdef const char* get_c_string_buf_and_size(str py_string,
                                                   Py_ssize_t *length) except NULL:
     """
     Extract internal char* buffer of unicode or bytes object `py_string` with
@@ -221,15 +221,15 @@ cdef inline const char* get_c_string_buf_and_size(str py_string,
     return PyUnicode_AsUTF8AndSize(py_string, length)
 
 
-cdef inline const char* get_c_string(str py_string) except NULL:
+cdef const char* get_c_string(str py_string) except NULL:
     return get_c_string_buf_and_size(py_string, NULL)
 
 
-cdef inline bytes string_encode_locale(str py_string):
+cdef bytes string_encode_locale(str py_string):
     """As opposed to PyUnicode_Encode, use current system locale to encode."""
     return PyUnicode_EncodeLocale(py_string, NULL)
 
 
-cdef inline object char_to_string_locale(const char* data):
+cdef object char_to_string_locale(const char* data):
     """As opposed to PyUnicode_FromString, use current system locale to decode."""
     return PyUnicode_DecodeLocale(data, NULL)

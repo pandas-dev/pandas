@@ -60,7 +60,7 @@ cdef enum InterpolationEnumType:
     INTERPOLATION_MIDPOINT
 
 
-cdef inline float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
+cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -97,7 +97,7 @@ cdef inline float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nog
     return result
 
 
-cdef inline float64_t median_linear(float64_t* a, int n) nogil:
+cdef float64_t median_linear(float64_t* a, int n) nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -134,7 +134,7 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     return result
 
 
-cdef inline float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
+cdef float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
     cdef:
         float64_t result
 
@@ -1231,7 +1231,7 @@ def group_quantile(
 # group_nth, group_last, group_rank
 # ----------------------------------------------------------------------
 
-cdef inline bint _treat_as_na(numeric_object_t val, bint is_datetimelike) nogil:
+cdef bint _treat_as_na(numeric_object_t val, bint is_datetimelike) nogil:
     if numeric_object_t is object:
         # Should never be used, but we need to avoid the `val != val` below
         #  or else cython will raise about gil acquisition.
