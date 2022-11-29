@@ -319,7 +319,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         dtype = _validate_dt64_dtype(dtype)
         # if dtype has an embedded tz, capture it
-        tz = validate_tz_from_dtype(dtype, tz, explicit_tz_none)
+        tz = _validate_tz_from_dtype(dtype, tz, explicit_tz_none)
 
         unit = None
         if dtype is not None:
@@ -338,7 +338,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             ambiguous=ambiguous,
         )
         # We have to call this again after possibly inferring a tz above
-        validate_tz_from_dtype(dtype, tz, explicit_tz_none)
+        _validate_tz_from_dtype(dtype, tz, explicit_tz_none)
         if tz is not None and explicit_tz_none:
             raise ValueError(
                 "Passed data is timezone-aware, incompatible with 'tz=None'. "
@@ -1953,18 +1953,6 @@ default 'raise'
 # Constructor Helpers
 
 
-def sequence_to_datetimes(data) -> DatetimeArray:
-    """
-    Parse/convert the passed data to either DatetimeArray or np.ndarray[object].
-    """
-    result, tz, freq = _sequence_to_dt64ns(data)
-
-    unit = np.datetime_data(result.dtype)[0]
-    dtype = tz_to_dtype(tz, unit)
-    dta = DatetimeArray._simple_new(result, freq=freq, dtype=dtype)
-    return dta
-
-
 def _sequence_to_dt64ns(
     data,
     *,
@@ -2071,6 +2059,7 @@ def _sequence_to_dt64ns(
             new_unit = npy_unit_to_abbrev(new_reso)
             new_dtype = np.dtype(f"M8[{new_unit}]")
             data = astype_overflowsafe(data, dtype=new_dtype, copy=False)
+            data_unit = get_unit_from_dtype(new_dtype)
             copy = False
 
         if data.dtype.byteorder == ">":
@@ -2134,7 +2123,7 @@ def objects_to_datetime64ns(
     dayfirst : bool
     yearfirst : bool
     utc : bool, default False
-        Whether to convert timezone-aware timestamps to UTC.
+        Whether to convert/localize timestamps to UTC.
     errors : {'raise', 'ignore', 'coerce'}
     require_iso8601 : bool, default False
     allow_object : bool
@@ -2303,7 +2292,7 @@ def _validate_dt64_dtype(dtype):
 
     Notes
     -----
-    Unlike validate_tz_from_dtype, this does _not_ allow non-existent
+    Unlike _validate_tz_from_dtype, this does _not_ allow non-existent
     tz errors to go through
     """
     if dtype is not None:
@@ -2338,7 +2327,7 @@ def _validate_dt64_dtype(dtype):
     return dtype
 
 
-def validate_tz_from_dtype(
+def _validate_tz_from_dtype(
     dtype, tz: tzinfo | None, explicit_tz_none: bool = False
 ) -> tzinfo | None:
     """
