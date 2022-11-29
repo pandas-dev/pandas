@@ -1842,6 +1842,9 @@ def test_category_order_reducer(
     ):
         msg = "GH#10694 - idxmax/min fail with unused categories"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
+    elif reduction_func == "corrwith" and not as_index:
+        msg = "GH#49950 - corrwith with as_index=False may not have grouping column"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
     elif index_kind != "range" and not as_index:
         pytest.skip(reason="Result doesn't have categories, nothing to test")
     df = DataFrame(

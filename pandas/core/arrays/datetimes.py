@@ -2062,6 +2062,7 @@ def _sequence_to_dt64ns(
             new_unit = npy_unit_to_abbrev(new_reso)
             new_dtype = np.dtype(f"M8[{new_unit}]")
             data = astype_overflowsafe(data, dtype=new_dtype, copy=False)
+            data_unit = get_unit_from_dtype(new_dtype)
             copy = False
 
         if data.dtype.byteorder == ">":
