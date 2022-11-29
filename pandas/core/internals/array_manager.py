@@ -213,7 +213,7 @@ class BaseArrayManager(DataManager):
         -------
         ArrayManager
         """
-        assert "filter" not in kwargs and "ignore_failures" not in kwargs
+        assert "filter" not in kwargs
 
         align_keys = align_keys or []
         result_arrays: list[np.ndarray] = []
