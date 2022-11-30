@@ -821,7 +821,7 @@ class TestPeriodProperties:
         p = Period("2012", freq="A")
 
         def _ex(*args):
-            return Timestamp(Timestamp(datetime(*args)).value - 1)
+            return Timestamp(Timestamp(datetime(*args)).as_unit("ns").value - 1)
 
         xp = _ex(2013, 1, 1)
         assert xp == p.end_time
@@ -873,7 +873,7 @@ class TestPeriodProperties:
 
     def test_anchor_week_end_time(self):
         def _ex(*args):
-            return Timestamp(Timestamp(datetime(*args)).value - 1)
+            return Timestamp(Timestamp(datetime(*args)).as_unit("ns").value - 1)
 
         p = Period("2013-1-1", "W-SAT")
         xp = _ex(2013, 1, 6)

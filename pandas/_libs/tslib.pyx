@@ -841,16 +841,19 @@ cdef _array_to_datetime_object(
 cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
     # We delay this check for as long as possible
     # because it catches relatively rare cases
+
+    # Multiply by 1000 to convert to nanos, since these methods naturally have
+    #  microsecond resolution
     if val == "now":
         if utc:
-            iresult[0] = Timestamp.utcnow().value
+            iresult[0] = Timestamp.utcnow().value * 1000
         else:
             # GH#18705 make sure to_datetime("now") matches Timestamp("now")
             # Note using Timestamp.now() is faster than Timestamp("now")
-            iresult[0] = Timestamp.now().value
+            iresult[0] = Timestamp.now().value * 1000
         return True
     elif val == "today":
-        iresult[0] = Timestamp.today().value
+        iresult[0] = Timestamp.today().value * 1000
         return True
     return False
 

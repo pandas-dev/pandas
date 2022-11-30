@@ -9,6 +9,7 @@ from typing import (
 import warnings
 
 import numpy as np
+import pytz
 
 from pandas._libs import (
     NaT,
@@ -578,7 +579,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
             try:
                 parsed, reso = self._parse_with_reso(key)
-            except ValueError as err:
+            except (ValueError, pytz.NonExistentTimeError) as err:
                 raise KeyError(key) from err
             self._disallow_mismatched_indexing(parsed)
 

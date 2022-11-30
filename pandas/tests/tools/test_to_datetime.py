@@ -654,7 +654,7 @@ class TestToDatetime:
             pdtoday2 = to_datetime(["today"])[0]
 
             tstoday = Timestamp("today")
-            tstoday2 = Timestamp.today()
+            tstoday2 = Timestamp.today().as_unit("ns")
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
@@ -2750,7 +2750,13 @@ class TestOrigin:
     )
     def test_invalid_origins(self, origin, exc, units, units_from_epochs):
 
-        msg = f"origin {origin} (is Out of Bounds|cannot be converted to a Timestamp)"
+        msg = "|".join(
+            [
+                f"origin {origin} is Out of Bounds",
+                f"origin {origin} cannot be converted to a Timestamp",
+                "Cannot cast .* to unit='ns' without overflow",
+            ]
+        )
         with pytest.raises(exc, match=msg):
             to_datetime(units_from_epochs, unit=units, origin=origin)
 

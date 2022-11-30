@@ -33,4 +33,4 @@ cdef class _Timestamp(ABCTimestamp):
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1
     cdef bint _compare_mismatched_resos(_Timestamp self, _Timestamp other, int op)
-    cdef _Timestamp _as_creso(_Timestamp self, NPY_DATETIMEUNIT reso, bint round_ok=*)
+    cdef _Timestamp _as_creso(_Timestamp self, NPY_DATETIMEUNIT creso, bint round_ok=*)
