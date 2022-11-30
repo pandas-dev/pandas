@@ -2590,6 +2590,7 @@ class _TestOracleSQLAlchemy(_TestSQLAlchemy):
 
     @classmethod
     def setup_engine(cls):
+        pytest.importorskip("oracledb")
         return sqlalchemy.create_engine(
             ORACLE_CONNECTION_STRING
         )
