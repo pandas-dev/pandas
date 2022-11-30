@@ -1115,7 +1115,7 @@ def _make_date_converter(
             try:
                 return tools.to_datetime(
                     ensure_object(strs),
-                    utc=None,
+                    utc=False,
                     dayfirst=dayfirst,
                     errors="ignore",
                     infer_datetime_format=infer_datetime_format,

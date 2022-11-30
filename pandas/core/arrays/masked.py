@@ -247,11 +247,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def __iter__(self) -> Iterator:
         if self.ndim == 1:
-            for i in range(len(self)):
-                if self._mask[i]:
-                    yield self.dtype.na_value
-                else:
-                    yield self._data[i]
+            if not self._hasna:
+                for val in self._data:
+                    yield val
+            else:
+                na_value = self.dtype.na_value
+                for isna_, val in zip(self._mask, self._data):
+                    if isna_:
+                        yield na_value
+                    else:
+                        yield val
         else:
             for i in range(len(self)):
                 yield self[i]
@@ -431,10 +436,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def tolist(self):
         if self.ndim > 1:
             return [x.tolist() for x in self]
-        if not self._hasna:
-            # faster than list(self)
-            return list(self._data)
-        return list(self)
+        dtype = None if self._hasna else self._data.dtype
+        return self.to_numpy(dtype=dtype).tolist()
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
