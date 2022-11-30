@@ -79,6 +79,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.putmask import validate_putmask
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
@@ -2625,6 +2626,7 @@ class MultiIndex(Index):
             label = (label,)
         return self._partial_tup_index(label, side=side)
 
+    # pylint: disable-next=useless-parent-delegation
     def slice_locs(self, start=None, end=None, step=None) -> tuple[int, int]:
         """
         For an ordered MultiIndex, compute the slice locations for input
@@ -3658,6 +3660,46 @@ class MultiIndex(Index):
         elif len(item) != self.nlevels:
             raise ValueError("Item must have length equal to number of levels.")
         return item
+
+    def putmask(self, mask, value: MultiIndex) -> MultiIndex:
+        """
+        Return a new MultiIndex of the values set with the mask.
+
+        Parameters
+        ----------
+        mask : array like
+        value : MultiIndex
+            Must either be the same length as self or length one
+
+        Returns
+        -------
+        MultiIndex
+        """
+        mask, noop = validate_putmask(self, mask)
+        if noop:
+            return self.copy()
+
+        if len(mask) == len(value):
+            subset = value[mask].remove_unused_levels()
+        else:
+            subset = value.remove_unused_levels()
+
+        new_levels = []
+        new_codes = []
+
+        for i, (value_level, level, level_codes) in enumerate(
+            zip(subset.levels, self.levels, self.codes)
+        ):
+            new_level = level.union(value_level, sort=False)
+            value_codes = new_level.get_indexer_for(subset.get_level_values(i))
+            new_code = ensure_int64(level_codes)
+            new_code[mask] = value_codes
+            new_levels.append(new_level)
+            new_codes.append(new_code)
+
+        return MultiIndex(
+            levels=new_levels, codes=new_codes, names=self.names, verify_integrity=False
+        )
 
     def insert(self, loc: int, item) -> MultiIndex:
         """
