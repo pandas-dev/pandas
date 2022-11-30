@@ -81,9 +81,8 @@ cdef class IntervalTree(IntervalMixin):
         """How to sort the left labels; this is used for binary search
         """
         if self._left_sorter is None:
-            left_right = np.asarray([(self.left[i], self.right[i]) for i in range(0, 
-                len(self.left))], dtype=[('l', self.dtype), ('r', self.dtype)])
-            self._left_sorter = np.argsort(left_right, order=('l', 'r'))
+            values = [self.right, self.left]
+            self._left_sorter = np.lexsort(values)
         return self._left_sorter
 
     @property
