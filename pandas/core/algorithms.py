@@ -425,6 +425,7 @@ def nunique_ints(values: ArrayLike) -> int:
     if len(values) == 0:
         return 0
     values = _ensure_data(values)
+    # bincount requires intp
     result = (np.bincount(values.ravel().astype("intp")) != 0).sum()
     return result
 

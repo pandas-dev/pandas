@@ -663,8 +663,7 @@ class Grouping:
                     )
         return Index._with_infer(uniques, name=self.name)
 
-    # @cache_readonly
-    @property
+    @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
         if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
