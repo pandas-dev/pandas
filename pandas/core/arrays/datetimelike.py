@@ -1361,7 +1361,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     def _accumulate(self, name: str, *, skipna: bool = True, **kwargs):
 
-        data = self._ndarray.copy()
+        if is_period_dtype(self.dtype):
+            data = self
+        else:
+            data = self._ndarray.copy()
 
         if name in {"cummin", "cummax"}:
             func = np.minimum.accumulate if name == "cummin" else np.maximum.accumulate
