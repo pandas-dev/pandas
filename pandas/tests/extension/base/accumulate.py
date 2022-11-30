@@ -29,15 +29,15 @@ class BaseNoAccumulateTests(BaseAccumulateTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series_numeric(self, data, all_numeric_accumulations, skipna):
         op_name = all_numeric_accumulations
-        s = pd.Series(data)
+        ser = pd.Series(data)
 
         with pytest.raises(NotImplementedError):
-            getattr(s, op_name)(skipna=skipna)
+            getattr(ser, op_name)(skipna=skipna)
 
 
 class BaseNumericAccumulateTests(BaseAccumulateTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
         op_name = all_numeric_accumulations
-        s = pd.Series(data)
-        self.check_accumulate(s, op_name, skipna)
+        ser = pd.Series(data)
+        self.check_accumulate(ser, op_name, skipna)
