@@ -11,7 +11,7 @@ The SQL tests are broken down in different classes:
 - Tests for the different SQL flavors (flavor specific type conversions)
     - Tests for the sqlalchemy mode: `_TestSQLAlchemy` is the base class with
       common methods. The different tested flavors (sqlite3, MySQL,
-      PostgreSQL) derive from the base class
+      PostgreSQL, Oracle) derive from the base class
     - Tests for the fallback mode (`TestSQLiteFallback`)
 
 """
@@ -72,11 +72,39 @@ try:
 except ImportError:
     SQLALCHEMY_INSTALLED = False
 
+"""
+    For Oracle Database, you must set the environment variable
+    ORACLE_CONNECTION_STRING to the database connection string.
+    For ex: ORACLE_CONNECTION_STRING="<database_name>+<driver_name>
+    ://<user_name>:<password>@<host_address>:<portnumber>/?
+    service_name=<service_name>"
+"""
+import os
+ORACLE_CONNECTION_STRING = os.environ.get(
+    "ORACLE_CONNECTION_STRING", None
+)
+
+"""
+    The Oracle Database python-oracledb driver runs in Thin mode by default. To run
+    in Thick mode, you should set an environment variable ORACLE_DRIVER_TYPE to the
+    value "thick".
+"""
+def switchOracleDBDriverMode():
+    try:
+        import oracledb
+        # get the value of environment variable
+        oracle_driver_type = os.environ.get("ORACLE_DRIVER_TYPE", "thin")
+        if oracle_driver_type == "thick":
+            oracledb.init_oracle_client()
+    except ImportError:
+        print('python-oracledb is not installed. Hence, Oracle Database testcases will be skipped')
+
 SQL_STRINGS = {
     "read_parameters": {
         "sqlite": "SELECT * FROM iris WHERE Name=? AND SepalLength=?",
         "mysql": "SELECT * FROM iris WHERE `Name`=%s AND `SepalLength`=%s",
         "postgresql": 'SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s',
+        "oracle": 'SELECT * FROM iris WHERE "Name" = :1 AND "SepalLength" = :2',
     },
     "read_named_parameters": {
         "sqlite": """
@@ -90,11 +118,16 @@ SQL_STRINGS = {
                 SELECT * FROM iris WHERE
                 "Name"=%(name)s AND "SepalLength"=%(length)s
                 """,
+        "oracle": """
+                SELECT * FROM iris WHERE
+                "Name"=:name AND "SepalLength"=:length
+                """,
     },
     "read_no_parameters_with_percent": {
         "sqlite": "SELECT * FROM iris WHERE Name LIKE '%'",
         "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
         "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
+        "oracle": 'SELECT * FROM iris WHERE "Name" LIKE "%"',
     },
 }
 
@@ -139,6 +172,18 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
         stmt = "INSERT INTO iris VALUES(?, ?, ?, ?, ?)"
         cur.executemany(stmt, reader)
 
+"""
+    This function is only for Oracle Database.
+    It inserts one row at a time into the table.
+"""
+def insert_iteratively(conn, params, iris):
+    from sqlalchemy import insert
+    with conn.connect() as con:
+        with con.begin():
+            for param in params:
+                stmt = insert(iris).values(param)
+                con.execute(stmt)
+
 
 def create_and_load_iris(conn, iris_file: Path, dialect: str):
     from sqlalchemy import insert
@@ -152,13 +197,16 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
         reader = csv.reader(csvfile)
         header = next(reader)
         params = [dict(zip(header, row)) for row in reader]
-        stmt = insert(iris).values(params)
-        if isinstance(conn, Engine):
-            with conn.connect() as conn:
-                with conn.begin():
-                    conn.execute(stmt)
+        if dialect == 'oracle':
+            insert_iteratively(conn, params, iris)    
         else:
-            conn.execute(stmt)
+            stmt = insert(iris).values(params)
+            if isinstance(conn, Engine):
+                with conn.connect() as conn:
+                    with conn.begin():
+                        conn.execute(stmt)
+            else:
+                conn.execute(stmt)
 
 
 def create_and_load_iris_view(conn):
@@ -190,9 +238,11 @@ def types_table_metadata(dialect: str):
         MetaData,
         Table,
     )
+    from sqlalchemy.dialects.oracle import LONG
 
     date_type = TEXT if dialect == "sqlite" else DateTime
     bool_type = Integer if dialect == "sqlite" else Boolean
+    TEXT = LONG if dialect == "oracle" else TEXT
     metadata = MetaData()
     types = Table(
         "types",
@@ -242,13 +292,20 @@ def create_and_load_types(conn, types_data: list[dict], dialect: str):
     types.drop(conn, checkfirst=True)
     types.create(bind=conn)
 
-    stmt = insert(types).values(types_data)
-    if isinstance(conn, Engine):
-        with conn.connect() as conn:
-            with conn.begin():
-                conn.execute(stmt)
+    if dialect == 'oracle':
+        up_dict_row_1 = {"DateCol": datetime(2000,1,3,0,0,0),}
+        up_dict_row_2 = {"DateCol": datetime(2000,1,4,0,0,0),}
+        types_data[0].update(up_dict_row_1)
+        types_data[1].update(up_dict_row_2)
+        insert_iteratively(conn, types_data, types)
     else:
-        conn.execute(stmt)
+        stmt = insert(types).values(types_data)
+        if isinstance(conn, Engine):
+            with conn.connect() as conn:
+                with conn.begin():
+                    conn.execute(stmt)
+        else:
+            conn.execute(stmt)
 
 
 def check_iris_frame(frame: DataFrame):
@@ -406,6 +463,35 @@ def mysql_pymysql_conn(mysql_pymysql_engine):
 
 
 @pytest.fixture
+def oracle_oracledb_engine(iris_path, types_data):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    pytest.importorskip("oracledb")
+
+    switchOracleDBDriverMode()
+    engine = sqlalchemy.create_engine(
+        ORACLE_CONNECTION_STRING
+    )
+    insp = sqlalchemy.inspect(engine)
+    if not insp.has_table("iris"):
+        create_and_load_iris(engine, iris_path, "oracle")
+    if not insp.has_table("types"):
+        for entry in types_data:
+            entry.pop("DateColWithTz")
+        create_and_load_types(engine, types_data, "oracle")
+    yield engine
+    with engine.connect() as conn:
+        with conn.begin():
+            stmt = sqlalchemy.text("DROP TABLE test_frame")
+            conn.execute(stmt)
+    engine.dispose()
+
+
+@pytest.fixture
+def oracle_oracledb_conn(oracle_oracledb_engine):
+    yield oracle_oracledb_engine.connect()
+
+
+@pytest.fixture
 def postgresql_psycopg2_engine(iris_path, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pytest.importorskip("psycopg2")
@@ -472,6 +558,11 @@ mysql_connectable = [
     "mysql_pymysql_conn",
 ]
 
+oracle_connectable = [
+    "oracle_oracledb_engine",
+    "oracle_oracledb_conn",
+]
+
 
 postgresql_connectable = [
     "postgresql_psycopg2_engine",
@@ -488,10 +579,10 @@ sqlite_iris_connectable = [
     "sqlite_iris_conn",
 ]
 
-sqlalchemy_connectable = mysql_connectable + postgresql_connectable + sqlite_connectable
+sqlalchemy_connectable = mysql_connectable + oracle_connectable + postgresql_connectable + sqlite_connectable
 
 sqlalchemy_connectable_iris = (
-    mysql_connectable + postgresql_connectable + sqlite_iris_connectable
+    mysql_connectable + oracle_connectable + postgresql_connectable + sqlite_iris_connectable
 )
 
 all_connectable = sqlalchemy_connectable + ["sqlite_buildin"]
@@ -798,7 +889,8 @@ class PandasSQLTest:
 
     def _transaction_test(self):
         with self.pandasSQL.run_transaction() as trans:
-            stmt = "CREATE TABLE test_trans (A INT, B TEXT)"
+            b_type = 'LONG' if self.flavor == 'oracle' else 'TEXT'
+            stmt = f"CREATE TABLE test_trans (A INT, B {b_type})"
             if isinstance(self.pandasSQL, SQLiteDatabase):
                 trans.execute(stmt)
             else:
@@ -2038,13 +2130,15 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             TEXT,
             String,
         )
+        from sqlalchemy.dialects.oracle import LONG
         from sqlalchemy.schema import MetaData
 
         cols = ["A", "B"]
         data = [(0.8, True), (0.9, None)]
         df = DataFrame(data, columns=cols)
         assert df.to_sql("dtype_test", self.conn) == 2
-        assert df.to_sql("dtype_test2", self.conn, dtype={"B": TEXT}) == 2
+        assert df.to_sql("dtype_test2", self.conn, 
+            dtype={"B": LONG if self.flavor == "oracle" else TEXT}) == 2
         meta = MetaData()
         meta.reflect(bind=self.conn)
         sqltype = meta.tables["dtype_test2"].columns["B"].type
@@ -2485,6 +2579,32 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
             res1 = sql.read_sql_table("test_schema_other2", self.conn, schema="other")
             res2 = pdsql.read_table("test_schema_other2")
             tm.assert_frame_equal(res1, res2)
+
+@pytest.mark.db
+class _TestOracleSQLAlchemy(_TestSQLAlchemy):
+    """
+    Test the SQLAlchemy backend against Oracle Database.
+    """
+
+    flavor = "oracle"
+
+    @classmethod
+    def setup_engine(cls):
+        return sqlalchemy.create_engine(
+            ORACLE_CONNECTION_STRING
+        )
+
+    @classmethod
+    def setup_driver(cls):
+        # setup the Oracle Database driver mode(thin/thick)
+        pytest.importorskip("oracledb")
+        switchOracleDBDriverMode()
+
+    def test_default_type_conversion(self):
+        pass
+
+    def test_oracle(self):
+        pass
 
 
 # -----------------------------------------------------------------------------
