@@ -2581,7 +2581,7 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
             tm.assert_frame_equal(res1, res2)
 
 @pytest.mark.db
-class _TestOracleSQLAlchemy(_TestSQLAlchemy):
+class TestOracleSQLAlchemy(_TestSQLAlchemy):
     """
     Test the SQLAlchemy backend against Oracle Database.
     """
