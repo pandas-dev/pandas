@@ -28,6 +28,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import gc
 import locale
+import sys
 from typing import (
     Callable,
     Generator,
@@ -99,8 +100,6 @@ def safe_import(mod_name: str, min_version: str | None = None):
     if not min_version:
         return mod
     else:
-        import sys
-
         try:
             version = getattr(sys.modules[mod_name], "__version__")
         except AttributeError:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+from importlib.metadata import entry_points
 import types
 from typing import (
     TYPE_CHECKING,
@@ -1793,8 +1794,6 @@ def _load_backend(backend: str) -> types.ModuleType:
     types.ModuleType
         The imported backend.
     """
-    from importlib.metadata import entry_points
-
     if backend == "matplotlib":
         # Because matplotlib is an optional dependency and first-party backend,
         # we need to attempt an import here to raise an ImportError if needed.

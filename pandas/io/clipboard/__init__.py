@@ -53,6 +53,19 @@ from ctypes import (
     get_errno,
     sizeof,
 )
+from ctypes.wintypes import (
+    BOOL,
+    DWORD,
+    HANDLE,
+    HGLOBAL,
+    HINSTANCE,
+    HMENU,
+    HWND,
+    INT,
+    LPCSTR,
+    LPVOID,
+    UINT,
+)
 import os
 import platform
 from shutil import which
@@ -322,19 +335,6 @@ class CheckedCall:
 def init_windows_clipboard():
     global HGLOBAL, LPVOID, DWORD, LPCSTR, INT
     global HWND, HINSTANCE, HMENU, BOOL, UINT, HANDLE
-    from ctypes.wintypes import (
-        BOOL,
-        DWORD,
-        HANDLE,
-        HGLOBAL,
-        HINSTANCE,
-        HMENU,
-        HWND,
-        INT,
-        LPCSTR,
-        LPVOID,
-        UINT,
-    )
 
     windll = ctypes.windll
     msvcrt = ctypes.CDLL("msvcrt")

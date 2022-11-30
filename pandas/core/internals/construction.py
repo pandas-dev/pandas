@@ -5,6 +5,7 @@ constructors before passing them to a BlockManager.
 from __future__ import annotations
 
 from collections import abc
+from dataclasses import asdict
 from typing import (
     Any,
     Hashable,
@@ -726,8 +727,6 @@ def dataclasses_to_dicts(data):
     [{'x': 1, 'y': 2}, {'x': 2, 'y': 3}]
 
     """
-    from dataclasses import asdict
-
     return list(map(asdict, data))
 
 

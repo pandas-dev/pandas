@@ -4,6 +4,10 @@ from contextlib import (
     contextmanager,
     nullcontext,
 )
+from inspect import (
+    getframeinfo,
+    stack,
+)
 import re
 import sys
 from typing import (
@@ -207,11 +211,6 @@ def _is_unexpected_warning(
 def _assert_raised_with_correct_stacklevel(
     actual_warning: warnings.WarningMessage,
 ) -> None:
-    from inspect import (
-        getframeinfo,
-        stack,
-    )
-
     caller = getframeinfo(stack()[4][0])
     msg = (
         "Warning not set with correct stacklevel. "

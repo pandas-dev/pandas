@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import csv
 import os
 from pathlib import Path
 import tempfile
+import time
 from types import TracebackType
 from typing import (
     IO,
@@ -62,7 +64,6 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
     ...
     'EST'
     """
-    import time
 
     def setTZ(tz) -> None:
         if tz is None:
@@ -163,8 +164,6 @@ def with_csv_dialect(name, **kwargs) -> Generator[None, None, None]:
     --------
     csv : Python's CSV library.
     """
-    import csv
-
     _BUILTIN_DIALECTS = {"excel", "excel-tab", "unix"}
 
     if name in _BUILTIN_DIALECTS:

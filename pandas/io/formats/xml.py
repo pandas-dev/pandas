@@ -9,6 +9,13 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
+from xml.dom.minidom import parseString
+from xml.etree.ElementTree import (
+    Element,
+    SubElement,
+    register_namespace,
+    tostring,
+)
 
 from pandas._typing import (
     CompressionOptions,
@@ -336,12 +343,6 @@ class EtreeXMLFormatter(BaseXMLFormatter):
     """
 
     def build_tree(self) -> bytes:
-        from xml.etree.ElementTree import (
-            Element,
-            SubElement,
-            tostring,
-        )
-
         self.root = Element(
             f"{self.prefix_uri}{self.root_name}", attrib=self.other_namespaces()
         )
@@ -375,8 +376,6 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         return self.out_xml
 
     def get_prefix_uri(self) -> str:
-        from xml.etree.ElementTree import register_namespace
-
         uri = ""
         if self.namespaces:
             for p, n in self.namespaces.items():
@@ -393,8 +392,6 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         return uri
 
     def build_elems(self, d: dict[str, Any], elem_row: Any) -> None:
-        from xml.etree.ElementTree import SubElement
-
         self._build_elems(SubElement, d, elem_row)
 
     def prettify_tree(self) -> bytes:
@@ -403,8 +400,6 @@ class EtreeXMLFormatter(BaseXMLFormatter):
 
         This method will pretty print xml with line breaks and indentation.
         """
-
-        from xml.dom.minidom import parseString
 
         dom = parseString(self.out_xml)
 

@@ -10,6 +10,11 @@ from typing import (
     Callable,
     Sequence,
 )
+from xml.etree.ElementTree import (
+    XMLParser,
+    iterparse,
+    parse,
+)
 
 from pandas._typing import (
     TYPE_CHECKING,
@@ -434,8 +439,6 @@ class _EtreeFrameParser(_XMLFrameParser):
     """
 
     def parse_data(self) -> list[dict[str, str | None]]:
-        from xml.etree.ElementTree import iterparse
-
         if self.stylesheet is not None:
             raise ValueError(
                 "To use stylesheet, you need lxml installed and selected as parser."
@@ -519,11 +522,6 @@ class _EtreeFrameParser(_XMLFrameParser):
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
     ) -> Element:
-        from xml.etree.ElementTree import (
-            XMLParser,
-            parse,
-        )
-
         handle_data = get_data_from_filepath(
             filepath_or_buffer=raw_doc,
             encoding=self.encoding,

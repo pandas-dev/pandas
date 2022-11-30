@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime
 import functools
 from itertools import zip_longest
@@ -1560,7 +1561,6 @@ class Index(IndexOpsMixin, PandasObject):
         Handles the quirks of having a singular 'name' parameter for general
         Index and plural 'names' parameter for MultiIndex.
         """
-        from copy import deepcopy
 
         if names is not None and name is not None:
             raise TypeError("Can only provide one of `names` and `name`")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from functools import wraps
 from sys import getsizeof
 from typing import (
@@ -1166,7 +1167,6 @@ class MultiIndex(Index):
         levels, codes = None, None
 
         if deep:
-            from copy import deepcopy
 
             levels = deepcopy(self.levels)
             codes = deepcopy(self.codes)

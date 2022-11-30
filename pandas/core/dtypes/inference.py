@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import abc
+import dataclasses
 from numbers import Number
 import re
 from typing import Pattern
@@ -417,8 +418,6 @@ def is_dataclass(item):
 
     """
     try:
-        import dataclasses
-
         return dataclasses.is_dataclass(item) and not isinstance(item, type)
     except ImportError:
         return False

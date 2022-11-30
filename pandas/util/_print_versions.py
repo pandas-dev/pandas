@@ -3,6 +3,7 @@ from __future__ import annotations
 import codecs
 import json
 import locale
+from optparse import OptionParser
 import os
 import platform
 import struct
@@ -135,8 +136,6 @@ def show_versions(as_json: str | bool = False) -> None:
 
 
 def main() -> int:
-    from optparse import OptionParser
-
     parser = OptionParser()
     parser.add_option(
         "-j",
