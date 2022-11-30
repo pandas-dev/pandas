@@ -1,4 +1,5 @@
 from typing import (
+    Any,
     Hashable,
     Literal,
 )
@@ -13,6 +14,7 @@ def unique_label_indices(
 
 class Factorizer:
     count: int
+    uniques: Any
     def __init__(self, size_hint: int) -> None: ...
     def get_count(self) -> int: ...
     def factorize(
@@ -21,6 +23,7 @@ class Factorizer:
         sort: bool = ...,
         na_sentinel=...,
         na_value=...,
+        mask=...,
     ) -> npt.NDArray[np.intp]: ...
 
 class ObjectFactorizer(Factorizer):

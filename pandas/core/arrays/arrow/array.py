@@ -13,6 +13,7 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     FillnaOptions,
+    Iterator,
     PositionalIndexer,
     SortKind,
     TakeIndexer,
@@ -333,6 +334,18 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 return self._dtype.na_value
             else:
                 return scalar
+
+    def __iter__(self) -> Iterator[Any]:
+        """
+        Iterate over elements of the array.
+        """
+        na_value = self._dtype.na_value
+        for value in self._data:
+            val = value.as_py()
+            if val is None:
+                yield na_value
+            else:
+                yield val
 
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow ChunkedArray."""
@@ -829,13 +842,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         if name == "sem":
 
-            def pyarrow_meth(data, skipna, **kwargs):
-                numerator = pc.stddev(data, skip_nulls=skipna, **kwargs)
-                denominator = pc.sqrt_checked(
-                    pc.subtract_checked(
-                        pc.count(self._data, skip_nulls=skipna), kwargs["ddof"]
-                    )
-                )
+            def pyarrow_meth(data, skip_nulls, **kwargs):
+                numerator = pc.stddev(data, skip_nulls=skip_nulls, **kwargs)
+                denominator = pc.sqrt_checked(pc.count(self._data))
                 return pc.divide_checked(numerator, denominator)
 
         else:

@@ -899,7 +899,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def mean(
         self,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
         *args,
         **kwargs,
     ):
@@ -910,6 +910,10 @@ class Resampler(BaseGroupBy, PandasObject):
         ----------
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
 
         Returns
         -------
@@ -922,7 +926,7 @@ class Resampler(BaseGroupBy, PandasObject):
     def std(
         self,
         ddof: int = 1,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
         *args,
         **kwargs,
     ):
@@ -938,6 +942,10 @@ class Resampler(BaseGroupBy, PandasObject):
 
             .. versionadded:: 1.5.0
 
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
+
         Returns
         -------
         DataFrame or Series
@@ -949,7 +957,7 @@ class Resampler(BaseGroupBy, PandasObject):
     def var(
         self,
         ddof: int = 1,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
         *args,
         **kwargs,
     ):
@@ -965,6 +973,10 @@ class Resampler(BaseGroupBy, PandasObject):
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
 
         Returns
         -------
@@ -1058,25 +1070,19 @@ def _add_downsample_kernel(
 
         def f(
             self,
-            numeric_only: bool | lib.NoDefault = lib.no_default,
+            numeric_only: bool = False,
             min_count: int = 0,
             *args,
             **kwargs,
         ):
             nv.validate_resampler_func(name, args, kwargs)
-            if numeric_only is lib.no_default and name != "sum":
-                # For DataFrameGroupBy, set it to be False for methods other than `sum`.
-                numeric_only = False
-
             return self._downsample(
                 name, numeric_only=numeric_only, min_count=min_count
             )
 
     elif args == ("numeric_only",):
         # error: All conditional function variants must have identical signatures
-        def f(  # type: ignore[misc]
-            self, numeric_only: bool | lib.NoDefault = lib.no_default, *args, **kwargs
-        ):
+        def f(self, numeric_only: bool = False, *args, **kwargs):  # type: ignore[misc]
             nv.validate_resampler_func(name, args, kwargs)
             return self._downsample(name, numeric_only=numeric_only)
 
@@ -1085,7 +1091,7 @@ def _add_downsample_kernel(
         def f(  # type: ignore[misc]
             self,
             ddof: int = 1,
-            numeric_only: bool | lib.NoDefault = lib.no_default,
+            numeric_only: bool = False,
             *args,
             **kwargs,
         ):
@@ -2068,6 +2074,11 @@ def _adjust_dates_anchored(
     # not a multiple of the frequency. See GH 8683
     # To handle frequencies that are not multiple or divisible by a day we let
     # the possibility to define a fixed origin timestamp. See GH 31809
+    first = first.as_unit("ns")
+    last = last.as_unit("ns")
+    if offset is not None:
+        offset = offset.as_unit("ns")
+
     origin_nanos = 0  # origin == "epoch"
     if origin == "start_day":
         origin_nanos = first.normalize().value
