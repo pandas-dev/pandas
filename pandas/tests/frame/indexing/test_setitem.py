@@ -340,8 +340,8 @@ class TestDataFrameSetItem:
         v1 = df._mgr.arrays[1]
         v2 = df._mgr.arrays[2]
         tm.assert_extension_array_equal(v1, v2)
-        v1base = v1._data.base
-        v2base = v2._data.base
+        v1base = v1._ndarray.base
+        v2base = v2._ndarray.base
         assert v1base is None or (id(v1base) != id(v2base))
 
         # with nan

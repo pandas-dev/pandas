@@ -171,7 +171,6 @@ def test_object_type_missing_vals(bool_agg_func, data, expected_res, frame_or_se
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
 def test_object_NA_raises_with_skipna_false(bool_agg_func):
     # GH#37501

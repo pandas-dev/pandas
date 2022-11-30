@@ -666,20 +666,20 @@ cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
 
 
 cdef tzinfo convert_timezone(
-        tzinfo tz_in,
-        tzinfo tz_out,
-        bint found_naive,
-        bint found_tz,
-        bint utc_convert,
+    tzinfo tz_in,
+    tzinfo tz_out,
+    bint found_naive,
+    bint found_tz,
+    bint utc_convert,
 ):
     """
     Validate that ``tz_in`` can be converted/localized to ``tz_out``.
 
     Parameters
     ----------
-    tz_in : tzinfo
+    tz_in : tzinfo or None
         Timezone info of element being processed.
-    tz_out : tzinfo
+    tz_out : tzinfo or None
         Timezone info of output.
     found_naive : bool
         Whether a timezone-naive element has been found so far.

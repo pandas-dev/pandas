@@ -42,12 +42,12 @@ def test_astype_copies():
     result = arr.astype(np.int64, copy=False)
 
     # Add the `.base`, since we now use `.asi8` which returns a view.
-    # We could maybe override it in PeriodArray to return ._data directly.
-    assert result.base is arr._data
+    # We could maybe override it in PeriodArray to return ._ndarray directly.
+    assert result.base is arr._ndarray
 
     result = arr.astype(np.int64, copy=True)
-    assert result is not arr._data
-    tm.assert_numpy_array_equal(result, arr._data.view("i8"))
+    assert result is not arr._ndarray
+    tm.assert_numpy_array_equal(result, arr._ndarray.view("i8"))
 
 
 def test_astype_categorical():
