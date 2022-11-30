@@ -24,8 +24,6 @@ cnp.import_array()
 
 from pandas._libs.algos import is_monotonic
 
-from pandas._libs.dtypes cimport numeric_t
-
 
 cdef extern from "../src/skiplist.h":
     ctypedef struct node_t:
@@ -993,46 +991,33 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 # https://github.com/pydata/bottleneck
 
 
-cdef numeric_t init_mm(numeric_t ai, Py_ssize_t *nobs, bint is_max) nogil:
+cdef float64_t init_mm(float64_t ai, Py_ssize_t *nobs, bint is_max) nogil:
 
-    if numeric_t in cython.floating:
-        if ai == ai:
-            nobs[0] = nobs[0] + 1
-        elif is_max:
-            if numeric_t == cython.float:
-                ai = MINfloat32
-            else:
-                ai = MINfloat64
-        else:
-            if numeric_t == cython.float:
-                ai = MAXfloat32
-            else:
-                ai = MAXfloat64
-
-    else:
+    if ai == ai:
         nobs[0] = nobs[0] + 1
+    elif is_max:
+        ai = MINfloat64
+    else:
+        ai = MAXfloat64
 
     return ai
 
 
-cdef void remove_mm(numeric_t aold, Py_ssize_t *nobs) nogil:
+cdef void remove_mm(float64_t aold, Py_ssize_t *nobs) nogil:
     """ remove a value from the mm calc """
-    if numeric_t in cython.floating and aold == aold:
+    if aold == aold:
         nobs[0] = nobs[0] - 1
 
 
-cdef numeric_t calc_mm(int64_t minp, Py_ssize_t nobs,
-                              numeric_t value) nogil:
+cdef float64_t calc_mm(int64_t minp, Py_ssize_t nobs,
+                       float64_t value) nogil:
     cdef:
-        numeric_t result
+        float64_t result
 
-    if numeric_t in cython.floating:
-        if nobs >= minp:
-            result = value
-        else:
-            result = NaN
-    else:
+    if nobs >= minp:
         result = value
+    else:
+        result = NaN
 
     return result
 
@@ -1082,13 +1067,13 @@ def roll_min(ndarray[float64_t] values, ndarray[int64_t] start,
     return _roll_min_max(values, start, end, minp, is_max=0)
 
 
-cdef _roll_min_max(ndarray[numeric_t] values,
+cdef _roll_min_max(ndarray[float64_t] values,
                    ndarray[int64_t] starti,
                    ndarray[int64_t] endi,
                    int64_t minp,
                    bint is_max):
     cdef:
-        numeric_t ai
+        float64_t ai
         int64_t curr_win_size, start
         Py_ssize_t i, k, nobs = 0, N = len(starti)
         deque Q[int64_t]  # min/max always the front
