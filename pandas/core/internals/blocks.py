@@ -109,7 +109,7 @@ from pandas.core.construction import (
 from pandas.core.indexers import check_setitem_lengths
 
 if TYPE_CHECKING:
-    from pandas import (
+    from pandas.core.api import (
         Float64Index,
         Index,
     )
@@ -326,17 +326,12 @@ class Block(PandasObject):
 
         return self._split_op_result(result)
 
-    def reduce(self, func, ignore_failures: bool = False) -> list[Block]:
+    def reduce(self, func) -> list[Block]:
         # We will apply the function and reshape the result into a single-row
         #  Block with the same mgr_locs; squeezing will be done at a higher level
         assert self.ndim == 2
 
-        try:
-            result = func(self.values)
-        except (TypeError, NotImplementedError):
-            if ignore_failures:
-                return []
-            raise
+        result = func(self.values)
 
         if self.values.ndim == 1:
             # TODO(EA2D): special case not needed with 2D EAs
@@ -1139,6 +1134,7 @@ class Block(PandasObject):
 
         return [self.make_block(result)]
 
+    @final
     def fillna(
         self, value, limit: int | None = None, inplace: bool = False, downcast=None
     ) -> list[Block]:
@@ -1957,23 +1953,17 @@ class ObjectBlock(NumpyBlock):
     __slots__ = ()
     is_object = True
 
-    @maybe_split
-    def reduce(self, func, ignore_failures: bool = False) -> list[Block]:
+    def reduce(self, func) -> list[Block]:
         """
         For object-dtype, we operate column-wise.
         """
         assert self.ndim == 2
 
-        try:
-            res = func(self.values)
-        except TypeError:
-            if not ignore_failures:
-                raise
-            return []
+        res = func(self.values)
 
         assert isinstance(res, np.ndarray)
         assert res.ndim == 1
-        res = res.reshape(1, -1)
+        res = res.reshape(-1, 1)
         return [self.make_block_same_class(res)]
 
     @maybe_split

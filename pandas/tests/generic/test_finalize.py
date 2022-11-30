@@ -191,12 +191,6 @@ _all_methods = [
         (pd.DataFrame, frame_data, operator.methodcaller("count")),
     ),
     pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("count", level="A")),
-        marks=[
-            pytest.mark.filterwarnings("ignore:Using the level keyword:FutureWarning"),
-        ],
-    ),
-    pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("nunique")),
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("idxmin")),

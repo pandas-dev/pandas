@@ -565,16 +565,7 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
     if not strict_nan:
         # isna considers NaN and None to be equivalent.
 
-        if left.flags["F_CONTIGUOUS"] and right.flags["F_CONTIGUOUS"]:
-            # we can improve performance by doing a copy-free ravel
-            # e.g. in frame_methods.Equals.time_frame_nonunique_equal
-            #  if we transposed the frames
-            left = left.ravel("K")
-            right = right.ravel("K")
-
-        return lib.array_equivalent_object(
-            ensure_object(left.ravel()), ensure_object(right.ravel())
-        )
+        return lib.array_equivalent_object(ensure_object(left), ensure_object(right))
 
     for left_value, right_value in zip(left, right):
         if left_value is NaT and right_value is not NaT:

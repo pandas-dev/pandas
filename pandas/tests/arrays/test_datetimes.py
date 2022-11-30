@@ -4,6 +4,11 @@ Tests for DatetimeArray
 from datetime import timedelta
 import operator
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
 import numpy as np
 import pytest
 
@@ -368,7 +373,7 @@ class TestDatetimeArray:
 
         if err:
             if dtype == "datetime64[ns]":
-                msg = "Use ser.dt.tz_localize instead"
+                msg = "Use obj.tz_localize instead or series.dt.tz_localize instead"
             else:
                 msg = "from timezone-aware dtype to timezone-naive dtype"
             with pytest.raises(TypeError, match=msg):
@@ -706,3 +711,40 @@ class TestDatetimeArray:
 
         roundtrip = expected.tz_localize("US/Pacific")
         tm.assert_datetime_array_equal(roundtrip, dta)
+
+    easts = ["US/Eastern", "dateutil/US/Eastern"]
+    if ZoneInfo is not None:
+        try:
+            tz = ZoneInfo("US/Eastern")
+        except KeyError:
+            # no tzdata
+            pass
+        else:
+            easts.append(tz)
+
+    @pytest.mark.parametrize("tz", easts)
+    def test_iter_zoneinfo_fold(self, tz):
+        # GH#49684
+        utc_vals = np.array(
+            [1320552000, 1320555600, 1320559200, 1320562800], dtype=np.int64
+        )
+        utc_vals *= 1_000_000_000
+
+        dta = DatetimeArray(utc_vals).tz_localize("UTC").tz_convert(tz)
+
+        left = dta[2]
+        right = list(dta)[2]
+        assert str(left) == str(right)
+        # previously there was a bug where with non-pytz right would be
+        #  Timestamp('2011-11-06 01:00:00-0400', tz='US/Eastern')
+        # while left would be
+        #  Timestamp('2011-11-06 01:00:00-0500', tz='US/Eastern')
+        # The .value's would match (so they would compare as equal),
+        #  but the folds would not
+        assert left.utcoffset() == right.utcoffset()
+
+        # The same bug in ints_to_pydatetime affected .astype, so we test
+        #  that here.
+        right2 = dta.astype(object)[2]
+        assert str(left) == str(right2)
+        assert left.utcoffset() == right2.utcoffset()
