@@ -262,7 +262,7 @@ def test_set_index(using_copy_on_write):
     ],
 )
 def test_head_tail(method, using_copy_on_write):
-    df = DataFrame({"a": [1, 1, 1], "b": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = method(df)
     df2._mgr._verify_integrity()
