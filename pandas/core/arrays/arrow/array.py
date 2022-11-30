@@ -9,11 +9,13 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Dtype,
     FillnaOptions,
     Iterator,
+    NpDtype,
     PositionalIndexer,
     SortKind,
     TakeIndexer,
@@ -350,6 +352,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow ChunkedArray."""
         return self._data
+
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+        """Correctly construct numpy arrays when passed to `np.asarray()`."""
+        return self.to_numpy(dtype=dtype)
 
     def __invert__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
         return type(self)(pc.invert(self._data))
@@ -748,6 +754,32 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 indices_array = np.copy(indices_array)
                 indices_array[indices_array < 0] += len(self._data)
             return type(self)(self._data.take(indices_array))
+
+    @doc(ExtensionArray.to_numpy)
+    def to_numpy(
+        self,
+        dtype: npt.DTypeLike | None = None,
+        copy: bool = False,
+        na_value: object = lib.no_default,
+    ) -> np.ndarray:
+        # TODO: copy argument is ignored
+
+        if na_value is lib.no_default:
+            na_value = self.dtype.na_value
+
+        pa_type = self._data.type
+        if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
+            result = np.array(self.tolist(), dtype=np.object_)
+        elif not self._hasna or (pa.types.is_floating(pa_type) and na_value is np.nan):
+            return np.array(self._data, dtype=dtype)
+        else:
+            result = np.array(self._data, dtype=np.object_)
+
+        if self._hasna:
+            result[self.isna()] = na_value
+        if dtype is not None:
+            return result.astype(dtype, copy=False)
+        return result
 
     def unique(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
         """
