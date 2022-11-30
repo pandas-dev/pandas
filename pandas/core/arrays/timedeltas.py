@@ -418,6 +418,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         data = self._data.copy()
 
         if name in {"cumsum", "cumprod"}:
+            # TODO: cumprod should not work here
             func = np.cumsum if name == "cumsum" else np.cumprod
             result = cast(np.ndarray, nanops.na_accum_func(data, func, skipna=skipna))
 
