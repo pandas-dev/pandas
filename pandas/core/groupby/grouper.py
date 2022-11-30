@@ -684,21 +684,23 @@ class Grouping:
             uniques = Categorical.from_codes(
                 codes=ucodes, categories=categories, ordered=cat.ordered
             )
-            if not self._dropna and np.any(cat.codes < 0):
-                if self._sort:
-                    # Replace NA (negative) codes with `largest code + 1`
-                    na_code = len(categories)
-                    codes = np.where(cat.codes < 0, na_code, cat.codes)
-                else:
-                    # Insert NA code into the codes based on first appearance
-                    # A negative code must exist, no need to check codes[na_idx] < 0
-                    na_idx = (cat.codes < 0).argmax()
-                    # count number of unique codes that comes before the nan value
-                    na_code = algorithms.nunique_ints(cat.codes[:na_idx])
-                    codes = np.where(cat.codes >= na_code, cat.codes + 1, cat.codes)
-                    codes = np.where(codes < 0, na_code, codes)
-            else:
-                codes = cat.codes
+
+            codes = cat.codes
+            if not self._dropna:
+                na_mask = codes < 0
+                if np.any(na_mask):
+                    if self._sort:
+                        # Replace NA codes with `largest code + 1`
+                        na_code = len(categories)
+                        codes = np.where(na_mask, na_code, codes)
+                    else:
+                        # Insert NA code into the codes based on first appearance
+                        # A negative code must exist, no need to check codes[na_idx] < 0
+                        na_idx = na_mask.argmax()
+                        # count number of unique codes that comes before the nan value
+                        na_code = algorithms.nunique_ints(codes[:na_idx])
+                        codes = np.where(codes >= na_code, codes + 1, codes)
+                        codes = np.where(na_mask, na_code, codes)
 
             if not self._observed:
                 uniques = uniques.reorder_categories(self._orig_cats)
