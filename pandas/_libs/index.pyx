@@ -1153,6 +1153,7 @@ cdef class MaskedIndexEngine(IndexEngine):
         indexer : np.ndarray[np.intp]
         missing : np.ndarray[np.intp]
         """
+        # TODO: Unify with parent class
         cdef:
             ndarray values, mask
             ndarray[intp_t] result, missing
