@@ -203,7 +203,7 @@ class StringDtype(StorageExtensionDtype):
         else:
             arr = pyarrow.concat_arrays(chunks).to_numpy(zero_copy_only=False)
             arr = lib.convert_nans_to_NA(arr)
-        # Bypass validation inside StringArray constructor
+        # Bypass validation inside StringArray constructor, see GH47781
         new_string_array = StringArray.__new__(StringArray)
         NDArrayBacked.__init__(
             new_string_array,
