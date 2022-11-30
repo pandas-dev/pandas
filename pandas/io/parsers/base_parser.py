@@ -26,6 +26,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import get_option
+
 from pandas._libs import (
     lib,
     parsers,
@@ -39,6 +41,7 @@ from pandas._typing import (
     DtypeObj,
     Scalar,
 )
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     ParserError,
     ParserWarning,
@@ -71,6 +74,7 @@ from pandas.core.dtypes.missing import isna
 from pandas import StringDtype
 from pandas.core import algorithms
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BooleanArray,
     Categorical,
     ExtensionArray,
@@ -717,6 +721,7 @@ class ParserBase:
         use_nullable_dtypes: Literal[True] | Literal[False] = (
             self.use_nullable_dtypes and no_dtype_specified
         )
+        nullable_backend = get_option("io.nullable_backend")
         result: ArrayLike
 
         if try_num_bool and is_object_dtype(values.dtype):
@@ -773,6 +778,16 @@ class ParserBase:
                 inferred_type = lib.infer_dtype(result)
                 if inferred_type != "datetime":
                     result = StringDtype().construct_array_type()._from_sequence(values)
+
+        if use_nullable_dtypes and nullable_backend == "pyarrow":
+            pa = import_optional_dependency("pyarrow")
+            if isinstance(result, np.ndarray):
+                result = ArrowExtensionArray(pa.array(result, from_pandas=True))
+            else:
+                # ExtensionArray
+                result = ArrowExtensionArray(
+                    pa.array(result.to_numpy(), from_pandas=True)
+                )
 
         return result, na_count
 

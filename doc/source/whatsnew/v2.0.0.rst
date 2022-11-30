@@ -28,13 +28,16 @@ The available extras, found in the :ref:`installation guide<install.dependencies
 ``[all, performance, computation, timezone, fss, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql,
 sql-other, html, xml, plot, output_formatting, clipboard, compression, test]`` (:issue:`39164`).
 
-.. _whatsnew_200.enhancements.io_readers_nullable_pyarrow:
+.. _whatsnew_200.enhancements.io_use_nullable_dtypes_and_nullable_backend:
 
 Configuration option, ``io.nullable_backend``, to return pyarrow-backed dtypes from IO functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A new global configuration, ``io.nullable_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in :func:`read_parquet`, :func:`read_orc` and :func:`read_csv` (with ``engine="pyarrow"``)
-to return pyarrow-backed dtypes when set to ``"pyarrow"`` (:issue:`48957`).
+The ``use_nullable_dtypes`` keyword argument has been expanded to :func:`read_csv` and :func:`read_excel` to enable automatic conversion to nullable dtypes (:issue:`36712`)
+
+Additionally a new global configuration, ``io.nullable_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in :func:`read_parquet`, :func:`read_orc`, :func:`read_excel` and :func:`read_csv` (with ``engine="pyarrow"``)
+to select the nullable dtypes implementation. By default, ``io.nullable_backend`` is set to ``"pandas"`` to return existing, numpy-backed nullable dtypes, but it can also
+be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (:issue:`48957`).
 
 .. ipython:: python
 
@@ -55,7 +58,6 @@ Other enhancements
 - :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` now preserve nullable dtypes instead of casting to numpy dtypes (:issue:`37493`)
 - :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support an ``axis`` argument. If ``axis`` is set, the default behaviour of which axis to consider can be overwritten (:issue:`47819`)
 - :func:`assert_frame_equal` now shows the first element where the DataFrames differ, analogously to ``pytest``'s output (:issue:`47910`)
-- Added new argument ``use_nullable_dtypes`` to :func:`read_csv` and :func:`read_excel` to enable automatic conversion to nullable dtypes (:issue:`36712`)
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
 - Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
 - :class:`.CategoricalConversionWarning`, :class:`.InvalidComparison`, :class:`.InvalidVersion`, :class:`.LossySetitemError`, and :class:`.NoBufferPresent` are now exposed in ``pandas.errors`` (:issue:`27656`)
