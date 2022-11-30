@@ -475,7 +475,7 @@ class TestToDatetime:
         ids=["non-ISO8601 format", "ISO8601 format"],
     )
     @pytest.mark.parametrize(
-        "utc, input, expected",
+        "utc, args, expected",
         [
             pytest.param(
                 True,
@@ -510,13 +510,13 @@ class TestToDatetime:
         [Timestamp, lambda x: Timestamp(x).to_pydatetime()],
     )
     def test_to_datetime_mixed_datetime_and_string_with_format(
-        self, fmt, utc, input, expected, constructor
+        self, fmt, utc, args, expected, constructor
     ):
         # https://github.com/pandas-dev/pandas/issues/49298
         # note: ISO8601 formats go down a fastpath, so we need to check both
         # a ISO8601 format and a non-ISO8601 one
-        ts1 = constructor(input[0])
-        ts2 = input[1]
+        ts1 = constructor(args[0])
+        ts2 = args[1]
         result = to_datetime([ts1, ts2], format=fmt, utc=utc)
         tm.assert_index_equal(result, expected)
 
@@ -526,7 +526,7 @@ class TestToDatetime:
         ids=["non-ISO8601 format", "ISO8601 format"],
     )
     @pytest.mark.parametrize(
-        "input",
+        "args",
         [
             pytest.param(
                 ["2000-01-01 01:00:00-08:00", "2000-01-01 02:00:00-07:00"],
@@ -539,13 +539,13 @@ class TestToDatetime:
         [Timestamp, lambda x: Timestamp(x).to_pydatetime()],
     )
     def test_to_datetime_mixed_datetime_and_string_with_format_raises(
-        self, fmt, input, constructor
+        self, fmt, args, constructor
     ):
         # https://github.com/pandas-dev/pandas/issues/49298
         # note: ISO8601 formats go down a fastpath, so we need to check both
         # a ISO8601 format and a non-ISO8601 one
-        ts1 = constructor(input[0])
-        ts2 = constructor(input[1])
+        ts1 = constructor(args[0])
+        ts2 = constructor(args[1])
         with pytest.raises(
             ValueError, match="cannot be converted to datetime64 unless utc=True"
         ):
