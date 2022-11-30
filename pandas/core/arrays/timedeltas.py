@@ -624,10 +624,10 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         elif is_object_dtype(other.dtype):
             other = extract_array(other, extract_numpy=True)
-            # error: Incompatible types in assignment (expression has type
-            # "List[Any]", variable has type "ndarray")
             if self.ndim > 1:
-                result = np.array([left // right for left, right in zip(self, other)])
+                res_cols = [left // right for left, right in zip(self, other)]
+                res_cols2 = [x.reshape(1, -1) for x in res_cols]
+                result = concat_compat(res_cols2, axis=0)
             else:
                 result = floordiv_object_array(self._ndarray, other)
 
