@@ -1141,9 +1141,6 @@ cdef class ExtensionEngine(SharedEngine):
 
 cdef class MaskedIndexEngine(IndexEngine):
 
-    def __init__(self, ndarray values, ndarray mask):
-        super().__init__(values, mask)
-
     def get_indexer_non_unique(self, ndarray targets, ndarray target_mask):
         """
         Return an indexer suitable for taking from a non unique index
@@ -1165,7 +1162,6 @@ cdef class MaskedIndexEngine(IndexEngine):
             object val
             Py_ssize_t count = 0, count_missing = 0
             Py_ssize_t i, j, n, n_t, n_alloc, start, end, na_idx
-            bint check_na_values = False, found_na = False
 
         values = self.values
         assert not values.dtype == object  # go through object path instead

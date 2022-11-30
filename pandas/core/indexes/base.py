@@ -4911,8 +4911,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _get_join_target(self) -> ArrayLike:
         """
-        Get the ndarray or ExtensionArray that we can pass to the IndexEngine
-        constructor.
+        Get the ndarray that we can pass to the join functions.
         """
         vals = self._values
         if isinstance(vals, StringArray):
@@ -5714,14 +5713,18 @@ class Index(IndexOpsMixin, PandasObject):
             # Item "IndexEngine" of "Union[IndexEngine, ExtensionEngine]" has
             # no attribute "_extract_level_codes"
             tgt_values = engine._extract_level_codes(target)  # type: ignore[union-attr]
-        if is_extension_array_dtype(tgt_values):
-            # Too many arguments for "get_indexer_non_unique" of "IndexEngine"
-            # start = time.time()
-            indexer, missing = self._engine.get_indexer_non_unique(
-                tgt_values._data,
-                tgt_values._mask,  # type: ignore[call-arg]
-            )
-            # print(time.time()-start)
+        if is_extension_array_dtype(tgt_values.dtype):
+            # Hide here for performance reasons
+            from pandas.core.arrays import BaseMaskedArray
+
+            if isinstance(tgt_values, BaseMaskedArray):
+                # Too many arguments for "get_indexer_non_unique" of "IndexEngine"
+                indexer, missing = self._engine.get_indexer_non_unique(
+                    tgt_values._data,
+                    tgt_values._mask,  # type: ignore[call-arg]
+                )
+            else:
+                indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         else:
             indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
 

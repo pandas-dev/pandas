@@ -635,10 +635,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # engine methods and libjoin methods need dt64/td64 values cast to i8
         return self._data._ndarray.view("i8")
 
-    def _get_join_target(self) -> np.ndarray:
-        # engine methods and libjoin methods need dt64/td64 values cast to i8
-        return self._data._ndarray.view("i8")
-
     def _from_join_target(self, result: np.ndarray):
         # view e.g. i8 back to M8[ns]
         result = result.view(self._data._ndarray.dtype)

@@ -188,7 +188,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         return self._data._ndarray
 
     def _get_join_target(self) -> np.ndarray:
-        return self._data._ndarray
+        return self._get_engine_target()
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         assert result.dtype == self._data._ndarray.dtype
