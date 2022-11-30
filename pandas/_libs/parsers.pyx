@@ -317,7 +317,7 @@ cdef class TextReader:
         object handle
         object orig_header
         bint na_filter, keep_default_na, verbose, has_usecols, has_mi_columns
-        bint mangle_dupe_cols, allow_leading_cols
+        bint allow_leading_cols
         uint64_t parser_start  # this is modified after __init__
         list clocks
         const char *encoding_errors
@@ -373,7 +373,6 @@ cdef class TextReader:
                   skiprows=None,
                   skipfooter=0,         # int64_t
                   bint verbose=False,
-                  bint mangle_dupe_cols=True,
                   float_precision=None,
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
@@ -389,8 +388,6 @@ cdef class TextReader:
 
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
-
-        self.mangle_dupe_cols = mangle_dupe_cols
 
         # For timekeeping
         self.clocks = []
@@ -680,7 +677,7 @@ cdef class TextReader:
 
                     this_header.append(name)
 
-                if not self.has_mi_columns and self.mangle_dupe_cols:
+                if not self.has_mi_columns:
                     # Ensure that regular columns are used before unnamed ones
                     # to keep given names and mangle unnamed columns
                     col_loop_order = [i for i in range(len(this_header))
