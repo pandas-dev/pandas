@@ -250,3 +250,44 @@ def test_set_index(using_copy_on_write):
     df2.iloc[0, 1] = 0
     assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_add_prefix(using_copy_on_write):
+    # Case: adding prefix returns a new dataframe
+    # + afterwards modifying the result
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.add_prefix("CoW_")
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "CoW_a"), get_array(df, "a"))
+    df2.iloc[0, 0] = 0
+
+    assert not np.shares_memory(get_array(df2, "CoW_a"), get_array(df, "a"))
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "CoW_c"), get_array(df, "c"))
+    expected = DataFrame(
+        {"CoW_a": [0, 2, 3], "CoW_b": [4, 5, 6], "CoW_c": [0.1, 0.2, 0.3]}
+    )
+    tm.assert_frame_equal(df2, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_add_suffix(using_copy_on_write):
+    # Case: adding suffix returns a new dataframe
+    # + afterwards modifying the result
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.add_suffix("_CoW")
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a_CoW"), get_array(df, "a"))
+    df2.iloc[0, 0] = 0
+    assert not np.shares_memory(get_array(df2, "a_CoW"), get_array(df, "a"))
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "c_CoW"), get_array(df, "c"))
+    expected = DataFrame(
+        {"a_CoW": [0, 2, 3], "b_CoW": [4, 5, 6], "c_CoW": [0.1, 0.2, 0.3]}
+    )
+    tm.assert_frame_equal(df2, expected)
+    tm.assert_frame_equal(df, df_orig)
