@@ -107,7 +107,7 @@ We'll now kick off a three-step process:
 .. code-block:: none
 
    # Create and activate the build environment
-   mamba env create
+   mamba env create --file environment.yml
    mamba activate pandas-dev
 
    # Build and install pandas
