@@ -76,7 +76,8 @@ def combine_hash_arrays(
         out ^= a
         out *= mult
         mult += np.uint64(82520 + inverse_i + inverse_i)
-    assert len(arrays) == num_items, "Fed in wrong num_items"
+    # pylint: disable-next=undefined-loop-variable
+    assert i + 1 == num_items, "Fed in wrong num_items"
     out += np.uint64(97531)
     return out
 
