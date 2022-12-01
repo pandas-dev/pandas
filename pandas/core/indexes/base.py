@@ -2678,6 +2678,7 @@ class Index(IndexOpsMixin, PandasObject):
             if downcast is None:
                 # no need to care metadata other than name
                 # because it can't have freq if it has NaTs
+                # _with_infer needed for test_fillna_categorical
                 return Index._with_infer(result, name=self.name)
             raise NotImplementedError(
                 f"{type(self).__name__}.fillna does not support 'downcast' "
@@ -6893,8 +6894,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
 
     if isinstance(index_like, ABCSeries):
         name = index_like.name
-        return Index._with_infer(index_like, name=name, copy=copy)
-        # _with_infer needed for test_value_counts_normalized
+        return Index(index_like, name=name, copy=copy)
 
     if is_iterator(index_like):
         index_like = list(index_like)
@@ -6913,7 +6913,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
             return Index(index_like, copy=copy, tupleize_cols=False)
     else:
         # with_infer needed for stata tests
-        return Index._with_infer(index_like, copy=copy)
+        return Index(index_like, copy=copy)
 
 
 def ensure_has_len(seq):
