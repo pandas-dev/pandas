@@ -241,6 +241,7 @@ Run Container::
 When inside the running container you can build and install pandas the same way as the other methods
 
 .. code-block:: bash
+
    python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
