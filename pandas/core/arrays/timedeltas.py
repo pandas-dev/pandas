@@ -59,7 +59,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
@@ -518,12 +517,10 @@ class TimedeltaArray(dtl.TimelikeOps):
             if self.ndim > 1:
                 res_cols = [left / right for left, right in zip(self, other)]
                 res_cols2 = [x.reshape(1, -1) for x in res_cols]
-                result = concat_compat(res_cols2, axis=0)
+                result = np.concatenate(res_cols2, axis=0)
             else:
                 result = truediv_object_array(self._ndarray, other)
 
-            if result.dtype.kind == "m":
-                return type(self)(result)
             return result
 
         else:
@@ -627,12 +624,10 @@ class TimedeltaArray(dtl.TimelikeOps):
             if self.ndim > 1:
                 res_cols = [left // right for left, right in zip(self, other)]
                 res_cols2 = [x.reshape(1, -1) for x in res_cols]
-                result = concat_compat(res_cols2, axis=0)
+                result = np.concatenate(res_cols2, axis=0)
             else:
                 result = floordiv_object_array(self._ndarray, other)
 
-            if result.dtype.kind == "m":
-                return type(self)(result)
             return result
 
         elif is_integer_dtype(other.dtype) or is_float_dtype(other.dtype):

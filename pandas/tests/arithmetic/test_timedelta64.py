@@ -1668,7 +1668,7 @@ class TestTimedeltaArraylikeMulDivOps:
         tm.assert_equal(result, expected)
 
         result = rng / other.astype(object)
-        tm.assert_equal(result, expected)
+        tm.assert_equal(result, expected.astype(object))
 
         result = rng / list(other)
         tm.assert_equal(result, expected)
@@ -2027,8 +2027,11 @@ class TestTimedeltaArraylikeMulDivOps:
             expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
         else:
             expected = [tdser[n] / vector[n] for n in range(len(tdser))]
-        expected = pd.Index(expected)
-        expected = tm.box_expected(expected, xbox)
+            expected = [
+                x if x is not NaT else np.timedelta64("NaT", "ns") for x in expected
+            ]
+        expected = pd.Index(expected, dtype=object)
+        expected = tm.box_expected(expected, xbox, dtype=object)
 
         tm.assert_equal(result, expected)
 
@@ -2096,8 +2099,10 @@ class TestTimedeltaArraylikeMulDivOps:
         left = tm.box_expected(tdi, box_with_array)
         right = np.array([2, 2.0], dtype=object)
 
-        expected = tdi
-        expected = tm.box_expected(expected, box_with_array)
+        expected = pd.Index([np.timedelta64("NaT", "ns")] * 2, dtype=object)
+        expected = tm.box_expected(expected, box_with_array, dtype=object).astype(
+            object
+        )
 
         result = left / right
         tm.assert_equal(result, expected)
