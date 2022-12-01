@@ -59,6 +59,7 @@ Other enhancements
 - :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support an ``axis`` argument. If ``axis`` is set, the default behaviour of which axis to consider can be overwritten (:issue:`47819`)
 - :func:`assert_frame_equal` now shows the first element where the DataFrames differ, analogously to ``pytest``'s output (:issue:`47910`)
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
+- Added support for extension array dtypes in :func:`merge` (:issue:`44240`)
 - Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
 - :class:`.CategoricalConversionWarning`, :class:`.InvalidComparison`, :class:`.InvalidVersion`, :class:`.LossySetitemError`, and :class:`.NoBufferPresent` are now exposed in ``pandas.errors`` (:issue:`27656`)
 - Fix ``test`` optional_extra by adding missing test package ``pytest-asyncio`` (:issue:`48361`)
@@ -435,6 +436,7 @@ Removal of prior version deprecations/changes
 - Removed argument ``inplace`` from :meth:`Categorical.remove_unused_categories` (:issue:`37918`)
 - Disallow passing non-round floats to :class:`Timestamp` with ``unit="M"`` or ``unit="Y"`` (:issue:`47266`)
 - Remove keywords ``convert_float`` and ``mangle_dupe_cols`` from :func:`read_excel` (:issue:`41176`)
+- Remove keyword ``mangle_dupe_cols`` from :func:`read_csv` and :func:`read_table` (:issue:`48137`)
 - Removed ``errors`` keyword from :meth:`DataFrame.where`, :meth:`Series.where`, :meth:`DataFrame.mask` and :meth:`Series.mask` (:issue:`47728`)
 - Disallow passing non-keyword arguments to :func:`read_excel` except ``io`` and ``sheet_name`` (:issue:`34418`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.drop` and :meth:`Series.drop` except ``labels`` (:issue:`41486`)
@@ -638,6 +640,7 @@ Datetimelike
 - Bug in subtracting a ``datetime`` scalar from :class:`DatetimeIndex` failing to retain the original ``freq`` attribute (:issue:`48818`)
 - Bug in ``pandas.tseries.holiday.Holiday`` where a half-open date interval causes inconsistent return types from :meth:`USFederalHolidayCalendar.holidays` (:issue:`49075`)
 - Bug in rendering :class:`DatetimeIndex` and :class:`Series` and :class:`DataFrame` with timezone-aware dtypes with ``dateutil`` or ``zoneinfo`` timezones near daylight-savings transitions (:issue:`49684`)
+- Bug in :func:`to_datetime` was raising ``ValueError`` when parsing :class:`Timestamp` or ``datetime`` objects with non-ISO8601 ``format`` (:issue:`49298`)
 -
 
 Timedelta

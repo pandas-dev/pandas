@@ -663,12 +663,6 @@ class FrameApply(NDFrameApply):
         result = None
         try:
             result = super().agg()
-        except TypeError as err:
-            exc = TypeError(
-                "DataFrame constructor called with "
-                f"incompatible data and dtype: {err}"
-            )
-            raise exc from err
         finally:
             self.obj = obj
             self.axis = axis

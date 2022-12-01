@@ -754,16 +754,21 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
             val = Timestamp(val)
+            # error: Non-overlapping identity check (left operand type:
+            # "Timestamp", right operand type: "NaTType")
+            if val is not NaT:  # type: ignore[comparison-overlap]
+                val = val.as_unit("ns")
         except OutOfBoundsDatetime:
             return _dtype_obj, val
 
         # error: Non-overlapping identity check (left operand type: "Timestamp",
         # right operand type: "NaTType")
         if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
-            dtype = np.dtype("M8[ns]")
             val = val.to_datetime64()
+            dtype = val.dtype
             # TODO(2.0): this should be dtype = val.dtype
             #  to get the correct M8 resolution
+            # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
         else:
             if pandas_dtype:
                 dtype = DatetimeTZDtype(unit="ns", tz=val.tz)
