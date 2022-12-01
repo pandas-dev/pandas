@@ -4,8 +4,7 @@
 # -------------------------------------------------------------------------
 
 # assuming we use dockerhub: name of the docker user, docker image, tag, e.g. https://hub.docker.com/r/pandas/pandas-gitpod/tags
-image:
-  file: pythonpandas/pandas-gitpod:latest
+image: pythonpandas/pandas-gitpod:latest
 tasks:
   - name: Prepare development environment
     init: |
