@@ -88,12 +88,14 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
 
     # GH 21977
     mask = np.zeros(arr.shape, dtype=bool)
+    arr_mask_na = ~isna(arr)
     for x in nonna:
         if is_numeric_v_string_like(arr, x):
             # GH#29553 prevent numpy deprecation warnings
             pass
         else:
-            new_mask = arr == x
+            new_mask = np.zeros_like(arr, dtype=bool)
+            new_mask[arr_mask_na] = arr[arr_mask_na] == x
             if not isinstance(new_mask, np.ndarray):
                 # usually BooleanArray
                 new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
