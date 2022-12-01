@@ -1,9 +1,13 @@
 """Strptime-related classes and functions.
 """
 from cpython.datetime cimport (
+    PyDateTime_Check,
     date,
+    import_datetime,
     tzinfo,
 )
+
+import_datetime()
 
 from _thread import allocate_lock as _thread_allocate_lock
 
@@ -16,6 +20,7 @@ from numpy cimport (
 )
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
+from pandas._libs.tslibs.conversion cimport convert_timezone
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_nat_strings as nat_strings,
@@ -25,7 +30,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
+    pydatetime_to_dt64,
 )
+from pandas._libs.tslibs.timestamps cimport _Timestamp
 
 
 cdef dict _parse_code_table = {'y': 0,
@@ -53,7 +60,13 @@ cdef dict _parse_code_table = {'y': 0,
                                'u': 22}
 
 
-def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='raise'):
+def array_strptime(
+    ndarray[object] values,
+    str fmt,
+    bint exact=True,
+    errors='raise',
+    bint utc=False,
+):
     """
     Calculates the datetime structs represented by the passed array of strings
 
@@ -78,6 +91,9 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
+        bint found_naive = False
+        bint found_tz = False
+        tzinfo tz_out = None
 
     assert is_raise or is_ignore or is_coerce
 
@@ -128,12 +144,30 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
             if val in nat_strings:
                 iresult[i] = NPY_NAT
                 continue
-        else:
-            if checknull_with_nat_and_na(val):
-                iresult[i] = NPY_NAT
-                continue
+        elif checknull_with_nat_and_na(val):
+            iresult[i] = NPY_NAT
+            continue
+        elif PyDateTime_Check(val):
+            if val.tzinfo is not None:
+                found_tz = True
             else:
-                val = str(val)
+                found_naive = True
+            tz_out = convert_timezone(
+                val.tzinfo,
+                tz_out,
+                found_naive,
+                found_tz,
+                utc,
+            )
+            if isinstance(val, _Timestamp):
+                iresult[i] = val.tz_localize(None).as_unit("ns").value
+            else:
+                iresult[i] = pydatetime_to_dt64(val.replace(tzinfo=None), &dts)
+                check_dts_bounds(&dts)
+            result_timezone[i] = val.tzinfo
+            continue
+        else:
+            val = str(val)
 
         # exact matching
         if exact:
