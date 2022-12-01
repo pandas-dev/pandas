@@ -315,6 +315,10 @@ cdef _determine_offset(kwds):
     use_relativedelta = False
     if len(kwds_no_nanos) > 0:
         if any(k in _kwds_use_relativedelta for k in kwds_no_nanos):
+            if "milliseconds" in kwds_no_nanos:
+                offset = timedelta(**kwds_no_nanos)
+                return offset, use_relativedelta
+
             if "millisecond" in kwds_no_nanos:
                 raise NotImplementedError(
                     "Using DateOffset to replace `millisecond` component in "
@@ -1163,7 +1167,6 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
     def __init__(self, n=1, normalize=False, **kwds):
         BaseOffset.__init__(self, n, normalize)
-
         off, use_rd = _determine_offset(kwds)
         object.__setattr__(self, "_offset", off)
         object.__setattr__(self, "_use_relativedelta", use_rd)
