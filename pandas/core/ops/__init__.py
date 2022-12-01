@@ -6,7 +6,10 @@ This is not a public API.
 from __future__ import annotations
 
 import operator
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -423,6 +426,7 @@ def flex_arith_method_FRAME(op):
     @Appender(doc)
     def f(self, other, axis: Axis = "columns", level=None, fill_value=None):
         axis = self._get_axis_number(axis) if axis is not None else 1
+        axis = cast(int, axis)
 
         if should_reindex_frame_op(self, other, op, axis, fill_value, level):
             return frame_arith_method_with_reindex(self, other, op)
