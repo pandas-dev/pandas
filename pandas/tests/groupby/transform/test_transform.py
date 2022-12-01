@@ -20,7 +20,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.groupby.generic import DataFrameGroupBy
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -193,12 +192,9 @@ def test_transform_axis_1_reducer(request, reduction_func):
     ):
         marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
         request.node.add_marker(marker)
-    warn = FutureWarning if reduction_func in ("sem", "std") else None
-    msg = "The default value of numeric_only"
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    with tm.assert_produces_warning(warn, match=msg):
-        result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
+    result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
     expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
 
@@ -412,31 +408,21 @@ def test_transform_select_columns(df):
     tm.assert_frame_equal(result, expected)
 
 
-def test_transform_exclude_nuisance(df):
+def test_transform_nuisance_raises(df):
     # case that goes through _transform_item_by_item
 
     df.columns = ["A", "B", "B", "D"]
 
     # this also tests orderings in transform between
     # series/frame to make sure it's consistent
-    expected = {}
     grouped = df.groupby("A")
 
     gbc = grouped["B"]
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        expected["B"] = gbc.transform(lambda x: np.mean(x))
-    # squeeze 1-column DataFrame down to Series
-    expected["B"] = expected["B"]["B"]
+    with pytest.raises(TypeError, match="Could not convert"):
+        gbc.transform(lambda x: np.mean(x))
 
-    assert isinstance(gbc.obj, DataFrame)
-    assert isinstance(gbc, DataFrameGroupBy)
-
-    expected["D"] = grouped["D"].transform(np.mean)
-    expected = DataFrame(expected)
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        result = df.groupby("A").transform(lambda x: np.mean(x))
-
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(TypeError, match="Could not convert"):
+        df.groupby("A").transform(lambda x: np.mean(x))
 
 
 def test_transform_function_aliases(df):
@@ -522,10 +508,11 @@ def test_groupby_transform_with_int():
         }
     )
     with np.errstate(all="ignore"):
-        with tm.assert_produces_warning(
-            FutureWarning, match="Dropping invalid columns"
-        ):
-            result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
+        with pytest.raises(TypeError, match="Could not convert"):
+            df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
+        result = df.groupby("A")[["B", "C"]].transform(
+            lambda x: (x - x.mean()) / x.std()
+        )
     expected = DataFrame(
         {"B": np.nan, "C": Series([-1, 0, 1, -1, 0, 1], dtype="float64")}
     )
@@ -541,10 +528,11 @@ def test_groupby_transform_with_int():
         }
     )
     with np.errstate(all="ignore"):
-        with tm.assert_produces_warning(
-            FutureWarning, match="Dropping invalid columns"
-        ):
-            result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
+        with pytest.raises(TypeError, match="Could not convert"):
+            df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
+        result = df.groupby("A")[["B", "C"]].transform(
+            lambda x: (x - x.mean()) / x.std()
+        )
     expected = DataFrame({"B": np.nan, "C": [-1.0, 0.0, 1.0, -1.0, 0.0, 1.0]})
     tm.assert_frame_equal(result, expected)
 
@@ -552,10 +540,11 @@ def test_groupby_transform_with_int():
     s = Series([2, 3, 4, 10, 5, -1])
     df = DataFrame({"A": [1, 1, 1, 2, 2, 2], "B": 1, "C": s, "D": "foo"})
     with np.errstate(all="ignore"):
-        with tm.assert_produces_warning(
-            FutureWarning, match="Dropping invalid columns"
-        ):
-            result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
+        with pytest.raises(TypeError, match="Could not convert"):
+            df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
+        result = df.groupby("A")[["B", "C"]].transform(
+            lambda x: (x - x.mean()) / x.std()
+        )
 
     s1 = s.iloc[0:3]
     s1 = (s1 - s1.mean()) / s1.std()
@@ -565,8 +554,9 @@ def test_groupby_transform_with_int():
     tm.assert_frame_equal(result, expected)
 
     # int doesn't get downcasted
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        result = df.groupby("A").transform(lambda x: x * 2 / 2)
+    with pytest.raises(TypeError, match="unsupported operand type"):
+        df.groupby("A").transform(lambda x: x * 2 / 2)
+    result = df.groupby("A")[["B", "C"]].transform(lambda x: x * 2 / 2)
     expected = DataFrame({"B": 1.0, "C": [2.0, 3.0, 4.0, 10.0, 5.0, -1.0]})
     tm.assert_frame_equal(result, expected)
 
@@ -758,13 +748,15 @@ def test_cython_transform_frame(op, args, targop):
 
             expected = expected.sort_index(axis=1)
 
-            warn = None if op == "shift" else FutureWarning
-            msg = "The default value of numeric_only"
-            with tm.assert_produces_warning(warn, match=msg):
-                result = gb.transform(op, *args).sort_index(axis=1)
+            if op != "shift":
+                with pytest.raises(TypeError, match="datetime64 type does not support"):
+                    gb.transform(op, *args).sort_index(axis=1)
+            result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
             tm.assert_frame_equal(result, expected)
-            with tm.assert_produces_warning(warn, match=msg):
-                result = getattr(gb, op)(*args).sort_index(axis=1)
+            if op != "shift":
+                with pytest.raises(TypeError, match="datetime64 type does not support"):
+                    getattr(gb, op)(*args).sort_index(axis=1)
+            result = getattr(gb[expected.columns], op)(*args).sort_index(axis=1)
             tm.assert_frame_equal(result, expected)
             # individual columns
             for c in df:

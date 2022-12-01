@@ -903,18 +903,16 @@ def test_series_downsample_method(method, numeric_only, expected_data):
     expected_index = date_range("2018-12-31", periods=1, freq="Y")
     df = Series(["cat_1", "cat_2"], index=index)
     resampled = df.resample("Y")
+    kwargs = {} if numeric_only is lib.no_default else {"numeric_only": numeric_only}
 
     func = getattr(resampled, method)
     if numeric_only and numeric_only is not lib.no_default:
-        with tm.assert_produces_warning(
-            FutureWarning, match="This will raise a TypeError"
-        ):
-            with pytest.raises(NotImplementedError, match="not implement numeric_only"):
-                func(numeric_only=numeric_only)
+        with pytest.raises(TypeError, match="Cannot use numeric_only=True"):
+            func(**kwargs)
     elif method == "prod":
         with pytest.raises(TypeError, match="can't multiply sequence by non-int"):
-            func(numeric_only=numeric_only)
+            func(**kwargs)
     else:
-        result = func(numeric_only=numeric_only)
+        result = func(**kwargs)
         expected = Series(expected_data, index=expected_index)
         tm.assert_series_equal(result, expected)

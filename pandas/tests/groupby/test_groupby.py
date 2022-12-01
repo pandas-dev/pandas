@@ -4,7 +4,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas._libs import lib
 from pandas.compat import IS64
 from pandas.errors import (
     PerformanceWarning,
@@ -909,19 +908,13 @@ def test_keep_nuisance_agg(df, agg_function):
     "agg_function",
     ["sum", "mean", "prod", "std", "var", "sem", "median"],
 )
-@pytest.mark.parametrize("numeric_only", [lib.no_default, True, False])
+@pytest.mark.parametrize("numeric_only", [True, False])
 def test_omit_nuisance_agg(df, agg_function, numeric_only):
     # GH 38774, GH 38815
-    if numeric_only is lib.no_default or (not numeric_only and agg_function != "sum"):
-        # sum doesn't drop strings
-        warn = FutureWarning
-    else:
-        warn = None
-
     grouped = df.groupby("A")
 
     no_drop_nuisance = ("var", "std", "sem", "mean", "prod", "median")
-    if agg_function in no_drop_nuisance and numeric_only is False:
+    if agg_function in no_drop_nuisance and not numeric_only:
         # Added numeric_only as part of GH#46560; these do not drop nuisance
         # columns when numeric_only is False
         klass = ValueError if agg_function in ("std", "sem") else TypeError
@@ -929,44 +922,23 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
         with pytest.raises(klass, match=msg):
             getattr(grouped, agg_function)(numeric_only=numeric_only)
     else:
-        if numeric_only is lib.no_default:
-            msg = (
-                f"The default value of numeric_only in DataFrameGroupBy.{agg_function}"
-            )
-        else:
-            msg = "Dropping invalid columns"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = getattr(grouped, agg_function)(numeric_only=numeric_only)
-        if (
-            (numeric_only is lib.no_default or not numeric_only)
-            # These methods drop non-numeric columns even when numeric_only is False
-            and agg_function not in ("mean", "prod", "median")
-        ):
+        result = getattr(grouped, agg_function)(numeric_only=numeric_only)
+        if not numeric_only and agg_function == "sum":
+            # sum is successful on column B
             columns = ["A", "B", "C", "D"]
         else:
             columns = ["A", "C", "D"]
-        if agg_function == "sum" and numeric_only is False:
-            # sum doesn't drop nuisance string columns
-            warn = None
-        elif agg_function in ("sum", "std", "var", "sem") and numeric_only is not True:
-            warn = FutureWarning
-        else:
-            warn = None
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(warn, match=msg):
-            expected = getattr(df.loc[:, columns].groupby("A"), agg_function)(
-                numeric_only=numeric_only
-            )
+        expected = getattr(df.loc[:, columns].groupby("A"), agg_function)(
+            numeric_only=numeric_only
+        )
         tm.assert_frame_equal(result, expected)
 
 
-def test_omit_nuisance_warnings(df):
+def test_raise_on_nuisance_python_single(df):
     # GH 38815
-    with tm.assert_produces_warning(FutureWarning, filter_level="always"):
-        grouped = df.groupby("A")
-        result = grouped.skew()
-        expected = df.loc[:, ["A", "C", "D"]].groupby("A").skew()
-        tm.assert_frame_equal(result, expected)
+    grouped = df.groupby("A")
+    with pytest.raises(TypeError, match="could not convert"):
+        grouped.skew()
 
 
 def test_raise_on_nuisance_python_multiple(three_group):
@@ -1024,12 +996,11 @@ def test_wrap_aggregated_output_multindex(mframe):
 
     def aggfun(ser):
         if ser.name == ("foo", "one"):
-            raise TypeError
+            raise TypeError("Test error message")
         return ser.sum()
 
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        agged2 = df.groupby(keys).aggregate(aggfun)
-    assert len(agged2.columns) + 1 == len(df.columns)
+    with pytest.raises(TypeError, match="Test error message"):
+        df.groupby(keys).aggregate(aggfun)
 
 
 def test_groupby_level_apply(mframe):
@@ -2012,14 +1983,9 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
             if df.dtypes[0].kind == "M":
                 # GH#41291
                 # datetime64 -> prod and sum are invalid
-                if op == "sum":
-                    with pytest.raises(
-                        TypeError, match="datetime64 type does not support"
-                    ):
-                        get_result()
-                    result = get_result(numeric_only=True)
-                else:
-                    result = get_result()
+                with pytest.raises(TypeError, match="datetime64 type does not support"):
+                    get_result()
+                result = get_result(numeric_only=True)
 
                 # with numeric_only=True, these are dropped, and we get
                 # an empty DataFrame back
@@ -2030,14 +1996,9 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
             elif isinstance(values, Categorical):
                 # GH#41291
                 # Categorical doesn't implement sum or prod
-                if op == "sum":
-                    with pytest.raises(
-                        TypeError, match="category type does not support"
-                    ):
-                        get_result()
-                    result = get_result(numeric_only=True)
-                else:
-                    result = get_result()
+                with pytest.raises(TypeError, match="category type does not support"):
+                    get_result()
+                result = get_result(numeric_only=True)
 
                 # with numeric_only=True, these are dropped, and we get
                 # an empty DataFrame back
@@ -2053,24 +2014,22 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 return
 
             elif df.dtypes[0] == object:
-                # FIXME: the test is actually wrong here, xref #41341
                 result = get_result()
-                # In this case we have list-of-list, will raise TypeError,
-                # and subsequently be dropped as nuisance columns
-                if op == "sum":
-                    expected = df.set_index(keys)[["C"]]
-                else:
-                    expected = df.set_index(keys)[[]]
+                expected = df.set_index(keys)[["C"]]
                 tm.assert_equal(result, expected)
                 return
 
-        if (
-            op in ["min", "max", "skew"]
-            and isinstance(values, Categorical)
-            and len(keys) == 1
+        if (op in ["min", "max", "skew"] and isinstance(values, Categorical)) or (
+            op == "skew" and df.dtypes[0].kind == "M"
         ):
-            if op in ("min", "max"):
-                with pytest.raises(TypeError, match="Categorical is not ordered"):
+            if op == "skew" or len(keys) == 1:
+                msg = "|".join(
+                    [
+                        "Categorical is not ordered",
+                        "does not support reduction",
+                    ]
+                )
+                with pytest.raises(TypeError, match=msg):
                     get_result()
                 return
             # Categorical doesn't implement, so with numeric_only=True
