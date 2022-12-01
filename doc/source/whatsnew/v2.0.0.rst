@@ -33,10 +33,20 @@ sql-other, html, xml, plot, output_formatting, clipboard, compression, test]`` (
 Configuration option, ``io.nullable_backend``, to return pyarrow-backed dtypes from IO functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``use_nullable_dtypes`` keyword argument has been expanded to :func:`read_csv` and :func:`read_excel` to enable automatic conversion to nullable dtypes (:issue:`36712`)
+The ``use_nullable_dtypes`` keyword argument has been expanded to the following functions to enable automatic conversion to nullable dtypes (:issue:`36712`)
 
-Additionally a new global configuration, ``io.nullable_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in :func:`read_parquet`, :func:`read_orc`, :func:`read_excel` and :func:`read_csv` (with ``engine="pyarrow"``)
-to select the nullable dtypes implementation. By default, ``io.nullable_backend`` is set to ``"pandas"`` to return existing, numpy-backed nullable dtypes, but it can also
+* :func:`read_csv`
+* :func:`read_excel`
+
+Additionally a new global configuration, ``io.nullable_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
+to select the nullable dtypes implementation.
+
+* :func:`read_csv` (with ``engine="pyarrow"``)
+* :func:`read_excel`
+* :func:`read_parquet`
+* :func:`read_orc`
+
+By default, ``io.nullable_backend`` is set to ``"pandas"`` to return existing, numpy-backed nullable dtypes, but it can also
 be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (:issue:`48957`).
 
 .. ipython:: python
@@ -46,9 +56,13 @@ be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (
         1,2.5,True,a,,,,,
         3,4.5,False,b,6,7.5,True,a,
     """)
-    with pd.option_context("io.nullable_backend", "pyarrow"):
-        df = pd.read_csv(data, use_nullable_dtypes=True, engine="pyarrow")
+    with pd.option_context("io.nullable_backend", "pandas"):
+        df = pd.read_csv(data, use_nullable_dtypes=True)
     df.dtypes
+
+    with pd.option_context("io.nullable_backend", "pyarrow"):
+        df_pyarrow = pd.read_csv(data, use_nullable_dtypes=True, engine="pyarrow")
+    df_pyarrow.dtypes
 
 .. _whatsnew_200.enhancements.other:
 
