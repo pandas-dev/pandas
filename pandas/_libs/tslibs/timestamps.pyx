@@ -28,7 +28,7 @@ from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
     PyTZInfo_Check,
     datetime,
     import_datetime,
-    time,
+    time as dt_time,
     tzinfo as tzinfo_type,
 )
 from cpython.object cimport (
@@ -120,7 +120,7 @@ from pandas._libs.tslibs.tzconversion cimport (
 
 # ----------------------------------------------------------------------
 # Constants
-_zero_time = time(0, 0)
+_zero_time = dt_time(0, 0)
 _no_input = object()
 
 # ----------------------------------------------------------------------
@@ -233,7 +233,7 @@ cdef class _Timestamp(ABCTimestamp):
     resolution = MinMaxReso("resolution")  # GH#21336, GH#21365
 
     @property
-    def _unit(self) -> str:
+    def unit(self) -> str:
         """
         The abbreviation associated with self._creso.
         """
@@ -497,9 +497,9 @@ cdef class _Timestamp(ABCTimestamp):
             # Matching numpy, we cast to the higher resolution. Unlike numpy,
             #  we raise instead of silently overflowing during this casting.
             if self._creso < other._creso:
-                self = (<_Timestamp>self)._as_creso(other._creso, round_ok=False)
+                self = (<_Timestamp>self)._as_creso(other._creso, round_ok=True)
             elif self._creso > other._creso:
-                other = (<_Timestamp>other)._as_creso(self._creso, round_ok=False)
+                other = (<_Timestamp>other)._as_creso(self._creso, round_ok=True)
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
@@ -983,17 +983,37 @@ cdef class _Timestamp(ABCTimestamp):
     # Conversion Methods
 
     @cython.cdivision(False)
-    cdef _Timestamp _as_creso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
+    cdef _Timestamp _as_creso(self, NPY_DATETIMEUNIT creso, bint round_ok=True):
         cdef:
             int64_t value
 
-        if reso == self._creso:
+        if creso == self._creso:
             return self
 
-        value = convert_reso(self.value, self._creso, reso, round_ok=round_ok)
-        return type(self)._from_value_and_reso(value, reso=reso, tz=self.tzinfo)
+        try:
+            value = convert_reso(self.value, self._creso, creso, round_ok=round_ok)
+        except OverflowError as err:
+            unit = npy_unit_to_abbrev(creso)
+            raise OutOfBoundsDatetime(
+                f"Cannot cast {self} to unit='{unit}' without overflow."
+            ) from err
 
-    def _as_unit(self, str unit, bint round_ok=True):
+        return type(self)._from_value_and_reso(value, reso=creso, tz=self.tzinfo)
+
+    def as_unit(self, str unit, bint round_ok=True):
+        """
+        Convert the underlying int64 representaton to the given unit.
+
+        Parameters
+        ----------
+        unit : {"ns", "us", "ms", "s"}
+        round_ok : bool, default True
+            If False and the conversion requires rounding, raise.
+
+        Returns
+        -------
+        Timestamp
+        """
         dtype = np.dtype(f"M8[{unit}]")
         reso = get_unit_from_dtype(dtype)
         try:
@@ -1012,7 +1032,7 @@ cdef class _Timestamp(ABCTimestamp):
         --------
         >>> ts = pd.Timestamp(2020, 3, 14, 15)
         >>> ts.asm8
-        numpy.datetime64('2020-03-14T15:00:00.000000000')
+        numpy.datetime64('2020-03-14T15:00:00.000000')
         """
         return self.to_datetime64()
 
@@ -1303,24 +1323,20 @@ class Timestamp(_Timestamp):
         """
         Timestamp.utcfromtimestamp(ts)
 
-        Construct a naive UTC datetime from a POSIX timestamp.
+        Construct a timezone-aware UTC datetime from a POSIX timestamp.
+
+        Notes
+        -----
+        Timestamp.utcfromtimestamp behavior differs from datetime.utcfromtimestamp
+        in returning a timezone-aware object.
 
         Examples
         --------
         >>> pd.Timestamp.utcfromtimestamp(1584199972)
-        Timestamp('2020-03-14 15:32:52')
+        Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
         """
         # GH#22451
-        warnings.warn(
-            "The behavior of Timestamp.utcfromtimestamp is deprecated, in a "
-            "future version will return a timezone-aware Timestamp with UTC "
-            "timezone. To keep the old behavior, use "
-            "Timestamp.utcfromtimestamp(ts).tz_localize(None). "
-            "To get the future behavior, use Timestamp.fromtimestamp(ts, 'UTC')",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return cls(datetime.utcfromtimestamp(ts))
+        return cls.fromtimestamp(ts, tz="UTC")
 
     @classmethod
     def fromtimestamp(cls, ts, tz=None):

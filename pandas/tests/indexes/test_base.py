@@ -230,7 +230,6 @@ class TestIndex(Base):
         result = index._simple_new(index.values, dtype)
         tm.assert_index_equal(result, index)
 
-    @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, DatetimeIndex])
     def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, klass):
@@ -341,14 +340,17 @@ class TestIndex(Base):
         "index",
         [
             "datetime",
-            "float",
-            "int",
+            "float64",
+            "float32",
+            "int64",
+            "int32",
             "period",
             "range",
             "repeats",
             "timedelta",
             "tuples",
-            "uint",
+            "uint64",
+            "uint32",
         ],
         indirect=True,
     )
@@ -376,7 +378,11 @@ class TestIndex(Base):
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
 
-    @pytest.mark.parametrize("index", ["int", "range"], indirect=True)
+    @pytest.mark.parametrize(
+        "index",
+        ["int64", "int32", "range"],
+        indirect=True,
+    )
     def test_astype(self, index):
         casted = index.astype("i8")
 
@@ -475,7 +481,11 @@ class TestIndex(Base):
         for i in sl:
             assert i == sl[sl.get_loc(i)]
 
-    @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
+    @pytest.mark.parametrize(
+        "index",
+        ["string", "int64", "int32", "uint64", "uint32", "float64", "float32"],
+        indirect=True,
+    )
     @pytest.mark.parametrize("dtype", [np.int_, np.bool_])
     def test_empty_fancy(self, index, dtype):
         empty_arr = np.array([], dtype=dtype)
@@ -484,7 +494,11 @@ class TestIndex(Base):
         assert index[[]].identical(empty_index)
         assert index[empty_arr].identical(empty_index)
 
-    @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
+    @pytest.mark.parametrize(
+        "index",
+        ["string", "int64", "int32", "uint64", "uint32", "float64", "float32"],
+        indirect=True,
+    )
     def test_empty_fancy_raises(self, index):
         # DatetimeIndex is excluded, because it overrides getitem and should
         # be tested separately.
@@ -639,9 +653,13 @@ class TestIndex(Base):
             ("bool-object", False),
             ("bool-dtype", False),
             ("categorical", False),
-            ("int", True),
+            ("int64", True),
+            ("int32", True),
+            ("uint64", True),
+            ("uint32", True),
             ("datetime", False),
-            ("float", True),
+            ("float64", True),
+            ("float32", True),
         ],
         indirect=["index"],
     )
@@ -655,9 +673,13 @@ class TestIndex(Base):
             ("bool-object", True),
             ("bool-dtype", False),
             ("categorical", False),
-            ("int", False),
+            ("int64", False),
+            ("int32", False),
+            ("uint64", False),
+            ("uint32", False),
             ("datetime", False),
-            ("float", False),
+            ("float64", False),
+            ("float32", False),
         ],
         indirect=["index"],
     )
@@ -701,7 +723,9 @@ class TestIndex(Base):
         index = simple_index
         assert getattr(index, op)() == getattr(index.values, op)()
 
-    @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
+    @pytest.mark.parametrize(
+        "index", ["string", "int64", "int32", "float64", "float32"], indirect=True
+    )
     def test_drop_by_str_label(self, index):
         n = len(index)
         drop = index[list(range(5, 10))]
@@ -714,13 +738,17 @@ class TestIndex(Base):
         expected = index[1:]
         tm.assert_index_equal(dropped, expected)
 
-    @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
+    @pytest.mark.parametrize(
+        "index", ["string", "int64", "int32", "float64", "float32"], indirect=True
+    )
     @pytest.mark.parametrize("keys", [["foo", "bar"], ["1", "bar"]])
     def test_drop_by_str_label_raises_missing_keys(self, index, keys):
         with pytest.raises(KeyError, match=""):
             index.drop(keys)
 
-    @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
+    @pytest.mark.parametrize(
+        "index", ["string", "int64", "int32", "float64", "float32"], indirect=True
+    )
     def test_drop_by_str_label_errors_ignore(self, index):
         n = len(index)
         drop = index[list(range(5, 10))]
@@ -941,7 +969,16 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize(
         "index",
-        ["string", "datetime", "int", "uint", "float"],
+        [
+            "string",
+            "datetime",
+            "int64",
+            "int32",
+            "uint64",
+            "uint32",
+            "float64",
+            "float32",
+        ],
         indirect=True,
     )
     def test_join_self(self, index, join_type):
@@ -1498,7 +1535,6 @@ def test_index_subclass_constructor_wrong_kwargs(index_maker):
         index_maker(foo="bar")
 
 
-@pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
 def test_deprecated_fastpath():
     msg = "[Uu]nexpected keyword argument"
     with pytest.raises(TypeError, match=msg):

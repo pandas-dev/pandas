@@ -162,7 +162,8 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result = Timestamp(result)
+        result = (<_Timestamp>Timestamp(result))._as_creso(other._creso)
+
         if self._adjust_dst:
             result = result.tz_localize(tz)
 
@@ -175,9 +176,10 @@ def apply_wraps(func):
             if result.nanosecond != nano:
                 if result.tz is not None:
                     # convert to UTC
-                    value = result.tz_localize(None).value
+                    res = result.tz_localize(None)
                 else:
-                    value = result.value
+                    res = result
+                value = res.as_unit("ns").value
                 result = Timestamp(value + nano)
 
         if tz is not None and result.tzinfo is None:
@@ -254,7 +256,9 @@ cdef _to_dt64D(dt):
     if getattr(dt, 'tzinfo', None) is not None:
         # Get the nanosecond timestamp,
         #  equiv `Timestamp(dt).value` or `dt.timestamp() * 10**9`
-        naive = dt.astimezone(None)
+        # The `naive` must be the `dt` naive wall time
+        #  instead of the naive absolute time (GH#49441)
+        naive = dt.replace(tzinfo=None)
         dt = np.datetime64(naive, "D")
     else:
         dt = np.datetime64(dt)
@@ -2410,10 +2414,27 @@ cdef class MonthEnd(MonthOffset):
     """
     DateOffset of one month end.
 
+    MonthEnd goes to the next date which is an end of the month.
+    To get the end of the current month pass the parameter n equals 0.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts = pd.Timestamp(2022, 1, 30)
     >>> ts + pd.offsets.MonthEnd()
+    Timestamp('2022-01-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 1, 31)
+    >>> ts + pd.offsets.MonthEnd()
+    Timestamp('2022-02-28 00:00:00')
+
+    If you want to get the end of the current month pass the parameter n equals 0:
+
+    >>> ts = pd.Timestamp(2022, 1, 31)
+    >>> ts + pd.offsets.MonthEnd(0)
     Timestamp('2022-01-31 00:00:00')
     """
     _period_dtype_code = PeriodDtypeCode.M

@@ -472,15 +472,19 @@ class Grouping:
 
         ilevel = self._ilevel
         if ilevel is not None:
-            mapper = self.grouping_vector
             # In extant tests, the new self.grouping_vector matches
             #  `index.get_level_values(ilevel)` whenever
             #  mapper is None and isinstance(index, MultiIndex)
-            (
-                self.grouping_vector,  # Index
-                self._codes,
-                self._group_index,
-            ) = index._get_grouper_for_level(mapper, level=ilevel, dropna=dropna)
+            if isinstance(index, MultiIndex):
+                index_level = index.get_level_values(ilevel)
+            else:
+                index_level = index
+
+            if self.grouping_vector is None:
+                self.grouping_vector = index_level
+            else:
+                mapper = self.grouping_vector
+                self.grouping_vector = index_level.map(mapper)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -503,15 +507,6 @@ class Grouping:
                 # ops.BaseGrouper
                 # use Index instead of ndarray so we can recover the name
                 self.grouping_vector = Index(ng, name=newgrouper.result_index.name)
-
-        elif is_categorical_dtype(self.grouping_vector):
-            # a passed Categorical
-            self._passed_categorical = True
-
-            self._orig_cats = self.grouping_vector.categories
-            self.grouping_vector, self._all_grouper = recode_for_groupby(
-                self.grouping_vector, sort, observed
-            )
 
         elif not isinstance(
             self.grouping_vector, (Series, Index, ExtensionArray, np.ndarray)
@@ -542,6 +537,14 @@ class Grouping:
                 # TODO 2022-10-08 we only have one test that gets here and
                 #  values are already in nanoseconds in that case.
                 self.grouping_vector = Series(self.grouping_vector).to_numpy()
+        elif is_categorical_dtype(self.grouping_vector):
+            # a passed Categorical
+            self._passed_categorical = True
+
+            self._orig_cats = self.grouping_vector.categories
+            self.grouping_vector, self._all_grouper = recode_for_groupby(
+                self.grouping_vector, sort, observed
+            )
 
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
@@ -597,10 +600,6 @@ class Grouping:
 
     @property
     def codes(self) -> npt.NDArray[np.signedinteger]:
-        if self._codes is not None:
-            # _codes is set in __init__ for MultiIndex cases
-            return self._codes
-
         return self._codes_and_uniques[0]
 
     @cache_readonly
@@ -609,11 +608,7 @@ class Grouping:
         Analogous to result_index, but holding an ArrayLike to ensure
         we can retain ExtensionDtypes.
         """
-        if self._group_index is not None:
-            # _group_index is set in __init__ for MultiIndex cases
-            return self._group_index._values
-
-        elif self._all_grouper is not None:
+        if self._all_grouper is not None:
             # retain dtype for categories, including unobserved ones
             return self.result_index._values
 
@@ -633,10 +628,6 @@ class Grouping:
 
     @cache_readonly
     def group_index(self) -> Index:
-        if self._group_index is not None:
-            # _group_index is set in __init__ for MultiIndex cases
-            return self._group_index
-
         uniques = self._codes_and_uniques[1]
         return Index._with_infer(uniques, name=self.name)
 
@@ -652,7 +643,7 @@ class Grouping:
             if self._observed:
                 ucodes = algorithms.unique1d(cat.codes)
                 ucodes = ucodes[ucodes != -1]
-                if self._sort or cat.ordered:
+                if self._sort:
                     ucodes = np.sort(ucodes)
             else:
                 ucodes = np.arange(len(categories))

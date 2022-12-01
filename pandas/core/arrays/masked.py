@@ -247,11 +247,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def __iter__(self) -> Iterator:
         if self.ndim == 1:
-            for i in range(len(self)):
-                if self._mask[i]:
-                    yield self.dtype.na_value
-                else:
-                    yield self._data[i]
+            if not self._hasna:
+                for val in self._data:
+                    yield val
+            else:
+                na_value = self.dtype.na_value
+                for isna_, val in zip(self._mask, self._data):
+                    if isna_:
+                        yield na_value
+                    else:
+                        yield val
         else:
             for i in range(len(self)):
                 yield self[i]
@@ -431,10 +436,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def tolist(self):
         if self.ndim > 1:
             return [x.tolist() for x in self]
-        if not self._hasna:
-            # faster than list(self)
-            return list(self._data)
-        return list(self)
+        dtype = None if self._hasna else self._data.dtype
+        return self.to_numpy(dtype=dtype).tolist()
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -901,28 +904,25 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @doc(ExtensionArray.factorize)
     def factorize(
         self,
-        na_sentinel: int | lib.NoDefault = lib.no_default,
-        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool = True,
     ) -> tuple[np.ndarray, ExtensionArray]:
-        resolved_na_sentinel = algos.resolve_na_sentinel(na_sentinel, use_na_sentinel)
         arr = self._data
         mask = self._mask
 
-        # Pass non-None na_sentinel; recode and add NA to uniques if necessary below
-        na_sentinel_arg = -1 if resolved_na_sentinel is None else resolved_na_sentinel
-        codes, uniques = factorize_array(arr, na_sentinel=na_sentinel_arg, mask=mask)
+        # Use a sentinel for na; recode and add NA to uniques if necessary below
+        codes, uniques = factorize_array(arr, use_na_sentinel=True, mask=mask)
 
         # check that factorize_array correctly preserves dtype.
         assert uniques.dtype == self.dtype.numpy_dtype, (uniques.dtype, self.dtype)
 
         has_na = mask.any()
-        if resolved_na_sentinel is not None or not has_na:
+        if use_na_sentinel or not has_na:
             size = len(uniques)
         else:
             # Make room for an NA value
             size = len(uniques) + 1
         uniques_mask = np.zeros(size, dtype=bool)
-        if resolved_na_sentinel is None and has_na:
+        if not use_na_sentinel and has_na:
             na_index = mask.argmax()
             # Insert na with the proper code
             if na_index == 0:
@@ -1058,7 +1058,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             data = self.to_numpy("float64", na_value=np.nan)
 
         # median, var, std, skew, kurt, idxmin, idxmax
-        op = getattr(nanops, "nan" + name)
+        op = getattr(nanops, f"nan{name}")
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
         if np.isnan(result):

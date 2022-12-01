@@ -156,25 +156,29 @@ class TestTimedeltas:
         )
 
     @pytest.mark.parametrize(
-        "val, warning",
+        "val, errors",
         [
-            ("1M", FutureWarning),
-            ("1 M", FutureWarning),
-            ("1Y", FutureWarning),
-            ("1 Y", FutureWarning),
-            ("1y", FutureWarning),
-            ("1 y", FutureWarning),
-            ("1m", None),
-            ("1 m", None),
-            ("1 day", None),
-            ("2day", None),
+            ("1M", True),
+            ("1 M", True),
+            ("1Y", True),
+            ("1 Y", True),
+            ("1y", True),
+            ("1 y", True),
+            ("1m", False),
+            ("1 m", False),
+            ("1 day", False),
+            ("2day", False),
         ],
     )
-    def test_unambiguous_timedelta_values(self, val, warning):
+    def test_unambiguous_timedelta_values(self, val, errors):
         # GH36666 Deprecate use of strings denoting units with 'M', 'Y', 'm' or 'y'
         # in pd.to_timedelta
         msg = "Units 'M', 'Y' and 'y' do not represent unambiguous timedelta"
-        with tm.assert_produces_warning(warning, match=msg, check_stacklevel=False):
+        if errors:
+            with pytest.raises(ValueError, match=msg):
+                to_timedelta(val)
+        else:
+            # check it doesn't raise
             to_timedelta(val)
 
     def test_to_timedelta_via_apply(self):

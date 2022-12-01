@@ -418,7 +418,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         d = {}
         if is_datetime64_dtype(dates.dtype):
             if delta:
-                time_delta = dates - stata_epoch
+                time_delta = dates - Timestamp(stata_epoch).as_unit("ns")
                 d["delta"] = time_delta._values.view(np.int64) // 1000  # microseconds
             if days or year:
                 date_index = DatetimeIndex(dates)
@@ -1725,7 +1725,7 @@ the string values returned are correct."""
         # If index is not specified, use actual row number rather than
         # restarting at 0 for each chunk.
         if index_col is None:
-            rng = np.arange(self._lines_read - read_lines, self._lines_read)
+            rng = range(self._lines_read - read_lines, self._lines_read)
             data.index = Index(rng)  # set attr instead of set_index to avoid copy
 
         if columns is not None:
