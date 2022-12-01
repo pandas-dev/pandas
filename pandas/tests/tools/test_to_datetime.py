@@ -469,6 +469,88 @@ class TestToDatetime:
         expected = to_datetime([d1, d2]).tz_convert(pytz.FixedOffset(-60))
         tm.assert_index_equal(res, expected)
 
+    @pytest.mark.parametrize(
+        "fmt",
+        ["%Y-%d-%m %H:%M:%S%z", "%Y-%m-%d %H:%M:%S%z"],
+        ids=["non-ISO8601 format", "ISO8601 format"],
+    )
+    @pytest.mark.parametrize(
+        "utc, args, expected",
+        [
+            pytest.param(
+                True,
+                ["2000-01-01 01:00:00-08:00", "2000-01-01 02:00:00-08:00"],
+                DatetimeIndex(
+                    ["2000-01-01 09:00:00+00:00", "2000-01-01 10:00:00+00:00"],
+                    dtype="datetime64[ns, UTC]",
+                ),
+                id="all tz-aware, with utc",
+            ),
+            pytest.param(
+                False,
+                ["2000-01-01 01:00:00+00:00", "2000-01-01 02:00:00+00:00"],
+                DatetimeIndex(
+                    ["2000-01-01 01:00:00+00:00", "2000-01-01 02:00:00+00:00"],
+                ),
+                id="all tz-aware, without utc",
+            ),
+            pytest.param(
+                True,
+                ["2000-01-01 01:00:00-08:00", "2000-01-01 02:00:00+00:00"],
+                DatetimeIndex(
+                    ["2000-01-01 09:00:00+00:00", "2000-01-01 02:00:00+00:00"],
+                    dtype="datetime64[ns, UTC]",
+                ),
+                id="all tz-aware, mixed offsets, with utc",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "constructor",
+        [Timestamp, lambda x: Timestamp(x).to_pydatetime()],
+    )
+    def test_to_datetime_mixed_datetime_and_string_with_format(
+        self, fmt, utc, args, expected, constructor
+    ):
+        # https://github.com/pandas-dev/pandas/issues/49298
+        # note: ISO8601 formats go down a fastpath, so we need to check both
+        # a ISO8601 format and a non-ISO8601 one
+        ts1 = constructor(args[0])
+        ts2 = args[1]
+        result = to_datetime([ts1, ts2], format=fmt, utc=utc)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "fmt",
+        ["%Y-%d-%m %H:%M:%S%z", "%Y-%m-%d %H:%M:%S%z"],
+        ids=["non-ISO8601 format", "ISO8601 format"],
+    )
+    @pytest.mark.parametrize(
+        "args",
+        [
+            pytest.param(
+                ["2000-01-01 01:00:00-08:00", "2000-01-01 02:00:00-07:00"],
+                id="all tz-aware, mixed timezones, without utc",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "constructor",
+        [Timestamp, lambda x: Timestamp(x).to_pydatetime()],
+    )
+    def test_to_datetime_mixed_datetime_and_string_with_format_raises(
+        self, fmt, args, constructor
+    ):
+        # https://github.com/pandas-dev/pandas/issues/49298
+        # note: ISO8601 formats go down a fastpath, so we need to check both
+        # a ISO8601 format and a non-ISO8601 one
+        ts1 = constructor(args[0])
+        ts2 = constructor(args[1])
+        with pytest.raises(
+            ValueError, match="cannot be converted to datetime64 unless utc=True"
+        ):
+            to_datetime([ts1, ts2], format=fmt, utc=False)
+
     @pytest.mark.parametrize("infer_datetime_format", [True, False])
     def test_to_datetime_np_str(self, infer_datetime_format):
         # GH#32264
@@ -654,7 +736,7 @@ class TestToDatetime:
             pdtoday2 = to_datetime(["today"])[0]
 
             tstoday = Timestamp("today")
-            tstoday2 = Timestamp.today()
+            tstoday2 = Timestamp.today().as_unit("ns")
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
@@ -2750,7 +2832,13 @@ class TestOrigin:
     )
     def test_invalid_origins(self, origin, exc, units, units_from_epochs):
 
-        msg = f"origin {origin} (is Out of Bounds|cannot be converted to a Timestamp)"
+        msg = "|".join(
+            [
+                f"origin {origin} is Out of Bounds",
+                f"origin {origin} cannot be converted to a Timestamp",
+                "Cannot cast .* to unit='ns' without overflow",
+            ]
+        )
         with pytest.raises(exc, match=msg):
             to_datetime(units_from_epochs, unit=units, origin=origin)
 

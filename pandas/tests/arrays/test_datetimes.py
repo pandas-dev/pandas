@@ -12,11 +12,11 @@ except ImportError:
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import tz_compare
-from pandas._libs.tslibs.dtypes import (
-    NpyDatetimeUnit,
+from pandas._libs.tslibs import (
     npy_unit_to_abbrev,
+    tz_compare,
 )
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 

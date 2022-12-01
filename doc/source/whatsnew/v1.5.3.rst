@@ -16,6 +16,7 @@ Fixed regressions
 - Fixed performance regression in :meth:`Series.isin` when ``values`` is empty (:issue:`49839`)
 - Fixed regression in :meth:`DataFrameGroupBy.transform` when used with ``as_index=False`` (:issue:`49834`)
 - Enforced reversion of ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` in function :meth:`DataFrame.plot.scatter` (:issue:`49732`)
+- Fixed regression in :meth:`SeriesGroupBy.apply` setting a ``name`` attribute on the result if the result was a :class:`DataFrame` (:issue:`49907`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -23,7 +24,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :meth:`.Styler.to_excel` leading to error when unrecognized ``border-style`` (e.g. ``"hair"``) provided to Excel writers (:issue:`48649`)
 -
 
 .. ---------------------------------------------------------------------------
