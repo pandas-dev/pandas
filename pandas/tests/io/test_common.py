@@ -359,14 +359,18 @@ Look,a snake,🐍"""
             writer = getattr(df, writer_name)
 
             writer(string, **writer_kwargs)
-            with open(string, "rb") as f:
-                expected = f.read()
-
             writer(mypath, **writer_kwargs)
-            with open(fspath, "rb") as f:
-                result = f.read()
-
-            assert result == expected
+            with open(string, "rb") as f_str, open(fspath, "rb") as f_path:
+                if writer_name == "to_excel":
+                    # binary representation of excel contains time creation
+                    # data that causes flaky CI failures
+                    result = pd.read_excel(f_str, **writer_kwargs)
+                    expected = pd.read_excel(f_path, **writer_kwargs)
+                    tm.assert_frame_equal(result, expected)
+                else:
+                    result = f_str.read()
+                    expected = f_path.read()
+                    assert result == expected
 
     @pytest.mark.filterwarnings(  # pytables np.object usage
         "ignore:`np.object` is a deprecated alias:DeprecationWarning"

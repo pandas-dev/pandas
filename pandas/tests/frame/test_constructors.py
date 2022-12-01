@@ -18,6 +18,7 @@ from numpy.ma import mrecords
 import pytest
 import pytz
 
+from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -105,16 +106,13 @@ class TestDataFrameConstructors:
     def test_construct_ndarray_with_nas_and_int_dtype(self):
         # GH#26919 match Series by not casting np.nan to meaningless int
         arr = np.array([[1, np.nan], [2, 3]])
-        with tm.assert_produces_warning(FutureWarning):
-            df = DataFrame(arr, dtype="i8")
-        assert df.values.dtype == arr.dtype
-        assert isna(df.iloc[0, 1])
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+        with pytest.raises(IntCastingNaNError, match=msg):
+            DataFrame(arr, dtype="i8")
 
         # check this matches Series behavior
-        with tm.assert_produces_warning(FutureWarning):
-            ser = Series(arr[0], dtype="i8", name=0)
-        expected = df.iloc[0]
-        tm.assert_series_equal(ser, expected)
+        with pytest.raises(IntCastingNaNError, match=msg):
+            Series(arr[0], dtype="i8", name=0)
 
     def test_construct_from_list_of_datetimes(self):
         df = DataFrame([datetime.now(), datetime.now()])
@@ -346,7 +344,7 @@ class TestDataFrameConstructors:
 
         for d, a in zip(dtypes, arrays):
             assert a.dtype == d
-        ad.update({d: a for d, a in zip(dtypes, arrays)})
+        ad.update(dict(zip(dtypes, arrays)))
         df = DataFrame(ad)
 
         dtypes = MIXED_FLOAT_DTYPES + MIXED_INT_DTYPES
@@ -848,30 +846,19 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result_Timestamp, expected)
 
     @pytest.mark.parametrize(
-        "klass",
+        "klass,name",
         [
-            pytest.param(
-                np.timedelta64,
-                marks=pytest.mark.xfail(
-                    reason="hash mismatch (GH#44504) causes lib.fast_multiget "
-                    "to mess up on dict lookups with equal Timedeltas with "
-                    "mismatched resos"
-                ),
-            ),
-            timedelta,
-            Timedelta,
+            (lambda x: np.timedelta64(x, "D"), "timedelta64"),
+            (lambda x: timedelta(days=x), "pytimedelta"),
+            (lambda x: Timedelta(x, "D"), "Timedelta[ns]"),
+            (lambda x: Timedelta(x, "D").as_unit("s"), "Timedelta[s]"),
         ],
     )
-    def test_constructor_dict_timedelta64_index(self, klass):
+    def test_constructor_dict_timedelta64_index(self, klass, name):
         # GH 10160
         td_as_int = [1, 2, 3, 4]
 
-        if klass is timedelta:
-            constructor = lambda x: timedelta(days=x)
-        else:
-            constructor = lambda x: klass(x, "D")
-
-        data = {i: {constructor(s): 2 * i} for i, s in enumerate(td_as_int)}
+        data = {i: {klass(s): 2 * i} for i, s in enumerate(td_as_int)}
 
         expected = DataFrame(
             [
@@ -884,6 +871,7 @@ class TestDataFrameConstructors:
         )
 
         result = DataFrame(data)
+
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_period_dict(self):
@@ -966,21 +954,16 @@ class TestDataFrameConstructors:
         assert len(frame.index) == 3
         assert len(frame.columns) == 1
 
-        warn = None if empty is np.ones else FutureWarning
-        with tm.assert_produces_warning(warn):
+        if empty is not np.ones:
+            msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+            with pytest.raises(IntCastingNaNError, match=msg):
+                DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
+            return
+        else:
             frame = DataFrame(
                 mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64
             )
-        if empty is np.ones:
-            # passing dtype casts
             assert frame.values.dtype == np.int64
-        else:
-            # i.e. ma.masked_all
-            # Since we have NaNs, refuse to cast to int dtype, which would take NaN
-            #  to meaningless integers.  This matches Series behavior.  GH#26919
-            assert frame.isna().all().all()
-            assert frame.values.dtype == np.float64
-            assert isna(frame.values).all()
 
         # wrong size axis labels
         msg = r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)"
@@ -1066,18 +1049,15 @@ class TestDataFrameConstructors:
         assert isna(frame).values.all()
 
         # cast type
-        msg = r"datetime64\[ns\] values and dtype=int64"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = r"datetime64\[ns\] values and dtype=int64 is not supported"
+        with pytest.raises(TypeError, match=msg):
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     "ignore",
                     category=DeprecationWarning,
                     message="elementwise comparison failed",
                 )
-                frame = DataFrame(
-                    mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64
-                )
-        assert frame.values.dtype == np.int64
+                DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
 
         # Check non-masked values
         mat2 = ma.copy(mat)
@@ -1741,11 +1721,10 @@ class TestDataFrameConstructors:
             DataFrame({"A": float_frame["A"], "B": list(float_frame["B"])[:-2]})
 
     def test_constructor_miscast_na_int_dtype(self):
-        msg = "float-dtype values containing NaN and an integer dtype"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df = DataFrame([[np.nan, 1], [1, 0]], dtype=np.int64)
-        expected = DataFrame([[np.nan, 1], [1, 0]])
-        tm.assert_frame_equal(df, expected)
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+
+        with pytest.raises(IntCastingNaNError, match=msg):
+            DataFrame([[np.nan, 1], [1, 0]], dtype=np.int64)
 
     def test_constructor_column_duplicates(self):
         # it works! #2079
@@ -2220,47 +2199,34 @@ class TestDataFrameConstructors:
         tm.assert_series_equal(df[0], expected)
 
     def test_construct_from_1item_list_of_categorical(self):
+        # pre-2.0 this behaved as DataFrame({0: cat}), in 2.0 we remove
+        #  Categorical special case
         # ndim != 1
-        msg = "will be changed to match the behavior"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df = DataFrame([Categorical(list("abc"))])
-        expected = DataFrame({0: Series(list("abc"), dtype="category")})
+        cat = Categorical(list("abc"))
+        df = DataFrame([cat])
+        expected = DataFrame([cat.astype(object)])
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_list_of_categoricals(self):
-        msg = "will be changed to match the behavior"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
-        expected = DataFrame(
-            {
-                0: Series(list("abc"), dtype="category"),
-                1: Series(list("abd"), dtype="category"),
-            },
-            columns=[0, 1],
-        )
+        # pre-2.0 this behaved as DataFrame({0: cat}), in 2.0 we remove
+        #  Categorical special case
+
+        df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
+        expected = DataFrame([["a", "b", "c"], ["a", "b", "d"]])
         tm.assert_frame_equal(df, expected)
 
     def test_from_nested_listlike_mixed_types(self):
+        # pre-2.0 this behaved as DataFrame({0: cat}), in 2.0 we remove
+        #  Categorical special case
         # mixed
-        msg = "will be changed to match the behavior"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df = DataFrame([Categorical(list("abc")), list("def")])
-        expected = DataFrame(
-            {0: Series(list("abc"), dtype="category"), 1: list("def")}, columns=[0, 1]
-        )
+        df = DataFrame([Categorical(list("abc")), list("def")])
+        expected = DataFrame([["a", "b", "c"], ["d", "e", "f"]])
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_listlikes_mismatched_lengths(self):
-        # invalid (shape)
-        msg = "|".join(
-            [
-                r"Length of values \(6\) does not match length of index \(3\)",
-            ]
-        )
-        msg2 = "will be changed to match the behavior"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
+        df = DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
+        expected = DataFrame([list("abc"), list("abdefg")])
+        tm.assert_frame_equal(df, expected)
 
     def test_constructor_categorical_series(self):
 
@@ -2735,16 +2701,16 @@ class TestDataFrameConstructorWithDtypeCoercion:
 
         # with NaNs, we go through a different path with a different warning
         arr[0, 0] = np.nan
-        msg = "passing float-dtype values containing NaN"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+        with pytest.raises(IntCastingNaNError, match=msg):
             DataFrame(arr, dtype="i8")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(IntCastingNaNError, match=msg):
             Series(arr[0], dtype="i8")
         # The future (raising) behavior matches what we would get via astype:
         msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(IntCastingNaNError, match=msg):
             DataFrame(arr).astype("i8")
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(IntCastingNaNError, match=msg):
             Series(arr[0]).astype("i8")
 
 
@@ -3042,14 +3008,11 @@ class TestFromScalar:
         scalar = cls("NaT", "ns")
         dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]
 
-        msg = "Cannot cast"
         if cls is np.datetime64:
-            msg = "|".join(
-                [
-                    r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]",
-                    "Cannot cast",
-                ]
-            )
+            msg1 = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
+        else:
+            msg1 = r"dtype timedelta64\[ns\] cannot be converted to datetime64\[ns\]"
+        msg = "|".join(["Cannot cast", msg1])
 
         with pytest.raises(TypeError, match=msg):
             constructor(scalar, dtype=dtype)
@@ -3171,12 +3134,6 @@ class TestAllowNonNano:
         df = DataFrame(arr)
         assert df.dtypes[0] == arr.dtype
 
-    @pytest.mark.xfail(
-        # TODO(2.0): xfail should become unnecessary
-        strict=False,
-        reason="stack_arrays converts TDA to ndarray, then goes "
-        "through ensure_wrapped_if_datetimelike",
-    )
     def test_frame_from_dict_allow_non_nano(self, arr):
         df = DataFrame({0: arr})
         assert df.dtypes[0] == arr.dtype
