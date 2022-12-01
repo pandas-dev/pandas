@@ -60,6 +60,7 @@ be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (
         df = pd.read_csv(data, use_nullable_dtypes=True)
     df.dtypes
 
+    data.seek(0)
     with pd.option_context("io.nullable_backend", "pyarrow"):
         df_pyarrow = pd.read_csv(data, use_nullable_dtypes=True, engine="pyarrow")
     df_pyarrow.dtypes
