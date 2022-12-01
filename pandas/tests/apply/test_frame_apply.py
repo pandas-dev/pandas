@@ -1181,7 +1181,6 @@ def test_agg_multiple_mixed_raises():
     )
 
     # sorted index
-    # TODO: GH#49399 will fix error message
     msg = "does not support reduction"
     with pytest.raises(TypeError, match=msg):
         mdf.agg(["min", "sum"])
@@ -1291,7 +1290,6 @@ def test_nuiscance_columns():
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    # TODO: GH#49399 will fix error message
     msg = "does not support reduction"
     with pytest.raises(TypeError, match=msg):
         df.agg(["sum"])
