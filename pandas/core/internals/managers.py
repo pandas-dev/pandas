@@ -1571,8 +1571,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         Apply array_op blockwise with another (aligned) BlockManager.
         """
+        from pandas.core.internals.construction import mgr_to_mgr
+
         if isinstance(other, ArrayManager):
-            raise ValueError("BlockManager -> ArrayManager operators don't work.")
+            # set copy = False? Is it guaranteed that array_op is immutable?
+            other = mgr_to_mgr(other, "block")
 
         return operate_blockwise(self, other, array_op)
 

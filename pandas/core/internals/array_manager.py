@@ -694,26 +694,19 @@ class BaseArrayManager(DataManager):
         Used in .equals defined in base class. Only check the column values
         assuming shape and indexes have already been checked.
         """
-        from pandas.core.internals import BlockManager  # to avoid circular import
+        from pandas.core.internals.construction import mgr_to_mgr
 
-        if isinstance(other, BlockManager):
+        # If not ArrayManager, implies that `other` is of type BlockManager
+        if not isinstance(other, ArrayManager):
             # Because BlockManager exposes it's array in a list of multi-column NDArray
             # but ArrayManager exposes arrays as a list of single-column NDArray.
             # Therefore, we have to flatten BlockManager's array list
-            flattened_block_arrays = self._flatten_block_manager_arrays(other.arrays)
-        else:
-            flattened_block_arrays = other.arrays
-        for left, right in zip(self.arrays, flattened_block_arrays):
+            other = mgr_to_mgr(other, "array", copy=False)
+
+        for left, right in zip(self.arrays, other.arrays):
             if not array_equals(left, right):
                 return False
         return True
-
-    def _flatten_block_manager_arrays(self, other):
-        flattened_block_arrays = []
-        for multiarray in other:
-            for single_array in multiarray:
-                flattened_block_arrays.append(single_array)
-        return flattened_block_arrays
 
     # TODO
     # to_dict
@@ -1058,17 +1051,13 @@ class ArrayManager(BaseArrayManager):
         """
         Apply array_op blockwise with another (aligned) BlockManager.
         """
-        # TODO what if `other` is BlockManager ?
-        left_arrays = self.arrays
+        from pandas.core.internals.construction import mgr_to_mgr
 
-        from pandas.core.internals import BlockManager
+        if not isinstance(other, ArrayManager):
+            other = mgr_to_mgr(other, "array")
 
-        if isinstance(other, BlockManager):
-            right_arrays = self._flatten_block_manager_arrays(other.arrays)
-        else:
-            right_arrays = other.arrays
         result_arrays = [
-            array_op(left, right) for left, right in zip(left_arrays, right_arrays)
+            array_op(left, right) for left, right in zip(self.arrays, other.arrays)
         ]
         return type(self)(result_arrays, self._axes)
 
