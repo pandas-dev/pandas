@@ -40,7 +40,7 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_integer_array,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
-    maybe_upcast,
+    maybe_promote,
 )
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
@@ -66,10 +66,10 @@ import pandas.core.common as com
 
 if TYPE_CHECKING:
     from pandas import (
-        ExtensionArray,
         Index,
         Series,
     )
+    from pandas.core.arrays.base import ExtensionArray
 
 
 def array(
@@ -484,7 +484,11 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     """
     mask = ma.getmaskarray(data)
     if mask.any():
-        data, fill_value = maybe_upcast(data, copy=True)
+        dtype, fill_value = maybe_promote(data.dtype, np.nan)
+        dtype = cast(np.dtype, dtype)
+        # Incompatible types in assignment (expression has type "ndarray[Any,
+        # dtype[Any]]", variable has type "MaskedArray[Any, Any]")
+        data = data.astype(dtype, copy=True)  # type: ignore[assignment]
         data.soften_mask()  # set hardmask False if it was True
         data[mask] = fill_value
     else:
@@ -499,6 +503,7 @@ def sanitize_array(
     copy: bool = False,
     *,
     allow_2d: bool = False,
+    strict_ints: bool = False,
 ) -> ArrayLike:
     """
     Sanitize input data to an ndarray or ExtensionArray, copy if specified,
@@ -512,6 +517,8 @@ def sanitize_array(
     copy : bool, default False
     allow_2d : bool, default False
         If False, raise if we have a 2D Arraylike.
+    strict_ints : bool, default False
+        If False, silently ignore failures to cast float data to int dtype.
 
     Returns
     -------
@@ -581,6 +588,8 @@ def sanitize_array(
                 #  DataFrame would call np.array(data, dtype=dtype, copy=copy),
                 #  which would cast to the integer dtype even if the cast is lossy.
                 #  See GH#40110.
+                if strict_ints:
+                    raise
 
                 # We ignore the dtype arg and return floating values,
                 #  e.g. test_constructor_floating_data_int_dtype
@@ -624,6 +633,8 @@ def sanitize_array(
                 subarr = _try_cast(data, dtype, copy)
             except ValueError:
                 if is_integer_dtype(dtype):
+                    if strict_ints:
+                        raise
                     casted = np.array(data, copy=False)
                     if casted.dtype.kind == "f":
                         # GH#40110 match the behavior we have if we passed

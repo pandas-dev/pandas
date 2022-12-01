@@ -155,15 +155,6 @@ usecols : list-like or callable, default ``None``
   when using the c engine. The Python engine loads the data first before deciding
   which columns to drop.
 
-mangle_dupe_cols : boolean, default ``True``
-  Duplicate columns will be specified as 'X', 'X.1'...'X.N', rather than 'X'...'X'.
-  Passing in ``False`` will cause data to be overwritten if there are duplicate
-  names in the columns.
-
-  .. deprecated:: 1.5.0
-     The argument was never implemented, and a new argument where the
-     renaming pattern can be specified will be added instead.
-
 General parsing configuration
 +++++++++++++++++++++++++++++
 
@@ -587,10 +578,6 @@ If the header is in a row other than the first, pass the row number to
 Duplicate names parsing
 '''''''''''''''''''''''
 
-  .. deprecated:: 1.5.0
-     ``mangle_dupe_cols`` was never implemented, and a new argument where the
-     renaming pattern can be specified will be added instead.
-
 If the file or header contains duplicate names, pandas will by default
 distinguish between them so as to prevent overwriting data:
 
@@ -599,8 +586,7 @@ distinguish between them so as to prevent overwriting data:
    data = "a,b,a\n0,1,2\n3,4,5"
    pd.read_csv(StringIO(data))
 
-There is no more duplicate data because ``mangle_dupe_cols=True`` by default,
-which modifies a series of duplicate columns 'X', ..., 'X' to become
+There is no more duplicate data because duplicate columns 'X', ..., 'X' become
 'X', 'X.1', ..., 'X.N'.
 
 .. _io.usecols:
@@ -3827,22 +3813,28 @@ format of an Excel worksheet created with the ``to_excel`` method.  Excellent ex
 OpenDocument Spreadsheets
 -------------------------
 
-.. versionadded:: 0.25
-
-The :func:`~pandas.read_excel` method can also read OpenDocument spreadsheets
-using the ``odfpy`` module. The semantics and features for reading
+The io methods for `Excel files`_ also support reading and writing OpenDocument spreadsheets
+using the `odfpy <https://pypi.org/project/odfpy/>`__ module. The semantics and features for reading and writing
 OpenDocument spreadsheets match what can be done for `Excel files`_ using
 ``engine='odf'``.
+
+.. versionadded:: 0.25
+
+The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
 
 .. code-block:: python
 
    # Returns a DataFrame
    pd.read_excel("path_to_file.ods", engine="odf")
 
-.. note::
+.. versionadded:: 1.1.0
 
-   Currently pandas only supports *reading* OpenDocument spreadsheets. Writing
-   is not implemented.
+Similarly, the :func:`~pandas.to_excel` method can write OpenDocument spreadsheets
+
+.. code-block:: python
+
+   # Writes DataFrame to a .ods file
+   df.to_excel("path_to_file.ods", engine="odf")
 
 .. _io.xlsb:
 

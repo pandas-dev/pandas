@@ -846,30 +846,19 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result_Timestamp, expected)
 
     @pytest.mark.parametrize(
-        "klass",
+        "klass,name",
         [
-            pytest.param(
-                np.timedelta64,
-                marks=pytest.mark.xfail(
-                    reason="hash mismatch (GH#44504) causes lib.fast_multiget "
-                    "to mess up on dict lookups with equal Timedeltas with "
-                    "mismatched resos"
-                ),
-            ),
-            timedelta,
-            Timedelta,
+            (lambda x: np.timedelta64(x, "D"), "timedelta64"),
+            (lambda x: timedelta(days=x), "pytimedelta"),
+            (lambda x: Timedelta(x, "D"), "Timedelta[ns]"),
+            (lambda x: Timedelta(x, "D").as_unit("s"), "Timedelta[s]"),
         ],
     )
-    def test_constructor_dict_timedelta64_index(self, klass):
+    def test_constructor_dict_timedelta64_index(self, klass, name):
         # GH 10160
         td_as_int = [1, 2, 3, 4]
 
-        if klass is timedelta:
-            constructor = lambda x: timedelta(days=x)
-        else:
-            constructor = lambda x: klass(x, "D")
-
-        data = {i: {constructor(s): 2 * i} for i, s in enumerate(td_as_int)}
+        data = {i: {klass(s): 2 * i} for i, s in enumerate(td_as_int)}
 
         expected = DataFrame(
             [
@@ -882,6 +871,7 @@ class TestDataFrameConstructors:
         )
 
         result = DataFrame(data)
+
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_period_dict(self):
@@ -1059,18 +1049,15 @@ class TestDataFrameConstructors:
         assert isna(frame).values.all()
 
         # cast type
-        msg = r"datetime64\[ns\] values and dtype=int64"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = r"datetime64\[ns\] values and dtype=int64 is not supported"
+        with pytest.raises(TypeError, match=msg):
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     "ignore",
                     category=DeprecationWarning,
                     message="elementwise comparison failed",
                 )
-                frame = DataFrame(
-                    mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64
-                )
-        assert frame.values.dtype == np.int64
+                DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
 
         # Check non-masked values
         mat2 = ma.copy(mat)
@@ -3021,14 +3008,11 @@ class TestFromScalar:
         scalar = cls("NaT", "ns")
         dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]
 
-        msg = "Cannot cast"
         if cls is np.datetime64:
-            msg = "|".join(
-                [
-                    r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]",
-                    "Cannot cast",
-                ]
-            )
+            msg1 = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
+        else:
+            msg1 = r"dtype timedelta64\[ns\] cannot be converted to datetime64\[ns\]"
+        msg = "|".join(["Cannot cast", msg1])
 
         with pytest.raises(TypeError, match=msg):
             constructor(scalar, dtype=dtype)
@@ -3042,10 +3026,10 @@ class TestFromScalar:
         "but DatetimeArray._from_sequence has not"
     )
     @pytest.mark.parametrize("cls", [datetime, np.datetime64])
-    def test_from_out_of_ns_bounds_datetime(self, constructor, cls, request):
+    def test_from_out_of_bounds_ns_datetime(self, constructor, cls):
         # scalar that won't fit in nanosecond dt64, but will fit in microsecond
         scalar = datetime(9999, 1, 1)
-        exp_dtype = "M8[us]"  # smallest reso that fits
+        exp_dtype = "M8[us]"  # pydatetime objects default to this reso
         if cls is np.datetime64:
             scalar = np.datetime64(scalar, "D")
             exp_dtype = "M8[s]"  # closest reso to input
@@ -3087,11 +3071,12 @@ class TestFromScalar:
         assert item.asm8.dtype == exp_dtype
         assert dtype == exp_dtype
 
-    def test_out_of_s_bounds_timedelta64(self, constructor):
-        scalar = np.timedelta64(np.iinfo(np.int64).max, "D")
+    @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
+    def test_out_of_s_bounds_timedelta64(self, constructor, cls):
+        scalar = cls(np.iinfo(np.int64).max, "D")
         result = constructor(scalar)
         item = get1(result)
-        assert type(item) is np.timedelta64
+        assert type(item) is cls
         dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
         assert dtype == object
 
@@ -3150,12 +3135,6 @@ class TestAllowNonNano:
         df = DataFrame(arr)
         assert df.dtypes[0] == arr.dtype
 
-    @pytest.mark.xfail(
-        # TODO(2.0): xfail should become unnecessary
-        strict=False,
-        reason="stack_arrays converts TDA to ndarray, then goes "
-        "through ensure_wrapped_if_datetimelike",
-    )
     def test_frame_from_dict_allow_non_nano(self, arr):
         df = DataFrame({0: arr})
         assert df.dtypes[0] == arr.dtype

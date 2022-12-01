@@ -1,0 +1,52 @@
+name: Package Checks
+
+on:
+  push:
+    branches:
+      - main
+      - 1.5.x
+  pull_request:
+    branches:
+      - main
+      - 1.5.x
+    types: [ labeled, opened, synchronize, reopened ]
+
+permissions:
+  contents: read
+
+jobs:
+  pip:
+    if: ${{ github.event.label.name == 'Build' || contains(github.event.pull_request.labels.*.name, 'Build') || github.event_name == 'push'}}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        extra: ["test", "performance", "timezone", "computation", "fss", "aws", "gcp", "excel", "parquet", "feather", "hdf5", "spss", "postgresql", "mysql", "sql-other", "html", "xml", "plot", "output_formatting", "clipboard", "compression", "all"]
+      fail-fast: false
+    name: Install Extras - ${{ matrix.extra }}
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-pip-extras-${{ matrix.extra }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        id: setup_python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.8'
+
+      - name: Install required dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel python-dateutil pytz numpy cython
+          python -m pip install versioneer[toml]
+        shell: bash -el {0}
+
+      - name: Pip install with extra
+        run: |
+          python -m pip install -e .[${{ matrix.extra }}] --no-build-isolation
+        shell: bash -el {0}
