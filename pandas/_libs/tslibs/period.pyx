@@ -323,9 +323,9 @@ cdef int64_t downsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
 
 
 cdef int64_t transform_via_day(int64_t ordinal,
-                                      asfreq_info *af_info,
-                                      freq_conv_func first_func,
-                                      freq_conv_func second_func) nogil:
+                               asfreq_info *af_info,
+                               freq_conv_func first_func,
+                               freq_conv_func second_func) nogil:
     cdef:
         int64_t result
 

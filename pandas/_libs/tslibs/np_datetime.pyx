@@ -247,8 +247,8 @@ cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
 
 
 cdef int64_t pydatetime_to_dt64(datetime val,
-                                       npy_datetimestruct *dts,
-                                       NPY_DATETIMEUNIT reso=NPY_FR_ns):
+                                npy_datetimestruct *dts,
+                                NPY_DATETIMEUNIT reso=NPY_FR_ns):
     """
     Note we are assuming that the datetime object is timezone-naive.
     """

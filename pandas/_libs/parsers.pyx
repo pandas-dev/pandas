@@ -1073,9 +1073,9 @@ cdef class TextReader:
 
     # -> tuple["ArrayLike", int]:
     cdef _convert_tokens(self, Py_ssize_t i, int64_t start,
-                                int64_t end, object name, bint na_filter,
-                                kh_str_starts_t *na_hashset,
-                                object na_flist, object col_dtype):
+                         int64_t end, object name, bint na_filter,
+                         kh_str_starts_t *na_hashset,
+                         object na_flist, object col_dtype):
 
         if col_dtype is not None:
             col_res, na_count = self._convert_with_dtype(
@@ -1578,8 +1578,8 @@ cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
 
 
 cdef void _to_fw_string_nogil(parser_t *parser, int64_t col,
-                                     int64_t line_start, int64_t line_end,
-                                     size_t width, char *data) nogil:
+                              int64_t line_start, int64_t line_end,
+                              size_t width, char *data) nogil:
     cdef:
         int64_t i
         coliter_t it
@@ -1633,15 +1633,15 @@ cdef _try_double(parser_t *parser, int64_t col,
 
 
 cdef int _try_double_nogil(parser_t *parser,
-                                  float64_t (*double_converter)(
-                                      const char *, char **, char,
-                                      char, char, int, int *, int *) nogil,
-                                  int64_t col, int64_t line_start, int64_t line_end,
-                                  bint na_filter, kh_str_starts_t *na_hashset,
-                                  bint use_na_flist,
-                                  const kh_float64_t *na_flist,
-                                  float64_t NA, float64_t *data,
-                                  int *na_count) nogil:
+                           float64_t (*double_converter)(
+                               const char *, char **, char,
+                               char, char, int, int *, int *) nogil,
+                           int64_t col, int64_t line_start, int64_t line_end,
+                           bint na_filter, kh_str_starts_t *na_hashset,
+                           bint use_na_flist,
+                           const kh_float64_t *na_flist,
+                           float64_t NA, float64_t *data,
+                           int *na_count) nogil:
     cdef:
         int error = 0,
         Py_ssize_t i, lines = line_end - line_start
@@ -1742,10 +1742,10 @@ cdef _try_uint64(parser_t *parser, int64_t col,
 
 
 cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
-                                  int64_t line_start,
-                                  int64_t line_end, bint na_filter,
-                                  const kh_str_starts_t *na_hashset,
-                                  uint64_t *data, uint_state *state) nogil:
+                           int64_t line_start,
+                           int64_t line_end, bint na_filter,
+                           const kh_str_starts_t *na_hashset,
+                           uint64_t *data, uint_state *state) nogil:
     cdef:
         int error
         Py_ssize_t i, lines = line_end - line_start
@@ -1806,10 +1806,10 @@ cdef _try_int64(parser_t *parser, int64_t col,
 
 
 cdef int _try_int64_nogil(parser_t *parser, int64_t col,
-                                 int64_t line_start,
-                                 int64_t line_end, bint na_filter,
-                                 const kh_str_starts_t *na_hashset, int64_t NA,
-                                 int64_t *data, int *na_count) nogil:
+                          int64_t line_start,
+                          int64_t line_end, bint na_filter,
+                          const kh_str_starts_t *na_hashset, int64_t NA,
+                          int64_t *data, int *na_count) nogil:
     cdef:
         int error
         Py_ssize_t i, lines = line_end - line_start
@@ -1869,13 +1869,13 @@ cdef _try_bool_flex(parser_t *parser, int64_t col,
 
 
 cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
-                                     int64_t line_start,
-                                     int64_t line_end, bint na_filter,
-                                     const kh_str_starts_t *na_hashset,
-                                     const kh_str_starts_t *true_hashset,
-                                     const kh_str_starts_t *false_hashset,
-                                     uint8_t NA, uint8_t *data,
-                                     int *na_count) nogil:
+                              int64_t line_start,
+                              int64_t line_end, bint na_filter,
+                              const kh_str_starts_t *na_hashset,
+                              const kh_str_starts_t *true_hashset,
+                              const kh_str_starts_t *false_hashset,
+                              uint8_t NA, uint8_t *data,
+                              int *na_count) nogil:
     cdef:
         int error = 0
         Py_ssize_t i, lines = line_end - line_start

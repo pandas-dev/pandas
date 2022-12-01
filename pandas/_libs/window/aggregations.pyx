@@ -1,6 +1,5 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-cimport cython
 from libc.math cimport (
     round,
     signbit,
@@ -68,8 +67,8 @@ cdef bint is_monotonic_increasing_start_end_bounds(
 
 
 cdef float64_t calc_sum(int64_t minp, int64_t nobs, float64_t sum_x,
-                               int64_t num_consecutive_same_value, float64_t prev_value
-                               ) nogil:
+                        int64_t num_consecutive_same_value, float64_t prev_value
+                        ) nogil:
     cdef:
         float64_t result
 
@@ -87,8 +86,8 @@ cdef float64_t calc_sum(int64_t minp, int64_t nobs, float64_t sum_x,
 
 
 cdef void add_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
-                         float64_t *compensation, int64_t *num_consecutive_same_value,
-                         float64_t *prev_value) nogil:
+                  float64_t *compensation, int64_t *num_consecutive_same_value,
+                  float64_t *prev_value) nogil:
     """ add a value from the sum calc using Kahan summation """
 
     cdef:
@@ -112,7 +111,7 @@ cdef void add_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
 
 
 cdef void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
-                            float64_t *compensation) nogil:
+                     float64_t *compensation) nogil:
     """ remove a value from the sum calc using Kahan summation """
 
     cdef:
@@ -187,8 +186,8 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
 
 
 cdef float64_t calc_mean(int64_t minp, Py_ssize_t nobs, Py_ssize_t neg_ct,
-                                float64_t sum_x, int64_t num_consecutive_same_value,
-                                float64_t prev_value) nogil:
+                         float64_t sum_x, int64_t num_consecutive_same_value,
+                         float64_t prev_value) nogil:
     cdef:
         float64_t result
 
@@ -242,7 +241,7 @@ cdef void add_mean(
 
 
 cdef void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
-                             Py_ssize_t *neg_ct, float64_t *compensation) nogil:
+                      Py_ssize_t *neg_ct, float64_t *compensation) nogil:
     """ remove a value from the mean calc using Kahan summation """
     cdef:
         float64_t y, t
@@ -479,9 +478,9 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
 
 
 cdef float64_t calc_skew(int64_t minp, int64_t nobs,
-                                float64_t x, float64_t xx, float64_t xxx,
-                                int64_t num_consecutive_same_value
-                                ) nogil:
+                         float64_t x, float64_t xx, float64_t xxx,
+                         int64_t num_consecutive_same_value
+                         ) nogil:
     cdef:
         float64_t result, dnobs
         float64_t A, B, C, R
@@ -520,14 +519,14 @@ cdef float64_t calc_skew(int64_t minp, int64_t nobs,
 
 
 cdef void add_skew(float64_t val, int64_t *nobs,
-                          float64_t *x, float64_t *xx,
-                          float64_t *xxx,
-                          float64_t *compensation_x,
-                          float64_t *compensation_xx,
-                          float64_t *compensation_xxx,
-                          int64_t *num_consecutive_same_value,
-                          float64_t *prev_value,
-                          ) nogil:
+                   float64_t *x, float64_t *xx,
+                   float64_t *xxx,
+                   float64_t *compensation_x,
+                   float64_t *compensation_xx,
+                   float64_t *compensation_xxx,
+                   int64_t *num_consecutive_same_value,
+                   float64_t *prev_value,
+                   ) nogil:
     """ add a value from the skew calc """
     cdef:
         float64_t y, t
@@ -559,11 +558,11 @@ cdef void add_skew(float64_t val, int64_t *nobs,
 
 
 cdef void remove_skew(float64_t val, int64_t *nobs,
-                             float64_t *x, float64_t *xx,
-                             float64_t *xxx,
-                             float64_t *compensation_x,
-                             float64_t *compensation_xx,
-                             float64_t *compensation_xxx) nogil:
+                      float64_t *x, float64_t *xx,
+                      float64_t *xxx,
+                      float64_t *compensation_x,
+                      float64_t *compensation_xx,
+                      float64_t *compensation_xxx) nogil:
     """ remove a value from the skew calc """
     cdef:
         float64_t y, t
@@ -677,10 +676,10 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
-                                float64_t x, float64_t xx,
-                                float64_t xxx, float64_t xxxx,
-                                int64_t num_consecutive_same_value,
-                                ) nogil:
+                         float64_t x, float64_t xx,
+                         float64_t xxx, float64_t xxxx,
+                         int64_t num_consecutive_same_value,
+                         ) nogil:
     cdef:
         float64_t result, dnobs
         float64_t A, B, C, D, R, K
@@ -723,15 +722,15 @@ cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
 
 
 cdef void add_kurt(float64_t val, int64_t *nobs,
-                          float64_t *x, float64_t *xx,
-                          float64_t *xxx, float64_t *xxxx,
-                          float64_t *compensation_x,
-                          float64_t *compensation_xx,
-                          float64_t *compensation_xxx,
-                          float64_t *compensation_xxxx,
-                          int64_t *num_consecutive_same_value,
-                          float64_t *prev_value
-                          ) nogil:
+                   float64_t *x, float64_t *xx,
+                   float64_t *xxx, float64_t *xxxx,
+                   float64_t *compensation_x,
+                   float64_t *compensation_xx,
+                   float64_t *compensation_xxx,
+                   float64_t *compensation_xxxx,
+                   int64_t *num_consecutive_same_value,
+                   float64_t *prev_value
+                   ) nogil:
     """ add a value from the kurotic calc """
     cdef:
         float64_t y, t
@@ -767,12 +766,12 @@ cdef void add_kurt(float64_t val, int64_t *nobs,
 
 
 cdef void remove_kurt(float64_t val, int64_t *nobs,
-                             float64_t *x, float64_t *xx,
-                             float64_t *xxx, float64_t *xxxx,
-                             float64_t *compensation_x,
-                             float64_t *compensation_xx,
-                             float64_t *compensation_xxx,
-                             float64_t *compensation_xxxx) nogil:
+                      float64_t *x, float64_t *xx,
+                      float64_t *xxx, float64_t *xxxx,
+                      float64_t *compensation_x,
+                      float64_t *compensation_xx,
+                      float64_t *compensation_xxx,
+                      float64_t *compensation_xxxx) nogil:
     """ remove a value from the kurotic calc """
     cdef:
         float64_t y, t
@@ -1517,11 +1516,11 @@ cdef float64_t[:] _roll_weighted_sum_mean(const float64_t[:] values,
 
 
 cdef float64_t calc_weighted_var(float64_t t,
-                                        float64_t sum_w,
-                                        Py_ssize_t win_n,
-                                        unsigned int ddof,
-                                        float64_t nobs,
-                                        int64_t minp) nogil:
+                                 float64_t sum_w,
+                                 Py_ssize_t win_n,
+                                 unsigned int ddof,
+                                 float64_t nobs,
+                                 int64_t minp) nogil:
     """
     Calculate weighted variance for a window using West's method.
 
@@ -1568,11 +1567,11 @@ cdef float64_t calc_weighted_var(float64_t t,
 
 
 cdef void add_weighted_var(float64_t val,
-                                  float64_t w,
-                                  float64_t *t,
-                                  float64_t *sum_w,
-                                  float64_t *mean,
-                                  float64_t *nobs) nogil:
+                           float64_t w,
+                           float64_t *t,
+                           float64_t *sum_w,
+                           float64_t *mean,
+                           float64_t *nobs) nogil:
     """
     Update weighted mean, sum of weights and sum of weighted squared
     differences to include value and weight pair in weighted variance
@@ -1614,11 +1613,11 @@ cdef void add_weighted_var(float64_t val,
 
 
 cdef void remove_weighted_var(float64_t val,
-                                     float64_t w,
-                                     float64_t *t,
-                                     float64_t *sum_w,
-                                     float64_t *mean,
-                                     float64_t *nobs) nogil:
+                              float64_t w,
+                              float64_t *t,
+                              float64_t *sum_w,
+                              float64_t *mean,
+                              float64_t *nobs) nogil:
     """
     Update weighted mean, sum of weights and sum of weighted squared
     differences to remove value and weight pair from weighted variance

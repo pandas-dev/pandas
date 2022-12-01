@@ -501,7 +501,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
 
 
 cdef object _parse_dateabbr_string(object date_string, datetime default,
-                                          str freq=None):
+                                   str freq=None):
     cdef:
         object ret
         # year initialized to prevent compiler warnings
