@@ -313,3 +313,9 @@ repos:
         additional_dependencies:
         - autotyping==22.9.0
         - libcst==0.4.7
+    -   id: stdlib-imports
+        name: Place standard library imports at top of file
+        entry: python -m scripts.standard_library_imports_should_be_global
+        language: python
+        types: [python]
+        exclude: ^versionneer\.py$
