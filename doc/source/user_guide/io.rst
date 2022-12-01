@@ -464,6 +464,8 @@ worth trying.
 
    os.remove("foo.csv")
 
+Setting ``use_nullable_dtypes=True`` will result in nullable dtypes for every column.
+
 .. ipython:: python
 
    data = """a,b,c,d,e,f,g,h,i,j
