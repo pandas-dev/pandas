@@ -640,7 +640,7 @@ class TestBaseInterface(base.BaseInterfaceTests):
 class TestBaseMissing(base.BaseMissingTests):
     def test_dropna_array(self, data_missing):
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+            PerformanceWarning, pa_version_under6p0, check_stacklevel=False
         ):
             super().test_dropna_array(data_missing)
 
