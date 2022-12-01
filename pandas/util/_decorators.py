@@ -77,7 +77,7 @@ def deprecate(
     if alternative.__doc__:
         if alternative.__doc__.count("\n") < 3:
             raise AssertionError(doc_error_msg)
-        empty1, summary, empty2, doc = alternative.__doc__.split("\n", 3)
+        empty1, summary, empty2, doc_string = alternative.__doc__.split("\n", 3)
         if empty1 or empty2 and not summary:
             raise AssertionError(doc_error_msg)
         wrapper.__doc__ = dedent(
@@ -87,7 +87,7 @@ def deprecate(
         .. deprecated:: {version}
             {msg}
 
-        {dedent(doc)}"""
+        {dedent(doc_string)}"""
         )
     # error: Incompatible return value type (got "Callable[[VarArg(Any), KwArg(Any)],
     # Callable[...,Any]]", expected "Callable[[F], F]")
@@ -397,12 +397,8 @@ def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
             if docstring is None:
                 continue
             if hasattr(docstring, "_docstring_components"):
-                # error: Item "str" of "Union[str, Callable[..., Any]]" has no attribute
-                # "_docstring_components"
-                # error: Item "function" of "Union[str, Callable[..., Any]]" has no
-                # attribute "_docstring_components"
                 docstring_components.extend(
-                    docstring._docstring_components  # type: ignore[union-attr]
+                    docstring._docstring_components  # pyright: ignore[reportGeneralTypeIssues] # noqa: E501
                 )
             elif isinstance(docstring, str) or docstring.__doc__:
                 docstring_components.append(docstring)

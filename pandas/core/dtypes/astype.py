@@ -23,7 +23,6 @@ from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
@@ -78,9 +77,6 @@ def astype_nansafe(
     ValueError
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
-
-    # We get here with 0-dim from sparse
-    arr = np.atleast_1d(arr)
 
     # dispatch on extension dtype if needed
     if isinstance(dtype, ExtensionDtype):
@@ -210,16 +206,6 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
         # TODO(2.0) remove special case once deprecation on DTA/TDA is enforced
         msg = rf"cannot astype a datetimelike from [{values.dtype}] to [{dtype}]"
         raise TypeError(msg)
-
-    if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
-        # Series.astype behavior pre-2.0 did
-        #  values.tz_localize("UTC").tz_convert(dtype.tz)
-        #  which did not match the DTA/DTI behavior.
-        # We special-case here to give a Series-specific exception message.
-        raise TypeError(
-            "Cannot use .astype to convert from timezone-naive dtype to "
-            "timezone-aware dtype. Use ser.dt.tz_localize instead."
-        )
 
     if is_dtype_equal(values.dtype, dtype):
         if copy:

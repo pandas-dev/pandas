@@ -25,7 +25,6 @@ class TestToDictOfBlocks:
                 _df.loc[:, column] = _df[column] + 1
 
         # make sure we did not change the original DataFrame
-        # pylint: disable-next=undefined-loop-variable
         assert not _df[column].equals(df[column])
 
     def test_no_copy_blocks(self, float_frame, using_copy_on_write):
@@ -41,10 +40,8 @@ class TestToDictOfBlocks:
 
         if not using_copy_on_write:
             # make sure we did change the original DataFrame
-            # pylint: disable-next=undefined-loop-variable
             assert _df[column].equals(df[column])
         else:
-            # pylint: disable-next=undefined-loop-variable
             assert not _df[column].equals(df[column])
 
 

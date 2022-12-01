@@ -141,7 +141,6 @@ class TestTableSchemaRepr:
         with_latex = pd.option_context("display.latex.repr", True)
 
         with opt, with_latex:
-            # pylint: disable-next=undefined-loop-variable
             formatted = ipython.display_formatter.format(obj)
 
         expected = {

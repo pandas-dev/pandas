@@ -94,7 +94,6 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
 def ints_to_pydatetime(
     ndarray stamps,
     tzinfo tz=None,
-    bint fold=False,
     str box="datetime",
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ) -> np.ndarray:
@@ -107,13 +106,6 @@ def ints_to_pydatetime(
     stamps : array of i8
     tz : str, optional
          convert to this timezone
-    fold : bint, default is 0
-        Due to daylight saving time, one wall clock time can occur twice
-        when shifting from summer to winter time; fold describes whether the
-        datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time
-
-        .. versionadded:: 1.1.0
     box : {'datetime', 'timestamp', 'date', 'time'}, default 'datetime'
         * If datetime, convert to datetime.datetime
         * If date, convert to datetime.date
@@ -136,6 +128,7 @@ def ints_to_pydatetime(
         tzinfo new_tz
         bint use_date = False, use_ts = False, use_pydt = False
         object res_val
+        bint fold = 0
 
         # Note that `result` (and thus `result_flat`) is C-order and
         #  `it` iterates C-order as well, so the iteration matches
@@ -168,7 +161,7 @@ def ints_to_pydatetime(
 
         else:
 
-            local_val = info.utc_val_to_local_val(utc_val, &pos)
+            local_val = info.utc_val_to_local_val(utc_val, &pos, &fold)
             if info.use_pytz:
                 # find right representation of dst etc in pytz timezone
                 new_tz = tz._tzinfos[tz._transition_info[pos]]

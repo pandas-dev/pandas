@@ -162,6 +162,34 @@ class TestPutmask:
         expected = MultiIndex.from_tuples([right[0], right[1], left[2]])
         tm.assert_index_equal(result, expected)
 
+    def test_putmask_keep_dtype(self, any_numeric_ea_dtype):
+        # GH#49830
+        midx = MultiIndex.from_arrays(
+            [pd.Series([1, 2, 3], dtype=any_numeric_ea_dtype), [10, 11, 12]]
+        )
+        midx2 = MultiIndex.from_arrays(
+            [pd.Series([5, 6, 7], dtype=any_numeric_ea_dtype), [-1, -2, -3]]
+        )
+        result = midx.putmask([True, False, False], midx2)
+        expected = MultiIndex.from_arrays(
+            [pd.Series([5, 2, 3], dtype=any_numeric_ea_dtype), [-1, 11, 12]]
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_putmask_keep_dtype_shorter_value(self, any_numeric_ea_dtype):
+        # GH#49830
+        midx = MultiIndex.from_arrays(
+            [pd.Series([1, 2, 3], dtype=any_numeric_ea_dtype), [10, 11, 12]]
+        )
+        midx2 = MultiIndex.from_arrays(
+            [pd.Series([5], dtype=any_numeric_ea_dtype), [-1]]
+        )
+        result = midx.putmask([True, False, False], midx2)
+        expected = MultiIndex.from_arrays(
+            [pd.Series([5, 2, 3], dtype=any_numeric_ea_dtype), [-1, 11, 12]]
+        )
+        tm.assert_index_equal(result, expected)
+
 
 class TestGetIndexer:
     def test_get_indexer(self):
@@ -810,7 +838,7 @@ class TestContains:
     def test_large_mi_contains(self):
         # GH#10645
         result = MultiIndex.from_arrays([range(10**6), range(10**6)])
-        assert not (10**6, 0) in result
+        assert (10**6, 0) not in result
 
 
 def test_timestamp_multiindex_indexer():

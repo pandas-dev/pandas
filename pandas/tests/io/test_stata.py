@@ -73,6 +73,19 @@ class TestStata:
             empty_ds2 = read_stata(path)
             tm.assert_frame_equal(empty_ds, empty_ds2)
 
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
+    def test_read_index_col_none(self, version):
+        df = DataFrame({"a": range(5), "b": ["b1", "b2", "b3", "b4", "b5"]})
+        # GH 7369, make sure can read a 0-obs dta file
+        with tm.ensure_clean() as path:
+            df.to_stata(path, write_index=False, version=version)
+            read_df = read_stata(path)
+
+        assert isinstance(read_df.index, pd.RangeIndex)
+        expected = df.copy()
+        expected["a"] = expected["a"].astype(np.int32)
+        tm.assert_frame_equal(read_df, expected, check_index_type=True)
+
     @pytest.mark.parametrize("file", ["stata1_114", "stata1_117"])
     def test_read_dta1(self, file, datapath):
 
@@ -443,19 +456,13 @@ class TestStata:
         parsed = self.read_dta(file)
         parsed.index.name = "index"
 
-        expected = self.read_csv(datapath("io", "data", "stata", "stata5.csv"))
-        cols = ["byte_", "int_", "long_", "float_", "double_"]
-        for col in cols:
-            expected[col] = expected[col]._convert(datetime=True, numeric=True)
-        expected["float_"] = expected["float_"].astype(np.float32)
-        expected["date_td"] = pd.to_datetime(expected["date_td"], errors="coerce")
-
         tm.assert_frame_equal(parsed_114, parsed)
 
         with tm.ensure_clean() as path:
             parsed_114.to_stata(path, convert_dates={"date_td": "td"}, version=version)
             written_and_read_again = self.read_dta(path)
-            tm.assert_frame_equal(written_and_read_again.set_index("index"), parsed_114)
+
+        tm.assert_frame_equal(written_and_read_again.set_index("index"), parsed_114)
 
     @pytest.mark.parametrize(
         "file", ["stata6_113", "stata6_114", "stata6_115", "stata6_117"]
@@ -1054,7 +1061,7 @@ class TestStata:
         parsed = parsed.sort_values("srh", na_position="first")
 
         # Don't sort index
-        parsed.index = np.arange(parsed.shape[0])
+        parsed.index = pd.RangeIndex(len(parsed))
         codes = [-1, -1, 0, 1, 1, 1, 2, 2, 3, 4]
         categories = ["Poor", "Fair", "Good", "Very good", "Excellent"]
         cat = pd.Categorical.from_codes(

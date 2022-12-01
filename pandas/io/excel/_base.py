@@ -883,7 +883,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         if ret_dict:
             return output
         else:
-            return output[asheetname]  # pylint: disable=undefined-loop-variable
+            return output[asheetname]
 
 
 @doc(storage_options=_shared_docs["storage_options"])

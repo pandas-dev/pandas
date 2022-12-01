@@ -1436,6 +1436,24 @@ class TestDataFrameIndexing:
             df.loc[:, "a"] = rhs
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("indexer", [True, (True,)])
+    @pytest.mark.parametrize("dtype", [bool, "boolean"])
+    def test_loc_bool_multiindex(self, dtype, indexer):
+        # GH#47687
+        midx = MultiIndex.from_arrays(
+            [
+                Series([True, True, False, False], dtype=dtype),
+                Series([True, False, True, False], dtype=dtype),
+            ],
+            names=["a", "b"],
+        )
+        df = DataFrame({"c": [1, 2, 3, 4]}, index=midx)
+        result = df.loc[indexer]
+        expected = DataFrame(
+            {"c": [1, 2]}, index=Index([True, False], name="b", dtype=dtype)
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):

@@ -36,6 +36,7 @@ from pandas._libs.tslibs import parsing
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
+    DtypeObj,
     Scalar,
 )
 from pandas.errors import (
@@ -61,7 +62,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas import StringDtype
@@ -69,6 +73,7 @@ from pandas.core import algorithms
 from pandas.core.arrays import (
     BooleanArray,
     Categorical,
+    ExtensionArray,
     FloatingArray,
     IntegerArray,
 )
@@ -120,7 +125,6 @@ class ParserBase:
 
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
-        self.mangle_dupe_cols = kwds.get("mangle_dupe_cols", True)
         self.infer_datetime_format = kwds.pop("infer_datetime_format", False)
         self.cache_dates = kwds.pop("cache_dates", True)
 
@@ -328,33 +332,27 @@ class ParserBase:
         return names, index_names, col_names, passed_names
 
     @final
-    def _maybe_dedup_names(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
-        # see gh-7160 and gh-9424: this helps to provide
-        # immediate alleviation of the duplicate names
-        # issue and appears to be satisfactory to users,
-        # but ultimately, not needing to butcher the names
-        # would be nice!
-        if self.mangle_dupe_cols:
-            names = list(names)  # so we can index
-            counts: DefaultDict[Hashable, int] = defaultdict(int)
-            is_potential_mi = _is_potential_multi_index(names, self.index_col)
+    def _dedup_names(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
+        names = list(names)  # so we can index
+        counts: DefaultDict[Hashable, int] = defaultdict(int)
+        is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
-            for i, col in enumerate(names):
+        for i, col in enumerate(names):
+            cur_count = counts[col]
+
+            while cur_count > 0:
+                counts[col] = cur_count + 1
+
+                if is_potential_mi:
+                    # for mypy
+                    assert isinstance(col, tuple)
+                    col = col[:-1] + (f"{col[-1]}.{cur_count}",)
+                else:
+                    col = f"{col}.{cur_count}"
                 cur_count = counts[col]
 
-                while cur_count > 0:
-                    counts[col] = cur_count + 1
-
-                    if is_potential_mi:
-                        # for mypy
-                        assert isinstance(col, tuple)
-                        col = col[:-1] + (f"{col[-1]}.{cur_count}",)
-                    else:
-                        col = f"{col}.{cur_count}"
-                    cur_count = counts[col]
-
-                names[i] = col
-                counts[col] = cur_count + 1
+            names[i] = col
+            counts[col] = cur_count + 1
 
         return names
 
@@ -599,14 +597,8 @@ class ParserBase:
                 # type specified in dtype param or cast_type is an EA
                 if cast_type and (not is_dtype_equal(cvals, cast_type) or is_ea):
                     if not is_ea and na_count > 0:
-                        try:
-                            if is_bool_dtype(cast_type):
-                                raise ValueError(
-                                    f"Bool column has NA values in column {c}"
-                                )
-                        except (AttributeError, TypeError):
-                            # invalid input to is_bool_dtype
-                            pass
+                        if is_bool_dtype(cast_type):
+                            raise ValueError(f"Bool column has NA values in column {c}")
                     cast_type = pandas_dtype(cast_type)
                     cvals = self._cast_types(cvals, cast_type, c)
 
@@ -686,7 +678,7 @@ class ParserBase:
 
     def _infer_types(
         self, values, na_values, no_dtype_specified, try_num_bool: bool = True
-    ):
+    ) -> tuple[ArrayLike, int]:
         """
         Infer types of values, possibly casting
 
@@ -700,7 +692,7 @@ class ParserBase:
 
         Returns
         -------
-        converted : ndarray
+        converted : ndarray or ExtensionArray
         na_count : int
         """
         na_count = 0
@@ -777,21 +769,21 @@ class ParserBase:
 
         return result, na_count
 
-    def _cast_types(self, values, cast_type, column):
+    def _cast_types(self, values: ArrayLike, cast_type: DtypeObj, column) -> ArrayLike:
         """
         Cast values to specified type
 
         Parameters
         ----------
-        values : ndarray
-        cast_type : string or np.dtype
+        values : ndarray or ExtensionArray
+        cast_type : np.dtype or ExtensionDtype
            dtype to cast values to
         column : string
             column name - used only for error reporting
 
         Returns
         -------
-        converted : ndarray
+        converted : ndarray or ExtensionArray
         """
         if is_categorical_dtype(cast_type):
             known_cats = (
@@ -799,12 +791,14 @@ class ParserBase:
                 and cast_type.categories is not None
             )
 
-            if not is_object_dtype(values) and not known_cats:
+            if not is_object_dtype(values.dtype) and not known_cats:
                 # TODO: this is for consistency with
                 # c-parser which parses all categories
                 # as strings
 
-                values = astype_nansafe(values, np.dtype(str))
+                values = lib.ensure_string_array(
+                    values, skipna=False, convert_na_value=False
+                )
 
             cats = Index(values).unique().dropna()
             values = Categorical._from_inferred_categories(
@@ -812,13 +806,13 @@ class ParserBase:
             )
 
         # use the EA's implementation of casting
-        elif is_extension_array_dtype(cast_type):
-            # ensure cast_type is an actual dtype and not a string
-            cast_type = pandas_dtype(cast_type)
+        elif isinstance(cast_type, ExtensionDtype):
             array_type = cast_type.construct_array_type()
             try:
                 if is_bool_dtype(cast_type):
-                    return array_type._from_sequence_of_strings(
+                    # error: Unexpected keyword argument "true_values" for
+                    # "_from_sequence_of_strings" of "ExtensionArray"
+                    return array_type._from_sequence_of_strings(  # type: ignore[call-arg]  # noqa:E501
                         values,
                         dtype=cast_type,
                         true_values=self.true_values,
@@ -832,6 +826,8 @@ class ParserBase:
                     "_from_sequence_of_strings in order to be used in parser methods"
                 ) from err
 
+        elif isinstance(values, ExtensionArray):
+            values = values.astype(cast_type, copy=False)
         else:
             try:
                 values = astype_nansafe(values, cast_type, copy=True, skipna=True)
@@ -1112,7 +1108,7 @@ def _make_date_converter(
             try:
                 return tools.to_datetime(
                     ensure_object(strs),
-                    utc=None,
+                    utc=False,
                     dayfirst=dayfirst,
                     errors="ignore",
                     infer_datetime_format=infer_datetime_format,
@@ -1179,7 +1175,6 @@ parser_defaults = {
     "verbose": False,
     "encoding": None,
     "compression": None,
-    "mangle_dupe_cols": True,
     "infer_datetime_format": False,
     "skip_blank_lines": True,
     "encoding_errors": "strict",

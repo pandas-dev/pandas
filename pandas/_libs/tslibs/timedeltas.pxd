@@ -22,6 +22,7 @@ cdef class _Timedelta(timedelta):
 
     cpdef timedelta to_pytimedelta(_Timedelta self)
     cdef bint _has_ns(self)
+    cdef bint _is_in_pytimedelta_bounds(self)
     cdef _ensure_components(_Timedelta self)
     cdef inline bint _compare_mismatched_resos(self, _Timedelta other, op)
     cdef _Timedelta _as_creso(self, NPY_DATETIMEUNIT reso, bint round_ok=*)

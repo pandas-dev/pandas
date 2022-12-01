@@ -239,10 +239,7 @@ def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype
         [[1, 2, 3, 4, 5, 6]] * 3,
         columns=MultiIndex.from_product([["a", "b"], ["i", "j", "k"]]),
     ).astype({("a", "j"): dtype, ("b", "j"): dtype})
-    warn = FutureWarning if func == "std" else None
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = df.groupby(level=1, axis=1).agg(func)
+    result = df.groupby(level=1, axis=1).agg(func)
     expected = DataFrame([expected] * 3, columns=["i", "j", "k"]).astype(
         result_dtype_dict
     )
@@ -266,10 +263,7 @@ def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
         columns=Index([10, 20, 10, 20], name="x"),
         dtype="int64",
     ).astype({10: "Int64"})
-    warn = FutureWarning if func == "std" else None
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = df.groupby("x", axis=1).agg(func)
+    result = df.groupby("x", axis=1).agg(func)
     expected = DataFrame(
         data=expected_data,
         index=Index([0, 1, 0], name="y"),
@@ -307,11 +301,12 @@ def test_wrap_agg_out(three_group):
 
     def func(ser):
         if ser.dtype == object:
-            raise TypeError
+            raise TypeError("Test error message")
         return ser.sum()
 
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        result = grouped.aggregate(func)
+    with pytest.raises(TypeError, match="Test error message"):
+        grouped.aggregate(func)
+    result = grouped[[c for c in three_group if c != "C"]].aggregate(func)
     exp_grouped = three_group.loc[:, three_group.columns != "C"]
     expected = exp_grouped.groupby(["A", "B"]).aggregate(func)
     tm.assert_frame_equal(result, expected)

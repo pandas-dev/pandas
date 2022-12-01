@@ -81,10 +81,11 @@ class PandasColumn(Column):
         self._col = column
         self._allow_copy = allow_copy
 
-    def size(self) -> int:
+    def size(self) -> int:  # type: ignore[override]
         """
         Size of the column, in elements.
         """
+        # error: Signature of "size" incompatible with supertype "Column"  [override]
         return self._col.size
 
     @property
@@ -315,7 +316,7 @@ class PandasColumn(Column):
             valid = invalid == 0
             invalid = not valid
 
-            mask = np.zeros(shape=(len(buf),), dtype=np.bool8)
+            mask = np.zeros(shape=(len(buf),), dtype=np.bool_)
             for i, obj in enumerate(buf):
                 mask[i] = valid if isinstance(obj, str) else invalid
 

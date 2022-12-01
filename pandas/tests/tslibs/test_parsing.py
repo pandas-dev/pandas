@@ -149,7 +149,6 @@ def test_parsers_month_freq(date_str, expected):
         ("2011-12-30", "%Y-%m-%d"),
         ("2011", "%Y"),
         ("2011-01", "%Y-%m"),
-        ("2011/01", "%Y/%m"),
         ("30-12-2011", "%d-%m-%Y"),
         ("2011-12-30 00:00:00", "%Y-%m-%d %H:%M:%S"),
         ("2011-12-30T00:00:00", "%Y-%m-%dT%H:%M:%S"),
@@ -218,6 +217,7 @@ def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
         "51a",
         "13/2019",
         "202001",  # YYYYMM isn't ISO8601
+        "2020/01",  # YYYY/MM isn't ISO8601 either
     ],
 )
 def test_guess_datetime_format_invalid_inputs(invalid_dt):
@@ -284,10 +284,10 @@ def test_parse_time_string_check_instance_type_raise_exception():
         ("%Y%m%d %H:%M:%S", True),
         ("%Y-%m-%dT%H:%M:%S", True),
         ("%Y-%m-%dT%H:%M:%S%z", True),
-        ("%Y-%m-%dT%H:%M:%S%Z", True),
+        ("%Y-%m-%dT%H:%M:%S%Z", False),
         ("%Y-%m-%dT%H:%M:%S.%f", True),
         ("%Y-%m-%dT%H:%M:%S.%f%z", True),
-        ("%Y-%m-%dT%H:%M:%S.%f%Z", True),
+        ("%Y-%m-%dT%H:%M:%S.%f%Z", False),
         ("%Y%m%d", False),
         ("%Y%m", False),
         ("%Y", False),
