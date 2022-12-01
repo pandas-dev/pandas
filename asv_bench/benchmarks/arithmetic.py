@@ -106,6 +106,10 @@ class MixedFrameWithSeriesAxis:
     def time_frame_op_with_series_axis1(self, opname):
         getattr(operator, opname)(self.df, self.ser)
 
+    # exclude comparisons from the params for time_frame_op_with_series_axis1
+    #  since they do not do alignment so raise
+    time_frame_op_with_series_axis1.params = [params[0][6:]]
+
 
 class FrameWithFrameWide:
     # Many-columns, mixed dtypes
