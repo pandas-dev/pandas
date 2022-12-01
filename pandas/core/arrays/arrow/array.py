@@ -770,7 +770,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         pa_type = self._data.type
         if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
             result = np.array(self.tolist(), dtype=np.object_)
-        elif not self._hasna or (pa.types.is_floating(pa_type) and na_value is np.nan):
+        elif not self._hasna or (
+            np.issubdtype(float, np.floating) and na_value is np.nan
+        ):
             return np.array(self._data, dtype=dtype)
         else:
             result = np.array(self._data, dtype=np.object_)
