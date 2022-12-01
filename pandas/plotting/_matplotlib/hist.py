@@ -152,8 +152,8 @@ class HistPlot(LinePlot):
                 if np.ndim(weights) != 1 and np.shape(weights)[-1] != 1:
                     if np.shape(weights) != np.shape(data):
                         raise ValueError(
-                            f"weights must have the same shape as data {np.shape(data)}, "
-                            "or be a single column"
+                            "weights must have the same shape as data"
+                            f"{np.shape(data)}, or be a single column"
                         )
                     weights = weights[:, i]
                 weights = weights[~isna(y)]
