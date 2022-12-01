@@ -25,7 +25,7 @@ REMAP_VERSION = {"tzdata": "2022.1"}
 RENAME = {
     "pytables": "tables",
     "geopandas-base": "geopandas",
-    "psycopg2": "psycogp2-binary",
+    "psycopg2": "psycopg2-binary",
 }
 
 

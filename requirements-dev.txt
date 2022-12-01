@@ -30,7 +30,7 @@ numexpr>=2.8.0
 openpyxl
 odfpy
 pandas-gbq
-psycogp2-binary
+psycopg2-binary
 pyarrow
 pymysql
 pyreadstat
