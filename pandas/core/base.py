@@ -61,11 +61,6 @@ from pandas.core import (
     ops,
 )
 from pandas.core.accessor import DirNamesMixin
-from pandas.core.algorithms import (
-    duplicated,
-    unique1d,
-    value_counts,
-)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import (
@@ -84,6 +79,7 @@ if TYPE_CHECKING:
 
     from pandas import (
         Categorical,
+        Index,
         Series,
     )
 
@@ -139,7 +135,7 @@ class PandasObject(DirNamesMixin):
         """
         memory_usage = getattr(self, "memory_usage", None)
         if memory_usage:
-            mem = memory_usage(deep=True)
+            mem = memory_usage(deep=True)  # pylint: disable=not-callable
             return int(mem if is_scalar(mem) else mem.sum())
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
@@ -991,7 +987,7 @@ class IndexOpsMixin(OpsMixin):
         NaN    1
         dtype: int64
         """
-        return value_counts(
+        return algorithms.value_counts(
             self,
             sort=sort,
             ascending=ascending,
@@ -1006,7 +1002,7 @@ class IndexOpsMixin(OpsMixin):
             # i.e. ExtensionArray
             result = values.unique()
         else:
-            result = unique1d(values)
+            result = algorithms.unique1d(values)
         return result
 
     @final
@@ -1112,9 +1108,9 @@ class IndexOpsMixin(OpsMixin):
         are not components of the array if deep=False or if used on PyPy
         """
         if hasattr(self.array, "memory_usage"):
-            # https://github.com/python/mypy/issues/1424
-            # error: "ExtensionArray" has no attribute "memory_usage"
-            return self.array.memory_usage(deep=deep)  # type: ignore[attr-defined]
+            return self.array.memory_usage(  # pyright: ignore[reportGeneralTypeIssues]
+                deep=deep,
+            )
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
@@ -1139,8 +1135,20 @@ class IndexOpsMixin(OpsMixin):
         self,
         sort: bool = False,
         use_na_sentinel: bool = True,
-    ):
-        return algorithms.factorize(self, sort=sort, use_na_sentinel=use_na_sentinel)
+    ) -> tuple[npt.NDArray[np.intp], Index]:
+
+        codes, uniques = algorithms.factorize(
+            self._values, sort=sort, use_na_sentinel=use_na_sentinel
+        )
+
+        if isinstance(self, ABCIndex):
+            # preserve e.g. NumericIndex, preserve MultiIndex
+            uniques = self._constructor(uniques)
+        else:
+            from pandas import Index
+
+            uniques = Index(uniques)
+        return codes, uniques
 
     _shared_docs[
         "searchsorted"
@@ -1294,7 +1302,7 @@ class IndexOpsMixin(OpsMixin):
 
     @final
     def _duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
-        return duplicated(self._values, keep=keep)
+        return algorithms.duplicated(self._values, keep=keep)
 
     def _arith_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)

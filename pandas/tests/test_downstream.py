@@ -18,7 +18,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-# geopandas, xarray, fsspec, fastparquet all produce these
+# xarray, fsspec, fastparquet all produce these
 pytestmark = pytest.mark.filterwarnings(
     "ignore:distutils Version classes are deprecated.*:DeprecationWarning"
 )
@@ -220,15 +220,6 @@ def test_pandas_datareader():
     pandas_datareader.DataReader("F", "quandl", "2017-01-01", "2017-02-01")
 
 
-def test_geopandas():
-
-    geopandas = import_module("geopandas")
-    gdf = geopandas.GeoDataFrame(
-        {"col": [1, 2, 3], "geometry": geopandas.points_from_xy([1, 2, 3], [1, 2, 3])}
-    )
-    assert gdf[["col", "geometry"]].geometry.x.equals(Series([1.0, 2.0, 3.0]))
-
-
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
 def test_pyarrow(df):
@@ -237,20 +228,6 @@ def test_pyarrow(df):
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
-
-
-def test_torch_frame_construction(using_array_manager):
-    # GH#44616
-    torch = import_module("torch")
-    val_tensor = torch.randn(700, 64)
-
-    df = DataFrame(val_tensor)
-
-    if not using_array_manager:
-        assert np.shares_memory(df, val_tensor)
-
-    ser = Series(val_tensor[0])
-    assert np.shares_memory(ser, val_tensor)
 
 
 def test_yaml_dump(df):

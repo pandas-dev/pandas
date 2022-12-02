@@ -1,9 +1,13 @@
 """Strptime-related classes and functions.
 """
 from cpython.datetime cimport (
+    PyDateTime_Check,
     date,
+    import_datetime,
     tzinfo,
 )
+
+import_datetime()
 
 from _thread import allocate_lock as _thread_allocate_lock
 
@@ -16,6 +20,7 @@ from numpy cimport (
 )
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
+from pandas._libs.tslibs.conversion cimport convert_timezone
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_nat_strings as nat_strings,
@@ -25,35 +30,43 @@ from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
+    pydatetime_to_dt64,
 )
+from pandas._libs.tslibs.timestamps cimport _Timestamp
 
 
-cdef dict _parse_code_table = {'y': 0,
-                               'Y': 1,
-                               'm': 2,
-                               'B': 3,
-                               'b': 4,
-                               'd': 5,
-                               'H': 6,
-                               'I': 7,
-                               'M': 8,
-                               'S': 9,
-                               'f': 10,
-                               'A': 11,
-                               'a': 12,
-                               'w': 13,
-                               'j': 14,
-                               'U': 15,
-                               'W': 16,
-                               'Z': 17,
-                               'p': 18,  # an additional key, only with I
-                               'z': 19,
-                               'G': 20,
-                               'V': 21,
-                               'u': 22}
+cdef dict _parse_code_table = {"y": 0,
+                               "Y": 1,
+                               "m": 2,
+                               "B": 3,
+                               "b": 4,
+                               "d": 5,
+                               "H": 6,
+                               "I": 7,
+                               "M": 8,
+                               "S": 9,
+                               "f": 10,
+                               "A": 11,
+                               "a": 12,
+                               "w": 13,
+                               "j": 14,
+                               "U": 15,
+                               "W": 16,
+                               "Z": 17,
+                               "p": 18,  # an additional key, only with I
+                               "z": 19,
+                               "G": 20,
+                               "V": 21,
+                               "u": 22}
 
 
-def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='raise'):
+def array_strptime(
+    ndarray[object] values,
+    str fmt,
+    bint exact=True,
+    errors="raise",
+    bint utc=False,
+):
     """
     Calculates the datetime structs represented by the passed array of strings
 
@@ -75,19 +88,22 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
         int iso_week, iso_year
         int64_t us, ns
         object val, group_key, ampm, found, timezone
-        bint is_raise = errors=='raise'
-        bint is_ignore = errors=='ignore'
-        bint is_coerce = errors=='coerce'
+        bint is_raise = errors=="raise"
+        bint is_ignore = errors=="ignore"
+        bint is_coerce = errors=="coerce"
+        bint found_naive = False
+        bint found_tz = False
+        tzinfo tz_out = None
 
     assert is_raise or is_ignore or is_coerce
 
     if fmt is not None:
-        if '%W' in fmt or '%U' in fmt:
-            if '%Y' not in fmt and '%y' not in fmt:
+        if "%W" in fmt or "%U" in fmt:
+            if "%Y" not in fmt and "%y" not in fmt:
                 raise ValueError("Cannot use '%W' or '%U' without day and year")
-            if '%A' not in fmt and '%a' not in fmt and '%w' not in fmt:
+            if "%A" not in fmt and "%a" not in fmt and "%w" not in fmt:
                 raise ValueError("Cannot use '%W' or '%U' without day and year")
-        elif '%Z' in fmt and '%z' in fmt:
+        elif "%Z" in fmt and "%z" in fmt:
             raise ValueError("Cannot parse both %Z and %z")
 
     global _TimeRE_cache, _regex_cache
@@ -116,9 +132,9 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
                 raise ValueError(f"stray % in format '{fmt}'")
             _regex_cache[fmt] = format_regex
 
-    result = np.empty(n, dtype='M8[ns]')
-    iresult = result.view('i8')
-    result_timezone = np.empty(n, dtype='object')
+    result = np.empty(n, dtype="M8[ns]")
+    iresult = result.view("i8")
+    result_timezone = np.empty(n, dtype="object")
 
     dts.us = dts.ps = dts.as = 0
 
@@ -128,12 +144,30 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
             if val in nat_strings:
                 iresult[i] = NPY_NAT
                 continue
-        else:
-            if checknull_with_nat_and_na(val):
-                iresult[i] = NPY_NAT
-                continue
+        elif checknull_with_nat_and_na(val):
+            iresult[i] = NPY_NAT
+            continue
+        elif PyDateTime_Check(val):
+            if val.tzinfo is not None:
+                found_tz = True
             else:
-                val = str(val)
+                found_naive = True
+            tz_out = convert_timezone(
+                val.tzinfo,
+                tz_out,
+                found_naive,
+                found_tz,
+                utc,
+            )
+            if isinstance(val, _Timestamp):
+                iresult[i] = val.tz_localize(None).as_unit("ns").value
+            else:
+                iresult[i] = pydatetime_to_dt64(val.replace(tzinfo=None), &dts)
+                check_dts_bounds(&dts)
+            result_timezone[i] = val.tzinfo
+            continue
+        else:
+            val = str(val)
 
         # exact matching
         if exact:
@@ -182,7 +216,7 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
             parse_code = _parse_code_table[group_key]
 
             if parse_code == 0:
-                year = int(found_dict['y'])
+                year = int(found_dict["y"])
                 # Open Group specification for strptime() states that a %y
                 # value in the range of [00, 68] is in the century 2000, while
                 # [69,99] is in the century 1900
@@ -191,26 +225,26 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
                 else:
                     year += 1900
             elif parse_code == 1:
-                year = int(found_dict['Y'])
+                year = int(found_dict["Y"])
             elif parse_code == 2:
-                month = int(found_dict['m'])
+                month = int(found_dict["m"])
             # elif group_key == 'B':
             elif parse_code == 3:
-                month = locale_time.f_month.index(found_dict['B'].lower())
+                month = locale_time.f_month.index(found_dict["B"].lower())
             # elif group_key == 'b':
             elif parse_code == 4:
-                month = locale_time.a_month.index(found_dict['b'].lower())
+                month = locale_time.a_month.index(found_dict["b"].lower())
             # elif group_key == 'd':
             elif parse_code == 5:
-                day = int(found_dict['d'])
+                day = int(found_dict["d"])
             # elif group_key == 'H':
             elif parse_code == 6:
-                hour = int(found_dict['H'])
+                hour = int(found_dict["H"])
             elif parse_code == 7:
-                hour = int(found_dict['I'])
-                ampm = found_dict.get('p', '').lower()
+                hour = int(found_dict["I"])
+                ampm = found_dict.get("p", "").lower()
                 # If there was no AM/PM indicator, we'll treat this like AM
-                if ampm in ('', locale_time.am_pm[0]):
+                if ampm in ("", locale_time.am_pm[0]):
                     # We're in AM so the hour is correct unless we're
                     # looking at 12 midnight.
                     # 12 midnight == 12 AM == hour 0
@@ -223,46 +257,46 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
                     if hour != 12:
                         hour += 12
             elif parse_code == 8:
-                minute = int(found_dict['M'])
+                minute = int(found_dict["M"])
             elif parse_code == 9:
-                second = int(found_dict['S'])
+                second = int(found_dict["S"])
             elif parse_code == 10:
-                s = found_dict['f']
+                s = found_dict["f"]
                 # Pad to always return nanoseconds
                 s += "0" * (9 - len(s))
                 us = long(s)
                 ns = us % 1000
                 us = us // 1000
             elif parse_code == 11:
-                weekday = locale_time.f_weekday.index(found_dict['A'].lower())
+                weekday = locale_time.f_weekday.index(found_dict["A"].lower())
             elif parse_code == 12:
-                weekday = locale_time.a_weekday.index(found_dict['a'].lower())
+                weekday = locale_time.a_weekday.index(found_dict["a"].lower())
             elif parse_code == 13:
-                weekday = int(found_dict['w'])
+                weekday = int(found_dict["w"])
                 if weekday == 0:
                     weekday = 6
                 else:
                     weekday -= 1
             elif parse_code == 14:
-                julian = int(found_dict['j'])
+                julian = int(found_dict["j"])
             elif parse_code == 15 or parse_code == 16:
                 week_of_year = int(found_dict[group_key])
-                if group_key == 'U':
+                if group_key == "U":
                     # U starts week on Sunday.
                     week_of_year_start = 6
                 else:
                     # W starts week on Monday.
                     week_of_year_start = 0
             elif parse_code == 17:
-                timezone = pytz.timezone(found_dict['Z'])
+                timezone = pytz.timezone(found_dict["Z"])
             elif parse_code == 19:
-                timezone = parse_timezone_directive(found_dict['z'])
+                timezone = parse_timezone_directive(found_dict["z"])
             elif parse_code == 20:
-                iso_year = int(found_dict['G'])
+                iso_year = int(found_dict["G"])
             elif parse_code == 21:
-                iso_week = int(found_dict['V'])
+                iso_week = int(found_dict["V"])
             elif parse_code == 22:
-                weekday = int(found_dict['u'])
+                weekday = int(found_dict["u"])
                 weekday -= 1
 
         # don't assume default values for ISO week/year
@@ -390,7 +424,7 @@ class TimeRE(_TimeRE):
         if key == "Z":
             # lazy computation
             if self._Z is None:
-                self._Z = self.__seqToRE(pytz.all_timezones, 'Z')
+                self._Z = self.__seqToRE(pytz.all_timezones, "Z")
             # Note: handling Z is the key difference vs using the stdlib
             # _strptime.TimeRE. test_to_datetime_parse_tzname_or_tzoffset with
             # fmt='%Y-%m-%d %H:%M:%S %Z' fails with the stdlib version.
@@ -509,12 +543,12 @@ cdef tzinfo parse_timezone_directive(str z):
         int total_minutes
         object gmtoff_remainder, gmtoff_remainder_padding
 
-    if z == 'Z':
+    if z == "Z":
         return pytz.FixedOffset(0)
-    if z[3] == ':':
+    if z[3] == ":":
         z = z[:3] + z[4:]
         if len(z) > 5:
-            if z[5] != ':':
+            if z[5] != ":":
                 raise ValueError(f"Inconsistent use of : in {z}")
             z = z[:5] + z[6:]
     hours = int(z[1:3])

@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+from pandas import DataFrame
 import pandas._testing as tm
 
 
@@ -21,17 +18,11 @@ class TestConvert:
         float_string_frame["I"] = "1"
 
         # add in some items that will be nan
-        length = len(float_string_frame)
         float_string_frame["J"] = "1."
         float_string_frame["K"] = "1"
         float_string_frame.loc[float_string_frame.index[0:5], ["J", "K"]] = "garbled"
-        converted = float_string_frame._convert(datetime=True, numeric=True)
-        assert converted["H"].dtype == "float64"
-        assert converted["I"].dtype == "int64"
-        assert converted["J"].dtype == "float64"
-        assert converted["K"].dtype == "float64"
-        assert len(converted["J"].dropna()) == length - 5
-        assert len(converted["K"].dropna()) == length - 5
+        converted = float_string_frame._convert(datetime=True)
+        tm.assert_frame_equal(converted, float_string_frame)
 
         # via astype
         converted = float_string_frame.copy()
@@ -44,14 +35,6 @@ class TestConvert:
         converted = float_string_frame.copy()
         with pytest.raises(ValueError, match="invalid literal"):
             converted["H"].astype("int32")
-
-    def test_convert_mixed_single_column(self):
-        # GH#4119, not converting a mixed type (e.g.floats and object)
-        # mixed in a single column
-        df = DataFrame({"s": Series([1, "na", 3, 4])})
-        result = df._convert(datetime=True, numeric=True)
-        expected = DataFrame({"s": Series([1, np.nan, 3, 4])})
-        tm.assert_frame_equal(result, expected)
 
     def test_convert_objects_no_conversion(self):
         mixed1 = DataFrame({"a": [1, 2, 3], "b": [4.0, 5, 6], "c": ["x", "y", "z"]})
