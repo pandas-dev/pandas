@@ -56,7 +56,7 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
     "sphinx_copybutton",
-    # "sphinx_panels",
+    "sphinx_panels",
     "sphinx_design",
     "sphinx_toggleprompt",
     "sphinx.ext.autodoc",

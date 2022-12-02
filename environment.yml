@@ -105,6 +105,7 @@ dependencies:
   - pytest-cython  # doctest
   - sphinx
   - sphinx-panels
+  - sphinx-design
   - sphinx-copybutton
   - types-python-dateutil
   - types-PyMySQL
