@@ -13,7 +13,7 @@
 # are visible in the host and container.
 # The docker image is retrieved from the pandas dockerhub repository
 #
-# docker run --rm -it -v $(pwd):/home/pandas pandas/pandas-dev:<image-tag>
+# docker run --rm -it -v $(pwd):/home/pandas pythonpandas/pandas-dev:<image-tag>
 #
 # By default the container will activate the conda environment pandas-dev
 # which contains all the dependencies needed for pandas development
@@ -86,9 +86,9 @@ RUN chmod a+rx /usr/local/bin/workspace_config && \
 # the container to create a conda environment from it
 COPY environment.yml /tmp/environment.yml
 
-RUN mamba env create -f /tmp/environment.yml
 # ---- Create conda environment ----
-RUN conda activate $CONDA_ENV && \
+RUN mamba env create -f /tmp/environment.yml && \
+    conda activate $CONDA_ENV && \
     mamba install ccache -y && \
     # needed for docs rendering later on
     python -m pip install --no-cache-dir sphinx-autobuild && \
