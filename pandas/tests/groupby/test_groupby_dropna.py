@@ -537,6 +537,10 @@ def test_categorical_reducers(
         df_filled = df_filled.set_index(["x", "x2"])
     args = get_groupby_method_args(reduction_func, df)
     args_filled = get_groupby_method_args(reduction_func, df_filled)
+    if reduction_func == "corrwith" and index_kind == "range":
+        # Don't include the grouping columns so we can call reset_index
+        args = (args[0].drop(columns=keys),)
+        args_filled = (args_filled[0].drop(columns=keys),)
 
     gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
     expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
