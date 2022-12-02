@@ -429,9 +429,7 @@ class Block(PandasObject):
             #  but ATM it breaks too much existing code.
             # split and convert the blocks
 
-            return extend_blocks(
-                [blk.convert(datetime=True, numeric=False) for blk in blocks]
-            )
+            return extend_blocks([blk.convert(datetime=True) for blk in blocks])
 
         if downcast is None:
             return blocks
@@ -451,9 +449,9 @@ class Block(PandasObject):
 
     def convert(
         self,
+        *,
         copy: bool = True,
         datetime: bool = True,
-        numeric: bool = True,
         timedelta: bool = True,
     ) -> list[Block]:
         """
@@ -570,7 +568,7 @@ class Block(PandasObject):
             if not (self.is_object and value is None):
                 # if the user *explicitly* gave None, we keep None, otherwise
                 #  may downcast to NaN
-                blocks = blk.convert(numeric=False, copy=False)
+                blocks = blk.convert(copy=False)
             else:
                 blocks = [blk]
             return blocks
@@ -642,7 +640,7 @@ class Block(PandasObject):
         replace_regex(new_values, rx, value, mask)
 
         block = self.make_block(new_values)
-        return block.convert(numeric=False, copy=False)
+        return block.convert(copy=False)
 
     @final
     def replace_list(
@@ -712,9 +710,7 @@ class Block(PandasObject):
                 )
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back
-                    result = extend_blocks(
-                        [b.convert(numeric=False, copy=True) for b in result]
-                    )
+                    result = extend_blocks([b.convert(copy=True) for b in result])
                 new_rb.extend(result)
             rb = new_rb
         return rb
@@ -1969,9 +1965,9 @@ class ObjectBlock(NumpyBlock):
     @maybe_split
     def convert(
         self,
+        *,
         copy: bool = True,
         datetime: bool = True,
-        numeric: bool = True,
         timedelta: bool = True,
     ) -> list[Block]:
         """
@@ -1987,7 +1983,6 @@ class ObjectBlock(NumpyBlock):
         res_values = soft_convert_objects(
             values,
             datetime=datetime,
-            numeric=numeric,
             timedelta=timedelta,
             copy=copy,
         )
