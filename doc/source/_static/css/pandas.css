@@ -27,13 +27,23 @@ table {
 }
 
 .intro-card .sd-card-footer {
-  border: none;
+  border: none !important;
 }
 
-.intro-card .sd-card-footer p.sd-card-text{
+.intro-card .sd-card-footer p.sd-card-text {
   max-width: 220px;
   margin-left: auto;
   margin-right: auto;
+}
+
+.intro-card .sd-btn-secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+}
+
+.intro-card .sd-btn-secondary:hover {
+  background-color: #5a6268 !important;
+  border-color: #545b62 !important;
 }
 
 .card, .card img {

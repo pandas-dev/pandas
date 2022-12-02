@@ -26,7 +26,7 @@ pandas documentation
 easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
 programming language.
 
-{% if not single_doc -%}
+{% if not single_doc or single_doc == "index.rst" -%}
 .. grid:: 1 2 2 2
     :gutter: 4
     :padding: 2 2 0 0
