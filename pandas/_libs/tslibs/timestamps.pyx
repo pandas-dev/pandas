@@ -1941,7 +1941,10 @@ default 'raise'
         """
 
         if not isinstance(ambiguous, bool) and ambiguous not in {'NaT', 'raise'}:
-            raise ValueError("ambiguous parameter must be one of: True, False, 'NaT', 'raise' (default)")
+            raise ValueError(
+                        "ambiguous parameter must be one of: "
+                        "True, False, 'NaT', 'raise' (default)"
+                    )
 
         nonexistent_options = ('raise', 'NaT', 'shift_forward', 'shift_backward')
         if nonexistent not in nonexistent_options and not PyDelta_Check(nonexistent):

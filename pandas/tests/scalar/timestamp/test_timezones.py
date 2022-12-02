@@ -6,8 +6,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-
-# import dateutil
 import re
 
 from dateutil.tz import (
@@ -29,8 +27,6 @@ from pandas import (
     NaT,
     Timestamp,
 )
-
-# import pandas.util._test_decorators as td
 
 
 class TestTimestampTZOperations:
@@ -341,22 +337,6 @@ class TestTimestampTZOperations:
         result = utcdate.astimezone(tzstr)
         assert expected == result
         assert isinstance(result, Timestamp)
-
-    # @td.skip_if_windows
-    # def test_tz_convert_utc_with_system_utc(self):
-
-    #     # from system utc to real utc
-    #     ts = Timestamp("2001-01-05 11:56", tz=timezones.maybe_get_tz("dateutil/UTC"))
-    #     # check that the time hasn't changed.
-    #     assert ts == ts.tz_convert(dateutil.tz.tzutc())
-
-    #     # from system utc to real utc
-    #     ts = Timestamp("2001-01-05 11:56", tz=timezones.maybe_get_tz("dateutil/UTC"))
-    #     # check that the time hasn't changed.
-    #     assert ts == ts.tz_convert(dateutil.tz.tzutc())
-
-    # ------------------------------------------------------------------
-    # Timestamp.__init__ with tz str or tzinfo
 
     def test_timestamp_constructor_tz_utc(self):
         utc_stamp = Timestamp("3/11/2012 05:00", tz="utc")
