@@ -150,12 +150,13 @@ class HistPlot(LinePlot):
             weights = kwds.get("weights", None)
             if weights is not None:
                 if np.ndim(weights) != 1 and np.shape(weights)[-1] != 1:
-                    if np.shape(weights) != np.shape(data):
+                    try:
+                        weights = weights[:, i]
+                    except IndexError:
                         raise ValueError(
-                            "weights must have the same shape as data"
+                            "weights must have the same shape as data "
                             f"{np.shape(data)}, or be a single column"
                         )
-                    weights = weights[:, i]
                 weights = weights[~isna(y)]
                 kwds["weights"] = weights
 
