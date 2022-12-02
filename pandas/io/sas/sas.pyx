@@ -343,7 +343,7 @@ cdef class Parser:
         self.bit_offset = self.parser._page_bit_offset
         self.subheader_pointer_length = self.parser._subheader_pointer_length
         self.is_little_endian = parser.byte_order == "<"
-        self.column_types = np.empty(self.column_count, dtype='int64')
+        self.column_types = np.empty(self.column_count, dtype="int64")
 
         # page indicators
         self.update_next_page()
@@ -352,9 +352,9 @@ cdef class Parser:
 
         # map column types
         for j in range(self.column_count):
-            if column_types[j] == b'd':
+            if column_types[j] == b"d":
                 self.column_types[j] = column_type_decimal
-            elif column_types[j] == b's':
+            elif column_types[j] == b"s":
                 self.column_types[j] = column_type_string
             else:
                 raise ValueError(f"unknown column type: {self.parser.columns[j].ctype}")

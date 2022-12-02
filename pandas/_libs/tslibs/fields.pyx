@@ -73,13 +73,13 @@ def build_field_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
 
     out = np.empty(count, dtype=sa_dtype)
 
-    years = out['Y']
-    months = out['M']
-    days = out['D']
-    hours = out['h']
-    minutes = out['m']
-    seconds = out['s']
-    mus = out['u']
+    years = out["Y"]
+    months = out["M"]
+    days = out["D"]
+    hours = out["h"]
+    minutes = out["m"]
+    seconds = out["s"]
+    mus = out["u"]
 
     for i in range(count):
         pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
@@ -154,11 +154,11 @@ def get_date_name_field(
 
     out = np.empty(count, dtype=object)
 
-    if field == 'day_name':
+    if field == "day_name":
         if locale is None:
             names = np.array(DAYS_FULL, dtype=np.object_)
         else:
-            names = np.array(_get_locale_names('f_weekday', locale),
+            names = np.array(_get_locale_names("f_weekday", locale),
                              dtype=np.object_)
         for i in range(count):
             if dtindex[i] == NPY_NAT:
@@ -169,11 +169,11 @@ def get_date_name_field(
             dow = dayofweek(dts.year, dts.month, dts.day)
             out[i] = names[dow].capitalize()
 
-    elif field == 'month_name':
+    elif field == "month_name":
         if locale is None:
             names = np.array(MONTHS_FULL, dtype=np.object_)
         else:
-            names = np.array(_get_locale_names('f_month', locale),
+            names = np.array(_get_locale_names("f_month", locale),
                              dtype=np.object_)
         for i in range(count):
             if dtindex[i] == NPY_NAT:
@@ -237,20 +237,20 @@ def get_start_end_field(
         npy_datetimestruct dts
         int compare_month, modby
 
-    out = np.zeros(count, dtype='int8')
+    out = np.zeros(count, dtype="int8")
 
     if freqstr:
-        if freqstr == 'C':
+        if freqstr == "C":
             raise ValueError(f"Custom business days is not supported by {field}")
-        is_business = freqstr[0] == 'B'
+        is_business = freqstr[0] == "B"
 
         # YearBegin(), BYearBegin() use month = starting month of year.
         # QuarterBegin(), BQuarterBegin() use startingMonth = starting
         # month of year. Other offsets use month, startingMonth as ending
         # month of year.
 
-        if (freqstr[0:2] in ['MS', 'QS', 'AS']) or (
-                freqstr[1:3] in ['MS', 'QS', 'AS']):
+        if (freqstr[0:2] in ["MS", "QS", "AS"]) or (
+                freqstr[1:3] in ["MS", "QS", "AS"]):
             end_month = 12 if month_kw == 1 else month_kw - 1
             start_month = month_kw
         else:
@@ -339,9 +339,9 @@ def get_date_field(
         ndarray[int32_t] out
         npy_datetimestruct dts
 
-    out = np.empty(count, dtype='i4')
+    out = np.empty(count, dtype="i4")
 
-    if field == 'Y':
+    if field == "Y":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -352,7 +352,7 @@ def get_date_field(
                 out[i] = dts.year
         return out
 
-    elif field == 'M':
+    elif field == "M":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -363,7 +363,7 @@ def get_date_field(
                 out[i] = dts.month
         return out
 
-    elif field == 'D':
+    elif field == "D":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -374,7 +374,7 @@ def get_date_field(
                 out[i] = dts.day
         return out
 
-    elif field == 'h':
+    elif field == "h":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -386,7 +386,7 @@ def get_date_field(
                 # TODO: can we de-dup with period.pyx <accessor>s?
         return out
 
-    elif field == 'm':
+    elif field == "m":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -397,7 +397,7 @@ def get_date_field(
                 out[i] = dts.min
         return out
 
-    elif field == 's':
+    elif field == "s":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -408,7 +408,7 @@ def get_date_field(
                 out[i] = dts.sec
         return out
 
-    elif field == 'us':
+    elif field == "us":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -419,7 +419,7 @@ def get_date_field(
                 out[i] = dts.us
         return out
 
-    elif field == 'ns':
+    elif field == "ns":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -429,7 +429,7 @@ def get_date_field(
                 pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = dts.ps // 1000
         return out
-    elif field == 'doy':
+    elif field == "doy":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -440,7 +440,7 @@ def get_date_field(
                 out[i] = get_day_of_year(dts.year, dts.month, dts.day)
         return out
 
-    elif field == 'dow':
+    elif field == "dow":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -451,7 +451,7 @@ def get_date_field(
                 out[i] = dayofweek(dts.year, dts.month, dts.day)
         return out
 
-    elif field == 'woy':
+    elif field == "woy":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -462,7 +462,7 @@ def get_date_field(
                 out[i] = get_week_of_year(dts.year, dts.month, dts.day)
         return out
 
-    elif field == 'q':
+    elif field == "q":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -474,7 +474,7 @@ def get_date_field(
                 out[i] = ((out[i] - 1) // 3) + 1
         return out
 
-    elif field == 'dim':
+    elif field == "dim":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -484,8 +484,8 @@ def get_date_field(
                 pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = get_days_in_month(dts.year, dts.month)
         return out
-    elif field == 'is_leap_year':
-        return isleapyear_arr(get_date_field(dtindex, 'Y', reso=reso))
+    elif field == "is_leap_year":
+        return isleapyear_arr(get_date_field(dtindex, "Y", reso=reso))
 
     raise ValueError(f"Field {field} not supported")
 
@@ -506,9 +506,9 @@ def get_timedelta_field(
         ndarray[int32_t] out
         pandas_timedeltastruct tds
 
-    out = np.empty(count, dtype='i4')
+    out = np.empty(count, dtype="i4")
 
-    if field == 'days':
+    if field == "days":
         with nogil:
             for i in range(count):
                 if tdindex[i] == NPY_NAT:
@@ -519,7 +519,7 @@ def get_timedelta_field(
                 out[i] = tds.days
         return out
 
-    elif field == 'seconds':
+    elif field == "seconds":
         with nogil:
             for i in range(count):
                 if tdindex[i] == NPY_NAT:
@@ -530,7 +530,7 @@ def get_timedelta_field(
                 out[i] = tds.seconds
         return out
 
-    elif field == 'microseconds':
+    elif field == "microseconds":
         with nogil:
             for i in range(count):
                 if tdindex[i] == NPY_NAT:
@@ -541,7 +541,7 @@ def get_timedelta_field(
                 out[i] = tds.microseconds
         return out
 
-    elif field == 'nanoseconds':
+    elif field == "nanoseconds":
         with nogil:
             for i in range(count):
                 if tdindex[i] == NPY_NAT:
@@ -560,7 +560,7 @@ cpdef isleapyear_arr(ndarray years):
     cdef:
         ndarray[int8_t] out
 
-    out = np.zeros(len(years), dtype='int8')
+    out = np.zeros(len(years), dtype="int8")
     out[np.logical_or(years % 400 == 0,
                       np.logical_and(years % 4 == 0,
                                      years % 100 > 0))] = 1

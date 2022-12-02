@@ -1142,11 +1142,11 @@ cdef enum InterpolationType:
 
 
 interpolation_types = {
-    'linear': LINEAR,
-    'lower': LOWER,
-    'higher': HIGHER,
-    'nearest': NEAREST,
-    'midpoint': MIDPOINT,
+    "linear": LINEAR,
+    "lower": LOWER,
+    "higher": HIGHER,
+    "nearest": NEAREST,
+    "midpoint": MIDPOINT,
 }
 
 
@@ -1403,7 +1403,7 @@ def roll_apply(object obj,
 
     # ndarray input
     if raw and not arr.flags.c_contiguous:
-        arr = arr.copy('C')
+        arr = arr.copy("C")
 
     counts = roll_sum(np.isfinite(arr).astype(float), start, end, minp)
 
