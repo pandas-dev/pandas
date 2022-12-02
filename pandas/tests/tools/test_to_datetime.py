@@ -352,6 +352,7 @@ class TestTimeConversionFormats:
         ],
     )
     def test_parse_nanoseconds_with_formula(self, cache, arg):
+
         # GH8989
         # truncating the nanoseconds when a format was provided
         expected = to_datetime(arg, cache=cache)
@@ -468,12 +469,11 @@ class TestTimeConversionFormats:
 class TestToDatetime:
     def test_to_datetime_mixed_datetime_and_string(self):
         # GH#47018 adapted old doctest with new behavior
-        d2 = datetime(2020, 1, 1, 18, tzinfo=timezone(-timedelta(hours=1)))
-        with pytest.raises(
-            ValueError,
-            match=r"time data '.*' does not match format '%Y-%m-%d %H:%M %z' \(match\)",
-        ):
-            to_datetime(["2020-01-01 17:00 -0100", d2])
+        d1 = datetime(2020, 1, 1, 17, tzinfo=pytz.FixedOffset(-60))
+        d2 = datetime(2020, 1, 1, 18, tzinfo=pytz.FixedOffset(-60))
+        res = to_datetime(["2020-01-01 17:00 -0100", d2])
+        expected = to_datetime([d1, d2])
+        tm.assert_index_equal(res, expected)
 
     @pytest.mark.parametrize(
         "fmt",
@@ -1145,7 +1145,8 @@ class TestToDatetime:
                 (None,)
                 + (NaT,) * start_caching_at
                 + ("2012 July 26", Timestamp("2012-07-26")),
-                (NaT,) * (start_caching_at + 1) + (Timestamp("2012-07-26"), NaT),
+                (NaT,) * (start_caching_at + 1)
+                + (Timestamp("2012-07-26"), Timestamp("2012-07-26")),
             ),
         ),
     )
