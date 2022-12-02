@@ -663,12 +663,6 @@ class FrameApply(NDFrameApply):
         result = None
         try:
             result = super().agg()
-        except TypeError as err:
-            exc = TypeError(
-                "DataFrame constructor called with "
-                f"incompatible data and dtype: {err}"
-            )
-            raise exc from err
         finally:
             self.obj = obj
             self.axis = axis
@@ -835,9 +829,6 @@ class FrameApply(NDFrameApply):
 
 class FrameRowApply(FrameApply):
     axis: AxisInt = 0
-
-    def apply_broadcast(self, target: DataFrame) -> DataFrame:
-        return super().apply_broadcast(target)
 
     @property
     def series_generator(self):

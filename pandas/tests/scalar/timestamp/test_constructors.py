@@ -1,5 +1,6 @@
 import calendar
 from datetime import (
+    date,
     datetime,
     timedelta,
     timezone,
@@ -23,6 +24,13 @@ from pandas import (
 
 
 class TestTimestampConstructors:
+    def test_constructor_from_date_second_reso(self):
+        # GH#49034 constructing from a pydate object gets lowest supported
+        #  reso, i.e. seconds
+        obj = date(2012, 9, 1)
+        ts = Timestamp(obj)
+        assert ts.unit == "s"
+
     @pytest.mark.parametrize("typ", [int, float])
     def test_constructor_int_float_with_YM_unit(self, typ):
         # GH#47266 avoid the conversions in cast_from_unit
@@ -97,8 +105,9 @@ class TestTimestampConstructors:
             (dateutil.tz.tzoffset(None, 18000), 5),
         ]
 
-        for date_str, date, expected in tests:
-            for result in [Timestamp(date_str), Timestamp(date)]:
+        for date_str, date_obj, expected in tests:
+            for result in [Timestamp(date_str), Timestamp(date_obj)]:
+                result = result.as_unit("ns")  # test originally written before non-nano
                 # only with timestring
                 assert result.value == expected
 
@@ -108,7 +117,10 @@ class TestTimestampConstructors:
 
             # with timezone
             for tz, offset in timezones:
-                for result in [Timestamp(date_str, tz=tz), Timestamp(date, tz=tz)]:
+                for result in [Timestamp(date_str, tz=tz), Timestamp(date_obj, tz=tz)]:
+                    result = result.as_unit(
+                        "ns"
+                    )  # test originally written before non-nano
                     expected_tz = expected - offset * 3600 * 1_000_000_000
                     assert result.value == expected_tz
 
