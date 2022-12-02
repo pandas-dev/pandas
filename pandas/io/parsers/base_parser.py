@@ -125,7 +125,6 @@ class ParserBase:
 
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
-        self.mangle_dupe_cols = kwds.get("mangle_dupe_cols", True)
         self.cache_dates = kwds.pop("cache_dates", True)
 
         self._date_conv = _make_date_converter(
@@ -331,33 +330,27 @@ class ParserBase:
         return names, index_names, col_names, passed_names
 
     @final
-    def _maybe_dedup_names(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
-        # see gh-7160 and gh-9424: this helps to provide
-        # immediate alleviation of the duplicate names
-        # issue and appears to be satisfactory to users,
-        # but ultimately, not needing to butcher the names
-        # would be nice!
-        if self.mangle_dupe_cols:
-            names = list(names)  # so we can index
-            counts: DefaultDict[Hashable, int] = defaultdict(int)
-            is_potential_mi = _is_potential_multi_index(names, self.index_col)
+    def _dedup_names(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
+        names = list(names)  # so we can index
+        counts: DefaultDict[Hashable, int] = defaultdict(int)
+        is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
-            for i, col in enumerate(names):
+        for i, col in enumerate(names):
+            cur_count = counts[col]
+
+            while cur_count > 0:
+                counts[col] = cur_count + 1
+
+                if is_potential_mi:
+                    # for mypy
+                    assert isinstance(col, tuple)
+                    col = col[:-1] + (f"{col[-1]}.{cur_count}",)
+                else:
+                    col = f"{col}.{cur_count}"
                 cur_count = counts[col]
 
-                while cur_count > 0:
-                    counts[col] = cur_count + 1
-
-                    if is_potential_mi:
-                        # for mypy
-                        assert isinstance(col, tuple)
-                        col = col[:-1] + (f"{col[-1]}.{cur_count}",)
-                    else:
-                        col = f"{col}.{cur_count}"
-                    cur_count = counts[col]
-
-                names[i] = col
-                counts[col] = cur_count + 1
+            names[i] = col
+            counts[col] = cur_count + 1
 
         return names
 
@@ -1112,7 +1105,7 @@ def _make_date_converter(
             try:
                 return tools.to_datetime(
                     ensure_object(strs),
-                    utc=None,
+                    utc=False,
                     dayfirst=dayfirst,
                     errors="ignore",
                     cache=cache_dates,
@@ -1178,7 +1171,6 @@ parser_defaults = {
     "verbose": False,
     "encoding": None,
     "compression": None,
-    "mangle_dupe_cols": True,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
     "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
