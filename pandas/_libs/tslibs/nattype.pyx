@@ -259,7 +259,7 @@ cdef class _NaT(datetime):
         """
         Return a numpy.datetime64 object with 'ns' precision.
         """
-        return np.datetime64('NaT', "ns")
+        return np.datetime64("NaT", "ns")
 
     def to_numpy(self, dtype=None, copy=False) -> np.datetime64 | np.timedelta64:
         """

@@ -62,8 +62,8 @@ cdef class IntIndex(SparseIndex):
         return IntIndex, args
 
     def __repr__(self) -> str:
-        output = 'IntIndex\n'
-        output += f'Indices: {repr(self.indices)}\n'
+        output = "IntIndex\n"
+        output += f"Indices: {repr(self.indices)}\n"
         return output
 
     @property
@@ -134,7 +134,7 @@ cdef class IntIndex(SparseIndex):
         y = y_.to_int_index()
 
         if self.length != y.length:
-            raise Exception('Indices must reference same underlying length')
+            raise Exception("Indices must reference same underlying length")
 
         xindices = self.indices
         yindices = y.indices
@@ -168,7 +168,7 @@ cdef class IntIndex(SparseIndex):
         y = y_.to_int_index()
 
         if self.length != y.length:
-            raise ValueError('Indices must reference same underlying length')
+            raise ValueError("Indices must reference same underlying length")
 
         new_indices = np.union1d(self.indices, y.indices)
         return IntIndex(self.length, new_indices)
@@ -311,9 +311,9 @@ cdef class BlockIndex(SparseIndex):
         return BlockIndex, args
 
     def __repr__(self) -> str:
-        output = 'BlockIndex\n'
-        output += f'Block locations: {repr(self.blocs)}\n'
-        output += f'Block lengths: {repr(self.blengths)}'
+        output = "BlockIndex\n"
+        output += f"Block locations: {repr(self.blocs)}\n"
+        output += f"Block lengths: {repr(self.blengths)}"
 
         return output
 
@@ -340,23 +340,23 @@ cdef class BlockIndex(SparseIndex):
         blengths = self.blengths
 
         if len(blocs) != len(blengths):
-            raise ValueError('block bound arrays must be same length')
+            raise ValueError("block bound arrays must be same length")
 
         for i in range(self.nblocks):
             if i > 0:
                 if blocs[i] <= blocs[i - 1]:
-                    raise ValueError('Locations not in ascending order')
+                    raise ValueError("Locations not in ascending order")
 
             if i < self.nblocks - 1:
                 if blocs[i] + blengths[i] > blocs[i + 1]:
-                    raise ValueError(f'Block {i} overlaps')
+                    raise ValueError(f"Block {i} overlaps")
             else:
                 if blocs[i] + blengths[i] > self.length:
-                    raise ValueError(f'Block {i} extends beyond end')
+                    raise ValueError(f"Block {i} extends beyond end")
 
             # no zero-length blocks
             if blengths[i] == 0:
-                raise ValueError(f'Zero-length block {i}')
+                raise ValueError(f"Zero-length block {i}")
 
     def equals(self, other: object) -> bool:
         if not isinstance(other, BlockIndex):
@@ -411,7 +411,7 @@ cdef class BlockIndex(SparseIndex):
         y = other.to_block_index()
 
         if self.length != y.length:
-            raise Exception('Indices must reference same underlying length')
+            raise Exception("Indices must reference same underlying length")
 
         xloc = self.blocs
         xlen = self.blengths
@@ -565,7 +565,7 @@ cdef class BlockMerge:
         self.y = y
 
         if x.length != y.length:
-            raise Exception('Indices must reference same underlying length')
+            raise Exception("Indices must reference same underlying length")
 
         self.xstart = self.x.blocs
         self.ystart = self.y.blocs
@@ -660,7 +660,7 @@ cdef class BlockUnion(BlockMerge):
             int32_t xi, yi, ynblocks, nend
 
         if mode != 0 and mode != 1:
-            raise Exception('Mode must be 0 or 1')
+            raise Exception("Mode must be 0 or 1")
 
         # so symmetric code will work
         if mode == 0:

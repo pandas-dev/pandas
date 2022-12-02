@@ -184,8 +184,8 @@ cdef class IndexEngine:
         if self.is_monotonic_increasing:
             values = self.values
             try:
-                left = values.searchsorted(val, side='left')
-                right = values.searchsorted(val, side='right')
+                left = values.searchsorted(val, side="left")
+                right = values.searchsorted(val, side="right")
             except TypeError:
                 # e.g. GH#29189 get_loc(None) with a Float64Index
                 #  2021-09-29 Now only reached for object-dtype
@@ -353,8 +353,8 @@ cdef class IndexEngine:
             remaining_stargets = set()
             for starget in stargets:
                 try:
-                    start = values.searchsorted(starget, side='left')
-                    end = values.searchsorted(starget, side='right')
+                    start = values.searchsorted(starget, side="left")
+                    end = values.searchsorted(starget, side="right")
                 except TypeError:  # e.g. if we tried to search for string in int array
                     remaining_stargets.add(starget)
                 else:
@@ -551,7 +551,7 @@ cdef class DatetimeEngine(Int64Engine):
                 return self._get_loc_duplicates(conv)
             values = self.values
 
-            loc = values.searchsorted(conv, side='left')
+            loc = values.searchsorted(conv, side="left")
 
             if loc == len(values) or values[loc] != conv:
                 raise KeyError(val)
@@ -655,8 +655,8 @@ cdef class BaseMultiIndexCodesEngine:
         # with positive integers (-1 for NaN becomes 1). This enables us to
         # differentiate between values that are missing in other and matching
         # NaNs. We will set values that are not found to 0 later:
-        labels_arr = np.array(labels, dtype='int64').T + multiindex_nulls_shift
-        codes = labels_arr.astype('uint64', copy=False)
+        labels_arr = np.array(labels, dtype="int64").T + multiindex_nulls_shift
+        codes = labels_arr.astype("uint64", copy=False)
         self.level_has_nans = [-1 in lab for lab in labels]
 
         # Map each codes combination in the index to an integer unambiguously
@@ -693,7 +693,7 @@ cdef class BaseMultiIndexCodesEngine:
             if self.level_has_nans[i] and codes.hasnans:
                 result[codes.isna()] += 1
             level_codes.append(result)
-        return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
+        return self._codes_to_ints(np.array(level_codes, dtype="uint64").T)
 
     def get_indexer(self, target: np.ndarray) -> np.ndarray:
         """
@@ -754,12 +754,12 @@ cdef class BaseMultiIndexCodesEngine:
             ndarray[int64_t, ndim=1] new_codes, new_target_codes
             ndarray[intp_t, ndim=1] sorted_indexer
 
-        target_order = np.argsort(target).astype('int64')
+        target_order = np.argsort(target).astype("int64")
         target_values = target[target_order]
         num_values, num_target_values = len(values), len(target_values)
         new_codes, new_target_codes = (
-            np.empty((num_values,)).astype('int64'),
-            np.empty((num_target_values,)).astype('int64'),
+            np.empty((num_values,)).astype("int64"),
+            np.empty((num_target_values,)).astype("int64"),
         )
 
         # `values` and `target_values` are both sorted, so we walk through them
@@ -809,7 +809,7 @@ cdef class BaseMultiIndexCodesEngine:
             raise KeyError(key)
 
         # Transform indices into single integer:
-        lab_int = self._codes_to_ints(np.array(indices, dtype='uint64'))
+        lab_int = self._codes_to_ints(np.array(indices, dtype="uint64"))
 
         return self._base.get_loc(self, lab_int)
 
@@ -940,8 +940,8 @@ cdef class SharedEngine:
         if self.is_monotonic_increasing:
             values = self.values
             try:
-                left = values.searchsorted(val, side='left')
-                right = values.searchsorted(val, side='right')
+                left = values.searchsorted(val, side="left")
+                right = values.searchsorted(val, side="right")
             except TypeError:
                 # e.g. GH#29189 get_loc(None) with a Float64Index
                 raise KeyError(val)

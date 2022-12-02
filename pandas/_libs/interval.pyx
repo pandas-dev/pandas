@@ -42,7 +42,7 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object,
 )
 
-VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
+VALID_CLOSED = frozenset(["left", "right", "both", "neither"])
 
 
 cdef class IntervalMixin:
@@ -59,7 +59,7 @@ cdef class IntervalMixin:
         bool
             True if the Interval is closed on the left-side.
         """
-        return self.closed in ('left', 'both')
+        return self.closed in ("left", "both")
 
     @property
     def closed_right(self):
@@ -73,7 +73,7 @@ cdef class IntervalMixin:
         bool
             True if the Interval is closed on the left-side.
         """
-        return self.closed in ('right', 'both')
+        return self.closed in ("right", "both")
 
     @property
     def open_left(self):
@@ -172,9 +172,9 @@ cdef class IntervalMixin:
         >>> pd.IntervalIndex(ivs).is_empty
         array([ True, False])
         """
-        return (self.right == self.left) & (self.closed != 'both')
+        return (self.right == self.left) & (self.closed != "both")
 
-    def _check_closed_matches(self, other, name='other'):
+    def _check_closed_matches(self, other, name="other"):
         """
         Check if the closed attribute of `other` matches.
 
@@ -197,9 +197,9 @@ cdef class IntervalMixin:
 
 
 cdef bint _interval_like(other):
-    return (hasattr(other, 'left')
-            and hasattr(other, 'right')
-            and hasattr(other, 'closed'))
+    return (hasattr(other, "left")
+            and hasattr(other, "right")
+            and hasattr(other, "closed"))
 
 
 cdef class Interval(IntervalMixin):
@@ -311,7 +311,7 @@ cdef class Interval(IntervalMixin):
     Either ``left``, ``right``, ``both`` or ``neither``.
     """
 
-    def __init__(self, left, right, str closed='right'):
+    def __init__(self, left, right, str closed="right"):
         # note: it is faster to just do these checks than to use a special
         # constructor (__cinit__/__new__) to avoid them
 
@@ -343,8 +343,8 @@ cdef class Interval(IntervalMixin):
 
     def __contains__(self, key) -> bool:
         if _interval_like(key):
-            key_closed_left = key.closed in ('left', 'both')
-            key_closed_right = key.closed in ('right', 'both')
+            key_closed_left = key.closed in ("left", "both")
+            key_closed_right = key.closed in ("right", "both")
             if self.open_left and key_closed_left:
                 left_contained = self.left < key.left
             else:
@@ -389,15 +389,15 @@ cdef class Interval(IntervalMixin):
 
         left, right = self._repr_base()
         name = type(self).__name__
-        repr_str = f'{name}({repr(left)}, {repr(right)}, closed={repr(self.closed)})'
+        repr_str = f"{name}({repr(left)}, {repr(right)}, closed={repr(self.closed)})"
         return repr_str
 
     def __str__(self) -> str:
 
         left, right = self._repr_base()
-        start_symbol = '[' if self.closed_left else '('
-        end_symbol = ']' if self.closed_right else ')'
-        return f'{start_symbol}{left}, {right}{end_symbol}'
+        start_symbol = "[" if self.closed_left else "("
+        end_symbol = "]" if self.closed_right else ")"
+        return f"{start_symbol}{left}, {right}{end_symbol}"
 
     def __add__(self, y):
         if (

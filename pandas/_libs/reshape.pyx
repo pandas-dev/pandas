@@ -103,7 +103,7 @@ def explode(ndarray[object] values):
 
     # find the resulting len
     n = len(values)
-    counts = np.zeros(n, dtype='int64')
+    counts = np.zeros(n, dtype="int64")
     for i in range(n):
         v = values[i]
 
@@ -116,7 +116,7 @@ def explode(ndarray[object] values):
         else:
             counts[i] += 1
 
-    result = np.empty(counts.sum(), dtype='object')
+    result = np.empty(counts.sum(), dtype="object")
     count = 0
     for i in range(n):
         v = values[i]

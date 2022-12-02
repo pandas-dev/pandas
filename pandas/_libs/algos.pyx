@@ -180,7 +180,7 @@ def is_lexsorted(list_of_arrays: list) -> bint:
     cdef int64_t **vecs = <int64_t**>malloc(nlevels * sizeof(int64_t*))
     for i in range(nlevels):
         arr = list_of_arrays[i]
-        assert arr.dtype.name == 'int64'
+        assert arr.dtype.name == "int64"
         vecs[i] = <int64_t*>cnp.PyArray_DATA(arr)
 
     # Assume uniqueness??
@@ -514,9 +514,9 @@ def validate_limit(nobs: int | None, limit=None) -> int:
         lim = nobs
     else:
         if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
+            raise ValueError("Limit must be an integer")
         if limit < 1:
-            raise ValueError('Limit must be greater than 0')
+            raise ValueError("Limit must be greater than 0")
         lim = limit
 
     return lim
@@ -958,7 +958,7 @@ def rank_1d(
         if not ascending:
             tiebreak = TIEBREAK_FIRST_DESCENDING
 
-    keep_na = na_option == 'keep'
+    keep_na = na_option == "keep"
 
     N = len(values)
     if labels is not None:
@@ -984,7 +984,7 @@ def rank_1d(
     # with mask, without obfuscating location of missing data
     # in values array
     if numeric_object_t is object and values.dtype != np.object_:
-        masked_vals = values.astype('O')
+        masked_vals = values.astype("O")
     else:
         masked_vals = values.copy()
 
@@ -1005,7 +1005,7 @@ def rank_1d(
     # If descending, fill with highest value since descending
     # will flip the ordering to still end up with lowest rank.
     # Symmetric logic applies to `na_option == 'bottom'`
-    nans_rank_highest = ascending ^ (na_option == 'top')
+    nans_rank_highest = ascending ^ (na_option == "top")
     nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
     if nans_rank_highest:
         order = [masked_vals, mask]
@@ -1345,7 +1345,7 @@ def rank_2d(
         if not ascending:
             tiebreak = TIEBREAK_FIRST_DESCENDING
 
-    keep_na = na_option == 'keep'
+    keep_na = na_option == "keep"
 
     # For cases where a mask is not possible, we can avoid mask checks
     check_mask = (
@@ -1362,9 +1362,9 @@ def rank_2d(
 
     if numeric_object_t is object:
         if values.dtype != np.object_:
-            values = values.astype('O')
+            values = values.astype("O")
 
-    nans_rank_highest = ascending ^ (na_option == 'top')
+    nans_rank_highest = ascending ^ (na_option == "top")
     if check_mask:
         nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
 
@@ -1385,7 +1385,7 @@ def rank_2d(
         order = (values, ~np.asarray(mask))
 
     n, k = (<object>values).shape
-    out = np.empty((n, k), dtype='f8', order='F')
+    out = np.empty((n, k), dtype="f8", order="F")
     grp_sizes = np.ones(n, dtype=np.int64)
 
     # lexsort is slower, so only use if we need to worry about the mask

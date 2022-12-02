@@ -89,14 +89,14 @@ def convert_json_to_lines(arr: str) -> str:
         unsigned char val, newline, comma, left_bracket, right_bracket, quote
         unsigned char backslash
 
-    newline = ord('\n')
-    comma = ord(',')
-    left_bracket = ord('{')
-    right_bracket = ord('}')
+    newline = ord("\n")
+    comma = ord(",")
+    left_bracket = ord("{")
+    right_bracket = ord("}")
     quote = ord('"')
-    backslash = ord('\\')
+    backslash = ord("\\")
 
-    narr = np.frombuffer(arr.encode('utf-8'), dtype='u1').copy()
+    narr = np.frombuffer(arr.encode("utf-8"), dtype="u1").copy()
     length = narr.shape[0]
     for i in range(length):
         val = narr[i]
@@ -114,7 +114,7 @@ def convert_json_to_lines(arr: str) -> str:
             if not in_quotes:
                 num_open_brackets_seen -= 1
 
-    return narr.tobytes().decode('utf-8') + '\n'  # GH:36888
+    return narr.tobytes().decode("utf-8") + "\n"  # GH:36888
 
 
 # stata, pytables
