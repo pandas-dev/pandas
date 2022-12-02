@@ -757,7 +757,13 @@ def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
 
     to_type = np.dtype(to_type)
 
-    with pytest.raises(TypeError, match="cannot astype"):
+    msg = "|".join(
+        [
+            "cannot astype a timedelta",
+            "cannot astype a datetimelike",
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
         astype_nansafe(arr, dtype=to_type)
 
 
