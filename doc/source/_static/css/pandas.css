@@ -21,7 +21,7 @@ table {
 }
 
 .intro-card .sd-card-title {
-  color: rgb(var(--pst-color-h1)) !important;
+  color: var(--pst-color-primary);
   font-size: var(--pst-font-size-h5);
   padding: 1rem 0rem 0.5rem 0rem;
 }
