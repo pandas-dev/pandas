@@ -197,7 +197,7 @@ def test_put_mixed_type(setup_path):
     df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
     df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
     df.loc[df.index[3:6], ["obj1"]] = np.nan
-    df = df._consolidate()._convert(datetime=True)
+    df = df._consolidate()
 
     with ensure_clean_store(setup_path) as store:
         _maybe_remove(store, "df")

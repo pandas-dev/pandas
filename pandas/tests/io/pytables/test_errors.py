@@ -75,7 +75,7 @@ def test_unimplemented_dtypes_table_columns(setup_path):
     df["obj1"] = "foo"
     df["obj2"] = "bar"
     df["datetime1"] = datetime.date(2001, 1, 2)
-    df = df._consolidate()._convert(datetime=True)
+    df = df._consolidate()
 
     with ensure_clean_store(setup_path) as store:
         # this fails because we have a date in the object block......
