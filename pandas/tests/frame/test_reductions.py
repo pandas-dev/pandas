@@ -713,9 +713,9 @@ class TestDataFrameAnalytics:
             tm.makePeriodIndex(0),
         ],
     )
-    def test_axis_1_empty(self, reduction_functions, index):
+    def test_axis_1_empty(self, all_reductions, index):
         df = DataFrame(columns=["a"], index=index)
-        result = getattr(df, reduction_functions)(axis=1)
+        result = getattr(df, all_reductions)(axis=1)
         expected_dtype = {
             "any": "bool",
             "all": "bool",
@@ -725,7 +725,7 @@ class TestDataFrameAnalytics:
             "skew": "float",
             "kurt": "float",
             "sem": "float",
-        }.get(reduction_functions, "object")
+        }.get(all_reductions, "object")
         expected = Series([], index=index, dtype=expected_dtype)
         tm.assert_series_equal(result, expected)
 
