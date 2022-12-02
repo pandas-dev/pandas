@@ -6912,7 +6912,6 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
         else:
             return Index(index_like, copy=copy, tupleize_cols=False)
     else:
-        # with_infer needed for stata tests
         return Index(index_like, copy=copy)
 
 
