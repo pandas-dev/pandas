@@ -318,7 +318,7 @@ Benchmark machine
 -----------------
 
 The team currently owns dedicated hardware for hosting a website for pandas' ASV performance benchmark. The results
-are published to http://pandas.pydata.org/speed/pandas/
+are published to https://asv-runner.github.io/asv-collection/pandas/
 
 Configuration
 `````````````
