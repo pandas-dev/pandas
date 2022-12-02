@@ -750,8 +750,7 @@ def read_json(
 
     if chunksize:
         return json_reader
-
-    with json_reader:
+    else:
         return json_reader.read()
 
 
@@ -896,20 +895,20 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         Read the whole JSON input into a pandas object.
         """
         obj: DataFrame | Series
-        if self.lines:
-            if self.chunksize:
-                obj = concat(self)
-            elif self.nrows:
-                lines = list(islice(self.data, self.nrows))
-                lines_json = self._combine_lines(lines)
-                obj = self._get_object_parser(lines_json)
+        with self:
+            if self.lines:
+                if self.chunksize:
+                    obj = concat(self)
+                elif self.nrows:
+                    lines = list(islice(self.data, self.nrows))
+                    lines_json = self._combine_lines(lines)
+                    obj = self._get_object_parser(lines_json)
+                else:
+                    data = ensure_str(self.data)
+                    data_lines = data.split("\n")
+                    obj = self._get_object_parser(self._combine_lines(data_lines))
             else:
-                data = ensure_str(self.data)
-                data_lines = data.split("\n")
-                obj = self._get_object_parser(self._combine_lines(data_lines))
-        else:
-            obj = self._get_object_parser(self.data)
-        self.close()
+                obj = self._get_object_parser(self.data)
         return obj
 
     def _get_object_parser(self, json) -> DataFrame | Series:
@@ -964,24 +963,27 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         ...
 
     def __next__(self) -> DataFrame | Series:
-        if self.nrows:
-            if self.nrows_seen >= self.nrows:
-                self.close()
-                raise StopIteration
+        if self.nrows and self.nrows_seen >= self.nrows:
+            self.close()
+            raise StopIteration
 
         lines = list(islice(self.data, self.chunksize))
-        if lines:
+        if not lines:
+            self.close()
+            raise StopIteration
+
+        try:
             lines_json = self._combine_lines(lines)
             obj = self._get_object_parser(lines_json)
 
             # Make sure that the returned objects have the right index.
             obj.index = range(self.nrows_seen, self.nrows_seen + len(obj))
             self.nrows_seen += len(obj)
+        except Exception as ex:
+            self.close()
+            raise ex
 
-            return obj
-
-        self.close()
-        raise StopIteration
+        return obj
 
     def __enter__(self) -> JsonReader[FrameSeriesStrT]:
         return self
