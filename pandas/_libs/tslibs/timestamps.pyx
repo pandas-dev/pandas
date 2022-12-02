@@ -1948,7 +1948,7 @@ default 'raise'
         """
         if not isinstance(ambiguous, bool) and ambiguous not in {"NaT", "raise"}:
             raise ValueError(
-                        "ambiguous parameter must be one of: "
+                        "'ambiguous' parameter must be one of: "
                         "True, False, 'NaT', 'raise' (default)"
                     )
 
