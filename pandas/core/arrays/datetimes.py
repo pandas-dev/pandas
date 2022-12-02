@@ -319,7 +319,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         dtype = _validate_dt64_dtype(dtype)
         # if dtype has an embedded tz, capture it
-        tz = validate_tz_from_dtype(dtype, tz, explicit_tz_none)
+        tz = _validate_tz_from_dtype(dtype, tz, explicit_tz_none)
 
         unit = None
         if dtype is not None:
@@ -338,7 +338,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             ambiguous=ambiguous,
         )
         # We have to call this again after possibly inferring a tz above
-        validate_tz_from_dtype(dtype, tz, explicit_tz_none)
+        _validate_tz_from_dtype(dtype, tz, explicit_tz_none)
         if tz is not None and explicit_tz_none:
             raise ValueError(
                 "Passed data is timezone-aware, incompatible with 'tz=None'. "
@@ -445,7 +445,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 i8values = generate_regular_range(start, end, periods, freq, unit=unit)
             else:
                 xdr = _generate_range(
-                    start=start, end=end, periods=periods, offset=freq
+                    start=start, end=end, periods=periods, offset=freq, unit=unit
                 )
                 i8values = np.array([x.value for x in xdr], dtype=np.int64)
 
@@ -508,7 +508,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timestamp.")
         self._check_compatible_with(value)
-        return value.asm8
+        if value is NaT:
+            return np.datetime64(value.value, self.unit)
+        else:
+            return value.as_unit(self.unit).asm8
 
     def _scalar_from_string(self, value) -> Timestamp | NaTType:
         return Timestamp(value, tz=self.tz)
@@ -1953,18 +1956,6 @@ default 'raise'
 # Constructor Helpers
 
 
-def sequence_to_datetimes(data) -> DatetimeArray:
-    """
-    Parse/convert the passed data to either DatetimeArray or np.ndarray[object].
-    """
-    result, tz, freq = _sequence_to_dt64ns(data)
-
-    unit = np.datetime_data(result.dtype)[0]
-    dtype = tz_to_dtype(tz, unit)
-    dta = DatetimeArray._simple_new(result, freq=freq, dtype=dtype)
-    return dta
-
-
 def _sequence_to_dt64ns(
     data,
     *,
@@ -2071,6 +2062,7 @@ def _sequence_to_dt64ns(
             new_unit = npy_unit_to_abbrev(new_reso)
             new_dtype = np.dtype(f"M8[{new_unit}]")
             data = astype_overflowsafe(data, dtype=new_dtype, copy=False)
+            data_unit = get_unit_from_dtype(new_dtype)
             copy = False
 
         if data.dtype.byteorder == ">":
@@ -2134,7 +2126,7 @@ def objects_to_datetime64ns(
     dayfirst : bool
     yearfirst : bool
     utc : bool, default False
-        Whether to convert timezone-aware timestamps to UTC.
+        Whether to convert/localize timestamps to UTC.
     errors : {'raise', 'ignore', 'coerce'}
     require_iso8601 : bool, default False
     allow_object : bool
@@ -2303,7 +2295,7 @@ def _validate_dt64_dtype(dtype):
 
     Notes
     -----
-    Unlike validate_tz_from_dtype, this does _not_ allow non-existent
+    Unlike _validate_tz_from_dtype, this does _not_ allow non-existent
     tz errors to go through
     """
     if dtype is not None:
@@ -2338,7 +2330,7 @@ def _validate_dt64_dtype(dtype):
     return dtype
 
 
-def validate_tz_from_dtype(
+def _validate_tz_from_dtype(
     dtype, tz: tzinfo | None, explicit_tz_none: bool = False
 ) -> tzinfo | None:
     """
@@ -2486,6 +2478,8 @@ def _generate_range(
     end: Timestamp | None,
     periods: int | None,
     offset: BaseOffset,
+    *,
+    unit: str,
 ):
     """
     Generates a sequence of dates corresponding to the specified time
@@ -2497,7 +2491,8 @@ def _generate_range(
     start : Timestamp or None
     end : Timestamp or None
     periods : int or None
-    offset : DateOffset,
+    offset : DateOffset
+    unit : str
 
     Notes
     -----
@@ -2517,13 +2512,20 @@ def _generate_range(
     start = Timestamp(start)  # type: ignore[arg-type]
     # Non-overlapping identity check (left operand type: "Timestamp", right
     # operand type: "NaTType")
-    start = start if start is not NaT else None  # type: ignore[comparison-overlap]
+    if start is not NaT:  # type: ignore[comparison-overlap]
+        start = start.as_unit(unit)
+    else:
+        start = None
+
     # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
     # expected "Union[integer[Any], float, str, date, datetime64]"
     end = Timestamp(end)  # type: ignore[arg-type]
     # Non-overlapping identity check (left operand type: "Timestamp", right
     # operand type: "NaTType")
-    end = end if end is not NaT else None  # type: ignore[comparison-overlap]
+    if end is not NaT:  # type: ignore[comparison-overlap]
+        end = end.as_unit(unit)
+    else:
+        end = None
 
     if start and not offset.is_on_offset(start):
         # Incompatible types in assignment (expression has type "datetime",
@@ -2564,7 +2566,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)
+            next_date = offset._apply(cur).as_unit(unit)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
             cur = next_date
@@ -2578,7 +2580,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)
+            next_date = offset._apply(cur).as_unit(unit)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")
             cur = next_date

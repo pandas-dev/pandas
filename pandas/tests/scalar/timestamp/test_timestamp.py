@@ -579,7 +579,9 @@ class TestTimestampConversion:
         with tm.assert_produces_warning(exp_warning):
             pydt_max = Timestamp.max.to_pydatetime()
 
-        assert Timestamp(pydt_max).value / 1000 == Timestamp.max.value / 1000
+        assert (
+            Timestamp(pydt_max).as_unit("ns").value / 1000 == Timestamp.max.value / 1000
+        )
 
         exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
         with tm.assert_produces_warning(exp_warning):
@@ -590,7 +592,10 @@ class TestTimestampConversion:
         tdus = timedelta(microseconds=1)
         assert pydt_min + tdus > Timestamp.min
 
-        assert Timestamp(pydt_min + tdus).value / 1000 == Timestamp.min.value / 1000
+        assert (
+            Timestamp(pydt_min + tdus).as_unit("ns").value / 1000
+            == Timestamp.min.value / 1000
+        )
 
     def test_to_period_tz_warning(self):
         # GH#21333 make sure a warning is issued when timezone

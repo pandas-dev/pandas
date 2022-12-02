@@ -9,6 +9,7 @@ from typing import (
 import warnings
 
 import numpy as np
+import pytz
 
 from pandas._libs import (
     NaT,
@@ -42,7 +43,6 @@ from pandas.util._decorators import (
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_dtype_equal,
     is_scalar,
 )
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
@@ -331,18 +331,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if copy:
                 data = data.copy()
             return cls._simple_new(data, name=name)
-        elif (
-            isinstance(data, DatetimeArray)
-            and freq is lib.no_default
-            and tz is lib.no_default
-            and is_dtype_equal(data.dtype, dtype)
-        ):
-            # Reached via Index.__new__ when we call .astype
-            # TODO(2.0): special casing can be removed once _from_sequence_not_strict
-            #  no longer chokes on non-nano
-            if copy:
-                data = data.copy()
-            return cls._simple_new(data, name=name)
 
         dtarr = DatetimeArray._from_sequence_not_strict(
             data,
@@ -397,7 +385,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def _formatter_func(self):
         from pandas.io.formats.format import get_format_datetime64
 
-        formatter = get_format_datetime64(is_dates_only=self._is_dates_only)
+        formatter = get_format_datetime64(is_dates_only_=self._is_dates_only)
         return lambda x: f"'{formatter(x)}'"
 
     # --------------------------------------------------------------------
@@ -539,28 +527,34 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "The index must be timezone aware when indexing "
                     "with a date string with a UTC offset"
                 )
-        start = self._maybe_cast_for_get_loc(start)
-        end = self._maybe_cast_for_get_loc(end)
+        # The flipped case with parsed.tz is None and self.tz is not None
+        #  is ruled out bc parsed and reso are produced by _parse_with_reso,
+        #  which localizes parsed.
         return start, end
 
-    def _disallow_mismatched_indexing(self, key, one_way: bool = False) -> None:
+    def _parse_with_reso(self, label: str):
+        parsed, reso = super()._parse_with_reso(label)
+
+        parsed = Timestamp(parsed)
+
+        if self.tz is not None and parsed.tzinfo is None:
+            # we special-case timezone-naive strings and timezone-aware
+            #  DatetimeIndex
+            # https://github.com/pandas-dev/pandas/pull/36148#issuecomment-687883081
+            parsed = parsed.tz_localize(self.tz)
+
+        return parsed, reso
+
+    def _disallow_mismatched_indexing(self, key) -> None:
         """
         Check for mismatched-tzawareness indexing and re-raise as KeyError.
         """
+        # we get here with isinstance(key, self._data._recognized_scalars)
         try:
-            self._deprecate_mismatched_indexing(key, one_way=one_way)
+            # GH#36148
+            self._data._assert_tzawareness_compat(key)
         except TypeError as err:
             raise KeyError(key) from err
-
-    def _deprecate_mismatched_indexing(self, key, one_way: bool = False) -> None:
-        # GH#36148
-        # we get here with isinstance(key, self._data._recognized_scalars)
-        if self.tz is not None and one_way:
-            # we special-case timezone-naive strings and timezone-aware
-            #  DatetimeIndex
-            return
-
-        self._data._assert_tzawareness_compat(key)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -579,15 +573,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if isinstance(key, self._data._recognized_scalars):
             # needed to localize naive datetimes
             self._disallow_mismatched_indexing(key)
-            key = self._maybe_cast_for_get_loc(key)
+            key = Timestamp(key)
 
         elif isinstance(key, str):
 
             try:
                 parsed, reso = self._parse_with_reso(key)
-            except ValueError as err:
+            except (ValueError, pytz.NonExistentTimeError) as err:
                 raise KeyError(key) from err
-            self._disallow_mismatched_indexing(parsed, one_way=True)
+            self._disallow_mismatched_indexing(parsed)
 
             if self._can_partial_date_slice(reso):
                 try:
@@ -596,7 +590,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     if method is None:
                         raise KeyError(key) from err
 
-            key = self._maybe_cast_for_get_loc(key)
+            key = parsed
 
         elif isinstance(key, dt.timedelta):
             # GH#20464
@@ -620,24 +614,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         except KeyError as err:
             raise KeyError(orig_key) from err
 
-    def _maybe_cast_for_get_loc(self, key) -> Timestamp:
-        # needed to localize naive datetimes or dates (GH 35690)
-        try:
-            key = Timestamp(key)
-        except ValueError as err:
-            # FIXME(dateutil#1180): we get here because parse_with_reso
-            #  doesn't raise on "t2m"
-            if not isinstance(key, str):
-                # Not expected to be reached, but check to be sure
-                raise  # pragma: no cover
-            raise KeyError(key) from err
-
-        if key.tzinfo is None:
-            key = key.tz_localize(self.tz)
-        else:
-            key = key.tz_convert(self.tz)
-        return key
-
     @doc(DatetimeTimedeltaMixin._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str):
 
@@ -648,8 +624,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             label = Timestamp(label).to_pydatetime()
 
         label = super()._maybe_cast_slice_bound(label, side)
-        self._deprecate_mismatched_indexing(label)
-        return self._maybe_cast_for_get_loc(label)
+        self._data._assert_tzawareness_compat(label)
+        return Timestamp(label)
 
     def slice_indexer(self, start=None, end=None, step=None):
         """
@@ -849,7 +825,7 @@ def date_range(
     tz : str or tzinfo, optional
         Time zone name for returning localized DatetimeIndex, for example
         'Asia/Hong_Kong'. By default, the resulting DatetimeIndex is
-        timezone-naive.
+        timezone-naive unless timezone-aware datetime-likes are passed.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     name : str, default None
@@ -899,6 +875,18 @@ def date_range(
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
                    '2018-01-05', '2018-01-06', '2018-01-07', '2018-01-08'],
                   dtype='datetime64[ns]', freq='D')
+
+    Specify timezone-aware `start` and `end`, with the default daily frequency.
+
+    >>> pd.date_range(
+    ...     start=pd.to_datetime("1/1/2018").tz_localize("Europe/Berlin"),
+    ...     end=pd.to_datetime("1/08/2018").tz_localize("Europe/Berlin"),
+    ... )
+    DatetimeIndex(['2018-01-01 00:00:00+01:00', '2018-01-02 00:00:00+01:00',
+                   '2018-01-03 00:00:00+01:00', '2018-01-04 00:00:00+01:00',
+                   '2018-01-05 00:00:00+01:00', '2018-01-06 00:00:00+01:00',
+                   '2018-01-07 00:00:00+01:00', '2018-01-08 00:00:00+01:00'],
+                  dtype='datetime64[ns, Europe/Berlin]', freq='D')
 
     Specify `start` and `periods`, the number of periods (days).
 
