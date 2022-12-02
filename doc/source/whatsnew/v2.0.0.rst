@@ -350,6 +350,7 @@ Other API changes
 - :func:`read_stata` with parameter ``index_col`` set to ``None`` (the default) will now set the index on the returned :class:`DataFrame` to a :class:`RangeIndex` instead of a :class:`Int64Index` (:issue:`49745`)
 - Changed behavior of :class:`Index` constructor with an object-dtype ``numpy.ndarray`` containing all-``bool`` values or all-complex values, this will now retain object dtype, consistent with the :class:`Series` behavior (:issue:`49594`)
 - Changed behavior of :meth:`DataFrame.shift` with ``axis=1``, an integer ``fill_value``, and homogeneous datetime-like dtype, this now fills new columns with integer dtypes instead of casting to datetimelike (:issue:`49842`)
+- Files are now closed when encountering an exception in :func:`read_json` (:issue:`49921`)
 - :meth:`DataFrame.values`, :meth:`DataFrame.to_numpy`, :meth:`DataFrame.xs`, :meth:`DataFrame.reindex`, :meth:`DataFrame.fillna`, and :meth:`DataFrame.replace` no longer silently consolidate the underlying arrays; do ``df = df.copy()`` to ensure consolidation (:issue:`49356`)
 -
 
@@ -434,6 +435,7 @@ Removal of prior version deprecations/changes
 - Removed argument ``inplace`` from :meth:`Categorical.remove_unused_categories` (:issue:`37918`)
 - Disallow passing non-round floats to :class:`Timestamp` with ``unit="M"`` or ``unit="Y"`` (:issue:`47266`)
 - Remove keywords ``convert_float`` and ``mangle_dupe_cols`` from :func:`read_excel` (:issue:`41176`)
+- Remove keyword ``mangle_dupe_cols`` from :func:`read_csv` and :func:`read_table` (:issue:`48137`)
 - Removed ``errors`` keyword from :meth:`DataFrame.where`, :meth:`Series.where`, :meth:`DataFrame.mask` and :meth:`Series.mask` (:issue:`47728`)
 - Disallow passing non-keyword arguments to :func:`read_excel` except ``io`` and ``sheet_name`` (:issue:`34418`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.drop` and :meth:`Series.drop` except ``labels`` (:issue:`41486`)
@@ -569,6 +571,7 @@ Removal of prior version deprecations/changes
 - Enforced deprecation of calling numpy "ufunc"s on :class:`DataFrame` with ``method="outer"``; this now raises ``NotImplementedError`` (:issue:`36955`)
 - Enforced deprecation disallowing passing ``numeric_only=True`` to :class:`Series` reductions (``rank``, ``any``, ``all``, ...) with non-numeric dtype (:issue:`47500`)
 - Changed behavior of :meth:`DataFrameGroupBy.apply` and :meth:`SeriesGroupBy.apply` so that ``group_keys`` is respected even if a transformer is detected (:issue:`34998`)
+- Comparisons between a :class:`DataFrame` and a :class:`Series` where the frame's columns do not match the series's index raise ``ValueError`` instead of automatically aligning, do ``left, right = left.align(right, axis=1, copy=False)`` before comparing (:issue:`36795`)
 - Enforced deprecation ``numeric_only=None`` (the default) in DataFrame reductions that would silently drop columns that raised; ``numeric_only`` now defaults to ``False`` (:issue:`41480`)
 - Changed default of ``numeric_only`` to ``False`` in all DataFrame methods with that argument (:issue:`46096`, :issue:`46906`)
 - Changed default of ``numeric_only`` to ``False`` in :meth:`Series.rank` (:issue:`47561`)
@@ -637,6 +640,7 @@ Datetimelike
 - Bug in subtracting a ``datetime`` scalar from :class:`DatetimeIndex` failing to retain the original ``freq`` attribute (:issue:`48818`)
 - Bug in ``pandas.tseries.holiday.Holiday`` where a half-open date interval causes inconsistent return types from :meth:`USFederalHolidayCalendar.holidays` (:issue:`49075`)
 - Bug in rendering :class:`DatetimeIndex` and :class:`Series` and :class:`DataFrame` with timezone-aware dtypes with ``dateutil`` or ``zoneinfo`` timezones near daylight-savings transitions (:issue:`49684`)
+- Bug in :func:`to_datetime` was raising ``ValueError`` when parsing :class:`Timestamp` or ``datetime`` objects with non-ISO8601 ``format`` (:issue:`49298`)
 -
 
 Timedelta
