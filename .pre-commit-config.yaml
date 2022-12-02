@@ -27,6 +27,7 @@ repos:
     rev: v0.9.1
     hooks:
     -   id: cython-lint
+    -   id: double-quote-cython-strings
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:

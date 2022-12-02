@@ -283,6 +283,23 @@ def test_head_tail(method, using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_assign(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    df2 = df.assign()
+    df2._mgr._verify_integrity()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_reorder_levels(using_copy_on_write):
     index = MultiIndex.from_tuples(
         [(1, 1), (1, 2), (2, 1), (2, 2)], names=["one", "two"]
