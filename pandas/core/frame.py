@@ -7452,7 +7452,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
             raise TypeError("Can only reorder levels on a hierarchical axis.")
 
-        result = self.copy()
+        result = self.copy(deep=None)
 
         if axis == 0:
             assert isinstance(result.index, MultiIndex)
