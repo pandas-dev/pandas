@@ -162,8 +162,10 @@ class TestIntervalIndex:
         result = indexer_sl(ser)[Interval(1, 5) : Interval(3, 7)]
         tm.assert_series_equal(expected, result)
 
-        msg = "'can only get slices from an IntervalIndex if bounds are"
-        " non-overlapping and all monotonic increasing or decreasing'"
+        msg = (
+            "'can only get slices from an IntervalIndex if bounds are "
+            "non-overlapping and all monotonic increasing or decreasing'"
+        )
         with pytest.raises(KeyError, match=msg):
             indexer_sl(ser)[Interval(1, 6) : Interval(3, 8)]
 

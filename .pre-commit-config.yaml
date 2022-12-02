@@ -17,10 +17,6 @@ repos:
         entry: python scripts/run_vulture.py
         pass_filenames: true
         require_serial: false
--   repo: https://github.com/python/black
-    rev: 22.10.0
-    hooks:
-    -   id: black
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.2.2
     hooks:
@@ -31,6 +27,7 @@ repos:
     rev: v0.9.1
     hooks:
     -   id: cython-lint
+    -   id: double-quote-cython-strings
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
@@ -79,8 +76,6 @@ repos:
             |^pandas/util/_test_decorators\.py  # keep excluded
             |^pandas/_version\.py  # keep excluded
             |^pandas/conftest\.py  # keep excluded
-            |^pandas/core/tools/datetimes\.py
-            |^pandas/io/formats/format\.py
             |^pandas/core/generic\.py
         args: [--disable=all, --enable=redefined-outer-name]
         stages: [manual]
@@ -114,6 +109,16 @@ repos:
         additional_dependencies: *flake8_dependencies
 -   repo: local
     hooks:
+    # NOTE: we make `black` a local hook because if it's installed from
+    # PyPI (rather than from source) then it'll run twice as fast thanks to mypyc
+    -   id: black
+        name: black
+        description: "Black: The uncompromising Python code formatter"
+        entry: black
+        language: python
+        require_serial: true
+        types_or: [python, pyi]
+        additional_dependencies: [black==22.10.0]
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright
@@ -270,6 +275,7 @@ repos:
         entry: python scripts/validate_min_versions_in_sync.py
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+        additional_dependencies: [tomli]
     -   id: validate-errors-locations
         name: Validate errors locations
         description: Validate errors are in appropriate locations.
