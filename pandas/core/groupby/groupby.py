@@ -402,7 +402,10 @@ Parameters
 f : function, str
     Function to apply to each group. See the Notes section below for requirements.
 
-    Can also accept a Numba JIT function with
+    Accepted inputs are:
+
+    - A String
+    - Numba JIT function with
     ``engine='numba'`` specified.
 
     If the ``'numba'`` engine is chosen, the function must be
