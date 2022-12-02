@@ -464,6 +464,17 @@ worth trying.
 
    os.remove("foo.csv")
 
+Setting ``use_nullable_dtypes=True`` will result in nullable dtypes for every column.
+
+.. ipython:: python
+
+   data = """a,b,c,d,e,f,g,h,i,j
+   1,2.5,True,a,,,,,12-31-2019,
+   3,4.5,False,b,6,7.5,True,a,12-31-2019,
+   """
+
+   pd.read_csv(StringIO(data), use_nullable_dtypes=True, parse_dates=["i"])
+
 .. _io.categorical:
 
 Specifying categorical dtype
