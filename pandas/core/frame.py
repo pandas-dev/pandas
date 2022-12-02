@@ -4887,7 +4887,7 @@ class DataFrame(NDFrame, OpsMixin):
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
         """
-        data = self.copy()
+        data = self.copy(deep=None)
 
         for k, v in kwargs.items():
             data[k] = com.apply_if_callable(v, data)
