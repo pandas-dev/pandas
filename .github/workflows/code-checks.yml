@@ -158,7 +158,7 @@ jobs:
         run: docker build --pull --no-cache --tag pandas-dev-env .
 
       - name: Show environment
-        run: docker run -w /home/pandas pandas-dev-env mamba run -n pandas-dev python -c "import pandas as pd; print(pd.show_versions())"
+        run: docker run --rm pandas-dev-env python -c "import pandas as pd; print(pd.show_versions())"
 
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt
