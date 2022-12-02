@@ -7407,7 +7407,7 @@ class DataFrame(NDFrame, OpsMixin):
             result.columns = result.columns.swaplevel(i, j)
         return result
 
-    def reorder_levels(self, order: Sequence[Axis], axis: Axis = 0) -> DataFrame:
+    def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> DataFrame:
         """
         Rearrange index levels using input order. May not drop or duplicate levels.
 
@@ -7452,7 +7452,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
             raise TypeError("Can only reorder levels on a hierarchical axis.")
 
-        result = self.copy()
+        result = self.copy(deep=None)
 
         if axis == 0:
             assert isinstance(result.index, MultiIndex)
