@@ -584,7 +584,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             self._disallow_mismatched_indexing(parsed)
 
             if self._can_partial_date_slice(reso):
-                return self._partial_date_slice(reso, parsed)
+                try:
+                    return self._partial_date_slice(reso, parsed)
+                except KeyError as err:
+                    raise KeyError(key) from err
 
             key = parsed
 
