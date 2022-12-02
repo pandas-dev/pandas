@@ -84,6 +84,12 @@ def ignore_na(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def numeric_only(request):
+    """numeric_only keyword argument"""
+    return request.param
+
+
 @pytest.fixture(params=[pytest.param("numba", marks=td.skip_if_no("numba")), "cython"])
 def engine(request):
     """engine keyword argument for rolling.apply"""
@@ -102,7 +108,7 @@ def engine_and_raw(request):
     return request.param
 
 
-@pytest.fixture(params=["1 day", timedelta(days=1)])
+@pytest.fixture(params=["1 day", timedelta(days=1), np.timedelta64(1, "D")])
 def halflife_with_times(request):
     """Halflife argument for EWM when times is specified."""
     return request.param

@@ -275,7 +275,8 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
       df = pd.read_csv(StringIO(data), dtype="category")
       df.dtypes
       df["col3"]
-      df["col3"].cat.categories = pd.to_numeric(df["col3"].cat.categories)
+      new_categories = pd.to_numeric(df["col3"].cat.categories)
+      df["col3"] = df["col3"].cat.rename_categories(new_categories)
       df["col3"]
 
 .. _whatsnew_0190.enhancements.union_categoricals:
@@ -497,8 +498,8 @@ Other enhancements
          ),
      )
      df
-     df.resample("M", on="date").sum()
-     df.resample("M", level="d").sum()
+     df.resample("M", on="date")[["a"]].sum()
+     df.resample("M", level="d")[["a"]].sum()
 
 - The ``.get_credentials()`` method of ``GbqConnector`` can now first try to fetch `the application default credentials <https://developers.google.com/identity/protocols/application-default-credentials>`__. See the docs for more details (:issue:`13577`).
 - The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behavior remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
@@ -1244,10 +1245,9 @@ Previously, sparse data were ``float64`` dtype by default, even if all inputs we
 As of v0.19.0, sparse data keeps the input dtype, and uses more appropriate ``fill_value`` defaults (``0`` for ``int64`` dtype, ``False`` for ``bool`` dtype).
 
 .. ipython:: python
-   :okwarning:
 
-   pd.SparseArray([1, 2, 0, 0], dtype=np.int64)
-   pd.SparseArray([True, False, False, False])
+   pd.arrays.SparseArray([1, 2, 0, 0], dtype=np.int64)
+   pd.arrays.SparseArray([True, False, False, False])
 
 See the :ref:`docs <sparse.dtype>` for more details.
 
@@ -1553,7 +1553,7 @@ Bug fixes
 - Bug in invalid datetime parsing in ``to_datetime`` and ``DatetimeIndex`` may raise ``TypeError`` rather than ``ValueError`` (:issue:`11169`, :issue:`11287`)
 - Bug in ``Index`` created with tz-aware ``Timestamp`` and mismatched ``tz`` option incorrectly coerces timezone (:issue:`13692`)
 - Bug in ``DatetimeIndex`` with nanosecond frequency does not include timestamp specified with ``end`` (:issue:`13672`)
-- Bug in ```Series`` when setting a slice with a ``np.timedelta64`` (:issue:`14155`)
+- Bug in ``Series`` when setting a slice with a ``np.timedelta64`` (:issue:`14155`)
 - Bug in ``Index`` raises ``OutOfBoundsDatetime`` if ``datetime`` exceeds ``datetime64[ns]`` bounds, rather than coercing to ``object`` dtype (:issue:`13663`)
 - Bug in ``Index`` may ignore specified ``datetime64`` or ``timedelta64`` passed as ``dtype``  (:issue:`13981`)
 - Bug in ``RangeIndex`` can be created without no arguments rather than raises ``TypeError`` (:issue:`13793`)

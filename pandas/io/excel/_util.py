@@ -41,9 +41,7 @@ def register_writer(klass: ExcelWriter_t) -> None:
     """
     if not callable(klass):
         raise ValueError("Can only register callables as engines")
-    engine_name = klass.engine
-    # for mypy
-    assert isinstance(engine_name, str)
+    engine_name = klass._engine
     _writers[engine_name] = klass
 
 
@@ -75,7 +73,6 @@ def get_default_engine(ext: str, mode: Literal["reader", "writer"] = "reader") -
         "xlsx": "openpyxl",
         "xlsm": "openpyxl",
         "xlsb": "pyxlsb",
-        "xls": "xlwt",
         "ods": "odf",
     }
     assert mode in ["reader", "writer"]

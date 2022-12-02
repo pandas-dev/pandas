@@ -2,8 +2,8 @@ from decimal import Decimal
 import numbers
 from sys import maxsize
 
-import cython
-from cython import Py_ssize_t
+cimport cython
+from cython cimport Py_ssize_t
 import numpy as np
 
 cimport numpy as cnp
@@ -40,6 +40,37 @@ cdef:
     bint is_32bit = maxsize <= 2 ** 32
 
     type cDecimal = Decimal  # for faster isinstance checks
+
+
+cpdef bint check_na_tuples_nonequal(object left, object right):
+    """
+    When we have NA in one of the tuples but not the other we have to check here,
+    because our regular checks fail before with ambigous boolean value.
+
+    Parameters
+    ----------
+    left: Any
+    right: Any
+
+    Returns
+    -------
+    True if we are dealing with tuples that have NA on one side and non NA on
+    the other side.
+
+    """
+    if not isinstance(left, tuple) or not isinstance(right, tuple):
+        return False
+
+    if len(left) != len(right):
+        return False
+
+    for left_element, right_element in zip(left, right):
+        if left_element is C_NA and right_element is not C_NA:
+            return True
+        elif right_element is C_NA and left_element is not C_NA:
+            return True
+
+    return False
 
 
 cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False):
@@ -310,7 +341,7 @@ def is_numeric_na(values: ndarray) -> ndarray:
 def _create_binary_propagating_op(name, is_divmod=False):
 
     def method(self, other):
-        if (other is C_NA or isinstance(other, str)
+        if (other is C_NA or isinstance(other, (str, bytes))
                 or isinstance(other, (numbers.Number, np.bool_))
                 or util.is_array(other) and not other.shape):
             # Need the other.shape clause to handle NumPy scalars,

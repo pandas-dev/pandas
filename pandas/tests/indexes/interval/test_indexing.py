@@ -8,14 +8,18 @@ from pandas.errors import InvalidIndexError
 from pandas import (
     NA,
     CategoricalIndex,
+    DatetimeIndex,
     Index,
     Interval,
     IntervalIndex,
     MultiIndex,
     NaT,
-    Series,
     Timedelta,
+    Timestamp,
+    array,
     date_range,
+    interval_range,
+    period_range,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -298,6 +302,20 @@ class TestGetIndexer:
         expected = np.array([0, 1, 2, 3, 4, 0, 1, 2, 3, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_datetime(self):
+        ii = IntervalIndex.from_breaks(date_range("2018-01-01", periods=4))
+        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]))
+        expected = np.array([0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).astype(str))
+        tm.assert_numpy_array_equal(result, expected)
+
+        # TODO this should probably be deprecated?
+        # https://github.com/pandas-dev/pandas/issues/47772
+        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).asi8)
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "tuples, closed",
         [
@@ -400,6 +418,16 @@ class TestGetIndexer:
         )
         expected = np.array([1, 4, 7], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("box", [IntervalIndex, array, list])
+    def test_get_indexer_interval_index(self, box):
+        # GH#30178
+        rng = period_range("2022-07-01", freq="D", periods=3)
+        idx = box(interval_range(Timestamp("2022-07-01"), freq="3D", periods=3))
+
+        actual = rng.get_indexer(idx)
+        expected = np.array([-1, -1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(actual, expected)
 
 
 class TestSliceLocs:
@@ -551,19 +579,6 @@ class TestPutmask:
         result = idx.putmask(mask, idx[-1])
         expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
         tm.assert_index_equal(result, expected)
-
-
-class TestGetValue:
-    @pytest.mark.parametrize("key", [[5], (2, 3)])
-    def test_get_value_non_scalar_errors(self, key):
-        # GH#31117
-        idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
-        ser = Series(range(len(idx)), index=idx)
-
-        msg = str(key)
-        with pytest.raises(InvalidIndexError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                idx.get_value(ser, key)
 
 
 class TestContains:

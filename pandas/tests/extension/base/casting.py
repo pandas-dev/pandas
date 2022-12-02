@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p20
+from pandas.compat import np_version_under1p21
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -32,8 +32,7 @@ class BaseCastingTests(BaseExtensionTests):
         assert result._mgr.arrays[0].dtype == np.dtype(object)
 
         # earlier numpy raises TypeError on e.g. np.dtype(np.int64) == "Int64"
-        #  instead of returning False
-        if not np_version_under1p20:
+        if not np_version_under1p21:
             # check that we can compare the dtypes
             comp = result.dtypes == df.dtypes
             assert not comp.any()

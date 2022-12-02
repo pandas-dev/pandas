@@ -3,13 +3,14 @@ from __future__ import annotations
 from collections import defaultdict
 import datetime
 from typing import (
+    TYPE_CHECKING,
     Any,
     DefaultDict,
     Tuple,
     cast,
 )
 
-import pandas._libs.json as json
+from pandas._libs import json
 from pandas._typing import (
     FilePath,
     StorageOptions,
@@ -21,12 +22,16 @@ from pandas.io.excel._util import (
     combine_kwargs,
     validate_freeze_panes,
 )
-from pandas.io.formats.excel import ExcelCell
+
+if TYPE_CHECKING:
+    from odf.opendocument import OpenDocumentSpreadsheet
+
+    from pandas.io.formats.excel import ExcelCell
 
 
 class ODSWriter(ExcelWriter):
-    engine = "odf"
-    supported_extensions = (".ods",)
+    _engine = "odf"
+    _supported_extensions = (".ods",)
 
     def __init__(
         self,
@@ -39,7 +44,7 @@ class ODSWriter(ExcelWriter):
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         from odf.opendocument import OpenDocumentSpreadsheet
 
         if mode == "a":
@@ -66,6 +71,14 @@ class ODSWriter(ExcelWriter):
         This attribute can be used to access engine-specific features.
         """
         return self._book
+
+    @book.setter
+    def book(self, other: OpenDocumentSpreadsheet) -> None:
+        """
+        Set book instance. Class type will depend on the engine used.
+        """
+        self._deprecate_set_book()
+        self._book = other
 
     @property
     def sheets(self) -> dict[str, Any]:
@@ -189,14 +202,18 @@ class ODSWriter(ExcelWriter):
             value = str(val).lower()
             pvalue = str(val).upper()
         if isinstance(val, datetime.datetime):
+            # Fast formatting
             value = val.isoformat()
+            # Slow but locale-dependent
             pvalue = val.strftime("%c")
             return (
                 pvalue,
                 TableCell(valuetype="date", datevalue=value, attributes=attributes),
             )
         elif isinstance(val, datetime.date):
-            value = val.strftime("%Y-%m-%d")
+            # Fast formatting
+            value = f"{val.year}-{val.month:02d}-{val.day:02d}"
+            # Slow but locale-dependent
             pvalue = val.strftime("%x")
             return (
                 pvalue,

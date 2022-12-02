@@ -30,22 +30,16 @@ from pandas.io.json._table_schema import (
 
 
 class TestBuildSchema:
-    def setup_method(self):
-        self.da = DateArray([dt.date(2021, 10, 10)])
-        self.dc = DecimalArray([decimal.Decimal(10)])
-        self.sa = array(["pandas"], dtype="string")
-        self.ia = array([10], dtype="Int64")
-        self.df = DataFrame(
+    def test_build_table_schema(self):
+        df = DataFrame(
             {
-                "A": self.da,
-                "B": self.dc,
-                "C": self.sa,
-                "D": self.ia,
+                "A": DateArray([dt.date(2021, 10, 10)]),
+                "B": DecimalArray([decimal.Decimal(10)]),
+                "C": array(["pandas"], dtype="string"),
+                "D": array([10], dtype="Int64"),
             }
         )
-
-    def test_build_table_schema(self):
-        result = build_table_schema(self.df, version=False)
+        result = build_table_schema(df, version=False)
         expected = {
             "fields": [
                 {"name": "index", "type": "integer"},
@@ -57,7 +51,7 @@ class TestBuildSchema:
             "primaryKey": ["index"],
         }
         assert result == expected
-        result = build_table_schema(self.df)
+        result = build_table_schema(df)
         assert "pandas_version" in result
 
 
@@ -117,23 +111,36 @@ class TestTableSchemaType:
 
 
 class TestTableOrient:
-    def setup_method(self):
-        self.da = DateArray([dt.date(2021, 10, 10)])
-        self.dc = DecimalArray([decimal.Decimal(10)])
-        self.sa = array(["pandas"], dtype="string")
-        self.ia = array([10], dtype="Int64")
-        self.df = DataFrame(
+    @pytest.fixture
+    def da(self):
+        return DateArray([dt.date(2021, 10, 10)])
+
+    @pytest.fixture
+    def dc(self):
+        return DecimalArray([decimal.Decimal(10)])
+
+    @pytest.fixture
+    def sa(self):
+        return array(["pandas"], dtype="string")
+
+    @pytest.fixture
+    def ia(self):
+        return array([10], dtype="Int64")
+
+    @pytest.fixture
+    def df(self, da, dc, sa, ia):
+        return DataFrame(
             {
-                "A": self.da,
-                "B": self.dc,
-                "C": self.sa,
-                "D": self.ia,
+                "A": da,
+                "B": dc,
+                "C": sa,
+                "D": ia,
             }
         )
 
-    def test_build_date_series(self):
+    def test_build_date_series(self, da):
 
-        s = Series(self.da, name="a")
+        s = Series(da, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
         result = json.loads(result, object_pairs_hook=OrderedDict)
@@ -151,15 +158,15 @@ class TestTableOrient:
         expected = OrderedDict(
             [
                 ("schema", schema),
-                ("data", [OrderedDict([("id", 0), ("a", "2021-10-10T00:00:00.000Z")])]),
+                ("data", [OrderedDict([("id", 0), ("a", "2021-10-10T00:00:00.000")])]),
             ]
         )
 
         assert result == expected
 
-    def test_build_decimal_series(self):
+    def test_build_decimal_series(self, dc):
 
-        s = Series(self.dc, name="a")
+        s = Series(dc, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
         result = json.loads(result, object_pairs_hook=OrderedDict)
@@ -183,8 +190,8 @@ class TestTableOrient:
 
         assert result == expected
 
-    def test_build_string_series(self):
-        s = Series(self.sa, name="a")
+    def test_build_string_series(self, sa):
+        s = Series(sa, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
         result = json.loads(result, object_pairs_hook=OrderedDict)
@@ -208,8 +215,8 @@ class TestTableOrient:
 
         assert result == expected
 
-    def test_build_int64_series(self):
-        s = Series(self.ia, name="a")
+    def test_build_int64_series(self, ia):
+        s = Series(ia, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
         result = json.loads(result, object_pairs_hook=OrderedDict)
@@ -233,9 +240,9 @@ class TestTableOrient:
 
         assert result == expected
 
-    def test_to_json(self):
+    def test_to_json(self, df):
 
-        df = self.df.copy()
+        df = df.copy()
         df.index.name = "idx"
         result = df.to_json(orient="table", date_format="iso")
         result = json.loads(result, object_pairs_hook=OrderedDict)
@@ -256,7 +263,7 @@ class TestTableOrient:
             OrderedDict(
                 [
                     ("idx", 0),
-                    ("A", "2021-10-10T00:00:00.000Z"),
+                    ("A", "2021-10-10T00:00:00.000"),
                     ("B", 10.0),
                     ("C", "pandas"),
                     ("D", 10),

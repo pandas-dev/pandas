@@ -18,14 +18,13 @@ from typing import (
     Any,
     Callable,
     Collection,
+    Generator,
     Hashable,
     Iterable,
-    Iterator,
     Sequence,
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -37,7 +36,6 @@ from pandas._typing import (
     RandomState,
     T,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -56,14 +54,6 @@ from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
     from pandas import Index
-
-
-class SettingWithCopyError(ValueError):
-    pass
-
-
-class SettingWithCopyWarning(Warning):
-    pass
 
 
 def flatten(line):
@@ -133,11 +123,11 @@ def is_bool_indexer(key: Any) -> bool:
         is_array_like(key) and is_extension_array_dtype(key.dtype)
     ):
         if key.dtype == np.object_:
-            key = np.asarray(key)
+            key_array = np.asarray(key)
 
-            if not lib.is_bool_array(key):
+            if not lib.is_bool_array(key_array):
                 na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
-                if lib.infer_dtype(key) == "boolean" and isna(key).any():
+                if lib.infer_dtype(key_array) == "boolean" and isna(key_array).any():
                     # Don't raise on e.g. ["A", "B", np.nan], see
                     #  test_loc_getitem_list_of_labels_categoricalindex_with_na
                     raise ValueError(na_msg)
@@ -156,15 +146,13 @@ def is_bool_indexer(key: Any) -> bool:
     return False
 
 
-def cast_scalar_indexer(val, warn_float: bool = False):
+def cast_scalar_indexer(val):
     """
-    To avoid numpy DeprecationWarnings, cast float to integer where valid.
+    Disallow indexing with a float key, even if that key is a round number.
 
     Parameters
     ----------
     val : scalar
-    warn_float : bool, default False
-        If True, issue deprecation warning for a float indexer.
 
     Returns
     -------
@@ -172,14 +160,11 @@ def cast_scalar_indexer(val, warn_float: bool = False):
     """
     # assumes lib.is_scalar(val)
     if lib.is_float(val) and val.is_integer():
-        if warn_float:
-            warnings.warn(
-                "Indexing with a float is deprecated, and will raise an IndexError "
-                "in pandas 2.0. You can manually convert to an integer key instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return int(val)
+        raise IndexError(
+            # GH#34193
+            "Indexing with a float is no longer supported. Manually convert "
+            "to an integer key instead."
+        )
     return val
 
 
@@ -225,14 +210,27 @@ def count_not_none(*args) -> int:
     return sum(x is not None for x in args)
 
 
-def asarray_tuplesafe(values, dtype: NpDtype | None = None) -> np.ndarray:
+@overload
+def asarray_tuplesafe(
+    values: ArrayLike | list | tuple | zip, dtype: NpDtype | None = ...
+) -> np.ndarray:
+    # ExtensionArray can only be returned when values is an Index, all other iterables
+    # will return np.ndarray. Unfortunately "all other" cannot be encoded in a type
+    # signature, so instead we special-case some common types.
+    ...
+
+
+@overload
+def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike:
+    ...
+
+
+def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ndarray")
-        return values._values  # type: ignore[return-value]
+        return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
@@ -250,7 +248,9 @@ def asarray_tuplesafe(values, dtype: NpDtype | None = None) -> np.ndarray:
     return result
 
 
-def index_labels_to_array(labels, dtype: NpDtype | None = None) -> np.ndarray:
+def index_labels_to_array(
+    labels: np.ndarray | Iterable, dtype: NpDtype | None = None
+) -> np.ndarray:
     """
     Transform label or iterable of labels to array, for use in Index.
 
@@ -386,7 +386,7 @@ def standardize_mapping(into):
         into = type(into)
     if not issubclass(into, abc.Mapping):
         raise TypeError(f"unsupported type: {into}")
-    elif into == defaultdict:
+    if into == defaultdict:
         raise TypeError("to_dict() only accepts initialized defaultdicts")
     return into
 
@@ -501,18 +501,14 @@ def get_rename_function(mapper):
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.
     """
-    if isinstance(mapper, (abc.Mapping, ABCSeries)):
 
-        def f(x):
-            if x in mapper:
-                return mapper[x]
-            else:
-                return x
+    def f(x):
+        if x in mapper:
+            return mapper[x]
+        else:
+            return x
 
-    else:
-        f = mapper
-
-    return f
+    return f if isinstance(mapper, (abc.Mapping, ABCSeries)) else mapper
 
 
 def convert_to_list_like(
@@ -531,7 +527,7 @@ def convert_to_list_like(
 
 
 @contextlib.contextmanager
-def temp_setattr(obj, attr: str, value) -> Iterator[None]:
+def temp_setattr(obj, attr: str, value) -> Generator[None, None, None]:
     """Temporarily set attribute on an object.
 
     Args:
@@ -550,7 +546,7 @@ def temp_setattr(obj, attr: str, value) -> Iterator[None]:
         setattr(obj, attr, old_value)
 
 
-def require_length_match(data, index: Index):
+def require_length_match(data, index: Index) -> None:
     """
     Check the length of data matches the length of the index.
     """
@@ -610,7 +606,7 @@ def get_cython_func(arg: Callable) -> str | None:
 
 def is_builtin_func(arg):
     """
-    if we define an builtin function for this argument, return it,
+    if we define a builtin function for this argument, return it,
     otherwise return the arg
     """
     return _builtin_table.get(arg, arg)

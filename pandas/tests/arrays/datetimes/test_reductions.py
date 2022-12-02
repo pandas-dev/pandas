@@ -12,6 +12,7 @@ from pandas.core.arrays import DatetimeArray
 class TestReductions:
     @pytest.fixture
     def arr1d(self, tz_naive_fixture):
+        """Fixture returning DatetimeArray with parametrized timezones"""
         tz = tz_naive_fixture
         dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
         arr = DatetimeArray._from_sequence(

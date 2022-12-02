@@ -1,0 +1,171 @@
+name: Ubuntu
+
+on:
+  push:
+    branches:
+      - main
+      - 1.5.x
+  pull_request:
+    branches:
+      - main
+      - 1.5.x
+    paths-ignore:
+      - "doc/**"
+
+env:
+  PANDAS_CI: 1
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    timeout-minutes: 180
+    strategy:
+      matrix:
+        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
+        pattern: ["not single_cpu", "single_cpu"]
+        pyarrow_version: ["7", "8", "9"]
+        include:
+          - name: "Downstream Compat"
+            env_file: actions-38-downstream_compat.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pytest_target: "pandas/tests/test_downstream.py"
+          - name: "Minimum Versions"
+            env_file: actions-38-minimum_versions.yaml
+            pattern: "not slow and not network and not single_cpu"
+          - name: "Locale: it_IT"
+            env_file: actions-38.yaml
+            pattern: "not slow and not network and not single_cpu"
+            extra_apt: "language-pack-it"
+            # Use the utf8 version as the default, it has no bad side-effect.
+            lang: "it_IT.utf8"
+            lc_all: "it_IT.utf8"
+            # Also install it_IT (its encoding is ISO8859-1) but do not activate it.
+            # It will be temporarily activated during tests with locale.setlocale
+            extra_loc: "it_IT"
+          - name: "Locale: zh_CN"
+            env_file: actions-38.yaml
+            pattern: "not slow and not network and not single_cpu"
+            extra_apt: "language-pack-zh-hans"
+            # Use the utf8 version as the default, it has no bad side-effect.
+            lang: "zh_CN.utf8"
+            lc_all: "zh_CN.utf8"
+            # Also install zh_CN (its encoding is gb2312) but do not activate it.
+            # It will be temporarily activated during tests with locale.setlocale
+            extra_loc: "zh_CN"
+          - name: "Copy-on-Write"
+            env_file: actions-310.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "1"
+          - name: "Data Manager"
+            env_file: actions-38.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_data_manager: "array"
+          - name: "Pypy"
+            env_file: actions-pypy-38.yaml
+            pattern: "not slow and not network and not single_cpu"
+            test_args: "--max-worker-restart 0"
+          - name: "Numpy Dev"
+            env_file: actions-310-numpydev.yaml
+            pattern: "not slow and not network and not single_cpu"
+            test_args: "-W error::DeprecationWarning:numpy -W error::FutureWarning:numpy"
+        exclude:
+          - env_file: actions-39.yaml
+            pyarrow_version: "6"
+          - env_file: actions-39.yaml
+            pyarrow_version: "7"
+          - env_file: actions-310.yaml
+            pyarrow_version: "6"
+          - env_file: actions-310.yaml
+            pyarrow_version: "7"
+      fail-fast: false
+    name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
+    env:
+      ENV_FILE: ci/deps/${{ matrix.env_file }}
+      PATTERN: ${{ matrix.pattern }}
+      EXTRA_APT: ${{ matrix.extra_apt || '' }}
+      LANG: ${{ matrix.lang || '' }}
+      LC_ALL: ${{ matrix.lc_all || '' }}
+      PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
+      PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
+      TEST_ARGS: ${{ matrix.test_args || '' }}
+      PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
+      PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
+      IS_PYPY: ${{ contains(matrix.env_file, 'pypy') }}
+      # TODO: re-enable coverage on pypy, its slow
+      COVERAGE: ${{ !contains(matrix.env_file, 'pypy') }}
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.pyarrow_version || '' }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_data_manager || '' }}
+      cancel-in-progress: true
+
+    services:
+      mysql:
+        image: mysql
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: pandas
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3306:3306
+
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pandas
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      moto:
+        image: motoserver/moto
+        env:
+          AWS_ACCESS_KEY_ID: foobar_key
+          AWS_SECRET_ACCESS_KEY: foobar_secret
+        ports:
+          - 5000:5000
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Extra installs
+      # xsel for clipboard tests
+      run: sudo apt-get update && sudo apt-get install -y xsel ${{ env.EXTRA_APT }}
+
+    - name: Generate extra locales
+      # These extra locales will be available for locale.setlocale() calls in tests
+      run: |
+        sudo locale-gen ${{ matrix.extra_loc }}
+      if: ${{ matrix.extra_loc }}
+
+    - name: Set up Conda
+      uses: ./.github/actions/setup-conda
+      with:
+        environment-file: ${{ env.ENV_FILE }}
+        pyarrow-version: ${{ matrix.pyarrow_version }}
+
+    - name: Build Pandas
+      uses: ./.github/actions/build_pandas
+
+    - name: Test
+      uses: ./.github/actions/run-tests
+      # TODO: Don't continue on error for PyPy
+      continue-on-error: ${{ env.IS_PYPY == 'true' }}

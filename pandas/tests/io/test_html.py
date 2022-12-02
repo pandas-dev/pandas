@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import threading
+from typing import Iterator
 from urllib.error import URLError
 
 import numpy as np
@@ -100,7 +101,6 @@ def test_same_ordering(datapath):
         pytest.param("bs4", marks=[td.skip_if_no("bs4"), td.skip_if_no("html5lib")]),
         pytest.param("lxml", marks=td.skip_if_no("lxml")),
     ],
-    scope="class",
 )
 class TestReadHtml:
     @pytest.fixture
@@ -111,7 +111,7 @@ class TestReadHtml:
     def banklist_data(self, datapath):
         return datapath("io", "data", "html", "banklist.html")
 
-    @pytest.fixture(autouse=True, scope="function")
+    @pytest.fixture(autouse=True)
     def set_defaults(self, flavor):
         self.read_html = partial(read_html, flavor=flavor)
         yield
@@ -125,38 +125,12 @@ class TestReadHtml:
                 c_idx_names=False,
                 r_idx_names=False,
             )
-            .applymap("{:.3f}".format)
-            .astype(float)
+            # pylint: disable-next=consider-using-f-string
+            .applymap("{:.3f}".format).astype(float)
         )
         out = df.to_html()
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
-
-    @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://www.fdic.gov/resources/resolutions/"
-            "bank-failures/failed-bank-list/index.html"
-        ),
-        check_before_test=True,
-    )
-    def test_banklist_url_positional_match(self):
-        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
-        # Passing match argument as positional should cause a FutureWarning.
-        with tm.assert_produces_warning(FutureWarning):
-            df1 = self.read_html(
-                # lxml cannot find attrs leave out for now
-                url,
-                "First Federal Bank of Florida",  # attrs={"class": "dataTable"}
-            )
-        with tm.assert_produces_warning(FutureWarning):
-            # lxml cannot find attrs leave out for now
-            df2 = self.read_html(
-                url,
-                "Metcalf Bank",
-            )  # attrs={"class": "dataTable"})
-
-        assert_framelist_equal(df1, df2)
 
     @pytest.mark.network
     @tm.network(
@@ -627,17 +601,17 @@ class TestReadHtml:
         )
         assert df.shape == ground_truth.shape
         old = [
-            "First Vietnamese American BankIn Vietnamese",
-            "Westernbank Puerto RicoEn Espanol",
-            "R-G Premier Bank of Puerto RicoEn Espanol",
-            "EurobankEn Espanol",
-            "Sanderson State BankEn Espanol",
-            "Washington Mutual Bank(Including its subsidiary Washington "
+            "First Vietnamese American Bank In Vietnamese",
+            "Westernbank Puerto Rico En Espanol",
+            "R-G Premier Bank of Puerto Rico En Espanol",
+            "Eurobank En Espanol",
+            "Sanderson State Bank En Espanol",
+            "Washington Mutual Bank (Including its subsidiary Washington "
             "Mutual Bank FSB)",
-            "Silver State BankEn Espanol",
-            "AmTrade International BankEn Espanol",
-            "Hamilton Bank, NAEn Espanol",
-            "The Citizens Savings BankPioneer Community Bank, Inc.",
+            "Silver State Bank En Espanol",
+            "AmTrade International Bank En Espanol",
+            "Hamilton Bank, NA En Espanol",
+            "The Citizens Savings Bank Pioneer Community Bank, Inc.",
         ]
         new = [
             "First Vietnamese American Bank",
@@ -1139,7 +1113,9 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_fallback_success(self, datapath):
         banklist_data = datapath("io", "data", "html", "banklist.html")
-        self.read_html(banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"])
+        self.read_html(
+            banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"]
+        )  # pylint: disable=redundant-keyword-arg
 
     def test_to_html_timestamp(self):
         rng = date_range("2000-01-01", periods=10)
@@ -1147,6 +1123,25 @@ class TestReadHtml:
 
         result = df.to_html()
         assert "2000-01-01" in result
+
+    def test_to_html_borderless(self):
+        df = DataFrame([{"A": 1, "B": 2}])
+        out_border_default = df.to_html()
+        out_border_true = df.to_html(border=True)
+        out_border_explicit_default = df.to_html(border=1)
+        out_border_nondefault = df.to_html(border=2)
+        out_border_zero = df.to_html(border=0)
+
+        out_border_false = df.to_html(border=False)
+
+        assert ' border="1"' in out_border_default
+        assert out_border_true == out_border_default
+        assert out_border_default == out_border_explicit_default
+        assert out_border_default != out_border_nondefault
+        assert ' border="2"' in out_border_nondefault
+        assert ' border="0"' not in out_border_zero
+        assert " border" not in out_border_false
+        assert out_border_zero == out_border_false
 
     @pytest.mark.parametrize(
         "displayed_only,exp0,exp1",
@@ -1243,7 +1238,7 @@ class TestReadHtml:
         # Issue #17975
 
         class MockFile:
-            def __init__(self, data):
+            def __init__(self, data) -> None:
                 self.data = data
                 self.at_end = False
 
@@ -1258,9 +1253,14 @@ class TestReadHtml:
             def seekable(self):
                 return True
 
-            def __iter__(self):
-                # to fool `is_file_like`, should never end up here
-                assert False
+            # GH 49036 pylint checks for presence of __next__ for iterators
+            def __next__(self):
+                ...
+
+            def __iter__(self) -> Iterator:
+                # `is_file_like` depends on the presence of
+                # the __iter__ attribute.
+                return self
 
         good = MockFile("<table><tr><td>spam<br />eggs</td></tr></table>")
         bad = MockFile("<table><tr><td>spam<foobr />eggs</td></tr></table>")
@@ -1302,3 +1302,113 @@ class TestReadHtml:
         df1 = self.read_html(file_path_string)[0]
         df2 = self.read_html(file_path)[0]
         tm.assert_frame_equal(df1, df2)
+
+    def test_parse_br_as_space(self):
+        # GH 29528: pd.read_html() convert <br> to space
+        result = self.read_html(
+            """
+            <table>
+                <tr>
+                    <th>A</th>
+                </tr>
+                <tr>
+                    <td>word1<br>word2</td>
+                </tr>
+            </table>
+        """
+        )[0]
+
+        expected = DataFrame(data=[["word1 word2"]], columns=["A"])
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("arg", ["all", "body", "header", "footer"])
+    def test_extract_links(self, arg):
+        gh_13141_data = """
+          <table>
+            <tr>
+              <th>HTTP</th>
+              <th>FTP</th>
+              <th><a href="https://en.wiktionary.org/wiki/linkless">Linkless</a></th>
+            </tr>
+            <tr>
+              <td><a href="https://en.wikipedia.org/">Wikipedia</a></td>
+              <td>SURROUNDING <a href="ftp://ftp.us.debian.org/">Debian</a> TEXT</td>
+              <td>Linkless</td>
+            </tr>
+            <tfoot>
+              <tr>
+                <td><a href="https://en.wikipedia.org/wiki/Page_footer">Footer</a></td>
+                <td>
+                  Multiple <a href="1">links:</a> <a href="2">Only first captured.</a>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+          """
+
+        gh_13141_expected = {
+            "head_ignore": ["HTTP", "FTP", "Linkless"],
+            "head_extract": [
+                ("HTTP", None),
+                ("FTP", None),
+                ("Linkless", "https://en.wiktionary.org/wiki/linkless"),
+            ],
+            "body_ignore": ["Wikipedia", "SURROUNDING Debian TEXT", "Linkless"],
+            "body_extract": [
+                ("Wikipedia", "https://en.wikipedia.org/"),
+                ("SURROUNDING Debian TEXT", "ftp://ftp.us.debian.org/"),
+                ("Linkless", None),
+            ],
+            "footer_ignore": [
+                "Footer",
+                "Multiple links: Only first captured.",
+                None,
+            ],
+            "footer_extract": [
+                ("Footer", "https://en.wikipedia.org/wiki/Page_footer"),
+                ("Multiple links: Only first captured.", "1"),
+                None,
+            ],
+        }
+
+        data_exp = gh_13141_expected["body_ignore"]
+        foot_exp = gh_13141_expected["footer_ignore"]
+        head_exp = gh_13141_expected["head_ignore"]
+        if arg == "all":
+            data_exp = gh_13141_expected["body_extract"]
+            foot_exp = gh_13141_expected["footer_extract"]
+            head_exp = gh_13141_expected["head_extract"]
+        elif arg == "body":
+            data_exp = gh_13141_expected["body_extract"]
+        elif arg == "footer":
+            foot_exp = gh_13141_expected["footer_extract"]
+        elif arg == "header":
+            head_exp = gh_13141_expected["head_extract"]
+
+        result = self.read_html(gh_13141_data, extract_links=arg)[0]
+        expected = DataFrame([data_exp, foot_exp], columns=head_exp)
+        tm.assert_frame_equal(result, expected)
+
+    def test_extract_links_bad(self, spam_data):
+        msg = (
+            "`extract_links` must be one of "
+            '{None, "header", "footer", "body", "all"}, got "incorrect"'
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_html(spam_data, extract_links="incorrect")
+
+    def test_extract_links_all_no_header(self):
+        # GH 48316
+        data = """
+        <table>
+          <tr>
+            <td>
+              <a href='https://google.com'>Google.com</a>
+            </td>
+          </tr>
+        </table>
+        """
+        result = self.read_html(data, extract_links="all")[0]
+        expected = DataFrame([[("Google.com", "https://google.com")]])
+        tm.assert_frame_equal(result, expected)

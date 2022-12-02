@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import (
+    TYPE_CHECKING,
     Hashable,
     Mapping,
     Sequence,
@@ -9,7 +11,7 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.parsers as parsers
+from pandas._libs import parsers
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
@@ -26,23 +28,26 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import union_categoricals
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
-from pandas import (
-    Index,
-    MultiIndex,
-)
 from pandas.core.indexes.api import ensure_index_from_sequences
 
 from pandas.io.parsers.base_parser import (
     ParserBase,
+    ParserError,
     is_index_col,
 )
+
+if TYPE_CHECKING:
+    from pandas import (
+        Index,
+        MultiIndex,
+    )
 
 
 class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
 
-    def __init__(self, src: ReadCsvBuffer[str], **kwds):
+    def __init__(self, src: ReadCsvBuffer[str], **kwds) -> None:
         super().__init__(kwds)
         self.kwds = kwds
         kwds = kwds.copy()
@@ -66,8 +71,6 @@ class CParserWrapper(ParserBase):
             "encoding",
             "memory_map",
             "compression",
-            "error_bad_lines",
-            "warn_bad_lines",
         ):
             kwds.pop(key, None)
 
@@ -97,16 +100,8 @@ class CParserWrapper(ParserBase):
 
         # error: Cannot determine type of 'names'
         if self.names is None:  # type: ignore[has-type]
-            if self.prefix:
-                # error: Cannot determine type of 'names'
-                self.names = [  # type: ignore[has-type]
-                    f"{self.prefix}{i}" for i in range(self._reader.table_width)
-                ]
-            else:
-                # error: Cannot determine type of 'names'
-                self.names = list(  # type: ignore[has-type]
-                    range(self._reader.table_width)
-                )
+            # error: Cannot determine type of 'names'
+            self.names = list(range(self._reader.table_width))  # type: ignore[has-type]
 
         # gh-9755
         #
@@ -232,7 +227,7 @@ class CParserWrapper(ParserBase):
         except StopIteration:
             if self._first_chunk:
                 self._first_chunk = False
-                names = self._maybe_dedup_names(self.orig_names)
+                names = self._dedup_names(self.orig_names)
                 index, columns, col_dict = self._get_empty_meta(
                     names,
                     self.index_col,
@@ -265,6 +260,13 @@ class CParserWrapper(ParserBase):
             # implicit index, no index names
             arrays = []
 
+            if self.index_col and self._reader.leading_cols != len(self.index_col):
+                raise ParserError(
+                    "Could not construct index. Requested to use "
+                    f"{len(self.index_col)} number of columns, but "
+                    f"{self._reader.leading_cols} left to parse."
+                )
+
             for i in range(self._reader.leading_cols):
                 if self.index_col is None:
                     values = data.pop(i)
@@ -279,7 +281,7 @@ class CParserWrapper(ParserBase):
             if self.usecols is not None:
                 names = self._filter_usecols(names)
 
-            names = self._maybe_dedup_names(names)
+            names = self._dedup_names(names)
 
             # rename dict keys
             data_tups = sorted(data.items())
@@ -301,7 +303,7 @@ class CParserWrapper(ParserBase):
             # assert for mypy, orig_names is List or None, None would error in list(...)
             assert self.orig_names is not None
             names = list(self.orig_names)
-            names = self._maybe_dedup_names(names)
+            names = self._dedup_names(names)
 
             if self.usecols is not None:
                 names = self._filter_usecols(names)
@@ -354,7 +356,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
     names = list(chunks[0].keys())
     warning_columns = []
 
-    result = {}
+    result: dict = {}
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
         # Check each arr for consistent types.
@@ -370,7 +372,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 numpy_dtypes,  # type: ignore[arg-type]
                 [],
             )
-            if common_type == object:
+            if common_type == np.dtype(object):
                 warning_columns.append(str(name))
 
         dtype = dtypes.pop()
@@ -387,13 +389,14 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                     arrs  # type: ignore[arg-type]
                 )
             else:
-                # Argument 1 to "concatenate" has incompatible type
-                # "List[Union[ExtensionArray, ndarray[Any, Any]]]"; expected
-                # "Union[_SupportsArray[dtype[Any]],
+                # error: Argument 1 to "concatenate" has incompatible
+                # type "List[Union[ExtensionArray, ndarray[Any, Any]]]"
+                # ; expected "Union[_SupportsArray[dtype[Any]],
                 # Sequence[_SupportsArray[dtype[Any]]],
                 # Sequence[Sequence[_SupportsArray[dtype[Any]]]],
-                # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]],
-                # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]]]"
+                # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]
+                # , Sequence[Sequence[Sequence[Sequence[
+                # _SupportsArray[dtype[Any]]]]]]]"
                 result[name] = np.concatenate(arrs)  # type: ignore[arg-type]
 
     if warning_columns:
@@ -415,7 +418,14 @@ def ensure_dtype_objs(
     Ensure we have either None, a dtype object, or a dictionary mapping to
     dtype objects.
     """
-    if isinstance(dtype, dict):
+    if isinstance(dtype, defaultdict):
+        # "None" not callable  [misc]
+        default_dtype = pandas_dtype(dtype.default_factory())  # type: ignore[misc]
+        dtype_converted: defaultdict = defaultdict(lambda: default_dtype)
+        for key in dtype.keys():
+            dtype_converted[key] = pandas_dtype(dtype[key])
+        return dtype_converted
+    elif isinstance(dtype, dict):
         return {k: pandas_dtype(dtype[k]) for k in dtype}
     elif dtype is not None:
         return pandas_dtype(dtype)

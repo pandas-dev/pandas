@@ -8,7 +8,7 @@ from pandas import (
     _testing as tm,
     get_option,
 )
-from pandas.core import strings as strings
+from pandas.core import strings
 
 
 def test_api(any_string_dtype):
@@ -132,7 +132,7 @@ def test_api_for_categorical(any_string_method, any_string_dtype, request):
         any_string_dtype == "string" and get_option("string_storage") == "pyarrow"
     ):
         # unsupported operand type(s) for +: 'ArrowStringArray' and 'str'
-        mark = pytest.mark.xfail(raises=TypeError, reason="Not Implemented")
+        mark = pytest.mark.xfail(raises=NotImplementedError, reason="Not Implemented")
         request.node.add_marker(mark)
 
     s = Series(list("aabb"), dtype=any_string_dtype)

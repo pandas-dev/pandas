@@ -23,14 +23,13 @@ from setuptools import (
     setup,
 )
 from setuptools.command.build_ext import build_ext as _build_ext
-
 import versioneer
 
 cmdclass = versioneer.get_cmdclass()
 
 
 def is_platform_windows():
-    return sys.platform == "win32" or sys.platform == "cygwin"
+    return sys.platform in ("win32", "cygwin")
 
 
 def is_platform_mac():
@@ -38,7 +37,7 @@ def is_platform_mac():
 
 
 # note: sync with pyproject.toml, environment.yml and asv.conf.json
-min_cython_ver = "0.29.24"
+min_cython_ver = "0.29.32"
 
 try:
     from Cython import (
@@ -210,7 +209,6 @@ class CheckSDist(sdist_class):
         "pandas/_libs/parsers.pyx",
         "pandas/_libs/tslibs/base.pyx",
         "pandas/_libs/tslibs/ccalendar.pyx",
-        "pandas/_libs/tslibs/ctime.pyx",
         "pandas/_libs/tslibs/dtypes.pyx",
         "pandas/_libs/tslibs/period.pyx",
         "pandas/_libs/tslibs/strptime.pyx",
@@ -227,6 +225,7 @@ class CheckSDist(sdist_class):
         "pandas/_libs/window/indexers.pyx",
         "pandas/_libs/writers.pyx",
         "pandas/io/sas/sas.pyx",
+        "pandas/io/sas/byteswap.pyx",
     ]
 
     _cpp_pyxfiles = [
@@ -334,7 +333,7 @@ if is_platform_windows():
         extra_compile_args.append("/Z7")
         extra_link_args.append("/DEBUG")
 else:
-    # PANDAS_CI=1 is set by ci/setup_env.sh
+    # PANDAS_CI=1 is set in CI
     if os.environ.get("PANDAS_CI", "0") == "1":
         extra_compile_args.append("-Werror")
     if debugging_symbols_requested:
@@ -355,8 +354,9 @@ if is_platform_mac():
         target_macos_version = "10.9"
         parsed_macos_version = parse_version(target_macos_version)
         if (
-            parse_version(str(python_target)) < parsed_macos_version
-            and parse_version(current_system) >= parsed_macos_version
+            parse_version(str(python_target))
+            < parsed_macos_version
+            <= parse_version(current_system)
         ):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = target_macos_version
 
@@ -493,10 +493,13 @@ ext_data = {
     "_libs.properties": {"pyxfile": "_libs/properties"},
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
-    "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends},
+    "_libs.tslib": {
+        "pyxfile": "_libs/tslib",
+        "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+    },
     "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
     "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
-    "_libs.tslibs.ctime": {"pyxfile": "_libs/tslibs/ctime"},
     "_libs.tslibs.dtypes": {"pyxfile": "_libs/tslibs/dtypes"},
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
@@ -506,6 +509,7 @@ ext_data = {
     "_libs.tslibs.fields": {
         "pyxfile": "_libs/tslibs/fields",
         "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype"},
     "_libs.tslibs.np_datetime": {
@@ -519,6 +523,7 @@ ext_data = {
     "_libs.tslibs.offsets": {
         "pyxfile": "_libs/tslibs/offsets",
         "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.parsing": {
         "pyxfile": "_libs/tslibs/parsing",
@@ -534,21 +539,29 @@ ext_data = {
     "_libs.tslibs.strptime": {
         "pyxfile": "_libs/tslibs/strptime",
         "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.timedeltas": {
         "pyxfile": "_libs/tslibs/timedeltas",
         "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.timestamps": {
         "pyxfile": "_libs/tslibs/timestamps",
         "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.timezones": {"pyxfile": "_libs/tslibs/timezones"},
     "_libs.tslibs.tzconversion": {
         "pyxfile": "_libs/tslibs/tzconversion",
         "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
-    "_libs.tslibs.vectorized": {"pyxfile": "_libs/tslibs/vectorized"},
+    "_libs.tslibs.vectorized": {
+        "pyxfile": "_libs/tslibs/vectorized",
+        "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+    },
     "_libs.testing": {"pyxfile": "_libs/testing"},
     "_libs.window.aggregations": {
         "pyxfile": "_libs/window/aggregations",
@@ -559,6 +572,7 @@ ext_data = {
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
     "io.sas._sas": {"pyxfile": "io/sas/sas"},
+    "io.sas._byteswap": {"pyxfile": "io/sas/byteswap"},
 }
 
 extensions = []
@@ -634,7 +648,7 @@ ujson_ext = Extension(
         "pandas/_libs/src/datetime",
         numpy.get_include(),
     ],
-    extra_compile_args=(["-D_GNU_SOURCE"] + extra_compile_args),
+    extra_compile_args=(extra_compile_args),
     extra_link_args=extra_link_args,
     define_macros=macros,
 )

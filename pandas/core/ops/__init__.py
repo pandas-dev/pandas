@@ -7,14 +7,16 @@ from __future__ import annotations
 
 import operator
 from typing import TYPE_CHECKING
-import warnings
 
 import numpy as np
 
-from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
-from pandas._typing import Level
+from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
+from pandas._typing import (
+    Axis,
+    AxisInt,
+    Level,
+)
 from pandas.util._decorators import Appender
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -30,7 +32,7 @@ from pandas.core import (
     algorithms,
     roperator,
 )
-from pandas.core.ops.array_ops import (  # noqa:F401
+from pandas.core.ops.array_ops import (
     arithmetic_op,
     comp_method_OBJECT_ARRAY,
     comparison_op,
@@ -38,7 +40,7 @@ from pandas.core.ops.array_ops import (  # noqa:F401
     logical_op,
     maybe_prepare_scalar_for_op,
 )
-from pandas.core.ops.common import (  # noqa:F401
+from pandas.core.ops.common import (
     get_op_result_name,
     unpack_zerodim_and_defer,
 )
@@ -47,14 +49,14 @@ from pandas.core.ops.docstrings import (
     _op_descriptions,
     make_flex_doc,
 )
-from pandas.core.ops.invalid import invalid_comparison  # noqa:F401
-from pandas.core.ops.mask_ops import (  # noqa: F401
+from pandas.core.ops.invalid import invalid_comparison
+from pandas.core.ops.mask_ops import (
     kleene_and,
     kleene_or,
     kleene_xor,
 )
-from pandas.core.ops.methods import add_flex_arithmetic_methods  # noqa:F401
-from pandas.core.roperator import (  # noqa:F401
+from pandas.core.ops.methods import add_flex_arithmetic_methods
+from pandas.core.roperator import (
     radd,
     rand_,
     rdiv,
@@ -174,7 +176,7 @@ def flex_method_SERIES(op):
     doc = make_flex_doc(name, "series")
 
     @Appender(doc)
-    def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
+    def flex_wrapper(self, other, level=None, fill_value=None, axis: Axis = 0):
         # validate axis
         if axis is not None:
             self._get_axis_number(axis)
@@ -295,13 +297,10 @@ def align_method_FRAME(
 
         if not flex:
             if not left.axes[axis].equals(right.index):
-                warnings.warn(
-                    "Automatic reindexing on DataFrame vs Series comparisons "
-                    "is deprecated and will raise ValueError in a future version. "
-                    "Do `left, right = left.align(right, axis=1, copy=False)` "
-                    "before e.g. `left == right`",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise ValueError(
+                    "Operands are not aligned. Do "
+                    "`left, right = left.align(right, axis=1, copy=False)` "
+                    "before operating."
                 )
 
         left, right = left.align(
@@ -334,7 +333,9 @@ def should_reindex_frame_op(
         left_uniques = left.columns.unique()
         right_uniques = right.columns.unique()
         cols = left_uniques.intersection(right_uniques)
-        if len(cols) and not (cols.equals(left_uniques) and cols.equals(right_uniques)):
+        if len(cols) and not (
+            len(cols) == len(left_uniques) and len(cols) == len(right_uniques)
+        ):
             # TODO: is there a shortcut available when len(cols) == 0?
             return True
 
@@ -385,7 +386,7 @@ def frame_arith_method_with_reindex(left: DataFrame, right: DataFrame, op) -> Da
     return result
 
 
-def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: int):
+def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: AxisInt):
     """
     If the Series operand is not EA-dtype, we can broadcast to 2D and operate
     blockwise.
@@ -393,7 +394,7 @@ def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: int):
     rvalues = series._values
     if not isinstance(rvalues, np.ndarray):
         # TODO(EA2D): no need to special-case with 2D EAs
-        if rvalues.dtype == "datetime64[ns]" or rvalues.dtype == "timedelta64[ns]":
+        if rvalues.dtype in ("datetime64[ns]", "timedelta64[ns]"):
             # We can losslessly+cheaply cast to ndarray
             rvalues = np.asarray(rvalues)
         else:
@@ -473,3 +474,40 @@ def flex_comp_method_FRAME(op):
     f.__name__ = op_name
 
     return f
+
+
+__all__ = [
+    "add_flex_arithmetic_methods",
+    "align_method_FRAME",
+    "align_method_SERIES",
+    "ARITHMETIC_BINOPS",
+    "arithmetic_op",
+    "COMPARISON_BINOPS",
+    "comparison_op",
+    "comp_method_OBJECT_ARRAY",
+    "fill_binop",
+    "flex_arith_method_FRAME",
+    "flex_comp_method_FRAME",
+    "flex_method_SERIES",
+    "frame_arith_method_with_reindex",
+    "invalid_comparison",
+    "kleene_and",
+    "kleene_or",
+    "kleene_xor",
+    "logical_op",
+    "maybe_dispatch_ufunc_to_dunder_op",
+    "radd",
+    "rand_",
+    "rdiv",
+    "rdivmod",
+    "rfloordiv",
+    "rmod",
+    "rmul",
+    "ror_",
+    "rpow",
+    "rsub",
+    "rtruediv",
+    "rxor",
+    "should_reindex_frame_op",
+    "unpack_zerodim_and_defer",
+]

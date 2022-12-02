@@ -9,7 +9,11 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    NumExprClobberingError,
+    PerformanceWarning,
+    UndefinedVariableError,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -26,12 +30,11 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.computation import pytables
-from pandas.core.computation.engines import (
-    ENGINES,
-    NumExprClobberingError,
+from pandas.core.computation import (
+    expr,
+    pytables,
 )
-import pandas.core.computation.expr as expr
+from pandas.core.computation.engines import ENGINES
 from pandas.core.computation.expr import (
     BaseExprVisitor,
     PandasExprVisitor,
@@ -48,6 +51,7 @@ from pandas.core.computation.ops import (
     _binary_ops_dict,
     _unary_math_ops,
 )
+from pandas.core.computation.scope import DEFAULT_GLOBALS
 
 
 @pytest.fixture(
@@ -72,11 +76,6 @@ def engine(request):
 
 @pytest.fixture(params=expr.PARSERS)
 def parser(request):
-    return request.param
-
-
-@pytest.fixture(params=list(_unary_math_ops) if NUMEXPR_INSTALLED else [])
-def unary_fns_for_ne(request):
     return request.param
 
 
@@ -598,6 +597,20 @@ class TestEval:
         res = df.eval(expr)
         assert res.values == np.array([False])
 
+    def test_unary_in_function(self):
+        # GH 46471
+        df = DataFrame({"x": [0, 1, np.nan]})
+
+        result = df.eval("x.fillna(-1)")
+        expected = df.x.fillna(-1)
+        # column name becomes None if using numexpr
+        # only check names when the engine is not numexpr
+        tm.assert_series_equal(result, expected, check_names=not USE_NUMEXPR)
+
+        result = df.eval("x.shift(1, fill_value=-1)")
+        expected = df.x.shift(1, fill_value=-1)
+        tm.assert_series_equal(result, expected, check_names=not USE_NUMEXPR)
+
     @pytest.mark.parametrize(
         "ex",
         (
@@ -692,6 +705,18 @@ class TestEval:
         with pytest.raises(SyntaxError, match=msg):
             df.query("lambda == 0")
 
+    def test_true_false_logic(self):
+        # GH 25823
+        assert pd.eval("not True") == -2
+        assert pd.eval("not False") == -1
+        assert pd.eval("True and not True") == 0
+
+    def test_and_logic_string_match(self):
+        # GH 25823
+        event = Series({"a": "hello"})
+        assert pd.eval(f"{event.str.match('hello').a}")
+        assert pd.eval(f"{event.str.match('hello').a and event.str.match('hello').a}")
+
 
 f = lambda *args, **kwargs: np.random.randn()
 
@@ -730,7 +755,7 @@ def should_warn(*args):
 
 class TestAlignment:
 
-    index_types = ["i", "u", "dt"]
+    index_types = ["i", "s", "dt"]
     lhs_index_types = index_types + ["s"]  # 'p'
 
     def test_align_nested_unary_op(self, engine, parser):
@@ -829,12 +854,25 @@ class TestAlignment:
     @pytest.mark.parametrize("index_name", ["index", "columns"])
     @pytest.mark.parametrize(
         "r_idx_type, c_idx_type",
-        list(product(["i", "u", "s"], ["i", "u", "s"])) + [("dt", "dt")],
+        list(product(["i", "s"], ["i", "s"])) + [("dt", "dt")],
     )
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_basic_series_frame_alignment(
-        self, engine, parser, index_name, r_idx_type, c_idx_type
+        self, request, engine, parser, index_name, r_idx_type, c_idx_type
     ):
+        if (
+            engine == "numexpr"
+            and parser == "pandas"
+            and index_name == "index"
+            and r_idx_type == "i"
+            and c_idx_type == "s"
+        ):
+            reason = (
+                f"Flaky column ordering when engine={engine}, "
+                f"parser={parser}, index_name={index_name}, "
+                f"r_idx_type={r_idx_type}, c_idx_type={c_idx_type}"
+            )
+            request.node.add_marker(pytest.mark.xfail(reason=reason, strict=False))
         df = tm.makeCustomDataframe(
             10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
         )
@@ -1068,40 +1106,6 @@ class TestOperations:
         df = DataFrame(np.random.randn(10, 2))
         df2 = self.eval("df", local_dict={"df": df})
         tm.assert_frame_equal(df, df2)
-
-    def test_truediv(self):
-        s = np.array([1])  # noqa:F841
-        ex = "s / 1"
-
-        # FutureWarning: The `truediv` parameter in pd.eval is deprecated and will be
-        # removed in a future version.
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval(ex, truediv=False)
-        tm.assert_numpy_array_equal(res, np.array([1.0]))
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval(ex, truediv=True)
-        tm.assert_numpy_array_equal(res, np.array([1.0]))
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval("1 / 2", truediv=True)
-        expec = 0.5
-        assert res == expec
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval("1 / 2", truediv=False)
-        expec = 0.5
-        assert res == expec
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval("s / 2", truediv=False)
-        expec = 0.5
-        assert res == expec
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = self.eval("s / 2", truediv=True)
-        expec = 0.5
-        assert res == expec
 
     def test_failing_subscript_with_name_error(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa:F841
@@ -1538,11 +1542,13 @@ class TestMath:
         kwargs["level"] = kwargs.pop("level", 0) + 1
         return pd.eval(*args, **kwargs)
 
-    def test_unary_functions(self, unary_fns_for_ne):
+    @pytest.mark.skipif(
+        not NUMEXPR_INSTALLED, reason="Unary ops only implemented for numexpr"
+    )
+    @pytest.mark.parametrize("fn", _unary_math_ops)
+    def test_unary_functions(self, fn):
         df = DataFrame({"a": np.random.randn(10)})
         a = df.a
-
-        fn = unary_fns_for_ne
 
         expr = f"{fn}(a)"
         got = self.eval(expr)
@@ -1645,6 +1651,20 @@ class TestScope:
         pd.eval("x + 1", engine=engine, parser=parser)
         gbls2 = globals().copy()
         assert gbls == gbls2
+
+    def test_empty_locals(self, engine, parser):
+        # GH 47084
+        x = 1  # noqa: F841
+        msg = "name 'x' is not defined"
+        with pytest.raises(UndefinedVariableError, match=msg):
+            pd.eval("x + 1", engine=engine, parser=parser, local_dict={})
+
+    def test_empty_globals(self, engine, parser):
+        # GH 47084
+        msg = "name '_var_s' is not defined"
+        e = "_var_s * 2"
+        with pytest.raises(UndefinedVariableError, match=msg):
+            pd.eval(e, engine=engine, parser=parser, global_dict={})
 
 
 @td.skip_if_no_ne
@@ -1807,23 +1827,6 @@ def test_inf(engine, parser):
     assert result == expected
 
 
-def test_truediv_deprecated(engine, parser):
-    # GH#29182
-    match = "The `truediv` parameter in pd.eval is deprecated"
-
-    with tm.assert_produces_warning(FutureWarning) as m:
-        pd.eval("1+1", engine=engine, parser=parser, truediv=True)
-
-    assert len(m) == 1
-    assert match in str(m[0].message)
-
-    with tm.assert_produces_warning(FutureWarning) as m:
-        pd.eval("1+1", engine=engine, parser=parser, truediv=False)
-
-    assert len(m) == 1
-    assert match in str(m[0].message)
-
-
 @pytest.mark.parametrize("column", ["Temp(°C)", "Capacitance(μF)"])
 def test_query_token(engine, column):
     # See: https://github.com/pandas-dev/pandas/pull/42826
@@ -1848,6 +1851,47 @@ def test_negate_lt_eq_le(engine, parser):
     else:
         result = df.query("not (cat > 0)", engine=engine, parser=parser)
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "column",
+    DEFAULT_GLOBALS.keys(),
+)
+def test_eval_no_support_column_name(request, column):
+    # GH 44603
+    if column in ["True", "False", "inf", "Inf"]:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=KeyError,
+                reason=f"GH 47859 DataFrame eval not supported with {column}",
+            )
+        )
+
+    df = DataFrame(np.random.randint(0, 100, size=(10, 2)), columns=[column, "col1"])
+    expected = df[df[column] > 6]
+    result = df.query(f"{column}>6")
+
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_array_manager_not_yet_implemented
+def test_set_inplace(using_copy_on_write):
+    # https://github.com/pandas-dev/pandas/issues/47449
+    # Ensure we don't only update the DataFrame inplace, but also the actual
+    # column values, such that references to this column also get updated
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+    result_view = df[:]
+    ser = df["A"]
+    df.eval("A = B + C", inplace=True)
+    expected = DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
+    tm.assert_frame_equal(df, expected)
+    if not using_copy_on_write:
+        tm.assert_series_equal(ser, expected["A"])
+        tm.assert_series_equal(result_view["A"], expected["A"])
+    else:
+        expected = Series([1, 2, 3], name="A")
+        tm.assert_series_equal(ser, expected)
+        tm.assert_series_equal(result_view["A"], expected)
 
 
 class TestValidate:

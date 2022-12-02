@@ -31,7 +31,7 @@ def to_feather(
     path: FilePath | WriteBuffer[bytes],
     storage_options: StorageOptions = None,
     **kwargs,
-):
+) -> None:
     """
     Write a DataFrame to the binary Feather format.
 

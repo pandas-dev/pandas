@@ -3,7 +3,12 @@ from __future__ import annotations
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs import (
+    get_unit_from_dtype,
+    is_supported_unit,
+)
 from pandas._typing import (
+    AxisInt,
     Dtype,
     NpDtype,
     Scalar,
@@ -66,7 +71,7 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False):
+    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False) -> None:
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -108,10 +113,6 @@ class PandasArray(
         if copy and result is scalars:
             result = result.copy()
         return cls(result)
-
-    @classmethod
-    def _from_factorized(cls, values, original) -> PandasArray:
-        return original._from_backing_data(values)
 
     def _from_backing_data(self, arr: np.ndarray) -> PandasArray:
         return type(self)(arr)
@@ -193,8 +194,12 @@ class PandasArray(
             fill_value = self.dtype.na_value
         return fill_value
 
-    def _values_for_factorize(self) -> tuple[np.ndarray, int]:
-        return self._ndarray, -1
+    def _values_for_factorize(self) -> tuple[np.ndarray, float | None]:
+        if self.dtype.kind in ["i", "u", "b"]:
+            fv = None
+        else:
+            fv = np.nan
+        return self._ndarray, fv
 
     # ------------------------------------------------------------------------
     # Reductions
@@ -202,7 +207,7 @@ class PandasArray(
     def any(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         out=None,
         keepdims: bool = False,
         skipna: bool = True,
@@ -214,7 +219,7 @@ class PandasArray(
     def all(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         out=None,
         keepdims: bool = False,
         skipna: bool = True,
@@ -223,14 +228,18 @@ class PandasArray(
         result = nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def min(self, *, axis: int | None = None, skipna: bool = True, **kwargs) -> Scalar:
+    def min(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_min((), kwargs)
         result = nanops.nanmin(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def max(self, *, axis: int | None = None, skipna: bool = True, **kwargs) -> Scalar:
+    def max(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_max((), kwargs)
         result = nanops.nanmax(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
@@ -238,7 +247,12 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def sum(
-        self, *, axis: int | None = None, skipna: bool = True, min_count=0, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
     ) -> Scalar:
         nv.validate_sum((), kwargs)
         result = nanops.nansum(
@@ -247,7 +261,12 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def prod(
-        self, *, axis: int | None = None, skipna: bool = True, min_count=0, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
     ) -> Scalar:
         nv.validate_prod((), kwargs)
         result = nanops.nanprod(
@@ -258,7 +277,7 @@ class PandasArray(
     def mean(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
@@ -271,7 +290,7 @@ class PandasArray(
     def median(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         out=None,
         overwrite_input: bool = False,
         keepdims: bool = False,
@@ -286,10 +305,10 @@ class PandasArray(
     def std(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
-        ddof=1,
+        ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
     ):
@@ -302,10 +321,10 @@ class PandasArray(
     def var(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
-        ddof=1,
+        ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
     ):
@@ -318,10 +337,10 @@ class PandasArray(
     def sem(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
-        ddof=1,
+        ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
     ):
@@ -334,7 +353,7 @@ class PandasArray(
     def kurt(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
@@ -349,7 +368,7 @@ class PandasArray(
     def skew(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
@@ -368,7 +387,7 @@ class PandasArray(
         self,
         dtype: npt.DTypeLike | None = None,
         copy: bool = False,
-        na_value=lib.no_default,
+        na_value: object = lib.no_default,
     ) -> np.ndarray:
         result = np.asarray(self._ndarray, dtype=dtype)
 
@@ -424,10 +443,12 @@ class PandasArray(
     def _wrap_ndarray_result(self, result: np.ndarray):
         # If we have timedelta64[ns] result, return a TimedeltaArray instead
         #  of a PandasArray
-        if result.dtype == "timedelta64[ns]":
+        if result.dtype.kind == "m" and is_supported_unit(
+            get_unit_from_dtype(result.dtype)
+        ):
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray._simple_new(result)
+            return TimedeltaArray._simple_new(result, dtype=result.dtype)
         return type(self)(result)
 
     # ------------------------------------------------------------------------

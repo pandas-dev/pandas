@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 import functools
 from typing import (
     TYPE_CHECKING,
@@ -92,7 +93,7 @@ def _is_sup(f1: str, f2: str) -> bool:
     )
 
 
-def _upsample_others(ax: Axes, freq, kwargs):
+def _upsample_others(ax: Axes, freq, kwargs) -> None:
     legend = ax.get_legend()
     lines, labels = _replot_ax(ax, freq, kwargs)
     _replot_ax(ax, freq, kwargs)
@@ -145,7 +146,7 @@ def _replot_ax(ax: Axes, freq, kwargs):
     return lines, labels
 
 
-def decorate_axes(ax: Axes, freq, kwargs):
+def decorate_axes(ax: Axes, freq, kwargs) -> None:
     """Initialize axes for time-series plotting"""
     if not hasattr(ax, "_plot_data"):
         ax._plot_data = []
@@ -185,11 +186,10 @@ def _get_ax_freq(ax: Axes):
     return ax_freq
 
 
-def _get_period_alias(freq) -> str | None:
+def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
     freqstr = to_offset(freq).rule_code
 
-    freq = get_period_alias(freqstr)
-    return freq
+    return get_period_alias(freqstr)
 
 
 def _get_freq(ax: Axes, series: Series):
@@ -235,7 +235,9 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
-        return Period(x[0], freq_str).to_timestamp().tz_localize(x.tz) == x[0]
+        period = Period(x[0], freq_str)
+        assert isinstance(period, Period)
+        return period.to_timestamp().tz_localize(x.tz) == x[0]
     return True
 
 
@@ -289,7 +291,7 @@ def _format_coord(freq, t, y) -> str:
     return f"t = {time_period}  y = {y:8f}"
 
 
-def format_dateaxis(subplot, freq, index):
+def format_dateaxis(subplot, freq, index) -> None:
     """
     Pretty-formats the date axis (x-axis).
 

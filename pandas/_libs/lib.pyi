@@ -4,6 +4,7 @@
 from typing import (
     Any,
     Callable,
+    Final,
     Generator,
     Hashable,
     Literal,
@@ -23,9 +24,11 @@ ndarray_obj_2d = np.ndarray
 
 from enum import Enum
 
-class NoDefault(Enum): ...
+class _NoDefault(Enum):
+    no_default = ...
 
-no_default: NoDefault
+no_default: Final = _NoDefault.no_default
+NoDefault = Literal[_NoDefault.no_default]
 
 i8max: int
 u8max: int
@@ -56,13 +59,25 @@ def is_bool_array(values: np.ndarray, skipna: bool = ...): ...
 def fast_multiget(mapping: dict, keys: np.ndarray, default=...) -> np.ndarray: ...
 def fast_unique_multiple_list_gen(gen: Generator, sort: bool = ...) -> list: ...
 def fast_unique_multiple_list(lists: list, sort: bool | None = ...) -> list: ...
-def fast_unique_multiple(arrays: list, sort: bool = ...) -> list: ...
 def map_infer(
     arr: np.ndarray,
     f: Callable[[Any], Any],
     convert: bool = ...,
     ignore_na: bool = ...,
 ) -> np.ndarray: ...
+@overload  # all convert_foo False -> only convert numeric
+def maybe_convert_objects(
+    objects: npt.NDArray[np.object_],
+    *,
+    try_float: bool = ...,
+    safe: bool = ...,
+    convert_datetime: Literal[False] = ...,
+    convert_timedelta: Literal[False] = ...,
+    convert_period: Literal[False] = ...,
+    convert_interval: Literal[False] = ...,
+    convert_to_nullable_integer: Literal[False] = ...,
+    dtype_if_all_nat: DtypeObj | None = ...,
+) -> npt.NDArray[np.object_ | np.number]: ...
 @overload  # both convert_datetime and convert_to_nullable_integer False -> np.ndarray
 def maybe_convert_objects(
     objects: npt.NDArray[np.object_],
@@ -154,9 +169,6 @@ def ensure_string_array(
     copy: bool = ...,
     skipna: bool = ...,
 ) -> npt.NDArray[np.object_]: ...
-def infer_datetimelike_array(
-    arr: npt.NDArray[np.object_],
-) -> tuple[str, bool]: ...
 def convert_nans_to_NA(
     arr: npt.NDArray[np.object_],
 ) -> npt.NDArray[np.object_]: ...
@@ -210,7 +222,7 @@ def count_level_2d(
 def get_level_sorter(
     label: np.ndarray,  # const int64_t[:]
     starts: np.ndarray,  # const intp_t[:]
-) -> np.ndarray: ...  #  np.ndarray[np.intp, ndim=1]
+) -> np.ndarray: ...  # np.ndarray[np.intp, ndim=1]
 def generate_bins_dt64(
     values: npt.NDArray[np.int64],
     binner: np.ndarray,  # const int64_t[:]
@@ -218,8 +230,8 @@ def generate_bins_dt64(
     hasnans: bool = ...,
 ) -> np.ndarray: ...  # np.ndarray[np.int64, ndim=1]
 def array_equivalent_object(
-    left: np.ndarray,  # object[:]
-    right: np.ndarray,  # object[:]
+    left: npt.NDArray[np.object_],
+    right: npt.NDArray[np.object_],
 ) -> bool: ...
 def has_infs(arr: np.ndarray) -> bool: ...  # const floating[:]
 def get_reverse_indexer(

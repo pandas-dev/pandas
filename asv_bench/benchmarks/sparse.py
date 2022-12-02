@@ -146,10 +146,10 @@ class ArithmeticBlock:
 
     def make_block_array(self, length, num_blocks, block_size, fill_value):
         arr = np.full(length, fill_value)
-        indicies = np.random.choice(
+        indices = np.random.choice(
             np.arange(0, length, block_size), num_blocks, replace=False
         )
-        for ind in indicies:
+        for ind in indices:
             arr[ind : ind + block_size] = np.random.randint(0, 100, block_size)
         return SparseArray(arr, fill_value=fill_value)
 
@@ -219,12 +219,12 @@ class GetItemMask:
         d = 1e-5
         arr = make_array(N, d, np.nan, np.float64)
         self.sp_arr = SparseArray(arr)
-        b_arr = np.full(shape=N, fill_value=fill_value, dtype=np.bool8)
+        b_arr = np.full(shape=N, fill_value=fill_value, dtype=np.bool_)
         fv_inds = np.unique(
             np.random.randint(low=0, high=N - 1, size=int(N * d), dtype=np.int32)
         )
         b_arr[fv_inds] = True if pd.isna(fill_value) else not fill_value
-        self.sp_b_arr = SparseArray(b_arr, dtype=np.bool8, fill_value=fill_value)
+        self.sp_b_arr = SparseArray(b_arr, dtype=np.bool_, fill_value=fill_value)
 
     def time_mask(self, fill_value):
         self.sp_arr[self.sp_b_arr]

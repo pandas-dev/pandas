@@ -81,7 +81,7 @@ class SparseDtype(ExtensionDtype):
     # hash(nan) is (sometimes?) 0.
     _metadata = ("_dtype", "_fill_value", "_is_na_fill_value")
 
-    def __init__(self, dtype: Dtype = np.float64, fill_value: Any = None):
+    def __init__(self, dtype: Dtype = np.float64, fill_value: Any = None) -> None:
 
         if isinstance(dtype, type(self)):
             if fill_value is None:
@@ -99,7 +99,7 @@ class SparseDtype(ExtensionDtype):
         self._fill_value = fill_value
         self._check_fill_value()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # Python3 doesn't inherit __hash__ when a base class overrides
         # __eq__, so we explicitly do it here.
         return super().__hash__()
@@ -179,7 +179,7 @@ class SparseDtype(ExtensionDtype):
         return is_bool_dtype(self.subtype)
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         """
         The sparse kind. Either 'integer', or 'block'.
         """
@@ -194,7 +194,7 @@ class SparseDtype(ExtensionDtype):
         return self._dtype
 
     @property
-    def name(self):
+    def name(self) -> str:
         return f"Sparse[{self.subtype.name}, {repr(self.fill_value)}]"
 
     def __repr__(self) -> str:
@@ -354,7 +354,10 @@ class SparseDtype(ExtensionDtype):
             if not isinstance(dtype, np.dtype):
                 raise TypeError("sparse arrays of extension dtypes not supported")
 
-            fill_value = astype_nansafe(np.array(self.fill_value), dtype).item()
+            fv_asarray = np.atleast_1d(np.array(self.fill_value))
+            fvarr = astype_nansafe(fv_asarray, dtype)
+            # NB: not fv_0d.item(), as that casts dt64->int
+            fill_value = fvarr[0]
             dtype = cls(dtype, fill_value=fill_value)
 
         return dtype

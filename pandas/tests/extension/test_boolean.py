@@ -174,13 +174,10 @@ class TestReshaping(base.BaseReshapingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize(self, data_for_grouping, na_sentinel):
+    def test_factorize(self, data_for_grouping):
         # override because we only have 2 unique values
-        labels, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
-        expected_labels = np.array(
-            [0, 0, na_sentinel, na_sentinel, 1, 1, 0], dtype=np.intp
-        )
+        labels, uniques = pd.factorize(data_for_grouping, use_na_sentinel=True)
+        expected_labels = np.array([0, 0, -1, -1, 1, 1, 0], dtype=np.intp)
         expected_uniques = data_for_grouping.take([0, 4])
 
         tm.assert_numpy_array_equal(labels, expected_labels)
@@ -225,14 +222,6 @@ class TestMethods(base.BaseMethodsTests):
         # sorter
         sorter = np.array([1, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
-
-    @pytest.mark.xfail(reason="uses nullable integer")
-    def test_value_counts(self, all_data, dropna):
-        return super().test_value_counts(all_data, dropna)
-
-    @pytest.mark.xfail(reason="uses nullable integer")
-    def test_value_counts_with_normalize(self, data):
-        super().test_value_counts_with_normalize(data)
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting):
         # override because there are only 2 unique values
@@ -322,10 +311,10 @@ class TestGroupby(base.BaseGroupbyTests):
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
-        df.groupby("B").apply(groupby_apply_op)
-        df.groupby("B").A.apply(groupby_apply_op)
-        df.groupby("A").apply(groupby_apply_op)
-        df.groupby("A").B.apply(groupby_apply_op)
+        df.groupby("B", group_keys=False).apply(groupby_apply_op)
+        df.groupby("B", group_keys=False).A.apply(groupby_apply_op)
+        df.groupby("A", group_keys=False).apply(groupby_apply_op)
+        df.groupby("A", group_keys=False).B.apply(groupby_apply_op)
 
     def test_groupby_apply_identity(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
@@ -378,8 +367,12 @@ class TestGroupby(base.BaseGroupbyTests):
 
 class TestNumericReduce(base.BaseNumericReduceTests):
     def check_reduce(self, s, op_name, skipna):
-        result = getattr(s, op_name)(skipna=skipna)
-        expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
+        if op_name == "count":
+            result = getattr(s, op_name)()
+            expected = getattr(s.astype("float64"), op_name)()
+        else:
+            result = getattr(s, op_name)(skipna=skipna)
+            expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
         # override parent function to cast to bool for min/max
         if np.isnan(expected):
             expected = pd.NA

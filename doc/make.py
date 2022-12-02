@@ -45,7 +45,7 @@ class DocBuilder:
         single_doc=None,
         verbosity=0,
         warnings_are_errors=False,
-    ):
+    ) -> None:
         self.num_jobs = num_jobs
         self.include_api = include_api
         self.whatsnew = whatsnew
@@ -259,8 +259,7 @@ class DocBuilder:
                     "You should check the file "
                     '"build/latex/pandas.pdf" for problems.'
                 )
-            else:
-                self._run_os("make")
+            self._run_os("make")
             return ret_code
 
     def latex_forced(self):

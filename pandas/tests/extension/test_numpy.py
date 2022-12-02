@@ -26,6 +26,7 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_object_dtype
 from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.internals import blocks
 from pandas.tests.extension import base
@@ -208,10 +209,23 @@ class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
 
 
 class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
-    @pytest.mark.skip(reason="Incorrect expected.")
-    # we unsurprisingly clash with a NumPy name.
-    def test_check_dtype(self, data):
-        pass
+    def test_check_dtype(self, data, request):
+        if data.dtype.numpy_dtype == "object":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"PandasArray expectedly clashes with a "
+                    f"NumPy name: {data.dtype.numpy_dtype}"
+                )
+            )
+        super().test_check_dtype(data)
+
+    def test_is_not_object_type(self, dtype, request):
+        if dtype.numpy_dtype == "object":
+            # Different from BaseDtypeTests.test_is_not_object_type
+            # because PandasDtype(object) is an object type
+            assert is_object_dtype(dtype)
+        else:
+            super().test_is_not_object_type(dtype)
 
 
 class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
@@ -222,17 +236,7 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
 
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
-    def test_groupby_extension_apply(
-        self, data_for_grouping, groupby_apply_op, request
-    ):
-        dummy = groupby_apply_op([None])
-        if (
-            isinstance(dummy, pd.Series)
-            and data_for_grouping.dtype.numpy_dtype == object
-        ):
-            mark = pytest.mark.xfail(reason="raises in MultiIndex construction")
-            request.node.add_marker(mark)
-        super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
+    pass
 
 
 class TestInterface(BaseNumPyTests, base.BaseInterfaceTests):
@@ -345,11 +349,6 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
 
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
-    @pytest.mark.skip(reason="Incorrect expected.")
-    def test_merge(self, data, na_value):
-        # Fails creating expected (key column becomes a PandasDtype because)
-        super().test_merge(data, na_value)
-
     @pytest.mark.parametrize(
         "in_frame",
         [
@@ -402,9 +401,6 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     )
     def test_setitem_mask(self, data, mask, box_in_series):
         super().test_setitem_mask(data, mask, box_in_series)
-
-    def test_setitem_mask_raises(self, data, box_in_series):
-        super().test_setitem_mask_raises(data, box_in_series)
 
     @skip_nested
     @pytest.mark.parametrize(

@@ -39,17 +39,32 @@ class UniqueAndFactorizeArange:
         pd.unique(self.a2)
 
 
+class Unique:
+    params = ["Int64", "Float64"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        self.ser = pd.Series(([1, pd.NA, 2] + list(range(100_000))) * 3, dtype=dtype)
+        self.ser_unique = pd.Series(list(range(300_000)) + [pd.NA], dtype=dtype)
+
+    def time_unique_with_duplicates(self, exponent):
+        pd.unique(self.ser)
+
+    def time_unique(self, exponent):
+        pd.unique(self.ser_unique)
+
+
 class NumericSeriesIndexing:
 
     params = [
-        (pd.Int64Index, pd.UInt64Index, pd.Float64Index),
+        (np.int64, np.uint64, np.float64),
         (10**4, 10**5, 5 * 10**5, 10**6, 5 * 10**6),
     ]
-    param_names = ["index_dtype", "N"]
+    param_names = ["dtype", "N"]
 
-    def setup(self, index, N):
-        vals = np.array(list(range(55)) + [54] + list(range(55, N - 1)))
-        indices = index(vals)
+    def setup(self, dtype, N):
+        vals = np.array(list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype)
+        indices = pd.Index(vals)
         self.data = pd.Series(np.arange(N), index=indices)
 
     def time_loc_slice(self, index, N):
@@ -60,15 +75,15 @@ class NumericSeriesIndexing:
 class NumericSeriesIndexingShuffled:
 
     params = [
-        (pd.Int64Index, pd.UInt64Index, pd.Float64Index),
+        (np.int64, np.uint64, np.float64),
         (10**4, 10**5, 5 * 10**5, 10**6, 5 * 10**6),
     ]
-    param_names = ["index_dtype", "N"]
+    param_names = ["dtype", "N"]
 
-    def setup(self, index, N):
-        vals = np.array(list(range(55)) + [54] + list(range(55, N - 1)))
+    def setup(self, dtype, N):
+        vals = np.array(list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype)
         np.random.shuffle(vals)
-        indices = index(vals)
+        indices = pd.Index(vals)
         self.data = pd.Series(np.arange(N), index=indices)
 
     def time_loc_slice(self, index, N):

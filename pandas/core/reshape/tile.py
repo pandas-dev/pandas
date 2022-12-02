@@ -16,6 +16,7 @@ from pandas._libs import (
     Timestamp,
 )
 from pandas._libs.lib import infer_dtype
+from pandas._typing import IntervalLeftRight
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -42,8 +43,8 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+from pandas.core import nanops
 import pandas.core.algorithms as algos
-import pandas.core.nanops as nanops
 
 
 def cut(
@@ -262,7 +263,7 @@ def cut(
             raise ValueError(
                 "cannot specify integer `bins` when input data contains infinity"
             )
-        elif mn == mx:  # adjust end points before binning
+        if mn == mx:  # adjust end points before binning
             mn -= 0.001 * abs(mn) if mn != 0 else 0.001
             mx += 0.001 * abs(mx) if mx != 0 else 0.001
             bins = np.linspace(mn, mx, bins + 1, endpoint=True)
@@ -420,8 +421,7 @@ def _bins_to_cuts(
                 f"Bin edges must be unique: {repr(bins)}.\n"
                 f"You can drop duplicate edges by setting the 'duplicates' kwarg"
             )
-        else:
-            bins = unique_bins
+        bins = unique_bins
 
     side: Literal["left", "right"] = "left" if right else "right"
     ids = ensure_platform_int(bins.searchsorted(x, side=side))
@@ -439,7 +439,7 @@ def _bins_to_cuts(
                 "list-like argument"
             )
 
-        elif labels is None:
+        if labels is None:
             labels = _format_labels(
                 bins, precision, right=right, include_lowest=include_lowest, dtype=dtype
             )
@@ -560,7 +560,7 @@ def _format_labels(
     bins, precision: int, right: bool = True, include_lowest: bool = False, dtype=None
 ):
     """based on the dtype, return our labels"""
-    closed = "right" if right else "left"
+    closed: IntervalLeftRight = "right" if right else "left"
 
     formatter: Callable[[Any], Timestamp] | Callable[[Any], Timedelta]
 

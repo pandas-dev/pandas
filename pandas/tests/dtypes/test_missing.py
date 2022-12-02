@@ -426,11 +426,9 @@ def test_array_equivalent(dtype_equal):
         dtype_equal=dtype_equal,
     )
 
-    msg = "will be interpreted as nanosecond UTC timestamps instead of wall-times"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        dti1 = DatetimeIndex([0, np.nan], tz="US/Eastern")
-        dti2 = DatetimeIndex([0, np.nan], tz="CET")
-        dti3 = DatetimeIndex([1, np.nan], tz="US/Eastern")
+    dti1 = DatetimeIndex([0, np.nan], tz="US/Eastern")
+    dti2 = DatetimeIndex([0, np.nan], tz="CET")
+    dti3 = DatetimeIndex([1, np.nan], tz="US/Eastern")
 
     assert array_equivalent(
         dti1,
@@ -444,7 +442,7 @@ def test_array_equivalent(dtype_equal):
     )
     # The rest are not dtype_equal
     assert not array_equivalent(DatetimeIndex([0, np.nan]), dti1)
-    assert not array_equivalent(
+    assert array_equivalent(
         dti2,
         dti1,
     )
@@ -466,6 +464,27 @@ def test_array_equivalent_series(val):
     )
     with cm:
         assert not array_equivalent(Series([arr, arr]), Series([arr, val]))
+
+
+def test_array_equivalent_array_mismatched_shape():
+    # to trigger the motivating bug, the first N elements of the arrays need
+    #  to match
+    first = np.array([1, 2, 3])
+    second = np.array([1, 2])
+
+    left = Series([first, "a"], dtype=object)
+    right = Series([second, "a"], dtype=object)
+    assert not array_equivalent(left, right)
+
+
+def test_array_equivalent_array_mismatched_dtype():
+    # same shape, different dtype can still be equivalent
+    first = np.array([1, 2], dtype=np.float64)
+    second = np.array([1, 2])
+
+    left = Series([first, "a"], dtype=object)
+    right = Series([second, "a"], dtype=object)
+    assert array_equivalent(left, right)
 
 
 def test_array_equivalent_different_dtype_but_equal():
@@ -536,6 +555,23 @@ def test_array_equivalent_nested():
     left = np.array([np.array([50, 50, 50]), np.array([40, 40, 40])], dtype=object)
     right = np.array([50, 40])
     assert not array_equivalent(left, right, strict_nan=True)
+
+
+def test_array_equivalent_index_with_tuples():
+    # GH#48446
+    idx1 = pd.Index(np.array([(pd.NA, 4), (1, 1)], dtype="object"))
+    idx2 = pd.Index(np.array([(1, 1), (pd.NA, 4)], dtype="object"))
+    assert not array_equivalent(idx1, idx2)
+    assert not idx1.equals(idx2)
+    assert not array_equivalent(idx2, idx1)
+    assert not idx2.equals(idx1)
+
+    idx1 = pd.Index(np.array([(4, pd.NA), (1, 1)], dtype="object"))
+    idx2 = pd.Index(np.array([(1, 1), (4, pd.NA)], dtype="object"))
+    assert not array_equivalent(idx1, idx2)
+    assert not idx1.equals(idx2)
+    assert not array_equivalent(idx2, idx1)
+    assert not idx2.equals(idx1)
 
 
 @pytest.mark.parametrize(

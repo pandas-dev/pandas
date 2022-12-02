@@ -17,6 +17,36 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
+    def test_sub_datetime_preserves_freq(self, tz_naive_fixture):
+        # GH#48818
+        dti = date_range("2016-01-01", periods=12, tz=tz_naive_fixture)
+
+        res = dti - dti[0]
+        expected = pd.timedelta_range("0 Days", "11 Days")
+        tm.assert_index_equal(res, expected)
+        assert res.freq == expected.freq
+
+    @pytest.mark.xfail(
+        reason="The inherited freq is incorrect bc dti.freq is incorrect "
+        "https://github.com/pandas-dev/pandas/pull/48818/files#r982793461"
+    )
+    def test_sub_datetime_preserves_freq_across_dst(self):
+        # GH#48818
+        ts = Timestamp("2016-03-11", tz="US/Pacific")
+        dti = date_range(ts, periods=4)
+
+        res = dti - dti[0]
+        expected = pd.TimedeltaIndex(
+            [
+                pd.Timedelta(days=0),
+                pd.Timedelta(days=1),
+                pd.Timedelta(days=2),
+                pd.Timedelta(days=2, hours=23),
+            ]
+        )
+        tm.assert_index_equal(res, expected)
+        assert res.freq == expected.freq
+
     def test_time_overflow_for_32bit_machines(self):
         # GH8943.  On some machines NumPy defaults to np.int32 (for example,
         # 32-bit Linux machines).  In the function _generate_regular_range
@@ -68,7 +98,7 @@ class TestDatetimeIndex:
 
         for i, ts in enumerate(index):
             result = ts
-            expected = index[i]
+            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
             assert result == expected
 
         index = date_range(
@@ -77,7 +107,7 @@ class TestDatetimeIndex:
 
         for i, ts in enumerate(index):
             result = ts
-            expected = index[i]
+            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
             assert result._repr_base == expected._repr_base
             assert result == expected
 
@@ -87,7 +117,7 @@ class TestDatetimeIndex:
         )
         for i, ts in enumerate(index):
             result = ts
-            expected = index[i]
+            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
             assert result._repr_base == expected._repr_base
             assert result == expected
 

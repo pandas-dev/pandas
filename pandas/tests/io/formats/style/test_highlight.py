@@ -188,7 +188,6 @@ def test_highlight_quantile(styler, kwargs):
     assert result == expected
 
 
-@pytest.mark.skipif(np.__version__[:4] in ["1.16", "1.17"], reason="Numpy Issue #14831")
 @pytest.mark.parametrize(
     "f,kwargs",
     [

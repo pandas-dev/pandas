@@ -4,18 +4,23 @@ Module for formatting output data in console (to string).
 from __future__ import annotations
 
 from shutil import get_terminal_size
-from typing import Iterable
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+)
 
 import numpy as np
 
-from pandas.io.formats.format import DataFrameFormatter
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from pandas.io.formats.format import DataFrameFormatter
 
 
 class StringFormatter:
     """Formatter for string representation of a dataframe."""
 
-    def __init__(self, fmt: DataFrameFormatter, line_width: int | None = None):
+    def __init__(self, fmt: DataFrameFormatter, line_width: int | None = None) -> None:
         self.fmt = fmt
         self.adj = fmt.adj
         self.frame = fmt.frame

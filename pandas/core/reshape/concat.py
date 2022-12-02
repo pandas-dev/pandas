@@ -14,16 +14,15 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
-from pandas._typing import Axis
-from pandas.util._decorators import (
-    cache_readonly,
-    deprecate_nonkeyword_arguments,
+from pandas._typing import (
+    Axis,
+    AxisInt,
+    HashableT,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -62,7 +61,8 @@ if TYPE_CHECKING:
 
 @overload
 def concat(
-    objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame],
+    objs: Iterable[DataFrame] | Mapping[HashableT, DataFrame],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -78,7 +78,8 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[Series] | Mapping[Hashable, Series],
+    objs: Iterable[Series] | Mapping[HashableT, Series],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -94,7 +95,8 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -110,7 +112,8 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Literal[1, "columns"],
     join: str = ...,
     ignore_index: bool = ...,
@@ -126,7 +129,8 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Axis = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -140,9 +144,9 @@ def concat(
     ...
 
 
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Axis = 0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -154,8 +158,9 @@ def concat(
     copy: bool = True,
 ) -> DataFrame | Series:
     """
-    Concatenate pandas objects along a particular axis with optional set logic
-    along the other axes.
+    Concatenate pandas objects along a particular axis.
+
+    Allows optional set logic along the other axes.
 
     Can also add a layer of hierarchical indexing on the concatenation axis,
     which may be useful if the labels are the same (or overlapping) on
@@ -212,8 +217,6 @@ def concat(
 
     See Also
     --------
-    Series.append : Concatenate Series.
-    DataFrame.append : Concatenate DataFrames.
     DataFrame.join : Join DataFrames using indexes.
     DataFrame.merge : Merge DataFrames by indexes or columns.
 
@@ -224,6 +227,9 @@ def concat(
     A walkthrough of how this method fits in with other tools for combining
     pandas objects can be found `here
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html>`__.
+
+    It is not recommended to build DataFrames by adding single rows in a
+    for loop. Build a list of rows and make a DataFrame in a single concat.
 
     Examples
     --------
@@ -343,6 +349,22 @@ def concat(
     Traceback (most recent call last):
         ...
     ValueError: Indexes have overlapping values: ['a']
+
+    Append a single row to the end of a ``DataFrame`` object.
+
+    >>> df7 = pd.DataFrame({'a': 1, 'b': 2}, index=[0])
+    >>> df7
+        a   b
+    0   1   2
+    >>> new_row = pd.Series({'a': 3, 'b': 4})
+    >>> new_row
+    a    3
+    b    4
+    dtype: int64
+    >>> pd.concat([df7, new_row.to_frame().T], ignore_index=True)
+        a   b
+    0   1   2
+    1   3   4
     """
     op = _Concatenator(
         objs,
@@ -367,8 +389,8 @@ class _Concatenator:
 
     def __init__(
         self,
-        objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
-        axis=0,
+        objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+        axis: Axis = 0,
         join: str = "outer",
         keys=None,
         levels=None,
@@ -376,8 +398,8 @@ class _Concatenator:
         ignore_index: bool = False,
         verify_integrity: bool = False,
         copy: bool = True,
-        sort=False,
-    ):
+        sort: bool = False,
+    ) -> None:
         if isinstance(objs, (ABCSeries, ABCDataFrame, str)):
             raise TypeError(
                 "first argument must be an iterable of pandas "
@@ -527,11 +549,8 @@ class _Concatenator:
         self.levels = levels
 
         if not is_bool(sort):
-            warnings.warn(
-                "Passing non boolean values for sort is deprecated and "
-                "will error in a future version!",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise ValueError(
+                f"The 'sort' keyword only accepts boolean values; {sort} was passed."
             )
         self.sort = sort
 
@@ -614,7 +633,7 @@ class _Concatenator:
             for i in range(ndim)
         ]
 
-    def _get_comb_axis(self, i: int) -> Index:
+    def _get_comb_axis(self, i: AxisInt) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
         return get_objs_combined_axis(
             self.objs,
@@ -665,6 +684,8 @@ class _Concatenator:
             return idx
 
         if self.keys is None:
+            if self.levels is not None:
+                raise ValueError("levels supported only when keys is not None")
             concat_axis = _concat_indexes(indexes)
         else:
             concat_axis = _make_concat_multiindex(
@@ -705,9 +726,13 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             names = [None]
 
         if levels is None:
-            levels = [ensure_index(keys)]
+            levels = [ensure_index(keys).unique()]
         else:
             levels = [ensure_index(x) for x in levels]
+
+    for level in levels:
+        if not level.is_unique:
+            raise ValueError(f"Level values not unique: {level.tolist()}")
 
     if not all_indexes_same(indexes) or not all(level.is_unique for level in levels):
         codes_list = []

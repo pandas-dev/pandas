@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
-import pandas._libs.json as json
+from pandas._libs import json
 from pandas._typing import (
     FilePath,
     StorageOptions,
@@ -14,6 +17,9 @@ from pandas.io.excel._util import (
     combine_kwargs,
     validate_freeze_panes,
 )
+
+if TYPE_CHECKING:
+    from xlsxwriter import Workbook
 
 
 class _XlsxStyler:
@@ -165,12 +171,16 @@ class _XlsxStyler:
                 "doubleAccounting": 34,
             }[props["underline"]]
 
+        # GH 30107 - xlsxwriter uses different name
+        if props.get("valign") == "center":
+            props["valign"] = "vcenter"
+
         return props
 
 
 class XlsxWriter(ExcelWriter):
-    engine = "xlsxwriter"
-    supported_extensions = (".xlsx",)
+    _engine = "xlsxwriter"
+    _supported_extensions = (".xlsx",)
 
     def __init__(
         self,
@@ -183,7 +193,7 @@ class XlsxWriter(ExcelWriter):
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         # Use the xlsxwriter module as the Excel writer.
         from xlsxwriter import Workbook
 
@@ -213,6 +223,14 @@ class XlsxWriter(ExcelWriter):
         This attribute can be used to access engine-specific features.
         """
         return self._book
+
+    @book.setter
+    def book(self, other: Workbook) -> None:
+        """
+        Set book instance. Class type will depend on the engine used.
+        """
+        self._deprecate_set_book()
+        self._book = other
 
     @property
     def sheets(self) -> dict[str, Any]:

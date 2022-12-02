@@ -37,7 +37,7 @@ class FromDicts:
         self.dict_list = frame.to_dict(orient="records")
         self.data2 = {i: {j: float(j) for j in range(100)} for i in range(2000)}
 
-        # arrays which we wont consolidate
+        # arrays which we won't consolidate
         self.dict_of_categoricals = {i: Categorical(np.arange(N)) for i in range(K)}
 
     def time_list_of_dict(self):
@@ -60,7 +60,7 @@ class FromDicts:
         DataFrame(self.data2)
 
     def time_dict_of_categoricals(self):
-        # dict of arrays that we wont consolidate
+        # dict of arrays that we won't consolidate
         DataFrame(self.dict_of_categoricals)
 
 
@@ -203,23 +203,6 @@ class FromArrays:
             columns=self.columns,
             verify_integrity=False,
         )
-
-
-class From3rdParty:
-    # GH#44616
-
-    def setup(self):
-        try:
-            import torch
-        except ImportError:
-            raise NotImplementedError
-
-        row = 700000
-        col = 64
-        self.val_tensor = torch.randn(row, col)
-
-    def time_from_torch(self):
-        DataFrame(self.val_tensor)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

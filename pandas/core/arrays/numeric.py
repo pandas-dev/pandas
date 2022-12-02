@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Mapping,
     TypeVar,
 )
 
@@ -70,7 +71,9 @@ class NumericDtype(BaseMaskedDtype):
         """
         import pyarrow
 
-        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
+        from pandas.core.arrays.arrow._arrow_utils import (
+            pyarrow_array_to_numpy_and_mask,
+        )
 
         array_class = self.construct_array_type()
 
@@ -111,11 +114,11 @@ class NumericDtype(BaseMaskedDtype):
             return array_class._concat_same_type(results)
 
     @classmethod
-    def _str_to_dtype_mapping(cls):
+    def _str_to_dtype_mapping(cls) -> Mapping[str, NumericDtype]:
         raise AbstractMethodError(cls)
 
     @classmethod
-    def _standardize_dtype(cls, dtype) -> NumericDtype:
+    def _standardize_dtype(cls, dtype: NumericDtype | str | np.dtype) -> NumericDtype:
         """
         Convert a string representation or a numpy dtype to NumericDtype.
         """
@@ -124,7 +127,7 @@ class NumericDtype(BaseMaskedDtype):
             # https://github.com/numpy/numpy/pull/7476
             dtype = dtype.lower()
 
-        if not issubclass(type(dtype), cls):
+        if not isinstance(dtype, NumericDtype):
             mapping = cls._str_to_dtype_mapping()
             try:
                 dtype = mapping[str(np.dtype(dtype))]
@@ -186,7 +189,11 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
         raise TypeError("values must be a 1D list-like")
 
     if mask is None:
-        mask = libmissing.is_numeric_na(values)
+        if is_integer_dtype(values):
+            # fastpath
+            mask = np.zeros(len(values), dtype=np.bool_)
+        else:
+            mask = libmissing.is_numeric_na(values)
     else:
         assert len(mask) == len(values)
 
@@ -222,7 +229,7 @@ class NumericArray(BaseMaskedArray):
 
     def __init__(
         self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
-    ):
+    ) -> None:
         checker = self._dtype_cls._checker
         if not (isinstance(values, np.ndarray) and checker(values.dtype)):
             descr = (

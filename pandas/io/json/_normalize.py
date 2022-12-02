@@ -7,6 +7,7 @@ from collections import (
     defaultdict,
 )
 import copy
+import sys
 from typing import (
     Any,
     DefaultDict,
@@ -16,7 +17,10 @@ from typing import (
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas._typing import Scalar
+from pandas._typing import (
+    IgnoreRaise,
+    Scalar,
+)
 from pandas.util._decorators import deprecate
 
 import pandas as pd
@@ -109,9 +113,9 @@ def nested_to_record(
                     v = new_d.pop(k)
                     new_d[newkey] = v
                 continue
-            else:
-                v = new_d.pop(k)
-                new_d.update(nested_to_record(v, newkey, sep, level + 1, max_level))
+
+            v = new_d.pop(k)
+            new_d.update(nested_to_record(v, newkey, sep, level + 1, max_level))
         new_ds.append(new_d)
 
     if singleton:
@@ -145,13 +149,18 @@ def _normalise_json(
     if isinstance(data, dict):
         for key, value in data.items():
             new_key = f"{key_string}{separator}{key}"
+
+            if not key_string:
+                if sys.version_info < (3, 9):
+                    from pandas.util._str_methods import removeprefix
+
+                    new_key = removeprefix(new_key, separator)
+                else:
+                    new_key = new_key.removeprefix(separator)
+
             _normalise_json(
                 data=value,
-                # to avoid adding the separator to the start of every key
-                # GH#43831 avoid adding key if key_string blank
-                key_string=new_key
-                if new_key[: len(separator)] != separator
-                else new_key[len(separator) :],
+                key_string=new_key,
                 normalized_dict=normalized_dict,
                 separator=separator,
             )
@@ -244,7 +253,7 @@ def _json_normalize(
     meta: str | list[str | list[str]] | None = None,
     meta_prefix: str | None = None,
     record_prefix: str | None = None,
-    errors: str = "raise",
+    errors: IgnoreRaise = "raise",
     sep: str = ".",
     max_level: int | None = None,
 ) -> DataFrame:
@@ -400,7 +409,7 @@ def _json_normalize(
                     f"Key {e} not found. If specifying a record_path, all elements of "
                     f"data should have the path."
                 ) from e
-            elif errors == "ignore":
+            if errors == "ignore":
                 return np.nan
             else:
                 raise KeyError(
@@ -482,7 +491,7 @@ def _json_normalize(
     meta_vals: DefaultDict = defaultdict(list)
     meta_keys = [sep.join(val) for val in _meta]
 
-    def _recursive_extract(data, path, seen_meta, level=0):
+    def _recursive_extract(data, path, seen_meta, level: int = 0) -> None:
         if isinstance(data, dict):
             data = [data]
         if len(path) > 1:
@@ -517,11 +526,7 @@ def _json_normalize(
     result = DataFrame(records)
 
     if record_prefix is not None:
-        # Incompatible types in assignment (expression has type "Optional[DataFrame]",
-        # variable has type "DataFrame")
-        result = result.rename(  # type: ignore[assignment]
-            columns=lambda x: f"{record_prefix}{x}"
-        )
+        result = result.rename(columns=lambda x: f"{record_prefix}{x}")
 
     # Data types, a problem
     for k, v in meta_vals.items():

@@ -1,5 +1,6 @@
 from collections import deque
 from datetime import datetime
+from enum import Enum
 import functools
 import operator
 import re
@@ -30,9 +31,7 @@ from pandas.tests.frame.common import (
 )
 
 
-@pytest.fixture(
-    autouse=True, scope="module", params=[0, 1000000], ids=["numexpr", "python"]
-)
+@pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
 def switch_numexpr_min_elements(request):
     _MIN_ELEMENTS = expr._MIN_ELEMENTS
     expr._MIN_ELEMENTS = request.param
@@ -41,7 +40,7 @@ def switch_numexpr_min_elements(request):
 
 
 class DummyElement:
-    def __init__(self, value, dtype):
+    def __init__(self, value, dtype) -> None:
         self.value = value
         self.dtype = np.dtype(dtype)
 
@@ -722,6 +721,116 @@ class TestFrameFlexArithmetic:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_multiindex_operations(self):
+        # GH 43321
+        df = DataFrame(
+            {2010: [1, 2, 3], 2020: [3, 4, 5]},
+            index=MultiIndex.from_product(
+                [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+            ),
+        )
+
+        series = Series(
+            [0.4],
+            index=MultiIndex.from_product([["b"], ["a"]], names=["mod", "scen"]),
+        )
+
+        expected = DataFrame(
+            {2010: [1.4, 2.4, 3.4], 2020: [3.4, 4.4, 5.4]},
+            index=MultiIndex.from_product(
+                [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+            ),
+        )
+        result = df.add(series, axis=0)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_frame_multiindex_operations_series_index_to_frame_index(self):
+        # GH 43321
+        df = DataFrame(
+            {2010: [1], 2020: [3]},
+            index=MultiIndex.from_product([["a"], ["b"]], names=["scen", "mod"]),
+        )
+
+        series = Series(
+            [10.0, 20.0, 30.0],
+            index=MultiIndex.from_product(
+                [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+            ),
+        )
+
+        expected = DataFrame(
+            {2010: [11.0, 21, 31.0], 2020: [13.0, 23.0, 33.0]},
+            index=MultiIndex.from_product(
+                [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+            ),
+        )
+        result = df.add(series, axis=0)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_frame_multiindex_operations_no_align(self):
+        df = DataFrame(
+            {2010: [1, 2, 3], 2020: [3, 4, 5]},
+            index=MultiIndex.from_product(
+                [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+            ),
+        )
+
+        series = Series(
+            [0.4],
+            index=MultiIndex.from_product([["c"], ["a"]], names=["mod", "scen"]),
+        )
+
+        expected = DataFrame(
+            {2010: np.nan, 2020: np.nan},
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "b", 2),
+                    ("a", "c", np.nan),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+        result = df.add(series, axis=0)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_frame_multiindex_operations_part_align(self):
+        df = DataFrame(
+            {2010: [1, 2, 3], 2020: [3, 4, 5]},
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+
+        series = Series(
+            [0.4],
+            index=MultiIndex.from_product([["b"], ["a"]], names=["mod", "scen"]),
+        )
+
+        expected = DataFrame(
+            {2010: [1.4, 2.4, np.nan], 2020: [3.4, 4.4, np.nan]},
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+        result = df.add(series, axis=0)
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):
@@ -1024,6 +1133,26 @@ class TestFrameArithmetic:
                 expected = op(df, value).dtypes
             tm.assert_series_equal(result, expected)
 
+    def test_arithmetic_midx_cols_different_dtypes(self):
+        # GH#49769
+        midx = MultiIndex.from_arrays([Series([1, 2]), Series([3, 4])])
+        midx2 = MultiIndex.from_arrays([Series([1, 2], dtype="Int8"), Series([3, 4])])
+        left = DataFrame([[1, 2], [3, 4]], columns=midx)
+        right = DataFrame([[1, 2], [3, 4]], columns=midx2)
+        result = left - right
+        expected = DataFrame([[0, 0], [0, 0]], columns=midx)
+        tm.assert_frame_equal(result, expected)
+
+    def test_arithmetic_midx_cols_different_dtypes_different_order(self):
+        # GH#49769
+        midx = MultiIndex.from_arrays([Series([1, 2]), Series([3, 4])])
+        midx2 = MultiIndex.from_arrays([Series([2, 1], dtype="Int8"), Series([4, 3])])
+        left = DataFrame([[1, 2], [3, 4]], columns=midx)
+        right = DataFrame([[1, 2], [3, 4]], columns=midx2)
+        result = left - right
+        expected = DataFrame([[-1, 1], [-1, 1]], columns=midx)
+        tm.assert_frame_equal(result, expected)
+
 
 def test_frame_with_zero_len_series_corner_cases():
     # GH#28600
@@ -1035,19 +1164,15 @@ def test_frame_with_zero_len_series_corner_cases():
     expected = DataFrame(df.values * np.nan, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning):
-        # Automatic alignment for comparisons deprecated
-        result = df == ser
-    expected = DataFrame(False, index=df.index, columns=df.columns)
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match="not aligned"):
+        # Automatic alignment for comparisons deprecated GH#36795, enforced 2.0
+        df == ser
 
-    # non-float case should not raise on comparison
+    # non-float case should not raise TypeError on comparison
     df2 = DataFrame(df.values.view("M8[ns]"), columns=df.columns)
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(ValueError, match="not aligned"):
         # Automatic alignment for comparisons deprecated
-        result = df2 == ser
-    expected = DataFrame(False, index=df.index, columns=df.columns)
-    tm.assert_frame_equal(result, expected)
+        df2 == ser
 
 
 def test_zero_len_frame_with_series_corner_cases():
@@ -1223,7 +1348,8 @@ class TestFrameArithmeticUnsorted:
         frame_copy = float_frame.reindex(float_frame.index[::2])
 
         del frame_copy["D"]
-        frame_copy["C"][:5] = np.nan
+        # adding NAs to first 5 values of column "C"
+        frame_copy.loc[: frame_copy.index[4], "C"] = np.nan
 
         added = float_frame + frame_copy
 
@@ -1896,6 +2022,15 @@ def test_bool_frame_mult_float():
     tm.assert_frame_equal(result, expected)
 
 
+def test_frame_sub_nullable_int(any_int_ea_dtype):
+    # GH 32822
+    series1 = Series([1, 2, None], dtype=any_int_ea_dtype)
+    series2 = Series([1, 2, 3], dtype=any_int_ea_dtype)
+    expected = DataFrame([0, 0, None], dtype=any_int_ea_dtype)
+    result = series1.to_frame() - series2.to_frame()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_frame_op_subclass_nonclass_constructor():
     # GH#43201 subclass._constructor is a function, not the subclass itself
 
@@ -1911,7 +2046,7 @@ def test_frame_op_subclass_nonclass_constructor():
     class SubclassedDataFrame(DataFrame):
         _metadata = ["my_extra_data"]
 
-        def __init__(self, my_extra_data, *args, **kwargs):
+        def __init__(self, my_extra_data, *args, **kwargs) -> None:
             self.my_extra_data = my_extra_data
             super().__init__(*args, **kwargs)
 
@@ -1930,3 +2065,15 @@ def test_frame_op_subclass_nonclass_constructor():
 
     result = sdf + sdf
     tm.assert_frame_equal(result, expected)
+
+
+def test_enum_column_equality():
+    Cols = Enum("Cols", "col1 col2")
+
+    q1 = DataFrame({Cols.col1: [1, 2, 3]})
+    q2 = DataFrame({Cols.col1: [1, 2, 3]})
+
+    result = q1[Cols.col1] == q2[Cols.col1]
+    expected = Series([True, True, True], name=Cols.col1)
+
+    tm.assert_series_equal(result, expected)

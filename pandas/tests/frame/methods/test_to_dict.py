@@ -80,11 +80,10 @@ class TestDataFrameToDict:
             df.to_dict(orient="xinvalid")
 
     @pytest.mark.parametrize("orient", ["d", "l", "r", "sp", "s", "i"])
-    def test_to_dict_short_orient_warns(self, orient):
+    def test_to_dict_short_orient_raises(self, orient):
         # GH#32515
         df = DataFrame({"A": [0, 1]})
-        msg = "Using short name for 'orient' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="not understood"):
             df.to_dict(orient=orient)
 
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
@@ -344,3 +343,118 @@ class TestDataFrameToDict:
         roundtrip = DataFrame.from_dict(df.to_dict(orient="tight"), orient="tight")
 
         tm.assert_frame_equal(df, roundtrip)
+
+    @pytest.mark.parametrize(
+        "orient",
+        ["dict", "list", "split", "records", "index", "tight"],
+    )
+    @pytest.mark.parametrize(
+        "data,expected_types",
+        (
+            (
+                {
+                    "a": [np.int64(1), 1, np.int64(3)],
+                    "b": [np.float64(1.0), 2.0, np.float64(3.0)],
+                    "c": [np.float64(1.0), 2, np.int64(3)],
+                    "d": [np.float64(1.0), "a", np.int64(3)],
+                    "e": [np.float64(1.0), ["a"], np.int64(3)],
+                    "f": [np.float64(1.0), ("a",), np.int64(3)],
+                },
+                {
+                    "a": [int, int, int],
+                    "b": [float, float, float],
+                    "c": [float, float, float],
+                    "d": [float, str, int],
+                    "e": [float, list, int],
+                    "f": [float, tuple, int],
+                },
+            ),
+            (
+                {
+                    "a": [1, 2, 3],
+                    "b": [1.1, 2.2, 3.3],
+                },
+                {
+                    "a": [int, int, int],
+                    "b": [float, float, float],
+                },
+            ),
+            (  # Make sure we have one df which is all object type cols
+                {
+                    "a": [1, "hello", 3],
+                    "b": [1.1, "world", 3.3],
+                },
+                {
+                    "a": [int, str, int],
+                    "b": [float, str, float],
+                },
+            ),
+        ),
+    )
+    def test_to_dict_returns_native_types(self, orient, data, expected_types):
+        # GH 46751
+        # Tests we get back native types for all orient types
+        df = DataFrame(data)
+        result = df.to_dict(orient)
+        if orient == "dict":
+            assertion_iterator = (
+                (i, key, value)
+                for key, index_value_map in result.items()
+                for i, value in index_value_map.items()
+            )
+        elif orient == "list":
+            assertion_iterator = (
+                (i, key, value)
+                for key, values in result.items()
+                for i, value in enumerate(values)
+            )
+        elif orient in {"split", "tight"}:
+            assertion_iterator = (
+                (i, key, result["data"][i][j])
+                for i in result["index"]
+                for j, key in enumerate(result["columns"])
+            )
+        elif orient == "records":
+            assertion_iterator = (
+                (i, key, value)
+                for i, record in enumerate(result)
+                for key, value in record.items()
+            )
+        elif orient == "index":
+            assertion_iterator = (
+                (i, key, value)
+                for i, record in result.items()
+                for key, value in record.items()
+            )
+
+        for i, key, value in assertion_iterator:
+            assert value == data[key][i]
+            assert type(value) is expected_types[key][i]
+
+    @pytest.mark.parametrize("orient", ["dict", "list", "series", "records", "index"])
+    def test_to_dict_index_false_error(self, orient):
+        # GH#46398
+        df = DataFrame({"col1": [1, 2], "col2": [3, 4]}, index=["row1", "row2"])
+        msg = "'index=False' is only valid when 'orient' is 'split' or 'tight'"
+        with pytest.raises(ValueError, match=msg):
+            df.to_dict(orient=orient, index=False)
+
+    @pytest.mark.parametrize(
+        "orient, expected",
+        [
+            ("split", {"columns": ["col1", "col2"], "data": [[1, 3], [2, 4]]}),
+            (
+                "tight",
+                {
+                    "columns": ["col1", "col2"],
+                    "data": [[1, 3], [2, 4]],
+                    "column_names": [None],
+                },
+            ),
+        ],
+    )
+    def test_to_dict_index_false(self, orient, expected):
+        # GH#46398
+        df = DataFrame({"col1": [1, 2], "col2": [3, 4]}, index=["row1", "row2"])
+        result = df.to_dict(orient=orient, index=False)
+        tm.assert_dict_equal(result, expected)

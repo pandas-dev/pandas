@@ -44,7 +44,7 @@ class TestSeriesRank:
         from scipy.stats import rankdata
 
         datetime_series[::2] = np.nan
-        datetime_series[:10][::3] = 4.0
+        datetime_series[:10:3] = 4.0
 
         ranks = datetime_series.rank()
         oranks = datetime_series.astype("O").rank()
@@ -476,7 +476,6 @@ def test_rank_first_pct(dtype, ser, exp):
 
 
 @pytest.mark.single_cpu
-@pytest.mark.high_memory
 def test_pct_max_many_rows():
     # GH 18271
     s = Series(np.arange(2**24 + 1))

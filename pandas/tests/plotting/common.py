@@ -47,7 +47,7 @@ class TestPlotBase:
 
     @cache_readonly
     def colorconverter(self):
-        import matplotlib.colors as colors
+        from matplotlib import colors
 
         return colors.colorConverter
 
@@ -479,12 +479,14 @@ class TestPlotBase:
             mpl.rc("axes", grid=False)
             obj.plot(kind=kind, **kws)
             assert not is_grid_on()
+            self.plt.clf()
 
             self.plt.subplot(1, 4 * len(kinds), spndx)
             spndx += 1
             mpl.rc("axes", grid=True)
             obj.plot(kind=kind, grid=False, **kws)
             assert not is_grid_on()
+            self.plt.clf()
 
             if kind not in ["pie", "hexbin", "scatter"]:
                 self.plt.subplot(1, 4 * len(kinds), spndx)
@@ -492,12 +494,14 @@ class TestPlotBase:
                 mpl.rc("axes", grid=True)
                 obj.plot(kind=kind, **kws)
                 assert is_grid_on()
+                self.plt.clf()
 
                 self.plt.subplot(1, 4 * len(kinds), spndx)
                 spndx += 1
                 mpl.rc("axes", grid=False)
                 obj.plot(kind=kind, grid=True, **kws)
                 assert is_grid_on()
+                self.plt.clf()
 
     def _unpack_cycler(self, rcParams, field="color"):
         """
@@ -506,18 +510,10 @@ class TestPlotBase:
         return [v[field] for v in rcParams["axes.prop_cycle"]]
 
     def get_x_axis(self, ax):
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_5_0
-
-        if mpl_ge_3_5_0():
-            return ax._shared_axes["x"]
-        return ax._shared_x_axes
+        return ax._shared_axes["x"]
 
     def get_y_axis(self, ax):
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_5_0
-
-        if mpl_ge_3_5_0():
-            return ax._shared_axes["y"]
-        return ax._shared_y_axes
+        return ax._shared_axes["y"]
 
 
 def _check_plot_works(f, filterwarnings="always", default_axes=False, **kwargs):

@@ -9,7 +9,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
+from pandas.tests.groupby import get_groupby_method_args
 
 
 @pytest.mark.parametrize(
@@ -19,26 +19,18 @@ from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
         tm.SubclassedSeries(np.arange(0, 10), name="A"),
     ],
 )
-@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_groupby_preserves_subclass(obj, groupby_func):
     # GH28330 -- preserve subclass through groupby operations
 
     if isinstance(obj, Series) and groupby_func in {"corrwith"}:
         pytest.skip(f"Not applicable for Series and {groupby_func}")
-    # TODO(2.0) Remove after pad/backfill deprecation enforced
-    groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
+
     grouped = obj.groupby(np.arange(0, 10))
 
     # Groups should preserve subclass type
     assert isinstance(grouped.get_group(0), type(obj))
 
-    args = []
-    if groupby_func in {"fillna", "nth"}:
-        args.append(0)
-    elif groupby_func == "corrwith":
-        args.append(obj)
-    elif groupby_func == "tshift":
-        args.extend([0, 0])
+    args = get_groupby_method_args(groupby_func, obj)
 
     result1 = getattr(grouped, groupby_func)(*args)
     result2 = grouped.agg(groupby_func, *args)

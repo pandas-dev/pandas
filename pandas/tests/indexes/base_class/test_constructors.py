@@ -30,13 +30,15 @@ class TestIndexConstructor:
         assert isinstance(index, Index)
         assert not isinstance(index, MultiIndex)
 
-    def test_constructor_wrong_kwargs(self):
-        # GH #19348
-        with pytest.raises(TypeError, match="Unexpected keyword arguments {'foo'}"):
-            with tm.assert_produces_warning(FutureWarning):
-                Index([], foo="bar")
-
     def test_constructor_cast(self):
         msg = "could not convert string to float"
         with pytest.raises(ValueError, match=msg):
             Index(["a", "b", "c"], dtype=float)
+
+    @pytest.mark.parametrize("tuple_list", [[()], [(), ()]])
+    def test_construct_empty_tuples(self, tuple_list):
+        # GH #45608
+        result = Index(tuple_list)
+        expected = MultiIndex.from_tuples(tuple_list)
+
+        tm.assert_index_equal(result, expected)

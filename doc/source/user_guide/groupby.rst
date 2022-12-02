@@ -477,7 +477,7 @@ An obvious one is aggregation via the
 .. ipython:: python
 
    grouped = df.groupby("A")
-   grouped.aggregate(np.sum)
+   grouped[["C", "D"]].aggregate(np.sum)
 
    grouped = df.groupby(["A", "B"])
    grouped.aggregate(np.sum)
@@ -492,7 +492,7 @@ changed by using the ``as_index`` option:
    grouped = df.groupby(["A", "B"], as_index=False)
    grouped.aggregate(np.sum)
 
-   df.groupby("A", as_index=False).sum()
+   df.groupby("A", as_index=False)[["C", "D"]].sum()
 
 Note that you could use the ``reset_index`` DataFrame function to achieve the
 same result as the column names are stored in the resulting ``MultiIndex``:
@@ -539,19 +539,19 @@ Some common aggregating functions are tabulated below:
     :widths: 20, 80
     :delim: ;
 
-	:meth:`~pd.core.groupby.DataFrameGroupBy.mean`;Compute mean of groups
-	:meth:`~pd.core.groupby.DataFrameGroupBy.sum`;Compute sum of group values
-	:meth:`~pd.core.groupby.DataFrameGroupBy.size`;Compute group sizes
-	:meth:`~pd.core.groupby.DataFrameGroupBy.count`;Compute count of group
-	:meth:`~pd.core.groupby.DataFrameGroupBy.std`;Standard deviation of groups
-	:meth:`~pd.core.groupby.DataFrameGroupBy.var`;Compute variance of groups
-	:meth:`~pd.core.groupby.DataFrameGroupBy.sem`;Standard error of the mean of groups
-	:meth:`~pd.core.groupby.DataFrameGroupBy.describe`;Generates descriptive statistics
-	:meth:`~pd.core.groupby.DataFrameGroupBy.first`;Compute first of group values
-	:meth:`~pd.core.groupby.DataFrameGroupBy.last`;Compute last of group values
-	:meth:`~pd.core.groupby.DataFrameGroupBy.nth`;Take nth value, or a subset if n is a list
-	:meth:`~pd.core.groupby.DataFrameGroupBy.min`;Compute min of group values
-	:meth:`~pd.core.groupby.DataFrameGroupBy.max`;Compute max of group values
+        :meth:`~pd.core.groupby.DataFrameGroupBy.mean`;Compute mean of groups
+        :meth:`~pd.core.groupby.DataFrameGroupBy.sum`;Compute sum of group values
+        :meth:`~pd.core.groupby.DataFrameGroupBy.size`;Compute group sizes
+        :meth:`~pd.core.groupby.DataFrameGroupBy.count`;Compute count of group
+        :meth:`~pd.core.groupby.DataFrameGroupBy.std`;Standard deviation of groups
+        :meth:`~pd.core.groupby.DataFrameGroupBy.var`;Compute variance of groups
+        :meth:`~pd.core.groupby.DataFrameGroupBy.sem`;Standard error of the mean of groups
+        :meth:`~pd.core.groupby.DataFrameGroupBy.describe`;Generates descriptive statistics
+        :meth:`~pd.core.groupby.DataFrameGroupBy.first`;Compute first of group values
+        :meth:`~pd.core.groupby.DataFrameGroupBy.last`;Compute last of group values
+        :meth:`~pd.core.groupby.DataFrameGroupBy.nth`;Take nth value, or a subset if n is a list
+        :meth:`~pd.core.groupby.DataFrameGroupBy.min`;Compute min of group values
+        :meth:`~pd.core.groupby.DataFrameGroupBy.max`;Compute max of group values
 
 
 The aggregating functions above will exclude NA values. Any function which
@@ -632,7 +632,7 @@ Named aggregation
 .. versionadded:: 0.25.0
 
 To support column-specific aggregation *with control over the output column names*, pandas
-accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation", where
+accepts the special syntax in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg`, known as "named aggregation", where
 
 - The keywords are the *output* column names
 - The values are tuples whose first element is the column to select
@@ -730,7 +730,7 @@ optimized Cython implementations:
 
 .. ipython:: python
 
-   df.groupby("A").sum()
+   df.groupby("A")[["C", "D"]].sum()
    df.groupby(["A", "B"]).mean()
 
 Of course ``sum`` and ``mean`` are implemented on pandas objects, so the above
@@ -761,7 +761,7 @@ different dtypes, then a common dtype will be determined in the same way as ``Da
 Transformation
 --------------
 
-The ``transform`` method returns an object that is indexed the same (same size)
+The ``transform`` method returns an object that is indexed the same
 as the one being grouped. The transform function must:
 
 * Return a result that is either the same size as the group chunk or
@@ -775,6 +775,14 @@ as the one being grouped. The transform function must:
   (``grouped.transform(lambda x: x.fillna(inplace=False))``).
 * (Optionally) operates on the entire group chunk. If this is supported, a
   fast path is used starting from the *second* chunk.
+
+.. deprecated:: 1.5.0
+
+    When using ``.transform`` on a grouped DataFrame and the transformation function
+    returns a DataFrame, currently pandas does not align the result's index
+    with the input's index. This behavior is deprecated and alignment will
+    be performed in a future version of pandas. You can apply ``.to_numpy()`` to the
+    result of the transformation function to avoid alignment.
 
 Similar to :ref:`groupby.aggregate.udfs`, the resulting dtype will reflect that of the
 transformation function. If the results from different groups have different dtypes, then
@@ -831,10 +839,10 @@ Alternatively, the built-in methods could be used to produce the same outputs.
 
 .. ipython:: python
 
-   max = ts.groupby(lambda x: x.year).transform("max")
-   min = ts.groupby(lambda x: x.year).transform("min")
+   max_ts = ts.groupby(lambda x: x.year).transform("max")
+   min_ts = ts.groupby(lambda x: x.year).transform("min")
 
-   max - min
+   max_ts - min_ts
 
 Another common data transform is to replace missing data with the group mean.
 
@@ -999,7 +1007,7 @@ functions:
 .. ipython:: python
    :okwarning:
 
-   grouped = df.groupby("A")
+   grouped = df.groupby("A")[["C", "D"]]
    grouped.agg(lambda x: x.std())
 
 But, it's rather verbose and can be untidy if you need to pass additional
@@ -1052,7 +1060,14 @@ Some operations on the grouped data might not fit into either the aggregate or
 transform categories. Or, you may simply want GroupBy to infer how to combine
 the results. For these, use the ``apply`` function, which can be substituted
 for both ``aggregate`` and ``transform`` in many standard use cases. However,
-``apply`` can handle some exceptional use cases, for example:
+``apply`` can handle some exceptional use cases.
+
+.. note::
+
+   ``apply`` can act as a reducer, transformer, *or* filter function, depending
+   on exactly what is passed to it. It can depend on the passed function and
+   exactly what you are grouping. Thus the grouped column(s) may be included in
+   the output as well as set the indices.
 
 .. ipython:: python
 
@@ -1064,16 +1079,14 @@ for both ``aggregate`` and ``transform`` in many standard use cases. However,
 
 The dimension of the returned result can also change:
 
-.. ipython::
+.. ipython:: python
 
-    In [8]: grouped = df.groupby('A')['C']
+    grouped = df.groupby('A')['C']
 
-    In [10]: def f(group):
-       ....:     return pd.DataFrame({'original': group,
-       ....:                          'demeaned': group - group.mean()})
-       ....:
-
-    In [11]: grouped.apply(f)
+    def f(group):
+        return pd.DataFrame({'original': group,
+                             'demeaned': group - group.mean()})
+    grouped.apply(f)
 
 ``apply`` on a Series can operate on a returned value from the applied function,
 that is itself a series, and possibly upcast the result to a DataFrame:
@@ -1088,11 +1101,33 @@ that is itself a series, and possibly upcast the result to a DataFrame:
     s
     s.apply(f)
 
+Control grouped column(s) placement with ``group_keys``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. note::
 
-   ``apply`` can act as a reducer, transformer, *or* filter function, depending on exactly what is passed to it.
-   So depending on the path taken, and exactly what you are grouping. Thus the grouped columns(s) may be included in
-   the output as well as set the indices.
+   If ``group_keys=True`` is specified when calling :meth:`~DataFrame.groupby`,
+   functions passed to ``apply`` that return like-indexed outputs will have the
+   group keys added to the result index. Previous versions of pandas would add
+   the group keys only when the result from the applied function had a different
+   index than the input. If ``group_keys`` is not specified, the group keys will
+   not be added for like-indexed outputs. In the future this behavior
+   will change to always respect ``group_keys``, which defaults to ``True``.
+
+   .. versionchanged:: 1.5.0
+
+To control whether the grouped column(s) are included in the indices, you can use
+the argument ``group_keys``. Compare
+
+.. ipython:: python
+
+    df.groupby("A", group_keys=True).apply(lambda x: x)
+
+with
+
+.. ipython:: python
+
+    df.groupby("A", group_keys=False).apply(lambda x: x)
 
 Similar to :ref:`groupby.aggregate.udfs`, the resulting dtype will reflect that of the
 apply function. If the results from different groups have different dtypes, then
@@ -1132,13 +1167,12 @@ Again consider the example DataFrame we've been looking at:
 
 Suppose we wish to compute the standard deviation grouped by the ``A``
 column. There is a slight problem, namely that we don't care about the data in
-column ``B``. We refer to this as a "nuisance" column. If the passed
-aggregation function can't be applied to some columns, the troublesome columns
-will be (silently) dropped. Thus, this does not pose any problems:
+column ``B``. We refer to this as a "nuisance" column. You can avoid nuisance
+columns by specifying ``numeric_only=True``:
 
 .. ipython:: python
 
-   df.groupby("A").std()
+   df.groupby("A").std(numeric_only=True)
 
 Note that ``df.groupby('A').colname.std().`` is more efficient than
 ``df.groupby('A').std().colname``, so if the result of an aggregation function
@@ -1153,7 +1187,14 @@ is only interesting over one column (here ``colname``), it may be filtered
    If you do wish to include decimal or object columns in an aggregation with
    other non-nuisance data types, you must do so explicitly.
 
+.. warning::
+   The automatic dropping of nuisance columns has been deprecated and will be removed
+   in a future version of pandas. If columns are included that cannot be operated
+   on, pandas will instead raise an error. In order to avoid this, either select
+   the columns you wish to operate on or specify ``numeric_only=True``.
+
 .. ipython:: python
+    :okwarning:
 
     from decimal import Decimal
 
@@ -1277,7 +1318,7 @@ Groupby a specific column with the desired frequency. This is like resampling.
 
 .. ipython:: python
 
-   df.groupby([pd.Grouper(freq="1M", key="Date"), "Buyer"]).sum()
+   df.groupby([pd.Grouper(freq="1M", key="Date"), "Buyer"])[["Quantity"]].sum()
 
 You have an ambiguous specification in that you have a named index and a column
 that could be potential groupers.
@@ -1286,9 +1327,9 @@ that could be potential groupers.
 
    df = df.set_index("Date")
    df["Date"] = df.index + pd.offsets.MonthEnd(2)
-   df.groupby([pd.Grouper(freq="6M", key="Date"), "Buyer"]).sum()
+   df.groupby([pd.Grouper(freq="6M", key="Date"), "Buyer"])[["Quantity"]].sum()
 
-   df.groupby([pd.Grouper(freq="6M", level="Date"), "Buyer"]).sum()
+   df.groupby([pd.Grouper(freq="6M", level="Date"), "Buyer"])[["Quantity"]].sum()
 
 
 Taking the first rows of each group
@@ -1313,9 +1354,14 @@ This shows the first or last n rows from each group.
 Taking the nth row of each group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To select from a DataFrame or Series the nth item, use
-:meth:`~pd.core.groupby.DataFrameGroupBy.nth`. This is a reduction method, and
-will return a single row (or no row) per group if you pass an int for n:
+To select the nth item from each group, use :meth:`.DataFrameGroupBy.nth` or
+:meth:`.SeriesGroupBy.nth`. Arguments supplied can be any integer, lists of integers,
+slices, or lists of slices; see below for examples. When the nth element of a group
+does not exist an error is *not* raised; instead no corresponding rows are returned.
+
+In general this operation acts as a filtration. In certain cases it will also return
+one row per group, making it also a reduction. However because in general it can
+return zero or multiple rows per group, pandas treats it as a filtration in all cases.
 
 .. ipython:: python
 
@@ -1326,6 +1372,14 @@ will return a single row (or no row) per group if you pass an int for n:
    g.nth(-1)
    g.nth(1)
 
+If the nth element of a group does not exist, then no corresponding row is included
+in the result. In particular, if the specified ``n`` is larger than any group, the
+result will be an empty DataFrame.
+
+.. ipython:: python
+
+   g.nth(5)
+
 If you want to select the nth not-null item, use the ``dropna`` kwarg. For a DataFrame this should be either ``'any'`` or ``'all'`` just like you would pass to dropna:
 
 .. ipython:: python
@@ -1335,20 +1389,10 @@ If you want to select the nth not-null item, use the ``dropna`` kwarg. For a Dat
    g.first()
 
    # nth(-1) is the same as g.last()
-   g.nth(-1, dropna="any")  # NaNs denote group exhausted when using dropna
+   g.nth(-1, dropna="any")
    g.last()
 
    g.B.nth(0, dropna="all")
-
-As with other methods, passing ``as_index=False``, will achieve a filtration, which returns the grouped row.
-
-.. ipython:: python
-
-   df = pd.DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=["A", "B"])
-   g = df.groupby("A", as_index=False)
-
-   g.nth(0)
-   g.nth(-1)
 
 You can also select multiple rows from each group by specifying multiple nth values as a list of ints.
 
@@ -1358,6 +1402,13 @@ You can also select multiple rows from each group by specifying multiple nth val
    df = pd.DataFrame(1, index=business_dates, columns=["a", "b"])
    # get the first, 4th, and last date index for each month
    df.groupby([df.index.year, df.index.month]).nth([0, 3, -1])
+
+You may also use a slices or lists of slices.
+
+.. ipython:: python
+
+   df.groupby([df.index.year, df.index.month]).nth[1:]
+   df.groupby([df.index.year, df.index.month]).nth[1:, :-1]
 
 Enumerate group items
 ~~~~~~~~~~~~~~~~~~~~~

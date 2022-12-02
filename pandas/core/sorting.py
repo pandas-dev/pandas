@@ -9,8 +9,8 @@ from typing import (
     Hashable,
     Iterable,
     Sequence,
+    cast,
 )
-import warnings
 
 import numpy as np
 
@@ -21,8 +21,12 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import (
+    AxisInt,
     IndexKeyFunc,
+    Level,
+    NaPosition,
     Shape,
+    SortKind,
     npt,
 )
 
@@ -47,10 +51,10 @@ if TYPE_CHECKING:
 
 def get_indexer_indexer(
     target: Index,
-    level: str | int | list[str] | list[int],
-    ascending: Sequence[bool | int] | bool | int,
-    kind: str,
-    na_position: str,
+    level: Level | list[Level] | None,
+    ascending: list[bool] | bool,
+    kind: SortKind,
+    na_position: NaPosition,
     sort_remaining: bool,
     key: IndexKeyFunc,
 ) -> npt.NDArray[np.intp] | None:
@@ -92,8 +96,12 @@ def get_indexer_indexer(
         ):
             return None
 
+        # ascending can only be a Sequence for MultiIndex
         indexer = nargsort(
-            target, kind=kind, ascending=ascending, na_position=na_position
+            target,
+            kind=kind,
+            ascending=cast(bool, ascending),
+            na_position=na_position,
         )
     return indexer
 
@@ -332,12 +340,7 @@ def lexsort_indexer(
     keys = [ensure_key_mapped(k, key) for k in keys]
 
     for k, order in zip(keys, orders):
-        with warnings.catch_warnings():
-            # TODO(2.0): unnecessary once deprecation is enforced
-            # GH#45618 don't issue warning user can't do anything about
-            warnings.filterwarnings("ignore", ".*SparseArray.*", category=FutureWarning)
-
-            cat = Categorical(k, ordered=True)
+        cat = Categorical(k, ordered=True)
 
         if na_position not in ["last", "first"]:
             raise ValueError(f"invalid na_position: {na_position}")
@@ -439,7 +442,7 @@ def nargsort(
     return ensure_platform_int(indexer)
 
 
-def nargminmax(values: ExtensionArray, method: str, axis: int = 0):
+def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.

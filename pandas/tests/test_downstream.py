@@ -8,10 +8,14 @@ import sys
 import numpy as np
 import pytest
 
+from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 # geopandas, xarray, fsspec, fastparquet all produce these
@@ -70,7 +74,7 @@ def test_dask_ufunc():
         import dask.array as da
         import dask.dataframe as dd
 
-        s = pd.Series([1.5, 2.3, 3.7, 4.0])
+        s = Series([1.5, 2.3, 3.7, 4.0])
         ds = dd.from_pandas(s, npartitions=2)
 
         result = da.fix(ds).compute()
@@ -78,6 +82,32 @@ def test_dask_ufunc():
         tm.assert_series_equal(result, expected)
     finally:
         pd.set_option("compute.use_numexpr", olduse)
+
+
+@td.skip_if_no("dask")
+def test_construct_dask_float_array_int_dtype_match_ndarray():
+    # GH#40110 make sure we treat a float-dtype dask array with the same
+    #  rules we would for an ndarray
+    import dask.dataframe as dd
+
+    arr = np.array([1, 2.5, 3])
+    darr = dd.from_array(arr)
+
+    res = Series(darr)
+    expected = Series(arr)
+    tm.assert_series_equal(res, expected)
+
+    res = Series(darr, dtype="i8")
+    expected = Series(arr, dtype="i8")
+    tm.assert_series_equal(res, expected)
+
+    msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+    arr[2] = np.nan
+    with pytest.raises(IntCastingNaNError, match=msg):
+        Series(darr, dtype="i8")
+    # which is the same as we get with a numpy input
+    with pytest.raises(IntCastingNaNError, match=msg):
+        Series(arr, dtype="i8")
 
 
 def test_xarray(df):
@@ -127,7 +157,6 @@ def test_oo_optimized_datetime_index_unpickle():
 @pytest.mark.network
 @tm.network
 # Cython import warning
-@pytest.mark.filterwarnings("ignore:pandas.util.testing is deprecated")
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 @pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 @pytest.mark.filterwarnings(
@@ -194,38 +223,23 @@ def test_pandas_datareader():
     pandas_datareader.DataReader("F", "quandl", "2017-01-01", "2017-02-01")
 
 
-# importing from pandas, Cython import warning
-@pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
 def test_geopandas():
 
     geopandas = import_module("geopandas")
-    fp = geopandas.datasets.get_path("naturalearth_lowres")
-    assert geopandas.read_file(fp) is not None
+    gdf = geopandas.GeoDataFrame(
+        {"col": [1, 2, 3], "geometry": geopandas.points_from_xy([1, 2, 3], [1, 2, 3])}
+    )
+    assert gdf[["col", "geometry"]].geometry.x.equals(Series([1.0, 2.0, 3.0]))
 
 
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
-@pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning")
 def test_pyarrow(df):
 
     pyarrow = import_module("pyarrow")
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
-
-
-def test_torch_frame_construction(using_array_manager):
-    # GH#44616
-    torch = import_module("torch")
-    val_tensor = torch.randn(700, 64)
-
-    df = DataFrame(val_tensor)
-
-    if not using_array_manager:
-        assert np.shares_memory(df, val_tensor)
-
-    ser = pd.Series(val_tensor[0])
-    assert np.shares_memory(ser, val_tensor)
 
 
 def test_yaml_dump(df):
@@ -275,3 +289,27 @@ def test_missing_required_dependency():
     output = exc.value.stdout.decode()
     for name in ["numpy", "pytz", "dateutil"]:
         assert name in output
+
+
+def test_frame_setitem_dask_array_into_new_col():
+    # GH#47128
+
+    # dask sets "compute.use_numexpr" to False, so catch the current value
+    # and ensure to reset it afterwards to avoid impacting other tests
+    olduse = pd.get_option("compute.use_numexpr")
+
+    try:
+        dask = import_module("dask")  # noqa:F841
+
+        import dask.array as da
+
+        dda = da.array([1, 2])
+        df = DataFrame({"a": ["a", "b"]})
+        df["b"] = dda
+        df["c"] = dda
+        df.loc[[False, True], "b"] = 100
+        result = df.loc[[1], :]
+        expected = DataFrame({"a": ["b"], "b": [100], "c": [2]}, index=[1])
+        tm.assert_frame_equal(result, expected)
+    finally:
+        pd.set_option("compute.use_numexpr", olduse)

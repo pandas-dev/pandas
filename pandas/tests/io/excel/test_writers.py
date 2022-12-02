@@ -27,7 +27,6 @@ from pandas.io.excel import (
     ExcelWriter,
     _OpenpyxlWriter,
     _XlsxWriter,
-    _XlwtWriter,
     register_writer,
 )
 
@@ -61,7 +60,6 @@ def set_engine(engine, ext):
     [
         pytest.param(".xlsx", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
         pytest.param(".xlsm", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
-        pytest.param(".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]),
         pytest.param(
             ".xlsx", marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")]
         ),
@@ -320,9 +318,6 @@ class TestRoundTrip:
             marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")],
         ),
         pytest.param(
-            "xlwt", ".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]
-        ),
-        pytest.param(
             "xlsxwriter",
             ".xlsx",
             marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")],
@@ -379,7 +374,7 @@ class TestExcelWriter:
 
     def test_roundtrip(self, frame, path):
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
 
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
@@ -449,7 +444,7 @@ class TestExcelWriter:
 
     def test_basics_with_nan(self, frame, path):
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
         frame.to_excel(path, "test1", header=False)
@@ -471,18 +466,6 @@ class TestExcelWriter:
         recons2 = pd.read_excel(path, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(int_frame, recons2)
 
-        # Test with convert_float=False comes back as float.
-        float_frame = df.astype(float)
-        float_frame.columns = float_frame.columns.astype(float)
-        float_frame.index = float_frame.index.astype(float)
-        with tm.assert_produces_warning(
-            FutureWarning, match="convert_float is deprecated"
-        ):
-            recons = pd.read_excel(
-                path, sheet_name="test1", convert_float=False, index_col=0
-            )
-        tm.assert_frame_equal(recons, float_frame)
-
     @pytest.mark.parametrize("np_type", [np.float16, np.float32, np.float64])
     def test_float_types(self, np_type, path):
         # Test np.float values read come back as float.
@@ -496,15 +479,14 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(df, recons)
 
-    @pytest.mark.parametrize("np_type", [np.bool8, np.bool_])
-    def test_bool_types(self, np_type, path):
-        # Test np.bool8 and np.bool_ values read come back as float.
-        df = DataFrame([1, 0, True, False], dtype=np_type)
+    def test_bool_types(self, path):
+        # Test np.bool_ values read come back as float.
+        df = DataFrame([1, 0, True, False], dtype=np.bool_)
         df.to_excel(path, "test1")
 
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0).astype(
-                np_type
+                np.bool_
             )
 
         tm.assert_frame_equal(df, recons)
@@ -525,7 +507,7 @@ class TestExcelWriter:
         tsframe.index = index
 
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
 
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
@@ -547,7 +529,7 @@ class TestExcelWriter:
 
     def test_colaliases(self, frame, path):
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
 
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
@@ -565,7 +547,7 @@ class TestExcelWriter:
 
     def test_roundtrip_indexlabels(self, merge_cells, frame, path):
         frame = frame.copy()
-        frame["A"][:5] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
 
         frame.to_excel(path, "test1")
         frame.to_excel(path, "test1", columns=["A", "B"])
@@ -835,6 +817,19 @@ class TestExcelWriter:
         # Test that it is the same as the initial frame.
         tm.assert_frame_equal(frame1, frame3)
 
+    def test_to_excel_empty_multiindex(self, path):
+        # GH 19543.
+        expected = DataFrame([], columns=[0, 1, 2])
+
+        df = DataFrame([], index=MultiIndex.from_tuples([], names=[0, 1]), columns=[2])
+        df.to_excel(path, "test1")
+
+        with ExcelFile(path) as reader:
+            result = pd.read_excel(reader, sheet_name="test1")
+        tm.assert_frame_equal(
+            result, expected, check_index_type=False, check_dtype=False
+        )
+
     def test_to_excel_float_format(self, path):
         df = DataFrame(
             [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
@@ -862,18 +857,17 @@ class TestExcelWriter:
         )
 
         with tm.ensure_clean("__tmp_to_excel_float_format__." + ext) as filename:
-            df.to_excel(filename, sheet_name="TestSheet", encoding="utf8")
+            df.to_excel(filename, sheet_name="TestSheet")
             result = pd.read_excel(filename, sheet_name="TestSheet", index_col=0)
             tm.assert_frame_equal(result, df)
 
     def test_to_excel_unicode_filename(self, ext):
         with tm.ensure_clean("\u0192u." + ext) as filename:
             try:
-                f = open(filename, "wb")
+                with open(filename, "wb"):
+                    pass
             except UnicodeEncodeError:
                 pytest.skip("No unicode file names on this system")
-            finally:
-                f.close()
 
             df = DataFrame(
                 [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
@@ -959,12 +953,6 @@ class TestExcelWriter:
         result = pd.read_excel(path, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(result, expected)
 
-        # Explicitly, we pass in the parameter.
-        result = pd.read_excel(
-            path, sheet_name="test1", index_col=0, mangle_dupe_cols=True
-        )
-        tm.assert_frame_equal(result, expected)
-
         # see gh-11007, gh-10970
         df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]], columns=["A", "B", "A", "B"])
         df.to_excel(path, "test1")
@@ -981,10 +969,6 @@ class TestExcelWriter:
 
         expected = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]])
         tm.assert_frame_equal(result, expected)
-
-        msg = "Setting mangle_dupe_cols=False is not supported yet"
-        with pytest.raises(ValueError, match=msg):
-            pd.read_excel(path, sheet_name="test1", header=None, mangle_dupe_cols=False)
 
     def test_swapped_columns(self, path):
         # Test for issue #5427.
@@ -1088,7 +1072,6 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, expected)
 
     def test_datetimes(self, path):
-
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
         datetimes = [
             datetime(2013, 1, 13, 1, 2, 3),
@@ -1106,11 +1089,6 @@ class TestExcelWriter:
 
         write_frame = DataFrame({"A": datetimes})
         write_frame.to_excel(path, "Sheet1")
-        if path.endswith("xlsx") or path.endswith("xlsm"):
-            pytest.skip(
-                "Defaults to openpyxl and fails with floating point error on "
-                "datetimes; may be fixed on newer versions of openpyxl - GH #38644"
-            )
         read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0)
 
         tm.assert_series_equal(write_frame["A"], read_frame["A"])
@@ -1197,21 +1175,15 @@ class TestExcelWriter:
                 (pd.Period("2018"), pd.Period("2018Q2")),
             ]
         )
-        expected = DataFrame(np.ones((2, 2)), columns=mi)
+        expected = DataFrame(np.ones((2, 2), dtype="int64"), columns=mi)
         expected.to_excel(path)
-        with tm.assert_produces_warning(
-            FutureWarning, match="convert_float is deprecated"
-        ):
-            result = pd.read_excel(
-                path, header=[0, 1], index_col=0, convert_float=False
-            )
+        result = pd.read_excel(path, header=[0, 1], index_col=0)
         # need to convert PeriodIndexes to standard Indexes for assert equal
         expected.columns = expected.columns.set_levels(
             [[str(i) for i in mi.levels[0]], [str(i) for i in mi.levels[1]]],
             level=[0, 1],
         )
-        expected.index = expected.index.astype(np.float64)
-        tm.assert_frame_equal(expected, result)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_raise_when_saving_timezones(self, dtype, tz_aware_fixture, path):
@@ -1272,6 +1244,7 @@ class TestExcelWriter:
                 # Some engines raise if nothing is written
                 DataFrame().to_excel(writer)
 
+    @pytest.mark.filterwarnings("ignore:Calling close():UserWarning:xlsxwriter")
     @pytest.mark.parametrize(
         "attr, args", [("save", ()), ("write_cells", ([], "test"))]
     )
@@ -1285,6 +1258,17 @@ class TestExcelWriter:
                 with tm.assert_produces_warning(FutureWarning, match=msg):
                     getattr(writer, attr)(*args)
 
+    def test_deprecated_book_setter(self, engine, ext):
+        # GH#48780
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path) as writer:
+                msg = "Setting the `book` attribute is not part of the public API"
+                # Some engines raise if nothing is written
+                DataFrame().to_excel(writer)
+                book = writer.book
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    writer.book = book
+
 
 class TestExcelWriterEngineTests:
     @pytest.mark.parametrize(
@@ -1292,7 +1276,6 @@ class TestExcelWriterEngineTests:
         [
             pytest.param(_XlsxWriter, ".xlsx", marks=td.skip_if_no("xlsxwriter")),
             pytest.param(_OpenpyxlWriter, ".xlsx", marks=td.skip_if_no("openpyxl")),
-            pytest.param(_XlwtWriter, ".xls", marks=td.skip_if_no("xlwt")),
         ],
     )
     def test_ExcelWriter_dispatch(self, klass, ext):
@@ -1313,8 +1296,8 @@ class TestExcelWriterEngineTests:
             called_save = False
             called_write_cells = False
             called_sheets = False
-            supported_extensions = ["xlsx", "xls"]
-            engine = "dummy"
+            _supported_extensions = ("xlsx", "xls")
+            _engine = "dummy"
 
             def book(self):
                 pass
@@ -1351,21 +1334,6 @@ class TestExcelWriterEngineTests:
         with tm.ensure_clean("something.xls") as filepath:
             df.to_excel(filepath, engine="dummy")
         DummyClass.assert_called_and_reset()
-
-    @pytest.mark.parametrize(
-        "ext",
-        [
-            pytest.param(".xlsx", marks=td.skip_if_no("xlsxwriter")),
-            pytest.param(".xlsx", marks=td.skip_if_no("openpyxl")),
-            pytest.param(".ods", marks=td.skip_if_no("odf")),
-        ],
-    )
-    def test_engine_kwargs_and_kwargs_raises(self, ext):
-        # GH 40430
-        msg = re.escape("Cannot use both engine_kwargs and **kwargs")
-        with pytest.raises(ValueError, match=msg):
-            with ExcelWriter("", engine_kwargs={"a": 1}, b=2):
-                pass
 
 
 @td.skip_if_no("xlrd")

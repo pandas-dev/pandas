@@ -16,7 +16,6 @@ from pandas import (
     DataFrame,
     Series,
     Timestamp,
-    compat,
     date_range,
     option_context,
 )
@@ -86,12 +85,6 @@ class TestDataFrameBlockInternals:
         for letter in range(ord("A"), ord("Z")):
             float_frame[chr(letter)] = chr(letter)
 
-    def test_values_consolidate(self, float_frame):
-        float_frame["E"] = 7.0
-        assert not float_frame._mgr.is_consolidated()
-        _ = float_frame.values
-        assert float_frame._mgr.is_consolidated()
-
     def test_modify_values(self, float_frame):
         float_frame.values[5] = 5
         assert (float_frame.values[5] == 5).all()
@@ -100,10 +93,10 @@ class TestDataFrameBlockInternals:
         float_frame["E"] = 7.0
         col = float_frame["E"]
         float_frame.values[6] = 6
-        assert (float_frame.values[6] == 6).all()
+        # as of 2.0 .values does not consolidate, so subsequent calls to .values
+        #  does not share data
+        assert not (float_frame.values[6] == 6).all()
 
-        # check that item_cache was cleared
-        assert float_frame["E"] is not col
         assert (col == 7).all()
 
     def test_boolean_set_uncons(self, float_frame):
@@ -215,23 +208,26 @@ class TestDataFrameBlockInternals:
 
     def test_construction_with_conversions(self):
 
-        # convert from a numpy array of non-ns timedelta64
+        # convert from a numpy array of non-ns timedelta64; as of 2.0 this does
+        #  *not* convert
         arr = np.array([1, 2, 3], dtype="timedelta64[s]")
         df = DataFrame(index=range(3))
         df["A"] = arr
         expected = DataFrame(
             {"A": pd.timedelta_range("00:00:01", periods=3, freq="s")}, index=range(3)
         )
-        tm.assert_frame_equal(df, expected)
+        tm.assert_numpy_array_equal(df["A"].to_numpy(), arr)
 
         expected = DataFrame(
             {
                 "dt1": Timestamp("20130101"),
-                "dt2": date_range("20130101", periods=3),
+                "dt2": date_range("20130101", periods=3).astype("M8[s]"),
                 # 'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
             },
             index=range(3),
         )
+        assert expected.dtypes["dt1"] == "M8[ns]"
+        assert expected.dtypes["dt2"] == "M8[s]"
 
         df = DataFrame(index=range(3))
         df["dt1"] = np.datetime64("2013-01-01")
@@ -256,16 +252,15 @@ class TestDataFrameBlockInternals:
         with pytest.raises(NotImplementedError, match=msg):
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
-        # these work (though results may be unexpected)
-        depr_msg = "either all columns will be cast to that dtype, or a TypeError will"
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        # pre-2.0 these used to work (though results may be unexpected)
+        with pytest.raises(TypeError, match="argument must be"):
             f("int64")
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        with pytest.raises(TypeError, match="argument must be"):
             f("float64")
 
         # 10822
-        # invalid error message on dt inference
-        if not compat.is_platform_windows():
+        msg = "Unknown string format: aa present at position 0"
+        with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
     def test_pickle(self, float_string_frame, timezone_frame):
@@ -334,7 +329,7 @@ class TestDataFrameBlockInternals:
         assert not float_frame._is_mixed_type
         assert float_string_frame._is_mixed_type
 
-    def test_stale_cached_series_bug_473(self):
+    def test_stale_cached_series_bug_473(self, using_copy_on_write):
 
         # this is chained, but ok
         with option_context("chained_assignment", None):
@@ -349,9 +344,12 @@ class TestDataFrameBlockInternals:
             repr(Y)
             result = Y.sum()  # noqa
             exp = Y["g"].sum()  # noqa
-            assert pd.isna(Y["g"]["c"])
+            if using_copy_on_write:
+                assert not pd.isna(Y["g"]["c"])
+            else:
+                assert pd.isna(Y["g"]["c"])
 
-    def test_strange_column_corruption_issue(self):
+    def test_strange_column_corruption_issue(self, using_copy_on_write):
         # TODO(wesm): Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
@@ -363,7 +361,10 @@ class TestDataFrameBlockInternals:
                     if col not in wasCol:
                         wasCol[col] = 1
                         df[col] = np.nan
-                    df[col][dt] = i
+                    if using_copy_on_write:
+                        df.loc[dt, col] = i
+                    else:
+                        df[col][dt] = i
 
         myid = 100
 
@@ -396,7 +397,7 @@ class TestDataFrameBlockInternals:
         tm.assert_frame_equal(df, df2)
 
 
-def test_update_inplace_sets_valid_block_values():
+def test_update_inplace_sets_valid_block_values(using_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/33457
     df = DataFrame({"a": Series([1, 2, None], dtype="category")})
 
@@ -406,8 +407,9 @@ def test_update_inplace_sets_valid_block_values():
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
 
-    # smoketest for OP bug from GH#35731
-    assert df.isnull().sum().sum() == 0
+    if not using_copy_on_write:
+        # smoketest for OP bug from GH#35731
+        assert df.isnull().sum().sum() == 0
 
 
 def test_nonconsolidated_item_cache_take():

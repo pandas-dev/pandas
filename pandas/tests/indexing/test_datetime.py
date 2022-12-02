@@ -1,3 +1,7 @@
+import re
+
+import pytest
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -10,6 +14,20 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
+    def test_get_loc_naive_dti_aware_str_deprecated(self):
+        # GH#46903
+        ts = Timestamp("20130101").value
+        dti = pd.DatetimeIndex([ts + 50 + i for i in range(100)])
+        ser = Series(range(100), index=dti)
+
+        key = "2013-01-01 00:00:00.000000050+0000"
+        msg = re.escape(repr(key))
+        with pytest.raises(KeyError, match=msg):
+            ser[key]
+
+        with pytest.raises(KeyError, match=msg):
+            dti.get_loc(key)
+
     def test_indexing_with_datetime_tz(self):
 
         # GH#8260

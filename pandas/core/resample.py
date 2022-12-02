@@ -11,7 +11,6 @@ from typing import (
     final,
     no_type_check,
 )
-import warnings
 
 import numpy as np
 
@@ -26,22 +25,29 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
+    AnyArrayLike,
+    Axis,
+    AxisInt,
+    Frequency,
     IndexLabel,
     NDFrameT,
+    QuantileInterpolation,
     T,
     TimedeltaConvertibleTypes,
+    TimeGrouperOrigin,
     TimestampConvertibleTypes,
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    DataError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -50,10 +56,7 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.base import (
-    DataError,
-    PandasObject,
-)
+from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
@@ -68,7 +71,6 @@ from pandas.core.groupby.groupby import (
 )
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
-from pandas.core.indexes.api import Index
 from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     date_range,
@@ -87,7 +89,6 @@ from pandas.tseries.frequencies import (
     is_superperiod,
 )
 from pandas.tseries.offsets import (
-    DateOffset,
     Day,
     Nano,
     Tick,
@@ -96,6 +97,7 @@ from pandas.tseries.offsets import (
 if TYPE_CHECKING:
     from pandas import (
         DataFrame,
+        Index,
         Series,
     )
 
@@ -136,7 +138,6 @@ class Resampler(BaseGroupBy, PandasObject):
         "closed",
         "label",
         "convention",
-        "loffset",
         "kind",
         "origin",
         "offset",
@@ -146,24 +147,30 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         obj: DataFrame | Series,
         groupby: TimeGrouper,
-        axis: int = 0,
+        axis: Axis = 0,
         kind=None,
         *,
+        group_keys: bool | lib.NoDefault = lib.no_default,
         selection=None,
         **kwargs,
-    ):
+    ) -> None:
         self.groupby = groupby
         self.keys = None
         self.sort = True
-        self.axis = axis
+        # error: Incompatible types in assignment (expression has type "Union
+        # [int, Literal['index', 'columns', 'rows']]", variable has type "int")
+        self.axis = axis  # type: ignore[assignment]
         self.kind = kind
-        self.squeeze = False
-        self.group_keys = True
+        self.group_keys = group_keys
         self.as_index = True
 
         self.groupby._set_grouper(self._convert_obj(obj), sort=True)
         self.binner, self.grouper = self._get_binner()
         self._selection = selection
+        if self.groupby.key is not None:
+            self.exclusions = frozenset([self.groupby.key])
+        else:
+            self.exclusions = frozenset()
 
     @final
     def _shallow_copy(self, obj, **kwargs):
@@ -200,7 +207,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     # error: Signature of "obj" incompatible with supertype "BaseGroupBy"
     @property
-    def obj(self) -> NDFrameT:  # type: ignore[override]
+    def obj(self) -> NDFrame:  # type: ignore[override]
         # error: Incompatible return value type (got "Optional[Any]",
         # expected "NDFrameT")
         return self.groupby.obj  # type: ignore[return-value]
@@ -349,7 +356,6 @@ class Resampler(BaseGroupBy, PandasObject):
             how = func
             result = self._groupby_and_aggregate(how, *args, **kwargs)
 
-        result = self._apply_loffset(result)
         return result
 
     agg = aggregate
@@ -357,8 +363,9 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def transform(self, arg, *args, **kwargs):
         """
-        Call function producing a like-indexed Series on each group and return
-        a Series with the transformed values.
+        Call function producing a like-indexed Series on each group.
+
+        Return a Series with the transformed values.
 
         Parameters
         ----------
@@ -388,7 +395,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._selected_obj.groupby(self.groupby).transform(arg, *args, **kwargs)
 
-    def _downsample(self, f):
+    def _downsample(self, f, **kwargs):
         raise AbstractMethodError(self)
 
     def _upsample(self, f, limit=None, fill_value=None):
@@ -409,7 +416,9 @@ class Resampler(BaseGroupBy, PandasObject):
         grouper = self.grouper
         if subset is None:
             subset = self.obj
-        grouped = get_groupby(subset, by=None, grouper=grouper, axis=self.axis)
+        grouped = get_groupby(
+            subset, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
+        )
 
         # try the key selection
         try:
@@ -423,9 +432,14 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         grouper = self.grouper
 
-        obj = self._selected_obj
-
-        grouped = get_groupby(obj, by=None, grouper=grouper, axis=self.axis)
+        if self._selected_obj.ndim == 1:
+            obj = self._selected_obj
+        else:
+            # Excludes `on` column when provided
+            obj = self._obj_with_exclusions
+        grouped = get_groupby(
+            obj, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
+        )
 
         try:
             if isinstance(obj, ABCDataFrame) and callable(how):
@@ -458,53 +472,33 @@ class Resampler(BaseGroupBy, PandasObject):
             # try to evaluate
             result = grouped.apply(how, *args, **kwargs)
 
-        result = self._apply_loffset(result)
         return self._wrap_result(result)
 
-    def _apply_loffset(self, result):
-        """
-        If loffset is set, offset the result index.
-
-        This is NOT an idempotent routine, it will be applied
-        exactly once to the result.
-
-        Parameters
-        ----------
-        result : Series or DataFrame
-            the result of resample
-        """
-        # error: Cannot determine type of 'loffset'
-        needs_offset = (
-            isinstance(
-                self.loffset,  # type: ignore[has-type]
-                (DateOffset, timedelta, np.timedelta64),
-            )
-            and isinstance(result.index, DatetimeIndex)
-            and len(result.index) > 0
-        )
-
-        if needs_offset:
-            # error: Cannot determine type of 'loffset'
-            result.index = result.index + self.loffset  # type: ignore[has-type]
-
-        self.loffset = None
-        return result
-
-    def _get_resampler_for_grouping(self, groupby):
+    def _get_resampler_for_grouping(self, groupby, key=None):
         """
         Return the correct class for resampling with groupby.
         """
-        return self._resampler_for_grouping(self, groupby=groupby)
+        return self._resampler_for_grouping(self, groupby=groupby, key=key)
 
     def _wrap_result(self, result):
         """
         Potentially wrap any results.
         """
+        # GH 47705
+        obj = self.obj
+        if (
+            isinstance(result, ABCDataFrame)
+            and result.empty
+            and not isinstance(result.index, PeriodIndex)
+        ):
+            result = result.set_index(
+                _asfreq_compat(obj.index[:0], freq=self.freq), append=True
+            )
+
         if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
-            obj = self.obj
             # When index is all NaT, result is empty but index is not
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
@@ -530,17 +524,6 @@ class Resampler(BaseGroupBy, PandasObject):
         DataFrame.fillna: Fill NA/NaN values using the specified method.
         """
         return self._upsample("ffill", limit=limit)
-
-    def pad(self, limit=None):
-        warnings.warn(
-            "pad is deprecated and will be removed in a future version. "
-            "Use ffill instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.ffill(limit=limit)
-
-    pad.__doc__ = ffill.__doc__
 
     def nearest(self, limit=None):
         """
@@ -704,17 +687,6 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("bfill", limit=limit)
 
-    def backfill(self, limit=None):
-        warnings.warn(
-            "backfill is deprecated and will be removed in a future version. "
-            "Use bfill instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.bfill(limit=limit)
-
-    backfill.__doc__ = bfill.__doc__
-
     def fillna(self, method, limit=None):
         """
         Fill missing values introduced by upsampling.
@@ -875,15 +847,15 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample(method, limit=limit)
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     @doc(NDFrame.interpolate, **_shared_docs_kwargs)
     def interpolate(
         self,
-        method="linear",
-        axis=0,
+        method: QuantileInterpolation = "linear",
+        *,
+        axis: Axis = 0,
         limit=None,
-        inplace=False,
-        limit_direction="forward",
+        inplace: bool = False,
+        limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area=None,
         downcast=None,
         **kwargs,
@@ -925,7 +897,39 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
-    def std(self, ddof=1, *args, **kwargs):
+    def mean(
+        self,
+        numeric_only: bool = False,
+        *args,
+        **kwargs,
+    ):
+        """
+        Compute mean of groups, excluding missing values.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
+
+        Returns
+        -------
+        DataFrame or Series
+            Mean of values within each group.
+        """
+        nv.validate_resampler_func("mean", args, kwargs)
+        return self._downsample("mean", numeric_only=numeric_only)
+
+    def std(
+        self,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        *args,
+        **kwargs,
+    ):
         """
         Compute standard deviation of groups, excluding missing values.
 
@@ -933,6 +937,14 @@ class Resampler(BaseGroupBy, PandasObject):
         ----------
         ddof : int, default 1
             Degrees of freedom.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
 
         Returns
         -------
@@ -940,10 +952,15 @@ class Resampler(BaseGroupBy, PandasObject):
             Standard deviation of values within each group.
         """
         nv.validate_resampler_func("std", args, kwargs)
-        # error: Unexpected keyword argument "ddof" for "_downsample"
-        return self._downsample("std", ddof=ddof)  # type: ignore[call-arg]
+        return self._downsample("std", ddof=ddof, numeric_only=numeric_only)
 
-    def var(self, ddof=1, *args, **kwargs):
+    def var(
+        self,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        *args,
+        **kwargs,
+    ):
         """
         Compute variance of groups, excluding missing values.
 
@@ -952,14 +969,22 @@ class Resampler(BaseGroupBy, PandasObject):
         ddof : int, default 1
             Degrees of freedom.
 
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
+
         Returns
         -------
         DataFrame or Series
             Variance of values within each group.
         """
         nv.validate_resampler_func("var", args, kwargs)
-        # error: Unexpected keyword argument "ddof" for "_downsample"
-        return self._downsample("var", ddof=ddof)  # type: ignore[call-arg]
+        return self._downsample("var", ddof=ddof, numeric_only=numeric_only)
 
     @doc(GroupBy.size)
     def size(self):
@@ -991,7 +1016,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
-    def quantile(self, q=0.5, **kwargs):
+    def quantile(self, q: float | AnyArrayLike = 0.5, **kwargs):
         """
         Return value at the given quantile.
 
@@ -1012,44 +1037,91 @@ class Resampler(BaseGroupBy, PandasObject):
             Return a DataFrame, where the columns are the columns of self,
             and the values are the quantiles.
         DataFrameGroupBy.quantile
-            Return a DataFrame, where the coulmns are groupby columns,
+            Return a DataFrame, where the columns are groupby columns,
             and the values are its quantiles.
         """
-        # error: Unexpected keyword argument "q" for "_downsample"
-        # error: Too many arguments for "_downsample"
-        return self._downsample("quantile", q=q, **kwargs)  # type: ignore[call-arg]
+        return self._downsample("quantile", q=q, **kwargs)
 
 
-# downsample methods
-for method in ["sum", "prod", "min", "max", "first", "last"]:
+def _add_downsample_kernel(
+    name: str, args: tuple[str, ...], docs_class: type = GroupBy
+) -> None:
+    """
+    Add a kernel to Resampler.
 
-    def f(self, _method=method, min_count=0, *args, **kwargs):
-        nv.validate_resampler_func(_method, args, kwargs)
-        return self._downsample(_method, min_count=min_count)
+    Arguments
+    ---------
+    name : str
+        Name of the kernel.
+    args : tuple
+        Arguments of the method.
+    docs_class : type
+        Class to get kernel docstring from.
+    """
+    assert args in (
+        ("numeric_only", "min_count"),
+        ("numeric_only",),
+        ("ddof", "numeric_only"),
+        (),
+    )
 
-    f.__doc__ = getattr(GroupBy, method).__doc__
-    setattr(Resampler, method, f)
+    # Explicitly provide args rather than args/kwargs for API docs
+    if args == ("numeric_only", "min_count"):
+
+        def f(
+            self,
+            numeric_only: bool = False,
+            min_count: int = 0,
+            *args,
+            **kwargs,
+        ):
+            nv.validate_resampler_func(name, args, kwargs)
+            return self._downsample(
+                name, numeric_only=numeric_only, min_count=min_count
+            )
+
+    elif args == ("numeric_only",):
+        # error: All conditional function variants must have identical signatures
+        def f(self, numeric_only: bool = False, *args, **kwargs):  # type: ignore[misc]
+            nv.validate_resampler_func(name, args, kwargs)
+            return self._downsample(name, numeric_only=numeric_only)
+
+    elif args == ("ddof", "numeric_only"):
+        # error: All conditional function variants must have identical signatures
+        def f(  # type: ignore[misc]
+            self,
+            ddof: int = 1,
+            numeric_only: bool = False,
+            *args,
+            **kwargs,
+        ):
+            nv.validate_resampler_func(name, args, kwargs)
+            return self._downsample(name, ddof=ddof, numeric_only=numeric_only)
+
+    else:
+        # error: All conditional function variants must have identical signatures
+        def f(  # type: ignore[misc]
+            self,
+            *args,
+            **kwargs,
+        ):
+            nv.validate_resampler_func(name, args, kwargs)
+            return self._downsample(name)
+
+    f.__doc__ = getattr(docs_class, name).__doc__
+    setattr(Resampler, name, f)
 
 
-# downsample methods
-for method in ["mean", "sem", "median", "ohlc"]:
-
-    def g(self, _method=method, *args, **kwargs):
-        nv.validate_resampler_func(_method, args, kwargs)
-        return self._downsample(_method)
-
-    g.__doc__ = getattr(GroupBy, method).__doc__
-    setattr(Resampler, method, g)
-
-
-# series only methods
-for method in ["nunique"]:
-
-    def h(self, _method=method):
-        return self._downsample(_method)
-
-    h.__doc__ = getattr(SeriesGroupBy, method).__doc__
-    setattr(Resampler, method, h)
+for _method in ["sum", "prod", "min", "max", "first", "last"]:
+    _add_downsample_kernel(_method, ("numeric_only", "min_count"))
+for _method in ["median"]:
+    _add_downsample_kernel(_method, ("numeric_only",))
+for _method in ["sem"]:
+    _add_downsample_kernel(_method, ("ddof", "numeric_only"))
+for _method in ["ohlc"]:
+    _add_downsample_kernel(_method, ())
+for _method in ["nunique"]:
+    _add_downsample_kernel(_method, (), SeriesGroupBy)
 
 
 class _GroupByMixin(PandasObject):
@@ -1060,7 +1132,7 @@ class _GroupByMixin(PandasObject):
     _attributes: list[str]  # in practice the same as Resampler._attributes
     _selection: IndexLabel | None = None
 
-    def __init__(self, obj, parent=None, groupby=None, **kwargs):
+    def __init__(self, obj, parent=None, groupby=None, key=None, **kwargs) -> None:
         # reached via ._gotitem and _get_resampler_for_grouping
 
         if parent is None:
@@ -1073,6 +1145,7 @@ class _GroupByMixin(PandasObject):
         self._selection = kwargs.get("selection")
 
         self.binner = parent.binner
+        self.key = key
 
         self._groupby = groupby
         self._groupby.mutated = True
@@ -1125,6 +1198,8 @@ class _GroupByMixin(PandasObject):
 
         # Try to select from a DataFrame, falling back to a Series
         try:
+            if isinstance(key, list) and self.key not in key:
+                key.append(self.key)
             groupby = self._groupby[key]
         except IndexError:
             groupby = self._groupby
@@ -1164,7 +1239,11 @@ class DatetimeIndexResampler(Resampler):
         """
         how = com.get_cython_func(how) or how
         ax = self.ax
-        obj = self._selected_obj
+        if self._selected_obj.ndim == 1:
+            obj = self._selected_obj
+        else:
+            # Excludes `on` column when provided
+            obj = self._obj_with_exclusions
 
         if not len(ax):
             # reset to the new freq
@@ -1189,7 +1268,6 @@ class DatetimeIndexResampler(Resampler):
         # we want to call the actual grouper method here
         result = obj.groupby(self.grouper, axis=self.axis).aggregate(how, **kwargs)
 
-        result = self._apply_loffset(result)
         return self._wrap_result(result)
 
     def _adjust_binner_for_upsample(self, binner):
@@ -1247,7 +1325,6 @@ class DatetimeIndexResampler(Resampler):
                 res_index, method=method, limit=limit, fill_value=fill_value
             )
 
-        result = self._apply_loffset(result)
         return self._wrap_result(result)
 
     def _wrap_result(self, result):
@@ -1291,11 +1368,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
                 "use .set_index(...) to explicitly set index"
             )
             raise NotImplementedError(msg)
-
-        if self.loffset is not None:
-            # Cannot apply loffset/timedelta to PeriodIndex -> convert to
-            # timestamps
-            self.kind = "timestamp"
 
         # convert to timestamp
         if self.kind == "timestamp":
@@ -1415,7 +1487,9 @@ class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
         return TimedeltaIndexResampler
 
 
-def get_resampler(obj, kind=None, **kwds):
+def get_resampler(
+    obj, kind=None, **kwds
+) -> DatetimeIndexResampler | PeriodIndexResampler | TimedeltaIndexResampler:
     """
     Create a TimeGrouper and return our resampler.
     """
@@ -1435,7 +1509,7 @@ def get_resampler_for_grouping(
     # .resample uses 'on' similar to how .groupby uses 'key'
     tg = TimeGrouper(freq=rule, key=on, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
-    return resampler._get_resampler_for_grouping(groupby=groupby)
+    return resampler._get_resampler_for_grouping(groupby=groupby, key=tg.key)
 
 
 class TimeGrouper(Grouper):
@@ -1455,30 +1529,31 @@ class TimeGrouper(Grouper):
         "closed",
         "label",
         "how",
-        "loffset",
         "kind",
         "convention",
         "origin",
         "offset",
     )
 
+    origin: TimeGrouperOrigin
+
     def __init__(
         self,
-        freq="Min",
+        freq: Frequency = "Min",
         closed: Literal["left", "right"] | None = None,
-        label: str | None = None,
-        how="mean",
-        axis=0,
+        label: Literal["left", "right"] | None = None,
+        how: str = "mean",
+        axis: Axis = 0,
         fill_method=None,
         limit=None,
-        loffset=None,
         kind: str | None = None,
-        convention: str | None = None,
-        base: int | None = None,
-        origin: str | TimestampConvertibleTypes = "start_day",
+        convention: Literal["start", "end", "e", "s"] | None = None,
+        origin: Literal["epoch", "start", "start_day", "end", "end_day"]
+        | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
+        group_keys: bool | lib.NoDefault = True,
         **kwargs,
-    ):
+    ) -> None:
         # Check for correctness of the keyword arguments which would
         # otherwise silently use the default if misspelled
         if label not in {None, "left", "right"}:
@@ -1518,16 +1593,19 @@ class TimeGrouper(Grouper):
         self.closed = closed
         self.label = label
         self.kind = kind
-
-        self.convention = convention or "E"
-        self.convention = self.convention.lower()
-
+        self.convention = convention if convention is not None else "e"
         self.how = how
         self.fill_method = fill_method
         self.limit = limit
+        self.group_keys = group_keys
 
         if origin in ("epoch", "start", "start_day", "end", "end_day"):
-            self.origin = origin
+            # error: Incompatible types in assignment (expression has type "Union[Union[
+            # Timestamp, datetime, datetime64, signedinteger[_64Bit], float, str],
+            # Literal['epoch', 'start', 'start_day', 'end', 'end_day']]", variable has
+            # type "Union[Timestamp, Literal['epoch', 'start', 'start_day', 'end',
+            # 'end_day']]")
+            self.origin = origin  # type: ignore[assignment]
         else:
             try:
                 self.origin = Timestamp(origin)
@@ -1548,22 +1626,6 @@ class TimeGrouper(Grouper):
 
         # always sort time groupers
         kwargs["sort"] = True
-
-        # Handle deprecated arguments since v1.1.0 of `base` and `loffset` (GH #31809)
-        if base is not None and offset is not None:
-            raise ValueError("'offset' and 'base' cannot be present at the same time")
-
-        if base and isinstance(freq, Tick):
-            # this conversion handle the default behavior of base and the
-            # special case of GH #10530. Indeed in case when dealing with
-            # a TimedeltaIndex base was treated as a 'pure' offset even though
-            # the default behavior of base was equivalent of a modulo on
-            # freq_nanos.
-            self.offset = Timedelta(base * freq.nanos // freq.n)
-
-        if isinstance(loffset, str):
-            loffset = to_offset(loffset)
-        self.loffset = loffset
 
         super().__init__(freq=freq, axis=axis, **kwargs)
 
@@ -1590,11 +1652,17 @@ class TimeGrouper(Grouper):
 
         ax = self.ax
         if isinstance(ax, DatetimeIndex):
-            return DatetimeIndexResampler(obj, groupby=self, kind=kind, axis=self.axis)
+            return DatetimeIndexResampler(
+                obj, groupby=self, kind=kind, axis=self.axis, group_keys=self.group_keys
+            )
         elif isinstance(ax, PeriodIndex) or kind == "period":
-            return PeriodIndexResampler(obj, groupby=self, kind=kind, axis=self.axis)
+            return PeriodIndexResampler(
+                obj, groupby=self, kind=kind, axis=self.axis, group_keys=self.group_keys
+            )
         elif isinstance(ax, TimedeltaIndex):
-            return TimedeltaIndexResampler(obj, groupby=self, axis=self.axis)
+            return TimedeltaIndexResampler(
+                obj, groupby=self, axis=self.axis, group_keys=self.group_keys
+            )
 
         raise TypeError(
             "Only valid with DatetimeIndex, "
@@ -1719,9 +1787,6 @@ class TimeGrouper(Grouper):
         if self.offset:
             # GH 10530 & 31809
             labels += self.offset
-        if self.loffset:
-            # GH 33498
-            labels += self.loffset
 
         return binner, bins, labels
 
@@ -1759,7 +1824,9 @@ class TimeGrouper(Grouper):
         # NaT handling as in pandas._lib.lib.generate_bins_dt64()
         nat_count = 0
         if memb.hasnans:
-            nat_count = np.sum(memb._isnan)
+            # error: Incompatible types in assignment (expression has type
+            # "bool_", variable has type "int")  [assignment]
+            nat_count = np.sum(memb._isnan)  # type: ignore[assignment]
             memb = memb[~memb._isnan]
 
         if not len(memb):
@@ -1822,7 +1889,7 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(
-    obj: NDFrameT, indexer: npt.NDArray[np.intp], new_index: Index, axis: int = 0
+    obj: NDFrameT, indexer: npt.NDArray[np.intp], new_index: Index, axis: AxisInt = 0
 ) -> NDFrameT:
 
     if isinstance(obj, ABCSeries):
@@ -1847,7 +1914,7 @@ def _get_timestamp_range_edges(
     last: Timestamp,
     freq: BaseOffset,
     closed: Literal["right", "left"] = "left",
-    origin="start_day",
+    origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Timestamp, Timestamp]:
     """
@@ -1886,7 +1953,7 @@ def _get_timestamp_range_edges(
         index_tz = first.tz
         if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
-        elif origin == "epoch":
+        if origin == "epoch":
             # set the epoch based on the timezone to have similar bins results when
             # resampling on the same kind of indexes on different timezones
             origin = Timestamp("1970-01-01", tz=index_tz)
@@ -1925,7 +1992,7 @@ def _get_period_range_edges(
     last: Period,
     freq: BaseOffset,
     closed: Literal["right", "left"] = "left",
-    origin="start_day",
+    origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Period, Period]:
     """
@@ -1999,7 +2066,7 @@ def _adjust_dates_anchored(
     last: Timestamp,
     freq: Tick,
     closed: Literal["right", "left"] = "right",
-    origin="start_day",
+    origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Timestamp, Timestamp]:
     # First and last offsets should be calculated from the start day to fix an
@@ -2007,6 +2074,11 @@ def _adjust_dates_anchored(
     # not a multiple of the frequency. See GH 8683
     # To handle frequencies that are not multiple or divisible by a day we let
     # the possibility to define a fixed origin timestamp. See GH 31809
+    first = first.as_unit("ns")
+    last = last.as_unit("ns")
+    if offset is not None:
+        offset = offset.as_unit("ns")
+
     origin_nanos = 0  # origin == "epoch"
     if origin == "start_day":
         origin_nanos = first.normalize().value
@@ -2015,11 +2087,11 @@ def _adjust_dates_anchored(
     elif isinstance(origin, Timestamp):
         origin_nanos = origin.value
     elif origin in ["end", "end_day"]:
-        origin = last if origin == "end" else last.ceil("D")
-        sub_freq_times = (origin.value - first.value) // freq.nanos
+        origin_last = last if origin == "end" else last.ceil("D")
+        sub_freq_times = (origin_last.value - first.value) // freq.nanos
         if closed == "left":
             sub_freq_times += 1
-        first = origin - sub_freq_times * freq
+        first = origin_last - sub_freq_times * freq
         origin_nanos = first.value
     origin_nanos += offset.value if offset else 0
 

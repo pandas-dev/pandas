@@ -20,7 +20,6 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_path,
     ensure_clean_store,
 )
 
@@ -168,7 +167,7 @@ def test_append_some_nans(setup_path):
 
         # first column
         df1 = df.copy()
-        df1.loc[:, "A1"] = np.nan
+        df1["A1"] = np.nan
         _maybe_remove(store, "df1")
         store.append("df1", df1[:10])
         store.append("df1", df1[10:])
@@ -176,7 +175,7 @@ def test_append_some_nans(setup_path):
 
         # 2nd column
         df2 = df.copy()
-        df2.loc[:, "A2"] = np.nan
+        df2["A2"] = np.nan
         _maybe_remove(store, "df2")
         store.append("df2", df2[:10])
         store.append("df2", df2[10:])
@@ -184,7 +183,7 @@ def test_append_some_nans(setup_path):
 
         # datetimes
         df3 = df.copy()
-        df3.loc[:, "E"] = np.nan
+        df3["E"] = np.nan
         _maybe_remove(store, "df3")
         store.append("df3", df3[:10])
         store.append("df3", df3[10:])
@@ -437,9 +436,6 @@ def test_append_with_strings(setup_path):
 
     with ensure_clean_store(setup_path) as store:
 
-        def check_col(key, name, size):
-            assert getattr(store.get_storer(key).table.description, name).itemsize, size
-
         df = DataFrame({"A": "foo", "B": "bar"}, index=range(10))
 
         # a min_itemsize that creates a data_column
@@ -622,7 +618,7 @@ def test_append_with_data_columns(setup_path):
         df_dc["string"] = "foo"
         df_dc.loc[df_dc.index[4:6], "string"] = np.nan
         df_dc.loc[df_dc.index[7:9], "string"] = "bar"
-        df_dc.loc[:, ["B", "C"]] = df_dc.loc[:, ["B", "C"]].abs()
+        df_dc[["B", "C"]] = df_dc[["B", "C"]].abs()
         df_dc["string2"] = "cool"
 
         # on-disk operations
@@ -637,7 +633,7 @@ def test_append_with_data_columns(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_append_hierarchical(setup_path, multiindex_dataframe_random_data):
+def test_append_hierarchical(tmp_path, setup_path, multiindex_dataframe_random_data):
     df = multiindex_dataframe_random_data
     df.columns.name = None
 
@@ -651,11 +647,11 @@ def test_append_hierarchical(setup_path, multiindex_dataframe_random_data):
         expected = df.reindex(columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
-    with ensure_clean_path("test.hdf") as path:
-        df.to_hdf(path, "df", format="table")
-        result = read_hdf(path, "df", columns=["A", "B"])
-        expected = df.reindex(columns=["A", "B"])
-        tm.assert_frame_equal(result, expected)
+    path = tmp_path / "test.hdf"
+    df.to_hdf(path, "df", format="table")
+    result = read_hdf(path, "df", columns=["A", "B"])
+    expected = df.reindex(columns=["A", "B"])
+    tm.assert_frame_equal(result, expected)
 
 
 def test_append_misc(setup_path):

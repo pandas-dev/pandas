@@ -14,7 +14,7 @@ import pandas._testing as tm
 
 
 class TestUpdate:
-    def test_update(self):
+    def test_update(self, using_copy_on_write):
         s = Series([1.5, np.nan, 3.0, 4.0, np.nan])
         s2 = Series([np.nan, 3.5, np.nan, 5.0])
         s.update(s2)
@@ -25,11 +25,15 @@ class TestUpdate:
         # GH 3217
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
         df["c"] = np.nan
+        df_orig = df.copy()
 
         df["c"].update(Series(["foo"], index=[0]))
-        expected = DataFrame(
-            [[1, np.nan, "foo"], [3, 2.0, np.nan]], columns=["a", "b", "c"]
-        )
+        if using_copy_on_write:
+            expected = df_orig
+        else:
+            expected = DataFrame(
+                [[1, np.nan, "foo"], [3, 2.0, np.nan]], columns=["a", "b", "c"]
+            )
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(

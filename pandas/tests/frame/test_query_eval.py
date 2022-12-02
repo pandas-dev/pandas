@@ -3,6 +3,7 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.errors import UndefinedVariableError
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -35,45 +36,48 @@ def skip_if_no_pandas_parser(parser):
 
 
 class TestCompat:
-    def setup_method(self):
-        self.df = DataFrame({"A": [1, 2, 3]})
-        self.expected1 = self.df[self.df.A > 0]
-        self.expected2 = self.df.A + 1
+    @pytest.fixture
+    def df(self):
+        return DataFrame({"A": [1, 2, 3]})
 
-    def test_query_default(self):
+    @pytest.fixture
+    def expected1(self, df):
+        return df[df.A > 0]
+
+    @pytest.fixture
+    def expected2(self, df):
+        return df.A + 1
+
+    def test_query_default(self, df, expected1, expected2):
 
         # GH 12749
         # this should always work, whether NUMEXPR_INSTALLED or not
-        df = self.df
         result = df.query("A>0")
-        tm.assert_frame_equal(result, self.expected1)
+        tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1")
-        tm.assert_series_equal(result, self.expected2, check_names=False)
+        tm.assert_series_equal(result, expected2, check_names=False)
 
-    def test_query_None(self):
+    def test_query_None(self, df, expected1, expected2):
 
-        df = self.df
         result = df.query("A>0", engine=None)
-        tm.assert_frame_equal(result, self.expected1)
+        tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine=None)
-        tm.assert_series_equal(result, self.expected2, check_names=False)
+        tm.assert_series_equal(result, expected2, check_names=False)
 
-    def test_query_python(self):
+    def test_query_python(self, df, expected1, expected2):
 
-        df = self.df
         result = df.query("A>0", engine="python")
-        tm.assert_frame_equal(result, self.expected1)
+        tm.assert_frame_equal(result, expected1)
         result = df.eval("A+1", engine="python")
-        tm.assert_series_equal(result, self.expected2, check_names=False)
+        tm.assert_series_equal(result, expected2, check_names=False)
 
-    def test_query_numexpr(self):
+    def test_query_numexpr(self, df, expected1, expected2):
 
-        df = self.df
         if NUMEXPR_INSTALLED:
             result = df.query("A>0", engine="numexpr")
-            tm.assert_frame_equal(result, self.expected1)
+            tm.assert_frame_equal(result, expected1)
             result = df.eval("A+1", engine="numexpr")
-            tm.assert_series_equal(result, self.expected2, check_names=False)
+            tm.assert_series_equal(result, expected2, check_names=False)
         else:
             msg = (
                 r"'numexpr' is not installed or an unsupported version. "
@@ -495,8 +499,6 @@ class TestDataFrameQueryNumExprPandas:
             df.query("i - +", engine=engine, parser=parser)
 
     def test_query_scope(self):
-        from pandas.core.computation.ops import UndefinedVariableError
-
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
 
@@ -522,8 +524,6 @@ class TestDataFrameQueryNumExprPandas:
             df.query("@a > b > c", engine=engine, parser=parser)
 
     def test_query_doesnt_pickup_local(self):
-        from pandas.core.computation.ops import UndefinedVariableError
-
         engine, parser = self.engine, self.parser
         n = m = 10
         df = DataFrame(np.random.randint(m, size=(n, 3)), columns=list("abc"))
@@ -533,7 +533,7 @@ class TestDataFrameQueryNumExprPandas:
             df.query("sin > 5", engine=engine, parser=parser)
 
     def test_query_builtin(self):
-        from pandas.core.computation.engines import NumExprClobberingError
+        from pandas.errors import NumExprClobberingError
 
         engine, parser = self.engine, self.parser
 
@@ -618,8 +618,6 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
     def test_nested_raises_on_local_self_reference(self):
-        from pandas.core.computation.ops import UndefinedVariableError
-
         df = DataFrame(np.random.randn(5, 3))
 
         # can't reference ourself b/c we're a local so @ is necessary
@@ -678,8 +676,6 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
     def test_query_undefined_local(self):
-        from pandas.core.computation.ops import UndefinedVariableError
-
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
 
@@ -838,8 +834,6 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
             df.query("index < 20130101 < dates3", engine=engine, parser=parser)
 
     def test_nested_scope(self):
-        from pandas.core.computation.ops import UndefinedVariableError
-
         engine = self.engine
         parser = self.parser
         # smoke test
@@ -1094,20 +1088,18 @@ class TestDataFrameQueryStrings:
 
 
 class TestDataFrameEvalWithFrame:
-    def setup_method(self):
-        self.frame = DataFrame(np.random.randn(10, 3), columns=list("abc"))
+    @pytest.fixture
+    def frame(self):
+        return DataFrame(np.random.randn(10, 3), columns=list("abc"))
 
-    def teardown_method(self):
-        del self.frame
-
-    def test_simple_expr(self, parser, engine):
-        res = self.frame.eval("a + b", engine=engine, parser=parser)
-        expect = self.frame.a + self.frame.b
+    def test_simple_expr(self, frame, parser, engine):
+        res = frame.eval("a + b", engine=engine, parser=parser)
+        expect = frame.a + frame.b
         tm.assert_series_equal(res, expect)
 
-    def test_bool_arith_expr(self, parser, engine):
-        res = self.frame.eval("a[a < 1] + b", engine=engine, parser=parser)
-        expect = self.frame.a[self.frame.a < 1] + self.frame.b
+    def test_bool_arith_expr(self, frame, parser, engine):
+        res = frame.eval("a[a < 1] + b", engine=engine, parser=parser)
+        expect = frame.a[frame.a < 1] + frame.b
         tm.assert_series_equal(res, expect)
 
     @pytest.mark.parametrize("op", ["+", "-", "*", "/"])
@@ -1120,7 +1112,7 @@ class TestDataFrameEvalWithFrame:
 
 
 class TestDataFrameQueryBacktickQuoting:
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     def df(self):
         """
         Yields a dataframe with strings that may or may not need escaping

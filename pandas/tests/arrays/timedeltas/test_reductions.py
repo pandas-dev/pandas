@@ -147,7 +147,7 @@ class TestReductions:
 
         if getattr(arr, "tz", None) is None:
             result = nanops.nanstd(np.asarray(arr), skipna=True)
-            assert isinstance(result, Timedelta)
+            assert isinstance(result, np.timedelta64)
             assert result == expected
 
         result = arr.std(skipna=False)
@@ -158,7 +158,8 @@ class TestReductions:
 
         if getattr(arr, "tz", None) is None:
             result = nanops.nanstd(np.asarray(arr), skipna=False)
-            assert result is pd.NaT
+            assert isinstance(result, np.timedelta64)
+            assert np.isnat(result)
 
     def test_median(self):
         tdi = pd.TimedeltaIndex(["0H", "3H", "NaT", "5H06m", "0H", "2H"])

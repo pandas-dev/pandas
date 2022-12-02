@@ -26,8 +26,12 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 from __future__ import annotations
 
 from contextlib import contextmanager
+import gc
 import locale
-from typing import Callable
+from typing import (
+    Callable,
+    Generator,
+)
 import warnings
 
 import numpy as np
@@ -35,6 +39,7 @@ import pytest
 
 from pandas._config import get_option
 
+from pandas._typing import F
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -107,24 +112,20 @@ def safe_import(mod_name: str, min_version: str | None = None):
     return False
 
 
-def _skip_if_no_mpl():
+def _skip_if_no_mpl() -> bool:
     mod = safe_import("matplotlib")
     if mod:
         mod.use("Agg")
+        return False
     else:
         return True
 
 
-def _skip_if_has_locale():
-    lang, _ = locale.getlocale()
-    if lang is not None:
-        return True
-
-
-def _skip_if_not_us_locale():
+def _skip_if_not_us_locale() -> bool:
     lang, _ = locale.getlocale()
     if lang != "en_US":
         return True
+    return False
 
 
 def _skip_if_no_scipy() -> bool:
@@ -198,11 +199,9 @@ skip_if_no_mpl = pytest.mark.skipif(
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(), reason="matplotlib is present")
 skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
-skip_if_has_locale = pytest.mark.skipif(
-    _skip_if_has_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}"
-)
 skip_if_not_us_locale = pytest.mark.skipif(
-    _skip_if_not_us_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}"
+    _skip_if_not_us_locale(),
+    reason=f"Specific locale is set {locale.getlocale()[0]}",
 )
 skip_if_no_scipy = pytest.mark.skipif(
     _skip_if_no_scipy(), reason="Missing SciPy requirement"
@@ -225,7 +224,7 @@ def skip_if_np_lt(ver_str: str, *args, reason: str | None = None):
     )
 
 
-def parametrize_fixture_doc(*args):
+def parametrize_fixture_doc(*args) -> Callable[[F], F]:
     """
     Intended for use as a decorator for parametrized fixture,
     this function will wrap the decorated function with a pytest
@@ -261,7 +260,7 @@ def check_file_leaks(func) -> Callable:
 
 
 @contextmanager
-def file_leak_context():
+def file_leak_context() -> Generator[None, None, None]:
     """
     ContextManager analogue to check_file_leaks.
     """
@@ -277,12 +276,13 @@ def file_leak_context():
         try:
             yield
         finally:
+            gc.collect()
             flist2 = proc.open_files()
             # on some builds open_files includes file position, which we _dont_
             #  expect to remain unchanged, so we need to compare excluding that
             flist_ex = [(x.path, x.fd) for x in flist]
             flist2_ex = [(x.path, x.fd) for x in flist2]
-            assert flist2_ex == flist_ex, (flist2, flist)
+            assert set(flist2_ex) <= set(flist_ex), (flist2, flist)
 
             conns2 = proc.connections()
             assert conns2 == conns, (conns2, conns)
@@ -298,7 +298,7 @@ def async_mark():
     return async_mark
 
 
-def mark_array_manager_not_yet_implemented(request):
+def mark_array_manager_not_yet_implemented(request) -> None:
     mark = pytest.mark.xfail(reason="Not yet implemented for ArrayManager")
     request.node.add_marker(mark)
 

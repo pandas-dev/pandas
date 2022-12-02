@@ -26,7 +26,7 @@
 
 For this tutorial, air quality data about :math:`NO_2` and Particulate
 matter less than 2.5 micrometers is used, made available by
-`openaq <https://openaq.org>`__ and downloaded using the
+`OpenAQ <https://openaq.org>`__ and downloaded using the
 `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
 The ``air_quality_no2_long.csv"`` data set provides :math:`NO_2` values
 for the measurement stations *FR04014*, *BETR801* and *London
@@ -55,8 +55,8 @@ Westminster* in respectively Paris, Antwerp and London.
     </ul>
     </div>
 
-How to handle time series data with ease?
------------------------------------------
+How to handle time series data with ease
+----------------------------------------
 
 .. _10min_tut_09_timeseries.properties:
 
@@ -144,7 +144,7 @@ I want to add a new column to the ``DataFrame`` containing only the month of the
 
 By using ``Timestamp`` objects for dates, a lot of time-related
 properties are provided by pandas. For example the ``month``, but also
-``year``, ``weekofyear``, ``quarter``,… All of these properties are
+``year``, ``quarter``,… All of these properties are
 accessible by the ``dt`` accessor.
 
 .. raw:: html
@@ -209,7 +209,7 @@ Plot the typical :math:`NO_2` pattern during the day of our time series of all s
     air_quality.groupby(air_quality["datetime"].dt.hour)["value"].mean().plot(
         kind='bar', rot=0, ax=axs
     )
-    plt.xlabel("Hour of the day");  # custom x label using matplotlib
+    plt.xlabel("Hour of the day");  # custom x label using Matplotlib
     @savefig 09_bar_chart.png
     plt.ylabel("$NO_2 (µg/m^3)$");
 

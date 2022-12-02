@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas import Series
-from pandas.core.construction import create_series_with_explicit_dtype
 
 
 @pytest.mark.parametrize(
@@ -19,14 +18,14 @@ from pandas.core.construction import create_series_with_explicit_dtype
 )
 def test_is_unique(data, expected):
     # GH#11946 / GH#25180
-    ser = create_series_with_explicit_dtype(data, dtype_if_empty=object)
+    ser = Series(data)
     assert ser.is_unique is expected
 
 
 def test_is_unique_class_ne(capsys):
     # GH#20661
     class Foo:
-        def __init__(self, val):
+        def __init__(self, val) -> None:
             self._value = val
 
         def __ne__(self, other):

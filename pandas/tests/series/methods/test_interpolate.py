@@ -12,7 +12,6 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.util.version import Version
 
 
 @pytest.fixture(
@@ -791,11 +790,8 @@ class TestSeriesInterpolateData:
         df = pd.DataFrame([0, 1, np.nan, 3], index=ind)
 
         method, kwargs = interp_methods_ind
-        import scipy
 
-        if method in {"cubic", "zero"} or (
-            method == "barycentric" and Version(scipy.__version__) < Version("1.5.0")
-        ):
+        if method in {"cubic", "zero"}:
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{method} interpolation is not supported for TimedeltaIndex"
@@ -814,16 +810,4 @@ class TestSeriesInterpolateData:
         ts = Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
         result = ts.sort_index(ascending=ascending).interpolate(method="index")
         expected = Series(data=expected_values, index=expected_values, dtype=float)
-        tm.assert_series_equal(result, expected)
-
-    def test_interpolate_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        ser = Series([1, 2, 3])
-        msg = (
-            r"In a future version of pandas all arguments of Series.interpolate except "
-            r"for the argument 'method' will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.interpolate("pad", 0)
-        expected = Series([1, 2, 3])
         tm.assert_series_equal(result, expected)

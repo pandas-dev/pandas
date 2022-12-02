@@ -532,6 +532,7 @@ Enhancements
   is frequency conversion. See :ref:`the docs<timedeltas.timedeltas_convert>` for the docs.
 
   .. ipython:: python
+     :okexcept:
 
      import datetime
      td = pd.Series(pd.date_range('20130101', periods=4)) - pd.Series(
@@ -664,7 +665,7 @@ Enhancements
      other = pd.DataFrame({'A': [1, 3, 3, 7], 'B': ['e', 'f', 'f', 'e']})
      mask = dfi.isin(other)
      mask
-     dfi[mask.any(1)]
+     dfi[mask.any(axis=1)]
 
 - ``Series`` now supports a ``to_frame`` method to convert it to a single-column DataFrame (:issue:`5164`)
 
@@ -733,7 +734,7 @@ Enhancements
 
 .. _scipy: http://www.scipy.org
 .. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
-.. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
+.. _guide: https://docs.scipy.org/doc/scipy/tutorial/interpolate.html
 
 - ``to_csv`` now takes a ``date_format`` keyword argument that specifies how
   output datetime objects should be formatted. Datetimes encountered in the

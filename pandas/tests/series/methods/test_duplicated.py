@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     Categorical,
     Series,
 )
@@ -49,4 +50,28 @@ def test_duplicated_categorical_bool_na(nulls_fixture):
     )
     result = ser.duplicated()
     expected = Series([False, False, True, True, False])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "keep, vals",
+    [
+        ("last", [True, True, False]),
+        ("first", [False, True, True]),
+        (False, [True, True, True]),
+    ],
+)
+def test_duplicated_mask(keep, vals):
+    # GH#48150
+    ser = Series([1, 2, NA, NA, NA], dtype="Int64")
+    result = ser.duplicated(keep=keep)
+    expected = Series([False, False] + vals)
+    tm.assert_series_equal(result, expected)
+
+
+def test_duplicated_mask_no_duplicated_na(keep):
+    # GH#48150
+    ser = Series([1, 2, NA], dtype="Int64")
+    result = ser.duplicated(keep=keep)
+    expected = Series([False, False, False])
     tm.assert_series_equal(result, expected)

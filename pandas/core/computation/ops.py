@@ -10,6 +10,8 @@ import operator
 from typing import (
     Callable,
     Iterable,
+    Iterator,
+    Literal,
 )
 
 import numpy as np
@@ -65,20 +67,6 @@ MATHOPS = _unary_math_ops + _binary_math_ops
 LOCAL_TAG = "__pd_eval_local_"
 
 
-class UndefinedVariableError(NameError):
-    """
-    NameError subclass for local variables.
-    """
-
-    def __init__(self, name: str, is_local: bool | None = None):
-        base_msg = f"{repr(name)} is not defined"
-        if is_local:
-            msg = f"local variable {base_msg}"
-        else:
-            msg = f"name {base_msg}"
-        super().__init__(msg)
-
-
 class Term:
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, str) else cls
@@ -88,7 +76,7 @@ class Term:
 
     is_local: bool
 
-    def __init__(self, name, env, side=None, encoding=None):
+    def __init__(self, name, env, side=None, encoding=None) -> None:
         # name is a str for Term, but may be something else for subclasses
         self._name = name
         self.env = env
@@ -108,11 +96,18 @@ class Term:
     def __call__(self, *args, **kwargs):
         return self.value
 
-    def evaluate(self, *args, **kwargs):
+    def evaluate(self, *args, **kwargs) -> Term:
         return self
 
     def _resolve_name(self):
-        res = self.env.resolve(self.local_name, is_local=self.is_local)
+        local_name = str(self.local_name)
+        is_local = self.is_local
+        if local_name in self.env.scope and isinstance(
+            self.env.scope[local_name], type
+        ):
+            is_local = False
+
+        res = self.env.resolve(local_name, is_local=is_local)
         self.update(res)
 
         if hasattr(res, "ndim") and res.ndim > 2:
@@ -121,7 +116,7 @@ class Term:
             )
         return res
 
-    def update(self, value):
+    def update(self, value) -> None:
         """
         search order for local (i.e., @variable) variables:
 
@@ -176,7 +171,7 @@ class Term:
         return self._value
 
     @value.setter
-    def value(self, new_value):
+    def value(self, new_value) -> None:
         self._value = new_value
 
     @property
@@ -189,7 +184,7 @@ class Term:
 
 
 class Constant(Term):
-    def __init__(self, value, env, side=None, encoding=None):
+    def __init__(self, value, env, side=None, encoding=None) -> None:
         super().__init__(value, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
@@ -215,12 +210,12 @@ class Op:
 
     op: str
 
-    def __init__(self, op: str, operands: Iterable[Term | Op], encoding=None):
+    def __init__(self, op: str, operands: Iterable[Term | Op], encoding=None) -> None:
         self.op = _bool_op_map.get(op, op)
         self.operands = operands
         self.encoding = encoding
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return iter(self.operands)
 
     def __repr__(self) -> str:
@@ -335,7 +330,7 @@ for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
     _binary_ops_dict.update(d)
 
 
-def _cast_inplace(terms, acceptable_dtypes, dtype):
+def _cast_inplace(terms, acceptable_dtypes, dtype) -> None:
     """
     Cast an expression inplace.
 
@@ -375,7 +370,7 @@ class BinOp(Op):
     rhs : Term or Op
     """
 
-    def __init__(self, op: str, lhs, rhs):
+    def __init__(self, op: str, lhs, rhs) -> None:
         super().__init__(op, (lhs, rhs))
         self.lhs = lhs
         self.rhs = rhs
@@ -461,7 +456,7 @@ class BinOp(Op):
         name = env.add_tmp(res)
         return term_type(name, env=env)
 
-    def convert_values(self):
+    def convert_values(self) -> None:
         """
         Convert datetimes to a comparable value in an expression.
         """
@@ -530,7 +525,7 @@ class Div(BinOp):
         The Terms or Ops in the ``/`` expression.
     """
 
-    def __init__(self, lhs, rhs):
+    def __init__(self, lhs, rhs) -> None:
         super().__init__("/", lhs, rhs)
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
@@ -566,7 +561,7 @@ class UnaryOp(Op):
         * If no function associated with the passed operator token is found.
     """
 
-    def __init__(self, op: str, operand):
+    def __init__(self, op: Literal["+", "-", "~", "not"], operand) -> None:
         super().__init__(op, (operand,))
         self.operand = operand
 
@@ -578,9 +573,10 @@ class UnaryOp(Op):
                 f"valid operators are {UNARY_OPS_SYMS}"
             ) from err
 
-    def __call__(self, env):
+    def __call__(self, env) -> MathCall:
         operand = self.operand(env)
-        return self.func(operand)
+        # error: Cannot call function of unknown type
+        return self.func(operand)  # type: ignore[operator]
 
     def __repr__(self) -> str:
         return pprint_thing(f"{self.op}({self.operand})")
@@ -598,7 +594,7 @@ class UnaryOp(Op):
 
 
 class MathCall(Op):
-    def __init__(self, func, args):
+    def __init__(self, func, args) -> None:
         super().__init__(func.name, args)
         self.func = func
 
@@ -614,7 +610,7 @@ class MathCall(Op):
 
 
 class FuncNode:
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         if name not in MATHOPS:
             raise ValueError(f'"{name}" is not a supported function')
         self.name = name

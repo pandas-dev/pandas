@@ -3,8 +3,6 @@ import io
 import numpy as np
 import pytest
 
-from pandas.compat._optional import VERSIONS
-
 from pandas import (
     DataFrame,
     date_range,
@@ -20,15 +18,17 @@ from pandas import (
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
-df1 = DataFrame(
-    {
-        "int": [1, 3],
-        "float": [2.0, np.nan],
-        "str": ["t", "s"],
-        "dt": date_range("2018-06-18", periods=2),
-    }
-)
-text = str(df1.to_csv(index=False)).encode()
+
+@pytest.fixture
+def df1():
+    return DataFrame(
+        {
+            "int": [1, 3],
+            "float": [2.0, np.nan],
+            "str": ["t", "s"],
+            "dt": date_range("2018-06-18", periods=2),
+        }
+    )
 
 
 @pytest.fixture
@@ -40,7 +40,8 @@ def cleared_fs():
     memfs.store.clear()
 
 
-def test_read_csv(cleared_fs):
+def test_read_csv(cleared_fs, df1):
+    text = str(df1.to_csv(index=False)).encode()
     with cleared_fs.open("test/test.csv", "wb") as w:
         w.write(text)
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"])
@@ -65,7 +66,7 @@ def test_reasonable_error(monkeypatch, cleared_fs):
         read_csv("couldexist://test/test.csv")
 
 
-def test_to_csv(cleared_fs):
+def test_to_csv(cleared_fs, df1):
     df1.to_csv("memory://test/test.csv", index=True)
 
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"], index_col=0)
@@ -73,13 +74,9 @@ def test_to_csv(cleared_fs):
     tm.assert_frame_equal(df1, df2)
 
 
-@pytest.mark.parametrize("ext", ["xls", "xlsx"])
-def test_to_excel(cleared_fs, ext):
-    if ext == "xls":
-        pytest.importorskip("xlwt")
-    else:
-        pytest.importorskip("openpyxl")
-
+def test_to_excel(cleared_fs, df1):
+    pytest.importorskip("openpyxl")
+    ext = "xlsx"
     path = f"memory://test/test.{ext}"
     df1.to_excel(path, index=True)
 
@@ -89,27 +86,23 @@ def test_to_excel(cleared_fs, ext):
 
 
 @pytest.mark.parametrize("binary_mode", [False, True])
-def test_to_csv_fsspec_object(cleared_fs, binary_mode):
+def test_to_csv_fsspec_object(cleared_fs, binary_mode, df1):
     fsspec = pytest.importorskip("fsspec")
 
     path = "memory://test/test.csv"
     mode = "wb" if binary_mode else "w"
-    fsspec_object = fsspec.open(path, mode=mode).open()
-
-    df1.to_csv(fsspec_object, index=True)
-    assert not fsspec_object.closed
-    fsspec_object.close()
+    with fsspec.open(path, mode=mode).open() as fsspec_object:
+        df1.to_csv(fsspec_object, index=True)
+        assert not fsspec_object.closed
 
     mode = mode.replace("w", "r")
-    fsspec_object = fsspec.open(path, mode=mode).open()
-
-    df2 = read_csv(
-        fsspec_object,
-        parse_dates=["dt"],
-        index_col=0,
-    )
-    assert not fsspec_object.closed
-    fsspec_object.close()
+    with fsspec.open(path, mode=mode) as fsspec_object:
+        df2 = read_csv(
+            fsspec_object,
+            parse_dates=["dt"],
+            index_col=0,
+        )
+        assert not fsspec_object.closed
 
     tm.assert_frame_equal(df1, df2)
 
@@ -135,12 +128,9 @@ def test_read_table_options(fsspectest):
     assert fsspectest.test[0] == "csv_read"
 
 
-@pytest.mark.parametrize("extension", ["xlsx", "xls"])
-def test_excel_options(fsspectest, extension):
-    if extension == "xls":
-        pytest.importorskip("xlwt")
-    else:
-        pytest.importorskip("openpyxl")
+def test_excel_options(fsspectest):
+    pytest.importorskip("openpyxl")
+    extension = "xlsx"
 
     df = DataFrame({"a": [0]})
 
@@ -153,7 +143,7 @@ def test_excel_options(fsspectest, extension):
 
 
 @td.skip_if_no("fastparquet")
-def test_to_parquet_new_file(cleared_fs):
+def test_to_parquet_new_file(cleared_fs, df1):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df1.to_parquet(
         "memory://test/test.csv", index=True, engine="fastparquet", compression=None
@@ -221,7 +211,7 @@ def test_from_s3_csv(s3_resource, tips_file, s3so):
 @td.skip_if_no("s3fs")
 def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
     tm.assert_equal(
-        read_csv("%s://pandas-test/tips.csv" % protocol, storage_options=s3so),
+        read_csv(f"{protocol}://pandas-test/tips.csv", storage_options=s3so),
         read_csv(tips_file),
     )
 
@@ -230,7 +220,7 @@ def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
 @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("s3fs")
 @td.skip_if_no("fastparquet")
-def test_s3_parquet(s3_resource, s3so):
+def test_s3_parquet(s3_resource, s3so, df1):
     fn = "s3://pandas-test/test.parquet"
     df1.to_parquet(
         fn, index=False, engine="fastparquet", compression=None, storage_options=s3so
@@ -294,21 +284,7 @@ def test_stata_options(fsspectest):
 
 
 @td.skip_if_no("tabulate")
-def test_markdown_options(request, fsspectest):
-    import fsspec
-
-    # error: Library stubs not installed for "tabulate"
-    # (or incompatible with Python 3.8)
-    import tabulate  # type: ignore[import]
-
-    request.node.add_marker(
-        pytest.mark.xfail(
-            fsspec.__version__ == VERSIONS["fsspec"]
-            and tabulate.__version__ == VERSIONS["tabulate"],
-            reason="Fails on the min version build",
-            raises=FileNotFoundError,
-        )
-    )
+def test_markdown_options(fsspectest):
     df = DataFrame({"a": [0]})
     df.to_markdown("testmem://afile", storage_options={"test": "md_write"})
     assert fsspectest.test[0] == "md_write"

@@ -3,7 +3,9 @@ from __future__ import annotations
 import bz2
 from functools import wraps
 import gzip
+import io
 import socket
+import tarfile
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -111,12 +113,13 @@ def optional_args(decorator):
     return wrapper
 
 
-@optional_args
+# error: Untyped decorator makes function "network" untyped
+@optional_args  # type: ignore[misc]
 def network(
     t,
-    url="https://www.google.com",
-    raise_on_error=False,
-    check_before_test=False,
+    url: str = "https://www.google.com",
+    raise_on_error: bool = False,
+    check_before_test: bool = False,
     error_classes=None,
     skip_errnos=_network_errno_vals,
     _skip_on_messages=_network_error_messages,
@@ -222,7 +225,7 @@ def network(
             )
         try:
             return t(*args, **kwargs)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-except
             errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
                 # error: "Exception" has no attribute "reason"
@@ -240,18 +243,12 @@ def network(
 
             if not isinstance(err, error_classes) or raise_on_error:
                 raise
-            else:
-                pytest.skip(
-                    f"Skipping test due to lack of connectivity and error {err}"
-                )
+            pytest.skip(f"Skipping test due to lack of connectivity and error {err}")
 
     return wrapper
 
 
-with_connectivity_check = network
-
-
-def can_connect(url, error_classes=None):
+def can_connect(url, error_classes=None) -> bool:
     """
     Try to connect to the given url. True if succeeds, False if OSError
     raised
@@ -369,7 +366,7 @@ def round_trip_localpath(writer, reader, path: str | None = None):
     return obj
 
 
-def write_to_compressed(compression, path, data, dest="test"):
+def write_to_compressed(compression, path, data, dest: str = "test"):
     """
     Write data to a compressed file.
 
@@ -398,6 +395,14 @@ def write_to_compressed(compression, path, data, dest="test"):
         mode = "w"
         args = (dest, data)
         method = "writestr"
+    elif compression == "tar":
+        compress_method = tarfile.TarFile
+        mode = "w"
+        file = tarfile.TarInfo(name=dest)
+        bytes = io.BytesIO(data)
+        file.size = len(data)
+        args = (file, bytes)
+        method = "addfile"
     elif compression == "gzip":
         compress_method = gzip.GzipFile
     elif compression == "bz2":
@@ -417,7 +422,7 @@ def write_to_compressed(compression, path, data, dest="test"):
 # Plotting
 
 
-def close(fignum=None):
+def close(fignum=None) -> None:
     from matplotlib.pyplot import (
         close as _close,
         get_fignums,

@@ -175,9 +175,7 @@ class TestMissing(BaseDatetimeTests, base.BaseMissingTests):
 
 
 class TestReshaping(BaseDatetimeTests, base.BaseReshapingTests):
-    @pytest.mark.skip(reason="We have DatetimeTZBlock")
-    def test_concat(self, data, in_frame):
-        pass
+    pass
 
 
 class TestSetitem(BaseDatetimeTests, base.BaseSetitemTests):

@@ -1,30 +1,27 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
-from base64 import decode
+from collections import defaultdict
 from csv import (
     QUOTE_MINIMAL,
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
-from errno import ENOENT
 import sys
 import time
 import warnings
 
-from libc.stdlib cimport free
-from libc.string cimport (
-    strcasecmp,
-    strlen,
-    strncpy,
+from pandas.errors import ParserError
+from pandas.util._exceptions import find_stack_level
+
+from pandas import StringDtype
+from pandas.core.arrays import (
+    BooleanArray,
+    FloatingArray,
+    IntegerArray,
 )
 
-import cython
-from cython import Py_ssize_t
-
-from cpython.bytes cimport (
-    PyBytes_AsString,
-    PyBytes_FromString,
-)
+cimport cython
+from cpython.bytes cimport PyBytes_AsString
 from cpython.exc cimport (
     PyErr_Fetch,
     PyErr_Occurred,
@@ -38,6 +35,13 @@ from cpython.unicode cimport (
     PyUnicode_AsUTF8String,
     PyUnicode_Decode,
     PyUnicode_DecodeUTF8,
+)
+from cython cimport Py_ssize_t
+from libc.stdlib cimport free
+from libc.string cimport (
+    strcasecmp,
+    strlen,
+    strncpy,
 )
 
 
@@ -65,7 +69,7 @@ from pandas._libs.util cimport (
     UINT64_MAX,
 )
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 
 from pandas._libs.khash cimport (
     kh_destroy_float64,
@@ -313,7 +317,7 @@ cdef class TextReader:
         object handle
         object orig_header
         bint na_filter, keep_default_na, verbose, has_usecols, has_mi_columns
-        bint mangle_dupe_cols, allow_leading_cols
+        bint allow_leading_cols
         uint64_t parser_start  # this is modified after __init__
         list clocks
         const char *encoding_errors
@@ -333,6 +337,7 @@ cdef class TextReader:
         object index_col
         object skiprows
         object dtype
+        bint use_nullable_dtypes
         object usecols
         set unnamed_cols  # set[str]
 
@@ -368,10 +373,10 @@ cdef class TextReader:
                   skiprows=None,
                   skipfooter=0,         # int64_t
                   bint verbose=False,
-                  bint mangle_dupe_cols=True,
                   float_precision=None,
                   bint skip_blank_lines=True,
-                  encoding_errors=b"strict"):
+                  encoding_errors=b"strict",
+                  use_nullable_dtypes=False):
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -383,8 +388,6 @@ cdef class TextReader:
 
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
-
-        self.mangle_dupe_cols = mangle_dupe_cols
 
         # For timekeeping
         self.clocks = []
@@ -496,6 +499,7 @@ cdef class TextReader:
         # - DtypeObj
         # - dict[Any, DtypeObj]
         self.dtype = dtype
+        self.use_nullable_dtypes = use_nullable_dtypes
 
         # XXX
         self.noconvert = set()
@@ -618,7 +622,7 @@ cdef class TextReader:
         cdef:
             Py_ssize_t i, start, field_count, passed_count, unnamed_count, level
             char *word
-            str name, old_name
+            str name
             uint64_t hr, data_line = 0
             list header = []
             set unnamed_cols = set()
@@ -673,7 +677,7 @@ cdef class TextReader:
 
                     this_header.append(name)
 
-                if not self.has_mi_columns and self.mangle_dupe_cols:
+                if not self.has_mi_columns:
                     # Ensure that regular columns are used before unnamed ones
                     # to keep given names and mangle unnamed columns
                     col_loop_order = [i for i in range(len(this_header))
@@ -732,6 +736,8 @@ cdef class TextReader:
         elif self.names is not None:
             # Names passed
             if self.parser.lines < 1:
+                if not self.has_usecols:
+                    self.parser.expected_fields = len(self.names)
                 self._tokenize_rows(1)
 
             header = [self.names]
@@ -744,6 +750,7 @@ cdef class TextReader:
             # Enforce this unless usecols
             if not self.has_usecols:
                 self.parser.expected_fields = max(field_count, len(self.names))
+
         else:
             # No header passed nor to be found in the file
             if self.parser.lines < 1:
@@ -923,7 +930,8 @@ cdef class TextReader:
             object name, na_flist, col_dtype = None
             bint na_filter = 0
             int64_t num_cols
-            dict result
+            dict results
+            bint use_nullable_dtypes
 
         start = self.parser_start
 
@@ -955,15 +963,15 @@ cdef class TextReader:
                 all(isinstance(u, int) for u in self.usecols)):
             missing_usecols = [col for col in self.usecols if col >= num_cols]
             if missing_usecols:
-                warnings.warn(
-                    "Defining usecols with out of bounds indices is deprecated "
-                    "and will raise a ParserError in a future version.",
-                    FutureWarning,
-                    stacklevel=6,
+                raise ParserError(
+                    "Defining usecols without of bounds indices is not allowed. "
+                    f"{missing_usecols} are out of bounds.",
                 )
 
         results = {}
         nused = 0
+        is_default_dict_dtype = isinstance(self.dtype, defaultdict)
+
         for i in range(self.table_width):
             if i < self.leading_cols:
                 # Pass through leading columns always
@@ -994,6 +1002,8 @@ cdef class TextReader:
                         col_dtype = self.dtype[name]
                     elif i in self.dtype:
                         col_dtype = self.dtype[i]
+                    elif is_default_dict_dtype:
+                        col_dtype = self.dtype[name]
                 else:
                     if self.dtype.names:
                         # structured array
@@ -1006,7 +1016,7 @@ cdef class TextReader:
                     warnings.warn((f"Both a converter and dtype were specified "
                                    f"for column {name} - only the converter will "
                                    f"be used."), ParserWarning,
-                                  stacklevel=5)
+                                  stacklevel=find_stack_level())
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
@@ -1040,8 +1050,14 @@ cdef class TextReader:
                     self._free_na_set(na_hashset)
 
             # don't try to upcast EAs
-            if na_count > 0 and not is_extension_array_dtype(col_dtype):
-                col_res = _maybe_upcast(col_res)
+            if (
+                na_count > 0 and not is_extension_array_dtype(col_dtype)
+                or self.use_nullable_dtypes
+            ):
+                use_nullable_dtypes = self.use_nullable_dtypes and col_dtype is None
+                col_res = _maybe_upcast(
+                    col_res, use_nullable_dtypes=use_nullable_dtypes
+                )
 
             if col_res is None:
                 raise ParserError(f'Unable to parse column {i}')
@@ -1301,8 +1317,10 @@ cdef class TextReader:
             if self.header is not None:
                 j = i - self.leading_cols
                 # generate extra (bogus) headers if there are more columns than headers
+                # These should be strings, not integers, because otherwise we might get
+                # issues with callables as usecols GH#46997
                 if j >= len(self.header[0]):
-                    return j
+                    return str(j)
                 elif self.has_mi_columns:
                     return tuple(header_row[j] for header_row in self.header)
                 else:
@@ -1370,18 +1388,56 @@ STR_NA_VALUES = {
 _NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
 
-def _maybe_upcast(arr):
-    """
+def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
+    """Sets nullable dtypes or upcasts if nans are present.
 
+    Upcast, if use_nullable_dtypes is false and nans are present so that the
+    current dtype can not hold the na value. We use nullable dtypes if the
+    flag is true for every array.
+
+    Parameters
+    ----------
+    arr: ndarray
+        Numpy array that is potentially being upcast.
+
+    use_nullable_dtypes: bool, default False
+        If true, we cast to the associated nullable dtypes.
+
+    Returns
+    -------
+    The casted array.
     """
+    if is_extension_array_dtype(arr.dtype):
+        return arr
+
+    na_value = na_values[arr.dtype]
+
     if issubclass(arr.dtype.type, np.integer):
-        na_value = na_values[arr.dtype]
-        arr = arr.astype(float)
-        np.putmask(arr, arr == na_value, np.nan)
+        mask = arr == na_value
+
+        if use_nullable_dtypes:
+            arr = IntegerArray(arr, mask)
+        else:
+            arr = arr.astype(float)
+            np.putmask(arr, mask, np.nan)
+
     elif arr.dtype == np.bool_:
-        mask = arr.view(np.uint8) == na_values[np.uint8]
-        arr = arr.astype(object)
-        np.putmask(arr, mask, np.nan)
+        mask = arr.view(np.uint8) == na_value
+
+        if use_nullable_dtypes:
+            arr = BooleanArray(arr, mask)
+        else:
+            arr = arr.astype(object)
+            np.putmask(arr, mask, np.nan)
+
+    elif issubclass(arr.dtype.type, float) or arr.dtype.type == np.float32:
+        if use_nullable_dtypes:
+            mask = np.isnan(arr)
+            arr = FloatingArray(arr, mask)
+
+    elif arr.dtype == np.object_:
+        if use_nullable_dtypes:
+            arr = StringDtype().construct_array_type()._from_sequence(arr)
 
     return arr
 
@@ -1396,7 +1452,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
                       bint na_filter, kh_str_starts_t *na_hashset,
                       const char *encoding_errors):
     cdef:
-        int error, na_count = 0
+        int na_count = 0
         Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
@@ -1452,15 +1508,13 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
     "Convert column data into codes, categories"
     cdef:
         int na_count = 0
-        Py_ssize_t i, size, lines
+        Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
 
         int64_t NA = -1
-        int64_t[:] codes
+        int64_t[::1] codes
         int64_t current_category = 0
-
-        char *errors = "strict"
 
         int ret = 0
         kh_str_t *table
@@ -1907,7 +1961,6 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
 cdef kh_float64_t* kset_float64_from_list(values) except NULL:
     # caller takes responsibility for freeing the hash table
     cdef:
-        khiter_t k
         kh_float64_t *table
         int ret = 0
         float64_t val
@@ -1918,7 +1971,7 @@ cdef kh_float64_t* kset_float64_from_list(values) except NULL:
     for value in values:
         val = float(value)
 
-        k = kh_put_float64(table, val, &ret)
+        kh_put_float64(table, val, &ret)
 
     if table.n_buckets <= 128:
         # See reasoning in kset_from_list
@@ -1977,6 +2030,7 @@ def _compute_na_values():
     uint16info = np.iinfo(np.uint16)
     uint8info = np.iinfo(np.uint8)
     na_values = {
+        np.float32: np.nan,
         np.float64: np.nan,
         np.int64: int64info.min,
         np.int32: int32info.min,

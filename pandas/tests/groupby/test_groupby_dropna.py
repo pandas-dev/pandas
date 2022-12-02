@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas.compat.pyarrow import pa_version_under6p0
+
+from pandas.core.dtypes.missing import na_value_for_dtype
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -332,6 +336,36 @@ def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, 
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("input_index", [None, ["a"], ["a", "b"]])
+@pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
+@pytest.mark.parametrize("series", [True, False])
+def test_groupby_dropna_with_multiindex_input(input_index, keys, series):
+    # GH#46783
+    obj = pd.DataFrame(
+        {
+            "a": [1, np.nan],
+            "b": [1, 1],
+            "c": [2, 3],
+        }
+    )
+
+    expected = obj.set_index(keys)
+    if series:
+        expected = expected["c"]
+    elif input_index == ["a", "b"] and keys == ["a"]:
+        # Column b should not be aggregated
+        expected = expected[["c"]]
+
+    if input_index is not None:
+        obj = obj.set_index(input_index)
+    gb = obj.groupby(keys, dropna=False)
+    if series:
+        gb = gb["c"]
+    result = gb.sum()
+
+    tm.assert_equal(result, expected)
+
+
 def test_groupby_nan_included():
     # GH 35646
     data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
@@ -348,3 +382,119 @@ def test_groupby_nan_included():
         tm.assert_numpy_array_equal(result_values, expected_values)
     assert np.isnan(list(result.keys())[2])
     assert list(result.keys())[0:2] == ["g1", "g2"]
+
+
+def test_groupby_drop_nan_with_multi_index():
+    # GH 39895
+    df = pd.DataFrame([[np.nan, 0, 1]], columns=["a", "b", "c"])
+    df = df.set_index(["a", "b"])
+    result = df.groupby(["a", "b"], dropna=False).first()
+    expected = df
+    tm.assert_frame_equal(result, expected)
+
+
+# sequence_index enumerates all strings made up of x, y, z of length 4
+@pytest.mark.parametrize("sequence_index", range(3**4))
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        None,
+        "UInt8",
+        "Int8",
+        "UInt16",
+        "Int16",
+        "UInt32",
+        "Int32",
+        "UInt64",
+        "Int64",
+        "Float32",
+        "Int64",
+        "Float64",
+        "category",
+        "string",
+        pytest.param(
+            "string[pyarrow]",
+            marks=pytest.mark.skipif(
+                pa_version_under6p0, reason="pyarrow is not installed"
+            ),
+        ),
+        "datetime64[ns]",
+        "period[d]",
+        "Sparse[float]",
+    ],
+)
+@pytest.mark.parametrize("test_series", [True, False])
+def test_no_sort_keep_na(request, sequence_index, dtype, test_series):
+    # GH#46584, GH#48794
+
+    # Convert sequence_index into a string sequence, e.g. 5 becomes "xxyz"
+    # This sequence is used for the grouper.
+    sequence = "".join(
+        [{0: "x", 1: "y", 2: "z"}[sequence_index // (3**k) % 3] for k in range(4)]
+    )
+
+    if dtype == "category" and "z" in sequence:
+        # Only xfail when nulls are present
+        msg = "dropna=False not correct for categorical, GH#48645"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+
+    # Unique values to use for grouper, depends on dtype
+    if dtype in ("string", "string[pyarrow]"):
+        uniques = {"x": "x", "y": "y", "z": pd.NA}
+    elif dtype in ("datetime64[ns]", "period[d]"):
+        uniques = {"x": "2016-01-01", "y": "2017-01-01", "z": pd.NA}
+    else:
+        uniques = {"x": 1, "y": 2, "z": np.nan}
+
+    df = pd.DataFrame(
+        {
+            "key": pd.Series([uniques[label] for label in sequence], dtype=dtype),
+            "a": [0, 1, 2, 3],
+        }
+    )
+    gb = df.groupby("key", dropna=False, sort=False)
+    if test_series:
+        gb = gb["a"]
+    result = gb.sum()
+
+    # Manually compute the groupby sum, use the labels "x", "y", and "z" to avoid
+    # issues with hashing np.nan
+    summed = {}
+    for idx, label in enumerate(sequence):
+        summed[label] = summed.get(label, 0) + idx
+    if dtype == "category":
+        index = pd.CategoricalIndex(
+            [uniques[e] for e in summed],
+            df["key"].cat.categories,
+            name="key",
+        )
+    elif isinstance(dtype, str) and dtype.startswith("Sparse"):
+        index = pd.Index(
+            pd.array([uniques[label] for label in summed], dtype=dtype), name="key"
+        )
+    else:
+        index = pd.Index([uniques[label] for label in summed], dtype=dtype, name="key")
+    expected = pd.Series(summed.values(), index=index, name="a", dtype=None)
+    if not test_series:
+        expected = expected.to_frame()
+
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("test_series", [True, False])
+@pytest.mark.parametrize("dtype", [object, None])
+def test_null_is_null_for_dtype(
+    sort, dtype, nulls_fixture, nulls_fixture2, test_series
+):
+    # GH#48506 - groups should always result in using the null for the dtype
+    df = pd.DataFrame({"a": [1, 2]})
+    groups = pd.Series([nulls_fixture, nulls_fixture2], dtype=dtype)
+    obj = df["a"] if test_series else df
+    gb = obj.groupby(groups, dropna=False, sort=sort)
+    result = gb.sum()
+    index = pd.Index([na_value_for_dtype(groups.dtype)])
+    expected = pd.DataFrame({"a": [3]}, index=index)
+    if test_series:
+        tm.assert_series_equal(result, expected["a"])
+    else:
+        tm.assert_frame_equal(result, expected)

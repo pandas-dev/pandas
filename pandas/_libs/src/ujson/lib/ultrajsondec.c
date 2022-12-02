@@ -32,7 +32,7 @@ https://github.com/client9/stringencoders
 Copyright (c) 2007  Nick Galbreath -- nickg [at] modp [dot] com. All rights
 reserved.
 
-Numeric decoder derived from from TCL library
+Numeric decoder derived from TCL library
 https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 * Copyright (c) 1988-1993 The Regents of the University of California.
 * Copyright (c) 1994 Sun Microsystems, Inc.
@@ -1174,15 +1174,21 @@ JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer,
     ds.dec = dec;
 
     locale = setlocale(LC_NUMERIC, NULL);
+    if (!locale) {
+        return SetError(&ds, -1, "setlocale call failed");
+    }
+
     if (strcmp(locale, "C")) {
-        locale = strdup(locale);
-        if (!locale) {
-            return SetError(&ds, -1, "Could not reserve memory block");
+        size_t len = strlen(locale) + 1;
+        char *saved_locale = malloc(len);
+        if (saved_locale == NULL) {
+          return SetError(&ds, -1, "Could not reserve memory block");
         }
+        memcpy(saved_locale, locale, len);
         setlocale(LC_NUMERIC, "C");
         ret = decode_any(&ds);
-        setlocale(LC_NUMERIC, locale);
-        free(locale);
+        setlocale(LC_NUMERIC, saved_locale);
+        free(saved_locale);
     } else {
         ret = decode_any(&ds);
     }

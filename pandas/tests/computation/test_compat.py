@@ -3,8 +3,8 @@ import pytest
 from pandas.compat._optional import VERSIONS
 
 import pandas as pd
+from pandas.core.computation import expr
 from pandas.core.computation.engines import ENGINES
-import pandas.core.computation.expr as expr
 from pandas.util.version import Version
 
 

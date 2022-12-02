@@ -3,8 +3,6 @@ These benchmarks are for Series and DataFrame indexing methods.  For the
 lower-level methods directly on Index and subclasses, see index_object.py,
 indexing_engine.py, and index_cached.py
 """
-import itertools
-import string
 import warnings
 
 import numpy as np
@@ -12,12 +10,10 @@ import numpy as np
 from pandas import (
     CategoricalIndex,
     DataFrame,
-    Float64Index,
-    Int64Index,
+    Index,
     IntervalIndex,
     MultiIndex,
     Series,
-    UInt64Index,
     concat,
     date_range,
     option_context,
@@ -30,17 +26,17 @@ from .pandas_vb_common import tm
 class NumericSeriesIndexing:
 
     params = [
-        (Int64Index, UInt64Index, Float64Index),
+        (np.int64, np.uint64, np.float64),
         ("unique_monotonic_inc", "nonunique_monotonic_inc"),
     ]
-    param_names = ["index_dtype", "index_structure"]
+    param_names = ["dtype", "index_structure"]
 
-    def setup(self, index, index_structure):
+    def setup(self, dtype, index_structure):
         N = 10**6
         indices = {
-            "unique_monotonic_inc": index(range(N)),
-            "nonunique_monotonic_inc": index(
-                list(range(55)) + [54] + list(range(55, N - 1))
+            "unique_monotonic_inc": Index(range(N), dtype=dtype),
+            "nonunique_monotonic_inc": Index(
+                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
             ),
         }
         self.data = Series(np.random.rand(N), index=indices[index_structure])
@@ -157,25 +153,39 @@ class DataFrameStringIndexing:
 
 
 class DataFrameNumericIndexing:
-    def setup(self):
-        self.idx_dupe = np.array(range(30)) * 99
-        self.df = DataFrame(np.random.randn(100000, 5))
-        self.df_dup = concat([self.df, 2 * self.df, 3 * self.df])
-        self.bool_indexer = [True] * 50000 + [False] * 50000
 
-    def time_iloc_dups(self):
+    params = [
+        (np.int64, np.uint64, np.float64),
+        ("unique_monotonic_inc", "nonunique_monotonic_inc"),
+    ]
+    param_names = ["dtype", "index_structure"]
+
+    def setup(self, dtype, index_structure):
+        N = 10**5
+        indices = {
+            "unique_monotonic_inc": Index(range(N), dtype=dtype),
+            "nonunique_monotonic_inc": Index(
+                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
+            ),
+        }
+        self.idx_dupe = np.array(range(30)) * 99
+        self.df = DataFrame(np.random.randn(N, 5), index=indices[index_structure])
+        self.df_dup = concat([self.df, 2 * self.df, 3 * self.df])
+        self.bool_indexer = [True] * (N // 2) + [False] * (N - N // 2)
+
+    def time_iloc_dups(self, index, index_structure):
         self.df_dup.iloc[self.idx_dupe]
 
-    def time_loc_dups(self):
+    def time_loc_dups(self, index, index_structure):
         self.df_dup.loc[self.idx_dupe]
 
-    def time_iloc(self):
+    def time_iloc(self, index, index_structure):
         self.df.iloc[:100, 0]
 
-    def time_loc(self):
+    def time_loc(self, index, index_structure):
         self.df.loc[:100, 0]
 
-    def time_bool_indexer(self):
+    def time_bool_indexer(self, index, index_structure):
         self.df[self.bool_indexer]
 
 
@@ -187,7 +197,7 @@ class Take:
     def setup(self, index):
         N = 100000
         indexes = {
-            "int": Int64Index(np.arange(N)),
+            "int": Index(np.arange(N), dtype=np.int64),
             "datetime": date_range("2011-01-01", freq="S", periods=N),
         }
         index = indexes[index]
@@ -204,11 +214,11 @@ class MultiIndexing:
     param_names = ["unique_levels"]
 
     def setup(self, unique_levels):
-        self.ndim = 2
+        self.nlevels = 2
         if unique_levels:
-            mi = MultiIndex.from_arrays([range(1000000)] * self.ndim)
+            mi = MultiIndex.from_arrays([range(1000000)] * self.nlevels)
         else:
-            mi = MultiIndex.from_product([range(1000)] * self.ndim)
+            mi = MultiIndex.from_product([range(1000)] * self.nlevels)
         self.df = DataFrame(np.random.randn(len(mi)), index=mi)
 
         self.tgt_slice = slice(200, 800)
@@ -232,27 +242,27 @@ class MultiIndexing:
     def time_loc_partial_key_scalar(self, unique_levels):
         self.df.loc[self.tgt_scalar, :]
 
-    def time_loc_partial_bool_indexer(self, unique_levels):
+    def time_loc_partial_key_bool_indexer(self, unique_levels):
         self.df.loc[self.tgt_bool_indexer, :]
 
     def time_loc_all_slices(self, unique_levels):
-        target = tuple([self.tgt_slice] * self.ndim)
+        target = tuple([self.tgt_slice] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_all_null_slices(self, unique_levels):
-        target = tuple([self.tgt_null_slice] * self.ndim)
+        target = tuple([self.tgt_null_slice] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_all_lists(self, unique_levels):
-        target = tuple([self.tgt_list] * self.ndim)
+        target = tuple([self.tgt_list] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_all_scalars(self, unique_levels):
-        target = tuple([self.tgt_scalar] * self.ndim)
+        target = tuple([self.tgt_scalar] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_all_bool_indexers(self, unique_levels):
-        target = tuple([self.tgt_bool_indexer] * self.ndim)
+        target = tuple([self.tgt_bool_indexer] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_slice_plus_null_slice(self, unique_levels):
@@ -262,6 +272,18 @@ class MultiIndexing:
     def time_loc_null_slice_plus_slice(self, unique_levels):
         target = (self.tgt_null_slice, self.tgt_slice)
         self.df.loc[target, :]
+
+    def time_xs_level_0(self, unique_levels):
+        target = self.tgt_scalar
+        self.df.xs(target, level=0)
+
+    def time_xs_level_1(self, unique_levels):
+        target = self.tgt_scalar
+        self.df.xs(target, level=1)
+
+    def time_xs_full_key(self, unique_levels):
+        target = tuple([self.tgt_scalar] * self.nlevels)
+        self.df.xs(target)
 
 
 class IntervalIndexing:
@@ -290,20 +312,26 @@ class DatetimeIndexIndexing:
         self.dti = dti
         self.dti2 = dti2
 
-        index = np.random.choice(dti, 10000, replace=True)
-        df = DataFrame(index=index, data={"a": 1})
-        df_sort = df.sort_index()
-        self.df = df
-        self.df_sort = df_sort
-
     def time_get_indexer_mismatched_tz(self):
         # reached via e.g.
         #  ser = Series(range(len(dti)), index=dti)
         #  ser[dti2]
         self.dti.get_indexer(self.dti2)
 
+
+class SortedAndUnsortedDatetimeIndexLoc:
+    def setup(self):
+        dti = date_range("2016-01-01", periods=10000, tz="US/Pacific")
+        index = np.array(dti)
+
+        unsorted_index = index.copy()
+        unsorted_index[10] = unsorted_index[20]
+
+        self.df_unsorted = DataFrame(index=unsorted_index, data={"a": 1})
+        self.df_sort = DataFrame(index=index, data={"a": 1})
+
     def time_loc_unsorted(self):
-        self.df.loc["2016-6-11"]
+        self.df_unsorted.loc["2016-6-11"]
 
     def time_loc_sorted(self):
         self.df_sort.loc["2016-6-11"]
@@ -323,15 +351,13 @@ class CategoricalIndexIndexing:
             "non_monotonic": CategoricalIndex(list("abc" * N)),
         }
         self.data = indices[index]
-        self.data_unique = CategoricalIndex(
-            ["".join(perm) for perm in itertools.permutations(string.printable, 3)]
-        )
+        self.data_unique = CategoricalIndex([str(i) for i in range(N * 3)])
 
         self.int_scalar = 10000
         self.int_list = list(range(10000))
 
         self.cat_scalar = "b"
-        self.cat_list = ["a", "c"]
+        self.cat_list = ["1", "3"]
 
     def time_getitem_scalar(self, index):
         self.data[self.int_scalar]

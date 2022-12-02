@@ -2,10 +2,7 @@ import string
 
 import numpy as np
 
-
-def randbool(size=(), p: float = 0.5):
-    return np.random.rand(*size) <= p
-
+from pandas._typing import NpDtype
 
 RANDS_CHARS = np.array(list(string.ascii_letters + string.digits), dtype=(np.str_, 1))
 RANDU_CHARS = np.array(
@@ -14,31 +11,19 @@ RANDU_CHARS = np.array(
 )
 
 
-def rands_array(nchars, size, dtype="O"):
+def rands_array(nchars, size, dtype: NpDtype = "O", replace: bool = True) -> np.ndarray:
     """
     Generate an array of byte strings.
     """
     retval = (
-        np.random.choice(RANDS_CHARS, size=nchars * np.prod(size))
+        np.random.choice(RANDS_CHARS, size=nchars * np.prod(size), replace=replace)
         .view((np.str_, nchars))
         .reshape(size)
     )
     return retval.astype(dtype)
 
 
-def randu_array(nchars, size, dtype="O"):
-    """
-    Generate an array of unicode strings.
-    """
-    retval = (
-        np.random.choice(RANDU_CHARS, size=nchars * np.prod(size))
-        .view((np.unicode_, nchars))
-        .reshape(size)
-    )
-    return retval.astype(dtype)
-
-
-def rands(nchars):
+def rands(nchars) -> str:
     """
     Generate one random byte string.
 

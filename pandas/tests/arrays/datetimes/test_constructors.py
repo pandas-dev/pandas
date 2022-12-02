@@ -77,8 +77,15 @@ class TestDatetimeArrayConstructor:
             dtype=DatetimeTZDtype(tz="US/Central"),
         )
         dtype = DatetimeTZDtype(tz="US/Eastern")
-        with pytest.raises(TypeError, match="Timezone of the array"):
+        msg = r"dtype=datetime64\[ns.*\] does not match data dtype datetime64\[ns.*\]"
+        with pytest.raises(TypeError, match=msg):
             DatetimeArray(arr, dtype=dtype)
+
+        # also with mismatched tzawareness
+        with pytest.raises(TypeError, match=msg):
+            DatetimeArray(arr, dtype=np.dtype("M8[ns]"))
+        with pytest.raises(TypeError, match=msg):
+            DatetimeArray(arr.tz_localize(None), dtype=arr.dtype)
 
     def test_non_array_raises(self):
         with pytest.raises(ValueError, match="list"):
@@ -87,9 +94,8 @@ class TestDatetimeArrayConstructor:
     def test_bool_dtype_raises(self):
         arr = np.array([1, 2, 3], dtype="bool")
 
-        with pytest.raises(
-            ValueError, match="The dtype of 'values' is incorrect.*bool"
-        ):
+        msg = "Unexpected value for 'dtype': 'bool'. Must be"
+        with pytest.raises(ValueError, match=msg):
             DatetimeArray(arr)
 
         msg = r"dtype bool cannot be converted to datetime64\[ns\]"
@@ -128,14 +134,15 @@ class TestSequenceToDT64NS:
             ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
         )
         with pytest.raises(TypeError, match="data is already tz-aware"):
-            _sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="UTC"))
+            DatetimeArray._from_sequence_not_strict(
+                arr, dtype=DatetimeTZDtype(tz="UTC")
+            )
 
     def test_tz_dtype_matches(self):
-        arr = DatetimeArray._from_sequence(
-            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
-        )
-        result, _, _ = _sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="US/Central"))
-        tm.assert_numpy_array_equal(arr._data, result)
+        dtype = DatetimeTZDtype(tz="US/Central")
+        arr = DatetimeArray._from_sequence(["2000"], dtype=dtype)
+        result = DatetimeArray._from_sequence_not_strict(arr, dtype=dtype)
+        tm.assert_equal(arr, result)
 
     @pytest.mark.parametrize("order", ["F", "C"])
     def test_2d(self, order):

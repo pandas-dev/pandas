@@ -68,9 +68,7 @@ class TestPreserves:
         assert ser.to_frame().flags.allows_duplicate_labels is False
 
     @pytest.mark.parametrize("func", ["add", "sub"])
-    @pytest.mark.parametrize(
-        "frame", [False, pytest.param(True, marks=not_implemented)]
-    )
+    @pytest.mark.parametrize("frame", [False, True])
     @pytest.mark.parametrize("other", [1, pd.Series([1, 2], name="A")])
     def test_binops(self, func, other, frame):
         df = pd.Series([1, 2], name="A", index=["a", "b"]).set_flags(
@@ -84,7 +82,6 @@ class TestPreserves:
         assert df.flags.allows_duplicate_labels is False
         assert func(df).flags.allows_duplicate_labels is False
 
-    @not_implemented
     def test_preserve_getitem(self):
         df = pd.DataFrame({"A": [1, 2]}).set_flags(allows_duplicate_labels=False)
         assert df[["A"]].flags.allows_duplicate_labels is False
@@ -306,15 +303,11 @@ class TestRaises:
             (operator.itemgetter(["A", "A"]), None),
             # loc
             (operator.itemgetter(["a", "a"]), "loc"),
-            pytest.param(
-                operator.itemgetter(("a", ["A", "A"])), "loc", marks=not_implemented
-            ),
+            pytest.param(operator.itemgetter(("a", ["A", "A"])), "loc"),
             (operator.itemgetter((["a", "a"], "A")), "loc"),
             # iloc
             (operator.itemgetter([0, 0]), "iloc"),
-            pytest.param(
-                operator.itemgetter((0, [0, 0])), "iloc", marks=not_implemented
-            ),
+            pytest.param(operator.itemgetter((0, [0, 0])), "iloc"),
             pytest.param(operator.itemgetter(([0, 0], 0)), "iloc"),
         ],
     )
@@ -421,7 +414,6 @@ def test_dataframe_insert_raises():
     "method, frame_only",
     [
         (operator.methodcaller("set_index", "A", inplace=True), True),
-        (operator.methodcaller("set_axis", ["A", "B"], inplace=True), False),
         (operator.methodcaller("reset_index", inplace=True), True),
         (operator.methodcaller("rename", lambda x: x, inplace=True), False),
     ],

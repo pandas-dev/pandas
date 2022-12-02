@@ -83,6 +83,13 @@ Option 2 only loads the columns we request.
 
    pd.read_parquet("timeseries_wide.parquet", columns=columns)
 
+.. ipython:: python
+   :suppress:
+
+   import os
+
+   os.remove("timeseries_wide.parquet")
+
 If we were to measure the memory usage of the two calls, we'd see that specifying
 ``columns`` uses about 1/10th the memory in this case.
 
@@ -104,6 +111,11 @@ can store larger datasets in memory.
    ts.to_parquet("timeseries.parquet")
    ts = pd.read_parquet("timeseries.parquet")
    ts
+
+.. ipython:: python
+   :suppress:
+
+   os.remove("timeseries.parquet")
 
 Now, let's inspect the data types and memory usage to see where we should focus our
 attention.
@@ -365,6 +377,13 @@ out of memory. At that point it's just a regular pandas object.
 
    @savefig dask_resample.png
    ddf[["x", "y"]].resample("1D").mean().cumsum().compute().plot()
+
+.. ipython:: python
+   :suppress:
+
+   import shutil
+
+   shutil.rmtree("data/timeseries")
 
 These Dask examples have all be done using multiple processes on a single
 machine. Dask can be `deployed on a cluster

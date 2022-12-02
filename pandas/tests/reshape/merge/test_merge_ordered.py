@@ -9,14 +9,19 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.fixture
+def left():
+    return DataFrame({"key": ["a", "c", "e"], "lvalue": [1, 2.0, 3]})
+
+
+@pytest.fixture
+def right():
+    return DataFrame({"key": ["b", "c", "d", "f"], "rvalue": [1, 2, 3.0, 4]})
+
+
 class TestMergeOrdered:
-    def setup_method(self):
-        self.left = DataFrame({"key": ["a", "c", "e"], "lvalue": [1, 2.0, 3]})
-
-        self.right = DataFrame({"key": ["b", "c", "d", "f"], "rvalue": [1, 2, 3.0, 4]})
-
-    def test_basic(self):
-        result = merge_ordered(self.left, self.right, on="key")
+    def test_basic(self, left, right):
+        result = merge_ordered(left, right, on="key")
         expected = DataFrame(
             {
                 "key": ["a", "b", "c", "d", "e", "f"],
@@ -27,8 +32,8 @@ class TestMergeOrdered:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_ffill(self):
-        result = merge_ordered(self.left, self.right, on="key", fill_method="ffill")
+    def test_ffill(self, left, right):
+        result = merge_ordered(left, right, on="key", fill_method="ffill")
         expected = DataFrame(
             {
                 "key": ["a", "b", "c", "d", "e", "f"],
@@ -38,13 +43,13 @@ class TestMergeOrdered:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_multigroup(self):
-        left = pd.concat([self.left, self.left], ignore_index=True)
+    def test_multigroup(self, left, right):
+        left = pd.concat([left, left], ignore_index=True)
 
         left["group"] = ["a"] * 3 + ["b"] * 3
 
         result = merge_ordered(
-            left, self.right, on="key", left_by="group", fill_method="ffill"
+            left, right, on="key", left_by="group", fill_method="ffill"
         )
         expected = DataFrame(
             {
@@ -58,42 +63,44 @@ class TestMergeOrdered:
         tm.assert_frame_equal(result, expected.loc[:, result.columns])
 
         result2 = merge_ordered(
-            self.right, left, on="key", right_by="group", fill_method="ffill"
+            right, left, on="key", right_by="group", fill_method="ffill"
         )
         tm.assert_frame_equal(result, result2.loc[:, result.columns])
 
-        result = merge_ordered(left, self.right, on="key", left_by="group")
+        result = merge_ordered(left, right, on="key", left_by="group")
         assert result["group"].notna().all()
 
-    def test_merge_type(self):
+    def test_merge_type(self, left, right):
         class NotADataFrame(DataFrame):
             @property
             def _constructor(self):
                 return NotADataFrame
 
-        nad = NotADataFrame(self.left)
-        result = nad.merge(self.right, on="key")
+        nad = NotADataFrame(left)
+        result = nad.merge(right, on="key")
 
         assert isinstance(result, NotADataFrame)
 
-    def test_empty_sequence_concat(self):
+    @pytest.mark.parametrize(
+        "df_seq, pattern",
+        [
+            ((), "[Nn]o objects"),
+            ([], "[Nn]o objects"),
+            ({}, "[Nn]o objects"),
+            ([None], "objects.*None"),
+            ([None, None], "objects.*None"),
+        ],
+    )
+    def test_empty_sequence_concat(self, df_seq, pattern):
         # GH 9157
-        empty_pat = "[Nn]o objects"
-        none_pat = "objects.*None"
-        test_cases = [
-            ((), empty_pat),
-            ([], empty_pat),
-            ({}, empty_pat),
-            ([None], none_pat),
-            ([None, None], none_pat),
-        ]
-        for df_seq, pattern in test_cases:
-            with pytest.raises(ValueError, match=pattern):
-                pd.concat(df_seq)
+        with pytest.raises(ValueError, match=pattern):
+            pd.concat(df_seq)
 
-        pd.concat([DataFrame()])
-        pd.concat([None, DataFrame()])
-        pd.concat([DataFrame(), None])
+    @pytest.mark.parametrize(
+        "arg", [[DataFrame()], [None, DataFrame()], [DataFrame(), None]]
+    )
+    def test_empty_sequence_concat_ok(self, arg):
+        pd.concat(arg)
 
     def test_doc_example(self):
         left = DataFrame(

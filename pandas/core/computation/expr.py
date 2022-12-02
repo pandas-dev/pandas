@@ -18,6 +18,7 @@ from typing import (
 import numpy as np
 
 from pandas.compat import PY39
+from pandas.errors import UndefinedVariableError
 
 import pandas.core.common as com
 from pandas.core.computation.ops import (
@@ -35,7 +36,6 @@ from pandas.core.computation.ops import (
     Op,
     Term,
     UnaryOp,
-    UndefinedVariableError,
     is_term,
 )
 from pandas.core.computation.parsing import (
@@ -44,7 +44,7 @@ from pandas.core.computation.parsing import (
 )
 from pandas.core.computation.scope import Scope
 
-import pandas.io.formats.printing as printing
+from pandas.io.formats import printing
 
 
 def _rewrite_assign(tok: tuple[int, str]) -> tuple[int, str]:
@@ -382,7 +382,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     unary_ops = UNARY_OPS_SYMS
     unary_op_nodes = "UAdd", "USub", "Invert", "Not"
-    unary_op_nodes_map = {k: v for k, v in zip(unary_ops, unary_op_nodes)}
+    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
 
     rewrite_map = {
         ast.Eq: ast.In,
@@ -393,7 +393,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     unsupported_nodes: tuple[str, ...]
 
-    def __init__(self, env, engine, parser, preparser=_preparse):
+    def __init__(self, env, engine, parser, preparser=_preparse) -> None:
         self.env = env
         self.engine = engine
         self.parser = parser
@@ -410,7 +410,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     e.msg = "Python keyword not valid identifier in numexpr query"
                 raise e
 
-        method = "visit_" + type(node).__name__
+        method = f"visit_{type(node).__name__}"
         visitor = getattr(self, method)
         return visitor(node, **kwargs)
 
@@ -548,13 +548,13 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit_Name(self, node, **kwargs):
         return self.term_type(node.id, self.env, **kwargs)
 
-    def visit_NameConstant(self, node, **kwargs):
+    def visit_NameConstant(self, node, **kwargs) -> Term:
         return self.const_type(node.value, self.env)
 
-    def visit_Num(self, node, **kwargs):
+    def visit_Num(self, node, **kwargs) -> Term:
         return self.const_type(node.n, self.env)
 
-    def visit_Constant(self, node, **kwargs):
+    def visit_Constant(self, node, **kwargs) -> Term:
         return self.const_type(node.n, self.env)
 
     def visit_Str(self, node, **kwargs):
@@ -693,7 +693,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         else:
 
-            new_args = [self.visit(arg).value for arg in node.args]
+            new_args = [self.visit(arg)(self.env) for arg in node.args]
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
@@ -704,7 +704,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     )
 
                 if key.arg:
-                    kwargs[key.arg] = self.visit(key.value).value
+                    kwargs[key.arg] = self.visit(key.value)(self.env)
 
             name = self.env.add_tmp(res(*new_args, **kwargs))
             return self.term_type(name=name, env=self.env)
@@ -768,13 +768,15 @@ class PandasExprVisitor(BaseExprVisitor):
             _preparse,
             f=_compose(_replace_locals, _replace_booleans, clean_backtick_quoted_toks),
         ),
-    ):
+    ) -> None:
         super().__init__(env, engine, parser, preparser)
 
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(["Not"]))
 class PythonExprVisitor(BaseExprVisitor):
-    def __init__(self, env, engine, parser, preparser=lambda x: x):
+    def __init__(
+        self, env, engine, parser, preparser=lambda source, f=None: source
+    ) -> None:
         super().__init__(env, engine, parser, preparser=preparser)
 
 
@@ -802,7 +804,7 @@ class Expr:
         parser: str = "pandas",
         env: Scope | None = None,
         level: int = 0,
-    ):
+    ) -> None:
         self.expr = expr
         self.env = env or Scope(level=level + 1)
         self.engine = engine

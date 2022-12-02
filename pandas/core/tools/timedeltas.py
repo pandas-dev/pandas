@@ -3,6 +3,12 @@ timedelta support tools
 """
 from __future__ import annotations
 
+from datetime import timedelta
+from typing import (
+    TYPE_CHECKING,
+    overload,
+)
+
 import numpy as np
 
 from pandas._libs import lib
@@ -23,8 +29,61 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
+if TYPE_CHECKING:
+    from pandas._libs.tslibs.timedeltas import UnitChoices
+    from pandas._typing import (
+        ArrayLike,
+        DateTimeErrorChoices,
+    )
 
-def to_timedelta(arg, unit=None, errors="raise"):
+    from pandas import (
+        Index,
+        Series,
+        TimedeltaIndex,
+    )
+
+
+@overload
+def to_timedelta(
+    arg: str | float | timedelta,
+    unit: UnitChoices | None = ...,
+    errors: DateTimeErrorChoices = ...,
+) -> Timedelta:
+    ...
+
+
+@overload
+def to_timedelta(
+    arg: Series,
+    unit: UnitChoices | None = ...,
+    errors: DateTimeErrorChoices = ...,
+) -> Series:
+    ...
+
+
+@overload
+def to_timedelta(
+    arg: list | tuple | range | ArrayLike | Index,
+    unit: UnitChoices | None = ...,
+    errors: DateTimeErrorChoices = ...,
+) -> TimedeltaIndex:
+    ...
+
+
+def to_timedelta(
+    arg: str
+    | int
+    | float
+    | timedelta
+    | list
+    | tuple
+    | range
+    | ArrayLike
+    | Index
+    | Series,
+    unit: UnitChoices | None = None,
+    errors: DateTimeErrorChoices = "raise",
+) -> Timedelta | TimedeltaIndex | Series:
     """
     Convert argument to timedelta.
 
@@ -133,7 +192,11 @@ def to_timedelta(arg, unit=None, errors="raise"):
         return _convert_listlike(arg, unit=unit, errors=errors, name=arg.name)
     elif isinstance(arg, np.ndarray) and arg.ndim == 0:
         # extract array scalar and process below
-        arg = lib.item_from_zerodim(arg)
+        # error: Incompatible types in assignment (expression has type "object",
+        # variable has type "Union[str, int, float, timedelta, List[Any],
+        # Tuple[Any, ...], Union[Union[ExtensionArray, ndarray[Any, Any]], Index,
+        # Series]]")  [assignment]
+        arg = lib.item_from_zerodim(arg)  # type: ignore[assignment]
     elif is_list_like(arg) and getattr(arg, "ndim", 1) == 1:
         return _convert_listlike(arg, unit=unit, errors=errors)
     elif getattr(arg, "ndim", 1) > 1:
@@ -148,7 +211,9 @@ def to_timedelta(arg, unit=None, errors="raise"):
     return _coerce_scalar_to_timedelta_type(arg, unit=unit, errors=errors)
 
 
-def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
+def _coerce_scalar_to_timedelta_type(
+    r, unit: UnitChoices | None = "ns", errors: DateTimeErrorChoices = "raise"
+):
     """Convert string 'r' to a timedelta object."""
     result: Timedelta | NaTType
 
@@ -157,7 +222,7 @@ def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
     except ValueError:
         if errors == "raise":
             raise
-        elif errors == "ignore":
+        if errors == "ignore":
             return r
 
         # coerce
@@ -166,7 +231,9 @@ def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
     return result
 
 
-def _convert_listlike(arg, unit=None, errors="raise", name=None):
+def _convert_listlike(
+    arg, unit=None, errors: DateTimeErrorChoices = "raise", name=None
+):
     """Convert a list of objects to a timedelta index object."""
     if isinstance(arg, (list, tuple)) or not hasattr(arg, "dtype"):
         # This is needed only to ensure that in the case where we end up

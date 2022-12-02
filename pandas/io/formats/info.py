@@ -21,14 +21,13 @@ from pandas._typing import (
     WriteBuffer,
 )
 
-from pandas.core.indexes.api import Index
-
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas.core.frame import (
+    from pandas import (
         DataFrame,
+        Index,
         Series,
     )
 
@@ -51,13 +50,6 @@ show_counts_sub = dedent(
         ``pandas.options.display.max_info_rows`` and
         ``pandas.options.display.max_info_columns``. A value of True always
         shows the counts, and False never shows the counts."""
-)
-
-null_counts_sub = dedent(
-    """
-    null_counts : bool, optional
-        .. deprecated:: 1.2.0
-            Use show_counts instead."""
 )
 
 
@@ -160,7 +152,6 @@ frame_sub_kwargs = {
     "type_sub": " and columns",
     "max_cols_sub": frame_max_cols_sub,
     "show_counts_sub": show_counts_sub,
-    "null_counts_sub": null_counts_sub,
     "examples_sub": frame_examples_sub,
     "see_also_sub": frame_see_also_sub,
     "version_added_sub": "",
@@ -241,7 +232,6 @@ series_sub_kwargs = {
     "type_sub": "",
     "max_cols_sub": "",
     "show_counts_sub": show_counts_sub,
-    "null_counts_sub": "",
     "examples_sub": series_examples_sub,
     "see_also_sub": series_see_also_sub,
     "version_added_sub": "\n.. versionadded:: 1.4.0\n",
@@ -258,8 +248,6 @@ INFO_DOCSTRING = dedent(
 
     Parameters
     ----------
-    data : {klass}
-        {klass} to print information about.
     verbose : bool, optional
         Whether to print the full summary. By default, the setting in
         ``pandas.options.display.max_info_columns`` is followed.
@@ -283,7 +271,7 @@ INFO_DOCSTRING = dedent(
         at the cost of computational resources. See the
         :ref:`Frequently Asked Questions <df-memory-usage>` for more
         details.
-    {show_counts_sub}{null_counts_sub}
+    {show_counts_sub}
 
     Returns
     -------
@@ -327,7 +315,7 @@ def _put_str(s: str | Dtype, space: int) -> str:
     return str(s)[:space].ljust(space)
 
 
-def _sizeof_fmt(num: int | float, size_qualifier: str) -> str:
+def _sizeof_fmt(num: float, size_qualifier: str) -> str:
     """
     Return size in human readable format.
 
@@ -459,7 +447,7 @@ class DataFrameInfo(BaseInfo):
         self,
         data: DataFrame,
         memory_usage: bool | str | None = None,
-    ):
+    ) -> None:
         self.data: DataFrame = data
         self.memory_usage = _initialize_memory_usage(memory_usage)
 
@@ -503,10 +491,7 @@ class DataFrameInfo(BaseInfo):
 
     @property
     def memory_usage_bytes(self) -> int:
-        if self.memory_usage == "deep":
-            deep = True
-        else:
-            deep = False
+        deep = self.memory_usage == "deep"
         return self.data.memory_usage(index=True, deep=deep).sum()
 
     def render(
@@ -535,7 +520,7 @@ class SeriesInfo(BaseInfo):
         self,
         data: Series,
         memory_usage: bool | str | None = None,
-    ):
+    ) -> None:
         self.data: Series = data
         self.memory_usage = _initialize_memory_usage(memory_usage)
 
@@ -568,7 +553,7 @@ class SeriesInfo(BaseInfo):
         return [self.data.dtypes]
 
     @property
-    def dtype_counts(self):
+    def dtype_counts(self) -> Mapping[str, int]:
         from pandas.core.frame import DataFrame
 
         return _get_dataframe_dtype_counts(DataFrame(self.data))
@@ -582,10 +567,7 @@ class SeriesInfo(BaseInfo):
         memory_usage_bytes : int
             Object's total memory usage in bytes.
         """
-        if self.memory_usage == "deep":
-            deep = True
-        else:
-            deep = False
+        deep = self.memory_usage == "deep"
         return self.data.memory_usage(index=True, deep=deep)
 
 
@@ -629,7 +611,7 @@ class DataFrameInfoPrinter(InfoPrinterAbstract):
         max_cols: int | None = None,
         verbose: bool | None = None,
         show_counts: bool | None = None,
-    ):
+    ) -> None:
         self.info = info
         self.data = info.data
         self.verbose = verbose
@@ -706,7 +688,7 @@ class SeriesInfoPrinter(InfoPrinterAbstract):
         info: SeriesInfo,
         verbose: bool | None = None,
         show_counts: bool | None = None,
-    ):
+    ) -> None:
         self.info = info
         self.data = info.data
         self.verbose = verbose
@@ -797,7 +779,7 @@ class DataFrameTableBuilder(TableBuilderAbstract):
         Instance of DataFrameInfo.
     """
 
-    def __init__(self, *, info: DataFrameInfo):
+    def __init__(self, *, info: DataFrameInfo) -> None:
         self.info: DataFrameInfo = info
 
     def get_lines(self) -> list[str]:
@@ -959,7 +941,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder, TableBuilderVerboseMix
         *,
         info: DataFrameInfo,
         with_counts: bool,
-    ):
+    ) -> None:
         self.info = info
         self.with_counts = with_counts
         self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
@@ -1025,7 +1007,7 @@ class SeriesTableBuilder(TableBuilderAbstract):
         Instance of SeriesInfo.
     """
 
-    def __init__(self, *, info: SeriesInfo):
+    def __init__(self, *, info: SeriesInfo) -> None:
         self.info: SeriesInfo = info
 
     def get_lines(self) -> list[str]:
@@ -1071,7 +1053,7 @@ class SeriesTableBuilderVerbose(SeriesTableBuilder, TableBuilderVerboseMixin):
         *,
         info: SeriesInfo,
         with_counts: bool,
-    ):
+    ) -> None:
         self.info = info
         self.with_counts = with_counts
         self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
@@ -1089,7 +1071,7 @@ class SeriesTableBuilderVerbose(SeriesTableBuilder, TableBuilderVerboseMixin):
         if self.display_memory_usage:
             self.add_memory_usage_line()
 
-    def add_series_name_line(self):
+    def add_series_name_line(self) -> None:
         self._lines.append(f"Series name: {self.data.name}")
 
     @property

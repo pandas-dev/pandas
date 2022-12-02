@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import SettingWithCopyError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -9,10 +10,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-import pandas.core.common as com
 
 
-def test_detect_chained_assignment():
+def test_detect_chained_assignment(using_copy_on_write):
     # Inplace ops, originally from:
     # https://stackoverflow.com/questions/20508968/series-fillna-in-a-multiindex-dataframe-does-not-fill-is-this-a-bug
     a = [12, 23]
@@ -29,17 +29,21 @@ def test_detect_chained_assignment():
     multiind = MultiIndex.from_tuples(tuples, names=["part", "side"])
     zed = DataFrame(events, index=["a", "b"], columns=multiind)
 
-    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-    with pytest.raises(com.SettingWithCopyError, match=msg):
+    if using_copy_on_write:
         zed["eyes"]["right"].fillna(value=555, inplace=True)
+    else:
+        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(SettingWithCopyError, match=msg):
+            zed["eyes"]["right"].fillna(value=555, inplace=True)
 
 
 @td.skip_array_manager_invalid_test  # with ArrayManager df.loc[0] is not a view
-def test_cache_updating():
+def test_cache_updating(using_copy_on_write):
     # 5216
     # make sure that we don't try to set a dead cache
     a = np.random.rand(10, 3)
     df = DataFrame(a, columns=["x", "y", "z"])
+    df_original = df.copy()
     tuples = [(i, j) for i in range(5) for j in range(2)]
     index = MultiIndex.from_tuples(tuples)
     df.index = index
@@ -48,7 +52,10 @@ def test_cache_updating():
     # but actually works, since everything is a view
     df.loc[0]["z"].iloc[0] = 1.0
     result = df.loc[(0, 0), "z"]
-    assert result == 1
+    if using_copy_on_write:
+        assert result == df_original.loc[0, "z"]
+    else:
+        assert result == 1
 
     # correct setting
     df.loc[(0, 0), "z"] = 2

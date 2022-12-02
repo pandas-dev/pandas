@@ -16,11 +16,11 @@ class TestEmptyConcat:
     def test_handle_empty_objects(self, sort):
         df = DataFrame(np.random.randn(10, 4), columns=list("abcd"))
 
-        baz = df[:5].copy()
-        baz["foo"] = "bar"
+        dfcopy = df[:5].copy()
+        dfcopy["foo"] = "bar"
         empty = df[5:5]
 
-        frames = [baz, empty, empty, df[5:]]
+        frames = [dfcopy, empty, empty, df[5:]]
         concatted = concat(frames, axis=0, sort=sort)
 
         expected = df.reindex(columns=["a", "b", "c", "d", "foo"])
@@ -129,10 +129,16 @@ class TestEmptyConcat:
         result = concat([Series(dtype=dtype), Series(dtype=dtype)])
         assert result.dtype == dtype
 
-    def test_concat_empty_series_dtypes_roundtrips(self):
+    @pytest.mark.parametrize("dtype", ["float64", "int8", "uint8", "m8[ns]", "M8[ns]"])
+    @pytest.mark.parametrize(
+        "dtype2",
+        ["float64", "int8", "uint8", "m8[ns]", "M8[ns]"],
+    )
+    def test_concat_empty_series_dtypes_roundtrips(self, dtype, dtype2):
 
         # round-tripping with self & like self
-        dtypes = map(np.dtype, ["float64", "int8", "uint8", "bool", "m8[ns]", "M8[ns]"])
+        if dtype == dtype2:
+            return
 
         def int_result_type(dtype, dtype2):
             typs = {dtype.kind, dtype2.kind}
@@ -163,14 +169,11 @@ class TestEmptyConcat:
                 return result
             return "O"
 
-        for dtype in dtypes:
-            for dtype2 in dtypes:
-                if dtype == dtype2:
-                    continue
-
-                expected = get_result_type(dtype, dtype2)
-                result = concat([Series(dtype=dtype), Series(dtype=dtype2)]).dtype
-                assert result.kind == expected
+        dtype = np.dtype(dtype)
+        dtype2 = np.dtype(dtype2)
+        expected = get_result_type(dtype, dtype2)
+        result = concat([Series(dtype=dtype), Series(dtype=dtype2)]).dtype
+        assert result.kind == expected
 
     def test_concat_empty_series_dtypes_triple(self):
 
@@ -281,3 +284,11 @@ class TestEmptyConcat:
         result = concat([df1[:0], df2[:0]])
         assert result["a"].dtype == np.int64
         assert result["b"].dtype == np.object_
+
+    def test_concat_to_empty_ea(self):
+        """48510 `concat` to an empty EA should maintain type EA dtype."""
+        df_empty = DataFrame({"a": pd.array([], dtype=pd.Int64Dtype())})
+        df_new = DataFrame({"a": pd.array([1, 2, 3], dtype=pd.Int64Dtype())})
+        expected = df_new.copy()
+        result = concat([df_empty, df_new])
+        tm.assert_frame_equal(result, expected)

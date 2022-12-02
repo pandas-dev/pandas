@@ -12,6 +12,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import SpecificationError
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -20,7 +22,6 @@ from pandas import (
     notna,
 )
 import pandas._testing as tm
-from pandas.core.base import SpecificationError
 
 
 @pytest.mark.parametrize("result_type", ["foo", 1])
@@ -66,6 +67,15 @@ def test_map_with_invalid_na_action_raises():
         s.map(lambda x: x, na_action="____")
 
 
+@pytest.mark.parametrize("input_na_action", ["____", True])
+def test_map_arg_is_dict_with_invalid_na_action_raises(input_na_action):
+    # https://github.com/pandas-dev/pandas/issues/46588
+    s = Series([1, 2, 3])
+    msg = f"na_action must either be 'ignore' or None, {input_na_action} was passed"
+    with pytest.raises(ValueError, match=msg):
+        s.map({1: 2}, na_action=input_na_action)
+
+
 def test_map_categorical_na_action():
     values = Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
     s = Series(values, name="XX", index=list("abcdefg"))
@@ -80,12 +90,11 @@ def test_map_datetimetz_na_action():
         s.map(lambda x: x, na_action="ignore")
 
 
-@pytest.mark.parametrize("box", [DataFrame, Series])
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])
 @pytest.mark.parametrize("func", [{"A": {"B": "sum"}}, {"A": {"B": ["sum"]}}])
-def test_nested_renamer(box, method, func):
+def test_nested_renamer(frame_or_series, method, func):
     # GH 35964
-    obj = box({"A": [1]})
+    obj = frame_or_series({"A": [1]})
     match = "nested renamer is not supported"
     with pytest.raises(SpecificationError, match=match):
         getattr(obj, method)(func)
@@ -274,7 +283,7 @@ def test_agg_none_to_type():
 def test_transform_none_to_type():
     # GH#34377
     df = DataFrame({"a": [None]})
-    msg = "Transform function failed"
+    msg = "argument must be a"
     with pytest.raises(TypeError, match=msg):
         df.transform({"a": int})
 

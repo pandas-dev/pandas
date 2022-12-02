@@ -14,14 +14,16 @@ from pandas._libs.tslibs import (
     Timestamp,
     iNaT,
 )
+from pandas._typing import npt
 
 
 def generate_regular_range(
-    start: Timestamp | Timedelta,
-    end: Timestamp | Timedelta,
-    periods: int,
+    start: Timestamp | Timedelta | None,
+    end: Timestamp | Timedelta | None,
+    periods: int | None,
     freq: BaseOffset,
-):
+    unit: str = "ns",
+) -> npt.NDArray[np.intp]:
     """
     Generate a range of dates or timestamps with the spans between dates
     described by the given `freq` DateOffset.
@@ -32,28 +34,42 @@ def generate_regular_range(
         First point of produced date range.
     end : Timedelta, Timestamp or None
         Last point of produced date range.
-    periods : int
+    periods : int or None
         Number of periods in produced date range.
     freq : Tick
         Describes space between dates in produced date range.
+    unit : str, default "ns"
+        The resolution the output is meant to represent.
 
     Returns
     -------
-    ndarray[np.int64] Representing nanoseconds.
+    ndarray[np.int64]
+        Representing the given resolution.
     """
     istart = start.value if start is not None else None
     iend = end.value if end is not None else None
-    stride = freq.nanos
+    freq.nanos  # raises if non-fixed frequency
+    td = Timedelta(freq)
+    try:
+        td = td.as_unit(  # pyright: ignore[reportGeneralTypeIssues]
+            unit, round_ok=False
+        )
+    except ValueError as err:
+        raise ValueError(
+            f"freq={freq} is incompatible with unit={unit}. "
+            "Use a lower freq or a higher unit instead."
+        ) from err
+    stride = int(td.value)
 
-    if periods is None:
+    if periods is None and istart is not None and iend is not None:
         b = istart
         # cannot just use e = Timestamp(end) + 1 because arange breaks when
         # stride is too large, see GH10887
         e = b + (iend - b) // stride * stride + stride // 2 + 1
-    elif istart is not None:
+    elif istart is not None and periods is not None:
         b = istart
         e = _generate_range_overflow_safe(b, periods, stride, side="start")
-    elif iend is not None:
+    elif iend is not None and periods is not None:
         e = iend + stride
         b = _generate_range_overflow_safe(e, periods, stride, side="end")
     else:
@@ -120,12 +136,12 @@ def _generate_range_overflow_safe(
         return _generate_range_overflow_safe_signed(endpoint, periods, stride, side)
 
     elif (endpoint > 0 and side == "start" and stride > 0) or (
-        endpoint < 0 and side == "end" and stride > 0
+        endpoint < 0 < stride and side == "end"
     ):
         # no chance of not-overflowing
         raise OutOfBoundsDatetime(msg)
 
-    elif side == "end" and endpoint > i64max and endpoint - stride <= i64max:
+    elif side == "end" and endpoint - stride <= i64max < endpoint:
         # in _generate_regular_range we added `stride` thereby overflowing
         #  the bounds.  Adjust to fix this.
         return _generate_range_overflow_safe(

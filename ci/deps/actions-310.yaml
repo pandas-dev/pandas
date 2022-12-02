@@ -4,13 +4,17 @@ channels:
 dependencies:
   - python=3.10
 
+  # build dependencies
+  - versioneer[toml]
+  - cython>=0.29.32
+
   # test dependencies
-  - cython=0.29.24
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
-  - hypothesis>=5.5.3
   - psutil
+  - pytest-asyncio>=0.17
+  - boto3
 
   # required dependencies
   - python-dateutil
@@ -21,15 +25,16 @@ dependencies:
   - beautifulsoup4
   - blosc
   - bottleneck
+  - brotlipy
   - fastparquet
   - fsspec
   - html5lib
+  - hypothesis
   - gcsfs
   - jinja2
   - lxml
   - matplotlib
-  # TODO: uncomment after numba supports py310
-  #- numba
+  - numba
   - numexpr
   - openpyxl
   - odfpy
@@ -39,13 +44,14 @@ dependencies:
   - pytables
   - pyarrow
   - pyreadstat
+  - python-snappy
   - pyxlsb
-  - s3fs
+  - s3fs>=2021.08.0
   - scipy
   - sqlalchemy
   - tabulate
+  - tzdata>=2022a
   - xarray
   - xlrd
   - xlsxwriter
-  - xlwt
   - zstandard

@@ -283,7 +283,7 @@ def test_to_numpy_na_raises(dtype):
 
 def test_astype_str():
     a = pd.array([1, 2, None], dtype="Int64")
-    expected = np.array(["1", "2", "<NA>"], dtype="<U21")
+    expected = np.array(["1", "2", "<NA>"], dtype=f"{tm.ENDIAN}U21")
 
     tm.assert_numpy_array_equal(a.astype(str), expected)
     tm.assert_numpy_array_equal(a.astype("str"), expected)

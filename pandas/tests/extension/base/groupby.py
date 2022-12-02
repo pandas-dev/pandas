@@ -1,5 +1,13 @@
 import pytest
 
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_numeric_dtype,
+    is_object_dtype,
+    is_period_dtype,
+    is_string_dtype,
+)
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension.base.base import BaseExtensionTests
@@ -68,10 +76,10 @@ class BaseGroupbyTests(BaseExtensionTests):
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
-        df.groupby("B").apply(groupby_apply_op)
-        df.groupby("B").A.apply(groupby_apply_op)
-        df.groupby("A").apply(groupby_apply_op)
-        df.groupby("A").B.apply(groupby_apply_op)
+        df.groupby("B", group_keys=False).apply(groupby_apply_op)
+        df.groupby("B", group_keys=False).A.apply(groupby_apply_op)
+        df.groupby("A", group_keys=False).apply(groupby_apply_op)
+        df.groupby("A", group_keys=False).B.apply(groupby_apply_op)
 
     def test_groupby_apply_identity(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
@@ -96,11 +104,21 @@ class BaseGroupbyTests(BaseExtensionTests):
                 "C": [1, 1, 1, 1, 1, 1, 1, 1],
             }
         )
-        result = df.groupby("A").sum().columns
 
-        if data_for_grouping.dtype._is_numeric:
+        dtype = data_for_grouping.dtype
+        if (
+            is_numeric_dtype(dtype)
+            or is_bool_dtype(dtype)
+            or dtype.name == "decimal"
+            or is_string_dtype(dtype)
+            or is_period_dtype(dtype)
+            or is_object_dtype(dtype)
+        ):
             expected = pd.Index(["B", "C"])
+            result = df.groupby("A").sum().columns
         else:
             expected = pd.Index(["C"])
-
+            with pytest.raises(TypeError, match="does not support"):
+                df.groupby("A").sum().columns
+            result = df.groupby("A").sum(numeric_only=True).columns
         tm.assert_index_equal(result, expected)

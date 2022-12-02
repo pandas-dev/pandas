@@ -10,7 +10,7 @@ pandas documentation
 
 **Date**: |today| **Version**: |version|
 
-**Download documentation**: `PDF Version <pandas.pdf>`__ | `Zipped HTML <pandas.zip>`__
+**Download documentation**: `Zipped HTML <pandas.zip>`__
 
 **Previous versions**: Documentation of previous pandas versions is available at
 `pandas.pydata.org <https://pandas.pydata.org/>`__.
@@ -26,6 +26,7 @@ pandas documentation
 easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
 programming language.
 
+{% if not single_doc -%}
 .. grid:: 1 2 2 2
     :gutter: 4
     :padding: 2 2 0 0
@@ -105,16 +106,22 @@ programming language.
 
             To the development guide
 
-
+{% endif %}
 {% if single_doc and single_doc.endswith('.rst') -%}
 .. toctree::
     :maxdepth: 3
     :titlesonly:
 
     {{ single_doc[:-4] }}
+{% elif single_doc and single_doc.count('.') <= 1 %}
+.. autosummary::
+    :toctree: reference/api/
+
+    {{ single_doc }}
 {% elif single_doc %}
 .. autosummary::
     :toctree: reference/api/
+    :template: autosummary/accessor_method.rst
 
     {{ single_doc }}
 {% else -%}

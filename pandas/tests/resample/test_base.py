@@ -164,18 +164,18 @@ def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
     # GH13212
     df = empty_frame_dti
     # count retains dimensions too
-    result = getattr(df.resample(freq), resample_method)()
+    result = getattr(df.resample(freq, group_keys=False), resample_method)()
     if resample_method != "size":
         expected = df.copy()
     else:
         # GH14962
-        expected = Series([], dtype=object)
+        expected = Series([], dtype=np.int64)
 
     expected.index = _asfreq_compat(df.index, freq)
 
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
-    tm.assert_almost_equal(result, expected, check_dtype=False)
+    tm.assert_almost_equal(result, expected)
 
     # test size for GH13212 (currently stays as df)
 
@@ -220,7 +220,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
     # them to ensure they no longer do.  (GH #10228)
     empty_series_dti = Series([], index, dtype)
     try:
-        getattr(empty_series_dti.resample("d"), resample_method)()
+        getattr(empty_series_dti.resample("d", group_keys=False), resample_method)()
     except DataError:
         # Ignore these since some combinations are invalid
         # (ex: doing mean with dtype of np.object_)
@@ -232,7 +232,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
 def test_apply_to_empty_series(empty_series_dti, freq):
     # GH 14313
     ser = empty_series_dti
-    result = ser.resample(freq).apply(lambda x: 1)
+    result = ser.resample(freq, group_keys=False).apply(lambda x: 1)
     expected = ser.resample(freq).apply(np.sum)
 
     tm.assert_series_equal(result, expected, check_dtype=False)

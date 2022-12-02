@@ -3,7 +3,10 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
+
 from pandas import (
+    Index,
     Interval,
     IntervalIndex,
     Series,
@@ -159,8 +162,10 @@ class TestIntervalIndex:
         result = indexer_sl(ser)[Interval(1, 5) : Interval(3, 7)]
         tm.assert_series_equal(expected, result)
 
-        msg = "'can only get slices from an IntervalIndex if bounds are"
-        " non-overlapping and all monotonic increasing or decreasing'"
+        msg = (
+            "'can only get slices from an IntervalIndex if bounds are "
+            "non-overlapping and all monotonic increasing or decreasing'"
+        )
         with pytest.raises(KeyError, match=msg):
             indexer_sl(ser)[Interval(1, 6) : Interval(3, 8)]
 
@@ -207,3 +212,24 @@ class TestIntervalIndex:
         obj = frame_or_series(ser)
         with pytest.raises(KeyError, match=r"\[6\]"):
             obj.loc[[4, 5, 6]]
+
+
+@pytest.mark.xfail(not IS64, reason="GH 23440")
+@pytest.mark.parametrize(
+    "intervals",
+    [
+        ([Interval(-np.inf, 0.0), Interval(0.0, 1.0)]),
+        ([Interval(-np.inf, -2.0), Interval(-2.0, -1.0)]),
+        ([Interval(-1.0, 0.0), Interval(0.0, np.inf)]),
+        ([Interval(1.0, 2.0), Interval(2.0, np.inf)]),
+    ],
+)
+def test_repeating_interval_index_with_infs(intervals):
+    # GH 46658
+
+    interval_index = Index(intervals * 51)
+
+    expected = np.arange(1, 102, 2, dtype=np.intp)
+    result = interval_index.get_indexer_for([intervals[1]])
+
+    tm.assert_equal(result, expected)

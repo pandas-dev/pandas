@@ -22,9 +22,13 @@ from pandas.core.reshape import reshape as reshape_lib
 
 
 class TestDataFrameReshape:
-    def test_stack_unstack(self, float_frame):
+    def test_stack_unstack(self, float_frame, using_array_manager):
+        warn = FutureWarning if using_array_manager else None
+        msg = "will attempt to set the values inplace"
+
         df = float_frame.copy()
-        df[:] = np.arange(np.prod(df.shape)).reshape(df.shape)
+        with tm.assert_produces_warning(warn, match=msg):
+            df[:] = np.arange(np.prod(df.shape)).reshape(df.shape)
 
         stacked = df.stack()
         stacked_df = DataFrame({"foo": stacked, "bar": stacked})
@@ -1785,8 +1789,9 @@ Thu,Lunch,Yes,51.51,17"""
         multi = df.set_index(["DATE", "ID"])
         multi.columns.name = "Params"
         unst = multi.unstack("ID")
-        down = unst.resample("W-THU").mean()
-
+        with pytest.raises(TypeError, match="Could not convert"):
+            unst.resample("W-THU").mean()
+        down = unst.resample("W-THU").mean(numeric_only=True)
         rs = down.stack("ID")
         xp = unst.loc[:, ["VAR1"]].resample("W-THU").mean().stack("ID")
         xp.columns.name = "Params"
@@ -1861,7 +1866,7 @@ Thu,Lunch,Yes,51.51,17"""
         # GH 26314: Change ValueError to PerformanceWarning
 
         class MockUnstacker(reshape_lib._Unstacker):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args, **kwargs) -> None:
                 # __init__ will raise the warning
                 super().__init__(*args, **kwargs)
                 raise Exception("Don't compute final result.")
@@ -2176,4 +2181,17 @@ Thu,Lunch,Yes,51.51,17"""
         # TODO(EA2D): we get object dtype because DataFrame.values can't
         #  be an EA
         expected = df.astype(object).stack("station")
+        tm.assert_frame_equal(result, expected)
+
+    def test_unstack_mixed_level_names(self):
+        # GH#48763
+        arrays = [["a", "a"], [1, 2], ["red", "blue"]]
+        idx = MultiIndex.from_arrays(arrays, names=("x", 0, "y"))
+        df = DataFrame({"m": [1, 2]}, index=idx)
+        result = df.unstack("x")
+        expected = DataFrame(
+            [[1], [2]],
+            columns=MultiIndex.from_tuples([("m", "a")], names=[None, "x"]),
+            index=MultiIndex.from_tuples([(1, "red"), (2, "blue")], names=[0, "y"]),
+        )
         tm.assert_frame_equal(result, expected)

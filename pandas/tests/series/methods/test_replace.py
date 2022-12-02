@@ -36,23 +36,6 @@ class TestSeriesReplace:
         assert expected.iloc[-1] is None
         tm.assert_series_equal(result, expected)
 
-    def test_replace_numpy_nan(self, nulls_fixture):
-        # GH#45725 ensure numpy.nan can be replaced with all other null types
-        to_replace = np.nan
-        value = nulls_fixture
-        dtype = object
-        ser = pd.Series([to_replace], dtype=dtype)
-        expected = pd.Series([value], dtype=dtype)
-
-        result = ser.replace({to_replace: value}).astype(dtype=dtype)
-        tm.assert_series_equal(result, expected)
-        assert result.dtype == dtype
-
-        # same thing but different calling convention
-        result = ser.replace(to_replace, value).astype(dtype=dtype)
-        tm.assert_series_equal(result, expected)
-        assert result.dtype == dtype
-
     def test_replace_noop_doesnt_downcast(self):
         # GH#44498
         ser = pd.Series([None, None, pd.Timestamp("2021-12-16 17:31")], dtype=object)
@@ -326,8 +309,7 @@ class TestSeriesReplace:
         s = pd.Series(list("abcd"))
         tm.assert_series_equal(s, s.replace({}))
 
-        with tm.assert_produces_warning(FutureWarning):
-            empty_series = pd.Series([])
+        empty_series = pd.Series([])
         tm.assert_series_equal(s, s.replace(empty_series))
 
     def test_replace_string_with_number(self):
@@ -659,7 +641,12 @@ class TestSeriesReplace:
         assert ints.replace(1, 9).dtype == ints.dtype
         assert ints.replace({1: 9.0}).dtype == ints.dtype
         assert ints.replace(1, 9.0).dtype == ints.dtype
-        # FIXME: ints.replace({1: 9.5}) raises bc of incorrect _can_hold_element
+
+        # nullable (for now) raises instead of casting
+        with pytest.raises(TypeError, match="Invalid value"):
+            ints.replace({1: 9.5})
+        with pytest.raises(TypeError, match="Invalid value"):
+            ints.replace(1, 9.5)
 
     @pytest.mark.parametrize("regex", [False, True])
     def test_replace_regex_dtype_series(self, regex):
@@ -674,8 +661,16 @@ class TestSeriesReplace:
         labs = pd.Series([1, 1, 1, 0, 0, 2, 2, 2], dtype=any_int_numpy_dtype)
 
         maps = pd.Series([0, 2, 1], dtype=any_int_numpy_dtype)
-        map_dict = {old: new for (old, new) in zip(maps.values, maps.index)}
+        map_dict = dict(zip(maps.values, maps.index))
 
         result = labs.replace(map_dict)
         expected = labs.replace({0: 0, 2: 1, 1: 2})
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("val", [2, np.nan, 2.0])
+    def test_replace_value_none_dtype_numeric(self, val):
+        # GH#48231
+        ser = pd.Series([1, val])
+        result = ser.replace(val, None)
+        expected = pd.Series([1, None], dtype=object)
         tm.assert_series_equal(result, expected)

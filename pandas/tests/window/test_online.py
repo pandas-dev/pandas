@@ -17,14 +17,15 @@ import pandas._testing as tm
 # TODO(GH#44584): Mark these as pytest.mark.single_cpu
 pytestmark = pytest.mark.skipif(
     is_ci_environment() and (is_platform_windows() or is_platform_mac()),
-    reason="On Azure CI, Windows can fail with "
+    reason="On GHA CI, Windows can fail with "
     "'Windows fatal exception: stack overflow' "
-    "and MacOS can timeout",
+    "and macOS can timeout",
 )
 
 
 @td.skip_if_no("numba")
-@pytest.mark.filterwarnings("ignore:\n")
+@pytest.mark.filterwarnings("ignore")
+# Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEWM:
     def test_invalid_update(self):
         df = DataFrame({"a": range(5), "b": range(5)})
@@ -70,7 +71,7 @@ class TestEWM:
         times = Series(
             np.array(
                 ["2020-01-01", "2020-01-05", "2020-01-07", "2020-01-17", "2020-01-21"],
-                dtype="datetime64",
+                dtype="datetime64[ns]",
             )
         )
         expected = obj.ewm(
@@ -102,3 +103,13 @@ class TestEWM:
             tm.assert_equal(result, expected.tail(3))
 
             online_ewm.reset()
+
+    @pytest.mark.parametrize("method", ["aggregate", "std", "corr", "cov", "var"])
+    def test_ewm_notimplementederror_raises(self, method):
+        ser = Series(range(10))
+        kwargs = {}
+        if method == "aggregate":
+            kwargs["func"] = lambda x: x
+
+        with pytest.raises(NotImplementedError, match=".* is not implemented."):
+            getattr(ser.ewm(1).online(), method)(**kwargs)

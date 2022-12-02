@@ -17,6 +17,7 @@ from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     Dtype,
     F,
     PositionalIndexer2D,
@@ -28,7 +29,6 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.compat import pa_version_under2p0
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import (
@@ -66,13 +66,12 @@ NDArrayBackedExtensionArrayT = TypeVar(
 )
 
 if TYPE_CHECKING:
-
-    import pyarrow as pa
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
     )
+
+    from pandas import Series
 
 
 def ravel_compat(meth: F) -> F:
@@ -159,7 +158,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
-        axis: int = 0,
+        axis: AxisInt = 0,
     ) -> NDArrayBackedExtensionArrayT:
         if allow_fill:
             fill_value = self._validate_scalar(fill_value)
@@ -182,11 +181,19 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             return False
         return bool(array_equivalent(self._ndarray, other._ndarray))
 
+    @classmethod
+    def _from_factorized(cls, values, original):
+        assert values.dtype == original._ndarray.dtype
+        return original._from_backing_data(values)
+
     def _values_for_argsort(self) -> np.ndarray:
         return self._ndarray
 
+    def _values_for_factorize(self):
+        return self._ndarray, self._internal_fill_value
+
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
-    def argmin(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
+    def argmin(self, axis: AxisInt = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
@@ -194,7 +201,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return nargminmax(self, "argmin", axis=axis)
 
     # Signature of "argmax" incompatible with supertype "ExtensionArray"
-    def argmax(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
+    def argmax(self, axis: AxisInt = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
@@ -210,17 +217,15 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def _concat_same_type(
         cls: type[NDArrayBackedExtensionArrayT],
         to_concat: Sequence[NDArrayBackedExtensionArrayT],
-        axis: int = 0,
+        axis: AxisInt = 0,
     ) -> NDArrayBackedExtensionArrayT:
         dtypes = {str(x.dtype) for x in to_concat}
         if len(dtypes) != 1:
             raise ValueError("to_concat must have the same dtype (tz)", dtypes)
 
         new_values = [x._ndarray for x in to_concat]
-        new_values = np.concatenate(new_values, axis=axis)
-        # error: Argument 1 to "_from_backing_data" of "NDArrayBackedExtensionArray" has
-        # incompatible type "List[ndarray]"; expected "ndarray"
-        return to_concat[0]._from_backing_data(new_values)  # type: ignore[arg-type]
+        new_arr = np.concatenate(new_values, axis=axis)
+        return to_concat[0]._from_backing_data(new_arr)
 
     @doc(ExtensionArray.searchsorted)
     def searchsorted(
@@ -229,35 +234,18 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        # TODO(2.0): use _validate_setitem_value once dt64tz mismatched-timezone
-        #  deprecation is enforced
-        npvalue = self._validate_searchsorted_value(value)
+        npvalue = self._validate_setitem_value(value)
         return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
-    def _validate_searchsorted_value(
-        self, value: NumpyValueArrayLike | ExtensionArray
-    ) -> NumpyValueArrayLike:
-        # TODO(2.0): after deprecation in datetimelikearraymixin is enforced,
-        #  we can remove this and use _validate_setitem_value directly
-        if isinstance(value, ExtensionArray):
-            return value.to_numpy()
-        else:
-            return value
-
     @doc(ExtensionArray.shift)
-    def shift(self, periods=1, fill_value=None, axis=0):
+    def shift(self, periods: int = 1, fill_value=None, axis: AxisInt = 0):
 
-        fill_value = self._validate_shift_value(fill_value)
+        fill_value = self._validate_scalar(fill_value)
         new_values = shift(self._ndarray, periods, axis, fill_value)
 
         return self._from_backing_data(new_values)
 
-    def _validate_shift_value(self, fill_value):
-        # TODO(2.0): after deprecation in datetimelikearraymixin is enforced,
-        #  we can remove this and use validate_fill_value directly
-        return self._validate_scalar(fill_value)
-
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)
         self._ndarray[key] = value
@@ -304,7 +292,6 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         # (for now) when self.ndim == 2, we assume axis=0
         func = missing.get_fill_func(method, ndim=self.ndim)
         func(self._ndarray.T, limit=limit, mask=mask.T)
-        return
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -347,7 +334,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
     # Reductions
 
-    def _wrap_reduction_result(self, axis: int | None, result):
+    def _wrap_reduction_result(self, axis: AxisInt | None, result):
         if axis is None or self.ndim == 1:
             return self._box_func(result)
         return self._from_backing_data(result)
@@ -431,7 +418,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
 
-    def value_counts(self, dropna: bool = True):
+    def value_counts(self, dropna: bool = True) -> Series:
         """
         Return a Series containing counts of unique values.
 
@@ -471,21 +458,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     ) -> NDArrayBackedExtensionArrayT:
         # TODO: disable for Categorical if not ordered?
 
-        # asarray needed for Sparse, see GH#24600
         mask = np.asarray(self.isna())
-        mask = np.atleast_2d(mask)
-
-        arr = np.atleast_2d(self._ndarray)
+        arr = self._ndarray
         fill_value = self._internal_fill_value
 
         res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
-        res_values = self._cast_quantile_result(res_values)
-        result = self._from_backing_data(res_values)
-        if self.ndim == 1:
-            assert result.shape == (1, len(qs)), result.shape
-            result = result[0]
 
-        return result
+        res_values = self._cast_quantile_result(res_values)
+        return self._from_backing_data(res_values)
 
     # TODO: see if we can share this with other dispatch-wrapping methods
     def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
@@ -515,89 +495,3 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         arr = cls._from_sequence([], dtype=dtype)
         backing = np.empty(shape, dtype=arr._ndarray.dtype)
         return arr._from_backing_data(backing)
-
-
-ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
-
-
-class ArrowExtensionArray(ExtensionArray):
-    """
-    Base class for ExtensionArray backed by Arrow array.
-    """
-
-    _data: pa.ChunkedArray
-
-    def __init__(self, values: pa.ChunkedArray):
-        self._data = values
-
-    def __arrow_array__(self, type=None):
-        """Convert myself to a pyarrow Array or ChunkedArray."""
-        return self._data
-
-    def equals(self, other) -> bool:
-        if not isinstance(other, ArrowExtensionArray):
-            return False
-        # I'm told that pyarrow makes __eq__ behave like pandas' equals;
-        #  TODO: is this documented somewhere?
-        return self._data == other._data
-
-    @property
-    def nbytes(self) -> int:
-        """
-        The number of bytes needed to store this object in memory.
-        """
-        return self._data.nbytes
-
-    def __len__(self) -> int:
-        """
-        Length of this array.
-
-        Returns
-        -------
-        length : int
-        """
-        return len(self._data)
-
-    def isna(self) -> npt.NDArray[np.bool_]:
-        """
-        Boolean NumPy array indicating if each value is missing.
-
-        This should return a 1-D array the same length as 'self'.
-        """
-        if pa_version_under2p0:
-            return self._data.is_null().to_pandas().values
-        else:
-            return self._data.is_null().to_numpy()
-
-    def copy(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
-        """
-        Return a shallow copy of the array.
-
-        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.
-
-        Returns
-        -------
-        type(self)
-        """
-        return type(self)(self._data)
-
-    @classmethod
-    def _concat_same_type(
-        cls: type[ArrowExtensionArrayT], to_concat
-    ) -> ArrowExtensionArrayT:
-        """
-        Concatenate multiple ArrowExtensionArrays.
-
-        Parameters
-        ----------
-        to_concat : sequence of ArrowExtensionArrays
-
-        Returns
-        -------
-        ArrowExtensionArray
-        """
-        import pyarrow as pa
-
-        chunks = [array for ea in to_concat for array in ea._data.iterchunks()]
-        arr = pa.chunked_array(chunks)
-        return cls(arr)

@@ -22,6 +22,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     Axis,
+    AxisInt,
     F,
     npt,
 )
@@ -104,7 +105,7 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     return mask
 
 
-def clean_fill_method(method, allow_nearest: bool = False):
+def clean_fill_method(method: str | None, allow_nearest: bool = False):
     # asfreq is compat for resampling
     if method in [None, "asfreq"]:
         return None
@@ -191,7 +192,7 @@ def find_valid_index(values, *, how: str) -> int | None:
     is_valid = ~isna(values)
 
     if values.ndim == 2:
-        is_valid = is_valid.any(1)  # reduce axis 1
+        is_valid = is_valid.any(axis=1)  # reduce axis 1
 
     if how == "first":
         idxpos = is_valid[::].argmax()
@@ -209,7 +210,7 @@ def find_valid_index(values, *, how: str) -> int | None:
 def interpolate_array_2d(
     data: np.ndarray,
     method: str = "pad",
-    axis: int = 0,
+    axis: AxisInt = 0,
     index: Index | None = None,
     limit: int | None = None,
     limit_direction: str = "forward",
@@ -257,13 +258,12 @@ def interpolate_array_2d(
             fill_value=fill_value,
             **kwargs,
         )
-    return
 
 
 def _interpolate_2d_with_fill(
     data: np.ndarray,  # floating dtype
     index: Index,
-    axis: int,
+    axis: AxisInt,
     method: str = "linear",
     limit: int | None = None,
     limit_direction: str = "forward",
@@ -333,16 +333,13 @@ def _interpolate_2d_with_fill(
             **kwargs,
         )
 
-    # Argument 1 to "apply_along_axis" has incompatible type
-    # "Callable[[ndarray[Any, Any]], None]"; expected
-    # "Callable[..., Union[_SupportsArray[dtype[<nothing>]],
-    # Sequence[_SupportsArray[dtype[<nothing>
-    # ]]], Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]],
+    # error: Argument 1 to "apply_along_axis" has incompatible type
+    # "Callable[[ndarray[Any, Any]], None]"; expected "Callable[...,
+    # Union[_SupportsArray[dtype[<nothing>]], Sequence[_SupportsArray
+    # [dtype[<nothing>]]], Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]],
     # Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]],
     # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]]]]]"
-    # interp each column independently
     np.apply_along_axis(func, axis, data)  # type: ignore[arg-type]
-    return
 
 
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
@@ -378,7 +375,7 @@ def _interpolate_1d(
     bounds_error: bool = False,
     order: int | None = None,
     **kwargs,
-):
+) -> None:
     """
     Logic for the 1-d interpolation.  The input
     indices and yvalues will each be 1-d arrays of the same length.
@@ -419,7 +416,7 @@ def _interpolate_1d(
 
     # For example if limit_direction='forward' then preserve_nans will
     # contain indices of NaNs at the beginning of the series, and NaNs that
-    # are more than'limit' away from the prior non-NaN.
+    # are more than 'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
     preserve_nans: list | set
@@ -468,7 +465,14 @@ def _interpolate_1d(
 
 
 def _interpolate_scipy_wrapper(
-    x, y, new_x, method, fill_value=None, bounds_error=False, order=None, **kwargs
+    x,
+    y,
+    new_x,
+    method,
+    fill_value=None,
+    bounds_error: bool = False,
+    order=None,
+    **kwargs,
 ):
     """
     Passed off to scipy.interpolate.interp1d. method is scipy's kind.
@@ -537,7 +541,9 @@ def _interpolate_scipy_wrapper(
     return new_y
 
 
-def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
+def _from_derivatives(
+    xi, yi, x, order=None, der: int | list[int] | None = 0, extrapolate: bool = False
+):
     """
     Convenience function for interpolate.BPoly.from_derivatives.
 
@@ -580,7 +586,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     return m(x)
 
 
-def _akima_interpolate(xi, yi, x, der=0, axis=0):
+def _akima_interpolate(xi, yi, x, der: int | list[int] | None = 0, axis: AxisInt = 0):
     """
     Convenience function for akima interpolation.
     xi and yi are arrays of values used to approximate some function f,
@@ -623,7 +629,14 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
     return P(x, nu=der)
 
 
-def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolate=None):
+def _cubicspline_interpolate(
+    xi,
+    yi,
+    x,
+    axis: AxisInt = 0,
+    bc_type: str | tuple[Any, Any] = "not-a-knot",
+    extrapolate=None,
+):
     """
     Convenience function for cubic spline data interpolator.
 
@@ -747,8 +760,6 @@ def _interpolate_with_limit_area(
 
         values[invalid] = np.nan
 
-    return
-
 
 def interpolate_2d(
     values: np.ndarray,
@@ -779,22 +790,23 @@ def interpolate_2d(
     Modifies values in-place.
     """
     if limit_area is not None:
-        # Argument 1 to "apply_along_axis" has incompatible type "partial[None]";
-        # expected "Callable[..., Union[_SupportsArray[dtype[<nothing>]],
-        # Sequence[_SupportsArray[dtype[<nothing>]]], Sequence[Sequence
-        # [_SupportsArray[dtype[<nothing>]]]],
-        # Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]],
-        # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]]]]]"
-
-        #  Argument 2 to "apply_along_axis" has incompatible type "Union[str, int]";
-        #  expected "SupportsIndex"  [arg-type]
         np.apply_along_axis(
-            partial(
+            # error: Argument 1 to "apply_along_axis" has incompatible type
+            # "partial[None]"; expected
+            # "Callable[..., Union[_SupportsArray[dtype[<nothing>]],
+            # Sequence[_SupportsArray[dtype[<nothing>]]],
+            # Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]],
+            # Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]],
+            # Sequence[Sequence[Sequence[Sequence[_
+            # SupportsArray[dtype[<nothing>]]]]]]]]"
+            partial(  # type: ignore[arg-type]
                 _interpolate_with_limit_area,
                 method=method,
                 limit=limit,
                 limit_area=limit_area,
-            ),  # type: ignore[arg-type]
+            ),
+            # error: Argument 2 to "apply_along_axis" has incompatible type
+            # "Union[str, int]"; expected "SupportsIndex"
             axis,  # type: ignore[arg-type]
             values,
         )
@@ -908,7 +920,7 @@ def get_fill_func(method, ndim: int = 1):
     return {"pad": _pad_2d, "backfill": _backfill_2d}[method]
 
 
-def clean_reindex_fill_method(method):
+def clean_reindex_fill_method(method) -> str | None:
     return clean_fill_method(method, allow_nearest=True)
 
 

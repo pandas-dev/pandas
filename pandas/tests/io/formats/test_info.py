@@ -116,7 +116,7 @@ def test_info_verbose_check_header_separator_body():
     assert len(lines) > 0
 
     for i, line in enumerate(lines):
-        if i >= start and i < start + size:
+        if start <= i < start + size:
             line_nr = f" {i - start} "
             assert line.startswith(line_nr)
 
@@ -388,7 +388,7 @@ def test_info_memory_usage_deep_not_pypy():
     assert df_object.memory_usage(deep=True).sum() > df_object.memory_usage().sum()
 
 
-@pytest.mark.skipif(not PYPY, reason="on PyPy deep=True does not change result")
+@pytest.mark.xfail(not PYPY, reason="on PyPy deep=True does not change result")
 def test_info_memory_usage_deep_pypy():
     df_with_object_index = DataFrame({"a": [1]}, index=["foo"])
     assert (

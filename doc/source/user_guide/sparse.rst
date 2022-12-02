@@ -266,8 +266,8 @@ have no replacement.
 
 .. _sparse.scipysparse:
 
-Interaction with scipy.sparse
------------------------------
+Interaction with *scipy.sparse*
+-------------------------------
 
 Use :meth:`DataFrame.sparse.from_spmatrix` to create a :class:`DataFrame` with sparse values from a sparse matrix.
 

@@ -1,5 +1,7 @@
-minimum_pre_commit_version: 2.9.2
+minimum_pre_commit_version: 2.15.0
 exclude: ^LICENSES/|\.(html|csv|svg)$
+# reserve "manual" for mypy and pyright
+default_stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
 ci:
     autofix_prs: false
 repos:
@@ -9,31 +11,33 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.3'
+    rev: 'v2.6'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
         pass_filenames: true
         require_serial: false
--   repo: https://github.com/python/black
-    rev: 22.1.0
-    hooks:
-    -   id: black
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.1.0
+    rev: v2.2.2
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
-        files: ^(pandas|doc)/
+        additional_dependencies: [tomli]
+-   repo: https://github.com/MarcoGorelli/cython-lint
+    rev: v0.9.1
+    hooks:
+    -   id: cython-lint
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v4.4.0
     hooks:
     -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
+        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
     -   id: trailing-whitespace
+        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
 -   repo: https://github.com/cpplint/cpplint
-    rev: 1.5.5
+    rev: 1.6.1
     hooks:
     -   id: cpplint
         # We don't lint all C files because we don't want to lint any that are built
@@ -43,20 +47,43 @@ repos:
         exclude: ^pandas/_libs/src/(klib|headers)/
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
 -   repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
+    rev: 6.0.0
     hooks:
     -   id: flake8
+        # Need to patch os.remove rule in pandas-dev-flaker
+        exclude: ^ci/fix_wheels.py
         additional_dependencies: &flake8_dependencies
-        - flake8==4.0.1
-        - flake8-comprehensions==3.7.0
-        - flake8-bugbear==21.3.2
-        - pandas-dev-flaker==0.4.0
+        - flake8==6.0.0
+        - flake8-bugbear==22.7.1
+        - pandas-dev-flaker==0.5.0
+-   repo: https://github.com/pycqa/pylint
+    rev: v2.15.6
+    hooks:
+    -   id: pylint
+        stages: [manual]
+-   repo: https://github.com/pycqa/pylint
+    rev: v2.15.6
+    hooks:
+    -   id: pylint
+        alias: redefined-outer-name
+        name: Redefining name from outer scope
+        files: ^pandas/
+        exclude: |
+            (?x)
+            ^pandas/tests  # keep excluded
+            |/_testing/  # keep excluded
+            |^pandas/util/_test_decorators\.py  # keep excluded
+            |^pandas/_version\.py  # keep excluded
+            |^pandas/conftest\.py  # keep excluded
+            |^pandas/core/generic\.py
+        args: [--disable=all, --enable=redefined-outer-name]
+        stages: [manual]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.31.0
+    rev: v3.2.2
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -70,24 +97,64 @@ repos:
       - id: rst-inline-touching-normal
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
+-   repo: https://github.com/sphinx-contrib/sphinx-lint
+    rev: v0.6.7
+    hooks:
+    - id: sphinx-lint
 -   repo: https://github.com/asottile/yesqa
-    rev: v1.3.0
+    rev: v1.4.0
     hooks:
     -   id: yesqa
         additional_dependencies: *flake8_dependencies
 -   repo: local
     hooks:
+    # NOTE: we make `black` a local hook because if it's installed from
+    # PyPI (rather than from source) then it'll run twice as fast thanks to mypyc
+    -   id: black
+        name: black
+        description: "Black: The uncompromising Python code formatter"
+        entry: black
+        language: python
+        require_serial: true
+        types_or: [python, pyi]
+        additional_dependencies: [black==22.10.0]
     -   id: pyright
+        # note: assumes python env is setup and activated
         name: pyright
         entry: pyright
         language: node
         pass_filenames: false
         types: [python]
         stages: [manual]
-        # note: keep version in sync with .github/workflows/code-checks.yml
-        additional_dependencies: ['pyright@1.1.212']
--   repo: local
-    hooks:
+        additional_dependencies: &pyright_dependencies
+        - pyright@1.1.276
+    -   id: pyright_reportGeneralTypeIssues
+        # note: assumes python env is setup and activated
+        name: pyright reportGeneralTypeIssues
+        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json
+        language: node
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
+        additional_dependencies: *pyright_dependencies
+    -   id: mypy
+        # note: assumes python env is setup and activated
+        name: mypy
+        entry: mypy
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
+    -   id: stubtest
+        # note: assumes python env is setup and activated
+        # note: requires pandas dev to be installed
+        name: mypy (stubtest)
+        entry: python
+        language: system
+        pass_filenames: false
+        types: [pyi]
+        args: [scripts/run_stubtest.py]
+        stages: [manual]
     -   id: flake8-rst
         name: flake8-rst
         description: Run flake8 on code snippets in docstrings or RST files
@@ -158,7 +225,7 @@ repos:
         entry: python scripts/sync_flake8_versions.py
         files: ^(\.pre-commit-config\.yaml|environment\.yml)$
         pass_filenames: false
-        additional_dependencies: [pyyaml]
+        additional_dependencies: [pyyaml, toml]
     -   id: title-capitalization
         name: Validate correct capitalization among titles in documentation
         entry: python scripts/validate_rst_title_capitalization.py
@@ -172,11 +239,25 @@ repos:
         files: ^pandas/core/
         exclude: ^pandas/core/api\.py$
         types: [python]
+    -   id: use-io-common-urlopen
+        name: Use pandas.io.common.urlopen instead of urllib.request.urlopen
+        language: python
+        entry: python scripts/use_io_common_urlopen.py
+        files: ^pandas/
+        exclude: ^pandas/tests/
+        types: [python]
     -   id: no-bool-in-core-generic
         name: Use bool_t instead of bool in pandas/core/generic.py
         entry: python scripts/no_bool_in_generic.py
         language: python
         files: ^pandas/core/generic\.py$
+    -   id: no-return-exception
+        name: Use raise instead of return for exceptions
+        language: pygrep
+        entry: 'return [A-Za-z]+(Error|Exit|Interrupt|Exception|Iteration)'
+        files: ^pandas/
+        types: [python]
+        exclude: ^pandas/tests/
     -   id: pandas-errors-documented
         name: Ensure pandas errors are documented in doc/source/reference/testing.rst
         entry: python scripts/pandas_errors_documented.py
@@ -193,3 +274,42 @@ repos:
         entry: python scripts/validate_min_versions_in_sync.py
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+        additional_dependencies: [tomli]
+    -   id: validate-errors-locations
+        name: Validate errors locations
+        description: Validate errors are in appropriate locations.
+        entry: python scripts/validate_exception_location.py
+        language: python
+        files: ^pandas/
+        exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
+        types: [python]
+    -   id: flake8-pyi
+        name: flake8-pyi
+        entry: flake8 --extend-ignore=E301,E302,E305,E701,E704
+        types: [pyi]
+        language: python
+        additional_dependencies:
+        - flake8==5.0.4
+        - flake8-pyi==22.8.1
+    -   id: future-annotations
+        name: import annotations from __future__
+        entry: 'from __future__ import annotations'
+        language: pygrep
+        args: [--negate]
+        files: ^pandas/
+        types: [python]
+        exclude: |
+            (?x)
+            /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
+            |/tests/
+            |/_testing/
+    -   id: autotyping
+        name: autotyping
+        entry: python -m scripts.run_autotyping
+        types_or: [python, pyi]
+        files: ^pandas
+        exclude: ^(pandas/tests|pandas/_version.py|pandas/io/clipboard)
+        language: python
+        additional_dependencies:
+        - autotyping==22.9.0
+        - libcst==0.4.7
