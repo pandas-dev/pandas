@@ -64,7 +64,6 @@ dependencies:
   - cftime
   - dask
   - ipython
-  - geopandas-base
   - seaborn
   - scikit-learn
   - statsmodels

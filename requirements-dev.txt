@@ -51,7 +51,6 @@ botocore
 cftime
 dask
 ipython
-geopandas
 seaborn
 scikit-learn
 statsmodels
