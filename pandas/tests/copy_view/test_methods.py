@@ -253,8 +253,7 @@ def test_set_index(using_copy_on_write):
 
 
 def test_add_prefix(using_copy_on_write):
-    # Case: adding prefix returns a new dataframe
-    # + afterwards modifying the result
+    # GH 49473
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.add_prefix("CoW_")
@@ -275,8 +274,7 @@ def test_add_prefix(using_copy_on_write):
 
 
 def test_add_suffix(using_copy_on_write):
-    # Case: adding suffix returns a new dataframe
-    # + afterwards modifying the result
+    # GH 49473
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.add_suffix("_CoW")
