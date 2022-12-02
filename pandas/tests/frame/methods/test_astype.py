@@ -377,6 +377,16 @@ class TestAstype:
         df = df.astype(dtype)
         tm.assert_index_equal(df.columns, columns)
 
+    @pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "m"])
+    def test_astype_from_object_to_datetime_unit(self, unit):
+        vals = [
+            ["2015-01-01", "2015-01-02", "2015-01-03"],
+            ["2017-01-01", "2017-01-02", "2017-02-03"],
+        ]
+        df = DataFrame(vals, dtype=object)
+        with pytest.raises(TypeError, match="Cannot cast"):
+            df.astype(f"M8[{unit}]")
+
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
     def test_astype_from_datetimelike_to_object(self, dtype, unit):

@@ -730,13 +730,13 @@ class TestMerge:
         ser = Series([None, None], index=[101, 102], name="days")
 
         dtype = f"datetime64[{unit}]"
-        df2 = ser.astype(dtype).to_frame("days")
 
         if unit in ["D", "h", "m"]:
             # not supported so we cast to the nearest supported unit, seconds
             exp_dtype = "datetime64[s]"
         else:
             exp_dtype = dtype
+        df2 = ser.astype(exp_dtype).to_frame("days")
         assert df2["days"].dtype == exp_dtype
 
         result = df1.merge(df2, left_on="entity_id", right_index=True)
