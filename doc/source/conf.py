@@ -374,7 +374,7 @@ header = f"""\
 
 
 html_context = {
-    "redirects": {old: new for old, new in moved_api_pages},
+    "redirects": dict(moved_api_pages),
     "header": header,
 }
 
@@ -583,7 +583,14 @@ class AccessorCallableDocumenter(AccessorLevelDocumenter, MethodDocumenter):
     priority = 0.5
 
     def format_name(self):
-        return MethodDocumenter.format_name(self).rstrip(".__call__")
+        if sys.version_info < (3, 9):
+            # NOTE pyupgrade will remove this when we run it with --py39-plus
+            # so don't remove the unnecessary `else` statement below
+            from pandas.util._str_methods import removesuffix
+
+            return removesuffix(MethodDocumenter.format_name(self), ".__call__")
+        else:
+            return MethodDocumenter.format_name(self).removesuffix(".__call__")
 
 
 class PandasAutosummary(Autosummary):

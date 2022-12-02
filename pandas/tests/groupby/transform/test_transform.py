@@ -360,7 +360,7 @@ def test_dispatch_transform(tsframe):
     tm.assert_frame_equal(filled, expected)
 
 
-def test_transform_transformation_func(request, transformation_func):
+def test_transform_transformation_func(transformation_func):
     # GH 30918
     df = DataFrame(
         {
@@ -440,10 +440,12 @@ def test_transform_exclude_nuisance(df):
 
 
 def test_transform_function_aliases(df):
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").transform("mean")
-        expected = df.groupby("A").transform(np.mean)
+    with pytest.raises(TypeError, match="Could not convert"):
+        df.groupby("A").transform("mean")
+    result = df.groupby("A").transform("mean", numeric_only=True)
+    with pytest.raises(TypeError, match="Could not convert"):
+        df.groupby("A").transform(np.mean)
+    expected = df.groupby("A")[["C", "D"]].transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby("A")["C"].transform("mean")
@@ -495,8 +497,9 @@ def test_transform_coercion():
 
     expected = g.transform(np.mean)
 
-    msg = "will return a scalar mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+    # in 2.0 np.mean on a DataFrame is equivalent to frame.mean(axis=None)
+    #  which not gives a scalar instead of Series
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = g.transform(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
 
@@ -1505,3 +1508,17 @@ def test_transform_aligns_depr(func, series, expected_values, keys, keys_in_inde
         if series:
             expected = expected["b"]
         tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("keys", ["A", ["A", "B"]])
+def test_as_index_no_change(keys, df, groupby_func):
+    # GH#49834 - as_index should have no impact on DataFrameGroupBy.transform
+    if keys == "A":
+        # Column B is string dtype; will fail on some ops
+        df = df.drop(columns="B")
+    args = get_groupby_method_args(groupby_func, df)
+    gb_as_index_true = df.groupby(keys, as_index=True)
+    gb_as_index_false = df.groupby(keys, as_index=False)
+    result = gb_as_index_true.transform(groupby_func, *args)
+    expected = gb_as_index_false.transform(groupby_func, *args)
+    tm.assert_equal(result, expected)
