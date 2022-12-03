@@ -6518,6 +6518,30 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[~mask]
         return self.delete(indexer)
 
+    def infer_objects(self, copy: bool = True) -> Index:
+        """
+        If we have an object dtype, try to infer a non-object dtype.
+
+        Parameters
+        ----------
+        copy : bool, default True
+            Whether to make a copy in cases where no inference occurs.
+        """
+        if self.dtype != object or self._is_multi:
+            return self.copy() if copy else self
+
+        values = self._values
+        res_values = lib.maybe_convert_objects(
+            values,
+            convert_datetime=True,
+            convert_timedelta=True,
+            convert_period=True,
+            convert_interval=True,
+        )
+        if copy and res_values is values:
+            return self.copy()
+        return Index(res_values, name=self.name)
+
     # --------------------------------------------------------------------
     # Generated Arithmetic, Comparison, and Unary Methods
 
