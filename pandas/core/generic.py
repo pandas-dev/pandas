@@ -6354,9 +6354,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         A    int64
         dtype: object
         """
-        return self._constructor(
-            self._mgr.convert(datetime=True, timedelta=True, copy=True)
-        ).__finalize__(self, method="infer_objects")
+        new_mgr = self._mgr.convert()
+        return self._constructor(new_mgr).__finalize__(self, method="infer_objects")
 
     @final
     def convert_dtypes(
