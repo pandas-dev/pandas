@@ -2971,28 +2971,6 @@ def test_loc_periodindex_3_levels():
     assert mi_series.loc[(p_index[0], "A", "B")] == 1.0
 
 
-@pytest.mark.parametrize("utc", [False, True])
-def test_loc_datetime_assignment_dtype_does_not_change(utc):
-    # GH#49837
-    df = DataFrame(
-        {
-            # Checking with and without UTC as the original bug didn't occur
-            # for utc=True
-            "date": to_datetime(
-                [datetime(2022, 1, 20), datetime(2022, 1, 22)], utc=utc
-            ),
-            "update": [True, False],
-        }
-    )
-    # We don't expect the dataframe to be changes at all
-    expected = df.copy(deep=True)
-
-    update_df = df[df["update"]]
-    df.loc[df["update"], ["date"]] = update_df["date"]
-
-    tm.assert_frame_equal(df, expected)
-
-
 class TestLocSeries:
     @pytest.mark.parametrize("val,expected", [(2**63 - 1, 3), (2**63, 4)])
     def test_loc_uint64(self, val, expected):
