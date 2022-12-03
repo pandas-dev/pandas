@@ -7,7 +7,7 @@ RUN python -m pip install \
   hypothesis \
   numpy \
   pytest \
-  pytest-asyncio \  
+  pytest-asyncio \
   pytz \
   python-dateutil \
   versioneer
