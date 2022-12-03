@@ -867,7 +867,7 @@ class TestInference:
         "dtype, val", [("int64", 1), ("uint64", np.iinfo(np.int64).max + 1)]
     )
     def test_maybe_convert_objects_nullable_none(self, dtype, val):
-        # GH#
+        # GH#50043
         arr = np.array([val, None, 3], dtype="object")
         result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=True)
         expected = IntegerArray(
