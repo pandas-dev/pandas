@@ -5,6 +5,7 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
 )
 import re
 
@@ -2969,6 +2970,27 @@ def test_loc_periodindex_3_levels():
     )
     mi_series = mi_series.set_index(["ONE", "TWO"], append=True)["VALUES"]
     assert mi_series.loc[(p_index[0], "A", "B")] == 1.0
+
+
+@pytest.mark.parametrize("utc", [False, True])
+def test_loc_datetime_assignment_dtype_does_not_change(utc):
+    # GH#49837
+    df = pd.DataFrame(
+        {
+            # Checking with and without UTC as the original bug didn't occur with utc=True
+            "date": pd.to_datetime(
+                [datetime(2022, 1, 20), datetime(2022, 1, 22)], utc=utc
+            ),
+            "update": [True, False],
+        }
+    )
+    # We don't expect the dataframe to be changes at all
+    expected = df.copy(deep=True)
+
+    update_df = df[df["update"]]
+    df.loc[df["update"], ["date"]] = update_df["date"])
+
+    tm.assert_frame_equal(df, expected)
 
 
 class TestLocSeries:
