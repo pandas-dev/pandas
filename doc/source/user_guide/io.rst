@@ -970,6 +970,19 @@ To parse the mixed-timezone values as a datetime column, pass a partially-applie
 Inferring datetime format
 +++++++++++++++++++++++++
 
+Here are some examples of datetime strings that can be guessed (all
+representing December 30th, 2011 at 00:00:00):
+* "20111230"
+* "2011/12/30"
+* "20111230 00:00:00"
+* "12/30/2011 00:00:00"
+* "30/Dec/2011 00:00:00"
+* "30/December/2011 00:00:00"
+
+Note that format inference is sensitive to ``dayfirst``.  With
+``dayfirst=True``, it will guess "01/12/2011" to be December 1st. With
+``dayfirst=False`` (default) it will guess "01/12/2011" to be January 12th.
+
 If you try to parse a column of date strings, pandas will attempt to guess the format
 from the first non-NaN element, and will then parse the rest of the column with that
 format. If pandas fails to guess the format, then a warning will be raised, and each
