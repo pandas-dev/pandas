@@ -18,7 +18,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-# geopandas, xarray, fsspec, fastparquet all produce these
+# xarray, fsspec, fastparquet all produce these
 pytestmark = pytest.mark.filterwarnings(
     "ignore:distutils Version classes are deprecated.*:DeprecationWarning"
 )
@@ -221,15 +221,6 @@ def test_pandas_datareader():
 
     pandas_datareader = import_module("pandas_datareader")
     pandas_datareader.DataReader("F", "quandl", "2017-01-01", "2017-02-01")
-
-
-def test_geopandas():
-
-    geopandas = import_module("geopandas")
-    gdf = geopandas.GeoDataFrame(
-        {"col": [1, 2, 3], "geometry": geopandas.points_from_xy([1, 2, 3], [1, 2, 3])}
-    )
-    assert gdf[["col", "geometry"]].geometry.x.equals(Series([1.0, 2.0, 3.0]))
 
 
 # Cython import warning
