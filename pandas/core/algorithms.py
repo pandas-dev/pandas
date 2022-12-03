@@ -894,7 +894,7 @@ def value_counts(
 
             # For backwards compatibility, we let Index do its normal type
             #  inference, _except_ for if if infers from object to bool.
-            idx = Index._with_infer(keys)
+            idx = Index(keys)
             if idx.dtype == bool and keys.dtype == object:
                 idx = idx.astype(object)
 
