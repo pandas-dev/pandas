@@ -2460,16 +2460,25 @@ cdef class BusinessMonthEnd(MonthOffset):
     """
     DateOffset increments between the last business day of the month.
 
+    BusinessMonthEnd goes to the next date which is the last business day of the month.
+    To get the last business day of the current month pass the parameter n equals 0.
+
     Examples
     --------
-    >>> from pandas.tseries.offsets import BMonthEnd
-    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts + BMonthEnd()
-    Timestamp('2020-05-29 05:01:15')
-    >>> ts + BMonthEnd(2)
-    Timestamp('2020-06-30 05:01:15')
-    >>> ts + BMonthEnd(-2)
-    Timestamp('2020-03-31 05:01:15')
+    >>> ts = pd.Timestamp(2022, 11, 29)
+    >>> ts + pd.offsets.BMonthEnd()
+    Timestamp('2022-11-30 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 11, 30)
+    >>> ts + pd.offsets.BMonthEnd()
+    Timestamp('2022-12-30 00:00:00')
+
+    If you want to get the end of the current business month
+    pass the parameter n equals 0:
+
+    >>> ts = pd.Timestamp(2022, 11, 30)
+    >>> ts + pd.offsets.BMonthEnd(0)
+    Timestamp('2022-11-30 00:00:00')
     """
     _prefix = "BM"
     _day_opt = "business_end"
@@ -2642,11 +2651,24 @@ cdef class SemiMonthEnd(SemiMonthOffset):
 
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts = pd.Timestamp(2022, 1, 14)
     >>> ts + pd.offsets.SemiMonthEnd()
     Timestamp('2022-01-15 00:00:00')
-    """
 
+    >>> ts = pd.Timestamp(2022, 1, 15)
+    >>> ts + pd.offsets.SemiMonthEnd()
+    Timestamp('2022-01-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 1, 31)
+    >>> ts + pd.offsets.SemiMonthEnd()
+    Timestamp('2022-02-15 00:00:00')
+
+    If you want to get the result for the current month pass the parameter n equals 0:
+
+    >>> ts = pd.Timestamp(2022, 1, 15)
+    >>> ts + pd.offsets.SemiMonthEnd(0)
+    Timestamp('2022-01-15 00:00:00')
+    """
     _prefix = "SM"
     _min_day_of_month = 1
 
