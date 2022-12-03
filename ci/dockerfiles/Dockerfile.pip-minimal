@@ -13,4 +13,4 @@ RUN python -m pip install \
   versioneer
 
 WORKDIR /home/pandas
-CMD ["/bin/sh"]
+CMD ["/bin/bash"]

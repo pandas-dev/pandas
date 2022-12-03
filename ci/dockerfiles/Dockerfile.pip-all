@@ -9,4 +9,4 @@ RUN python -m pip install --use-deprecated=legacy-resolver \
     -r https://raw.githubusercontent.com/pandas-dev/pandas/main/requirements-dev.txt
 
 WORKDIR /home/pandas
-CMD ["/bin/sh"]
+CMD ["/bin/bash"]

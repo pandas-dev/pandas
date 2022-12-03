@@ -15,4 +15,4 @@ RUN mamba create -n pandas-dev \
   versioneer
 
 WORKDIR /home/pandas
-CMD ["/bin/sh"]
+CMD ["conda", "run", "-n", "pandas-dev", "/bin/bash", "-c"]
