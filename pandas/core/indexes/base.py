@@ -2678,6 +2678,7 @@ class Index(IndexOpsMixin, PandasObject):
             if downcast is None:
                 # no need to care metadata other than name
                 # because it can't have freq if it has NaTs
+                # _with_infer needed for test_fillna_categorical
                 return Index._with_infer(result, name=self.name)
             raise NotImplementedError(
                 f"{type(self).__name__}.fillna does not support 'downcast' "
@@ -4230,10 +4231,10 @@ class Index(IndexOpsMixin, PandasObject):
                 new_indexer = np.arange(len(self.take(indexer)), dtype=np.intp)
                 new_indexer[~check] = -1
 
-        if isinstance(self, ABCMultiIndex):
-            new_index = type(self).from_tuples(new_labels, names=self.names)
+        if not isinstance(self, ABCMultiIndex):
+            new_index = Index(new_labels, name=self.name)
         else:
-            new_index = Index._with_infer(new_labels, name=self.name)
+            new_index = type(self).from_tuples(new_labels, names=self.names)
         return new_index, indexer, new_indexer
 
     # --------------------------------------------------------------------
@@ -6477,7 +6478,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self._typ == "numericindex":
             # Use self._constructor instead of Index to retain NumericIndex GH#43921
             # TODO(2.0) can use Index instead of self._constructor
-            return self._constructor._with_infer(new_values, name=self.name)
+            return self._constructor(new_values, name=self.name)
         else:
             return Index._with_infer(new_values, name=self.name)
 
@@ -6850,7 +6851,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     if len(sequences) == 1:
         if names is not None:
             names = names[0]
-        return Index._with_infer(sequences[0], name=names)
+        return Index(sequences[0], name=names)
     else:
         return MultiIndex.from_arrays(sequences, names=names)
 
@@ -6893,7 +6894,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
 
     if isinstance(index_like, ABCSeries):
         name = index_like.name
-        return Index._with_infer(index_like, name=name, copy=copy)
+        return Index(index_like, name=name, copy=copy)
 
     if is_iterator(index_like):
         index_like = list(index_like)
@@ -6909,9 +6910,9 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
 
             return MultiIndex.from_arrays(index_like)
         else:
-            return Index._with_infer(index_like, copy=copy, tupleize_cols=False)
+            return Index(index_like, copy=copy, tupleize_cols=False)
     else:
-        return Index._with_infer(index_like, copy=copy)
+        return Index(index_like, copy=copy)
 
 
 def ensure_has_len(seq):
