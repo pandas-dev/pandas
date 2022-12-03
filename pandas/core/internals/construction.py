@@ -974,6 +974,7 @@ def convert_object_array(
     content: list[npt.NDArray[np.object_]],
     dtype: DtypeObj | None,
     use_nullable_dtypes: bool = False,
+    coerce_float: bool = False,
 ) -> list[ArrayLike]:
     """
     Internal function to convert object array.
@@ -983,6 +984,7 @@ def convert_object_array(
     content: List[np.ndarray]
     dtype: np.dtype or ExtensionDtype
     use_nullable_dtypes: Controls if nullable dtypes are returned.
+    coerce_float: Cast floats that are integers to int.
 
     Returns
     -------
@@ -990,26 +992,25 @@ def convert_object_array(
     """
     # provide soft conversion of object dtypes
 
-    use_nullable_dtypes = True
-
     def convert(arr):
         if dtype != np.dtype("O"):
             arr = lib.maybe_convert_objects(
-                arr, convert_to_nullable_integer=use_nullable_dtypes
+                arr,
+                try_float=coerce_float,
+                convert_to_nullable_dtype=use_nullable_dtypes,
             )
 
             if dtype is None:
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
                     arr = maybe_infer_to_datetimelike(arr)
-                else:
-                    if isinstance(arr, np.ndarray):
-                        if is_integer_dtype(arr.dtype):
-                            arr = IntegerArray(arr, np.zeros(arr.shape, dtype=np.bool_))
-                        elif is_bool_dtype(arr.dtype):
-                            arr = BooleanArray(arr, np.zeros(arr.shape, dtype=np.bool_))
-                        elif is_float_dtype(arr.dtype):
-                            arr = FloatingArray(arr, np.isnan(arr))
+                elif use_nullable_dtypes and isinstance(arr, np.ndarray):
+                    if is_integer_dtype(arr.dtype):
+                        arr = IntegerArray(arr, np.zeros(arr.shape, dtype=np.bool_))
+                    elif is_bool_dtype(arr.dtype):
+                        arr = BooleanArray(arr, np.zeros(arr.shape, dtype=np.bool_))
+                    elif is_float_dtype(arr.dtype):
+                        arr = FloatingArray(arr, np.isnan(arr))
 
             elif isinstance(dtype, ExtensionDtype):
                 # TODO: test(s) that get here

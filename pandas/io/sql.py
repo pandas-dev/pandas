@@ -147,13 +147,18 @@ def _wrap_result(
     coerce_float: bool = True,
     parse_dates=None,
     dtype: DtypeArg | None = None,
+    use_nullable_dtypes: bool = False,
 ):
     """Wrap result set of query in a DataFrame."""
     content = lib.to_object_array_tuples(data)
     content = list(content.T)
-    content = convert_object_array(content, dtype=dtype, use_nullable_dtypes=True)
-
-    frame = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float)
+    content = convert_object_array(
+        content,
+        dtype=None,
+        coerce_float=coerce_float,
+        use_nullable_dtypes=use_nullable_dtypes,
+    )
+    frame = DataFrame({col: val for col, val in zip(columns, content)}, columns=columns)
 
     if dtype:
         frame = frame.astype(dtype)
@@ -161,7 +166,7 @@ def _wrap_result(
     frame = _parse_date_columns(frame, parse_dates)
 
     if index_col is not None:
-        frame.set_index(index_col, inplace=True)
+        frame = frame.set_index(index_col)
 
     return frame
 
@@ -423,6 +428,7 @@ def read_sql(
     parse_dates=...,
     columns: list[str] = ...,
     chunksize: None = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -437,6 +443,7 @@ def read_sql(
     parse_dates=...,
     columns: list[str] = ...,
     chunksize: int = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -450,6 +457,7 @@ def read_sql(
     parse_dates=None,
     columns: list[str] | None = None,
     chunksize: int | None = None,
+    use_nullable_dtypes: bool = False,
 ) -> DataFrame | Iterator[DataFrame]:
     """
     Read SQL query or database table into a DataFrame.
@@ -497,7 +505,12 @@ def read_sql(
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the
         number of rows to include in each chunk.
+    use_nullable_dtypes : bool = False
+        Whether to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
 
+        .. versionadded:: 2.0
     Returns
     -------
     DataFrame or Iterator[DataFrame]
@@ -576,6 +589,7 @@ def read_sql(
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 chunksize=chunksize,
+                use_nullable_dtypes=use_nullable_dtypes,
             )
 
         try:
@@ -601,6 +615,7 @@ def read_sql(
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 chunksize=chunksize,
+                use_nullable_dtypes=use_nullable_dtypes,
             )
 
 
@@ -1308,6 +1323,7 @@ class PandasSQL(PandasObject, ABC):
         params=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
+        use_nullable_dtypes: bool = False,
     ) -> DataFrame | Iterator[DataFrame]:
         pass
 
@@ -1567,6 +1583,7 @@ class SQLDatabase(PandasSQL):
         params=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
+        use_nullable_dtypes: bool = False,
     ) -> DataFrame | Iterator[DataFrame]:
         """
         Read SQL query into a DataFrame.
@@ -1638,6 +1655,7 @@ class SQLDatabase(PandasSQL):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype=dtype,
+                use_nullable_dtypes=use_nullable_dtypes,
             )
             return frame
 
@@ -2094,6 +2112,7 @@ class SQLiteDatabase(PandasSQL):
         coerce_float: bool = True,
         parse_dates=None,
         dtype: DtypeArg | None = None,
+        use_nullable_dtypes: bool = False,
     ):
         """Return generator through chunked result set"""
         has_read_data = False
@@ -2117,6 +2136,7 @@ class SQLiteDatabase(PandasSQL):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype=dtype,
+                use_nullable_dtypes=use_nullable_dtypes,
             )
 
     def read_query(
@@ -2128,6 +2148,7 @@ class SQLiteDatabase(PandasSQL):
         params=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
+        use_nullable_dtypes: bool = False,
     ) -> DataFrame | Iterator[DataFrame]:
 
         args = _convert_params(sql, params)
@@ -2143,6 +2164,7 @@ class SQLiteDatabase(PandasSQL):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype=dtype,
+                use_nullable_dtypes=use_nullable_dtypes,
             )
         else:
             data = self._fetchall_as_list(cursor)
@@ -2155,6 +2177,7 @@ class SQLiteDatabase(PandasSQL):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype=dtype,
+                use_nullable_dtypes=use_nullable_dtypes,
             )
             return frame
 
