@@ -135,16 +135,15 @@ def astype_nansafe(
     elif is_object_dtype(arr.dtype):
 
         # if we have a datetime/timedelta array of objects
-        # then coerce to a proper dtype and recall astype_nansafe
+        # then coerce to datetime64[ns] and use DatetimeArray.astype
 
         if is_datetime64_dtype(dtype):
             from pandas import to_datetime
 
-            return astype_nansafe(
-                to_datetime(arr.ravel()).values.reshape(arr.shape),
-                dtype,
-                copy=copy,
-            )
+            dti = to_datetime(arr.ravel())
+            dta = dti._data.reshape(arr.shape)
+            return dta.astype(dtype, copy=False)._ndarray
+
         elif is_timedelta64_dtype(dtype):
             # bc we know arr.dtype == object, this is equivalent to
             #  `np.asarray(to_timedelta(arr))`, but using a lower-level API that

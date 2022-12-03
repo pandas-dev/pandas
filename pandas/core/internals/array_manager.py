@@ -377,9 +377,9 @@ class BaseArrayManager(DataManager):
 
     def convert(
         self: T,
+        *,
         copy: bool = True,
         datetime: bool = True,
-        numeric: bool = True,
         timedelta: bool = True,
     ) -> T:
         def _convert(arr):
@@ -389,7 +389,6 @@ class BaseArrayManager(DataManager):
                 return soft_convert_objects(
                     arr,
                     datetime=datetime,
-                    numeric=numeric,
                     timedelta=timedelta,
                     copy=copy,
                 )
