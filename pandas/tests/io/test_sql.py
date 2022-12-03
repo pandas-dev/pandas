@@ -2266,6 +2266,46 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pass
         # TODO(GH#36893) fill this in when we add more engines
 
+    def test_read_sql_nullable_dtypes(self):
+        # GH#
+        table = "test"
+        df = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": [True, False, None],
+                "f": [True, False, True],
+            }
+        )
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        result = pd.read_sql(
+            f"Select * from {table}", self.conn, use_nullable_dtypes=True
+        )
+        expected = self.nullable_expected()
+        tm.assert_frame_equal(result, expected)
+
+        iterator = pd.read_sql(
+            f"Select * from {table}", self.conn, use_nullable_dtypes=True, chunksize=3
+        )
+        expected = self.nullable_expected()
+        for result in iterator:
+            tm.assert_frame_equal(result, expected)
+
+    def nullable_expected(self) -> DataFrame:
+        return DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": Series([True, False, pd.NA], dtype="boolean"),
+                "f": Series([True, False, True], dtype="boolean"),
+            }
+        )
+
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
@@ -2348,6 +2388,18 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
             df = DataFrame(test_query)
 
         assert list(df.columns) == ["id", "string_column"]
+
+    def nullable_expected(self) -> DataFrame:
+        return DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": Series([1, 0, pd.NA], dtype="Int64"),
+                "f": Series([1, 0, 1], dtype="Int64"),
+            }
+        )
 
 
 @pytest.mark.db

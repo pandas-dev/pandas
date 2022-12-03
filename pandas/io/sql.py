@@ -1548,6 +1548,7 @@ class SQLDatabase(PandasSQL):
         coerce_float: bool = True,
         parse_dates=None,
         dtype: DtypeArg | None = None,
+        use_nullable_dtypes: bool = False,
     ):
         """Return generator through chunked result set"""
         has_read_data = False
@@ -1561,6 +1562,7 @@ class SQLDatabase(PandasSQL):
                         index_col=index_col,
                         coerce_float=coerce_float,
                         parse_dates=parse_dates,
+                        use_nullable_dtypes=use_nullable_dtypes,
                     )
                 break
 
@@ -1572,6 +1574,7 @@ class SQLDatabase(PandasSQL):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype=dtype,
+                use_nullable_dtypes=use_nullable_dtypes,
             )
 
     def read_query(
@@ -1645,6 +1648,7 @@ class SQLDatabase(PandasSQL):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype=dtype,
+                use_nullable_dtypes=use_nullable_dtypes,
             )
         else:
             data = result.fetchall()
