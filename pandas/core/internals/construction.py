@@ -900,7 +900,7 @@ def _finalize_columns_and_data(
         raise ValueError(err) from err
 
     if len(contents) and contents[0].dtype == np.object_:
-        contents = _convert_object_array(contents, dtype=dtype)
+        contents = convert_object_array(contents, dtype=dtype)
 
     return contents, columns
 
@@ -963,8 +963,8 @@ def _validate_or_indexify_columns(
     return columns
 
 
-def _convert_object_array(
-    content: list[npt.NDArray[np.object_]], dtype: DtypeObj | None
+def convert_object_array(
+    content: list[npt.NDArray[np.object_]], dtype: DtypeObj | None, use_nullable_dtypes: bool = False
 ) -> list[ArrayLike]:
     """
     Internal function to convert object array.
@@ -973,6 +973,7 @@ def _convert_object_array(
     ----------
     content: List[np.ndarray]
     dtype: np.dtype or ExtensionDtype
+    use_nullable_dtypes: Controls if nullable dtypes are returned.
 
     Returns
     -------
@@ -981,7 +982,7 @@ def _convert_object_array(
     # provide soft conversion of object dtypes
     def convert(arr):
         if dtype != np.dtype("O"):
-            arr = lib.maybe_convert_objects(arr)
+            arr = lib.maybe_convert_objects(arr, convert_to_nullable_integer=True)
 
             if dtype is None:
                 if arr.dtype == np.dtype("O"):

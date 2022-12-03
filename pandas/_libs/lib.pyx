@@ -2406,12 +2406,15 @@ def maybe_convert_objects(ndarray[object] objects,
 
     for i in range(n):
         val = objects[i]
+        print(val)
+        print("x")
         if itemsize_max != -1:
             itemsize = get_itemsize(val)
             if itemsize > itemsize_max or itemsize == -1:
                 itemsize_max = itemsize
 
         if val is None:
+            print("hello")
             seen.null_ = True
             floats[i] = complexes[i] = fnan
             mask[i] = True

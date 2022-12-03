@@ -36,6 +36,7 @@ from pandas._typing import (
     IndexLabel,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.core.internals.construction import convert_object_array
 from pandas.errors import (
     AbstractMethodError,
     DatabaseError,
@@ -148,6 +149,8 @@ def _wrap_result(
     dtype: DtypeArg | None = None,
 ):
     """Wrap result set of query in a DataFrame."""
+    content = lib.to_object_array_tuples(data)
+    # content = convert_object_array(content, use_nullable_dtypes=True)
     frame = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float)
 
     if dtype:
