@@ -404,15 +404,19 @@ f : function, str
 
     Accepted inputs are:
 
-    - A String
-    - Numba JIT function with
-    ``engine='numba'`` specified.
+    - string function name
+    - Numba JIT function with ``engine='numba'`` specified.
 
     If the ``'numba'`` engine is chosen, the function must be
     a user defined function with ``values`` and ``index`` as the
     first and second arguments respectively in the function signature.
     Each group's index will be passed to the user defined function
     and optionally available for use.
+
+    If a string is chosen, then it needs to be the string of the
+    function you want to use.
+
+    IE: ``grouped.transform("sum")``
 
     .. versionchanged:: 1.1.0
 *args
