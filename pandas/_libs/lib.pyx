@@ -2454,7 +2454,7 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.int_ = True
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
-            if not seen.null_ or convert_to_nullable_integer:
+            if not seen.null_ or convert_to_nullable_dtype:
                 seen.saw_int(val)
 
                 if ((seen.uint_ and seen.sint_) or
