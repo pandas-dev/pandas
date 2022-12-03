@@ -2974,10 +2974,11 @@ def test_loc_periodindex_3_levels():
 @pytest.mark.parametrize("utc", [False, True])
 def test_loc_datetime_assignment_dtype_does_not_change(utc):
     # GH#49837
-    df = pd.DataFrame(
+    df = DataFrame(
         {
-            # Checking with and without UTC as the original bug didn't occur with utc=True
-            "date": pd.to_datetime(
+            # Checking with and without UTC as the original bug didn't occur
+            # for utc=True
+            "date": to_datetime(
                 [datetime(2022, 1, 20), datetime(2022, 1, 22)], utc=utc
             ),
             "update": [True, False],
@@ -2987,7 +2988,7 @@ def test_loc_datetime_assignment_dtype_does_not_change(utc):
     expected = df.copy(deep=True)
 
     update_df = df[df["update"]]
-    df.loc[df["update"], ["date"]] = update_df["date"])
+    df.loc[df["update"], ["date"]] = update_df["date"]
 
     tm.assert_frame_equal(df, expected)
 
