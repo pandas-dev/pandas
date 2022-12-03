@@ -36,7 +36,6 @@ from pandas._typing import (
     IndexLabel,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.core.internals.construction import convert_object_array
 from pandas.errors import (
     AbstractMethodError,
     DatabaseError,
@@ -59,6 +58,7 @@ from pandas.core.api import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core.internals.construction import convert_object_array
 from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
@@ -150,7 +150,9 @@ def _wrap_result(
 ):
     """Wrap result set of query in a DataFrame."""
     content = lib.to_object_array_tuples(data)
-    # content = convert_object_array(content, use_nullable_dtypes=True)
+    content = list(content.T)
+    content = convert_object_array(content, dtype=dtype, use_nullable_dtypes=True)
+
     frame = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float)
 
     if dtype:

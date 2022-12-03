@@ -31,9 +31,11 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
+    is_bool_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_list_like,
     is_named_tuple,
@@ -49,7 +51,12 @@ from pandas.core import (
     algorithms,
     common as com,
 )
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    BooleanArray,
+    ExtensionArray,
+    FloatingArray,
+    IntegerArray,
+)
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -964,7 +971,9 @@ def _validate_or_indexify_columns(
 
 
 def convert_object_array(
-    content: list[npt.NDArray[np.object_]], dtype: DtypeObj | None, use_nullable_dtypes: bool = False
+    content: list[npt.NDArray[np.object_]],
+    dtype: DtypeObj | None,
+    use_nullable_dtypes: bool = False,
 ) -> list[ArrayLike]:
     """
     Internal function to convert object array.
@@ -980,14 +989,28 @@ def convert_object_array(
     List[ArrayLike]
     """
     # provide soft conversion of object dtypes
+
+    use_nullable_dtypes = True
+
     def convert(arr):
         if dtype != np.dtype("O"):
-            arr = lib.maybe_convert_objects(arr, convert_to_nullable_integer=True)
+            arr = lib.maybe_convert_objects(
+                arr, convert_to_nullable_integer=use_nullable_dtypes
+            )
 
             if dtype is None:
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
                     arr = maybe_infer_to_datetimelike(arr)
+                else:
+                    if isinstance(arr, np.ndarray):
+                        if is_integer_dtype(arr.dtype):
+                            arr = IntegerArray(arr, np.zeros(arr.shape, dtype=np.bool_))
+                        elif is_bool_dtype(arr.dtype):
+                            arr = BooleanArray(arr, np.zeros(arr.shape, dtype=np.bool_))
+                        elif is_float_dtype(arr.dtype):
+                            arr = FloatingArray(arr, np.isnan(arr))
+
             elif isinstance(dtype, ExtensionDtype):
                 # TODO: test(s) that get here
                 # TODO: try to de-duplicate this convert function with
