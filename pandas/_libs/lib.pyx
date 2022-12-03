@@ -2449,7 +2449,7 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.int_ = True
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
-            if not seen.null_:
+            if not seen.null_ or convert_to_nullable_integer:
                 seen.saw_int(val)
 
                 if ((seen.uint_ and seen.sint_) or
@@ -2619,10 +2619,13 @@ def maybe_convert_objects(ndarray[object] objects,
                     result = complexes
                 elif seen.float_:
                     result = floats
-                elif seen.int_:
+                elif seen.int_ or seen.uint_:
                     if convert_to_nullable_integer:
                         from pandas.core.arrays import IntegerArray
-                        result = IntegerArray(ints, mask)
+                        if seen.uint_:
+                            result = IntegerArray(uints, mask)
+                        else:
+                            result = IntegerArray(ints, mask)
                     else:
                         result = floats
                 elif seen.nan_:
