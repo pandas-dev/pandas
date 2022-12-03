@@ -41,7 +41,11 @@
     // pip (with all the conda available packages installed first,
     // followed by the pip installed packages).
     "matrix": {
+        // TODO: Remove pip deps, once no-isolation is turned off
+        // pending new meson/meson-python releases
         "pip+oldest-supported-numpy": [],
+        "pip+versioneer[toml]": [],
+        "pip+meson[ninja]": [],
         "Cython": ["0.29.32"],
         "matplotlib": [],
         "sqlalchemy": [],
