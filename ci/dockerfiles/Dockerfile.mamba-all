@@ -6,5 +6,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt install -y tzdata
 RUN mamba env create -f \
   https://raw.githubusercontent.com/pandas-dev/pandas/main/environment.yml
 
+RUN mamba init
+RUN echo "\nmamba activate pandas-dev" >> ~/.bashrc
+
 WORKDIR /home/pandas
-CMD ["/bin/sh"]

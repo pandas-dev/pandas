@@ -14,5 +14,6 @@ RUN mamba create -n pandas-dev \
   python-dateutil \
   versioneer
 
+RUN mamba init
+RUN echo "\nmamba activate pandas-dev" >> ~/.bashrc
 WORKDIR /home/pandas
-CMD ["conda", "run", "-n", "pandas-dev", "/bin/bash", "-c"]
