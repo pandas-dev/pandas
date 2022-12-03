@@ -1955,19 +1955,11 @@ class TestDataFrameConstructors:
 
     @pytest.mark.parametrize("order", ["K", "A", "C", "F"])
     @pytest.mark.parametrize(
-        "dtype",
-        [
-            "datetime64[M]",
-            "datetime64[D]",
-            "datetime64[h]",
-            "datetime64[m]",
-            "datetime64[s]",
-            "datetime64[ms]",
-            "datetime64[us]",
-            "datetime64[ns]",
-        ],
+        "unit",
+        ["M", "D", "h", "m", "s", "ms", "us", "ns"],
     )
-    def test_constructor_datetimes_non_ns(self, order, dtype):
+    def test_constructor_datetimes_non_ns(self, order, unit):
+        dtype = f"datetime64[{unit}]"
         na = np.array(
             [
                 ["2015-01-01", "2015-01-02", "2015-01-03"],
@@ -1977,13 +1969,16 @@ class TestDataFrameConstructors:
             order=order,
         )
         df = DataFrame(na)
-        expected = DataFrame(
-            [
-                ["2015-01-01", "2015-01-02", "2015-01-03"],
-                ["2017-01-01", "2017-01-02", "2017-02-03"],
-            ]
-        )
-        expected = expected.astype(dtype=dtype)
+        expected = DataFrame(na.astype("M8[ns]"))
+        if unit in ["M", "D", "h", "m"]:
+            with pytest.raises(TypeError, match="Cannot cast"):
+                expected.astype(dtype)
+
+            # instead the constructor casts to the closest supported reso, i.e. "s"
+            expected = expected.astype("datetime64[s]")
+        else:
+            expected = expected.astype(dtype=dtype)
+
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("order", ["K", "A", "C", "F"])
@@ -3026,10 +3021,10 @@ class TestFromScalar:
         "but DatetimeArray._from_sequence has not"
     )
     @pytest.mark.parametrize("cls", [datetime, np.datetime64])
-    def test_from_out_of_ns_bounds_datetime(self, constructor, cls, request):
+    def test_from_out_of_bounds_ns_datetime(self, constructor, cls):
         # scalar that won't fit in nanosecond dt64, but will fit in microsecond
         scalar = datetime(9999, 1, 1)
-        exp_dtype = "M8[us]"  # smallest reso that fits
+        exp_dtype = "M8[us]"  # pydatetime objects default to this reso
         if cls is np.datetime64:
             scalar = np.datetime64(scalar, "D")
             exp_dtype = "M8[s]"  # closest reso to input
@@ -3071,11 +3066,12 @@ class TestFromScalar:
         assert item.asm8.dtype == exp_dtype
         assert dtype == exp_dtype
 
-    def test_out_of_s_bounds_timedelta64(self, constructor):
-        scalar = np.timedelta64(np.iinfo(np.int64).max, "D")
+    @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
+    def test_out_of_s_bounds_timedelta64(self, constructor, cls):
+        scalar = cls(np.iinfo(np.int64).max, "D")
         result = constructor(scalar)
         item = get1(result)
-        assert type(item) is np.timedelta64
+        assert type(item) is cls
         dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
         assert dtype == object
 

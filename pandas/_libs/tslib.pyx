@@ -86,9 +86,9 @@ def _test_parse_iso8601(ts: str):
 
     obj = _TSObject()
 
-    if ts == 'now':
+    if ts == "now":
         return Timestamp.utcnow()
-    elif ts == 'today':
+    elif ts == "today":
         return Timestamp.now().normalize()
 
     string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True)
@@ -145,7 +145,7 @@ def format_array_from_datetime(
         cnp.flatiter it = cnp.PyArray_IterNew(values)
 
     if na_rep is None:
-        na_rep = 'NaT'
+        na_rep = "NaT"
 
     if tz is None:
         # if we don't have a format nor tz, then choose
@@ -182,21 +182,21 @@ def format_array_from_datetime(
         elif basic_format_day:
 
             pandas_datetime_to_datetimestruct(val, reso, &dts)
-            res = f'{dts.year}-{dts.month:02d}-{dts.day:02d}'
+            res = f"{dts.year}-{dts.month:02d}-{dts.day:02d}"
 
         elif basic_format:
 
             pandas_datetime_to_datetimestruct(val, reso, &dts)
-            res = (f'{dts.year}-{dts.month:02d}-{dts.day:02d} '
-                   f'{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}')
+            res = (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+                   f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
 
             if show_ns:
                 ns = dts.ps // 1000
-                res += f'.{ns + dts.us * 1000:09d}'
+                res += f".{ns + dts.us * 1000:09d}"
             elif show_us:
-                res += f'.{dts.us:06d}'
+                res += f".{dts.us:06d}"
             elif show_ms:
-                res += f'.{dts.us // 1000:03d}'
+                res += f".{dts.us // 1000:03d}"
 
         else:
 
@@ -266,9 +266,9 @@ def array_with_unit_to_datetime(
         int64_t mult
         int prec = 0
         ndarray[float64_t] fvalues
-        bint is_ignore = errors=='ignore'
-        bint is_coerce = errors=='coerce'
-        bint is_raise = errors=='raise'
+        bint is_ignore = errors=="ignore"
+        bint is_coerce = errors=="coerce"
+        bint is_raise = errors=="raise"
         bint need_to_iterate = True
         ndarray[int64_t] iresult
         ndarray[object] oresult
@@ -324,8 +324,8 @@ def array_with_unit_to_datetime(
 
             return result, tz
 
-    result = np.empty(n, dtype='M8[ns]')
-    iresult = result.view('i8')
+    result = np.empty(n, dtype="M8[ns]")
+    iresult = result.view("i8")
 
     try:
         for i in range(n):
@@ -442,7 +442,7 @@ def first_non_null(values: ndarray) -> int:
 @cython.boundscheck(False)
 cpdef array_to_datetime(
     ndarray[object] values,
-    str errors='raise',
+    str errors="raise",
     bint dayfirst=False,
     bint yearfirst=False,
     bint utc=False,
@@ -494,9 +494,9 @@ cpdef array_to_datetime(
         bint seen_integer = False
         bint seen_datetime = False
         bint seen_datetime_offset = False
-        bint is_raise = errors=='raise'
-        bint is_ignore = errors=='ignore'
-        bint is_coerce = errors=='coerce'
+        bint is_raise = errors=="raise"
+        bint is_ignore = errors=="ignore"
+        bint is_coerce = errors=="coerce"
         bint is_same_offsets
         _TSObject _ts
         int64_t value
@@ -511,8 +511,8 @@ cpdef array_to_datetime(
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
-    result = np.empty(n, dtype='M8[ns]')
-    iresult = result.view('i8')
+    result = np.empty(n, dtype="M8[ns]")
+    iresult = result.view("i8")
 
     try:
         for i in range(n):
@@ -571,7 +571,7 @@ cpdef array_to_datetime(
                         # if we have previously (or in future accept
                         # datetimes/strings, then we must coerce)
                         try:
-                            iresult[i] = cast_from_unit(val, 'ns')
+                            iresult[i] = cast_from_unit(val, "ns")
                         except OverflowError:
                             iresult[i] = NPY_NAT
 
@@ -632,7 +632,7 @@ cpdef array_to_datetime(
                         else:
                             # Add a marker for naive string, to track if we are
                             # parsing mixed naive and aware strings
-                            out_tzoffset_vals.add('naive')
+                            out_tzoffset_vals.add("naive")
 
                         _ts = convert_datetime_to_tsobject(py_dt, None)
                         iresult[i] = _ts.value
@@ -653,7 +653,7 @@ cpdef array_to_datetime(
                         else:
                             # Add a marker for naive string, to track if we are
                             # parsing mixed naive and aware strings
-                            out_tzoffset_vals.add('naive')
+                            out_tzoffset_vals.add("naive")
                         iresult[i] = value
                         check_dts_bounds(&dts)
 
@@ -791,9 +791,9 @@ cdef _array_to_datetime_object(
     cdef:
         Py_ssize_t i, n = len(values)
         object val
-        bint is_ignore = errors == 'ignore'
-        bint is_coerce = errors == 'coerce'
-        bint is_raise = errors == 'raise'
+        bint is_ignore = errors == "ignore"
+        bint is_coerce = errors == "coerce"
+        bint is_raise = errors == "raise"
         ndarray[object] oresult
         npy_datetimestruct dts
 
@@ -816,7 +816,7 @@ cdef _array_to_datetime_object(
                 val = str(val)
 
             if len(val) == 0 or val in nat_strings:
-                oresult[i] = 'NaT'
+                oresult[i] = "NaT"
                 continue
             try:
                 oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
@@ -841,16 +841,19 @@ cdef _array_to_datetime_object(
 cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
     # We delay this check for as long as possible
     # because it catches relatively rare cases
+
+    # Multiply by 1000 to convert to nanos, since these methods naturally have
+    #  microsecond resolution
     if val == "now":
         if utc:
-            iresult[0] = Timestamp.utcnow().value
+            iresult[0] = Timestamp.utcnow().value * 1000
         else:
             # GH#18705 make sure to_datetime("now") matches Timestamp("now")
             # Note using Timestamp.now() is faster than Timestamp("now")
-            iresult[0] = Timestamp.now().value
+            iresult[0] = Timestamp.now().value * 1000
         return True
     elif val == "today":
-        iresult[0] = Timestamp.today().value
+        iresult[0] = Timestamp.today().value * 1000
         return True
     return False
 

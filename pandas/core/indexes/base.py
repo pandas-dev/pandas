@@ -2062,42 +2062,6 @@ class Index(IndexOpsMixin, PandasObject):
                 verify_integrity=False,
             )
 
-    def _get_grouper_for_level(
-        self,
-        mapper,
-        *,
-        level=None,
-        dropna: bool = True,
-    ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
-        """
-        Get index grouper corresponding to an index level
-
-        Parameters
-        ----------
-        mapper: Group mapping function or None
-            Function mapping index values to groups
-        level : int or None
-            Index level, positional
-        dropna : bool
-            dropna from groupby
-
-        Returns
-        -------
-        grouper : Index
-            Index of values to group on.
-        labels : ndarray of int or None
-            Array of locations in level_index.
-        uniques : Index or None
-            Index of unique values for level.
-        """
-        assert level is None or level == 0
-        if mapper is None:
-            grouper = self
-        else:
-            grouper = self.map(mapper)
-
-        return grouper, None, None
-
     # --------------------------------------------------------------------
     # Introspection Methods
 
@@ -2714,6 +2678,7 @@ class Index(IndexOpsMixin, PandasObject):
             if downcast is None:
                 # no need to care metadata other than name
                 # because it can't have freq if it has NaTs
+                # _with_infer needed for test_fillna_categorical
                 return Index._with_infer(result, name=self.name)
             raise NotImplementedError(
                 f"{type(self).__name__}.fillna does not support 'downcast' "
@@ -4266,10 +4231,10 @@ class Index(IndexOpsMixin, PandasObject):
                 new_indexer = np.arange(len(self.take(indexer)), dtype=np.intp)
                 new_indexer[~check] = -1
 
-        if isinstance(self, ABCMultiIndex):
-            new_index = type(self).from_tuples(new_labels, names=self.names)
+        if not isinstance(self, ABCMultiIndex):
+            new_index = Index(new_labels, name=self.name)
         else:
-            new_index = Index._with_infer(new_labels, name=self.name)
+            new_index = type(self).from_tuples(new_labels, names=self.names)
         return new_index, indexer, new_indexer
 
     # --------------------------------------------------------------------
@@ -4567,22 +4532,9 @@ class Index(IndexOpsMixin, PandasObject):
         )
         mask = left_idx == -1
 
-        join_array = self._values.take(left_idx)
-        right = other._values.take(right_idx)
-
-        if isinstance(join_array, np.ndarray):
-            # error: Argument 3 to "putmask" has incompatible type
-            # "Union[ExtensionArray, ndarray[Any, Any]]"; expected
-            # "Union[_SupportsArray[dtype[Any]], _NestedSequence[
-            # _SupportsArray[dtype[Any]]], bool, int, float, complex,
-            # str, bytes, _NestedSequence[Union[bool, int, float,
-            # complex, str, bytes]]]"
-            np.putmask(join_array, mask, right)  # type: ignore[arg-type]
-        else:
-            join_array._putmask(mask, right)
-
-        join_index = self._wrap_joined_index(join_array, other)
-
+        join_idx = self.take(left_idx)
+        right = other.take(right_idx)
+        join_index = join_idx.putmask(mask, right)
         return join_index, left_idx, right_idx
 
     @final
@@ -4744,8 +4696,8 @@ class Index(IndexOpsMixin, PandasObject):
             ret_index = other if how == "right" else self
             return ret_index, None, None
 
-        ridx: np.ndarray | None
-        lidx: np.ndarray | None
+        ridx: npt.NDArray[np.intp] | None
+        lidx: npt.NDArray[np.intp] | None
 
         if self.is_unique and other.is_unique:
             # We can perform much better than the general case
@@ -4759,10 +4711,10 @@ class Index(IndexOpsMixin, PandasObject):
                 ridx = None
             elif how == "inner":
                 join_array, lidx, ridx = self._inner_indexer(other)
-                join_index = self._wrap_joined_index(join_array, other)
+                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
             elif how == "outer":
                 join_array, lidx, ridx = self._outer_indexer(other)
-                join_index = self._wrap_joined_index(join_array, other)
+                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
         else:
             if how == "left":
                 join_array, lidx, ridx = self._left_indexer(other)
@@ -4773,20 +4725,33 @@ class Index(IndexOpsMixin, PandasObject):
             elif how == "outer":
                 join_array, lidx, ridx = self._outer_indexer(other)
 
-            join_index = self._wrap_joined_index(join_array, other)
+            assert lidx is not None
+            assert ridx is not None
+
+            join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
 
         lidx = None if lidx is None else ensure_platform_int(lidx)
         ridx = None if ridx is None else ensure_platform_int(ridx)
         return join_index, lidx, ridx
 
-    def _wrap_joined_index(self: _IndexT, joined: ArrayLike, other: _IndexT) -> _IndexT:
+    def _wrap_joined_index(
+        self: _IndexT,
+        joined: ArrayLike,
+        other: _IndexT,
+        lidx: npt.NDArray[np.intp],
+        ridx: npt.NDArray[np.intp],
+    ) -> _IndexT:
         assert other.dtype == self.dtype
 
         if isinstance(self, ABCMultiIndex):
             name = self.names if self.names == other.names else None
             # error: Incompatible return value type (got "MultiIndex",
             # expected "_IndexT")
-            return self._constructor(joined, name=name)  # type: ignore[return-value]
+            mask = lidx == -1
+            join_idx = self.take(lidx)
+            right = other.take(ridx)
+            join_index = join_idx.putmask(mask, right)
+            return join_index.set_names(name)  # type: ignore[return-value]
         else:
             name = get_op_result_name(self, other)
             return self._constructor._with_infer(joined, name=name, dtype=self.dtype)
@@ -6513,7 +6478,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self._typ == "numericindex":
             # Use self._constructor instead of Index to retain NumericIndex GH#43921
             # TODO(2.0) can use Index instead of self._constructor
-            return self._constructor._with_infer(new_values, name=self.name)
+            return self._constructor(new_values, name=self.name)
         else:
             return Index._with_infer(new_values, name=self.name)
 
@@ -6886,7 +6851,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     if len(sequences) == 1:
         if names is not None:
             names = names[0]
-        return Index._with_infer(sequences[0], name=names)
+        return Index(sequences[0], name=names)
     else:
         return MultiIndex.from_arrays(sequences, names=names)
 
@@ -6929,7 +6894,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
 
     if isinstance(index_like, ABCSeries):
         name = index_like.name
-        return Index._with_infer(index_like, name=name, copy=copy)
+        return Index(index_like, name=name, copy=copy)
 
     if is_iterator(index_like):
         index_like = list(index_like)
@@ -6945,9 +6910,9 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
 
             return MultiIndex.from_arrays(index_like)
         else:
-            return Index._with_infer(index_like, copy=copy, tupleize_cols=False)
+            return Index(index_like, copy=copy, tupleize_cols=False)
     else:
-        return Index._with_infer(index_like, copy=copy)
+        return Index(index_like, copy=copy)
 
 
 def ensure_has_len(seq):

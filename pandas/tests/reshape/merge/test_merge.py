@@ -730,13 +730,13 @@ class TestMerge:
         ser = Series([None, None], index=[101, 102], name="days")
 
         dtype = f"datetime64[{unit}]"
-        df2 = ser.astype(dtype).to_frame("days")
 
         if unit in ["D", "h", "m"]:
             # not supported so we cast to the nearest supported unit, seconds
             exp_dtype = "datetime64[s]"
         else:
             exp_dtype = dtype
+        df2 = ser.astype(exp_dtype).to_frame("days")
         assert df2["days"].dtype == exp_dtype
 
         result = df1.merge(df2, left_on="entity_id", right_index=True)
@@ -2713,4 +2713,28 @@ def test_merge_different_index_names():
     right = DataFrame({"a": [1]}, index=pd.Index([1], name="d"))
     result = merge(left, right, left_on="c", right_on="d")
     expected = DataFrame({"a_x": [1], "a_y": 1})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_ea(any_numeric_ea_dtype, join_type):
+    # GH#44240
+    left = DataFrame({"a": [1, 2, 3], "b": 1}, dtype=any_numeric_ea_dtype)
+    right = DataFrame({"a": [1, 2, 3], "c": 2}, dtype=any_numeric_ea_dtype)
+    result = left.merge(right, how=join_type)
+    expected = DataFrame({"a": [1, 2, 3], "b": 1, "c": 2}, dtype=any_numeric_ea_dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_ea_and_non_ea(any_numeric_ea_dtype, join_type):
+    # GH#44240
+    left = DataFrame({"a": [1, 2, 3], "b": 1}, dtype=any_numeric_ea_dtype)
+    right = DataFrame({"a": [1, 2, 3], "c": 2}, dtype=any_numeric_ea_dtype.lower())
+    result = left.merge(right, how=join_type)
+    expected = DataFrame(
+        {
+            "a": Series([1, 2, 3], dtype=any_numeric_ea_dtype),
+            "b": Series([1, 1, 1], dtype=any_numeric_ea_dtype),
+            "c": Series([2, 2, 2], dtype=any_numeric_ea_dtype.lower()),
+        }
+    )
     tm.assert_frame_equal(result, expected)

@@ -4,7 +4,7 @@ from __future__ import annotations
 import collections
 import datetime as dt
 import gc
-import json
+from json import loads
 import operator
 import pickle
 import re
@@ -134,7 +134,6 @@ from pandas.core import (
     algorithms as algos,
     arraylike,
     indexing,
-    missing,
     nanops,
     sample,
 )
@@ -160,7 +159,11 @@ from pandas.core.internals import (
     SingleArrayManager,
 )
 from pandas.core.internals.construction import mgr_to_mgr
-from pandas.core.missing import find_valid_index
+from pandas.core.missing import (
+    clean_fill_method,
+    clean_reindex_fill_method,
+    find_valid_index,
+)
 from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
@@ -2122,7 +2125,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             as_json = data.to_json(orient="table")
             as_json = cast(str, as_json)
-            return json.loads(as_json, object_pairs_hook=collections.OrderedDict)
+            return loads(as_json, object_pairs_hook=collections.OrderedDict)
 
     # ----------------------------------------------------------------------
     # I/O Methods
@@ -2410,7 +2413,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> import json
+        >>> from json import loads, dumps
         >>> df = pd.DataFrame(
         ...     [["a", "b"], ["c", "d"]],
         ...     index=["row 1", "row 2"],
@@ -2418,8 +2421,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ... )
 
         >>> result = df.to_json(orient="split")
-        >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        >>> parsed = loads(result)
+        >>> dumps(parsed, indent=4)  # doctest: +SKIP
         {{
             "columns": [
                 "col 1",
@@ -2445,8 +2448,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Note that index labels are not preserved with this encoding.
 
         >>> result = df.to_json(orient="records")
-        >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        >>> parsed = loads(result)
+        >>> dumps(parsed, indent=4)  # doctest: +SKIP
         [
             {{
                 "col 1": "a",
@@ -2461,8 +2464,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
 
         >>> result = df.to_json(orient="index")
-        >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        >>> parsed = loads(result)
+        >>> dumps(parsed, indent=4)  # doctest: +SKIP
         {{
             "row 1": {{
                 "col 1": "a",
@@ -2477,8 +2480,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Encoding/decoding a Dataframe using ``'columns'`` formatted JSON:
 
         >>> result = df.to_json(orient="columns")
-        >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        >>> parsed = loads(result)
+        >>> dumps(parsed, indent=4)  # doctest: +SKIP
         {{
             "col 1": {{
                 "row 1": "a",
@@ -2493,8 +2496,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Encoding/decoding a Dataframe using ``'values'`` formatted JSON:
 
         >>> result = df.to_json(orient="values")
-        >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        >>> parsed = loads(result)
+        >>> dumps(parsed, indent=4)  # doctest: +SKIP
         [
             [
                 "a",
@@ -2509,8 +2512,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Encoding with Table Schema:
 
         >>> result = df.to_json(orient="table")
-        >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        >>> parsed = loads(result)
+        >>> dumps(parsed, indent=4)  # doctest: +SKIP
         {{
             "schema": {{
                 "fields": [
@@ -5169,7 +5172,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        method = missing.clean_reindex_fill_method(kwargs.pop("method", None))
+        method = clean_reindex_fill_method(kwargs.pop("method", None))
         level = kwargs.pop("level", None)
         copy = kwargs.pop("copy", None)
         limit = kwargs.pop("limit", None)
@@ -6313,42 +6316,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self.copy(deep=True)
 
     @final
-    def _convert(
-        self: NDFrameT,
-        datetime: bool_t = False,
-        numeric: bool_t = False,
-        timedelta: bool_t = False,
-    ) -> NDFrameT:
-        """
-        Attempt to infer better dtype for object columns.
-
-        Parameters
-        ----------
-        datetime : bool, default False
-            If True, convert to date where possible.
-        numeric : bool, default False
-            If True, attempt to convert to numbers (including strings), with
-            unconvertible values becoming NaN.
-        timedelta : bool, default False
-            If True, convert to timedelta where possible.
-
-        Returns
-        -------
-        converted : same as input object
-        """
-        validate_bool_kwarg(datetime, "datetime")
-        validate_bool_kwarg(numeric, "numeric")
-        validate_bool_kwarg(timedelta, "timedelta")
-        return self._constructor(
-            self._mgr.convert(
-                datetime=datetime,
-                numeric=numeric,
-                timedelta=timedelta,
-                copy=True,
-            )
-        ).__finalize__(self)
-
-    @final
     def infer_objects(self: NDFrameT) -> NDFrameT:
         """
         Attempt to infer better dtypes for object columns.
@@ -6387,12 +6354,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         A    int64
         dtype: object
         """
-        # numeric=False necessary to only soft convert;
-        # python objects will still be converted to
-        # native numpy numeric types
-        return self._constructor(
-            self._mgr.convert(datetime=True, numeric=False, timedelta=True, copy=True)
-        ).__finalize__(self, method="infer_objects")
+        new_mgr = self._mgr.convert()
+        return self._constructor(new_mgr).__finalize__(self, method="infer_objects")
 
     @final
     def convert_dtypes(
@@ -9201,7 +9164,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4  600.0  700.0  800.0  900.0 NaN
         """
 
-        method = missing.clean_fill_method(method)
+        method = clean_fill_method(method)
 
         if broadcast_axis == 1 and self.ndim != other.ndim:
             if isinstance(self, ABCSeries):
