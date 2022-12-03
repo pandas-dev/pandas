@@ -42,6 +42,7 @@ from pandas._libs import (
     Timestamp,
     lib,
 )
+from pandas._libs.algos import rank_1d
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     AnyArrayLike,
@@ -2271,12 +2272,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             result = self._obj_1d_constructor(result)
 
+        with com.temp_setattr(self, "as_index", True):
+            # size already has the desired behavior in GH#49519, but this makes the
+            # as_index=False path of _reindex_output fail on categorical groupers.
+            result = self._reindex_output(result, fill_value=0)
         if not self.as_index:
             # error: Incompatible types in assignment (expression has
             # type "DataFrame", variable has type "Series")
             result = result.rename("size").reset_index()  # type: ignore[assignment]
-
-        return self._reindex_output(result, fill_value=0)
+        return result
 
     @final
     @doc(_groupby_agg_method_template, fname="sum", no=False, mc=0)
@@ -3272,6 +3276,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 dtype = np.int64
 
+            if any(ping._passed_categorical for ping in self.grouper.groupings):
+                # comp_ids reflect non-observed groups, we need only observed
+                comp_ids = rank_1d(comp_ids, ties_method="dense") - 1
+
             result = self._obj_1d_constructor(comp_ids, index, dtype=dtype)
             if not ascending:
                 result = self.ngroups - 1 - result
@@ -3953,7 +3961,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             names = names + [None]
         index = MultiIndex.from_product(levels_list, names=names)
         if self.sort:
-            index = index.sortlevel()[0]
+            index = index.sort_values()
 
         if self.as_index:
             # Always holds for SeriesGroupBy unless GH#36507 is implemented
@@ -3975,12 +3983,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # reindex `output`, and then reset the in-axis grouper columns.
 
         # Select in-axis groupers
-        in_axis_grps = (
+        in_axis_grps = list(
             (i, ping.name) for (i, ping) in enumerate(groupings) if ping.in_axis
         )
-        g_nums, g_names = zip(*in_axis_grps)
-
-        output = output.drop(labels=list(g_names), axis=1)
+        if len(in_axis_grps) > 0:
+            g_nums, g_names = zip(*in_axis_grps)
+            output = output.drop(labels=list(g_names), axis=1)
 
         # Set a temp index and reindex (possibly expanding)
         output = output.set_index(self.grouper.result_index).reindex(
@@ -3989,7 +3997,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # Reset in-axis grouper columns
         # (using level numbers `g_nums` because level names may not be unique)
-        output = output.reset_index(level=g_nums)
+        if len(in_axis_grps) > 0:
+            output = output.reset_index(level=g_nums)
 
         return output.reset_index(drop=True)
 
