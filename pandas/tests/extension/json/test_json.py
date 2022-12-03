@@ -277,6 +277,7 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         reason="combine for JSONArray not supported - "
         "may pass depending on random data",
         strict=False,
+        raises=AssertionError,
     )
     def test_combine_first(self, data):
         super().test_combine_first(data)
