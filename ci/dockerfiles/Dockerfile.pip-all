@@ -1,0 +1,12 @@
+FROM python:3.10.8
+
+RUN apt update && apt -y upgrade
+
+# hdf5 needed for pytables installation
+RUN apt-get install -y libhdf5-dev
+
+RUN python -m pip install --use-deprecated=legacy-resolver \
+    -r https://raw.githubusercontent.com/pandas-dev/pandas/main/requirements-dev.txt
+
+WORKDIR /home/pandas
+CMD ["/bin/sh"]

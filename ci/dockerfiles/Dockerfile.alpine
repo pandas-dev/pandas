@@ -1,0 +1,17 @@
+FROM python:3.10.8-alpine
+
+RUN apk update & apk upgrade
+RUN apk add build-base
+
+RUN python -m pip install \
+  cython \
+  hypothesis \
+  numpy \
+  pytest \
+  pytest-asyncio \
+  pytz \
+  python-dateutil \
+  versioneer
+
+WORKDIR /home/pandas
+CMD ["/bin/sh"]

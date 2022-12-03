@@ -1,0 +1,18 @@
+FROM quay.io/condaforge/mambaforge
+
+RUN apt update && apt upgrade -y
+RUN DEBIAN_FRONTEND=noninteractive apt install -y tzdata
+
+RUN mamba create -n pandas-dev \
+  cython \
+  hypothesis \
+  numpy \
+  pytest \
+  pytest-asyncio \
+  python=3.10.8 \
+  pytz \
+  python-dateutil \
+  versioneer
+
+WORKDIR /home/pandas
+CMD ["/bin/sh"]
