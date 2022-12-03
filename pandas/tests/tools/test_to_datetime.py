@@ -2318,6 +2318,8 @@ class TestGuessDatetimeFormat:
             ["", "2011-12-30 00:00:00.000000"],
             ["NaT", "2011-12-30 00:00:00.000000"],
             ["2011-12-30 00:00:00.000000", "random_string"],
+            ["now", "2011-12-30 00:00:00.000000"],
+            ["today", "2011-12-30 00:00:00.000000"],
         ],
     )
     def test_guess_datetime_format_for_array(self, test_list):
