@@ -931,7 +931,7 @@ class TestInference:
         tm.assert_numpy_array_equal(out, exp)
 
     def test_maybe_convert_objects_nullable_boolean(self):
-        # GH
+        # GH50047
         arr = np.array([True, False], dtype=object)
         exp = np.array([True, False])
         out = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
@@ -944,7 +944,7 @@ class TestInference:
 
     @pytest.mark.parametrize("val", [None, np.nan])
     def test_maybe_convert_objects_nullable_boolean_na(self, val):
-        # GH
+        # GH50047
         arr = np.array([True, False, val], dtype=object)
         exp = BooleanArray(
             np.array([True, False, False]), np.array([False, False, True])
