@@ -1622,9 +1622,17 @@ cdef class BusinessHour(BusinessMixin):
 
     Examples
     --------
+    >>> from datetime import time
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
     >>> ts + pd.offsets.BusinessHour()
     Timestamp('2022-08-08 09:00:00')
+    >>> ts + pd.offsets.BusinessHour(start="11:00")
+    Timestamp('2022-08-08 11:00:00')
+    >>> ts + pd.offsets.BusinessHour(end=time(19, 0))
+    Timestamp('2022-08-05 17:00:00')
+    >>> ts + pd.offsets.BusinessHour(start=[time(9, 0), "20:00"],
+    ...                              end=["17:00", time(22, 0)])
+    Timestamp('2022-08-05 20:00:00')
     """
 
     _prefix = "BH"
@@ -3626,9 +3634,17 @@ cdef class CustomBusinessHour(BusinessHour):
 
     Examples
     --------
+    >>> from datetime import time
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
     >>> ts + pd.offsets.CustomBusinessHour()
     Timestamp('2022-08-08 09:00:00')
+    >>> ts + pd.offsets.CustomBusinessHour(start="11:00")
+    Timestamp('2022-08-08 11:00:00')
+    >>> ts + pd.offsets.CustomBusinessHour(end=time(19, 0))
+    Timestamp('2022-08-05 17:00:00')
+    >>> ts + pd.offsets.CustomBusinessHour(start=[time(9, 0), "20:00"],
+    ...                                    end=["17:00", time(22, 0)])
+    Timestamp('2022-08-05 20:00:00')
     """
 
     _prefix = "CBH"
