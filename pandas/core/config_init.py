@@ -458,12 +458,6 @@ tc_sim_interactive_doc = """
 with cf.config_prefix("mode"):
     cf.register_option("sim_interactive", False, tc_sim_interactive_doc)
 
-use_inf_as_null_doc = """
-: boolean
-    use_inf_as_null had been deprecated and will be removed in a future
-    version. Use `use_inf_as_na` instead.
-"""
-
 use_inf_as_na_doc = """
 : boolean
     True means treat None, NaN, INF, -INF as NA (old way),
@@ -483,14 +477,6 @@ def use_inf_as_na_cb(key) -> None:
 
 with cf.config_prefix("mode"):
     cf.register_option("use_inf_as_na", False, use_inf_as_na_doc, cb=use_inf_as_na_cb)
-    cf.register_option(
-        "use_inf_as_null", False, use_inf_as_null_doc, cb=use_inf_as_na_cb
-    )
-
-
-cf.deprecate_option(
-    "mode.use_inf_as_null", msg=use_inf_as_null_doc, rkey="mode.use_inf_as_na"
-)
 
 
 data_manager_doc = """
