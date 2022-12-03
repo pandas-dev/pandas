@@ -5,7 +5,6 @@ from datetime import (
     datetime,
     time,
     timedelta,
-    timezone,
 )
 import re
 
