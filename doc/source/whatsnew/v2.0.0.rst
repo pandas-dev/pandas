@@ -316,7 +316,7 @@ The new behavior, as for datetime64, either gives exactly the requested dtype or
 Empty DataFrames/Series will now default to have a ``RangeIndex``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Before, constructing an empty (length 0) :class:`Series` or :class:`DataFrame` without
+Before, constructing an empty (where ``data`` is ``None`` or an empty list-like argument) :class:`Series` or :class:`DataFrame` without
 specifying the axes (``index=None``, ``columns=None``) would return the axes as empty :class:`Index` with object dtype.
 
 Now, the axes return an empty :class:`RangeIndex`.
