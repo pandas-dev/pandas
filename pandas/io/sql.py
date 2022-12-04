@@ -1330,6 +1330,7 @@ class PandasSQL(PandasObject, ABC):
         columns=None,
         schema: str | None = None,
         chunksize: int | None = None,
+        use_nullable_dtypes: bool = False,
     ) -> DataFrame | Iterator[DataFrame]:
         raise NotImplementedError
 
@@ -1540,6 +1541,12 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If specified, return an iterator where `chunksize` is the number
             of rows to include in each chunk.
+        use_nullable_dtypes : bool = False
+            Whether to use nullable dtypes as default when reading data. If
+            set to True, nullable dtypes are used for all dtypes that have a nullable
+            implementation, even if no nulls are present.
+
+            .. versionadded:: 2.0
 
         Returns
         -------

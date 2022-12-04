@@ -2334,6 +2334,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def nullable_expected(self, storage) -> DataFrame:
 
+        string_array: StringArray | ArrowStringArray
+        string_array_na: StringArray | ArrowStringArray
         if storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
