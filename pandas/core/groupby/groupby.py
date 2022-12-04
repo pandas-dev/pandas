@@ -3212,6 +3212,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         would be seen when iterating over the groupby object, not the
         order they are first observed.
 
+        If a group would be excluded (due to null keys) then that
+        group is labeled as np.nan. See examples below.
+
         Parameters
         ----------
         ascending : bool, default True
@@ -3228,15 +3231,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": list("aaabba")})
+        >>> df = pd.DataFrame()
+        >>> df["A"] = ["a", "a",  "a", "b", "b", "a"]
+        >>> df["B"] = ["a", None, "a", "b", "b", "a"]
         >>> df
-           A
-        0  a
-        1  a
-        2  a
-        3  b
-        4  b
-        5  a
+        A     B
+        0  a     a
+        1  a  None
+        2  a     a
+        3  b     b
+        4  b     b
+        5  a     a
         >>> df.groupby('A').ngroup()
         0    0
         1    0
@@ -3259,6 +3264,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2    1
         3    3
         4    2
+        5    0
+        dtype: int64
+        >>> df.groupby("B").ngroup()
+        0    0.0
+        1    NaN
+        2    0.0
+        3    1.0
+        4    1.0
+        5    0.0
+        dtype: float64
+        >>> df.groupby("B", dropna=False).ngroup()
+        0    0
+        1    2
+        2    0
+        3    1
+        4    1
         5    0
         dtype: int64
         """
