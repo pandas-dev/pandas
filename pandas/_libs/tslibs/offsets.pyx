@@ -315,9 +315,8 @@ cdef _determine_offset(kwds):
     use_relativedelta = False
     if len(kwds_no_nanos) > 0:
         if "milliseconds" in kwds_no_nanos:
-            return timedelta(**kwds_no_nanos), use_relativedelta
-
-        if any(k in _kwds_use_relativedelta for k in kwds_no_nanos):
+            offset = timedelta(**kwds_no_nanos)
+        elif any(k in _kwds_use_relativedelta for k in kwds_no_nanos):
             if "millisecond" in kwds_no_nanos:
                 raise NotImplementedError(
                     "Using DateOffset to replace `millisecond` component in "
