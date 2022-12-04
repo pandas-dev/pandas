@@ -1389,10 +1389,12 @@ class SQLAlchemyEngine(BaseEngine):
             # https://stackoverflow.com/a/67358288/6067848
             msg = r"""(\(1054, "Unknown column 'inf(e0)?' in 'field list'"\))(?#
             )|inf can not be used with MySQL"""
-            err_text = str(err.orig)
-            if re.search(msg, err_text):
-                raise ValueError("inf cannot be used with MySQL") from err
-            raise err
+            if err.__dict__.get('orig'):
+                err_text = str(err.orig)
+                if re.search(msg, err_text):
+                    raise ValueError("inf cannot be used with MySQL") from err
+                raise err
+            else: raise err
 
 
 def get_engine(engine: str) -> BaseEngine:
