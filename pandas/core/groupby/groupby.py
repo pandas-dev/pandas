@@ -408,6 +408,7 @@ f : function, str
     - string function name
     - Numba JIT function with ``engine='numba'`` specified.
 
+    Only passing a single function is supported with this engine.
     If the ``'numba'`` engine is chosen, the function must be
     a user defined function with ``values`` and ``index`` as the
     first and second arguments respectively in the function signature.
@@ -415,9 +416,7 @@ f : function, str
     and optionally available for use.
 
     If a string is chosen, then it needs to be the string of the
-    function you want to use.
-
-    IE: ``pd.%(klass)s = grouped.transform("sum")``.
+    groupby method you want to use.
 
     .. versionchanged:: 1.1.0
 *args
@@ -490,32 +489,7 @@ user defined function, and no alternative execution attempts will be tried.
 Examples
 --------
 
->>> df = pd.%(klass)s({'A' : ['foo', 'bar', 'foo', 'bar',
-...                           'foo', 'bar'],
-...                    'B' : ['one', 'one', 'two', 'three',
-...                           'two', 'two'],
-...                    'C' : [1, 5, 5, 2, 5, 5],
-...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
->>> grouped = df.groupby('A')[['C', 'D']]
->>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-          C         D
-0 -1.154701 -0.577350
-1  0.577350  0.000000
-2  0.577350  1.154701
-3 -1.154701 -1.000000
-4  0.577350 -0.577350
-5  0.577350  1.000000
-
-Broadcast result of the transformation
-
->>> grouped.transform(lambda x: x.max() - x.min())
-     C    D
-0  4.0  6.0
-1  3.0  8.0
-2  4.0  6.0
-3  3.0  8.0
-4  4.0  6.0
-5  3.0  8.0
+>>> %(example)s
 
 .. versionchanged:: 1.3.0
 
