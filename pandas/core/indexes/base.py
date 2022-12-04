@@ -6531,6 +6531,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self.copy() if copy else self
 
         values = self._values
+        values = cast("npt.NDArray[np.object_]", values)
         res_values = lib.maybe_convert_objects(
             values,
             convert_datetime=True,
