@@ -759,6 +759,19 @@ class TestToDatetime:
         assert to_datetime(dt, cache=cache) == Timestamp(dt)
 
     @pytest.mark.parametrize(
+        "arg, format",
+        [
+            ("2001-01-01", "%Y-%m-%d"),
+            ("01-01-2001", "%d-%m-%Y"),
+        ],
+    )
+    def test_to_datetime_dt64s_and_str(self, arg, format):
+        # https://github.com/pandas-dev/pandas/issues/50036
+        result = to_datetime([arg, np.datetime64("2020-01-01")], format=format)
+        expected = DatetimeIndex(["2001-01-01", "2020-01-01"])
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "dt", [np.datetime64("1000-01-01"), np.datetime64("5000-01-02")]
     )
     def test_to_datetime_dt64s_out_of_bounds(self, cache, dt):
