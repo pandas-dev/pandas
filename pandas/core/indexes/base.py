@@ -107,7 +107,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_signed_integer_dtype,
     is_string_dtype,
-    is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
     validate_all_hashable,
@@ -395,7 +394,6 @@ class Index(IndexOpsMixin, PandasObject):
     # Whether this index is a NumericIndex, but not a Int64Index, Float64Index,
     # UInt64Index or RangeIndex. Needed for backwards compat. Remove this attribute and
     # associated code in pandas 2.0.
-    _is_backward_compat_public_numeric_index: bool = False
 
     @property
     def _engine_type(
@@ -446,13 +444,6 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_ea_or_datetimelike_dtype(data_dtype):
             pass
 
-        # index-like
-        elif (
-            isinstance(data, Index)
-            and data._is_backward_compat_public_numeric_index
-            and dtype is None
-        ):
-            return data._constructor(data, name=name, copy=copy)
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
             if isinstance(data, ABCMultiIndex):
@@ -981,34 +972,6 @@ class Index(IndexOpsMixin, PandasObject):
                 new_values = astype_array(values, dtype=dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the astype above
-        if not self._is_backward_compat_public_numeric_index and not isinstance(
-            self, ABCRangeIndex
-        ):
-            # this block is needed so e.g. Int64Index.astype("int32") returns
-            # Int64Index and not a NumericIndex with dtype int32.
-            # When Int64Index etc. are removed from the code base, removed this also.
-            if (
-                isinstance(dtype, np.dtype)
-                and is_numeric_dtype(dtype)
-                and not is_complex_dtype(dtype)
-            ):
-                from pandas.core.api import (
-                    Float64Index,
-                    Int64Index,
-                    UInt64Index,
-                )
-
-                klass: type[Index]
-                if is_signed_integer_dtype(dtype):
-                    klass = Int64Index
-                elif is_unsigned_integer_dtype(dtype):
-                    klass = UInt64Index
-                elif is_float_dtype(dtype):
-                    klass = Float64Index
-                else:
-                    klass = Index
-                return klass(new_values, name=self.name, dtype=dtype, copy=False)
-
         return Index(new_values, name=self.name, dtype=new_values.dtype, copy=False)
 
     _index_shared_docs[
@@ -5075,10 +5038,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = concat_compat(to_concat_vals)
 
-        is_numeric = result.dtype.kind in ["i", "u", "f"]
-        if self._is_backward_compat_public_numeric_index and is_numeric:
-            return type(self)._simple_new(result, name=name)
-
         return Index._with_infer(result, name=name)
 
     def putmask(self, mask, value) -> Index:
@@ -6476,12 +6435,7 @@ class Index(IndexOpsMixin, PandasObject):
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
-        if self._typ == "numericindex":
-            # Use self._constructor instead of Index to retain NumericIndex GH#43921
-            # TODO(2.0) can use Index instead of self._constructor
-            return self._constructor(new_values, name=self.name)
-        else:
-            return Index._with_infer(new_values, name=self.name)
+        return Index._with_infer(new_values, name=self.name)
 
     def drop(
         self,
