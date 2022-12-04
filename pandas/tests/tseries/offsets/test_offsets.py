@@ -740,11 +740,7 @@ class TestDateOffset:
         assert DateOffset(milliseconds=3) != DateOffset(milliseconds=7)
 
     def test_milliseconds_combination(self):
-        """
-        The combination of 'milliseconds' (plural) and another parameter
-        should not raise an error.
-        See https://github.com/pytest-dev/pytest/issues/10525
-        """
+        # 10525
         DateOffset(days=1, milliseconds=1)
 
 
