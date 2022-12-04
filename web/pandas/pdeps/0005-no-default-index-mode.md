@@ -1,7 +1,7 @@
 # PDEP-5: NoRowIndex
 
 - Created: 14 November 2022
-- Status: Draft
+- Status: Withdrawn
 - Discussion: [#49693](https://github.com/pandas-dev/pandas/pull/49693)
 - Author: [Marco Gorelli](https://github.com/MarcoGorelli)
 - Revision: 2
@@ -345,7 +345,33 @@ accepted. For example, ``NoRowIndex`` would not necessarily need to subclass
   ```
   would be, and _nobody_ got it right.
 
+## Reasons for withdrawal
+
+After some discussions, it has become clear there is not enough for support for the proposal in its current state. 
+In short, it would add too much complexity to justify the potential benefits. It would unacceptably increase
+the maintenance burden, the testing requirements, and the benefits would be minimal.
+
+Concretely:
+- maintenace burden: it would not be possible to handle all the complexity within the ``NoRowIndex`` class itself, some
+  extra logic would need to go into the pandas core codebase, which is already very complex and hard to maintain;
+- the testing burden would be too high. Propertly testing this would mean almost doubling the size of the test suite.
+  Coverage for options already is not great: for example [this issue](https://github.com/pandas-dev/pandas/issues/49732)
+  was caused by a PR which passed CI, but CI did not (and still does not) cover that option (plotting backends);
+- it will not benefit users, as users do not tend to use nor discover options which are not the default.
+
+In order to make no-index the pandas default and have a chance of benefiting users, a more comprehensive set of changes
+would need to made at the same time. This would require a proposal much larger in scope, and would be a much more radical change.
+It may be that this proposal will be revisited in the future, but in its current state (as an option) it cannot be accepted.
+
+This has still been a useful exercise, though, as it has resulted in two related proposals (see below).
+
+## Related proposals
+
+- Deprecate automatic alignment, at least in some cases: https://github.com/pandas-dev/pandas/issues/49939;
+- ``.value_counts`` behaviour change: https://github.com/pandas-dev/pandas/issues/49497
+
 ## PDEP History
 
-- 14 November: Initial draft
-- 18 November: First revision
+- 14 November 2022: Initial draft
+- 18 November 2022: First revision
+- 14 December 2022: Withdrawal
