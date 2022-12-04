@@ -1681,9 +1681,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if self.axis == 1:
             result = result.T
 
-        # Note: we only need to pass datetime=True in order to get numeric
-        #  values converted
-        return self._reindex_output(result)._convert(datetime=True)
+        # Note: we really only care about inferring numeric dtypes here
+        return self._reindex_output(result).infer_objects()
 
     def _iterate_column_groupbys(self, obj: DataFrame | Series):
         for i, colname in enumerate(obj.columns):

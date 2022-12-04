@@ -441,19 +441,10 @@ class BaseBlockManager(DataManager):
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
-    def convert(
-        self: T,
-        copy: bool = True,
-        datetime: bool = True,
-        numeric: bool = True,
-        timedelta: bool = True,
-    ) -> T:
+    def convert(self: T) -> T:
         return self.apply(
             "convert",
-            copy=copy,
-            datetime=datetime,
-            numeric=numeric,
-            timedelta=timedelta,
+            copy=True,
         )
 
     def replace(self: T, to_replace, value, inplace: bool) -> T:
