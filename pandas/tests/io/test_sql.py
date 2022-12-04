@@ -2444,6 +2444,11 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
     def nullable_expected(self, storage) -> DataFrame:
         return super().nullable_expected(storage).astype({"e": "Int64", "f": "Int64"})
 
+    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
+    def test_read_sql_nullable_dtypes_table(self, storage):
+        # GH#50048 Not supported for sqlite
+        pass
+
 
 @pytest.mark.db
 class TestMySQLAlchemy(_TestSQLAlchemy):

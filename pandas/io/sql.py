@@ -153,7 +153,10 @@ def _convert_arrays_to_dataframe(
         coerce_float=coerce_float,
         use_nullable_dtypes=use_nullable_dtypes,
     )
-    return DataFrame({col: val for col, val in zip(columns, arrays)})
+    if arrays:
+        return DataFrame({col: val for col, val in zip(columns, arrays)})
+    else:
+        return DataFrame(columns=columns)
 
 
 def _wrap_result(
