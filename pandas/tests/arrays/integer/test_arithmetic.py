@@ -233,6 +233,13 @@ def test_error_invalid_values(data, all_arithmetic_operators):
 # TODO test unsigned overflow
 
 
+def test_rmod_large_series():
+    result = pd.Series([2] * 10001).rmod(-1)
+    expected = pd.Series([1] * 10001)
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_arith_coerce_scalar(data, all_arithmetic_operators):
     op = tm.get_op_from_name(all_arithmetic_operators)
     s = pd.Series(data)
