@@ -107,7 +107,7 @@ class ArrowParserWrapper(ParserBase):
                 multi_index_named = False
             frame.columns = self.names
         # we only need the frame not the names
-        frame.columns, frame = self._do_date_conversions(frame.columns, frame)
+        _, frame = self._do_date_conversions(frame.columns, frame)
         if self.index_col is not None:
             for i, item in enumerate(self.index_col):
                 if is_integer(item):

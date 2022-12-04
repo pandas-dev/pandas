@@ -138,9 +138,8 @@ def test_separator_date_conflict(all_parsers):
     tm.assert_frame_equal(df, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize("keep_date_col", [True, False])
-def test_multiple_date_col_custom(all_parsers, keep_date_col):
+def test_multiple_date_col_custom(all_parsers, keep_date_col, request):
     data = """\
 KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
 KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
@@ -150,6 +149,14 @@ KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 """
     parser = all_parsers
+
+    if keep_date_col and parser.engine == "pyarrow":
+        # For this to pass, we need to disable auto-inference on the date columns
+        # in parse_dates. We have no way of doing this though
+        mark = pytest.mark.xfail(
+            reason="pyarrow doesn't support disabling auto-inference on column numbers."
+        )
+        request.node.add_marker(mark)
 
     def date_parser(*date_cols):
         """
@@ -293,9 +300,8 @@ def test_concat_date_col_fail(container, dim):
         parsing.concat_date_cols(date_cols)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize("keep_date_col", [True, False])
-def test_multiple_date_col(all_parsers, keep_date_col):
+def test_multiple_date_col(all_parsers, keep_date_col, request):
     data = """\
 KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
 KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
@@ -305,6 +311,15 @@ KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 """
     parser = all_parsers
+
+    if keep_date_col and parser.engine == "pyarrow":
+        # For this to pass, we need to disable auto-inference on the date columns
+        # in parse_dates. We have no way of doing this though
+        mark = pytest.mark.xfail(
+            reason="pyarrow doesn't support disabling auto-inference on column numbers."
+        )
+        request.node.add_marker(mark)
+
     kwds = {
         "header": None,
         "parse_dates": [[1, 2], [1, 3]],
@@ -461,7 +476,6 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_multiple_date_cols_int_cast(all_parsers):
     data = (
         "KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
@@ -1132,7 +1146,6 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
     tm.assert_frame_equal(chunks[2], expected[4:])
 
 
-@xfail_pyarrow
 def test_multiple_date_col_named_index_compat(all_parsers):
     parser = all_parsers
     data = """\
@@ -1156,7 +1169,6 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
     tm.assert_frame_equal(with_indices, with_names)
 
 
-@xfail_pyarrow
 def test_multiple_date_col_multiple_index_compat(all_parsers):
     parser = all_parsers
     data = """\
@@ -1301,7 +1313,6 @@ date, time,a,b
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize(
     "data,kwargs,expected",
     [
@@ -1385,7 +1396,6 @@ def test_parse_date_time(all_parsers, data, kwargs, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_parse_date_fields(all_parsers):
     parser = all_parsers
     data = "year,month,day,a\n2001,01,10,10.\n2001,02,1,11."
@@ -1403,7 +1413,6 @@ def test_parse_date_fields(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_parse_date_all_fields(all_parsers):
     parser = all_parsers
     data = """\
@@ -1427,7 +1436,6 @@ year,month,day,hour,minute,second,a,b
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_datetime_fractional_seconds(all_parsers):
     parser = all_parsers
     data = """\
@@ -1451,7 +1459,6 @@ year,month,day,hour,minute,second,a,b
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_generic(all_parsers):
     parser = all_parsers
     data = "year,month,day,a\n2001,01,10,10.\n2001,02,1,11."

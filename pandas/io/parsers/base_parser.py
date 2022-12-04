@@ -7,7 +7,6 @@ import datetime
 from enum import Enum
 import itertools
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
@@ -71,7 +70,11 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas import StringDtype
+from pandas import (
+    DataFrame,
+    StringDtype,
+    concat,
+)
 from pandas.core import algorithms
 from pandas.core.arrays import (
     ArrowExtensionArray,
@@ -88,9 +91,6 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
-
-if TYPE_CHECKING:
-    from pandas import DataFrame
 
 
 class ParserBase:
@@ -1264,7 +1264,10 @@ def _process_date_conversion(
             new_cols.append(new_name)
             date_cols.update(old_names)
 
-    data_dict.update(new_data)
+    if isinstance(data_dict, DataFrame):
+        data_dict = concat([DataFrame(new_data), data_dict], axis=1)
+    else:
+        data_dict.update(new_data)
     new_cols.extend(columns)
 
     if not keep_date_col:
