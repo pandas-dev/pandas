@@ -933,7 +933,7 @@ def to_datetime(
     in addition to forcing non-dates (or non-parseable dates) to :const:`NaT`.
 
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='ignore')
-    datetime.datetime(1300, 1, 1, 0, 0)
+    '13000101'
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
 
