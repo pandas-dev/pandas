@@ -1456,10 +1456,8 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("utc", [False, True])
-    @pytest.mark.parametrize("column_label_array", [False, True])
-    def test_loc_datetime_assignment_dtype_does_not_change(
-        self, utc, column_label_array
-    ):
+    @pytest.mark.parametrize("indexer", ["date", ["date"]])
+    def test_loc_datetime_assignment_dtype_does_not_change(self, utc, indexer):
         # GH#49837
         df = DataFrame(
             {
@@ -1473,11 +1471,7 @@ class TestDataFrameIndexing:
 
         update_df = df[df["update"]]
 
-        column = "date"
-        if column_label_array:
-            column = [column]
-
-        df.loc[df["update"], column] = update_df["date"]
+        df.loc[df["update"], indexer] = update_df["date"]
 
         tm.assert_frame_equal(df, expected)
 
