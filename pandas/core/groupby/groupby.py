@@ -417,7 +417,7 @@ f : function, str
     If a string is chosen, then it needs to be the string of the
     function you want to use.
 
-    IE: ``grouped.transform("sum")``.
+    IE: ``pd.%(klass)s = grouped.transform("sum")``.
 
     .. versionchanged:: 1.1.0
 *args
