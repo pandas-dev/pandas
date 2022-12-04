@@ -109,12 +109,16 @@ from pandas._libs.missing cimport (
     is_null_datetime64,
     is_null_timedelta64,
 )
-from pandas._libs.tslibs.conversion cimport convert_to_tsobject
+from pandas._libs.tslibs.conversion cimport (
+    _TSObject,
+    convert_to_tsobject,
+)
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
     checknull_with_nat,
 )
+from pandas._libs.tslibs.np_datetime cimport NPY_FR_ns
 from pandas._libs.tslibs.offsets cimport is_offset_object
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
@@ -390,7 +394,7 @@ def dicts_to_array(dicts: list, columns: list):
     k = len(columns)
     n = len(dicts)
 
-    result = np.empty((n, k), dtype='O')
+    result = np.empty((n, k), dtype="O")
 
     for i in range(n):
         row = dicts[i]
@@ -764,7 +768,7 @@ def is_all_arraylike(obj: list) -> bool:
     for i in range(n):
         val = obj[i]
         if not (isinstance(val, list) or
-                util.is_array(val) or hasattr(val, '_data')):
+                util.is_array(val) or hasattr(val, "_data")):
             # TODO: EA?
             # exclude tuples, frozensets as they may be contained in an Index
             all_arrays = False
@@ -782,7 +786,7 @@ def is_all_arraylike(obj: list) -> bool:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def generate_bins_dt64(ndarray[int64_t, ndim=1] values, const int64_t[:] binner,
-                       object closed='left', bint hasnans=False):
+                       object closed="left", bint hasnans=False):
     """
     Int64 (datetime64) version of generic python version in ``groupby.py``.
     """
@@ -790,7 +794,7 @@ def generate_bins_dt64(ndarray[int64_t, ndim=1] values, const int64_t[:] binner,
         Py_ssize_t lenidx, lenbin, i, j, bc
         ndarray[int64_t, ndim=1] bins
         int64_t r_bin, nat_count
-        bint right_closed = closed == 'right'
+        bint right_closed = closed == "right"
 
     nat_count = 0
     if hasnans:
@@ -869,7 +873,7 @@ def get_level_sorter(
 
     for i in range(len(starts) - 1):
         l, r = starts[i], starts[i + 1]
-        out[l:r] = l + codes[l:r].argsort(kind='mergesort')
+        out[l:r] = l + codes[l:r].argsort(kind="mergesort")
 
     return out
 
@@ -888,7 +892,7 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     n, k = (<object>mask).shape
 
     if axis == 0:
-        counts = np.zeros((max_bin, k), dtype='i8')
+        counts = np.zeros((max_bin, k), dtype="i8")
         with nogil:
             for i in range(n):
                 for j in range(k):
@@ -896,7 +900,7 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
                         counts[labels[i], j] += 1
 
     else:  # axis == 1
-        counts = np.zeros((n, max_bin), dtype='i8')
+        counts = np.zeros((n, max_bin), dtype="i8")
         with nogil:
             for i in range(n):
                 for j in range(k):
@@ -1047,7 +1051,7 @@ cpdef bint is_decimal(object obj):
 
 
 cpdef bint is_interval(object obj):
-    return getattr(obj, '_typ', '_typ') == 'interval'
+    return getattr(obj, "_typ", "_typ") == "interval"
 
 
 def is_period(val: object) -> bool:
@@ -1159,17 +1163,17 @@ _TYPE_MAP = {
 # types only exist on certain platform
 try:
     np.float128
-    _TYPE_MAP['float128'] = 'floating'
+    _TYPE_MAP["float128"] = "floating"
 except AttributeError:
     pass
 try:
     np.complex256
-    _TYPE_MAP['complex256'] = 'complex'
+    _TYPE_MAP["complex256"] = "complex"
 except AttributeError:
     pass
 try:
     np.float16
-    _TYPE_MAP['float16'] = 'floating'
+    _TYPE_MAP["float16"] = "floating"
 except AttributeError:
     pass
 
@@ -1917,7 +1921,7 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
     for i in range(n):
         base_val = values[i]
         if base_val is not NaT and base_val is not None and not util.is_nan(base_val):
-            base_tz = getattr(base_val, 'tzinfo', None)
+            base_tz = getattr(base_val, "tzinfo", None)
             break
 
     for j in range(i, n):
@@ -1925,7 +1929,7 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
         # NaT can coexist with tz-aware datetimes, so skip if encountered
         val = values[j]
         if val is not NaT and val is not None and not util.is_nan(val):
-            tz = getattr(val, 'tzinfo', None)
+            tz = getattr(val, "tzinfo", None)
             if not tz_compare(base_tz, tz):
                 return False
 
@@ -2129,7 +2133,7 @@ def maybe_convert_numeric(
         returns a boolean mask for the converted values, otherwise returns None.
     """
     if len(values) == 0:
-        return (np.array([], dtype='i8'), None)
+        return (np.array([], dtype="i8"), None)
 
     # fastpath for ints - try to convert all based on first value
     cdef:
@@ -2137,7 +2141,7 @@ def maybe_convert_numeric(
 
     if util.is_integer_object(val):
         try:
-            maybe_ints = values.astype('i8')
+            maybe_ints = values.astype("i8")
             if (maybe_ints == values).all():
                 return (maybe_ints, None)
         except (ValueError, OverflowError, TypeError):
@@ -2227,7 +2231,7 @@ def maybe_convert_numeric(
                     mask[i] = 1
                 seen.saw_null()
             floats[i] = complexes[i] = NaN
-        elif hasattr(val, '__len__') and len(val) == 0:
+        elif hasattr(val, "__len__") and len(val) == 0:
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
                 floats[i] = complexes[i] = NaN
@@ -2378,6 +2382,7 @@ def maybe_convert_objects(ndarray[object] objects,
         ndarray[uint8_t] bools
         Seen seen = Seen()
         object val
+        _TSObject tsobj
         float64_t fnan = np.nan
 
     if dtype_if_all_nat is not None:
@@ -2441,7 +2446,7 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.int_ = True
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
-            if not seen.null_:
+            if not seen.null_ or convert_to_nullable_integer:
                 seen.saw_int(val)
 
                 if ((seen.uint_ and seen.sint_) or
@@ -2464,13 +2469,14 @@ def maybe_convert_objects(ndarray[object] objects,
 
             # if we have an tz's attached then return the objects
             if convert_datetime:
-                if getattr(val, 'tzinfo', None) is not None:
+                if getattr(val, "tzinfo", None) is not None:
                     seen.datetimetz_ = True
                     break
                 else:
                     seen.datetime_ = True
                     try:
-                        convert_to_tsobject(val, None, None, 0, 0)
+                        tsobj = convert_to_tsobject(val, None, None, 0, 0)
+                        tsobj.ensure_reso(NPY_FR_ns)
                     except OutOfBoundsDatetime:
                         seen.object_ = True
                         break
@@ -2610,10 +2616,13 @@ def maybe_convert_objects(ndarray[object] objects,
                     result = complexes
                 elif seen.float_:
                     result = floats
-                elif seen.int_:
+                elif seen.int_ or seen.uint_:
                     if convert_to_nullable_integer:
                         from pandas.core.arrays import IntegerArray
-                        result = IntegerArray(ints, mask)
+                        if seen.uint_:
+                            result = IntegerArray(uints, mask)
+                        else:
+                            result = IntegerArray(ints, mask)
                     else:
                         result = floats
                 elif seen.nan_:
@@ -2894,11 +2903,11 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = len(keys)
         object val
-        ndarray[object] output = np.empty(n, dtype='O')
+        ndarray[object] output = np.empty(n, dtype="O")
 
     if n == 0:
         # kludge, for Series
-        return np.empty(0, dtype='f8')
+        return np.empty(0, dtype="f8")
 
     for i in range(n):
         val = keys[i]

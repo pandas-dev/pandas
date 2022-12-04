@@ -30,7 +30,7 @@ numexpr>=2.8.0
 openpyxl
 odfpy
 pandas-gbq
-psycopg2
+psycopg2-binary
 pyarrow
 pymysql
 pyreadstat
@@ -51,7 +51,6 @@ botocore
 cftime
 dask
 ipython
-geopandas
 seaborn
 scikit-learn
 statsmodels
@@ -98,4 +97,4 @@ feedparser
 pyyaml
 requests
 sphinx-toggleprompt
-setuptools>=51.0.0
+setuptools>=61.0.0

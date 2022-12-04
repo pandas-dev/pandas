@@ -560,15 +560,6 @@ class TestFancy:
         expected["B"] = expected["B"].astype(object)
         tm.assert_frame_equal(df, expected)
 
-        df = df_orig.copy()
-        df.iloc[:, 0:2] = df.iloc[:, 0:2]._convert(datetime=True, numeric=True)
-        expected = DataFrame(
-            [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
-        )
-        expected["A"] = expected["A"].astype(object)
-        expected["B"] = expected["B"].astype(object)
-        tm.assert_frame_equal(df, expected)
-
         # GH5702 (loc)
         df = df_orig.copy()
         df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)

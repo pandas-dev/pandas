@@ -32,7 +32,6 @@ from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
     infer_dtype_from_scalar,
-    soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -375,26 +374,19 @@ class BaseArrayManager(DataManager):
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
-    def convert(
-        self: T,
-        copy: bool = True,
-        datetime: bool = True,
-        numeric: bool = True,
-        timedelta: bool = True,
-    ) -> T:
+    def convert(self: T) -> T:
         def _convert(arr):
             if is_object_dtype(arr.dtype):
                 # extract PandasArray for tests that patch PandasArray._typ
                 arr = np.asarray(arr)
-                return soft_convert_objects(
+                return lib.maybe_convert_objects(
                     arr,
-                    datetime=datetime,
-                    numeric=numeric,
-                    timedelta=timedelta,
-                    copy=copy,
+                    convert_datetime=True,
+                    convert_timedelta=True,
+                    convert_period=True,
                 )
             else:
-                return arr.copy() if copy else arr
+                return arr.copy()
 
         return self.apply(_convert)
 

@@ -257,7 +257,6 @@ We'll import ``dask.dataframe`` and notice that the API feels similar to pandas.
 We can use Dask's ``read_parquet`` function, but provide a globstring of files to read in.
 
 .. ipython:: python
-   :okwarning:
 
    import dask.dataframe as dd
 
@@ -287,7 +286,6 @@ column names and dtypes. That's because Dask hasn't actually read the data yet.
 Rather than executing immediately, doing operations build up a **task graph**.
 
 .. ipython:: python
-   :okwarning:
 
    ddf
    ddf["name"]
@@ -346,7 +344,6 @@ known automatically. In this case, since we created the parquet files manually,
 we need to supply the divisions manually.
 
 .. ipython:: python
-   :okwarning:
 
    N = 12
    starts = [f"20{i:>02d}-01-01" for i in range(N)]
@@ -359,7 +356,6 @@ we need to supply the divisions manually.
 Now we can do things like fast random access with ``.loc``.
 
 .. ipython:: python
-   :okwarning:
 
    ddf.loc["2002-01-01 12:01":"2002-01-01 12:05"].compute()
 
@@ -373,7 +369,6 @@ results will fit in memory, so we can safely call ``compute`` without running
 out of memory. At that point it's just a regular pandas object.
 
 .. ipython:: python
-   :okwarning:
 
    @savefig dask_resample.png
    ddf[["x", "y"]].resample("1D").mean().cumsum().compute().plot()

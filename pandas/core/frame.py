@@ -4887,7 +4887,7 @@ class DataFrame(NDFrame, OpsMixin):
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
         """
-        data = self.copy()
+        data = self.copy(deep=None)
 
         for k, v in kwargs.items():
             data[k] = com.apply_if_callable(v, data)
@@ -5168,7 +5168,7 @@ class DataFrame(NDFrame, OpsMixin):
         Remove rows or columns by specifying label names and corresponding
         axis, or by specifying directly index or column names. When using a
         multi-index, labels on different levels can be removed by specifying
-        the level. See the `user guide <advanced.shown_levels>`
+        the level. See the :ref:`user guide <advanced.shown_levels>`
         for more information about the now unused levels.
 
         Parameters
@@ -7407,7 +7407,7 @@ class DataFrame(NDFrame, OpsMixin):
             result.columns = result.columns.swaplevel(i, j)
         return result
 
-    def reorder_levels(self, order: Sequence[Axis], axis: Axis = 0) -> DataFrame:
+    def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> DataFrame:
         """
         Rearrange index levels using input order. May not drop or duplicate levels.
 
@@ -7452,7 +7452,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
             raise TypeError("Can only reorder levels on a hierarchical axis.")
 
-        result = self.copy()
+        result = self.copy(deep=None)
 
         if axis == 0:
             assert isinstance(result.index, MultiIndex)
