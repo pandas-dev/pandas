@@ -347,14 +347,14 @@ accepted. For example, ``NoRowIndex`` would not necessarily need to subclass
 
 ## Reasons for withdrawal
 
-After some discussions, it has become clear there is not enough for support for the proposal in its current state. 
+After some discussions, it has become clear there is not enough for support for the proposal in its current state.
 In short, it would add too much complexity to justify the potential benefits. It would unacceptably increase
 the maintenance burden, the testing requirements, and the benefits would be minimal.
 
 Concretely:
-- maintenace burden: it would not be possible to handle all the complexity within the ``NoRowIndex`` class itself, some
+- maintenance burden: it would not be possible to handle all the complexity within the ``NoRowIndex`` class itself, some
   extra logic would need to go into the pandas core codebase, which is already very complex and hard to maintain;
-- the testing burden would be too high. Propertly testing this would mean almost doubling the size of the test suite.
+- the testing burden would be too high. Properly testing this would mean almost doubling the size of the test suite.
   Coverage for options already is not great: for example [this issue](https://github.com/pandas-dev/pandas/issues/49732)
   was caused by a PR which passed CI, but CI did not (and still does not) cover that option (plotting backends);
 - it will not benefit users, as users do not tend to use nor discover options which are not the default.
