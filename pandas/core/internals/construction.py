@@ -57,6 +57,7 @@ from pandas.core.arrays import (
     FloatingArray,
     IntegerArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -1004,6 +1005,8 @@ def convert_object_array(
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
                     arr = maybe_infer_to_datetimelike(arr)
+                    if use_nullable_dtypes and arr.dtype == np.dtype("O"):
+                        arr = StringDtype().construct_array_type()._from_sequence(arr)
                 elif use_nullable_dtypes and isinstance(arr, np.ndarray):
                     if is_integer_dtype(arr.dtype):
                         arr = IntegerArray(arr, np.zeros(arr.shape, dtype=np.bool_))
