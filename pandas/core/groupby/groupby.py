@@ -490,7 +490,7 @@ user defined function, and no alternative execution attempts will be tried.
 Examples
 --------
 
->>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+>>> df = pd.%(klass)s({'A' : ['foo', 'bar', 'foo', 'bar',
 ...                           'foo', 'bar'],
 ...                    'B' : ['one', 'one', 'two', 'three',
 ...                           'two', 'two'],
