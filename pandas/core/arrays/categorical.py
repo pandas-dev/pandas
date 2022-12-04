@@ -1568,6 +1568,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Return the indices that would sort the Categorical.
 
+        Missing values are sorted at the end.
+
         Parameters
         ----------
         ascending : bool, default True

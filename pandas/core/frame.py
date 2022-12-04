@@ -489,6 +489,8 @@ class DataFrame(NDFrame, OpsMixin):
         occurs if data is a Series or a DataFrame itself. Alignment is done on
         Series/DataFrame inputs.
 
+        If data is a list of dicts, column order follows insertion-order.
+
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
         no indexing information part of input data and no index provided.
@@ -3148,7 +3150,7 @@ class DataFrame(NDFrame, OpsMixin):
         header="Whether to print column labels, default True",
         col_space_type="str or int, list or dict of int or str",
         col_space="The minimum width of each column in CSS length "
-        "units.  An int is assumed to be px units.\n\n",
+        "units.  An int is assumed to be px units.",
     )
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_html(
