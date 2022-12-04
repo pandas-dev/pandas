@@ -1711,7 +1711,7 @@ def test_rolling_quantile_interpolation_options(quantile, interpolation, data):
     else:
         if not IS64:
             # Less precision on 32-bit
-            np.testing.assert_allclose([q1], [q2])
+            assert np.allclose([q1], [q2], rtol=1e-07, atol=0)
         else:
             assert q1 == q2
 
