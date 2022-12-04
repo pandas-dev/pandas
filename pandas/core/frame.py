@@ -489,9 +489,6 @@ class DataFrame(NDFrame, OpsMixin):
         occurs if data is a Series or a DataFrame itself. Alignment is done on
         Series/DataFrame inputs.
 
-        .. versionchanged:: 0.25.0
-           If data is a list of dicts, column order follows insertion-order.
-
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
         no indexing information part of input data and no index provided.
@@ -3151,9 +3148,7 @@ class DataFrame(NDFrame, OpsMixin):
         header="Whether to print column labels, default True",
         col_space_type="str or int, list or dict of int or str",
         col_space="The minimum width of each column in CSS length "
-        "units.  An int is assumed to be px units.\n\n"
-        "            .. versionadded:: 0.25.0\n"
-        "                Ability to use str",
+        "units.  An int is assumed to be px units.\n\n",
     )
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_html(
@@ -4348,9 +4343,6 @@ class DataFrame(NDFrame, OpsMixin):
 
             For example, if one of your columns is called ``a a`` and you want
             to sum it with ``b``, your query should be ```a a` + b``.
-
-            .. versionadded:: 0.25.0
-                Backtick quoting introduced.
 
             .. versionadded:: 1.0.0
                 Expanding functionality of backtick quoting for more than only spaces.
@@ -8493,8 +8485,6 @@ Parrot 2  Parrot       24.0
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
-            .. versionchanged:: 0.25.0
-
         sort : bool, default True
             Specifies if the result should be sorted.
 
@@ -8807,8 +8797,6 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame:
         """
         Transform each element of a list-like to a row, replicating index values.
-
-        .. versionadded:: 0.25.0
 
         Parameters
         ----------

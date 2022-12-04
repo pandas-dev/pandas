@@ -629,8 +629,6 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
 Named aggregation
 ~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.25.0
-
 To support column-specific aggregation *with control over the output column names*, pandas
 accepts the special syntax in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg`, known as "named aggregation", where
 

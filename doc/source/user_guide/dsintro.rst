@@ -712,11 +712,6 @@ The ufunc is applied to the underlying array in a :class:`Series`.
    ser = pd.Series([1, 2, 3, 4])
    np.exp(ser)
 
-.. versionchanged:: 0.25.0
-
-   When multiple :class:`Series` are passed to a ufunc, they are aligned before
-   performing the operation.
-
 Like other parts of the library, pandas will automatically align labeled inputs
 as part of a ufunc with multiple inputs. For example, using :meth:`numpy.remainder`
 on two :class:`Series` with differently ordered labels will align before the operation.
