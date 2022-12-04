@@ -2390,16 +2390,7 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         assert list(df.columns) == ["id", "string_column"]
 
     def nullable_expected(self) -> DataFrame:
-        return DataFrame(
-            {
-                "a": Series([1, np.nan, 3], dtype="Int64"),
-                "b": Series([1, 2, 3], dtype="Int64"),
-                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
-                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
-                "e": Series([1, 0, pd.NA], dtype="Int64"),
-                "f": Series([1, 0, 1], dtype="Int64"),
-            }
-        )
+        return super().nullable_expected().astype({"e": "Int64", "f": "Int64"})
 
 
 @pytest.mark.db
@@ -2427,6 +2418,9 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
 
     def test_default_type_conversion(self):
         pass
+
+    def nullable_expected(self) -> DataFrame:
+        return super().nullable_expected().astype({"e": "Int64", "f": "Int64"})
 
 
 @pytest.mark.db
