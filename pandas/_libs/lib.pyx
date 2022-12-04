@@ -1309,16 +1309,12 @@ cdef class Seen:
     @property
     def is_bool(self):
         # i.e. not (anything but bool)
-        return not (
-            self.datetime_ or self.datetimetz_ or self.timedelta_ or self.nat_
-            or self.period_ or self.interval_
-            or self.numeric_ or self.nan_ or self.null_ or self.object_
-        )
+        return self.is_bool_or_na and not (self.nan_ or self.null_)
 
     @property
     def is_bool_or_na(self):
         # i.e. not (anything but bool or missing values)
-        return not (
+        return self.bool_ and not (
             self.datetime_ or self.datetimetz_ or self.nat_ or self.timedelta_
             or self.period_ or self.interval_ or self.numeric_ or self.object_
         )
