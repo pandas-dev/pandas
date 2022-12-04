@@ -44,7 +44,6 @@ from pandas.core.dtypes.cast import (
     find_result_type,
     maybe_downcast_to_dtype,
     np_can_hold_element,
-    soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -429,7 +428,7 @@ class Block(PandasObject):
             #  but ATM it breaks too much existing code.
             # split and convert the blocks
 
-            return extend_blocks([blk.convert(datetime=True) for blk in blocks])
+            return extend_blocks([blk.convert() for blk in blocks])
 
         if downcast is None:
             return blocks
@@ -451,8 +450,6 @@ class Block(PandasObject):
         self,
         *,
         copy: bool = True,
-        datetime: bool = True,
-        timedelta: bool = True,
     ) -> list[Block]:
         """
         attempt to coerce any object types to better types return a copy
@@ -1967,8 +1964,6 @@ class ObjectBlock(NumpyBlock):
         self,
         *,
         copy: bool = True,
-        datetime: bool = True,
-        timedelta: bool = True,
     ) -> list[Block]:
         """
         attempt to cast any object types to better types return a copy of
@@ -1980,11 +1975,11 @@ class ObjectBlock(NumpyBlock):
             # avoid doing .ravel as that might make a copy
             values = values[0]
 
-        res_values = soft_convert_objects(
+        res_values = lib.maybe_convert_objects(
             values,
-            datetime=datetime,
-            timedelta=timedelta,
-            copy=copy,
+            convert_datetime=True,
+            convert_timedelta=True,
+            convert_period=True,
         )
         res_values = ensure_block_shape(res_values, self.ndim)
         return [self.make_block(res_values)]
