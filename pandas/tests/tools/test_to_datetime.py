@@ -125,24 +125,21 @@ class TestTimeConversionFormats:
         expected[2] = np.nan
         ser[2] = np.nan
 
-        result = to_datetime(ser, format="%Y%m%d", cache=cache)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match=None):
+            to_datetime(ser, format="%Y%m%d", cache=cache)
 
         # string with NaT
         ser2 = ser.apply(str)
         ser2[2] = "nat"
-        result = to_datetime(ser2, format="%Y%m%d", cache=cache)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match=None):
+            to_datetime(ser2, format="%Y%m%d", cache=cache)
 
     def test_to_datetime_format_YYYYMMDD_ignore(self, cache):
         # coercion
         # GH 7930
         ser = Series([20121231, 20141231, 99991231])
+        expected = Series([20121231, 20141231, 99991231], dtype=object)
         result = to_datetime(ser, format="%Y%m%d", errors="ignore", cache=cache)
-        expected = Series(
-            [datetime(2012, 12, 31), datetime(2014, 12, 31), datetime(9999, 12, 31)],
-            dtype=object,
-        )
         tm.assert_series_equal(result, expected)
 
     def test_to_datetime_format_YYYYMMDD_coercion(self, cache):
@@ -249,7 +246,7 @@ class TestTimeConversionFormats:
             # valid date, length == 8
             [20121030, datetime(2012, 10, 30)],
             # short valid date, length == 6
-            [199934, datetime(1999, 3, 4)],
+            [199934, 199934],
             # long integer date partially parsed to datetime(2012,1,1), length > 8
             [2012010101, 2012010101],
             # invalid date partially parsed to datetime(2012,9,9), length == 8
@@ -1714,8 +1711,8 @@ class TestToDatetimeDataFrame:
         df2 = DataFrame({"year": [2015, 2016], "month": [2, 20], "day": [4, 5]})
 
         msg = (
-            "cannot assemble the datetimes: time data .+ does not "
-            r"match format '%Y%m%d' \(match\)"
+            r"cannot assemble the datetimes: time data .+ doesn't "
+            r'match format "%Y%m%d"'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df2, cache=cache)
@@ -1791,7 +1788,10 @@ class TestToDatetimeDataFrame:
     def test_dataframe_float(self, cache):
         # float
         df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
-        msg = "cannot assemble the datetimes: unconverted data remains: 1"
+        msg = (
+            r'cannot assemble the datetimes: time data "20000151" at '
+            r'position 0 doesn\'t match format "%Y%m%d"'
+        )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df, cache=cache)
 
