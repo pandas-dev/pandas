@@ -140,6 +140,22 @@ def _parse_date_columns(data_frame, parse_dates):
     return data_frame
 
 
+def _convert_arrays_to_dataframe(
+    data,
+    columns,
+    coerce_float: bool = True,
+    use_nullable_dtypes: bool = False,
+) -> DataFrame:
+    content = lib.to_object_array_tuples(data)
+    arrays = convert_object_array(
+        list(content.T),
+        dtype=None,
+        coerce_float=coerce_float,
+        use_nullable_dtypes=use_nullable_dtypes,
+    )
+    return DataFrame({col: val for col, val in zip(columns, arrays)})
+
+
 def _wrap_result(
     data,
     columns,
@@ -150,15 +166,9 @@ def _wrap_result(
     use_nullable_dtypes: bool = False,
 ):
     """Wrap result set of query in a DataFrame."""
-    content = lib.to_object_array_tuples(data)
-    content = list(content.T)
-    content = convert_object_array(
-        content,
-        dtype=None,
-        coerce_float=coerce_float,
-        use_nullable_dtypes=use_nullable_dtypes,
+    frame = _convert_arrays_to_dataframe(
+        data, columns, coerce_float, use_nullable_dtypes
     )
-    frame = DataFrame({col: val for col, val in zip(columns, content)}, columns=columns)
 
     if dtype:
         frame = frame.astype(dtype)
@@ -606,6 +616,7 @@ def read_sql(
                 parse_dates=parse_dates,
                 columns=columns,
                 chunksize=chunksize,
+                use_nullable_dtypes=use_nullable_dtypes,
             )
         else:
             return pandas_sql.read_query(
@@ -1003,6 +1014,7 @@ class SQLTable(PandasObject):
         columns,
         coerce_float: bool = True,
         parse_dates=None,
+        use_nullable_dtypes: bool = False,
     ):
         """Return generator through chunked result set."""
         has_read_data = False
@@ -1016,11 +1028,13 @@ class SQLTable(PandasObject):
                 break
 
             has_read_data = True
-            self.frame = DataFrame.from_records(
-                data, columns=columns, coerce_float=coerce_float
+            self.frame = _convert_arrays_to_dataframe(
+                data, columns, coerce_float, use_nullable_dtypes
             )
 
-            self._harmonize_columns(parse_dates=parse_dates)
+            self._harmonize_columns(
+                parse_dates=parse_dates, use_nullable_dtypes=use_nullable_dtypes
+            )
 
             if self.index is not None:
                 self.frame.set_index(self.index, inplace=True)
@@ -1033,6 +1047,7 @@ class SQLTable(PandasObject):
         parse_dates=None,
         columns=None,
         chunksize=None,
+        use_nullable_dtypes: bool = False,
     ) -> DataFrame | Iterator[DataFrame]:
         from sqlalchemy import select
 
@@ -1054,14 +1069,17 @@ class SQLTable(PandasObject):
                 column_names,
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
+                use_nullable_dtypes=use_nullable_dtypes,
             )
         else:
             data = result.fetchall()
-            self.frame = DataFrame.from_records(
-                data, columns=column_names, coerce_float=coerce_float
+            self.frame = _convert_arrays_to_dataframe(
+                data, column_names, coerce_float, use_nullable_dtypes
             )
 
-            self._harmonize_columns(parse_dates=parse_dates)
+            self._harmonize_columns(
+                parse_dates=parse_dates, use_nullable_dtypes=use_nullable_dtypes
+            )
 
             if self.index is not None:
                 self.frame.set_index(self.index, inplace=True)
@@ -1144,7 +1162,9 @@ class SQLTable(PandasObject):
         meta = MetaData()
         return Table(self.name, meta, *columns, schema=schema)
 
-    def _harmonize_columns(self, parse_dates=None) -> None:
+    def _harmonize_columns(
+        self, parse_dates=None, use_nullable_dtypes: bool = False
+    ) -> None:
         """
         Make the DataFrame's column types align with the SQL table
         column types.
@@ -1184,11 +1204,11 @@ class SQLTable(PandasObject):
                     # Convert tz-aware Datetime SQL columns to UTC
                     utc = col_type is DatetimeTZDtype
                     self.frame[col_name] = _handle_date_column(df_col, utc=utc)
-                elif col_type is float:
+                elif not use_nullable_dtypes and col_type is float:
                     # floats support NA, can always convert!
                     self.frame[col_name] = df_col.astype(col_type, copy=False)
 
-                elif len(df_col) == df_col.count():
+                elif not use_nullable_dtypes and len(df_col) == df_col.count():
                     # No NA values, can convert ints and bools
                     if col_type is np.dtype("int64") or col_type is bool:
                         self.frame[col_name] = df_col.astype(col_type, copy=False)
@@ -1487,6 +1507,7 @@ class SQLDatabase(PandasSQL):
         columns=None,
         schema: str | None = None,
         chunksize: int | None = None,
+        use_nullable_dtypes: bool = False,
     ) -> DataFrame | Iterator[DataFrame]:
         """
         Read SQL database table into a DataFrame.
@@ -1537,6 +1558,7 @@ class SQLDatabase(PandasSQL):
             parse_dates=parse_dates,
             columns=columns,
             chunksize=chunksize,
+            use_nullable_dtypes=use_nullable_dtypes,
         )
 
     @staticmethod

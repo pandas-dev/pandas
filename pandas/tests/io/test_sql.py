@@ -2272,20 +2272,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     @pytest.mark.parametrize("storage", ["pyarrow", "python"])
     def test_read_sql_nullable_dtypes(self, storage):
-        # GH#
+        # GH#50048
         table = "test"
-        df = DataFrame(
-            {
-                "a": Series([1, np.nan, 3], dtype="Int64"),
-                "b": Series([1, 2, 3], dtype="Int64"),
-                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
-                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
-                "e": [True, False, None],
-                "f": [True, False, True],
-                "g": ["a", "b", "c"],
-                "h": ["a", "b", None],
-            }
-        )
+        df = self.nullable_data()
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
         with pd.option_context("mode.string_storage", storage):
@@ -2305,6 +2294,43 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             expected = self.nullable_expected(storage)
             for result in iterator:
                 tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
+    def test_read_sql_nullable_dtypes_table(self, storage):
+        # GH#50048
+        table = "test"
+        df = self.nullable_data()
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        with pd.option_context("mode.string_storage", storage):
+            result = pd.read_sql(table, self.conn, use_nullable_dtypes=True)
+        expected = self.nullable_expected(storage)
+        tm.assert_frame_equal(result, expected)
+
+        with pd.option_context("mode.string_storage", storage):
+            iterator = pd.read_sql(
+                f"Select * from {table}",
+                self.conn,
+                use_nullable_dtypes=True,
+                chunksize=3,
+            )
+            expected = self.nullable_expected(storage)
+            for result in iterator:
+                tm.assert_frame_equal(result, expected)
+
+    def nullable_data(self) -> DataFrame:
+        return DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": [True, False, None],
+                "f": [True, False, True],
+                "g": ["a", "b", "c"],
+                "h": ["a", "b", None],
+            }
+        )
 
     def nullable_expected(self, storage) -> DataFrame:
 
