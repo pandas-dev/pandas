@@ -417,9 +417,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                     # TODO: pass if method is not None, like DTI does?
                     raise KeyError(key) from err
 
-            # the reso < self._resolution_obj case goes
-            #  through _get_string_slice
-            key = self._cast_partial_indexing_scalar(parsed)
+            if reso == self._resolution_obj:
+                # the reso < self._resolution_obj case goes
+                #  through _get_string_slice
+                key = self._cast_partial_indexing_scalar(parsed)
+            else:
+                raise KeyError(key)
 
         elif isinstance(key, Period):
             self._disallow_mismatched_indexing(key)

@@ -203,38 +203,42 @@ class TestGetItem:
             for d in ["2013/01/01", "2013/01", "2013"]:
                 tm.assert_series_equal(ser[d], ser)
 
-    def test_getitem_day(self):
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            date_range(start="2013/01/01", freq="D", periods=400),
+            period_range(start="2013/01/01", freq="D", periods=400),
+        ],
+        ids=lambda x: type(x).__name__,
+    )
+    def test_getitem_day(self, idx):
         # GH#6716
         # Confirm DatetimeIndex and PeriodIndex works identically
-        didx = date_range(start="2013/01/01", freq="D", periods=400)
-        pidx = period_range(start="2013/01/01", freq="D", periods=400)
+        # getitem against index should raise ValueError
+        values = [
+            "2014",
+            "2013/02",
+            "2013/01/02",
+            "2013/02/01 9H",
+            "2013/02/01 09:00",
+        ]
+        for val in values:
 
-        for idx in [didx, pidx]:
-            # getitem against index should raise ValueError
-            values = [
-                "2014",
-                "2013/02",
-                "2013/01/02",
-                "2013/02/01 9H",
-                "2013/02/01 09:00",
-            ]
-            for val in values:
+            # GH7116
+            # these show deprecations as we are trying
+            # to slice with non-integer indexers
+            with pytest.raises(IndexError, match="only integers, slices"):
+                idx[val]
 
-                # GH7116
-                # these show deprecations as we are trying
-                # to slice with non-integer indexers
-                with pytest.raises(IndexError, match="only integers, slices"):
-                    idx[val]
+        ser = Series(np.random.rand(len(idx)), index=idx)
+        tm.assert_series_equal(ser["2013/01"], ser[0:31])
+        tm.assert_series_equal(ser["2013/02"], ser[31:59])
+        tm.assert_series_equal(ser["2014"], ser[365:])
 
-            ser = Series(np.random.rand(len(idx)), index=idx)
-            tm.assert_series_equal(ser["2013/01"], ser[0:31])
-            tm.assert_series_equal(ser["2013/02"], ser[31:59])
-            tm.assert_series_equal(ser["2014"], ser[365:])
-
-            invalid = ["2013/02/01 9H", "2013/02/01 09:00"]
-            for val in invalid:
-                with pytest.raises(KeyError, match=val):
-                    ser[val]
+        invalid = ["2013/02/01 9H", "2013/02/01 09:00"]
+        for val in invalid:
+            with pytest.raises(KeyError, match=val):
+                ser[val]
 
 
 class TestGetLoc:
