@@ -701,7 +701,7 @@ Strings
 
 Interval
 ^^^^^^^^
--
+- Bug in :meth:`IntervalIndex.is_overlapping` incorrect output if interval has duplicate left boundaries (:issue:`49581`)
 -
 
 Indexing
