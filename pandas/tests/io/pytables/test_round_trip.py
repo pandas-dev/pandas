@@ -302,7 +302,7 @@ def test_index_types(setup_path):
     with catch_warnings(record=True):
         values = np.random.randn(2)
 
-        func = lambda l, r: tm.assert_series_equal(l, r, check_index_type=True)
+        func = lambda lhs, rhs: tm.assert_series_equal(lhs, rhs, check_index_type=True)
 
     with catch_warnings(record=True):
         ser = Series(values, [0, "y"])

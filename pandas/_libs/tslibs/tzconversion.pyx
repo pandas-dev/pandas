@@ -233,6 +233,7 @@ timedelta-like}
         int64_t shift_delta = 0
         ndarray[int64_t] result_a, result_b, dst_hours
         int64_t[::1] result
+        bint is_zi = False
         bint infer_dst = False, is_dst = False, fill = False
         bint shift_forward = False, shift_backward = False
         bint fill_nonexist = False
@@ -247,9 +248,9 @@ timedelta-like}
     # silence false-positive compiler warning
     ambiguous_array = np.empty(0, dtype=bool)
     if isinstance(ambiguous, str):
-        if ambiguous == 'infer':
+        if ambiguous == "infer":
             infer_dst = True
-        elif ambiguous == 'NaT':
+        elif ambiguous == "NaT":
             fill = True
     elif isinstance(ambiguous, bool):
         is_dst = True
@@ -257,23 +258,23 @@ timedelta-like}
             ambiguous_array = np.ones(len(vals), dtype=bool)
         else:
             ambiguous_array = np.zeros(len(vals), dtype=bool)
-    elif hasattr(ambiguous, '__iter__'):
+    elif hasattr(ambiguous, "__iter__"):
         is_dst = True
         if len(ambiguous) != len(vals):
             raise ValueError("Length of ambiguous bool-array must be "
                              "the same size as vals")
         ambiguous_array = np.asarray(ambiguous, dtype=bool)
 
-    if nonexistent == 'NaT':
+    if nonexistent == "NaT":
         fill_nonexist = True
-    elif nonexistent == 'shift_forward':
+    elif nonexistent == "shift_forward":
         shift_forward = True
-    elif nonexistent == 'shift_backward':
+    elif nonexistent == "shift_backward":
         shift_backward = True
     elif PyDelta_Check(nonexistent):
         from .timedeltas import delta_to_nanoseconds
         shift_delta = delta_to_nanoseconds(nonexistent, reso=creso)
-    elif nonexistent not in ('raise', None):
+    elif nonexistent not in ("raise", None):
         msg = ("nonexistent must be one of {'NaT', 'raise', 'shift_forward', "
                "shift_backwards} or a timedelta object")
         raise ValueError(msg)
@@ -304,6 +305,7 @@ timedelta-like}
     # Determine whether each date lies left of the DST transition (store in
     # result_a) or right of the DST transition (store in result_b)
     if is_zoneinfo(tz):
+        is_zi = True
         result_a, result_b =_get_utc_bounds_zoneinfo(
             vals, tz, creso=creso
         )
@@ -384,6 +386,11 @@ timedelta-like}
                     # Subtract 1 since the beginning hour is _inclusive_ of
                     # nonexistent times
                     new_local = val - remaining_mins - 1
+
+                if is_zi:
+                    raise NotImplementedError(
+                        "nonexistent shifting is not implemented with ZoneInfo tzinfos"
+                    )
 
                 delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
 

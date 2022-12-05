@@ -17,21 +17,19 @@ repos:
         entry: python scripts/run_vulture.py
         pass_filenames: true
         require_serial: false
--   repo: https://github.com/python/black
-    rev: 22.10.0
-    hooks:
-    -   id: black
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.2.2
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
+        additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.2.1
+    rev: v0.9.1
     hooks:
     -   id: cython-lint
+    -   id: double-quote-cython-strings
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.4.0
     hooks:
     -   id: debug-statements
     -   id: end-of-file-fixer
@@ -50,22 +48,22 @@ repos:
         exclude: ^pandas/_libs/src/(klib|headers)/
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
 -   repo: https://github.com/PyCQA/flake8
-    rev: 5.0.4
+    rev: 6.0.0
     hooks:
     -   id: flake8
         # Need to patch os.remove rule in pandas-dev-flaker
         exclude: ^ci/fix_wheels.py
         additional_dependencies: &flake8_dependencies
-        - flake8==5.0.4
+        - flake8==6.0.0
         - flake8-bugbear==22.7.1
         - pandas-dev-flaker==0.5.0
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.15.5
+    rev: v2.15.6
     hooks:
     -   id: pylint
         stages: [manual]
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.15.5
+    rev: v2.15.6
     hooks:
     -   id: pylint
         alias: redefined-outer-name
@@ -78,8 +76,6 @@ repos:
             |^pandas/util/_test_decorators\.py  # keep excluded
             |^pandas/_version\.py  # keep excluded
             |^pandas/conftest\.py  # keep excluded
-            |^pandas/core/tools/datetimes\.py
-            |^pandas/io/formats/format\.py
             |^pandas/core/generic\.py
         args: [--disable=all, --enable=redefined-outer-name]
         stages: [manual]
@@ -88,7 +84,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.2.0
+    rev: v3.2.2
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -113,6 +109,16 @@ repos:
         additional_dependencies: *flake8_dependencies
 -   repo: local
     hooks:
+    # NOTE: we make `black` a local hook because if it's installed from
+    # PyPI (rather than from source) then it'll run twice as fast thanks to mypyc
+    -   id: black
+        name: black
+        description: "Black: The uncompromising Python code formatter"
+        entry: black
+        language: python
+        require_serial: true
+        types_or: [python, pyi]
+        additional_dependencies: [black==22.10.0]
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright
@@ -269,6 +275,7 @@ repos:
         entry: python scripts/validate_min_versions_in_sync.py
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+        additional_dependencies: [tomli]
     -   id: validate-errors-locations
         name: Validate errors locations
         description: Validate errors are in appropriate locations.

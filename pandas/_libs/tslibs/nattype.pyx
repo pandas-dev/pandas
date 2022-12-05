@@ -259,13 +259,11 @@ cdef class _NaT(datetime):
         """
         Return a numpy.datetime64 object with 'ns' precision.
         """
-        return np.datetime64('NaT', "ns")
+        return np.datetime64("NaT", "ns")
 
     def to_numpy(self, dtype=None, copy=False) -> np.datetime64 | np.timedelta64:
         """
         Convert the Timestamp to a NumPy datetime64 or timedelta64.
-
-        .. versionadded:: 0.25.0
 
         With the default 'dtype', this is an alias method for `NaT.to_datetime64()`.
 

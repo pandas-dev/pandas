@@ -36,6 +36,8 @@ jobs:
 
     - name: Run pre-commit
       uses: pre-commit/action@v2.0.3
+      with:
+        extra_args: --verbose --all-files
 
   docstring_typing_pylint:
     name: Docstring validation, typing, and pylint
@@ -79,6 +81,10 @@ jobs:
       run: ci/code_checks.sh docstrings
       if: ${{ steps.build.outcome == 'success' && always() }}
 
+    - name: Run check of documentation notebooks
+      run: ci/code_checks.sh notebooks
+      if: ${{ steps.build.outcome == 'success' && always() }}
+
     - name: Use existing environment for type checking
       run: |
         echo $PATH >> $GITHUB_PATH
@@ -89,7 +95,7 @@ jobs:
     - name: Typing + pylint
       uses: pre-commit/action@v2.0.3
       with:
-        extra_args: --hook-stage manual --all-files
+        extra_args: --verbose --hook-stage manual --all-files
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run docstring validation script tests
@@ -152,7 +158,7 @@ jobs:
         run: docker build --pull --no-cache --tag pandas-dev-env .
 
       - name: Show environment
-        run: docker run -w /home/pandas pandas-dev-env mamba run -n pandas-dev python -c "import pandas as pd; print(pd.show_versions())"
+        run: docker run --rm pandas-dev-env python -c "import pandas as pd; print(pd.show_versions())"
 
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt

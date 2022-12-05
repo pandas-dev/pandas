@@ -26,6 +26,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import get_option
+
 from pandas._libs import (
     lib,
     parsers,
@@ -39,6 +41,7 @@ from pandas._typing import (
     DtypeObj,
     Scalar,
 )
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     ParserError,
     ParserWarning,
@@ -71,6 +74,7 @@ from pandas.core.dtypes.missing import isna
 from pandas import StringDtype
 from pandas.core import algorithms
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BooleanArray,
     Categorical,
     ExtensionArray,
@@ -125,7 +129,6 @@ class ParserBase:
 
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
-        self.mangle_dupe_cols = kwds.get("mangle_dupe_cols", True)
         self.infer_datetime_format = kwds.pop("infer_datetime_format", False)
         self.cache_dates = kwds.pop("cache_dates", True)
 
@@ -333,33 +336,27 @@ class ParserBase:
         return names, index_names, col_names, passed_names
 
     @final
-    def _maybe_dedup_names(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
-        # see gh-7160 and gh-9424: this helps to provide
-        # immediate alleviation of the duplicate names
-        # issue and appears to be satisfactory to users,
-        # but ultimately, not needing to butcher the names
-        # would be nice!
-        if self.mangle_dupe_cols:
-            names = list(names)  # so we can index
-            counts: DefaultDict[Hashable, int] = defaultdict(int)
-            is_potential_mi = _is_potential_multi_index(names, self.index_col)
+    def _dedup_names(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
+        names = list(names)  # so we can index
+        counts: DefaultDict[Hashable, int] = defaultdict(int)
+        is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
-            for i, col in enumerate(names):
+        for i, col in enumerate(names):
+            cur_count = counts[col]
+
+            while cur_count > 0:
+                counts[col] = cur_count + 1
+
+                if is_potential_mi:
+                    # for mypy
+                    assert isinstance(col, tuple)
+                    col = col[:-1] + (f"{col[-1]}.{cur_count}",)
+                else:
+                    col = f"{col}.{cur_count}"
                 cur_count = counts[col]
 
-                while cur_count > 0:
-                    counts[col] = cur_count + 1
-
-                    if is_potential_mi:
-                        # for mypy
-                        assert isinstance(col, tuple)
-                        col = col[:-1] + (f"{col[-1]}.{cur_count}",)
-                    else:
-                        col = f"{col}.{cur_count}"
-                    cur_count = counts[col]
-
-                names[i] = col
-                counts[col] = cur_count + 1
+            names[i] = col
+            counts[col] = cur_count + 1
 
         return names
 
@@ -717,6 +714,7 @@ class ParserBase:
         use_nullable_dtypes: Literal[True] | Literal[False] = (
             self.use_nullable_dtypes and no_dtype_specified
         )
+        nullable_backend = get_option("io.nullable_backend")
         result: ArrayLike
 
         if try_num_bool and is_object_dtype(values.dtype):
@@ -773,6 +771,16 @@ class ParserBase:
                 inferred_type = lib.infer_dtype(result)
                 if inferred_type != "datetime":
                     result = StringDtype().construct_array_type()._from_sequence(values)
+
+        if use_nullable_dtypes and nullable_backend == "pyarrow":
+            pa = import_optional_dependency("pyarrow")
+            if isinstance(result, np.ndarray):
+                result = ArrowExtensionArray(pa.array(result, from_pandas=True))
+            else:
+                # ExtensionArray
+                result = ArrowExtensionArray(
+                    pa.array(result.to_numpy(), from_pandas=True)
+                )
 
         return result, na_count
 
@@ -1182,7 +1190,6 @@ parser_defaults = {
     "verbose": False,
     "encoding": None,
     "compression": None,
-    "mangle_dupe_cols": True,
     "infer_datetime_format": False,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
