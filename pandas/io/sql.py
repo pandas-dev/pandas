@@ -524,6 +524,7 @@ def read_sql(
         implementation, even if no nulls are present.
 
         .. versionadded:: 2.0
+
     Returns
     -------
     DataFrame or Iterator[DataFrame]
