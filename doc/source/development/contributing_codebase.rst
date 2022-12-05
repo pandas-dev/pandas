@@ -341,16 +341,16 @@ This folder contains many current examples of tests, and we suggest looking to t
 inspiration.
 
 As a general tip, you can use the search functionality in your integrated development
-environment (IDE) or the grep command in a terminal to find test files in which the method
+environment (IDE) or the git grep command in a terminal to find test files in which the method
 is called. If you are unsure of the best location to put your test, take your best guess,
 but note that reviewers may request that you move the test to a different location.
 
-To use grep, you can run the following command in a terminal:
+To use git grep, you can run the following command in a terminal:
 
-``grep -r "function_name("``
+``git grep "function_name("``
 
-This will search recursively through all files in the current directory for a function
-named ``function_name``. This can be a useful way to quickly locate the function in the
+This will search through all files in your repository for the text ``function_name(``.
+This can be a useful way to quickly locate the function in the
 codebase and determine the best location to add a test for it.
 
 Ideally, there should be one, and only one, obvious place for a test to reside.
