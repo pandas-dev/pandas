@@ -688,7 +688,7 @@ class TestGrouping:
             (
                 "agg",
                 Series(
-                    namqe=2, dtype=np.float64, index=Index([], dtype=np.float64, name=1)
+                    name=2, dtype=np.float64, index=Index([], dtype=np.float64, name=1)
                 ),
             ),
             (
