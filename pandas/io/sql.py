@@ -604,7 +604,7 @@ def to_sql(
     name: str,
     con,
     schema: str | None = None,
-    if_exists: Literal["fail", "replace", "append"] = "fail",
+    if_exists: Literal["fail", "replace", "append", "truncate"] = "fail",
     index: bool = True,
     index_label: IndexLabel = None,
     chunksize: int | None = None,
@@ -629,10 +629,11 @@ def to_sql(
     schema : str, optional
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
-    if_exists : {'fail', 'replace', 'append'}, default 'fail'
+    if_exists : {'fail', 'replace', 'append', 'truncate}, default 'fail'
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
         - append: If table exists, insert data. Create if does not exist.
+        - truncate: If table exists, truncate it, then insert data.
     index : bool, default True
         Write DataFrame index as a column.
     index_label : str or sequence, optional
@@ -682,7 +683,7 @@ def to_sql(
     `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
     `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__
     """  # noqa:E501
-    if if_exists not in ("fail", "replace", "append"):
+    if if_exists not in ("fail", "replace", "append", "truncate"):
         raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
     if isinstance(frame, Series):
@@ -853,6 +854,9 @@ class SQLTable(PandasObject):
                 raise ValueError(f"Table '{self.name}' already exists.")
             if self.if_exists == "replace":
                 self.pd_sql.drop_table(self.name, self.schema)
+                self._execute_create()
+            elif self.if_exists == "truncate":
+                self.pd_sql.trunc_table(self.name, self.schema)
                 self._execute_create()
             elif self.if_exists == "append":
                 pass
@@ -1311,7 +1315,7 @@ class PandasSQL(PandasObject, ABC):
         self,
         frame,
         name,
-        if_exists: Literal["fail", "replace", "append"] = "fail",
+        if_exists: Literal["fail", "replace", "append", "truncate"] = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
@@ -1642,7 +1646,7 @@ class SQLDatabase(PandasSQL):
         self,
         frame,
         name,
-        if_exists: Literal["fail", "replace", "append"] = "fail",
+        if_exists: Literal["fail", "replace", "append", "truncate"] = "fail",
         index: bool | str | list[str] | None = True,
         index_label=None,
         schema=None,
@@ -1718,7 +1722,7 @@ class SQLDatabase(PandasSQL):
         self,
         frame,
         name: str,
-        if_exists: Literal["fail", "replace", "append"] = "fail",
+        if_exists: Literal["fail", "replace", "append", "truncate"] = "fail",
         index: bool = True,
         index_label=None,
         schema: str | None = None,
@@ -1736,10 +1740,11 @@ class SQLDatabase(PandasSQL):
         frame : DataFrame
         name : string
             Name of SQL table.
-        if_exists : {'fail', 'replace', 'append'}, default 'fail'
+        if_exists : {'fail', 'replace', 'append', 'truncate'}, default 'fail'
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
+            - truncate: If table exists, truncate it, and insert data.
         index : boolean, default True
             Write DataFrame index as a column.
         index_label : string or sequence, default None
@@ -1831,6 +1836,15 @@ class SQLDatabase(PandasSQL):
         if self.has_table(table_name, schema):
             self.meta.reflect(bind=self.con, only=[table_name], schema=schema)
             self.get_table(table_name, schema).drop(bind=self.con)
+            self.meta.clear()
+
+   
+    def trunc_table(self, table_name: str, schema: str | None = None) -> None:
+        schema = schema or self.meta.schema
+        if self.has_table(table_name, schema):
+            self.meta.reflect(bind=self.con, only=[table_name], schema=schema)
+            # self.execute(f"TRUNCATE TABLE {schema}.{table_name};") -- true truncate
+            self.get_table(table_name, schema).delete(bind=self.con)
             self.meta.clear()
 
     def _create_sql_schema(
@@ -2181,10 +2195,11 @@ class SQLiteDatabase(PandasSQL):
         frame: DataFrame
         name: string
             Name of SQL table.
-        if_exists: {'fail', 'replace', 'append'}, default 'fail'
+        if_exists: {'fail', 'replace', 'append', 'truncate}, default 'fail'
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if it does not exist.
+            truncate: If table exists, truncate it, then insert data.
         index : bool, default True
             Write DataFrame index as a column
         index_label : string or sequence, default None
@@ -2252,6 +2267,10 @@ class SQLiteDatabase(PandasSQL):
     def drop_table(self, name: str, schema: str | None = None) -> None:
         drop_sql = f"DROP TABLE {_get_valid_sqlite_name(name)}"
         self.execute(drop_sql)
+
+    def trunc_table(self, name: str, schema: str | None = None) -> None:
+        trunc_sql = f"TRUNCATE TABLE {_get_valid_sqlite_name(name)}"
+        self.execute(trunc_sql)
 
     def _create_sql_schema(
         self,
