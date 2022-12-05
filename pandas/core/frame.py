@@ -3558,6 +3558,7 @@ class DataFrame(NDFrame, OpsMixin):
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
             index=self.columns,
+            dtype=np.int64,
         )
         if index:
             index_memory_usage = self._constructor_sliced(
