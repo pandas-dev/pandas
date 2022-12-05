@@ -204,17 +204,17 @@ class TestGetItem:
                 tm.assert_series_equal(ser[d], ser)
 
     @pytest.mark.parametrize(
-        "idx",
+        "idx_range",
         [
-            date_range(start="2013/01/01", freq="D", periods=400),
-            period_range(start="2013/01/01", freq="D", periods=400),
+            date_range,
+            period_range,
         ],
-        ids=lambda x: type(x).__name__,
     )
-    def test_getitem_day(self, idx):
+    def test_getitem_day(self, idx_range):
         # GH#6716
         # Confirm DatetimeIndex and PeriodIndex works identically
         # getitem against index should raise ValueError
+        idx = idx_range(start="2013/01/01", freq="D", periods=400)
         values = [
             "2014",
             "2013/02",
