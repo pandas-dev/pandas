@@ -2916,8 +2916,6 @@ class Index(IndexOpsMixin, PandasObject):
         If the Index objects are incompatible, both Index objects will be
         cast to dtype('object') first.
 
-            .. versionchanged:: 0.25.0
-
         Parameters
         ----------
         other : Index or array-like
