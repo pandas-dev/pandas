@@ -605,8 +605,6 @@ class RangeIndex(NumericIndex):
             increasing and other is fully contained in self. Otherwise, returns
             an unsorted ``Int64Index``
 
-            .. versionadded:: 0.25.0
-
         Returns
         -------
         union : Index

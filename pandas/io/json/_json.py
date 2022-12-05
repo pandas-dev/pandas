@@ -549,18 +549,10 @@ def read_json(
 
         For all ``orient`` values except ``'table'``, default is True.
 
-        .. versionchanged:: 0.25.0
-
-           Not applicable for ``orient='table'``.
-
     convert_axes : bool, default None
         Try to convert the axes to the proper dtypes.
 
         For all ``orient`` values except ``'table'``, default is True.
-
-        .. versionchanged:: 0.25.0
-
-           Not applicable for ``orient='table'``.
 
     convert_dates : bool or list of str, default True
         If True then default datelike columns may be converted (depending on
