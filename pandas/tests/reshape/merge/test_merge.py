@@ -757,14 +757,18 @@ class TestMerge:
     def test_other_timedelta_unit(self, unit):
         # GH 13389
         df1 = DataFrame({"entity_id": [101, 102]})
-        s = Series([None, None], index=[101, 102], name="days")
+        ser = Series([None, None], index=[101, 102], name="days")
 
         dtype = f"m8[{unit}]"
-        df2 = s.astype(dtype).to_frame("days")
         if unit in ["D", "h", "m"]:
-            # We get nearest supported unit, i.e. "s"
-            assert df2["days"].dtype == "m8[s]"
+            # We cannot astype, instead do nearest supported unit, i.e. "s"
+            msg = "Supported resolutions are 's', 'ms', 'us', 'ns'"
+            with pytest.raises(ValueError, match=msg):
+                ser.astype(dtype)
+
+            df2 = ser.astype("m8[s]").to_frame("days")
         else:
+            df2 = ser.astype(dtype).to_frame("days")
             assert df2["days"].dtype == dtype
 
         result = df1.merge(df2, left_on="entity_id", right_index=True)
