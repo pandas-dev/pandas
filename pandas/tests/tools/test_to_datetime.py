@@ -246,7 +246,7 @@ class TestTimeConversionFormats:
             # valid date, length == 8
             [20121030, datetime(2012, 10, 30)],
             # short valid date, length == 6
-            [199934, 199934],
+            [199934, datetime(1999, 3, 4)],
             # long integer date partially parsed to datetime(2012,1,1), length > 8
             [2012010101, 2012010101],
             # invalid date partially parsed to datetime(2012,9,9), length == 8
@@ -1724,8 +1724,8 @@ class TestToDatetimeDataFrame:
         df2 = DataFrame({"year": [2015, 2016], "month": [2, 20], "day": [4, 5]})
 
         msg = (
-            r"cannot assemble the datetimes: time data .+ doesn't "
-            r'match format "%Y%m%d"'
+            "cannot assemble the datetimes: time data .+ does not "
+            r"match format '%Y%m%d' \(match\)"
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df2, cache=cache)
@@ -1801,10 +1801,7 @@ class TestToDatetimeDataFrame:
     def test_dataframe_float(self, cache):
         # float
         df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
-        msg = (
-            r'cannot assemble the datetimes: time data "20000151" at '
-            r'position 0 doesn\'t match format "%Y%m%d"'
-        )
+        msg = "cannot assemble the datetimes: unconverted data remains: 1"
         with pytest.raises(ValueError, match=msg):
             to_datetime(df, cache=cache)
 
