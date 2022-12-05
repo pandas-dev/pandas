@@ -2316,9 +2316,7 @@ def _wrap_transform_general_frame(
             )
         assert isinstance(res_frame, DataFrame)
         return res_frame
-    elif isinstance(res, DataFrame):
-        if not res.index.is_(group.index):
-            res = res.align(group)[0]
-        return res
+    elif isinstance(res, DataFrame) and not res.index.is_(group.index):
+        return res._align_frame(group)[0]
     else:
         return res
