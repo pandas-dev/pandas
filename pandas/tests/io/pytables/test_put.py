@@ -16,7 +16,6 @@ from pandas import (
     HDFStore,
     Index,
     MultiIndex,
-    RangeIndex,
     Series,
     _testing as tm,
     concat,
