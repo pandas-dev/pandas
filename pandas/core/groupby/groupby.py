@@ -70,7 +70,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
 from pandas.core.dtypes.common import (
@@ -472,12 +471,11 @@ user defined function, and no alternative execution attempts will be tried.
     The resulting dtype will reflect the return value of the passed ``func``,
     see the examples below.
 
-.. deprecated:: 1.5.0
+.. versionchanged:: 2.0.0
 
     When using ``.transform`` on a grouped DataFrame and the transformation function
-    returns a DataFrame, currently pandas does not align the result's index
-    with the input's index. This behavior is deprecated and alignment will
-    be performed in a future version of pandas. You can apply ``.to_numpy()`` to the
+    returns a DataFrame, pandas now aligns the result's index
+    with the input's index. You can call ``.to_numpy()`` on the
     result of the transformation function to avoid alignment.
 
 Examples
@@ -832,19 +830,11 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         for each group
         """
         keys = self.keys
+        result = self.grouper.get_iterator(self._selected_obj, axis=self.axis)
         if isinstance(keys, list) and len(keys) == 1:
-            warnings.warn(
-                (
-                    "In a future version of pandas, a length 1 "
-                    "tuple will be returned when iterating over a "
-                    "groupby with a grouper equal to a list of "
-                    "length 1. Don't supply a list with a single grouper "
-                    "to avoid this warning."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return self.grouper.get_iterator(self._selected_obj, axis=self.axis)
+            # GH#42795 - when keys is a list, return tuples even when length is 1
+            result = (((key,), group) for key, group in result)
+        return result
 
 
 # To track operations that expand dimensions, like ohlc
