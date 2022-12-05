@@ -714,6 +714,10 @@ class PlotAccessor(PandasObject):
 
            Now applicable to planar plots (`scatter`, `hexbin`).
 
+        .. versionchanged:: 2.0.0
+
+            Now applicable to histograms.
+
     ylabel : label, optional
         Name to use for the ylabel on y-axis. Default will show no ylabel, or the
         y-column name for planar plots.
@@ -723,6 +727,10 @@ class PlotAccessor(PandasObject):
         .. versionchanged:: 1.2.0
 
            Now applicable to planar plots (`scatter`, `hexbin`).
+
+        .. versionchanged:: 2.0.0
+
+            Now applicable to histograms.
 
     rot : float, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal
