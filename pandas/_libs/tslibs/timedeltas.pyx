@@ -1243,8 +1243,6 @@ cdef class _Timedelta(timedelta):
         """
         Convert the Timedelta to a NumPy timedelta64.
 
-        .. versionadded:: 0.25.0
-
         This is an alias method for `Timedelta.to_timedelta64()`. The dtype and
         copy parameters are available here only for compatibility. Their values
         will not affect the return value.

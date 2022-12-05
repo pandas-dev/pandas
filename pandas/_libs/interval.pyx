@@ -126,8 +126,6 @@ cdef class IntervalMixin:
         """
         Indicates if an interval is empty, meaning it contains no points.
 
-        .. versionadded:: 0.25.0
-
         Returns
         -------
         bool or ndarray

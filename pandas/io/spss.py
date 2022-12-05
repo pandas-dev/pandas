@@ -24,8 +24,6 @@ def read_spss(
     """
     Load an SPSS file from the file path, returning a DataFrame.
 
-    .. versionadded:: 0.25.0
-
     Parameters
     ----------
     path : str or Path

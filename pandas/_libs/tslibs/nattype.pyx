@@ -265,8 +265,6 @@ cdef class _NaT(datetime):
         """
         Convert the Timestamp to a NumPy datetime64 or timedelta64.
 
-        .. versionadded:: 0.25.0
-
         With the default 'dtype', this is an alias method for `NaT.to_datetime64()`.
 
         The copy parameter is available here only for compatibility. Its value

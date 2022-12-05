@@ -530,8 +530,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         Create a SparseArray from a scipy.sparse matrix.
 
-        .. versionadded:: 0.25.0
-
         Parameters
         ----------
         data : scipy.sparse.sp_matrix

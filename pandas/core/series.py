@@ -4117,8 +4117,6 @@ Keep all original rows and also all original values
         """
         Transform each element of a list-like to a row.
 
-        .. versionadded:: 0.25.0
-
         Parameters
         ----------
         ignore_index : bool, default False

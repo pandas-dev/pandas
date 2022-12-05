@@ -127,9 +127,6 @@ attributes and methods that are specific to sparse data.
 This accessor is available only on data with ``SparseDtype``, and on the :class:`Series`
 class itself for creating a Series with sparse data from a scipy COO matrix with.
 
-
-.. versionadded:: 0.25.0
-
 A ``.sparse`` accessor has been added for :class:`DataFrame` as well.
 See :ref:`api.frame.sparse` for more.
 
@@ -270,8 +267,6 @@ Interaction with *scipy.sparse*
 -------------------------------
 
 Use :meth:`DataFrame.sparse.from_spmatrix` to create a :class:`DataFrame` with sparse values from a sparse matrix.
-
-.. versionadded:: 0.25.0
 
 .. ipython:: python
 
