@@ -791,6 +791,13 @@ class TestIntervalIndex:
         result = index.is_overlapping
         assert result is expected
 
+        # intervals with duplicate left values
+        a = [10, 15, 20, 25, 30, 35, 40, 45, 45, 50, 55, 60, 65, 70, 75, 80, 85]
+        b = [15, 20, 25, 30, 35, 40, 45, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]
+        index = IntervalIndex.from_arrays(a, b, closed="right")
+        result = index.is_overlapping
+        assert result is False
+
     @pytest.mark.parametrize(
         "tuples",
         [
