@@ -154,7 +154,7 @@ def _convert_arrays_to_dataframe(
         use_nullable_dtypes=use_nullable_dtypes,
     )
     if arrays:
-        return DataFrame({col: val for col, val in zip(columns, arrays)})
+        return DataFrame(dict(zip(columns, arrays)))
     else:
         return DataFrame(columns=columns)
 
