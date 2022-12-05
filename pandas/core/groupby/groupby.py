@@ -405,7 +405,9 @@ f : function, str
 
     Accepted inputs are:
 
-    - string function name
+    - String function name
+    - Standard Python function
+    - User defined functions IE ``lambda x: x.sum()``
     - Numba JIT function with ``engine='numba'`` specified.
 
     Only passing a single function is supported with this engine.
@@ -415,8 +417,8 @@ f : function, str
     Each group's index will be passed to the user defined function
     and optionally available for use.
 
-    If a string is chosen, then it needs to be the string of the
-    groupby method you want to use.
+    If a string is chosen, then it needs to be the string name
+    of the groupby method you want to use.
 
     .. versionchanged:: 1.1.0
 *args

@@ -451,6 +451,11 @@ class SeriesGroupBy(GroupBy[Series]):
     Parrot    10.0
     Parrot    10.0
     Name: Max Speed, dtype: float64
+    >>> grouped.transform("mean")
+    Falcon    370.0
+    Falcon    370.0
+    Parrot     25.0
+    Parrot     25.0
     """
     )
 
@@ -543,6 +548,14 @@ class SeriesGroupBy(GroupBy[Series]):
         3    4
         5    6
         Name: B, dtype: int64
+        >>> grouped.transform("mean")
+            B    C
+        0  3.0  4.0
+        1  4.0  5.0
+        2  3.0  4.0
+        3  4.0  5.0
+        4  3.0  4.0
+        5  4.0  5.0
         """
         if isinstance(func, str):
             wrapper = lambda x: getattr(x, func)(*args, **kwargs)
