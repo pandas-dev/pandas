@@ -781,9 +781,6 @@ def to_datetime(
         out-of-bounds values will render the cache unusable and may slow down
         parsing.
 
-        .. versionchanged:: 0.25.0
-            changed default value from :const:`False` to :const:`True`.
-
     Returns
     -------
     datetime
