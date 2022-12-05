@@ -31,11 +31,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-    UInt64Index,
-)
+from pandas.core.api import NumericIndex
 
 
 class TestIndexConstructorInference:
@@ -91,11 +87,11 @@ class TestIndexConstructorInference:
     def test_constructor_int_dtype_float(self, dtype):
         # GH#18400
         if is_unsigned_integer_dtype(dtype):
-            index_type = UInt64Index
+            expected_dtype = np.uint64
         else:
-            index_type = Int64Index
+            expected_dtype = np.int64
 
-        expected = index_type([0, 1, 2, 3])
+        expected = NumericIndex([0, 1, 2, 3], dtype=expected_dtype)
         result = Index([0.0, 1.0, 2.0, 3.0], dtype=dtype)
         tm.assert_index_equal(result, expected)
 
@@ -293,8 +289,8 @@ class TestDtypeEnforced:
         ],
     )
     def test_constructor_dtypes_to_int64(self, vals):
-        index = Index(vals, dtype=int)
-        assert isinstance(index, Int64Index)
+        index = NumericIndex(vals, dtype=int)
+        assert index.dtype == np.int64
 
     @pytest.mark.parametrize(
         "vals",
@@ -307,8 +303,8 @@ class TestDtypeEnforced:
         ],
     )
     def test_constructor_dtypes_to_float64(self, vals):
-        index = Index(vals, dtype=float)
-        assert isinstance(index, Float64Index)
+        index = NumericIndex(vals, dtype=float)
+        assert index.dtype == np.float64
 
     @pytest.mark.parametrize(
         "vals",

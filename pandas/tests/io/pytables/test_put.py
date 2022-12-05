@@ -21,7 +21,7 @@ from pandas import (
     _testing as tm,
     concat,
 )
-from pandas.core.api import Int64Index
+from pandas.core.api import NumericIndex
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
@@ -250,7 +250,7 @@ def test_column_multiindex(setup_path):
     df = DataFrame(np.arange(12).reshape(3, 4), columns=index)
     expected = df.copy()
     if isinstance(expected.index, RangeIndex):
-        expected.index = Int64Index(expected.index)
+        expected.index = NumericIndex(expected.index, dtype=np.int64)
 
     with ensure_clean_store(setup_path) as store:
 
@@ -282,7 +282,7 @@ def test_column_multiindex(setup_path):
     df = DataFrame(np.arange(12).reshape(3, 4), columns=Index(list("ABCD"), name="foo"))
     expected = df.copy()
     if isinstance(expected.index, RangeIndex):
-        expected.index = Int64Index(expected.index)
+        expected.index = NumericIndex(expected.index, dtype=np.int64)
 
     with ensure_clean_store(setup_path) as store:
 
