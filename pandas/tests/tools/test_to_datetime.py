@@ -117,6 +117,7 @@ class TestTimeConversionFormats:
         tm.assert_series_equal(result, expected)
 
     def test_to_datetime_format_YYYYMMDD_with_nat(self, cache):
+        # GH50051
         ser = Series([19801222, 19801222] + [19810105] * 5)
         # with NaT
         expected = Series(
@@ -136,7 +137,7 @@ class TestTimeConversionFormats:
 
     def test_to_datetime_format_YYYYMMDD_ignore(self, cache):
         # coercion
-        # GH 7930
+        # GH 7930, GH50054
         ser = Series([20121231, 20141231, 99991231])
         expected = Series([20121231, 20141231, 99991231], dtype=object)
         result = to_datetime(ser, format="%Y%m%d", errors="ignore", cache=cache)
