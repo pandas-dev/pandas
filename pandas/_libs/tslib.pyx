@@ -550,10 +550,17 @@ cpdef array_to_datetime(
                     seen_datetime = True
                     iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
 
-                elif (
-                    (is_integer_object(val) or is_float_object(val))
-                    and format is None
-                ):
+                elif is_integer_object(val) or is_float_object(val):
+                    if require_iso8601:
+                        if is_coerce:
+                            iresult[i] = NPY_NAT
+                            continue
+                        elif is_raise:
+                            raise ValueError(
+                                f"time data \"{val}\" at position {i} doesn't "
+                                f"match format \"{format}\""
+                            )
+                        return values, tz_out
                     # these must be ns unit by-definition
                     seen_integer = True
 
@@ -572,10 +579,7 @@ cpdef array_to_datetime(
                         except OverflowError:
                             iresult[i] = NPY_NAT
 
-                elif (
-                    (is_integer_object(val) or is_float_object(val))
-                    or isinstance(val, str)
-                ):
+                elif isinstance(val, str):
                     # string
                     if type(val) is not str:
                         # GH#32264 np.str_ object
