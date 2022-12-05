@@ -9,6 +9,7 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     Sized,
     TypeVar,
     cast,
@@ -71,10 +72,12 @@ from pandas.core.dtypes.common import (
     pandas_dtype as pandas_dtype_func,
 )
 from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
+    PandasExtensionDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -1007,6 +1010,7 @@ def convert_dtypes(
     convert_boolean: bool = True,
     convert_floating: bool = True,
     infer_objects: bool = False,
+    nullable_backend: Literal["pandas", "pyarrow"] = "pandas",
 ) -> DtypeObj:
     """
     Convert objects to best possible type, and optionally,
@@ -1028,6 +1032,11 @@ def convert_dtypes(
     infer_objects : bool, defaults False
         Whether to also infer objects to float/int if possible. Is only hit if the
         object array contains pd.NA.
+    nullable_backend : str, default "pandas"
+        Nullable dtype implementation to use.
+
+        * "pandas" returns numpy-backed nullable types
+        * "pyarrow" returns pyarrow-backed nullable types using ``ArrowDtype``
 
     Returns
     -------
@@ -1111,7 +1120,19 @@ def convert_dtypes(
             inferred_dtype = input_array.dtype
 
     else:
-        return input_array.dtype
+        inferred_dtype = input_array.dtype
+
+    if nullable_backend == "pyarrow":
+        from pandas.core.arrays.arrow.array import to_pyarrow_type
+        from pandas.core.arrays.arrow.dtype import ArrowDtype
+
+        if isinstance(inferred_dtype, (PandasExtensionDtype, BaseMaskedDtype)):
+            base_dtype = inferred_dtype.base
+        else:
+            base_dtype = inferred_dtype
+        pa_type = to_pyarrow_type(base_dtype)
+        if pa_type is not None:
+            inferred_dtype = ArrowDtype(pa_type)
 
     # error: Incompatible return value type (got "Union[str, Union[dtype[Any],
     # ExtensionDtype]]", expected "Union[dtype[Any], ExtensionDtype]")
