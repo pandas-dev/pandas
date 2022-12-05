@@ -636,6 +636,7 @@ Performance improvements
 - Performance improvement in :func:`merge` when not merging on the index - the new index will now be :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`49478`)
 - Performance improvement in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` when using any non-object dtypes (:issue:`46470`)
 - Performance improvement in :func:`read_html` when there are multiple tables (:issue:`49929`)
+- Performance improvement in :func:`to_datetime` with ``format='%Y%m%d'`` (:issue:`17410`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
@@ -659,8 +660,9 @@ Datetimelike
 - Bug in ``pandas.tseries.holiday.Holiday`` where a half-open date interval causes inconsistent return types from :meth:`USFederalHolidayCalendar.holidays` (:issue:`49075`)
 - Bug in rendering :class:`DatetimeIndex` and :class:`Series` and :class:`DataFrame` with timezone-aware dtypes with ``dateutil`` or ``zoneinfo`` timezones near daylight-savings transitions (:issue:`49684`)
 - Bug in :func:`to_datetime` was raising ``ValueError`` when parsing :class:`Timestamp` or ``datetime`` objects with non-ISO8601 ``format`` (:issue:`49298`)
-- Bug in :func:`to_datetime` with ``exact`` and ``format=%Y%m%d`` wasn't raising if the input didn't match the format (:issue:`50051`)
+- Bug in :func:`to_datetime` with ``exact`` and ``format='%Y%m%d'`` wasn't raising if the input didn't match the format (:issue:`50051`)
 - Bug in :func:`to_datetime` was raising ``ValueError`` when parsing :class:`Timestamp`, ``datetime``, or ``np.datetime64`` objects with non-ISO8601 ``format`` (:issue:`49298`, :issue:`50036`)
+- Bug in :func:`to_datetime` with ``errors='ignore'`` and ``format='%Y%m%d'`` was returning out-of-bounds inputs as ``datetime.datetime`` objects instead of returning the input (:issue:`50054`)
 -
 
 Timedelta
