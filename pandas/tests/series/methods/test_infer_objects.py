@@ -21,3 +21,10 @@ class TestInferObjects:
 
         assert actual.dtype == "object"
         tm.assert_series_equal(actual, expected)
+
+    def test_infer_objects_bytes(self):
+        # GH#49650
+        ser = Series([b"a"], dtype="bytes")
+        expected = ser.copy()
+        result = ser.infer_objects()
+        tm.assert_series_equal(result, expected)
