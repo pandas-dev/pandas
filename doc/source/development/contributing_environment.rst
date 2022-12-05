@@ -220,41 +220,41 @@ Option 2: creating an environment using Docker
 ----------------------------------------------
 
 Instead of manually setting up a development environment, you can use `Docker
-<https://docs.docker.com/get-docker/>`_ to automatically create the environment with just several
-commands. pandas provides a ``DockerFile`` in the root directory to build a Docker image
-with a full pandas development environment.
+<https://docs.docker.com/get-docker/>`_. pandas provides pre-built images that serve a
+variety of users. These images include:
 
-**Docker Commands**
+  * alpine - a lightweight image for the absolute minimalist (note: this is experimental)
+  * pip-minimal - a pip-based installation with the minimum set of packages for building / testing
+  * mamba-minimal - a mamba-based installation with the minimum set of packages for building / testing
+  * pip-all - a pip-based installation with all testing dependencies
+  * mamba-all - a mamba-based installation with all testing dependencies
 
-Build the Docker image::
+If you are a new user and the image size is no concern to you, we suggest opting for either image
+that includes all of the dependencies, as this will ensure you can run the test suite without any
+caveats.
 
-    # Build the image
-    docker build -t pandas-dev .
+To use any of the images, you should first start with ``docker pull willayd/pandas-dev:<tag>``,
+where tag is one of *alpine*, *pip-minimal*, *mamba-minimal*, *pip-all* or *mamba-all*. You can then run
+the image without any extra configuration.
 
-Run Container::
-
-    # Run a container and bind your local repo to the container
-    # This command assumes you are running from your local repo
-    # but if not alter ${PWD} to match your local repo path
-    docker run -it --rm -v ${PWD}:/home/pandas pandas-dev
-
-When inside the running container you can build and install pandas the same way as the other methods
+To illustrate, if you wanted to use the *pip-all* image, from the root of your local pandas project
+you would run:
 
 .. code-block:: bash
 
-   python setup.py build_ext -j 4
-   python -m pip install -e . --no-build-isolation --no-use-pep517
+   docker pull willayd/pandas-dev:pip-all
+   docker run --rm -it -v ${PWD}:/home/pandas willayd/pandas-dev:pip-all
 
-*Even easier, you can integrate Docker with the following IDEs:*
+Similarly for *mamba-all*
 
-**Visual Studio Code**
+.. code-block:: bash
 
-You can use the DockerFile to launch a remote session with Visual Studio Code,
-a popular free IDE, using the ``.devcontainer.json`` file.
-See https://code.visualstudio.com/docs/remote/containers for details.
+   docker pull willayd/pandas-dev:mamba-all
+   docker run --rm -it -v ${PWD}:/home/pandas willayd/pandas-dev:mamba-all
 
-**PyCharm (Professional)**
+The *mamba-* images will automatically activate the appropriate virtual environment for you on entry.
 
-Enable Docker support and use the Services tool window to build and manage images as well as
-run and interact with containers.
-See https://www.jetbrains.com/help/pycharm/docker.html for details.
+.. note::
+
+   You may run the images from a directory besides the root of the pandas project - just be
+   sure to substitute ${PWD} in the commands above to point to your local pandas repository

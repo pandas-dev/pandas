@@ -8,5 +8,6 @@ RUN mamba env create -f \
 
 RUN mamba init
 RUN echo "\nmamba activate pandas-dev" >> ~/.bashrc
+RUN mamba clean --all -qy
 
 WORKDIR /home/pandas
