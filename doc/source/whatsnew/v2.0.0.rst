@@ -596,6 +596,7 @@ Removal of prior version deprecations/changes
 - Enforced deprecation of silently dropping nuisance columns in groupby and resample operations when ``numeric_only=False`` (:issue:`41475`)
 - Changed default of ``numeric_only`` in various :class:`.DataFrameGroupBy` methods; all methods now default to ``numeric_only=False`` (:issue:`46072`)
 - Changed default of ``numeric_only`` to ``False`` in :class:`.Resampler` methods (:issue:`47177`)
+- Using the method :meth:`DataFrameGroupBy.transform` with a callable that returns DataFrames will align to the input's index (:issue:`47244`)
 -
 
 .. ---------------------------------------------------------------------------
