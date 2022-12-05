@@ -1736,7 +1736,9 @@ class _iLocIndexer(_LocationIndexer):
                             arr = extract_array(value, extract_numpy=True)
                             taker = -1 * np.ones(len(self.obj), dtype=np.intp)
                             empty_value = algos.take_nd(arr, taker)
-                            if not isinstance(value, ABCSeries):
+                            if not isinstance(value, ABCSeries) and not isinstance(
+                                indexer[0], dict
+                            ):
                                 # if not Series (in which case we need to align),
                                 #  we can short-circuit
                                 empty_value[indexer[0]] = arr

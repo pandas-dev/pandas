@@ -1737,6 +1737,13 @@ class TestLocILocDataFrameCategorical:
 
         assert ser.index.dtype == object
 
+    def test_loc_setitem_empty_frame_expansion(self):
+        # GH#49972
+        result = DataFrame()
+        result.loc[0, 0] = np.asarray([0])
+        expected = DataFrame({0: [0.0]})
+        tm.assert_frame_equal(result, expected)
+
     def test_loc_on_multiindex_one_level(self):
         # GH#45779
         df = DataFrame(
