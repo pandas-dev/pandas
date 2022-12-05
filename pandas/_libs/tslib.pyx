@@ -12,6 +12,7 @@ from cpython.object cimport PyObject
 import_datetime()
 
 
+import dateutil
 cimport numpy as cnp
 from numpy cimport (
     float64_t,
@@ -516,6 +517,7 @@ cpdef array_to_datetime(
     assert is_raise or is_ignore or is_coerce
 
     result = np.empty(n, dtype="M8[ns]")
+    result_timezone = np.empty(n, dtype="object")
     iresult = result.view("i8")
 
     try:
@@ -633,10 +635,12 @@ cpdef array_to_datetime(
                             # dateutil timezone objects cannot be hashed, so
                             # store the UTC offsets in seconds instead
                             out_tzoffset_vals.add(tz.total_seconds())
+                            result_timezone[i] = tz.total_seconds()
                         else:
                             # Add a marker for naive string, to track if we are
                             # parsing mixed naive and aware strings
                             out_tzoffset_vals.add("naive")
+                            result_timezone[i] = None
 
                         _ts = convert_datetime_to_tsobject(py_dt, None)
                         iresult[i] = _ts.value
@@ -650,6 +654,7 @@ cpdef array_to_datetime(
                             # since we store the total_seconds of
                             # dateutil.tz.tzoffset objects
                             out_tzoffset_vals.add(out_tzoffset * 60.)
+                            result_timezone[i] = out_tzoffset * 60.
                             tz = pytz.FixedOffset(out_tzoffset)
                             value = tz_localize_to_utc_single(value, tz)
                             out_local = 0
@@ -658,6 +663,7 @@ cpdef array_to_datetime(
                             # Add a marker for naive string, to track if we are
                             # parsing mixed naive and aware strings
                             out_tzoffset_vals.add("naive")
+                            result_timezone[i] = None
                         iresult[i] = value
                         check_dts_bounds(&dts)
 
@@ -715,7 +721,18 @@ cpdef array_to_datetime(
         #    (with individual dateutil.tzoffsets) are returned
         is_same_offsets = len(out_tzoffset_vals) == 1
         if not is_same_offsets:
-            return _array_to_datetime_object(values, errors, dayfirst, yearfirst)
+            _result = np.empty(n, dtype="object")
+            for i in range(n):
+                if iresult[i] == NPY_NAT:
+                    _result[i] = NaT
+                    continue
+                _dt = parse_datetime_string(str(result[i]))
+                if result_timezone[i] is not None:
+                    _tzinfo = dateutil.tz.tzoffset(None, result_timezone[i])
+                    _result[i] = _dt.replace(tzinfo=pytz.UTC).astimezone(_tzinfo)
+                else:
+                    _result[i] = _dt
+            return _result, None
         else:
             tz_offset = out_tzoffset_vals.pop()
             tz_out = pytz.FixedOffset(tz_offset / 60.)

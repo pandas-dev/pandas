@@ -1353,11 +1353,11 @@ class TestToDatetime:
         mixed = to_datetime(ser)
         expected = Series(
             [
-                "NaT",
+                NaT,
                 Timestamp("1990-01-01"),
                 Timestamp("2015-03-14T16:15:14.123-08:00").to_pydatetime(),
                 Timestamp("2019-03-04T21:56:32.620-07:00").to_pydatetime(),
-                None,
+                NaT,
             ],
             dtype=object,
         )
