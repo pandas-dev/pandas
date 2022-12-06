@@ -492,7 +492,6 @@ Examples
 --------
 
 >>> %(example)s
-
 .. versionchanged:: 1.3.0
 
     The resulting dtype will reflect the return value of the passed ``func``,

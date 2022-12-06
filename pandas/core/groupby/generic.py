@@ -1491,7 +1491,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     3  3.0  8.0
     4  4.0  6.0
     5  3.0  8.0
-        """
+    """
     )
 
     @Substitution(
