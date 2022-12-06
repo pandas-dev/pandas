@@ -1017,7 +1017,7 @@ def to_datetime(
 
     - Inputs can contain both string or datetime, the above
       rules still apply
-    >>> from datetime import timezone, timedelta
+
     >>> pd.to_datetime(['2018-10-26 12:00', datetime(2020, 1, 1, 18)], utc=True)
     DatetimeIndex(['2018-10-26 12:00:00+00:00', '2020-01-01 18:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)

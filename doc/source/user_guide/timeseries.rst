@@ -766,7 +766,7 @@ partially matching dates:
    rng2 = pd.date_range("2011-01-01", "2012-01-01", freq="W")
    ts2 = pd.Series(np.random.randn(len(rng2)), index=rng2)
 
-   ts2.truncate(before="2011-11-01", after="2011-12-01")
+   ts2.truncate(before="2011-11", after="2011-12")
    ts2["2011-11":"2011-12"]
 
 Even complicated fancy indexing that breaks the ``DatetimeIndex`` frequency
