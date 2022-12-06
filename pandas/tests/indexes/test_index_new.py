@@ -288,9 +288,10 @@ class TestDtypeEnforced:
             np.array([1.0, 2.0, 3.0], dtype=float),
         ],
     )
-    def test_constructor_dtypes_to_int64(self, vals):
-        index = NumericIndex(vals, dtype=int)
-        assert index.dtype == np.int64
+    def test_constructor_dtypes_to_int64(self, vals, any_int_numpy_dtype):
+        dtype = any_int_numpy_dtype
+        index = NumericIndex(vals, dtype=dtype)
+        assert index.dtype == dtype
 
     @pytest.mark.parametrize(
         "vals",
