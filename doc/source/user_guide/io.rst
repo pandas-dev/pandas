@@ -970,6 +970,7 @@ Inferring datetime format
 
 Here are some examples of datetime strings that can be guessed (all
 representing December 30th, 2011 at 00:00:00):
+
 * "20111230"
 * "2011/12/30"
 * "20111230 00:00:00"

@@ -13,6 +13,17 @@ a tremendous amount of new functionality for manipulating time series data.
 
 For example, pandas supports:
 
+Parsing time series information from various sources and formats
+
+.. ipython:: python
+
+   import datetime
+
+   dti = pd.to_datetime(
+       ["1/1/2018", np.datetime64("2018-01-01"), datetime.datetime(2018, 1, 1)]
+   )
+   dti
+
 Generate sequences of fixed-frequency dates and time spans
 
 .. ipython:: python
