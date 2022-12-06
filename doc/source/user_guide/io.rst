@@ -984,8 +984,9 @@ Note that format inference is sensitive to ``dayfirst``.  With
 
 If you try to parse a column of date strings, pandas will attempt to guess the format
 from the first non-NaN element, and will then parse the rest of the column with that
-format. If pandas fails to guess the format, then a warning will be raised, and each
-row will have its format guessed individually by ``dateutil.parser.parse``. The safest
+format. If pandas fails to guess the format (for example if your first string is
+``'01 December US/Pacific 2000'``), then a warning will be raised and each
+row will be parsed individually by ``dateutil.parser.parse``. The safest
 way to parse dates is to explicitly set ``format=``.
 
 .. ipython:: python
