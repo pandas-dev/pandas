@@ -5,6 +5,7 @@ import pandas._testing as tm
 
 class TestInferObjects:
     def test_copy(self, index_or_series):
+        # GH#50096
         # case where we don't need to do inference because it is already non-object
         obj = index_or_series(np.array([1, 2, 3], dtype="int64"))
 
