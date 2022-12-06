@@ -286,7 +286,7 @@ class TestNumpyReductions:
                 expected = obj.prod(numeric_only=False)
                 tm.assert_series_equal(result, expected)
             elif box is pd.Index:
-                # Int64Index, Index has no 'prod'
+                # Index has no 'prod'
                 expected = obj._values.prod()
                 assert result == expected
             else:
@@ -317,7 +317,7 @@ class TestNumpyReductions:
                 expected = obj.sum(numeric_only=False)
                 tm.assert_series_equal(result, expected)
             elif box is pd.Index:
-                # Int64Index, Index has no 'sum'
+                # Index has no 'sum'
                 expected = obj._values.sum()
                 assert result == expected
             else:

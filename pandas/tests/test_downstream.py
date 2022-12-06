@@ -39,7 +39,6 @@ def df():
     return DataFrame({"A": [1, 2, 3]})
 
 
-@pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 def test_dask(df):
 
     # dask sets "compute.use_numexpr" to False, so catch the current value
@@ -59,7 +58,6 @@ def test_dask(df):
         pd.set_option("compute.use_numexpr", olduse)
 
 
-@pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 @pytest.mark.filterwarnings("ignore:The __array_wrap__:DeprecationWarning")
 def test_dask_ufunc():
     # At the time of dask 2022.01.0, dask is still directly using __array_wrap__
@@ -158,7 +156,6 @@ def test_oo_optimized_datetime_index_unpickle():
 @tm.network
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
-@pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 @pytest.mark.filterwarnings(
     # patsy needs to update their imports
     "ignore:Using or importing the ABCs from 'collections:DeprecationWarning"

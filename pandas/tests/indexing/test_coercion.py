@@ -16,10 +16,7 @@ from pandas.compat import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-)
+from pandas.core.api import NumericIndex
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions
@@ -217,7 +214,7 @@ class TestInsertIndexCoercion(CoercionBase):
         ],
     )
     def test_insert_index_int64(self, insert, coerced_val, coerced_dtype):
-        obj = Int64Index([1, 2, 3, 4])
+        obj = NumericIndex([1, 2, 3, 4], dtype=np.int64)
         assert obj.dtype == np.int64
 
         exp = pd.Index([1, coerced_val, 2, 3, 4])
@@ -233,7 +230,7 @@ class TestInsertIndexCoercion(CoercionBase):
         ],
     )
     def test_insert_index_float64(self, insert, coerced_val, coerced_dtype):
-        obj = Float64Index([1.0, 2.0, 3.0, 4.0])
+        obj = NumericIndex([1.0, 2.0, 3.0, 4.0], dtype=np.float64)
         assert obj.dtype == np.float64
 
         exp = pd.Index([1.0, coerced_val, 2.0, 3.0, 4.0])
