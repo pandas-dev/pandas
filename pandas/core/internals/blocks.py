@@ -1980,6 +1980,7 @@ class ObjectBlock(NumpyBlock):
             convert_datetime=True,
             convert_timedelta=True,
             convert_period=True,
+            convert_interval=True,
         )
         res_values = ensure_block_shape(res_values, self.ndim)
         return [self.make_block(res_values)]
