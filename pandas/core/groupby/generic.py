@@ -457,7 +457,7 @@ class SeriesGroupBy(GroupBy[Series]):
     """
     )
 
-    @Substitution(klass="Series", example_class="ser", example=__examples_series_doc)
+    @Substitution(klass="Series", example=__examples_series_doc)
     @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         return self._transform(
@@ -546,14 +546,6 @@ class SeriesGroupBy(GroupBy[Series]):
         3    4
         5    6
         Name: B, dtype: int64
-        >>> grouped.transform("mean")
-            B    C
-        0  3.0  4.0
-        1  4.0  5.0
-        2  3.0  4.0
-        3  4.0  5.0
-        4  3.0  4.0
-        5  4.0  5.0
         """
         if isinstance(func, str):
             wrapper = lambda x: getattr(x, func)(*args, **kwargs)
@@ -1471,12 +1463,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     3  3.0  8.0
     4  4.0  6.0
     5  3.0  8.0
+
+    >>> grouped.transform("mean")
+        B    C
+    0  3.666667  4.0
+    1  4.000000  5.0
+    2  3.666667  4.0
+    3  4.000000  5.0
+    4  3.666667  4.0
+    5  4.000000  5.0
     """
     )
 
-    @Substitution(
-        klass="DataFrame", example_class="df", example=__examples_dataframe_doc
-    )
+    @Substitution(klass="DataFrame", example=__examples_dataframe_doc)
     @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         return self._transform(
