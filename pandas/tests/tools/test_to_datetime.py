@@ -469,10 +469,10 @@ class TestTimeConversionFormats:
 class TestToDatetime:
     def test_to_datetime_mixed_datetime_and_string(self):
         # GH#47018 adapted old doctest with new behavior
-        d1 = datetime(2020, 1, 1, 17, tzinfo=pytz.FixedOffset(-60))
-        d2 = datetime(2020, 1, 1, 18, tzinfo=pytz.FixedOffset(-60))
-        res = to_datetime(["2020-01-01 17:00 -0100", d2])
-        expected = to_datetime([d1, d2])
+        d1 = datetime(2020, 1, 1, 17, tzinfo=timezone(-timedelta(hours=1)))
+        d2 = datetime(2020, 1, 1, 18, tzinfo=timezone(-timedelta(hours=1)))
+        res = to_datetime(["2020-01-01 17:00:00-01:00", d2])
+        expected = to_datetime([d1, d2]).tz_convert(pytz.FixedOffset(-60))
         tm.assert_index_equal(res, expected)
 
     @pytest.mark.parametrize(
@@ -1335,10 +1335,7 @@ class TestToDatetime:
         tm.assert_series_equal(mixed, expected)
 
         with pytest.raises(ValueError, match="Tz-aware datetime.datetime"):
-            with tm.assert_produces_warning(
-                UserWarning, match="Could not infer format"
-            ):
-                to_datetime(mixed)
+            to_datetime(mixed)
 
     def test_non_iso_strings_with_tz_offset(self):
         result = to_datetime(["March 1, 2018 12:00:00+0400"] * 2)
@@ -2304,13 +2301,11 @@ class TestToDatetimeInferFormat:
         s_as_dt_strings = ser.apply(lambda x: x.strftime(test_format))
 
         with_format = to_datetime(s_as_dt_strings, format=test_format, cache=cache)
-        no_infer = to_datetime(s_as_dt_strings, cache=cache)
-        yes_infer = to_datetime(s_as_dt_strings, cache=cache)
+        without_format = to_datetime(s_as_dt_strings, cache=cache)
 
-        # Whether the format is explicitly passed, it is inferred, or
+        # Whether the format is explicitly passed, or
         # it is not inferred, the results should all be the same
-        tm.assert_series_equal(with_format, no_infer)
-        tm.assert_series_equal(no_infer, yes_infer)
+        tm.assert_series_equal(with_format, without_format)
 
     @pytest.mark.parametrize(
         "tz_name, offset, warning",
