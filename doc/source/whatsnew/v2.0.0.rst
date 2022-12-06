@@ -83,6 +83,7 @@ Other enhancements
 - :func:`timedelta_range` now supports a ``unit`` keyword ("s", "ms", "us", or "ns") to specify the desired resolution of the output index (:issue:`49824`)
 - :meth:`DataFrame.to_json` now supports a ``mode`` keyword with supported inputs 'w' and 'a'. Defaulting to 'w', 'a' can be used when lines=True and orient='records' to append record oriented json lines to an existing json file. (:issue:`35849`)
 - Added ``name`` parameter to :meth:`IntervalIndex.from_breaks`, :meth:`IntervalIndex.from_arrays` and :meth:`IntervalIndex.from_tuples` (:issue:`48911`)
+- Added :meth:`Index.infer_objects` analogous to :meth:`Series.infer_objects` (:issue:`50034`)
 - :meth:`DataFrame.plot.hist` now recognizes ``xlabel`` and ``ylabel`` arguments (:issue:`49793`)
 -
 
@@ -338,6 +339,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | fastparquet     | 0.6.3           |    X    |
 +-----------------+-----------------+---------+
+| xarray          | 0.21.0          |    X    |
++-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
@@ -520,6 +523,7 @@ Removal of prior version deprecations/changes
 - Removed the ``closed`` argument in :meth:`date_range` and :meth:`bdate_range` in favor of ``inclusive`` argument (:issue:`40245`)
 - Removed the ``center`` keyword in :meth:`DataFrame.expanding` (:issue:`20647`)
 - Removed the ``truediv`` keyword from :func:`eval` (:issue:`29812`)
+- Removed the ``method`` and ``tolerance`` arguments in :meth:`Index.get_loc`. Use ``index.get_indexer([label], method=..., tolerance=...)`` instead (:issue:`42269`)
 - Removed the ``pandas.datetime`` submodule (:issue:`30489`)
 - Removed the ``pandas.np`` submodule (:issue:`30296`)
 - Removed ``pandas.util.testing`` in favor of ``pandas.testing`` (:issue:`30745`)
@@ -790,6 +794,7 @@ Reshaping
 Sparse
 ^^^^^^
 - Bug in :meth:`Series.astype` when converting a ``SparseDtype`` with ``datetime64[ns]`` subtype to ``int64`` dtype raising, inconsistent with the non-sparse behavior (:issue:`49631`)
+- Bug in :meth:`Series.astype` when converting a from ``datetime64[ns]`` to ``Sparse[datetime64[ns]]`` incorrectly raising (:issue:`50082`)
 -
 
 ExtensionArray
