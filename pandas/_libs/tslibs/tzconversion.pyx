@@ -116,7 +116,7 @@ cdef class Localizer:
                 self.tdata = <int64_t*>cnp.PyArray_DATA(trans)
 
     @cython.boundscheck(False)
-    cdef inline int64_t utc_val_to_local_val(
+    cdef int64_t utc_val_to_local_val(
         self, int64_t utc_val, Py_ssize_t* pos, bint* fold=NULL
     ) except? -1:
         if self.use_utc:
@@ -248,9 +248,9 @@ timedelta-like}
     # silence false-positive compiler warning
     ambiguous_array = np.empty(0, dtype=bool)
     if isinstance(ambiguous, str):
-        if ambiguous == 'infer':
+        if ambiguous == "infer":
             infer_dst = True
-        elif ambiguous == 'NaT':
+        elif ambiguous == "NaT":
             fill = True
     elif isinstance(ambiguous, bool):
         is_dst = True
@@ -258,23 +258,23 @@ timedelta-like}
             ambiguous_array = np.ones(len(vals), dtype=bool)
         else:
             ambiguous_array = np.zeros(len(vals), dtype=bool)
-    elif hasattr(ambiguous, '__iter__'):
+    elif hasattr(ambiguous, "__iter__"):
         is_dst = True
         if len(ambiguous) != len(vals):
             raise ValueError("Length of ambiguous bool-array must be "
                              "the same size as vals")
         ambiguous_array = np.asarray(ambiguous, dtype=bool)
 
-    if nonexistent == 'NaT':
+    if nonexistent == "NaT":
         fill_nonexist = True
-    elif nonexistent == 'shift_forward':
+    elif nonexistent == "shift_forward":
         shift_forward = True
-    elif nonexistent == 'shift_backward':
+    elif nonexistent == "shift_backward":
         shift_backward = True
     elif PyDelta_Check(nonexistent):
         from .timedeltas import delta_to_nanoseconds
         shift_delta = delta_to_nanoseconds(nonexistent, reso=creso)
-    elif nonexistent not in ('raise', None):
+    elif nonexistent not in ("raise", None):
         msg = ("nonexistent must be one of {'NaT', 'raise', 'shift_forward', "
                "shift_backwards} or a timedelta object")
         raise ValueError(msg)
@@ -405,7 +405,7 @@ timedelta-like}
     return result.base  # .base to get underlying ndarray
 
 
-cdef inline Py_ssize_t bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
+cdef Py_ssize_t bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
     # Caller is responsible for checking n > 0
     # This looks very similar to local_search_right in the ndarray.searchsorted
     #  implementation.
@@ -434,7 +434,7 @@ cdef inline Py_ssize_t bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n)
     return left
 
 
-cdef inline str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
+cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
     """ Helper function to render exception messages"""
     from pandas._libs.tslibs.timestamps import Timestamp
     ts = Timestamp._from_value_and_reso(val, creso, None)

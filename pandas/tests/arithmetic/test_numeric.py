@@ -1149,6 +1149,9 @@ class TestObjectDtypeEquivalence:
 
         ser = tm.box_expected(ser, box)
         expected = tm.box_expected(expected, box)
+        if box is Index and dtype is object:
+            # TODO: avoid this; match behavior with Series
+            expected = expected.astype(np.float64)
 
         result = np.nan + ser
         tm.assert_equal(result, expected)
@@ -1164,6 +1167,9 @@ class TestObjectDtypeEquivalence:
 
         ser = tm.box_expected(ser, box)
         expected = tm.box_expected(expected, box)
+        if box is Index and dtype is object:
+            # TODO: avoid this; match behavior with Series
+            expected = expected.astype(np.int64)
 
         result = 1 + ser
         tm.assert_equal(result, expected)

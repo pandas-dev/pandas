@@ -26,11 +26,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-    UInt64Index,
-)
+from pandas.core.api import NumericIndex
 from pandas.core.arrays import PandasArray
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
@@ -493,10 +489,10 @@ class TestTimedelta64ArithmeticUnsorted:
         # random indexes
         msg = "Addition/subtraction of integers and integer-arrays"
         with pytest.raises(TypeError, match=msg):
-            tdi + Int64Index([1, 2, 3])
+            tdi + NumericIndex([1, 2, 3], dtype=np.int64)
 
         # this is a union!
-        # pytest.raises(TypeError, lambda : Int64Index([1,2,3]) + tdi)
+        # pytest.raises(TypeError, lambda : Index([1,2,3]) + tdi)
 
         result = tdi + dti  # name will be reset
         expected = DatetimeIndex(["20130102", NaT, "20130105"])
@@ -1511,9 +1507,9 @@ class TestTimedeltaArraylikeMulDivOps:
         "other",
         [
             np.arange(1, 11),
-            Int64Index(range(1, 11)),
-            UInt64Index(range(1, 11)),
-            Float64Index(range(1, 11)),
+            NumericIndex(np.arange(1, 11), np.int64),
+            NumericIndex(range(1, 11), np.uint64),
+            NumericIndex(range(1, 11), np.float64),
             pd.RangeIndex(1, 11),
         ],
         ids=lambda x: type(x).__name__,
@@ -1597,7 +1593,7 @@ class TestTimedeltaArraylikeMulDivOps:
         xbox = np.ndarray if box is pd.array else box
 
         rng = timedelta_range("1 days", "10 days", name="foo")
-        expected = Float64Index((np.arange(10) + 1) * 12, name="foo")
+        expected = NumericIndex((np.arange(10) + 1) * 12, dtype=np.float64, name="foo")
 
         rng = tm.box_expected(rng, box)
         expected = tm.box_expected(expected, xbox)
@@ -1637,7 +1633,7 @@ class TestTimedeltaArraylikeMulDivOps:
         xbox = np.ndarray if box is pd.array else box
 
         rng = TimedeltaIndex(["1 days", NaT, "2 days"], name="foo")
-        expected = Float64Index([12, np.nan, 24], name="foo")
+        expected = NumericIndex([12, np.nan, 24], dtype=np.float64, name="foo")
 
         rng = tm.box_expected(rng, box)
         expected = tm.box_expected(expected, xbox)
@@ -1655,7 +1651,7 @@ class TestTimedeltaArraylikeMulDivOps:
         xbox = np.ndarray if box is pd.array else box
 
         rng = TimedeltaIndex(["1 days", NaT, "2 days"])
-        expected = Float64Index([12, np.nan, 24])
+        expected = NumericIndex([12, np.nan, 24], dtype=np.float64)
 
         rng = tm.box_expected(rng, box)
         expected = tm.box_expected(expected, xbox)

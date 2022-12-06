@@ -42,7 +42,7 @@ dependencies:
   - odfpy
   - pandas-gbq
   - psycopg2
-  - pyarrow
+  - pyarrow<10
   - pymysql
   - pyreadstat
   - pytables
@@ -64,7 +64,6 @@ dependencies:
   - cftime
   - dask
   - ipython
-  - geopandas-base
   - seaborn
   - scikit-learn
   - statsmodels
