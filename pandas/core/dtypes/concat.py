@@ -4,12 +4,10 @@ Utility functions related to concat.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-import warnings
 
 import numpy as np
 
 from pandas._typing import AxisInt
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
@@ -115,15 +113,8 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
 
     result = np.concatenate(to_concat, axis=axis)
     if "b" in kinds and result.dtype.kind in ["i", "u", "f"]:
-        # GH#39817
-        warnings.warn(
-            "Behavior when concatenating bool-dtype and numeric-dtype arrays is "
-            "deprecated; in a future version these will cast to object dtype "
-            "(instead of coercing bools to numeric values). To retain the old "
-            "behavior, explicitly cast bool-dtype arrays to numeric dtype.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
+        # GH#39817 cast to object instead of casting bools to numeric
+        result = result.astype(object, copy=False)
     return result
 
 
