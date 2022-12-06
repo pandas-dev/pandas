@@ -1,17 +1,10 @@
 FROM python:3.10.8-alpine
 
 RUN apk update & apk upgrade
-RUN apk add build-base
+RUN apk add gcc g++ libc-dev
 
-RUN python -m pip install \
-  cython \
-  hypothesis \
-  numpy \
-  pytest \
-  pytest-asyncio \
-  pytz \
-  python-dateutil \
-  versioneer
+COPY requirements-minimal.txt /tmp
+RUN python -m pip install -r /tmp/requirements-minimal.txt
 
 WORKDIR /home/pandas
 CMD ["/bin/sh"]

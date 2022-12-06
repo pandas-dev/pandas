@@ -1,16 +1,10 @@
-FROM python:3.10.8
+FROM python:3.10.8-slim
 
 RUN apt update && apt upgrade -y
+RUN apt install -y gcc g++
 
-RUN python -m pip install \
-  cython \
-  hypothesis \
-  numpy \
-  pytest \
-  pytest-asyncio \
-  pytz \
-  python-dateutil \
-  versioneer
+COPY requirements-minimal.txt /tmp
+RUN python -m pip install -r /tmp/requirements-minimal.txt
 
 WORKDIR /home/pandas
 CMD ["/bin/bash"]
