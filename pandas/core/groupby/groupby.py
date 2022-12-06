@@ -487,7 +487,6 @@ user defined function, and no alternative execution attempts will be tried.
 
 Examples
 --------
-
 %(example)s
 .. versionchanged:: 1.3.0
 

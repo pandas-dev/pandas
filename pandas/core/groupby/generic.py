@@ -448,6 +448,8 @@ class SeriesGroupBy(GroupBy[Series]):
     Falcon    40.0
     Parrot    10.0
     Parrot    10.0
+    Name: Max Speed, dtype: float64
+
     >>> grouped.transform("mean")
     Falcon    370.0
     Falcon    370.0
