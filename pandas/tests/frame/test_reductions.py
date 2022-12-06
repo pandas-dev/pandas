@@ -323,12 +323,12 @@ class TestDataFrameAnalytics:
             DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object),
         ],
     )
-    def test_stat_operators_attempt_obj_array(self, method, df):
+    def test_stat_operators_attempt_obj_array(self, method, df, using_array_manager):
         # GH#676
         assert df.values.dtype == np.object_
         result = getattr(df, method)(1)
         expected = getattr(df.astype("f8"), method)(1)
-        if method in ("sum", "prod", "min", "max"):
+        if not using_array_manager and method in ("sum", "prod", "min", "max"):
             expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
 
@@ -713,7 +713,7 @@ class TestDataFrameAnalytics:
             tm.makePeriodIndex(0),
         ],
     )
-    def test_axis_1_empty(self, all_reductions, index):
+    def test_axis_1_empty(self, all_reductions, index, using_array_manager):
         df = DataFrame(columns=["a"], index=index)
         result = getattr(df, all_reductions)(axis=1)
         expected_dtype = {
@@ -726,6 +726,15 @@ class TestDataFrameAnalytics:
             "kurt": "float",
             "sem": "float",
         }.get(all_reductions, "object")
+        if using_array_manager and all_reductions in (
+            "max",
+            "min",
+            "mean",
+            "std",
+            "var",
+            "median",
+        ):
+            expected_dtype = "float"
         expected = Series([], index=index, dtype=expected_dtype)
         tm.assert_series_equal(result, expected)
 
@@ -1368,7 +1377,9 @@ class TestDataFrameReductions:
         exp = Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
 
-    def test_min_max_dt64_with_NaT_skipna_false(self, request, tz_naive_fixture):
+    def test_min_max_dt64_with_NaT_skipna_false(
+        self, request, tz_naive_fixture, using_array_manager
+    ):
         # GH#36907
         tz = tz_naive_fixture
         if isinstance(tz, tzlocal) and is_platform_windows():
@@ -1390,11 +1401,17 @@ class TestDataFrameReductions:
         expected = Series([df.loc[0, "a"], pd.NaT])
         assert expected.dtype == df["a"].dtype
 
+        if using_array_manager and tz is not None:
+            expected = expected.astype(object)
+
         tm.assert_series_equal(res, expected)
 
         res = df.max(axis=1, skipna=False)
         expected = Series([df.loc[0, "b"], pd.NaT])
         assert expected.dtype == df["a"].dtype
+
+        if using_array_manager and tz is not None:
+            expected = expected.astype(object)
 
         tm.assert_series_equal(res, expected)
 
