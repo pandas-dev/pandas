@@ -1075,8 +1075,8 @@ cdef str _fill_token(token: str, padding: int):
 cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst):
     """Warn if guessed datetime format doesn't respect dayfirst argument."""
     cdef:
-        int day_index = format.find('%d')
-        int month_index = format.find('%m')
+        int day_index = format.find("%d")
+        int month_index = format.find("%m")
 
     if (day_index != -1) and (month_index != -1):
         if (day_index > month_index) and dayfirst:
