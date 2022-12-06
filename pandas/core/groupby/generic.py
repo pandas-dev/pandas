@@ -429,7 +429,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     __examples_series_doc = dedent(
         """
-    ser = pd.Series(
+    >>> ser = pd.Series(
     ...    [390.0, 350.0, 30.0, 20.0],
     ...    index=["Falcon", "Falcon", "Parrot", "Parrot"],
     ...    name="Max Speed")
@@ -1437,7 +1437,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     __examples_dataframe_doc = dedent(
         """
-    df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+    >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
     ...                           'foo', 'bar'],
     ...                    'B' : ['one', 'one', 'two', 'three',
     ...                           'two', 'two'],

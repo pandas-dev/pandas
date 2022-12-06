@@ -488,7 +488,7 @@ user defined function, and no alternative execution attempts will be tried.
 Examples
 --------
 
->>> %(example)s
+%(example)s
 .. versionchanged:: 1.3.0
 
     The resulting dtype will reflect the return value of the passed ``func``,
