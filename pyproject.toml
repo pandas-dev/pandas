@@ -230,7 +230,6 @@ disable = [
 
  # misc
   "abstract-class-instantiated",
-  "redundant-keyword-arg",
   "no-value-for-parameter",
   "undefined-variable",
   "unpacking-non-sequence",
