@@ -74,7 +74,10 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
@@ -645,6 +648,25 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 return self.copy()
             return self
 
+        elif isinstance(dtype, ExtensionDtype):
+            if not isinstance(dtype, DatetimeTZDtype):
+                # e.g. Sparse[datetime64[ns]]
+                return super().astype(dtype, copy=copy)
+            elif self.tz is None:
+                # pre-2.0 this did self.tz_localize(dtype.tz), which did not match
+                #  the Series behavior which did
+                #  values.tz_localize("UTC").tz_convert(dtype.tz)
+                raise TypeError(
+                    "Cannot use .astype to convert from timezone-naive dtype to "
+                    "timezone-aware dtype. Use obj.tz_localize instead or "
+                    "series.dt.tz_localize instead"
+                )
+            else:
+                # tzaware unit conversion e.g. datetime64[s, UTC]
+                np_dtype = np.dtype(dtype.str)
+                res_values = astype_overflowsafe(self._ndarray, np_dtype, copy=copy)
+                return type(self)._simple_new(res_values, dtype=dtype, freq=self.freq)
+
         elif (
             self.tz is None
             and is_datetime64_dtype(dtype)
@@ -655,22 +677,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             res_values = astype_overflowsafe(self._ndarray, dtype, copy=True)
             return type(self)._simple_new(res_values, dtype=res_values.dtype)
             # TODO: preserve freq?
-
-        elif self.tz is not None and isinstance(dtype, DatetimeTZDtype):
-            # tzaware unit conversion e.g. datetime64[s, UTC]
-            np_dtype = np.dtype(dtype.str)
-            res_values = astype_overflowsafe(self._ndarray, np_dtype, copy=copy)
-            return type(self)._simple_new(res_values, dtype=dtype, freq=self.freq)
-
-        elif self.tz is None and isinstance(dtype, DatetimeTZDtype):
-            # pre-2.0 this did self.tz_localize(dtype.tz), which did not match
-            #  the Series behavior which did
-            #  values.tz_localize("UTC").tz_convert(dtype.tz)
-            raise TypeError(
-                "Cannot use .astype to convert from timezone-naive dtype to "
-                "timezone-aware dtype. Use obj.tz_localize instead or "
-                "series.dt.tz_localize instead"
-            )
 
         elif self.tz is not None and is_datetime64_dtype(dtype):
             # pre-2.0 behavior for DTA/DTI was
