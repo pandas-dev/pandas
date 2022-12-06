@@ -208,6 +208,8 @@ you can pass the ``dayfirst`` flag:
 .. ipython:: python
     :okwarning:
 
+    pd.to_datetime(["04-01-2012 10:00"], dayfirst=True)
+
     pd.to_datetime(["04-14-2012 10:00"], dayfirst=True)
 
 .. warning::
