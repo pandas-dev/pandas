@@ -140,7 +140,7 @@ ctypedef struct {{name}}VectorData:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline void append_data_{{dtype}}({{name}}VectorData *data,
+cdef void append_data_{{dtype}}({{name}}VectorData *data,
                                        {{c_type}} x) nogil:
 
     data.data[data.n] = x
@@ -163,7 +163,7 @@ ctypedef fused vector_data:
     Complex64VectorData
     StringVectorData
 
-cdef inline bint needs_resize(vector_data *data) nogil:
+cdef bint needs_resize(vector_data *data) nogil:
     return data.n == data.m
 
 # ----------------------------------------------------------------------
@@ -241,7 +241,7 @@ cdef class {{name}}Vector(Vector):
         self.external_view_exists = True
         return self.ao
 
-    cdef inline void append(self, {{c_type}} x):
+    cdef void append(self, {{c_type}} x):
 
         if needs_resize(self.data):
             if self.external_view_exists:
@@ -311,7 +311,7 @@ cdef class StringVector(Vector):
         self.data.m = self.data.n
         return ao
 
-    cdef inline void append(self, char *x):
+    cdef void append(self, char *x):
 
         if needs_resize(self.data):
             self.resize()
@@ -339,7 +339,7 @@ cdef class ObjectVector(Vector):
     def __len__(self) -> int:
         return self.n
 
-    cdef inline append(self, object obj):
+    cdef append(self, object obj):
         if self.n == self.m:
             if self.external_view_exists:
                 raise ValueError("external reference but "

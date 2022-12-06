@@ -1615,16 +1615,24 @@ cdef class BusinessHour(BusinessMixin):
         Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
-    start : str, default "09:00"
+    start : str, time, or list of str/time, default "09:00"
         Start time of your custom business hour in 24h format.
-    end : str, default: "17:00"
+    end : str, time, or list of str/time, default: "17:00"
         End time of your custom business hour in 24h format.
 
     Examples
     --------
+    >>> from datetime import time
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
     >>> ts + pd.offsets.BusinessHour()
     Timestamp('2022-08-08 09:00:00')
+    >>> ts + pd.offsets.BusinessHour(start="11:00")
+    Timestamp('2022-08-08 11:00:00')
+    >>> ts + pd.offsets.BusinessHour(end=time(19, 0))
+    Timestamp('2022-08-05 17:00:00')
+    >>> ts + pd.offsets.BusinessHour(start=[time(9, 0), "20:00"],
+    ...                              end=["17:00", time(22, 0)])
+    Timestamp('2022-08-05 20:00:00')
     """
 
     _prefix = "BH"
@@ -2460,16 +2468,25 @@ cdef class BusinessMonthEnd(MonthOffset):
     """
     DateOffset increments between the last business day of the month.
 
+    BusinessMonthEnd goes to the next date which is the last business day of the month.
+    To get the last business day of the current month pass the parameter n equals 0.
+
     Examples
     --------
-    >>> from pandas.tseries.offsets import BMonthEnd
-    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts + BMonthEnd()
-    Timestamp('2020-05-29 05:01:15')
-    >>> ts + BMonthEnd(2)
-    Timestamp('2020-06-30 05:01:15')
-    >>> ts + BMonthEnd(-2)
-    Timestamp('2020-03-31 05:01:15')
+    >>> ts = pd.Timestamp(2022, 11, 29)
+    >>> ts + pd.offsets.BMonthEnd()
+    Timestamp('2022-11-30 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 11, 30)
+    >>> ts + pd.offsets.BMonthEnd()
+    Timestamp('2022-12-30 00:00:00')
+
+    If you want to get the end of the current business month
+    pass the parameter n equals 0:
+
+    >>> ts = pd.Timestamp(2022, 11, 30)
+    >>> ts + pd.offsets.BMonthEnd(0)
+    Timestamp('2022-11-30 00:00:00')
     """
     _prefix = "BM"
     _day_opt = "business_end"
@@ -2642,11 +2659,24 @@ cdef class SemiMonthEnd(SemiMonthOffset):
 
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts = pd.Timestamp(2022, 1, 14)
     >>> ts + pd.offsets.SemiMonthEnd()
     Timestamp('2022-01-15 00:00:00')
-    """
 
+    >>> ts = pd.Timestamp(2022, 1, 15)
+    >>> ts + pd.offsets.SemiMonthEnd()
+    Timestamp('2022-01-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 1, 31)
+    >>> ts + pd.offsets.SemiMonthEnd()
+    Timestamp('2022-02-15 00:00:00')
+
+    If you want to get the result for the current month pass the parameter n equals 0:
+
+    >>> ts = pd.Timestamp(2022, 1, 15)
+    >>> ts + pd.offsets.SemiMonthEnd(0)
+    Timestamp('2022-01-15 00:00:00')
+    """
     _prefix = "SM"
     _min_day_of_month = 1
 
@@ -3597,16 +3627,24 @@ cdef class CustomBusinessHour(BusinessHour):
         Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
-    start : str, default "09:00"
+    start : str, time, or list of str/time, default "09:00"
         Start time of your custom business hour in 24h format.
-    end : str, default: "17:00"
+    end : str, time, or list of str/time, default: "17:00"
         End time of your custom business hour in 24h format.
 
     Examples
     --------
+    >>> from datetime import time
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
     >>> ts + pd.offsets.CustomBusinessHour()
     Timestamp('2022-08-08 09:00:00')
+    >>> ts + pd.offsets.CustomBusinessHour(start="11:00")
+    Timestamp('2022-08-08 11:00:00')
+    >>> ts + pd.offsets.CustomBusinessHour(end=time(19, 0))
+    Timestamp('2022-08-05 17:00:00')
+    >>> ts + pd.offsets.CustomBusinessHour(start=[time(9, 0), "20:00"],
+    ...                                    end=["17:00", time(22, 0)])
+    Timestamp('2022-08-05 20:00:00')
     """
 
     _prefix = "CBH"
@@ -3982,14 +4020,14 @@ cdef datetime _shift_day(datetime other, int days):
     return localize_pydatetime(shifted, tz)
 
 
-cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
+cdef int year_add_months(npy_datetimestruct dts, int months) nogil:
     """
     New year number after shifting npy_datetimestruct number of months.
     """
     return dts.year + (dts.month + months - 1) // 12
 
 
-cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
+cdef int month_add_months(npy_datetimestruct dts, int months) nogil:
     """
     New month number after shifting npy_datetimestruct
     number of months.
@@ -4283,7 +4321,7 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     return stamp.replace(year=year, month=month, day=day)
 
 
-cdef inline int get_day_of_month(npy_datetimestruct* dts, str day_opt) nogil:
+cdef int get_day_of_month(npy_datetimestruct* dts, str day_opt) nogil:
     """
     Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
@@ -4394,10 +4432,10 @@ def roll_qtrday(other: datetime, n: int, month: int,
     return _roll_qtrday(&dts, n, months_since, day_opt)
 
 
-cdef inline int _roll_qtrday(npy_datetimestruct* dts,
-                             int n,
-                             int months_since,
-                             str day_opt) nogil except? -1:
+cdef int _roll_qtrday(npy_datetimestruct* dts,
+                      int n,
+                      int months_since,
+                      str day_opt) nogil except? -1:
     """
     See roll_qtrday.__doc__
     """

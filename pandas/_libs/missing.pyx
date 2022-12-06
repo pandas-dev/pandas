@@ -167,7 +167,7 @@ cpdef bint checknull(object val, bint inf_as_na=False):
         return is_decimal_na(val)
 
 
-cdef inline bint is_decimal_na(object val):
+cdef bint is_decimal_na(object val):
     """
     Is this a decimal.Decimal object Decimal("NAN").
     """
@@ -258,7 +258,7 @@ def isneginf_scalar(val: object) -> bool:
     return util.is_float_object(val) and val == NEGINF
 
 
-cdef inline bint is_null_datetime64(v):
+cdef bint is_null_datetime64(v):
     # determine if we have a null for a datetime (or integer versions),
     # excluding np.timedelta64('nat')
     if checknull_with_nat(v) or is_dt64nat(v):
@@ -266,7 +266,7 @@ cdef inline bint is_null_datetime64(v):
     return False
 
 
-cdef inline bint is_null_timedelta64(v):
+cdef bint is_null_timedelta64(v):
     # determine if we have a null for a timedelta (or integer versions),
     # excluding np.datetime64('nat')
     if checknull_with_nat(v) or is_td64nat(v):
