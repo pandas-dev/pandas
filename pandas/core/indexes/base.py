@@ -6530,7 +6530,12 @@ class Index(IndexOpsMixin, PandasObject):
         copy : bool, default True
             Whether to make a copy in cases where no inference occurs.
         """
-        if self.dtype != object or self._is_multi:
+        if self._is_multi:
+            raise NotImplementedError(
+                "infer_objects is not implemented for MultiIndex. "
+                "Use index.to_frame().infer_objects() instead."
+            )
+        if self.dtype != object:
             return self.copy() if copy else self
 
         values = self._values
