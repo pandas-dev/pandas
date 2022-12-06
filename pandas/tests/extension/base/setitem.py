@@ -58,6 +58,14 @@ class BaseSetitemTests(BaseExtensionTests):
         assert data[0] == original[1]
         assert data[1] == original[0]
 
+    def test_setitem_sequence_frame(self, data):
+        # GH#####
+        original = data.copy()
+        data = pd.DataFrame({"a": data})
+        data.loc[[0, 1], "a"] = [original[1], original[0]]
+        assert data.loc[0, "a"] == original[1]
+        assert data.loc[1, "a"] == original[0]
+
     def test_setitem_sequence_mismatched_length_raises(self, data, as_array):
         ser = pd.Series(data)
         original = ser.copy()
