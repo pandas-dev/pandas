@@ -455,6 +455,7 @@ class SeriesGroupBy(GroupBy[Series]):
     Falcon    370.0
     Parrot     25.0
     Parrot     25.0
+    Name: Max Speed, dtype: float64
     """
     )
 
