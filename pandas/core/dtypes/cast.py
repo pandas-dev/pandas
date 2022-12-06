@@ -1006,9 +1006,9 @@ def convert_dtypes(
 
         if is_string_dtype(inferred_dtype):
             if not convert_string or inferred_dtype == "bytes":
-                return input_array.dtype
+                inferred_dtype = input_array.dtype
             else:
-                return pandas_dtype_func("string")
+                inferred_dtype = pandas_dtype_func("string")
 
         if convert_integer:
             target_int_dtype = pandas_dtype_func("Int64")
@@ -1076,9 +1076,14 @@ def convert_dtypes(
     if nullable_backend == "pyarrow":
         from pandas.core.arrays.arrow.array import to_pyarrow_type
         from pandas.core.arrays.arrow.dtype import ArrowDtype
+        from pandas.core.arrays.string_ import StringDtype
 
-        if isinstance(inferred_dtype, (PandasExtensionDtype, BaseMaskedDtype)):
+        if isinstance(inferred_dtype, PandasExtensionDtype):
             base_dtype = inferred_dtype.base
+        elif isinstance(inferred_dtype, (BaseMaskedDtype, ArrowDtype)):
+            base_dtype = inferred_dtype.numpy_dtype
+        elif isinstance(inferred_dtype, StringDtype):
+            base_dtype = str
         else:
             base_dtype = inferred_dtype
         pa_type = to_pyarrow_type(base_dtype)
