@@ -1113,7 +1113,7 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_fallback_success(self, datapath):
         banklist_data = datapath("io", "data", "html", "banklist.html")
-        # pylint: disable-next=redundant-keyword-arg
+
         self.read_html(banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"])
 
     def test_to_html_timestamp(self):
