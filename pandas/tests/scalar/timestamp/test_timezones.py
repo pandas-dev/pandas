@@ -371,6 +371,9 @@ class TestTimestampTZOperations:
         # check that the time hasn't changed.
         assert ts == ts.tz_convert(dateutil.tz.tzutc())
 
+    # ------------------------------------------------------------------
+    # Timestamp.__init__ with tz str or tzinfo
+
     def test_timestamp_constructor_tz_utc(self):
         utc_stamp = Timestamp("3/11/2012 05:00", tz="utc")
         assert utc_stamp.tzinfo is pytz.utc
