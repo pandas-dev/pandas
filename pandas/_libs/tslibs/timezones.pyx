@@ -57,7 +57,7 @@ cdef tzinfo utc_zoneinfo = None
 
 # ----------------------------------------------------------------------
 
-cdef inline bint is_utc_zoneinfo(tzinfo tz):
+cdef bint is_utc_zoneinfo(tzinfo tz):
     # Workaround for cases with missing tzdata
     #  https://github.com/pandas-dev/pandas/pull/46425#discussion_r830633025
     if tz is None or zoneinfo is None:
@@ -86,22 +86,22 @@ cpdef inline bint is_utc(tzinfo tz):
     )
 
 
-cdef inline bint is_zoneinfo(tzinfo tz):
+cdef bint is_zoneinfo(tzinfo tz):
     if ZoneInfo is None:
         return False
     return isinstance(tz, ZoneInfo)
 
 
-cdef inline bint is_tzlocal(tzinfo tz):
+cdef bint is_tzlocal(tzinfo tz):
     return isinstance(tz, _dateutil_tzlocal)
 
 
-cdef inline bint treat_tz_as_pytz(tzinfo tz):
+cdef bint treat_tz_as_pytz(tzinfo tz):
     return (hasattr(tz, "_utc_transition_times") and
             hasattr(tz, "_transition_info"))
 
 
-cdef inline bint treat_tz_as_dateutil(tzinfo tz):
+cdef bint treat_tz_as_dateutil(tzinfo tz):
     return hasattr(tz, "_trans_list") and hasattr(tz, "_trans_idx")
 
 
@@ -192,7 +192,7 @@ def _p_tz_cache_key(tz: tzinfo):
 dst_cache = {}
 
 
-cdef inline object tz_cache_key(tzinfo tz):
+cdef object tz_cache_key(tzinfo tz):
     """
     Return the key in the cache for the timezone info object or None
     if unknown.
