@@ -487,8 +487,7 @@ user defined function, and no alternative execution attempts will be tried.
 
 Examples
 --------
-%(example)s
-"""
+%(example)s"""
 
 _agg_template = """
 Aggregate using one or more operations over the specified axis.
