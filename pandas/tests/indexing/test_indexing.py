@@ -557,14 +557,6 @@ class TestFancy:
         )
         tm.assert_frame_equal(df, expected)
 
-        df = df_orig.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.iloc[:, 0:2] = df.iloc[:, 0:2]._convert(datetime=True, numeric=True)
-        expected = DataFrame(
-            [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
-        )
-        tm.assert_frame_equal(df, expected)
-
         # GH5702 (loc)
         df = df_orig.copy()
         with tm.assert_produces_warning(FutureWarning, match=msg):

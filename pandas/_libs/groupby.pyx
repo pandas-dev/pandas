@@ -60,7 +60,7 @@ cdef enum InterpolationEnumType:
     INTERPOLATION_MIDPOINT
 
 
-cdef inline float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
+cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -97,7 +97,7 @@ cdef inline float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nog
     return result
 
 
-cdef inline float64_t median_linear(float64_t* a, int n) nogil:
+cdef float64_t median_linear(float64_t* a, int n) nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -134,7 +134,7 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     return result
 
 
-cdef inline float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
+cdef float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
     cdef:
         float64_t result
 
@@ -604,12 +604,12 @@ def group_any_all(
         intp_t lab
         int8_t flag_val, val
 
-    if val_test == 'all':
+    if val_test == "all":
         # Because the 'all' value of an empty iterable in Python is True we can
         # start with an array full of ones and set to zero when a False value
         # is encountered
         flag_val = 0
-    elif val_test == 'any':
+    elif val_test == "any":
         # Because the 'any' value of an empty iterable in Python is False we
         # can start with an array full of zeros and set to one only if any
         # value encountered is True
@@ -1061,7 +1061,7 @@ def group_ohlc(
     N, K = (<object>values).shape
 
     if out.shape[1] != 4:
-        raise ValueError('Output array must have 4 columns')
+        raise ValueError("Output array must have 4 columns")
 
     if K > 1:
         raise NotImplementedError("Argument 'values' must have only one dimension")
@@ -1157,11 +1157,11 @@ def group_quantile(
         )
 
     inter_methods = {
-        'linear': INTERPOLATION_LINEAR,
-        'lower': INTERPOLATION_LOWER,
-        'higher': INTERPOLATION_HIGHER,
-        'nearest': INTERPOLATION_NEAREST,
-        'midpoint': INTERPOLATION_MIDPOINT,
+        "linear": INTERPOLATION_LINEAR,
+        "lower": INTERPOLATION_LOWER,
+        "higher": INTERPOLATION_HIGHER,
+        "nearest": INTERPOLATION_NEAREST,
+        "midpoint": INTERPOLATION_MIDPOINT,
     }
     interp = inter_methods[interpolation]
 
@@ -1231,7 +1231,7 @@ def group_quantile(
 # group_nth, group_last, group_rank
 # ----------------------------------------------------------------------
 
-cdef inline bint _treat_as_na(numeric_object_t val, bint is_datetimelike) nogil:
+cdef bint _treat_as_na(numeric_object_t val, bint is_datetimelike) nogil:
     if numeric_object_t is object:
         # Should never be used, but we need to avoid the `val != val` below
         #  or else cython will raise about gil acquisition.
