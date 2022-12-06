@@ -40,7 +40,7 @@ from pandas._libs.missing cimport (
 multiindex_nulls_shift = 2
 
 
-cdef inline bint is_definitely_invalid_key(object val):
+cdef bint is_definitely_invalid_key(object val):
     try:
         hash(val)
     except TypeError:
@@ -176,7 +176,7 @@ cdef class IndexEngine:
         loc = self.values.searchsorted(self._np_type(val), side="left")
         return loc
 
-    cdef inline _get_loc_duplicates(self, object val):
+    cdef _get_loc_duplicates(self, object val):
         # -> Py_ssize_t | slice | ndarray[bool]
         cdef:
             Py_ssize_t diff, left, right
@@ -225,7 +225,7 @@ cdef class IndexEngine:
 
         return self.unique == 1
 
-    cdef inline _do_unique_check(self):
+    cdef _do_unique_check(self):
 
         # this de-facto the same
         self._ensure_mapping_populated()
@@ -244,7 +244,7 @@ cdef class IndexEngine:
 
         return self.monotonic_dec == 1
 
-    cdef inline _do_monotonic_check(self):
+    cdef _do_monotonic_check(self):
         cdef:
             bint is_unique
         try:
@@ -277,7 +277,7 @@ cdef class IndexEngine:
     def is_mapping_populated(self) -> bool:
         return self.mapping is not None
 
-    cdef inline _ensure_mapping_populated(self):
+    cdef _ensure_mapping_populated(self):
         # this populates the mapping
         # if its not already populated
         # also satisfies the need_unique_check
@@ -932,7 +932,7 @@ cdef class SharedEngine:
 
         return self._get_loc_duplicates(val)
 
-    cdef inline _get_loc_duplicates(self, object val):
+    cdef _get_loc_duplicates(self, object val):
         # -> Py_ssize_t | slice | ndarray[bool]
         cdef:
             Py_ssize_t diff

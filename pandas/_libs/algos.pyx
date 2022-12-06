@@ -70,7 +70,7 @@ tiebreakers = {
 }
 
 
-cdef inline bint are_diff(object left, object right):
+cdef bint are_diff(object left, object right):
     try:
         return fabs(left - right) > FP_ERR
     except TypeError:
@@ -257,7 +257,7 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     return indexer.base, counts.base
 
 
-cdef inline Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
+cdef Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
     cdef:
         numeric_t t
 
@@ -268,7 +268,7 @@ cdef inline Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
     return 0
 
 
-cdef inline numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) nogil:
+cdef numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) nogil:
     """
     See kth_smallest.__doc__. The additional parameter n specifies the maximum
     number of elements considered in arr, needed for compatibility with usage

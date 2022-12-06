@@ -126,7 +126,7 @@ _no_input = object()
 # ----------------------------------------------------------------------
 
 
-cdef inline _Timestamp create_timestamp_from_ts(
+cdef _Timestamp create_timestamp_from_ts(
     int64_t value,
     npy_datetimestruct dts,
     tzinfo tz,
@@ -361,7 +361,7 @@ cdef class _Timestamp(ABCTimestamp):
         return self._compare_mismatched_resos(ots, op)
 
     # TODO: copied from Timedelta; try to de-duplicate
-    cdef inline bint _compare_mismatched_resos(self, _Timestamp other, int op):
+    cdef bint _compare_mismatched_resos(self, _Timestamp other, int op):
         # Can't just dispatch to numpy as they silently overflow and get it wrong
         cdef:
             npy_datetimestruct dts_self
@@ -2224,7 +2224,7 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 
 
 @cython.cdivision(False)
-cdef inline int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) nogil:
+cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) nogil:
     """
     Round the localized nanosecond timestamp down to the previous midnight.
 
