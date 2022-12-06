@@ -56,37 +56,38 @@ class BaseGroupbyTests(BaseExtensionTests):
         result = df.groupby("A").first()
         self.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "expected",
-        [
-            pd.DataFrame(
-                {
-                    "td": {
-                        0: pd.Timedelta("0 days 01:00:00"),
-                        1: pd.Timedelta("0 days 01:15:00"),
-                        2: pd.Timedelta("0 days 01:15:00"),
-                    }
+    def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation(self):
+        # GH#41720
+        expected = pd.DataFrame(
+            {
+                "td": {
+                    0: pd.Timedelta("0 days 01:00:00"),
+                    1: pd.Timedelta("0 days 01:15:00"),
+                    2: pd.Timedelta("0 days 01:15:00"),
                 }
-            )
-        ],
-    )
-    def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation(
-        self, expected
-    ):
-        ts = pd.DatetimeIndex(
-            [
-                pd.Timestamp("2021/01/01 00:30"),
-                pd.Timestamp("2021/01/01 00:45"),
-                pd.Timestamp("2021/01/01 02:00"),
-            ]
+            }
         )
-        df = pd.DataFrame({"value": [1, 2, 3], "ts": ts})
-        df["td"] = df["ts"] - df["ts"].shift(1, fill_value=ts[0] - pd.Timedelta("1h"))
-        df["amount"] = df["value"] * 10
-        df.loc[:2, "grps"] = "a"
-        df.loc[2:, "grps"] = "b"
-        agg_rules = {"td": ("td", "cumsum")}
-        result = df.groupby("grps").agg(**agg_rules)
+        df = pd.DataFrame(
+            {
+                "value": pd.Series(["1", "2", "3"], dtype="int64"),
+                "ts": pd.Series(
+                    [
+                        "2021-01-01 00:30:00",
+                        "2021-01-01 00:45:00",
+                        "2021-01-01 02:00:00",
+                    ],
+                    dtype="datetime64[ns]",
+                ),
+                "td": pd.Series(
+                    ["0 days 01:00:00", "0 days 00:15:00", "0 days 01:15:00"],
+                    dtype="timedelta64[ns]",
+                ),
+                "amount": pd.Series(["10", "20", "30"], dtype="int64"),
+                "grps": pd.Series(["a", "a", "b"], dtype="object"),
+            }
+        )
+        gb = df.groupby("grps")
+        result = gb.agg(td=("td", "cumsum"))
         self.assert_frame_equal(result, expected)
 
     def test_groupby_extension_no_sort(self, data_for_grouping):
