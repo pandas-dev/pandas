@@ -431,7 +431,11 @@ def first_non_null(values: ndarray) -> int:
         val = values[i]
         if checknull_with_nat_and_na(val):
             continue
-        if isinstance(val, str) and (len(val) == 0 or val in nat_strings):
+        if (
+            isinstance(val, str)
+            and
+            (len(val) == 0 or val in ("now", "today", *nat_strings))
+        ):
             continue
         return i
     else:
