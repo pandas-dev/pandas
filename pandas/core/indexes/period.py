@@ -375,7 +375,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         return tolerance
 
-    def get_loc(self, key, method=None, tolerance=None):
+    def get_loc(self, key):
         """
         Get integer location for requested label.
 
@@ -421,10 +421,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 # the reso < self._resolution_obj case goes
                 #  through _get_string_slice
                 key = self._cast_partial_indexing_scalar(parsed)
-            elif method is None:
-                raise KeyError(key)
             else:
-                key = self._cast_partial_indexing_scalar(parsed)
+                raise KeyError(key)
 
         elif isinstance(key, Period):
             self._disallow_mismatched_indexing(key)
@@ -437,7 +435,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             raise KeyError(key)
 
         try:
-            return Index.get_loc(self, key, method, tolerance)
+            return Index.get_loc(self, key)
         except KeyError as err:
             raise KeyError(orig_key) from err
 

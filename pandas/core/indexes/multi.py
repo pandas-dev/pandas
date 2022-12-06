@@ -2730,7 +2730,7 @@ class MultiIndex(Index):
         else:
             return level_index.get_loc(key)
 
-    def get_loc(self, key, method=None):
+    def get_loc(self, key):
         """
         Get location for a label or a tuple of labels.
 
@@ -2740,7 +2740,6 @@ class MultiIndex(Index):
         Parameters
         ----------
         key : label or tuple of labels (one for each level)
-        method : None
 
         Returns
         -------
@@ -2772,12 +2771,6 @@ class MultiIndex(Index):
         >>> mi.get_loc(('b', 'e'))
         1
         """
-        if method is not None:
-            raise NotImplementedError(
-                "only the default get_loc method is "
-                "currently supported for MultiIndex"
-            )
-
         self._check_indexing_error(key)
 
         def _maybe_to_slice(loc):

@@ -8,8 +8,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
-
 import pandas as pd
 from pandas import (
     DatetimeIndex,
@@ -405,75 +403,6 @@ class TestGetLoc:
 
         assert key not in dti
 
-    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
-    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
-    def test_get_loc_method_exact_match(self, method):
-        idx = date_range("2000-01-01", periods=3)
-        assert idx.get_loc(idx[1], method) == 1
-        assert idx.get_loc(idx[1].to_pydatetime(), method) == 1
-        assert idx.get_loc(str(idx[1]), method) == 1
-
-        if method is not None:
-            assert idx.get_loc(idx[1], method, tolerance=pd.Timedelta("0 days")) == 1
-
-    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
-    def test_get_loc(self):
-        idx = date_range("2000-01-01", periods=3)
-
-        assert idx.get_loc("2000-01-01", method="nearest") == 0
-        assert idx.get_loc("2000-01-01T12", method="nearest") == 1
-
-        assert idx.get_loc("2000-01-01T12", method="nearest", tolerance="1 day") == 1
-        assert (
-            idx.get_loc("2000-01-01T12", method="nearest", tolerance=pd.Timedelta("1D"))
-            == 1
-        )
-        assert (
-            idx.get_loc(
-                "2000-01-01T12", method="nearest", tolerance=np.timedelta64(1, "D")
-            )
-            == 1
-        )
-        assert (
-            idx.get_loc("2000-01-01T12", method="nearest", tolerance=timedelta(1)) == 1
-        )
-        with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
-            idx.get_loc("2000-01-01T12", method="nearest", tolerance="foo")
-        with pytest.raises(KeyError, match="'2000-01-01T03'"):
-            idx.get_loc("2000-01-01T03", method="nearest", tolerance="2 hours")
-        with pytest.raises(
-            ValueError, match="tolerance size must match target index size"
-        ):
-            idx.get_loc(
-                "2000-01-01",
-                method="nearest",
-                tolerance=[
-                    pd.Timedelta("1day").to_timedelta64(),
-                    pd.Timedelta("1day").to_timedelta64(),
-                ],
-            )
-
-        assert idx.get_loc("2000", method="nearest") == slice(0, 3)
-        assert idx.get_loc("2000-01", method="nearest") == slice(0, 3)
-
-        assert idx.get_loc("1999", method="nearest") == 0
-        assert idx.get_loc("2001", method="nearest") == 2
-
-        with pytest.raises(KeyError, match="'1999'"):
-            idx.get_loc("1999", method="pad")
-        with pytest.raises(KeyError, match="'2001'"):
-            idx.get_loc("2001", method="backfill")
-
-        with pytest.raises(KeyError, match="'foobar'"):
-            idx.get_loc("foobar")
-        with pytest.raises(InvalidIndexError, match=r"slice\(None, 2, None\)"):
-            idx.get_loc(slice(2))
-
-        idx = DatetimeIndex(["2000-01-01", "2000-01-04"])
-        assert idx.get_loc("2000-01-02", method="nearest") == 0
-        assert idx.get_loc("2000-01-03", method="nearest") == 1
-        assert idx.get_loc("2000-01", method="nearest") == slice(0, 2)
-
     def test_get_loc_time_obj(self):
         # time indexing
         idx = date_range("2000-01-01", periods=24, freq="H")
@@ -485,11 +414,6 @@ class TestGetLoc:
         result = idx.get_loc(time(12, 30))
         expected = np.array([])
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
-
-        msg = "cannot yet lookup inexact labels when key is a time object"
-        with pytest.raises(NotImplementedError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-                idx.get_loc(time(12, 30), method="pad")
 
     def test_get_loc_time_obj2(self):
         # GH#8667
@@ -524,18 +448,6 @@ class TestGetLoc:
         loc = dti.get_loc(tic)
         expected = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(loc, expected)
-
-    def test_get_loc_tz_aware(self):
-        # https://github.com/pandas-dev/pandas/issues/32140
-        dti = date_range(
-            Timestamp("2019-12-12 00:00:00", tz="US/Eastern"),
-            Timestamp("2019-12-13 00:00:00", tz="US/Eastern"),
-            freq="5s",
-        )
-        key = Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
-        with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-            result = dti.get_loc(key, method="nearest")
-        assert result == 7433
 
     def test_get_loc_nat(self):
         # GH#20464
