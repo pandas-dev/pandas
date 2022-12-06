@@ -4020,14 +4020,14 @@ cdef datetime _shift_day(datetime other, int days):
     return localize_pydatetime(shifted, tz)
 
 
-cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
+cdef int year_add_months(npy_datetimestruct dts, int months) nogil:
     """
     New year number after shifting npy_datetimestruct number of months.
     """
     return dts.year + (dts.month + months - 1) // 12
 
 
-cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
+cdef int month_add_months(npy_datetimestruct dts, int months) nogil:
     """
     New month number after shifting npy_datetimestruct
     number of months.
@@ -4321,7 +4321,7 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     return stamp.replace(year=year, month=month, day=day)
 
 
-cdef inline int get_day_of_month(npy_datetimestruct* dts, str day_opt) nogil:
+cdef int get_day_of_month(npy_datetimestruct* dts, str day_opt) nogil:
     """
     Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
@@ -4432,10 +4432,10 @@ def roll_qtrday(other: datetime, n: int, month: int,
     return _roll_qtrday(&dts, n, months_since, day_opt)
 
 
-cdef inline int _roll_qtrday(npy_datetimestruct* dts,
-                             int n,
-                             int months_since,
-                             str day_opt) nogil except? -1:
+cdef int _roll_qtrday(npy_datetimestruct* dts,
+                      int n,
+                      int months_since,
+                      str day_opt) nogil except? -1:
     """
     See roll_qtrday.__doc__
     """
