@@ -1838,7 +1838,6 @@ class SQLDatabase(PandasSQL):
             self.get_table(table_name, schema).drop(bind=self.con)
             self.meta.clear()
 
-   
     def trunc_table(self, table_name: str, schema: str | None = None) -> None:
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
