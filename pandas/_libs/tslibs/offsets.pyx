@@ -1615,16 +1615,24 @@ cdef class BusinessHour(BusinessMixin):
         Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
-    start : str, default "09:00"
+    start : str, time, or list of str/time, default "09:00"
         Start time of your custom business hour in 24h format.
-    end : str, default: "17:00"
+    end : str, time, or list of str/time, default: "17:00"
         End time of your custom business hour in 24h format.
 
     Examples
     --------
+    >>> from datetime import time
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
     >>> ts + pd.offsets.BusinessHour()
     Timestamp('2022-08-08 09:00:00')
+    >>> ts + pd.offsets.BusinessHour(start="11:00")
+    Timestamp('2022-08-08 11:00:00')
+    >>> ts + pd.offsets.BusinessHour(end=time(19, 0))
+    Timestamp('2022-08-05 17:00:00')
+    >>> ts + pd.offsets.BusinessHour(start=[time(9, 0), "20:00"],
+    ...                              end=["17:00", time(22, 0)])
+    Timestamp('2022-08-05 20:00:00')
     """
 
     _prefix = "BH"
@@ -3619,16 +3627,24 @@ cdef class CustomBusinessHour(BusinessHour):
         Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
-    start : str, default "09:00"
+    start : str, time, or list of str/time, default "09:00"
         Start time of your custom business hour in 24h format.
-    end : str, default: "17:00"
+    end : str, time, or list of str/time, default: "17:00"
         End time of your custom business hour in 24h format.
 
     Examples
     --------
+    >>> from datetime import time
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
     >>> ts + pd.offsets.CustomBusinessHour()
     Timestamp('2022-08-08 09:00:00')
+    >>> ts + pd.offsets.CustomBusinessHour(start="11:00")
+    Timestamp('2022-08-08 11:00:00')
+    >>> ts + pd.offsets.CustomBusinessHour(end=time(19, 0))
+    Timestamp('2022-08-05 17:00:00')
+    >>> ts + pd.offsets.CustomBusinessHour(start=[time(9, 0), "20:00"],
+    ...                                    end=["17:00", time(22, 0)])
+    Timestamp('2022-08-05 20:00:00')
     """
 
     _prefix = "CBH"
