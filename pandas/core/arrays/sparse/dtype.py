@@ -127,7 +127,15 @@ class SparseDtype(ExtensionDtype):
                     or isinstance(other.fill_value, type(self.fill_value))
                 )
             else:
-                fill_value = self.fill_value == other.fill_value
+                with warnings.catch_warnings():
+                    # Ignore spurious numpy warning
+                    warnings.filterwarnings(
+                        "ignore",
+                        "elementwise comparison failed",
+                        category=DeprecationWarning,
+                    )
+
+                    fill_value = self.fill_value == other.fill_value
 
             return subtype and fill_value
         return False
