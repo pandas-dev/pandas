@@ -119,8 +119,10 @@ def test_xarray(df):
 
 @td.skip_if_no("cftime")
 @td.skip_if_no("xarray", "0.21.0")
+@pytest.mark.xfail(reason="xarray.CFTimeIndex.get_loc did not address 2.0 deprecation")
 def test_xarray_cftimeindex_nearest():
     # https://github.com/pydata/xarray/issues/3751
+    # TODO: xfail addressable once https://github.com/pydata/xarray/pull/7361 is merged
     import cftime
     import xarray
 
