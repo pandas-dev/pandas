@@ -2307,6 +2307,54 @@ class TestToDatetimeInferFormat:
         # it is not inferred, the results should all be the same
         tm.assert_series_equal(with_format, without_format)
 
+    def test_to_datetime_inconsistent_format(self, cache):
+        data = ["01/01/2011 00:00:00", "01-02-2011 00:00:00", "2011-01-03T00:00:00"]
+        ser = Series(np.array(data))
+        with pytest.raises(ValueError, match="does not match format"):
+            to_datetime(ser, cache=cache)
+
+    def test_to_datetime_consistent_format(self, cache):
+        data = ["Jan/01/2011", "Feb/01/2011", "Mar/01/2011"]
+        ser = Series(np.array(data))
+        result = to_datetime(ser, cache=cache)
+        expected = Series(
+            ["2011-01-01", "2011-02-01", "2011-03-01"], dtype="datetime64[ns]"
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_to_datetime_series_with_nans(self, cache):
+        ser = Series(
+            np.array(
+                ["01/01/2011 00:00:00", np.nan, "01/03/2011 00:00:00", np.nan],
+                dtype=object,
+            )
+        )
+        result = to_datetime(ser, cache=cache)
+        expected = Series(
+            ["2011-01-01", NaT, "2011-01-03", NaT], dtype="datetime64[ns]"
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_to_datetime_series_start_with_nans(self, cache):
+        ser = Series(
+            np.array(
+                [
+                    np.nan,
+                    np.nan,
+                    "01/01/2011 00:00:00",
+                    "01/02/2011 00:00:00",
+                    "01/03/2011 00:00:00",
+                ],
+                dtype=object,
+            )
+        )
+
+        result = to_datetime(ser, cache=cache)
+        expected = Series(
+            [NaT, NaT, "2011-01-01", "2011-01-02", "2011-01-03"], dtype="datetime64[ns]"
+        )
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize(
         "tz_name, offset, warning",
         [("UTC", 0, None), ("UTC-3", 180, UserWarning), ("UTC+3", -180, UserWarning)],
