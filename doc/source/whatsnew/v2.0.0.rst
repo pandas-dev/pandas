@@ -562,6 +562,7 @@ Removal of prior version deprecations/changes
 - Changed behavior of :meth:`SparseArray.astype` when given a dtype that is not explicitly ``SparseDtype``, cast to the exact requested dtype rather than silently using a ``SparseDtype`` instead (:issue:`34457`)
 - Changed behavior of :meth:`Index.ravel` to return a view on the original :class:`Index` instead of a ``np.ndarray`` (:issue:`36900`)
 - Changed behavior of :meth:`Series.to_frame` and :meth:`Index.to_frame` with explicit ``name=None`` to use ``None`` for the column name instead of the index's name or default ``0`` (:issue:`45523`)
+- Changed behavior of :func:`concat` with one array of ``bool``-dtype and another of integer dtype, this now returns ``object`` dtype instead of integer dtype; explicitly cast the bool object to integer before concatenating to get the old behavior (:issue:`45101`)
 - Changed behavior of :class:`DataFrame` constructor given floating-point ``data`` and an integer ``dtype``, when the data cannot be cast losslessly, the floating point dtype is retained, matching :class:`Series` behavior (:issue:`41170`)
 - Changed behavior of :class:`Index` constructor when given a ``np.ndarray`` with object-dtype containing numeric entries; this now retains object dtype rather than inferring a numeric dtype, consistent with :class:`Series` behavior (:issue:`42870`)
 - Changed behavior of :meth:`Index.__and__`, :meth:`Index.__or__` and :meth:`Index.__xor__` to behave as logical operations (matching :class:`Series` behavior) instead of aliases for set operations (:issue:`37374`)
