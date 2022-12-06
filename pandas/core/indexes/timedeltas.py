@@ -174,7 +174,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # -------------------------------------------------------------------
     # Indexing Methods
 
-    def get_loc(self, key, method=None, tolerance=None):
+    def get_loc(self, key):
         """
         Get integer location for requested label
 
@@ -189,7 +189,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         except TypeError as err:
             raise KeyError(key) from err
 
-        return Index.get_loc(self, key, method, tolerance)
+        return Index.get_loc(self, key)
 
     def _parse_with_reso(self, label: str):
         # the "with_reso" is a no-op for TimedeltaIndex
