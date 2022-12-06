@@ -1395,6 +1395,16 @@ class TestDataFrameConstructors:
         expected = DataFrame(index=[0])
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_ordered_dict_nested_preserve_order(self):
+        # see gh-18166
+        nested1 = OrderedDict([("b", 1), ("a", 2)])
+        nested2 = OrderedDict([("b", 2), ("a", 5)])
+        data = OrderedDict([("col2", nested1), ("col1", nested2)])
+        result = DataFrame(data)
+        data = {"col2": [1, 2], "col1": [2, 5]}
+        expected = DataFrame(data=data, index=["b", "a"])
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("dict_type", [dict, OrderedDict])
     def test_constructor_ordered_dict_preserve_order(self, dict_type):
         # see gh-13304
