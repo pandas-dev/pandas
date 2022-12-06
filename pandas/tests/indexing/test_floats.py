@@ -261,9 +261,9 @@ class TestFloatIndexers:
         # oob indicates if we are out of bounds
         # of positional indexing
         for index, oob in [
-            (NumericIndex(np.arange(5, np.int64)), False),
+            (NumericIndex(np.arange(5, dtype=np.int64)), False),
             (RangeIndex(5), False),
-            (NumericIndex(np.arange(5, np.int64)) + 10, True),
+            (NumericIndex(np.arange(5, dtype=np.int64) + 10), True),
         ]:
 
             # s is an in-range index
