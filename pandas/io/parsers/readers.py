@@ -242,6 +242,15 @@ default False
     :ref:`io.csv.mixed_timezones` for more.
 
     Note: A fast-path exists for iso8601-formatted dates.
+infer_datetime_format : bool, default False
+    If True and `parse_dates` is enabled, pandas will attempt to infer the
+    format of the datetime strings in the columns, and if it can be inferred,
+    switch to a faster method of parsing them. In some cases this can increase
+    the parsing speed by 5-10x.
+
+    .. deprecated:: 2.0.0
+        A strict version of this argument is now the default, passing it has no effect.
+
 keep_date_col : bool, default False
     If True and `parse_dates` specifies combining multiple columns then
     keep the original columns.

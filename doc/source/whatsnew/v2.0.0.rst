@@ -345,7 +345,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Datetimes are now parsed with a consistent format
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In the past, :func:`to_datetime` guessed the format for each element independently. This was appropriate for some cases where a column had a mixed date format - however, it would regularly cause problems for columns where users expected a consistent format but the function would switch formats row-wise. As of version 2.0.0, this behavior is consistent column-wise, and the format is determined by the first non-NA value in the column (unless the user specifies a format, in which case that is used).
+In the past, :func:`to_datetime` guessed the format for each element independently. This was appropriate for some cases where elements had mixed date formats - however, it would regularly cause problems when users expected a consistent format but the function would switch formats between elements. As of version 2.0.0, parsing will use a consistent format, determined by the first non-NA value (unless the user specifies a format, in which case that is used).
 
 *Old behavior*:
 

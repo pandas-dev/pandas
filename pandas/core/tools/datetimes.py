@@ -139,6 +139,7 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
             warnings.warn(
                 "Could not infer format - "
                 "to ensure consistent parsing, specify a format.",
+                UserWarning,
                 stacklevel=find_stack_level(),
             )
     return None
@@ -371,8 +372,6 @@ def _convert_listlike_datetimes(
         None or string of the frequency of the passed data
     errors : str
         error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'
-    infer_datetime_format : bool, default False
-        inferring format behavior from to_datetime
     dayfirst : bool
         dayfirst parsing behavior from to_datetime
     yearfirst : bool
@@ -804,6 +803,11 @@ def to_datetime(
         of the datetime strings based on the first non-NaN element,
         and if it can be inferred, switch to a faster method of parsing them.
         In some cases this can increase the parsing speed by ~5-10x.
+
+        .. deprecated:: 2.0.0
+            A strict version of this argument is now the default, passing it has
+            no effect.
+
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.

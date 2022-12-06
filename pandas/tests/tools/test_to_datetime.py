@@ -469,10 +469,14 @@ class TestTimeConversionFormats:
 class TestToDatetime:
     def test_to_datetime_mixed_datetime_and_string(self):
         # GH#47018 adapted old doctest with new behavior
-        d1 = datetime(2020, 1, 1, 17, tzinfo=timezone(-timedelta(hours=1)))
-        d2 = datetime(2020, 1, 1, 18, tzinfo=timezone(-timedelta(hours=1)))
-        res = to_datetime(["2020-01-01 17:00:00-01:00", d2])
-        expected = to_datetime([d1, d2]).tz_convert(pytz.FixedOffset(-60))
+        py_dt = datetime(2020, 1, 1, 18, tzinfo=timezone(-timedelta(hours=1)))
+        res = to_datetime(["2020-01-01 17:00 -0100", py_dt])
+        expected = Index(
+            [
+                Timestamp("2020-01-01 17:00:00-0100", tz=pytz.FixedOffset(-60)),
+                Timestamp("2020-01-01 18:00:00-0100", tz="UTC-01:00"),
+            ],
+        )
         tm.assert_index_equal(res, expected)
 
     @pytest.mark.parametrize(
