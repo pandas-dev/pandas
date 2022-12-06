@@ -1134,13 +1134,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         This attribute can be used to access engine-specific features.
         """
 
-    @book.setter
-    @abc.abstractmethod
-    def book(self, other) -> None:
-        """
-        Set book instance. Class type will depend on the engine used.
-        """
-
     @abc.abstractmethod
     def _write_cells(
         self,
