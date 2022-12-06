@@ -595,6 +595,8 @@ Removal of prior version deprecations/changes
 - Enforced deprecation of silently dropping nuisance columns in groupby and resample operations when ``numeric_only=False`` (:issue:`41475`)
 - Changed default of ``numeric_only`` in various :class:`.DataFrameGroupBy` methods; all methods now default to ``numeric_only=False`` (:issue:`46072`)
 - Changed default of ``numeric_only`` to ``False`` in :class:`.Resampler` methods (:issue:`47177`)
+- Removed deprecated methods :meth:`ExcelWriter.write_cells`, :meth:`ExcelWriter.save`, :meth:`ExcelWriter.cur_sheet`, :meth:`ExcelWriter.handles`, :meth:`ExcelWriter.path` (:issue:`45795`)
+- The :class:`ExcelWriter` attribute ``book`` can no longer be set; it is still available to be accessed and mutated (:issue:`48943`)
 -
 
 .. ---------------------------------------------------------------------------
