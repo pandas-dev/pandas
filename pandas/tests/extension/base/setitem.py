@@ -59,7 +59,7 @@ class BaseSetitemTests(BaseExtensionTests):
         assert data[1] == original[0]
 
     def test_setitem_sequence_frame(self, data):
-        # GH#####
+        # GH50085
         original = data.copy()
         data = pd.DataFrame({"a": data.copy(), "b": data.copy()})
         data.loc[[0, 1], "b"] = [original[1], original[0]]
