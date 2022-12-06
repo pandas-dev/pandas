@@ -1146,7 +1146,7 @@ class TestIndex(Base):
         dtype = any_real_numpy_dtype
         index = Index(list("abc"))
         labels = NumericIndex([], dtype=dtype)
-        assert index.reindex(labels)[0].dtype.type == dtype
+        assert index.reindex(labels)[0].dtype == dtype
 
     def test_reindex_no_type_preserve_target_empty_mi(self):
         index = Index(list("abc"))
