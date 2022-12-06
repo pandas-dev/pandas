@@ -456,6 +456,18 @@ class SeriesGroupBy(GroupBy[Series]):
     Parrot     25.0
     Parrot     25.0
     Name: Max Speed, dtype: float64
+
+    .. versionchanged:: 1.3.0
+
+    The resulting dtype will reflect the return value of the passed ``func``,
+    for example:
+
+    >>> grouped.transform(lambda x: x.astype(int).max())
+    Falcon    390
+    Falcon    390
+    Parrot     30
+    Parrot     30
+    Name: Max Speed, dtype: int64
     """
     )
 
@@ -1474,6 +1486,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     3  4.000000  5.0
     4  3.666667  4.0
     5  4.000000  5.0
+
+    .. versionchanged:: 1.3.0
+
+    The resulting dtype will reflect the return value of the passed ``func``,
+    for example:
+
+    >>> grouped.transform(lambda x: x.astype(int).max())
+    C  D
+    0  5  8
+    1  5  9
+    2  5  8
+    3  5  9
+    4  5  8
+    5  5  9
     """
     )
 
