@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
       - name: Cache multiple paths
         uses: actions/cache@v3
         with:
