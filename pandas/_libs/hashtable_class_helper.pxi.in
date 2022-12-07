@@ -101,6 +101,7 @@ from pandas._libs.khash cimport (
 from pandas._libs.tslibs.util cimport get_c_string
 from pandas._libs.missing cimport C_NA
 
+
 {{py:
 
 # name, dtype, c_type
@@ -139,7 +140,7 @@ ctypedef struct {{name}}VectorData:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline void append_data_{{dtype}}({{name}}VectorData *data,
+cdef void append_data_{{dtype}}({{name}}VectorData *data,
                                        {{c_type}} x) nogil:
 
     data.data[data.n] = x
@@ -162,7 +163,7 @@ ctypedef fused vector_data:
     Complex64VectorData
     StringVectorData
 
-cdef inline bint needs_resize(vector_data *data) nogil:
+cdef bint needs_resize(vector_data *data) nogil:
     return data.n == data.m
 
 # ----------------------------------------------------------------------
@@ -240,7 +241,7 @@ cdef class {{name}}Vector(Vector):
         self.external_view_exists = True
         return self.ao
 
-    cdef inline void append(self, {{c_type}} x):
+    cdef void append(self, {{c_type}} x):
 
         if needs_resize(self.data):
             if self.external_view_exists:
@@ -310,7 +311,7 @@ cdef class StringVector(Vector):
         self.data.m = self.data.n
         return ao
 
-    cdef inline void append(self, char *x):
+    cdef void append(self, char *x):
 
         if needs_resize(self.data):
             self.resize()
@@ -338,7 +339,7 @@ cdef class ObjectVector(Vector):
     def __len__(self) -> int:
         return self.n
 
-    cdef inline append(self, object obj):
+    cdef append(self, object obj):
         if self.n == self.m:
             if self.external_view_exists:
                 raise ValueError("external reference but "
@@ -875,6 +876,44 @@ cdef class {{name}}HashTable(HashTable):
 
         return np.asarray(labels), arr_uniques
     {{endif}}
+
+
+cdef class {{name}}Factorizer(Factorizer):
+    cdef public:
+        {{name}}HashTable table
+        {{name}}Vector uniques
+
+    def __cinit__(self, size_hint: int):
+        self.table = {{name}}HashTable(size_hint)
+        self.uniques = {{name}}Vector()
+
+    def factorize(self, const {{c_type}}[:] values,
+                  na_sentinel=-1, na_value=None, object mask=None) -> np.ndarray:
+        """
+        Returns
+        -------
+        ndarray[intp_t]
+
+        Examples
+        --------
+        Factorize values with nans replaced by na_sentinel
+
+        >>> fac = {{name}}Factorizer(3)
+        >>> fac.factorize(np.array([1,2,3], dtype="{{dtype}}"), na_sentinel=20)
+        array([0, 1, 2])
+        """
+        cdef:
+            ndarray[intp_t] labels
+
+        if self.uniques.external_view_exists:
+            uniques = {{name}}Vector()
+            uniques.extend(self.uniques.to_array())
+            self.uniques = uniques
+        labels = self.table.get_labels(values, self.uniques,
+                                       self.count, na_sentinel,
+                                       na_value=na_value, mask=mask)
+        self.count = len(self.uniques)
+        return labels
 
 {{endfor}}
 

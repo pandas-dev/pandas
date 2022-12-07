@@ -159,6 +159,22 @@ class CSSToExcelConverter:
         "fantasy": 5,  # decorative
     }
 
+    BORDER_STYLE_MAP = {
+        style.lower(): style
+        for style in [
+            "dashed",
+            "mediumDashDot",
+            "dashDotDot",
+            "hair",
+            "dotted",
+            "mediumDashDotDot",
+            "double",
+            "dashDot",
+            "slantDashDot",
+            "mediumDashed",
+        ]
+    }
+
     # NB: Most of the methods here could be classmethods, as only __init__
     #     and __call__ make use of instance attributes.  We leave them as
     #     instancemethods so that users can easily experiment with extensions
@@ -170,10 +186,13 @@ class CSSToExcelConverter:
             self.inherited = self.compute_css(inherited)
         else:
             self.inherited = None
+        # We should avoid lru_cache on the __call__ method.
+        # Otherwise once the method __call__ has been called
+        # garbage collection no longer deletes the instance.
+        self._call_cached = lru_cache(maxsize=None)(self._call_uncached)
 
     compute_css = CSSResolver()
 
-    @lru_cache(maxsize=None)
     def __call__(
         self, declarations: str | frozenset[tuple[str, str]]
     ) -> dict[str, dict[str, str]]:
@@ -193,6 +212,11 @@ class CSSToExcelConverter:
             A style as interpreted by ExcelWriter when found in
             ExcelCell.style.
         """
+        return self._call_cached(declarations)
+
+    def _call_uncached(
+        self, declarations: str | frozenset[tuple[str, str]]
+    ) -> dict[str, dict[str, str]]:
         properties = self.compute_css(declarations, self.inherited)
         return self.build_xlstyle(properties)
 
@@ -298,6 +322,16 @@ class CSSToExcelConverter:
             if width_name in ("hair", "thin"):
                 return "dashed"
             return "mediumDashed"
+        elif style in self.BORDER_STYLE_MAP:
+            # Excel-specific styles
+            return self.BORDER_STYLE_MAP[style]
+        else:
+            warnings.warn(
+                f"Unhandled border style format: {repr(style)}",
+                CSSWarning,
+                stacklevel=find_stack_level(),
+            )
+            return "none"
 
     def _get_width_name(self, width_input: str | None) -> str | None:
         width = self._width_to_float(width_input)

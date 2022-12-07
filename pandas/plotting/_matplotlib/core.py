@@ -55,6 +55,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._matplotlib import tools
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
@@ -73,7 +74,6 @@ from pandas.plotting._matplotlib.tools import (
     get_all_lines,
     get_xlim,
     handle_shared_axes,
-    table,
 )
 
 if TYPE_CHECKING:
@@ -600,9 +600,9 @@ class MPLPlot(ABC):
             self.subplots = True
             data = reconstruct_data_with_by(self.data, by=self.by, cols=self.columns)
 
-        # GH16953, _convert is needed as fallback, for ``Series``
+        # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
-        data = data._convert(datetime=True, timedelta=True)
+        data = data.infer_objects()
         include_type = [np.number, "datetime", "datetimetz", "timedelta"]
 
         # GH23719, allow plotting boolean
@@ -644,7 +644,7 @@ class MPLPlot(ABC):
         else:
             data = self.table
         ax = self._get_ax(0)
-        table(ax, data)
+        tools.table(ax, data)
 
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
@@ -839,12 +839,10 @@ class MPLPlot(ABC):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
             elif index.is_numeric():
-                """
-                Matplotlib supports numeric values or datetime objects as
-                xaxis values. Taking LBYL approach here, by the time
-                matplotlib raises exception when using non numeric/datetime
-                values for xaxis, several actions are already taken by plt.
-                """
+                # Matplotlib supports numeric values or datetime objects as
+                # xaxis values. Taking LBYL approach here, by the time
+                # matplotlib raises exception when using non numeric/datetime
+                # values for xaxis, several actions are already taken by plt.
                 x = index._mpl_repr()
             elif is_datetype:
                 self.data = self.data[notna(self.data.index)]

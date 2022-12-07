@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import operator
 from typing import TYPE_CHECKING
-import warnings
 
 import numpy as np
 
@@ -18,7 +17,6 @@ from pandas._typing import (
     Level,
 )
 from pandas.util._decorators import Appender
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -299,13 +297,10 @@ def align_method_FRAME(
 
         if not flex:
             if not left.axes[axis].equals(right.index):
-                warnings.warn(
-                    "Automatic reindexing on DataFrame vs Series comparisons "
-                    "is deprecated and will raise ValueError in a future version. "
-                    "Do `left, right = left.align(right, axis=1, copy=False)` "
-                    "before e.g. `left == right`",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                raise ValueError(
+                    "Operands are not aligned. Do "
+                    "`left, right = left.align(right, axis=1, copy=False)` "
+                    "before operating."
                 )
 
         left, right = left.align(
@@ -338,7 +333,9 @@ def should_reindex_frame_op(
         left_uniques = left.columns.unique()
         right_uniques = right.columns.unique()
         cols = left_uniques.intersection(right_uniques)
-        if len(cols) and not (cols.equals(left_uniques) and cols.equals(right_uniques)):
+        if len(cols) and not (
+            len(cols) == len(left_uniques) and len(cols) == len(right_uniques)
+        ):
             # TODO: is there a shortcut available when len(cols) == 0?
             return True
 

@@ -22,7 +22,7 @@ from pandas.tests.io.pytables.common import (
     tables,
 )
 
-from pandas.io import pytables as pytables
+from pandas.io import pytables
 from pandas.io.pytables import Term
 
 pytestmark = pytest.mark.single_cpu

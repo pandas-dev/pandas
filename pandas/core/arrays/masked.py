@@ -38,7 +38,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_bool,
@@ -247,11 +246,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def __iter__(self) -> Iterator:
         if self.ndim == 1:
-            for i in range(len(self)):
-                if self._mask[i]:
-                    yield self.dtype.na_value
-                else:
-                    yield self._data[i]
+            if not self._hasna:
+                for val in self._data:
+                    yield val
+            else:
+                na_value = self.dtype.na_value
+                for isna_, val in zip(self._mask, self._data):
+                    if isna_:
+                        yield na_value
+                    else:
+                        yield val
         else:
             for i in range(len(self)):
                 yield self[i]
@@ -431,10 +435,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def tolist(self):
         if self.ndim > 1:
             return [x.tolist() for x in self]
-        if not self._hasna:
-            # faster than list(self)
-            return list(self._data)
-        return list(self)
+        dtype = None if self._hasna else self._data.dtype
+        return self.to_numpy(dtype=dtype).tolist()
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -489,10 +491,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             raise ValueError("cannot convert float NaN to bool")
 
         data = self.to_numpy(dtype=dtype, na_value=na_value, copy=copy)
-        if self.dtype.kind == "f":
-            # TODO: make this consistent between IntegerArray/FloatingArray,
-            #  see test_astype_str
-            return astype_nansafe(data, dtype, copy=False)
         return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us

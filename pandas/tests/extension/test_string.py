@@ -168,6 +168,22 @@ class TestMissing(base.BaseMissingTests):
         expected = data_missing[[1]]
         self.assert_extension_array_equal(result, expected)
 
+    def test_fillna_no_op_returns_copy(self, data):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and data.dtype.storage == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_fillna_no_op_returns_copy(data)
+
+    def test_fillna_series_method(self, data_missing, fillna_method):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and data_missing.dtype.storage == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_fillna_series_method(data_missing, fillna_method)
+
 
 class TestNoReduce(base.BaseNoReduceTests):
     @pytest.mark.parametrize("skipna", [True, False])
@@ -375,7 +391,7 @@ class TestGroupBy(base.BaseGroupbyTests):
             _, uniques = pd.factorize(data_for_grouping, sort=True)
 
         if as_index:
-            index = pd.Index._with_infer(uniques, name="B")
+            index = pd.Index(uniques, name="B")
             expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
