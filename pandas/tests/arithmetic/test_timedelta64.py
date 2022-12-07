@@ -1394,7 +1394,7 @@ class TestTimedeltaArraylikeAddSubOps:
     # ------------------------------------------------------------------
     # Unsorted
 
-    def test_td64arr_add_sub_object_array(self, box_with_array):
+    def test_td64arr_add_sub_object_array(self, box_with_array, using_array_manager):
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
 
@@ -1410,6 +1410,11 @@ class TestTimedeltaArraylikeAddSubOps:
             [Timedelta(days=2), Timedelta(days=4), Timestamp("2000-01-07")]
         )
         expected = tm.box_expected(expected, xbox)
+        if not using_array_manager:
+            # TODO: avoid mismatched behavior. This occurs bc inference
+            #  can happen within TimedeltaArray method, which means results
+            #  depend on whether we split blocks.
+            expected = expected.astype(object)
         tm.assert_equal(result, expected)
 
         msg = "unsupported operand type|cannot subtract a datelike"
@@ -1422,6 +1427,8 @@ class TestTimedeltaArraylikeAddSubOps:
 
         expected = pd.Index([Timedelta(0), Timedelta(0), Timestamp("2000-01-01")])
         expected = tm.box_expected(expected, xbox)
+        if not using_array_manager:
+            expected = expected.astype(object)
         tm.assert_equal(result, expected)
 
 

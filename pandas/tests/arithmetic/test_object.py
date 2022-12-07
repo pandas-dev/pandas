@@ -187,7 +187,8 @@ class TestArithmetic:
             dtype=dtype,
         )
         expected = Series(
-            [pd.Timedelta("4 days"), pd.Timedelta("5 days"), pd.Timedelta("6 days")]
+            [pd.Timedelta("4 days"), pd.Timedelta("5 days"), pd.Timedelta("6 days")],
+            dtype=dtype,
         )
 
         result = pd.Timedelta("3 days") + ser
@@ -227,7 +228,9 @@ class TestArithmetic:
             name="xxx",
         )
         assert ser2.dtype == object
-        exp = Series([pd.Timedelta("2 days"), pd.Timedelta("4 days")], name="xxx")
+        exp = Series(
+            [pd.Timedelta("2 days"), pd.Timedelta("4 days")], name="xxx", dtype=object
+        )
         tm.assert_series_equal(ser2 - ser, exp)
         tm.assert_series_equal(ser - ser2, -exp)
 
@@ -238,7 +241,11 @@ class TestArithmetic:
         )
         assert ser.dtype == object
 
-        exp = Series([pd.Timedelta("01:30:00"), pd.Timedelta("02:30:00")], name="xxx")
+        exp = Series(
+            [pd.Timedelta("01:30:00"), pd.Timedelta("02:30:00")],
+            name="xxx",
+            dtype=object,
+        )
         tm.assert_series_equal(ser + pd.Timedelta("00:30:00"), exp)
         tm.assert_series_equal(pd.Timedelta("00:30:00") + ser, exp)
 
