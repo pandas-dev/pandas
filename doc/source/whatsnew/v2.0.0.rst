@@ -698,7 +698,7 @@ Datetimelike
 - Bug in subtracting a ``datetime`` scalar from :class:`DatetimeIndex` failing to retain the original ``freq`` attribute (:issue:`48818`)
 - Bug in ``pandas.tseries.holiday.Holiday`` where a half-open date interval causes inconsistent return types from :meth:`USFederalHolidayCalendar.holidays` (:issue:`49075`)
 - Bug in rendering :class:`DatetimeIndex` and :class:`Series` and :class:`DataFrame` with timezone-aware dtypes with ``dateutil`` or ``zoneinfo`` timezones near daylight-savings transitions (:issue:`49684`)
-- Bug in :func:`to_datetime` was raising ``ValueError`` when parsing :class:`Timestamp`, ``datetime.datetime``, ``datetime.date``, or ``np.datetime64`` objects with non-ISO8601 ``format`` (:issue:`49298`, :issue:`50036`)
+- Bug in :func:`to_datetime` was raising ``ValueError`` when parsing :class:`Timestamp`, ``datetime.datetime``, ``datetime.date``, or ``np.datetime64`` objects when non-ISO8601 ``format`` was passed (:issue:`49298`, :issue:`50036`)
 -
 
 Timedelta
