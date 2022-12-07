@@ -466,7 +466,14 @@ ValueError: columns overlap but no suffix specified:
 2   bar      7
 3   bar      8
 """
-
+#Define Constants
+#-----------------------------------------------------------------------
+DISPLAY_MAX_ROWS = "display.max_rows"
+DISPLAY_MIN_ROWS = "display.min_rows"
+DISPLAY_MAX_COLUMNS = "display.max_columns"
+DISPLAY_MAX_COLDWIDTH = "display.max_colwidth"
+DISPLAY_SHOW_DIMENSIONS = "display.show_dimensions"
+MODE_DATA_MANAGER = "mode.data_manager"
 
 # -----------------------------------------------------------------------
 # DataFrame class
@@ -619,6 +626,7 @@ class DataFrame(NDFrame, OpsMixin):
         return DataFrame
 
     _constructor_sliced: Callable[..., Series] = Series
+ 
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -646,7 +654,7 @@ class DataFrame(NDFrame, OpsMixin):
                 NDFrame.__init__(self, data)
                 return
 
-        manager = get_option("mode.data_manager")
+        manager = get_option(MODE_DATA_MANAGER)
 
         # GH47215
         if index is not None and isinstance(index, set):
@@ -994,7 +1002,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Check length against max_rows.
         """
-        max_rows = get_option("display.max_rows")
+        max_rows = get_option(DISPLAY_MAX_ROWS)
         return len(self) <= max_rows
 
     def _repr_fits_horizontal_(self, ignore_width: bool = False) -> bool:
@@ -1009,7 +1017,7 @@ class DataFrame(NDFrame, OpsMixin):
         GH3541, GH3573
         """
         width, height = console.get_console_size()
-        max_columns = get_option("display.max_columns")
+        max_columns = get_option(DISPLAY_MAX_COLUMNS)
         nb_columns = len(self.columns)
 
         # exceed max columns
@@ -1027,7 +1035,7 @@ class DataFrame(NDFrame, OpsMixin):
             # check at least the column row for excessive width
             max_rows = 1
         else:
-            max_rows = get_option("display.max_rows")
+            max_rows = get_option(DISPLAY_MAX_ROWS)
 
         # when auto-detecting, so width=None and not in ipython front end
         # check whether repr fits horizontal by actually checking
@@ -1086,10 +1094,10 @@ class DataFrame(NDFrame, OpsMixin):
             return f"<pre>{val}</pre>"
 
         if get_option("display.notebook_repr_html"):
-            max_rows = get_option("display.max_rows")
-            min_rows = get_option("display.min_rows")
-            max_cols = get_option("display.max_columns")
-            show_dimensions = get_option("display.show_dimensions")
+            max_rows = get_option(DISPLAY_MAX_ROWS)
+            min_rows = get_option(DISPLAY_MIN_ROWS)
+            max_cols = get_option(DISPLAY_MAX_COLUMNS)
+            show_dimensions = get_option(DISPLAY_SHOW_DIMENSIONS )
 
             formatter = fmt.DataFrameFormatter(
                 self,
@@ -1231,7 +1239,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas import option_context
 
-        with option_context("display.max_colwidth", max_colwidth):
+        with option_context(DISPLAY_MAX_COLDWIDTH , max_colwidth):
             formatter = fmt.DataFrameFormatter(
                 self,
                 columns=columns,
@@ -2414,7 +2422,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             columns = columns.drop(exclude)
 
-        manager = get_option("mode.data_manager")
+        manager = get_option(MODE_DATA_MANAGER)
         mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
         return cls(mgr)
@@ -2615,7 +2623,7 @@ class DataFrame(NDFrame, OpsMixin):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
-        manager = get_option("mode.data_manager")
+        manager = get_option(MODE_DATA_MANAGER)
         columns = ensure_index(columns)
         if len(columns) != len(arrays):
             raise ValueError("len(columns) must match len(arrays)")
@@ -4047,9 +4055,11 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 return obj[i]
 
+        error_message = "Columns must be same length as key"
+
         if self.columns.is_unique:
             if np.shape(value)[-1] != len(key):
-                raise ValueError("Columns must be same length as key")
+                raise ValueError(error_message)
 
             for i, col in enumerate(key):
                 self[col] = igetitem(value, i)
@@ -4062,7 +4072,7 @@ class DataFrame(NDFrame, OpsMixin):
                 raise NotImplementedError
 
             if np.shape(value)[-1] != len(ilocs):
-                raise ValueError("Columns must be same length as key")
+                raise ValueError(error_message)
 
             assert np.ndim(value) <= 2
 
