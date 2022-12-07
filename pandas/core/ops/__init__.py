@@ -429,7 +429,7 @@ def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: AxisInt
     rvalues = np.broadcast_to(rvalues, frame.shape)
     # pass dtype to avoid doing inference
     return type(frame)(
-        rvalues, index=frame.index, columns=frame.columns, dtype=series.dtype
+        rvalues, index=frame.index, columns=frame.columns, dtype=rvalues.dtype
     )
 
 

@@ -229,7 +229,6 @@ class TestArithmetic:
             name="xxx",
         )
         assert ser2.dtype == object
-        # as of 2.0 we preserve object dtype
         exp = Series(
             [pd.Timedelta("2 days"), pd.Timedelta("4 days")], name="xxx", dtype=object
         )
@@ -243,7 +242,6 @@ class TestArithmetic:
         )
         assert ser.dtype == object
 
-        # as of 2.0 we preserve object dtype
         exp = Series(
             [pd.Timedelta("01:30:00"), pd.Timedelta("02:30:00")],
             name="xxx",
