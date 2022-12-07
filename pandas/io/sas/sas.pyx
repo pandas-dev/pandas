@@ -31,30 +31,30 @@ cdef struct Buffer:
     size_t length
 
 
-cdef inline uint8_t buf_get(Buffer buf, size_t offset) except? 255:
+cdef uint8_t buf_get(Buffer buf, size_t offset) except? 255:
     assert offset < buf.length, "Out of bounds read"
     return buf.data[offset]
 
 
-cdef inline bint buf_set(Buffer buf, size_t offset, uint8_t value) except 0:
+cdef bint buf_set(Buffer buf, size_t offset, uint8_t value) except 0:
     assert offset < buf.length, "Out of bounds write"
     buf.data[offset] = value
     return True
 
 
-cdef inline bytes buf_as_bytes(Buffer buf, size_t offset, size_t length):
+cdef bytes buf_as_bytes(Buffer buf, size_t offset, size_t length):
     assert offset + length <= buf.length, "Out of bounds read"
     return buf.data[offset:offset+length]
 
 
-cdef inline Buffer buf_new(size_t length) except *:
+cdef Buffer buf_new(size_t length) except *:
     cdef uint8_t *data = <uint8_t *>calloc(length, sizeof(uint8_t))
     if data == NULL:
         raise MemoryError(f"Failed to allocate {length} bytes")
     return Buffer(data, length)
 
 
-cdef inline buf_free(Buffer buf):
+cdef buf_free(Buffer buf):
     if buf.data != NULL:
         free(buf.data)
 

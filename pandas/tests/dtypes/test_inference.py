@@ -1829,7 +1829,6 @@ class TestNumberScalar:
         assert is_timedelta64_ns_dtype(tdi)
         assert is_timedelta64_ns_dtype(tdi.astype("timedelta64[ns]"))
 
-        # Conversion to Int64Index:
         assert not is_timedelta64_ns_dtype(Index([], dtype=np.float64))
         assert not is_timedelta64_ns_dtype(Index([], dtype=np.int64))
 
