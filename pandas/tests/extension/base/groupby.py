@@ -33,7 +33,7 @@ class BaseGroupbyTests(BaseExtensionTests):
         _, uniques = pd.factorize(data_for_grouping, sort=True)
 
         if as_index:
-            index = pd.Index._with_infer(uniques, name="B")
+            index = pd.Index(uniques, name="B")
             expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
@@ -61,7 +61,7 @@ class BaseGroupbyTests(BaseExtensionTests):
         result = df.groupby("B", sort=False).A.mean()
         _, index = pd.factorize(data_for_grouping, sort=False)
 
-        index = pd.Index._with_infer(index, name="B")
+        index = pd.Index(index, name="B")
         expected = pd.Series([1.0, 3.0, 4.0], index=index, name="A")
         self.assert_series_equal(result, expected)
 
