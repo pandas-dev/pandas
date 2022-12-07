@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+import re
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     TypeVar,
+    Literal,
+    Sequence,
     cast,
 )
 
 import numpy as np
 
+from pandas._libs import missing as libmissing
 from pandas._typing import (
     ArrayLike,
     Dtype,
@@ -16,6 +21,7 @@ from pandas._typing import (
     Iterator,
     PositionalIndexer,
     SortKind,
+    Scalar,
     TakeIndexer,
     npt,
 )
@@ -42,6 +48,7 @@ from pandas.core.indexers import (
     unpack_tuple_and_ellipses,
     validate_indices,
 )
+from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 if not pa_version_under6p0:
     import pyarrow as pa
@@ -133,7 +140,7 @@ def to_pyarrow_type(
     return pa_dtype
 
 
-class ArrowExtensionArray(OpsMixin, ExtensionArray):
+class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
     """
     Pandas ExtensionArray backed by a PyArrow ChunkedArray.
 
@@ -193,6 +200,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 f"Unsupported type '{type(values)}' for ArrowExtensionArray"
             )
         self._dtype = ArrowDtype(self._data.type)
+        assert self._dtype.na_value is self._str_na_value
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
@@ -1090,3 +1098,212 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return pc.if_else(mask, None, chunk)
 
         return pc.replace_with_mask(chunk, mask, value)
+
+    # ------------------------------------------------------------------------
+    # String methods interface  (Series.str.<method>)
+
+    # asserted to match self._dtype.na_value
+    _str_na_value = libmissing.NA
+
+    def _str_count(self, pat: str, flags: int = 0):
+        if flags:
+            fallback_performancewarning()
+            return super()._str_count(pat, flags)
+        return type(self)(pc.count_substring_regex(self._data, pat))
+
+    def _str_pad(
+        self,
+        width: int,
+        side: Literal["left", "right", "both"] = "left",
+        fillchar: str = " ",
+    ):
+        if side == "left":
+            pa_pad = pc.utf8_lpad
+        elif side == "right":
+            pa_pad = pc.utf8_rpad
+        elif side == "both":
+            pa_pad = pc.utf8_center
+        else:
+            raise ValueError(f"Invalid side: {side}. Side must be one of 'left', 'right', 'both'")
+        return type(self)(pa_pad(self._data, fillchar))
+
+    def _str_map(
+        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+    ):
+        # TODO: de-duplicate with StringArray method. This method is moreless copy and
+        # paste.
+
+        from pandas.arrays import (
+            BooleanArray,
+            IntegerArray,
+        )
+
+        if dtype is None:
+            dtype = self.dtype
+        if na_value is None:
+            na_value = self.dtype.na_value
+
+        mask = isna(self)
+        arr = np.asarray(self)
+
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            constructor: type[IntegerArray] | type[BooleanArray]
+            if is_integer_dtype(dtype):
+                constructor = IntegerArray
+            else:
+                constructor = BooleanArray
+
+            na_value_is_na = isna(na_value)
+            if na_value_is_na:
+                na_value = 1
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                # error: Argument 1 to "dtype" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
+                # "Type[object]"
+                dtype=np.dtype(dtype),  # type: ignore[arg-type]
+            )
+
+            if not na_value_is_na:
+                mask[:] = False
+
+            return constructor(result, mask)
+
+        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
+            # i.e. StringDtype
+            result = lib.map_infer_mask(
+                arr, f, mask.view("uint8"), convert=False, na_value=na_value
+            )
+            result = pa.array(result, mask=mask, type=pa.string(), from_pandas=True)
+            return type(self)(result)
+        else:
+            # This is when the result type is object. We reach this when
+            # -> We know the result type is truly object (e.g. .encode returns bytes
+            #    or .findall returns a list).
+            # -> We don't know the result type. E.g. `.get` can return anything.
+            return lib.map_infer_mask(arr, f, mask.view("uint8"))
+
+    def _str_contains(
+        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
+    ):
+        if flags:
+            fallback_performancewarning()
+            return super()._str_contains(pat, case, flags, na, regex)
+
+        if regex:
+            pa_contains = pc.match_substring_regex
+        else:
+            pa_contains = pc.match_substring
+        result = pa_contains(self._data, pat, ignore_case=not case)
+        if not isna(na):
+            result = result.fill_null(na)
+        return type(self)(result)
+
+    def _str_startswith(self, pat: str, na=None):
+        return type(self)(pc.starts_with(self._data, pat))
+
+    def _str_endswith(self, pat: str, na=None):
+        return type(self)(pc.ends_with(self._data, pat))
+
+    def _str_replace(
+        self,
+        pat: str | re.Pattern,
+        repl: str | Callable,
+        n: int = -1,
+        case: bool = True,
+        flags: int = 0,
+        regex: bool = True,
+    ):
+        if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
+            fallback_performancewarning()
+            return super()._str_replace(pat, repl, n, case, flags, regex)
+
+        func = pc.replace_substring_regex if regex else pc.replace_substring
+        result = func(self._data, pattern=pat, replacement=repl, max_replacements=n)
+        return type(self)(result)
+
+    def _str_repeat(self, repeats: int | Sequence[int]):
+        if not isinstance(repeats, int):
+            fallback_performancewarning()
+            return super()._str_repeat(repeats)
+        elif pa_version_under7p0:
+            fallback_performancewarning("7")
+            return super()._str_repeat(repeats)
+        else:
+            return type(self)(pc.binary_repeat(self._data, repeats))
+
+    def _str_match(
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
+    ):
+        if not pat.startswith("^"):
+            pat = f"^{pat}"
+        return self._str_contains(pat, case, flags, na, regex=True)
+
+    def _str_fullmatch(
+        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
+    ):
+        if not pat.endswith("$") or pat.endswith("//$"):
+            pat = f"{pat}$"
+        return self._str_match(pat, case, flags, na)
+
+    def _str_isalnum(self):
+        return type(self)(pc.utf8_is_alnum(self._data))
+
+    def _str_isalpha(self):
+        return type(self)(pc.utf8_is_alpha(self._data))
+
+    def _str_isdecimal(self):
+        return type(self)(pc.utf8_is_decimal(self._data))
+
+    def _str_isdigit(self):
+        return type(self)(pc.utf8_is_digit(self._data))
+
+    def _str_islower(self):
+        return type(self)(pc.utf8_is_lower(self._data))
+
+    def _str_isnumeric(self):
+        return type(self)(pc.utf8_is_numeric(self._data))
+
+    def _str_isspace(self):
+        return type(self)(pc.utf8_is_space(self._data))
+
+    def _str_istitle(self):
+        return type(self)(pc.utf8_is_title(self._data))
+
+    def _str_isupper(self):
+        return type(self)(pc.utf8_is_upper(self._data))
+
+    def _str_len(self):
+        return type(self)(pc.utf8_length(self._data))
+
+    def _str_lower(self):
+        return type(self)(pc.utf8_lower(self._data))
+
+    def _str_upper(self):
+        return type(self)(pc.utf8_upper(self._data))
+
+    def _str_strip(self, to_strip=None):
+        if to_strip is None:
+            result = pc.utf8_trim_whitespace(self._data)
+        else:
+            result = pc.utf8_trim(self._data, characters=to_strip)
+        return type(self)(result)
+
+    def _str_lstrip(self, to_strip=None):
+        if to_strip is None:
+            result = pc.utf8_ltrim_whitespace(self._data)
+        else:
+            result = pc.utf8_ltrim(self._data, characters=to_strip)
+        return type(self)(result)
+
+    def _str_rstrip(self, to_strip=None):
+        if to_strip is None:
+            result = pc.utf8_rtrim_whitespace(self._data)
+        else:
+            result = pc.utf8_rtrim(self._data, characters=to_strip)
+        return type(self)(result)
+
