@@ -312,6 +312,35 @@ The new behavior, as for datetime64, either gives exactly the requested dtype or
    ser.astype("timedelta64[s]")
    ser.astype("timedelta64[D]")
 
+.. _whatsnew_200.api_breaking.zero_len_indexes:
+
+Empty DataFrames/Series will now default to have a ``RangeIndex``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before, constructing an empty (where ``data`` is ``None`` or an empty list-like argument) :class:`Series` or :class:`DataFrame` without
+specifying the axes (``index=None``, ``columns=None``) would return the axes as empty :class:`Index` with object dtype.
+
+Now, the axes return an empty :class:`RangeIndex`.
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [8]: pd.Series().index
+   Out[8]:
+   Index([], dtype='object')
+
+   In [9] pd.DataFrame().axes
+   Out[9]:
+   [Index([], dtype='object'), Index([], dtype='object')]
+
+*New behavior*:
+
+.. ipython:: python
+
+   pd.Series().index
+   pd.DataFrame().axes
+
 .. _whatsnew_200.api_breaking.deps:
 
 Increased minimum versions for dependencies
@@ -373,6 +402,7 @@ Other API changes
 - Changed behavior of :class:`Index` constructor with an object-dtype ``numpy.ndarray`` containing all-``bool`` values or all-complex values, this will now retain object dtype, consistent with the :class:`Series` behavior (:issue:`49594`)
 - Changed behavior of :meth:`DataFrame.shift` with ``axis=1``, an integer ``fill_value``, and homogeneous datetime-like dtype, this now fills new columns with integer dtypes instead of casting to datetimelike (:issue:`49842`)
 - Files are now closed when encountering an exception in :func:`read_json` (:issue:`49921`)
+- Changed behavior of :func:`read_csv`, :func:`read_json` & :func:`read_fwf`, where the index will now always be a :class:`RangeIndex`, when no index is specified. Previously the index would be a :class:`Index` with dtype ``object`` if the new DataFrame/Series has length 0 (:issue:`49572`)
 - :meth:`DataFrame.values`, :meth:`DataFrame.to_numpy`, :meth:`DataFrame.xs`, :meth:`DataFrame.reindex`, :meth:`DataFrame.fillna`, and :meth:`DataFrame.replace` no longer silently consolidate the underlying arrays; do ``df = df.copy()`` to ensure consolidation (:issue:`49356`)
 -
 
