@@ -17,9 +17,11 @@ import sys
 
 BLOCKLIST = {
     "bs4",
+    "ctypes",
     "gcsfs",
     "html5lib",
     "http",
+    "importlib.metadata",
     "ipython",
     "jinja2",
     "hypothesis",
@@ -30,10 +32,13 @@ BLOCKLIST = {
     "pytest",
     "s3fs",
     "scipy",
+    "sqlite3",
     "tables",
+    "urllib.error",
     "urllib.request",
     "xlrd",
     "xlsxwriter",
+    "xml",
 }
 
 

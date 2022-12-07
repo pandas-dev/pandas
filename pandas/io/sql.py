@@ -17,7 +17,6 @@ from datetime import (
 )
 from functools import partial
 import re
-import sqlite3
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -747,6 +746,8 @@ def pandasSQL_builder(
     provided parameters.  Also creates a sqlalchemy connection and transaction
     if necessary.
     """
+    import sqlite3
+
     if isinstance(con, sqlite3.Connection) or con is None:
         yield SQLiteDatabase(con)
     else:
@@ -1901,6 +1902,7 @@ class SQLiteTable(SQLTable):
     def __init__(self, *args, **kwargs) -> None:
         # GH 8341
         # register an adapter callable for datetime.time object
+        import sqlite3
 
         # this will transform time(12,34,56,789) into '12:34:56.000789'
         # (this is what sqlalchemy does)

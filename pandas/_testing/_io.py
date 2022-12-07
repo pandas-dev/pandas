@@ -11,7 +11,6 @@ from typing import (
     Any,
     Callable,
 )
-import urllib.error
 import zipfile
 
 from pandas._typing import (
@@ -72,9 +71,10 @@ _network_errno_vals = (
 
 
 def _get_default_network_errors():
-    # Lazy import for http.client
+    # Lazy import for http.client & urllib.error
     # because it imports many things from the stdlib
     import http.client
+    import urllib.error
 
     return (
         OSError,
