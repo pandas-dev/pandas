@@ -189,7 +189,7 @@ def get_date_name_field(
     return out
 
 
-cdef inline bint _is_on_month(int month, int compare_month, int modby) nogil:
+cdef bint _is_on_month(int month, int compare_month, int modby) nogil:
     """
     Analogous to DateOffset.is_on_offset checking for the month part of a date.
     """
@@ -682,7 +682,7 @@ class RoundTo:
         return 4
 
 
-cdef inline ndarray[int64_t] _floor_int64(const int64_t[:] values, int64_t unit):
+cdef ndarray[int64_t] _floor_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int64_t] result = np.empty(n, dtype="i8")
@@ -700,7 +700,7 @@ cdef inline ndarray[int64_t] _floor_int64(const int64_t[:] values, int64_t unit)
     return result
 
 
-cdef inline ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
+cdef ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int64_t] result = np.empty(n, dtype="i8")
@@ -724,11 +724,11 @@ cdef inline ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
     return result
 
 
-cdef inline ndarray[int64_t] _rounddown_int64(values, int64_t unit):
+cdef ndarray[int64_t] _rounddown_int64(values, int64_t unit):
     return _ceil_int64(values - unit // 2, unit)
 
 
-cdef inline ndarray[int64_t] _roundup_int64(values, int64_t unit):
+cdef ndarray[int64_t] _roundup_int64(values, int64_t unit):
     return _floor_int64(values + unit // 2, unit)
 
 

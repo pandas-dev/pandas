@@ -403,6 +403,15 @@ class TestDatetimeArray:
         assert result.dtype == expected_dtype
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_astype_to_sparse_dt64(self):
+        # GH#50082
+        dti = pd.date_range("2016-01-01", periods=4)
+        dta = dti._data
+        result = dta.astype("Sparse[datetime64[ns]]")
+
+        assert result.dtype == "Sparse[datetime64[ns]]"
+        assert (result == dta).all()
+
     def test_tz_setter_raises(self):
         arr = DatetimeArray._from_sequence(
             ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
