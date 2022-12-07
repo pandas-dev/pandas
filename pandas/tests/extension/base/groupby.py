@@ -69,21 +69,11 @@ class BaseGroupbyTests(BaseExtensionTests):
         )
         df = pd.DataFrame(
             {
-                "value": pd.Series(["1", "2", "3"], dtype="int64"),
-                "ts": pd.Series(
-                    [
-                        "2021-01-01 00:30:00",
-                        "2021-01-01 00:45:00",
-                        "2021-01-01 02:00:00",
-                    ],
-                    dtype="datetime64[ns]",
-                ),
                 "td": pd.Series(
                     ["0 days 01:00:00", "0 days 00:15:00", "0 days 01:15:00"],
                     dtype="timedelta64[ns]",
                 ),
-                "amount": pd.Series(["10", "20", "30"], dtype="int64"),
-                "grps": pd.Series(["a", "a", "b"], dtype="object"),
+                "grps": ["a", "a", "b"],
             }
         )
         gb = df.groupby("grps")
