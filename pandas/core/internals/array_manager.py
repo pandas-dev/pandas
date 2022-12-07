@@ -374,19 +374,22 @@ class BaseArrayManager(DataManager):
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
-    def convert(self: T) -> T:
+    def convert(self: T, copy: bool) -> T:
         def _convert(arr):
             if is_object_dtype(arr.dtype):
                 # extract PandasArray for tests that patch PandasArray._typ
                 arr = np.asarray(arr)
-                return lib.maybe_convert_objects(
+                result = lib.maybe_convert_objects(
                     arr,
                     convert_datetime=True,
                     convert_timedelta=True,
                     convert_period=True,
                 )
+                if result is arr and copy:
+                    return arr.copy()
+                return result
             else:
-                return arr.copy()
+                return arr.copy() if copy else arr
 
         return self.apply(_convert)
 
