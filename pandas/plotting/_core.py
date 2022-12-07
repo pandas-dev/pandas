@@ -690,17 +690,11 @@ class PlotAccessor(PandasObject):
     logx : bool or 'sym', default False
         Use log scaling or symlog scaling on x axis.
 
-        .. versionchanged:: 0.25.0
-
     logy : bool or 'sym' default False
         Use log scaling or symlog scaling on y axis.
 
-        .. versionchanged:: 0.25.0
-
     loglog : bool or 'sym', default False
         Use log scaling or symlog scaling on both x and y axes.
-
-        .. versionchanged:: 0.25.0
 
     xticks : sequence
         Values to use for the xticks.
@@ -720,6 +714,10 @@ class PlotAccessor(PandasObject):
 
            Now applicable to planar plots (`scatter`, `hexbin`).
 
+        .. versionchanged:: 2.0.0
+
+            Now applicable to histograms.
+
     ylabel : label, optional
         Name to use for the ylabel on y-axis. Default will show no ylabel, or the
         y-column name for planar plots.
@@ -729,6 +727,10 @@ class PlotAccessor(PandasObject):
         .. versionchanged:: 1.2.0
 
            Now applicable to planar plots (`scatter`, `hexbin`).
+
+        .. versionchanged:: 2.0.0
+
+            Now applicable to histograms.
 
     rot : float, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal
@@ -1681,19 +1683,7 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        size = kwargs.pop("size", None)
-        if s is not None and size is not None:
-            raise TypeError("Specify exactly one of `s` and `size`")
-        if s is not None or size is not None:
-            kwargs["s"] = s if s is not None else size
-
-        color = kwargs.pop("color", None)
-        if c is not None and color is not None:
-            raise TypeError("Specify exactly one of `c` and `color`")
-        if c is not None or color is not None:
-            kwargs["c"] = c if c is not None else color
-
-        return self(kind="scatter", x=x, y=y, **kwargs)
+        return self(kind="scatter", x=x, y=y, s=s, c=c, **kwargs)
 
     def hexbin(
         self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs

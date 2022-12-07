@@ -106,13 +106,6 @@ def ints_to_pydatetime(
     stamps : array of i8
     tz : str, optional
          convert to this timezone
-    fold : bint, default is 0
-        Due to daylight saving time, one wall clock time can occur twice
-        when shifting from summer to winter time; fold describes whether the
-        datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time
-
-        .. versionadded:: 1.1.0
     box : {'datetime', 'timestamp', 'date', 'time'}, default 'datetime'
         * If datetime, convert to datetime.datetime
         * If date, convert to datetime.date
@@ -205,7 +198,7 @@ def ints_to_pydatetime(
 # -------------------------------------------------------------------------
 
 
-cdef inline c_Resolution _reso_stamp(npy_datetimestruct *dts):
+cdef c_Resolution _reso_stamp(npy_datetimestruct *dts):
     if dts.ps != 0:
         return c_Resolution.RESO_NS
     elif dts.us != 0:

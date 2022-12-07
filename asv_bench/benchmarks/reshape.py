@@ -210,7 +210,7 @@ class PivotTable:
         )
 
     def time_pivot_table_margins_only_column(self):
-        self.df.pivot_table(columns=["key2", "key3"], margins=True)
+        self.df.pivot_table(columns=["key1", "key2", "key3"], margins=True)
 
 
 class Crosstab:

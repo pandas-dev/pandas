@@ -319,7 +319,7 @@ class StringMethods(NoNewAttributesMixin):
                     out = out.get_level_values(0)
                 return out
             else:
-                return Index._with_infer(result, name=name)
+                return Index(result, name=name)
         else:
             index = self._orig.index
             # This is a mess.
@@ -456,7 +456,6 @@ class StringMethods(NoNewAttributesMixin):
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
-            .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
                 Changed default of `join` from None to `'left'`.
 
@@ -2978,7 +2977,7 @@ class StringMethods(NoNewAttributesMixin):
     _doc_args["casefold"] = {
         "type": "be casefolded",
         "method": "casefold",
-        "version": "\n    .. versionadded:: 0.25.0\n",
+        "version": "",
     }
 
     @Appender(_shared_docs["casemethods"] % _doc_args["lower"])

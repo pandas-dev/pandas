@@ -53,6 +53,12 @@ from pandas.core.internals.blocks import NumericBlock
 
 
 class TestSeriesConstructors:
+    def test_from_na_value_and_interval_of_datetime_dtype(self):
+        # GH#41805
+        ser = Series([None], dtype="interval[datetime64[ns]]")
+        assert ser.isna().all()
+        assert ser.dtype == "interval[datetime64[ns], right]"
+
     def test_infer_with_date_and_datetime(self):
         # GH#49341 pre-2.0 we inferred datetime-and-date to datetime64, which
         #  was inconsistent with Index behavior
@@ -86,15 +92,15 @@ class TestSeriesConstructors:
             # passed.
             (lambda idx: Series(index=idx), True),
             (lambda idx: Series(None, index=idx), True),
-            (lambda idx: Series({}, index=idx), True),
-            (lambda idx: Series((), index=idx), False),  # creates a RangeIndex
-            (lambda idx: Series([], index=idx), False),  # creates a RangeIndex
-            (lambda idx: Series((_ for _ in []), index=idx), False),  # RangeIndex
+            (lambda idx: Series({}, index=idx), False),  # creates an Index[object]
+            (lambda idx: Series((), index=idx), True),
+            (lambda idx: Series([], index=idx), True),
+            (lambda idx: Series((_ for _ in []), index=idx), True),
             (lambda idx: Series(data=None, index=idx), True),
-            (lambda idx: Series(data={}, index=idx), True),
-            (lambda idx: Series(data=(), index=idx), False),  # creates a RangeIndex
-            (lambda idx: Series(data=[], index=idx), False),  # creates a RangeIndex
-            (lambda idx: Series(data=(_ for _ in []), index=idx), False),  # RangeIndex
+            (lambda idx: Series(data={}, index=idx), False),  # creates an Index[object]
+            (lambda idx: Series(data=(), index=idx), True),
+            (lambda idx: Series(data=[], index=idx), True),
+            (lambda idx: Series(data=(_ for _ in []), index=idx), True),
         ],
     )
     @pytest.mark.parametrize("empty_index", [None, []])
@@ -749,25 +755,17 @@ class TestSeriesConstructors:
         with pytest.raises(ValueError, match=msg):
             Series(["a", "b", "c"], dtype=float)
 
-    def test_constructor_signed_int_overflow_deprecation(self):
-        # GH#41734 disallow silent overflow
-        msg = "Values are too large to be losslessly cast"
+    def test_constructor_signed_int_overflow_raises(self):
+        # GH#41734 disallow silent overflow, enforced in 2.0
+        msg = "Values are too large to be losslessly converted"
         numpy_warning = DeprecationWarning if is_numpy_dev else None
-        with tm.assert_produces_warning(
-            (FutureWarning, numpy_warning), match=msg, check_stacklevel=False
-        ):
-            ser = Series([1, 200, 923442], dtype="int8")
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(numpy_warning):
+                Series([1, 200, 923442], dtype="int8")
 
-        expected = Series([1, -56, 50], dtype="int8")
-        tm.assert_series_equal(ser, expected)
-
-        with tm.assert_produces_warning(
-            (FutureWarning, numpy_warning), match=msg, check_stacklevel=False
-        ):
-            ser = Series([1, 200, 923442], dtype="uint8")
-
-        expected = Series([1, 200, 50], dtype="uint8")
-        tm.assert_series_equal(ser, expected)
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(numpy_warning):
+                Series([1, 200, 923442], dtype="uint8")
 
     @pytest.mark.parametrize(
         "values",

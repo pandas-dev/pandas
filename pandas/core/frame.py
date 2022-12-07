@@ -71,6 +71,7 @@ from pandas._typing import (
     IndexKeyFunc,
     IndexLabel,
     Level,
+    MergeHow,
     NaPosition,
     PythonFuncType,
     QuantileInterpolation,
@@ -165,6 +166,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
     sanitize_masked_array,
@@ -247,13 +249,13 @@ _shared_doc_kwargs = {
     inplace : bool, default False
         Whether to modify the DataFrame rather than creating a new one.""",
     "optional_by": """
-        by : str or list of str
-            Name or list of names to sort by.
+by : str or list of str
+    Name or list of names to sort by.
 
-            - if `axis` is 0 or `'index'` then `by` may contain index
-              levels and/or column labels.
-            - if `axis` is 1 or `'columns'` then `by` may contain column
-              levels and/or index labels.""",
+    - if `axis` is 0 or `'index'` then `by` may contain index
+      levels and/or column labels.
+    - if `axis` is 1 or `'columns'` then `by` may contain column
+      levels and/or index labels.""",
     "optional_labels": """labels : array-like, optional
             New labels / index to conform the axis specified by 'axis' to.""",
     "optional_axis": """axis : int or str, optional
@@ -488,8 +490,7 @@ class DataFrame(NDFrame, OpsMixin):
         occurs if data is a Series or a DataFrame itself. Alignment is done on
         Series/DataFrame inputs.
 
-        .. versionchanged:: 0.25.0
-           If data is a list of dicts, column order follows insertion-order.
+        If data is a list of dicts, column order follows insertion-order.
 
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
@@ -631,8 +632,6 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool | None = None,
     ) -> None:
 
-        if data is None:
-            data = {}
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
@@ -669,6 +668,12 @@ class DataFrame(NDFrame, OpsMixin):
                 copy = True
             else:
                 copy = False
+
+        if data is None:
+            index = index if index is not None else default_index(0)
+            columns = columns if columns is not None else default_index(0)
+            dtype = dtype if dtype is not None else pandas_dtype(object)
+            data = []
 
         if isinstance(data, (BlockManager, ArrayManager)):
             mgr = self._init_mgr(
@@ -776,7 +781,7 @@ class DataFrame(NDFrame, OpsMixin):
                 mgr = dict_to_mgr(
                     {},
                     index,
-                    columns,
+                    columns if columns is not None else default_index(0),
                     dtype=dtype,
                     typ=manager,
                 )
@@ -960,8 +965,6 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Analogue to ._values that may return a 2D ExtensionArray.
         """
-        self._consolidate_inplace()
-
         mgr = self._mgr
 
         if isinstance(mgr, ArrayManager):
@@ -969,11 +972,11 @@ class DataFrame(NDFrame, OpsMixin):
                 # error: Item "ExtensionArray" of "Union[ndarray, ExtensionArray]"
                 # has no attribute "reshape"
                 return mgr.arrays[0].reshape(-1, 1)  # type: ignore[union-attr]
-            return self.values
+            return ensure_wrapped_if_datetimelike(self.values)
 
         blocks = mgr.blocks
         if len(blocks) != 1:
-            return self.values
+            return ensure_wrapped_if_datetimelike(self.values)
 
         arr = blocks[0].values
         if arr.ndim == 1:
@@ -1804,7 +1807,6 @@ class DataFrame(NDFrame, OpsMixin):
         array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
-        self._consolidate_inplace()
         if dtype is not None:
             dtype = np.dtype(dtype)
         result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
@@ -1812,6 +1814,28 @@ class DataFrame(NDFrame, OpsMixin):
             result = np.array(result, dtype=dtype, copy=False)
 
         return result
+
+    def _create_data_for_split_and_tight_to_dict(
+        self, are_all_object_dtype_cols: bool, object_dtype_indices: list[int]
+    ) -> list:
+        """
+        Simple helper method to create data for to ``to_dict(orient="split")`` and
+        ``to_dict(orient="tight")`` to create the main output data
+        """
+        if are_all_object_dtype_cols:
+            data = [
+                list(map(maybe_box_native, t))
+                for t in self.itertuples(index=False, name=None)
+            ]
+        else:
+            data = [list(t) for t in self.itertuples(index=False, name=None)]
+            if object_dtype_indices:
+                # If we have object_dtype_cols, apply maybe_box_naive after list
+                # comprehension for perf
+                for row in data:
+                    for i in object_dtype_indices:
+                        row[i] = maybe_box_native(row[i])
+        return data
 
     @overload
     def to_dict(
@@ -1952,30 +1976,50 @@ class DataFrame(NDFrame, OpsMixin):
                 "'index=False' is only valid when 'orient' is 'split' or 'tight'"
             )
 
+        if orient == "series":
+            # GH46470 Return quickly if orient series to avoid creating dtype objects
+            return into_c((k, v) for k, v in self.items())
+
+        object_dtype_indices = [
+            i
+            for i, col_dtype in enumerate(self.dtypes.values)
+            if is_object_dtype(col_dtype)
+        ]
+        are_all_object_dtype_cols = len(object_dtype_indices) == len(self.dtypes)
+
         if orient == "dict":
             return into_c((k, v.to_dict(into)) for k, v in self.items())
 
         elif orient == "list":
+            object_dtype_indices_as_set = set(object_dtype_indices)
             return into_c(
-                (k, list(map(maybe_box_native, v.tolist()))) for k, v in self.items()
+                (
+                    k,
+                    list(map(maybe_box_native, v.tolist()))
+                    if i in object_dtype_indices_as_set
+                    else v.tolist(),
+                )
+                for i, (k, v) in enumerate(self.items())
             )
 
         elif orient == "split":
+            data = self._create_data_for_split_and_tight_to_dict(
+                are_all_object_dtype_cols, object_dtype_indices
+            )
+
             return into_c(
                 ((("index", self.index.tolist()),) if index else ())
                 + (
                     ("columns", self.columns.tolist()),
-                    (
-                        "data",
-                        [
-                            list(map(maybe_box_native, t))
-                            for t in self.itertuples(index=False, name=None)
-                        ],
-                    ),
+                    ("data", data),
                 )
             )
 
         elif orient == "tight":
+            data = self._create_data_for_split_and_tight_to_dict(
+                are_all_object_dtype_cols, object_dtype_indices
+            )
+
             return into_c(
                 ((("index", self.index.tolist()),) if index else ())
                 + (
@@ -1992,26 +2036,65 @@ class DataFrame(NDFrame, OpsMixin):
                 + (("column_names", list(self.columns.names)),)
             )
 
-        elif orient == "series":
-            return into_c((k, v) for k, v in self.items())
-
         elif orient == "records":
             columns = self.columns.tolist()
-            rows = (
-                dict(zip(columns, row))
-                for row in self.itertuples(index=False, name=None)
-            )
-            return [
-                into_c((k, maybe_box_native(v)) for k, v in row.items()) for row in rows
-            ]
+            if are_all_object_dtype_cols:
+                rows = (
+                    dict(zip(columns, row))
+                    for row in self.itertuples(index=False, name=None)
+                )
+                return [
+                    into_c((k, maybe_box_native(v)) for k, v in row.items())
+                    for row in rows
+                ]
+            else:
+                data = [
+                    into_c(zip(columns, t))
+                    for t in self.itertuples(index=False, name=None)
+                ]
+                if object_dtype_indices:
+                    object_dtype_indices_as_set = set(object_dtype_indices)
+                    object_dtype_cols = {
+                        col
+                        for i, col in enumerate(self.columns)
+                        if i in object_dtype_indices_as_set
+                    }
+                    for row in data:
+                        for col in object_dtype_cols:
+                            row[col] = maybe_box_native(row[col])
+                return data
 
         elif orient == "index":
             if not self.index.is_unique:
                 raise ValueError("DataFrame index must be unique for orient='index'.")
-            return into_c(
-                (t[0], dict(zip(self.columns, map(maybe_box_native, t[1:]))))
-                for t in self.itertuples(name=None)
-            )
+            columns = self.columns.tolist()
+            if are_all_object_dtype_cols:
+                return into_c(
+                    (t[0], dict(zip(self.columns, map(maybe_box_native, t[1:]))))
+                    for t in self.itertuples(name=None)
+                )
+            elif object_dtype_indices:
+                object_dtype_indices_as_set = set(object_dtype_indices)
+                is_object_dtype_by_index = [
+                    i in object_dtype_indices_as_set for i in range(len(self.columns))
+                ]
+                return into_c(
+                    (
+                        t[0],
+                        {
+                            columns[i]: maybe_box_native(v)
+                            if is_object_dtype_by_index[i]
+                            else v
+                            for i, v in enumerate(t[1:])
+                        },
+                    )
+                    for t in self.itertuples(name=None)
+                )
+            else:
+                return into_c(
+                    (t[0], dict(zip(self.columns, t[1:])))
+                    for t in self.itertuples(name=None)
+                )
 
         else:
             raise ValueError(f"orient '{orient}' not understood")
@@ -2230,8 +2313,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             result_index = None
             if len(arrays) == 0 and index is None and length == 0:
-                # for backward compat use an object Index instead of RangeIndex
-                result_index = Index([])
+                result_index = default_index(0)
 
             arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns, length)
             return arrays, arr_columns, result_index
@@ -3072,9 +3154,7 @@ class DataFrame(NDFrame, OpsMixin):
         header="Whether to print column labels, default True",
         col_space_type="str or int, list or dict of int or str",
         col_space="The minimum width of each column in CSS length "
-        "units.  An int is assumed to be px units.\n\n"
-        "            .. versionadded:: 0.25.0\n"
-        "                Ability to use str",
+        "units.  An int is assumed to be px units.",
     )
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_html(
@@ -4270,9 +4350,6 @@ class DataFrame(NDFrame, OpsMixin):
             For example, if one of your columns is called ``a a`` and you want
             to sum it with ``b``, your query should be ```a a` + b``.
 
-            .. versionadded:: 0.25.0
-                Backtick quoting introduced.
-
             .. versionadded:: 1.0.0
                 Expanding functionality of backtick quoting for more than only spaces.
 
@@ -4808,7 +4885,7 @@ class DataFrame(NDFrame, OpsMixin):
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
         """
-        data = self.copy()
+        data = self.copy(deep=None)
 
         for k, v in kwargs.items():
             data[k] = com.apply_if_callable(v, data)
@@ -5089,7 +5166,7 @@ class DataFrame(NDFrame, OpsMixin):
         Remove rows or columns by specifying label names and corresponding
         axis, or by specifying directly index or column names. When using a
         multi-index, labels on different levels can be removed by specifying
-        the level. See the `user guide <advanced.shown_levels>`
+        the level. See the :ref:`user guide <advanced.shown_levels>`
         for more information about the now unused levels.
 
         Parameters
@@ -5641,14 +5718,7 @@ class DataFrame(NDFrame, OpsMixin):
                 #  keep the same dtype (i.e. the _can_hold_element check)
                 #  then we can go through the reindex_indexer path
                 #  (and avoid casting logic in the Block method).
-                #  The exception to this (until 2.0) is datetimelike
-                #  dtypes with integers, which cast.
                 not can_hold_element(arrays[0], fill_value)
-                # TODO(2.0): remove special case for integer-with-datetimelike
-                #  once deprecation is enforced
-                and not (
-                    lib.is_integer(fill_value) and needs_i8_conversion(arrays[0].dtype)
-                )
             ):
                 # GH#35488 we need to watch out for multi-block cases
                 # We only get here with fill_value not-lib.no_default
@@ -7335,7 +7405,7 @@ class DataFrame(NDFrame, OpsMixin):
             result.columns = result.columns.swaplevel(i, j)
         return result
 
-    def reorder_levels(self, order: Sequence[Axis], axis: Axis = 0) -> DataFrame:
+    def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> DataFrame:
         """
         Rearrange index levels using input order. May not drop or duplicate levels.
 
@@ -7380,7 +7450,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
             raise TypeError("Can only reorder levels on a hierarchical axis.")
 
-        result = self.copy()
+        result = self.copy(deep=None)
 
         if axis == 0:
             assert isinstance(result.index, MultiIndex)
@@ -8421,8 +8491,6 @@ Parrot 2  Parrot       24.0
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
-            .. versionchanged:: 0.25.0
-
         sort : bool, default True
             Specifies if the result should be sorted.
 
@@ -8735,8 +8803,6 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame:
         """
         Transform each element of a list-like to a row, replicating index values.
-
-        .. versionadded:: 0.25.0
 
         Parameters
         ----------
@@ -9526,7 +9592,7 @@ Parrot 2  Parrot       24.0
         self,
         other: DataFrame | Series | list[DataFrame | Series],
         on: IndexLabel | None = None,
-        how: str = "left",
+        how: MergeHow = "left",
         lsuffix: str = "",
         rsuffix: str = "",
         sort: bool = False,
@@ -9699,7 +9765,7 @@ Parrot 2  Parrot       24.0
         self,
         other: DataFrame | Series | Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
-        how: str = "left",
+        how: MergeHow = "left",
         lsuffix: str = "",
         rsuffix: str = "",
         sort: bool = False,
@@ -9785,7 +9851,7 @@ Parrot 2  Parrot       24.0
     def merge(
         self,
         right: DataFrame | Series,
-        how: str = "inner",
+        how: MergeHow = "inner",
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
@@ -11291,7 +11357,6 @@ Parrot 2  Parrot       24.0
                ['lion', 80.5, 1],
                ['monkey', nan, None]], dtype=object)
         """
-        self._consolidate_inplace()
         return self._mgr.as_array()
 
     @overload
