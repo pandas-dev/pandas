@@ -341,6 +341,33 @@ Now, the axes return an empty :class:`RangeIndex`.
    pd.Series().index
    pd.DataFrame().axes
 
+.. _whatsnew_200.api_breaking.to_latex:
+
+DataFrame to LaTeX has a new render engine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The existing :meth:`DataFrame.to_latex` has been restructured to utilise the
+dual implementation previously available under :meth:`.Styler.to_latex`.
+The arguments signature is similar, albeit ``col_space`` has been removed since
+it is ignored by LaTeX engines. This also requires ``jinja2`` as a dependency
+which needs to be installed.
+The pandas options below are no longer used. The dual, existing, options that
+effect the same functionality are indicated below:
+  - ``display.latex.escape``: replaced with ``styler.format.escape``,
+  - ``display.latex.longtable``: replaced with ``styler.latex.environment``,
+  - ``display.latex.multicolumn``, ``display.latex.multicolumn_format`` and
+    ``display.latex.multirow``: replaced with ``styler.sparse.rows``,
+    ``styler.sparse.columns``, ``styler.latex.multirow_align`` and
+    ``styler.latex.multicol_align``,
+  - ``display.latex.repr``: replaced with ``styler.render.repr``,
+  - ``display.max_rows`` and ``display.max_columns``: replace with
+    ``styler.render.max_rows``, ``styler.render.max_columns`` and
+    ``styler.render.max_elements``.
+Note that the behaviour of ``_repr_latex_`` is also affected to display LaTeX
+within JupyterNotebooks in operations (not just on nbconvert) when using the
+replacement ``repr`` option.
+
+
 .. _whatsnew_200.api_breaking.deps:
 
 Increased minimum versions for dependencies
