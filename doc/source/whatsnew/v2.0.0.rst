@@ -84,6 +84,7 @@ Other enhancements
 - :meth:`DataFrame.to_json` now supports a ``mode`` keyword with supported inputs 'w' and 'a'. Defaulting to 'w', 'a' can be used when lines=True and orient='records' to append record oriented json lines to an existing json file. (:issue:`35849`)
 - Added ``name`` parameter to :meth:`IntervalIndex.from_breaks`, :meth:`IntervalIndex.from_arrays` and :meth:`IntervalIndex.from_tuples` (:issue:`48911`)
 - Added :meth:`Index.infer_objects` analogous to :meth:`Series.infer_objects` (:issue:`50034`)
+- Added ``copy`` parameter to :meth:`Series.infer_objects` and :meth:`DataFrame.infer_objects`, passing ``False`` will avoid making copies for series or columns that are already non-object or where no better dtype can be inferred (:issue:`50096`)
 - :meth:`DataFrame.plot.hist` now recognizes ``xlabel`` and ``ylabel`` arguments (:issue:`49793`)
 -
 
@@ -345,6 +346,35 @@ objects instead of ``pytz.FixedOffset`` objects. See (:issue:`34916`)
 For timezones that are neither UTC nor fixed offsets, e.g. "US/Pacific", we
 continue to default to ``pytz`` objects.
 
+.. _whatsnew_200.api_breaking.zero_len_indexes:
+
+Empty DataFrames/Series will now default to have a ``RangeIndex``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before, constructing an empty (where ``data`` is ``None`` or an empty list-like argument) :class:`Series` or :class:`DataFrame` without
+specifying the axes (``index=None``, ``columns=None``) would return the axes as empty :class:`Index` with object dtype.
+
+Now, the axes return an empty :class:`RangeIndex`.
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [8]: pd.Series().index
+   Out[8]:
+   Index([], dtype='object')
+
+   In [9] pd.DataFrame().axes
+   Out[9]:
+   [Index([], dtype='object'), Index([], dtype='object')]
+
+*New behavior*:
+
+.. ipython:: python
+
+   pd.Series().index
+   pd.DataFrame().axes
+
 .. _whatsnew_200.api_breaking.deps:
 
 Increased minimum versions for dependencies
@@ -403,9 +433,11 @@ Other API changes
 - Passing a sequence containing a type that cannot be converted to :class:`Timedelta` to :func:`to_timedelta` or to the :class:`Series` or :class:`DataFrame` constructor with ``dtype="timedelta64[ns]"`` or to :class:`TimedeltaIndex` now raises ``TypeError`` instead of ``ValueError`` (:issue:`49525`)
 - Changed behavior of :class:`Index` constructor with sequence containing at least one ``NaT`` and everything else either ``None`` or ``NaN`` to infer ``datetime64[ns]`` dtype instead of ``object``, matching :class:`Series` behavior (:issue:`49340`)
 - :func:`read_stata` with parameter ``index_col`` set to ``None`` (the default) will now set the index on the returned :class:`DataFrame` to a :class:`RangeIndex` instead of a :class:`Int64Index` (:issue:`49745`)
+- Changed behavior of :class:`Index`, :class:`Series`, and :class:`DataFrame` arithmetic methods when working with object-dtypes, the results no longer do type inference on the result of the array operations, use ``result.infer_objects()`` to do type inference on the result (:issue:`49999`)
 - Changed behavior of :class:`Index` constructor with an object-dtype ``numpy.ndarray`` containing all-``bool`` values or all-complex values, this will now retain object dtype, consistent with the :class:`Series` behavior (:issue:`49594`)
 - Changed behavior of :meth:`DataFrame.shift` with ``axis=1``, an integer ``fill_value``, and homogeneous datetime-like dtype, this now fills new columns with integer dtypes instead of casting to datetimelike (:issue:`49842`)
 - Files are now closed when encountering an exception in :func:`read_json` (:issue:`49921`)
+- Changed behavior of :func:`read_csv`, :func:`read_json` & :func:`read_fwf`, where the index will now always be a :class:`RangeIndex`, when no index is specified. Previously the index would be a :class:`Index` with dtype ``object`` if the new DataFrame/Series has length 0 (:issue:`49572`)
 - :meth:`DataFrame.values`, :meth:`DataFrame.to_numpy`, :meth:`DataFrame.xs`, :meth:`DataFrame.reindex`, :meth:`DataFrame.fillna`, and :meth:`DataFrame.replace` no longer silently consolidate the underlying arrays; do ``df = df.copy()`` to ensure consolidation (:issue:`49356`)
 -
 
@@ -741,6 +773,7 @@ Strings
 Interval
 ^^^^^^^^
 - Bug in :meth:`IntervalIndex.is_overlapping` incorrect output if interval has duplicate left boundaries (:issue:`49581`)
+- Bug in :meth:`Series.infer_objects` failing to infer :class:`IntervalDtype` for an object series of :class:`Interval` objects (:issue:`50090`)
 -
 
 Indexing
@@ -827,7 +860,7 @@ Reshaping
 
 Sparse
 ^^^^^^
-- Bug in :meth:`Series.astype` when converting a ``SparseDtype`` with ``datetime64[ns]`` subtype to ``int64`` dtype raising, inconsistent with the non-sparse behavior (:issue:`49631`)
+- Bug in :meth:`Series.astype` when converting a ``SparseDtype`` with ``datetime64[ns]`` subtype to ``int64`` dtype raising, inconsistent with the non-sparse behavior (:issue:`49631`,:issue:`50087`)
 - Bug in :meth:`Series.astype` when converting a from ``datetime64[ns]`` to ``Sparse[datetime64[ns]]`` incorrectly raising (:issue:`50082`)
 -
 

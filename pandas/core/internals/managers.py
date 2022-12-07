@@ -441,10 +441,10 @@ class BaseBlockManager(DataManager):
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
-    def convert(self: T) -> T:
+    def convert(self: T, copy: bool) -> T:
         return self.apply(
             "convert",
-            copy=True,
+            copy=copy,
         )
 
     def replace(self: T, to_replace, value, inplace: bool) -> T:
