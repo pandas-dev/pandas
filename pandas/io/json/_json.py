@@ -478,7 +478,7 @@ def read_json(
     typ: Literal["frame", "series"] = "frame",
     dtype: DtypeArg | None = None,
     convert_axes=None,
-    convert_dates: bool | list[str] = True,
+    convert_dates: bool | list[str] = False,
     keep_default_dates: bool = True,
     precise_float: bool = False,
     date_unit: str | None = None,
