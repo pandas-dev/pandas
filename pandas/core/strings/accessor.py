@@ -569,7 +569,7 @@ class StringMethods(NoNewAttributesMixin):
 
         # concatenate Series/Index with itself if no "others"
         if others is None:
-            data = Series(ensure_object(data))
+            data = ensure_object(data)
             na_mask = isna(data)
             if na_rep is None and na_mask.any():
                 return sep.join(data[~na_mask])
