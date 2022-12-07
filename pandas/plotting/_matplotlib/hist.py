@@ -59,6 +59,8 @@ class HistPlot(LinePlot):
     ) -> None:
         self.bins = bins  # use mpl default
         self.bottom = bottom
+        self.xlabel = kwargs.get("xlabel")
+        self.ylabel = kwargs.get("ylabel")
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
 
@@ -170,9 +172,11 @@ class HistPlot(LinePlot):
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
         if self.orientation == "horizontal":
-            ax.set_xlabel("Frequency")
+            ax.set_xlabel("Frequency" if self.xlabel is None else self.xlabel)
+            ax.set_ylabel(self.ylabel)
         else:
-            ax.set_ylabel("Frequency")
+            ax.set_xlabel(self.xlabel)
+            ax.set_ylabel("Frequency" if self.ylabel is None else self.ylabel)
 
     @property
     def orientation(self) -> PlottingOrientation:

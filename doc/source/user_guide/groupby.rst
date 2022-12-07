@@ -774,12 +774,11 @@ as the one being grouped. The transform function must:
 * (Optionally) operates on the entire group chunk. If this is supported, a
   fast path is used starting from the *second* chunk.
 
-.. deprecated:: 1.5.0
+.. versionchanged:: 2.0.0
 
     When using ``.transform`` on a grouped DataFrame and the transformation function
-    returns a DataFrame, currently pandas does not align the result's index
-    with the input's index. This behavior is deprecated and alignment will
-    be performed in a future version of pandas. You can apply ``.to_numpy()`` to the
+    returns a DataFrame, pandas now aligns the result's index
+    with the input's index. You can call ``.to_numpy()`` on the
     result of the transformation function to avoid alignment.
 
 Similar to :ref:`groupby.aggregate.udfs`, the resulting dtype will reflect that of the
