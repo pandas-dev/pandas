@@ -3335,12 +3335,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Notes
         -----
-
-        .. note::
-           As of v2.0.0 this method has changed to use the Styler implementation as
-           part of :meth:`.Styler.to_latex` via ``jinja2`` templating. It is advised
-           that users switch to using Styler, since this implementation is more
-           frequently updated and contains much more flexibility with the output.
+        As of v2.0.0 this method has changed to use the Styler implementation as
+        part of :meth:`.Styler.to_latex` via ``jinja2`` templating. This means
+        that ``jinja2`` is a requirement, and needs to be installed, for this method
+        to function. It is advised that users switch to using Styler, since that
+        implementation is more frequently updated and contains much more
+        flexibility with the output.
 
         Examples
         --------
