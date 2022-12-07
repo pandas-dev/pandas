@@ -483,7 +483,7 @@ class TestRank:
         "data,expected",
         [
             ({"a": [1, 2, "a"], "b": [4, 5, 6]}, DataFrame({"b": [1.0, 2.0, 3.0]})),
-            ({"a": [1, 2, "a"]}, DataFrame(index=range(3))),
+            ({"a": [1, 2, "a"]}, DataFrame(index=range(3), columns=[])),
         ],
     )
     def test_rank_mixed_axis_zero(self, data, expected):

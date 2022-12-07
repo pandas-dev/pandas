@@ -4,7 +4,7 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
-    Index,
+    RangeIndex,
     Series,
     concat,
     date_range,
@@ -52,7 +52,7 @@ class TestEmptyConcat:
         res = concat([s1, s2], axis=1)
         exp = DataFrame(
             {"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan]},
-            index=Index([0, 1, 2], dtype="O"),
+            index=RangeIndex(3),
         )
         tm.assert_frame_equal(res, exp)
 
@@ -70,7 +70,7 @@ class TestEmptyConcat:
         exp = DataFrame(
             {"x": [1, 2, 3], 0: [np.nan, np.nan, np.nan]},
             columns=["x", 0],
-            index=Index([0, 1, 2], dtype="O"),
+            index=RangeIndex(3),
         )
         tm.assert_frame_equal(res, exp)
 
@@ -238,7 +238,7 @@ class TestEmptyConcat:
         # GH 15328
         df_empty = DataFrame()
         df_a = DataFrame({"a": [1, 2]}, index=[0, 1], dtype="int64")
-        df_expected = DataFrame({"a": []}, index=[], dtype="int64")
+        df_expected = DataFrame({"a": []}, index=RangeIndex(0), dtype="int64")
 
         for how, expected in [("inner", df_expected), ("outer", df_a)]:
             result = concat([df_a, df_empty], axis=1, join=how)

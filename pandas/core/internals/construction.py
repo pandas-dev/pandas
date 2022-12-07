@@ -582,7 +582,7 @@ def _extract_index(data) -> Index:
     """
     index: Index
     if len(data) == 0:
-        return Index([])
+        return default_index(0)
 
     raw_lengths = []
     indexes: list[list[Hashable] | Index] = []

@@ -8,7 +8,6 @@ from pandas.core.dtypes.common import is_number
 
 from pandas import (
     DataFrame,
-    Index,
     Series,
 )
 import pandas._testing as tm
@@ -149,8 +148,8 @@ def test_agg_cython_table_series(series, func, expected):
         tm.get_cython_table_params(
             Series(dtype=np.float64),
             [
-                ("cumprod", Series([], Index([]), dtype=np.float64)),
-                ("cumsum", Series([], Index([]), dtype=np.float64)),
+                ("cumprod", Series([], dtype=np.float64)),
+                ("cumsum", Series([], dtype=np.float64)),
             ],
         ),
         tm.get_cython_table_params(

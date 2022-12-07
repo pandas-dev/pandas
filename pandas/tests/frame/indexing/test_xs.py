@@ -84,7 +84,7 @@ class TestXS:
         # no columns but Index(dtype=object)
         df = DataFrame(index=["a", "b", "c"])
         result = df.xs("a")
-        expected = Series([], name="a", index=Index([]), dtype=np.float64)
+        expected = Series([], name="a", dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
     def test_xs_duplicates(self):

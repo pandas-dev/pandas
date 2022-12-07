@@ -595,5 +595,5 @@ def test_pickle_frame_v124_unpickle_130():
     with open(path, "rb") as fd:
         df = pickle.load(fd)
 
-    expected = pd.DataFrame()
+    expected = pd.DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)

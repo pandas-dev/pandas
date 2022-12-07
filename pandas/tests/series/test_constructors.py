@@ -92,15 +92,15 @@ class TestSeriesConstructors:
             # passed.
             (lambda idx: Series(index=idx), True),
             (lambda idx: Series(None, index=idx), True),
-            (lambda idx: Series({}, index=idx), True),
-            (lambda idx: Series((), index=idx), False),  # creates a RangeIndex
-            (lambda idx: Series([], index=idx), False),  # creates a RangeIndex
-            (lambda idx: Series((_ for _ in []), index=idx), False),  # RangeIndex
+            (lambda idx: Series({}, index=idx), False),  # creates an Index[object]
+            (lambda idx: Series((), index=idx), True),
+            (lambda idx: Series([], index=idx), True),
+            (lambda idx: Series((_ for _ in []), index=idx), True),
             (lambda idx: Series(data=None, index=idx), True),
-            (lambda idx: Series(data={}, index=idx), True),
-            (lambda idx: Series(data=(), index=idx), False),  # creates a RangeIndex
-            (lambda idx: Series(data=[], index=idx), False),  # creates a RangeIndex
-            (lambda idx: Series(data=(_ for _ in []), index=idx), False),  # RangeIndex
+            (lambda idx: Series(data={}, index=idx), False),  # creates an Index[object]
+            (lambda idx: Series(data=(), index=idx), True),
+            (lambda idx: Series(data=[], index=idx), True),
+            (lambda idx: Series(data=(_ for _ in []), index=idx), True),
         ],
     )
     @pytest.mark.parametrize("empty_index", [None, []])

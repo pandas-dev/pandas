@@ -390,7 +390,7 @@ class TestDataFrameToCSV:
     def test_to_csv_empty(self):
         df = DataFrame(index=np.arange(10))
         result, expected = self._return_result_expected(df, 1000)
-        tm.assert_frame_equal(result, expected, check_names=False)
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @pytest.mark.slow
     def test_to_csv_chunksize(self):

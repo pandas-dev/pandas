@@ -241,7 +241,7 @@ def test_usecols_with_integer_like_header(all_parsers, usecols, expected):
 
 def test_empty_usecols(all_parsers):
     data = "a,b,c\n1,2,3\n4,5,6"
-    expected = DataFrame()
+    expected = DataFrame(columns=Index([]))
     parser = all_parsers
 
     result = parser.read_csv(StringIO(data), usecols=set())
@@ -276,7 +276,7 @@ def test_np_array_usecols(all_parsers):
                 }
             ),
         ),
-        (lambda x: False, DataFrame()),
+        (lambda x: False, DataFrame(columns=Index([]))),
     ],
 )
 def test_callable_usecols(all_parsers, usecols, expected):
