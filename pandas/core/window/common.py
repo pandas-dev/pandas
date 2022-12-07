@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-import inspect
 from typing import cast
 import warnings
 
@@ -18,7 +17,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.indexes.api import MultiIndex
 
 
-def flex_binary_moment(arg1, arg2, f, pairwise=False):
+def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
 
     if isinstance(arg1, ABCSeries) and isinstance(arg2, ABCSeries):
         X, Y = prep_binary(arg1, arg2)
@@ -31,6 +30,8 @@ def flex_binary_moment(arg1, arg2, f, pairwise=False):
             result = DataFrame(data, index=frame_template.index)
             if len(result.columns) > 0:
                 result.columns = frame_template.columns[result.columns]
+            else:
+                result.columns = frame_template.columns.copy()
             return result
 
         results = {}
@@ -204,5 +205,5 @@ def maybe_warn_args_and_kwargs(cls, kernel: str, args, kwargs) -> None:
             "no impact on the result and is deprecated. This will "
             "raise a TypeError in a future version of pandas.",
             category=FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=find_stack_level(),
         )

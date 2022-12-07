@@ -55,9 +55,7 @@ def test_replace_categorical(to_replace, value, result, expected_error_msg):
     # GH#26988
     cat = Categorical(["a", "b"])
     expected = Categorical(result)
-    with tm.assert_produces_warning(FutureWarning, match="Series.replace"):
-        # GH#44929 replace->_replace
-        result = cat.replace(to_replace, value)
+    result = pd.Series(cat).replace(to_replace, value)._values
 
     tm.assert_categorical_equal(result, expected)
     if to_replace == "b":  # the "c" test is supposed to be unchanged
@@ -65,8 +63,5 @@ def test_replace_categorical(to_replace, value, result, expected_error_msg):
             # ensure non-inplace call does not affect original
             tm.assert_categorical_equal(cat, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match="Series.replace"):
-        # GH#44929 replace->_replace
-        cat.replace(to_replace, value, inplace=True)
-
+    pd.Series(cat).replace(to_replace, value, inplace=True)
     tm.assert_categorical_equal(cat, expected)

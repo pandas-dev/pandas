@@ -236,6 +236,11 @@ class IntervalIndex(ExtensionIndex):
         _interval_shared_docs["from_breaks"]
         % {
             "klass": "IntervalIndex",
+            "name": textwrap.dedent(
+                """
+             name : str, optional
+                  Name of the resulting IntervalIndex."""
+            ),
             "examples": textwrap.dedent(
                 """\
         Examples
@@ -266,6 +271,11 @@ class IntervalIndex(ExtensionIndex):
         _interval_shared_docs["from_arrays"]
         % {
             "klass": "IntervalIndex",
+            "name": textwrap.dedent(
+                """
+             name : str, optional
+                  Name of the resulting IntervalIndex."""
+            ),
             "examples": textwrap.dedent(
                 """\
         Examples
@@ -297,6 +307,11 @@ class IntervalIndex(ExtensionIndex):
         _interval_shared_docs["from_tuples"]
         % {
             "klass": "IntervalIndex",
+            "name": textwrap.dedent(
+                """
+             name : str, optional
+                  Name of the resulting IntervalIndex."""
+            ),
             "examples": textwrap.dedent(
                 """\
         Examples
@@ -311,7 +326,7 @@ class IntervalIndex(ExtensionIndex):
     def from_tuples(
         cls,
         data,
-        closed: str = "right",
+        closed: IntervalClosedType = "right",
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -592,6 +607,8 @@ class IntervalIndex(ExtensionIndex):
         method : {None}, optional
             * default: matches where the label is within an interval only.
 
+            .. deprecated:: 1.4
+
         Returns
         -------
         int if unique index, slice if monotonic index, else mask
@@ -643,7 +660,7 @@ class IntervalIndex(ExtensionIndex):
         matches = mask.sum()
         if matches == 0:
             raise KeyError(key)
-        elif matches == 1:
+        if matches == 1:
             return mask.argmax()
 
         res = lib.maybe_booleans_to_slice(mask.view("u1"))
@@ -769,7 +786,7 @@ class IntervalIndex(ExtensionIndex):
             msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
             if kind == "loc":
                 raise ValueError(msg)
-            elif kind == "getitem":
+            if kind == "getitem":
                 if not is_valid_positional_slice(key):
                     # i.e. this cannot be interpreted as a positional slice
                     raise ValueError(msg)
@@ -784,8 +801,7 @@ class IntervalIndex(ExtensionIndex):
         # ExtensionDtype]" has no attribute "subtype"
         return self.dtype.subtype.kind in ["m", "M"]  # type: ignore[union-attr]
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
+    def _maybe_cast_slice_bound(self, label, side: str):
         return getattr(self, side)._maybe_cast_slice_bound(label, side)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
@@ -821,7 +837,7 @@ class IntervalIndex(ExtensionIndex):
         return header + list(self._format_native_types(na_rep=na_rep))
 
     def _format_native_types(
-        self, *, na_rep="NaN", quoting=None, **kwargs
+        self, *, na_rep: str = "NaN", quoting=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         # GH 28210: use base method but with different default na_rep
         return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
@@ -829,7 +845,7 @@ class IntervalIndex(ExtensionIndex):
     def _format_data(self, name=None) -> str:
         # TODO: integrate with categorical and make generic
         # name argument is unused here; just for compat with base / categorical
-        return self._data._format_data() + "," + self._format_space()
+        return f"{self._data._format_data()},{self._format_space()}"
 
     # --------------------------------------------------------------------
     # Set Operations
@@ -969,7 +985,7 @@ def interval_range(
         Right bound for generating intervals.
     periods : int, default None
         Number of periods to generate.
-    freq : numeric, str, or DateOffset, default None
+    freq : numeric, str, datetime.timedelta, or DateOffset, default None
         The length of each interval. Must be consistent with the type of start
         and end, e.g. 2 for numeric, or '5H' for datetime-like.  Default is 1
         for numeric and 'D' for datetime-like.
@@ -1059,7 +1075,7 @@ def interval_range(
 
     if not _is_valid_endpoint(start):
         raise ValueError(f"start must be numeric or datetime-like, got {start}")
-    elif not _is_valid_endpoint(end):
+    if not _is_valid_endpoint(end):
         raise ValueError(f"end must be numeric or datetime-like, got {end}")
 
     if is_float(periods):
@@ -1108,7 +1124,13 @@ def interval_range(
         if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
 
-            breaks = maybe_downcast_numeric(breaks, np.dtype("int64"))
+            # error: Argument 1 to "maybe_downcast_numeric" has incompatible type
+            # "Union[ndarray[Any, Any], TimedeltaIndex, DatetimeIndex]";
+            # expected "ndarray[Any, Any]"  [
+            breaks = maybe_downcast_numeric(
+                breaks,  # type: ignore[arg-type]
+                np.dtype("int64"),
+            )
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):

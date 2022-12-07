@@ -556,7 +556,6 @@ optional ``level`` parameter which applies only if the object has a
     ``count``, Number of non-NA observations
     ``sum``, Sum of values
     ``mean``, Mean of values
-    ``mad``, Mean absolute deviation
     ``median``, Arithmetic median of values
     ``min``, Minimum
     ``max``, Maximum
@@ -1039,34 +1038,6 @@ not noted for a particular column will be ``NaN``:
 .. ipython:: python
 
    tsdf.agg({"A": ["mean", "min"], "B": "sum"})
-
-.. _basics.aggregation.mixed_string:
-
-Mixed dtypes
-++++++++++++
-
-.. deprecated:: 1.4.0
-   Attempting to determine which columns cannot be aggregated and silently dropping them from the results is deprecated and will be removed in a future version. If any porition of the columns or operations provided fail, the call to ``.agg`` will raise.
-
-When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
-aggregations. This is similar to how ``.groupby.agg`` works.
-
-.. ipython:: python
-
-   mdf = pd.DataFrame(
-       {
-           "A": [1, 2, 3],
-           "B": [1.0, 2.0, 3.0],
-           "C": ["foo", "bar", "baz"],
-           "D": pd.date_range("20130101", periods=3),
-       }
-   )
-   mdf.dtypes
-
-.. ipython:: python
-   :okwarning:
-
-   mdf.agg(["min", "sum"])
 
 .. _basics.aggregation.custom_describe:
 

@@ -8,8 +8,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
-
 import pandas as pd
 from pandas import (
     DatetimeIndex,
@@ -98,11 +96,9 @@ class TestGetItem:
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_dti_business_getitem_matplotlib_hackaround(self, freq):
         rng = bdate_range(START, END, freq=freq)
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(ValueError, match="Multi-dimensional indexing"):
             # GH#30588 multi-dimensional indexing deprecated
-            values = rng[:, None]
-        expected = rng.values[:, None]
-        tm.assert_numpy_array_equal(values, expected)
+            rng[:, None]
 
     def test_getitem_int_list(self):
         dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
@@ -388,74 +384,24 @@ class TestTake:
 
 
 class TestGetLoc:
-    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
-    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
-    def test_get_loc_method_exact_match(self, method):
+    def test_get_loc_key_unit_mismatch(self):
         idx = date_range("2000-01-01", periods=3)
-        assert idx.get_loc(idx[1], method) == 1
-        assert idx.get_loc(idx[1].to_pydatetime(), method) == 1
-        assert idx.get_loc(str(idx[1]), method) == 1
+        key = idx[1].as_unit("ms")
+        loc = idx.get_loc(key)
+        assert loc == 1
+        assert key in idx
 
-        if method is not None:
-            assert idx.get_loc(idx[1], method, tolerance=pd.Timedelta("0 days")) == 1
+    def test_get_loc_key_unit_mismatch_not_castable(self):
+        dta = date_range("2000-01-01", periods=3)._data.astype("M8[s]")
+        dti = DatetimeIndex(dta)
+        key = dta[0].as_unit("ns") + pd.Timedelta(1)
 
-    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
-    def test_get_loc(self):
-        idx = date_range("2000-01-01", periods=3)
-
-        assert idx.get_loc("2000-01-01", method="nearest") == 0
-        assert idx.get_loc("2000-01-01T12", method="nearest") == 1
-
-        assert idx.get_loc("2000-01-01T12", method="nearest", tolerance="1 day") == 1
-        assert (
-            idx.get_loc("2000-01-01T12", method="nearest", tolerance=pd.Timedelta("1D"))
-            == 1
-        )
-        assert (
-            idx.get_loc(
-                "2000-01-01T12", method="nearest", tolerance=np.timedelta64(1, "D")
-            )
-            == 1
-        )
-        assert (
-            idx.get_loc("2000-01-01T12", method="nearest", tolerance=timedelta(1)) == 1
-        )
-        with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
-            idx.get_loc("2000-01-01T12", method="nearest", tolerance="foo")
-        with pytest.raises(KeyError, match="'2000-01-01T03'"):
-            idx.get_loc("2000-01-01T03", method="nearest", tolerance="2 hours")
         with pytest.raises(
-            ValueError, match="tolerance size must match target index size"
+            KeyError, match=r"Timestamp\('2000-01-01 00:00:00.000000001'\)"
         ):
-            idx.get_loc(
-                "2000-01-01",
-                method="nearest",
-                tolerance=[
-                    pd.Timedelta("1day").to_timedelta64(),
-                    pd.Timedelta("1day").to_timedelta64(),
-                ],
-            )
+            dti.get_loc(key)
 
-        assert idx.get_loc("2000", method="nearest") == slice(0, 3)
-        assert idx.get_loc("2000-01", method="nearest") == slice(0, 3)
-
-        assert idx.get_loc("1999", method="nearest") == 0
-        assert idx.get_loc("2001", method="nearest") == 2
-
-        with pytest.raises(KeyError, match="'1999'"):
-            idx.get_loc("1999", method="pad")
-        with pytest.raises(KeyError, match="'2001'"):
-            idx.get_loc("2001", method="backfill")
-
-        with pytest.raises(KeyError, match="'foobar'"):
-            idx.get_loc("foobar")
-        with pytest.raises(InvalidIndexError, match=r"slice\(None, 2, None\)"):
-            idx.get_loc(slice(2))
-
-        idx = DatetimeIndex(["2000-01-01", "2000-01-04"])
-        assert idx.get_loc("2000-01-02", method="nearest") == 0
-        assert idx.get_loc("2000-01-03", method="nearest") == 1
-        assert idx.get_loc("2000-01", method="nearest") == slice(0, 2)
+        assert key not in dti
 
     def test_get_loc_time_obj(self):
         # time indexing
@@ -468,11 +414,6 @@ class TestGetLoc:
         result = idx.get_loc(time(12, 30))
         expected = np.array([])
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
-
-        msg = "cannot yet lookup inexact labels when key is a time object"
-        with pytest.raises(NotImplementedError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-                idx.get_loc(time(12, 30), method="pad")
 
     def test_get_loc_time_obj2(self):
         # GH#8667
@@ -507,18 +448,6 @@ class TestGetLoc:
         loc = dti.get_loc(tic)
         expected = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(loc, expected)
-
-    def test_get_loc_tz_aware(self):
-        # https://github.com/pandas-dev/pandas/issues/32140
-        dti = date_range(
-            Timestamp("2019-12-12 00:00:00", tz="US/Eastern"),
-            Timestamp("2019-12-13 00:00:00", tz="US/Eastern"),
-            freq="5s",
-        )
-        key = Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
-        with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-            result = dti.get_loc(key, method="nearest")
-        assert result == 7433
 
     def test_get_loc_nat(self):
         # GH#20464
@@ -651,7 +580,6 @@ class TestGetIndexer:
             ([date(9999, 1, 1), date(9999, 1, 1)], [-1, -1]),
         ],
     )
-    @pytest.mark.filterwarnings("ignore:Comparison of Timestamp.*:FutureWarning")
     def test_get_indexer_out_of_bounds_date(self, target, positions):
         values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
 
@@ -691,83 +619,59 @@ class TestMaybeCastSliceBound:
         assert result == expected
 
 
-class TestGetValue:
-    def test_get_value(self):
-        # specifically make sure we have test for np.datetime64 key
-        dti = date_range("2016-01-01", periods=3)
-
-        arr = np.arange(6, 9)
-        ser = pd.Series(arr, index=dti)
-
-        key = dti[1]
-
-        with pytest.raises(AttributeError, match="has no attribute '_values'"):
-            with tm.assert_produces_warning(FutureWarning):
-                dti.get_value(arr, key)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = dti.get_value(ser, key)
-        assert result == 7
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = dti.get_value(ser, key.to_pydatetime())
-        assert result == 7
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = dti.get_value(ser, key.to_datetime64())
-        assert result == 7
-
-
 class TestGetSliceBounds:
     @pytest.mark.parametrize("box", [date, datetime, Timestamp])
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
     def test_get_slice_bounds_datetime_within(
-        self, box, kind, side, expected, tz_aware_fixture
+        self, box, side, expected, tz_aware_fixture
     ):
         # GH 35690
         tz = tz_aware_fixture
         index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz)
         key = box(year=2000, month=1, day=7)
 
-        warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn):
-            # GH#36148 will require tzawareness-compat
-            result = index.get_slice_bound(key, kind=kind, side=side)
-        assert result == expected
+        if tz is not None:
+            with pytest.raises(TypeError, match="Cannot compare tz-naive"):
+                # GH#36148 we require tzawareness-compat as of 2.0
+                index.get_slice_bound(key, side=side)
+        else:
+            result = index.get_slice_bound(key, side=side)
+            assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side", ["left", "right"])
     @pytest.mark.parametrize("year, expected", [(1999, 0), (2020, 30)])
     def test_get_slice_bounds_datetime_outside(
-        self, box, kind, side, year, expected, tz_aware_fixture
+        self, box, side, year, expected, tz_aware_fixture
     ):
         # GH 35690
         tz = tz_aware_fixture
         index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz)
         key = box(year=year, month=1, day=7)
 
-        warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn):
-            # GH#36148 will require tzawareness-compat
-            result = index.get_slice_bound(key, kind=kind, side=side)
-        assert result == expected
+        if tz is not None:
+            with pytest.raises(TypeError, match="Cannot compare tz-naive"):
+                # GH#36148 we require tzawareness-compat as of 2.0
+                index.get_slice_bound(key, side=side)
+        else:
+            result = index.get_slice_bound(key, side=side)
+            assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
-    def test_slice_datetime_locs(self, box, kind, tz_aware_fixture):
+    def test_slice_datetime_locs(self, box, tz_aware_fixture):
         # GH 34077
         tz = tz_aware_fixture
         index = DatetimeIndex(["2010-01-01", "2010-01-03"]).tz_localize(tz)
         key = box(2010, 1, 1)
 
-        warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn):
-            # GH#36148 will require tzawareness-compat
+        if tz is not None:
+            with pytest.raises(TypeError, match="Cannot compare tz-naive"):
+                # GH#36148 we require tzawareness-compat as of 2.0
+                index.slice_locs(key, box(2010, 1, 2))
+        else:
             result = index.slice_locs(key, box(2010, 1, 2))
-        expected = (0, 1)
-        assert result == expected
+            expected = (0, 1)
+            assert result == expected
 
 
 class TestIndexerBetweenTime:

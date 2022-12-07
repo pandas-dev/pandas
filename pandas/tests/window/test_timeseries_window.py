@@ -12,7 +12,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 
 
 @pytest.fixture
@@ -592,10 +592,7 @@ class TestRollingTS:
         [
             "sum",
             "mean",
-            pytest.param(
-                "count",
-                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
-            ),
+            "count",
             "median",
             "std",
             "var",

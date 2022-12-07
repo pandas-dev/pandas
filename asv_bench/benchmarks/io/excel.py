@@ -33,7 +33,7 @@ def _generate_dataframe():
 
 class WriteExcel:
 
-    params = ["openpyxl", "xlsxwriter", "xlwt"]
+    params = ["openpyxl", "xlsxwriter"]
     param_names = ["engine"]
 
     def setup(self, engine):
@@ -68,10 +68,9 @@ class WriteExcelStyled:
 
 class ReadExcel:
 
-    params = ["xlrd", "openpyxl", "odf"]
+    params = ["openpyxl", "odf"]
     param_names = ["engine"]
     fname_excel = "spreadsheet.xlsx"
-    fname_excel_xls = "spreadsheet.xls"
     fname_odf = "spreadsheet.ods"
 
     def _create_odf(self):
@@ -92,13 +91,10 @@ class ReadExcel:
         self.df = _generate_dataframe()
 
         self.df.to_excel(self.fname_excel, sheet_name="Sheet1")
-        self.df.to_excel(self.fname_excel_xls, sheet_name="Sheet1")
         self._create_odf()
 
     def time_read_excel(self, engine):
-        if engine == "xlrd":
-            fname = self.fname_excel_xls
-        elif engine == "odf":
+        if engine == "odf":
             fname = self.fname_odf
         else:
             fname = self.fname_excel
@@ -107,9 +103,7 @@ class ReadExcel:
 
 class ReadExcelNRows(ReadExcel):
     def time_read_excel(self, engine):
-        if engine == "xlrd":
-            fname = self.fname_excel_xls
-        elif engine == "odf":
+        if engine == "odf":
             fname = self.fname_odf
         else:
             fname = self.fname_excel

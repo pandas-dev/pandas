@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-import inspect
-from io import TextIOWrapper
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -13,7 +11,7 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.parsers as parsers
+from pandas._libs import parsers
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
@@ -34,6 +32,7 @@ from pandas.core.indexes.api import ensure_index_from_sequences
 
 from pandas.io.parsers.base_parser import (
     ParserBase,
+    ParserError,
     is_index_col,
 )
 
@@ -67,24 +66,11 @@ class CParserWrapper(ParserBase):
         # Have to pass int, would break tests using TextReader directly otherwise :(
         kwds["on_bad_lines"] = self.on_bad_lines.value
 
-        # c-engine can cope with utf-8 bytes. Remove TextIOWrapper when its errors
-        # policy is the same as the one given to read_csv
-        if (
-            isinstance(src, TextIOWrapper)
-            and src.encoding == "utf-8"
-            and (src.errors or "strict") == kwds["encoding_errors"]
-        ):
-            # error: Incompatible types in assignment (expression has type "BinaryIO",
-            # variable has type "ReadCsvBuffer[str]")
-            src = src.buffer  # type: ignore[assignment]
-
         for key in (
             "storage_options",
             "encoding",
             "memory_map",
             "compression",
-            "error_bad_lines",
-            "warn_bad_lines",
         ):
             kwds.pop(key, None)
 
@@ -114,16 +100,8 @@ class CParserWrapper(ParserBase):
 
         # error: Cannot determine type of 'names'
         if self.names is None:  # type: ignore[has-type]
-            if self.prefix:
-                # error: Cannot determine type of 'names'
-                self.names = [  # type: ignore[has-type]
-                    f"{self.prefix}{i}" for i in range(self._reader.table_width)
-                ]
-            else:
-                # error: Cannot determine type of 'names'
-                self.names = list(  # type: ignore[has-type]
-                    range(self._reader.table_width)
-                )
+            # error: Cannot determine type of 'names'
+            self.names = list(range(self._reader.table_width))  # type: ignore[has-type]
 
         # gh-9755
         #
@@ -249,7 +227,7 @@ class CParserWrapper(ParserBase):
         except StopIteration:
             if self._first_chunk:
                 self._first_chunk = False
-                names = self._maybe_dedup_names(self.orig_names)
+                names = self._dedup_names(self.orig_names)
                 index, columns, col_dict = self._get_empty_meta(
                     names,
                     self.index_col,
@@ -282,6 +260,13 @@ class CParserWrapper(ParserBase):
             # implicit index, no index names
             arrays = []
 
+            if self.index_col and self._reader.leading_cols != len(self.index_col):
+                raise ParserError(
+                    "Could not construct index. Requested to use "
+                    f"{len(self.index_col)} number of columns, but "
+                    f"{self._reader.leading_cols} left to parse."
+                )
+
             for i in range(self._reader.leading_cols):
                 if self.index_col is None:
                     values = data.pop(i)
@@ -296,7 +281,7 @@ class CParserWrapper(ParserBase):
             if self.usecols is not None:
                 names = self._filter_usecols(names)
 
-            names = self._maybe_dedup_names(names)
+            names = self._dedup_names(names)
 
             # rename dict keys
             data_tups = sorted(data.items())
@@ -318,7 +303,7 @@ class CParserWrapper(ParserBase):
             # assert for mypy, orig_names is List or None, None would error in list(...)
             assert self.orig_names is not None
             names = list(self.orig_names)
-            names = self._maybe_dedup_names(names)
+            names = self._dedup_names(names)
 
             if self.usecols is not None:
                 names = self._filter_usecols(names)
@@ -422,11 +407,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 f"Specify dtype option on import or set low_memory=False."
             ]
         )
-        warnings.warn(
-            warning_message,
-            DtypeWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
+        warnings.warn(warning_message, DtypeWarning, stacklevel=find_stack_level())
     return result
 
 

@@ -15,8 +15,8 @@ arr = SparseArray(arr_data)
 class TestGetitem:
     def test_getitem(self):
         dense = arr.to_dense()
-        for i in range(len(arr)):
-            tm.assert_almost_equal(arr[i], dense[i])
+        for i, value in enumerate(arr):
+            tm.assert_almost_equal(value, dense[i])
             tm.assert_almost_equal(arr[-i], dense[-i])
 
     def test_getitem_arraylike_mask(self):
@@ -85,7 +85,7 @@ class TestGetitem:
 
     def test_getitem_bool_sparse_array(self):
         # GH 23122
-        spar_bool = SparseArray([False, True] * 5, dtype=np.bool8, fill_value=True)
+        spar_bool = SparseArray([False, True] * 5, dtype=np.bool_, fill_value=True)
         exp = SparseArray([np.nan, 2, np.nan, 5, 6])
         tm.assert_sp_array_equal(arr[spar_bool], exp)
 
@@ -95,7 +95,7 @@ class TestGetitem:
         tm.assert_sp_array_equal(res, exp)
 
         spar_bool = SparseArray(
-            [False, True, np.nan] * 3, dtype=np.bool8, fill_value=np.nan
+            [False, True, np.nan] * 3, dtype=np.bool_, fill_value=np.nan
         )
         res = arr[spar_bool]
         exp = SparseArray([np.nan, 3, 5])

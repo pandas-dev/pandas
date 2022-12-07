@@ -5,7 +5,6 @@ https://specs.frictionlessdata.io/json-table-schema/
 """
 from __future__ import annotations
 
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -13,7 +12,7 @@ from typing import (
 )
 import warnings
 
-import pandas._libs.json as json
+from pandas._libs.json import loads
 from pandas._typing import (
     DtypeObj,
     JSONSerializable,
@@ -42,7 +41,6 @@ if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.indexes.multi import MultiIndex
 
-loads = json.loads
 
 TABLE_SCHEMA_VERSION = "1.4.0"
 
@@ -104,12 +102,12 @@ def set_default_names(data):
         if len(nms) == 1 and data.index.name == "index":
             warnings.warn(
                 "Index name of 'index' is not round-trippable.",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
             warnings.warn(
                 "Index names beginning with 'level_' are not round-trippable.",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         return data
 

@@ -10,20 +10,6 @@ from pandas import Index
 import pandas._testing as tm
 
 
-class TestGetLoc:
-    def test_get_loc_raises_object_nearest(self):
-        index = Index(["a", "c"])
-        with pytest.raises(TypeError, match="unsupported operand type"):
-            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-                index.get_loc("a", method="nearest")
-
-    def test_get_loc_raises_object_tolerance(self):
-        index = Index(["a", "c"])
-        with pytest.raises(TypeError, match="unsupported operand type"):
-            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
-                index.get_loc("a", method="pad", tolerance="invalid")
-
-
 class TestGetIndexer:
     @pytest.mark.parametrize(
         "method,expected",

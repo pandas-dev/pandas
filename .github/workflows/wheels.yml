@@ -1,0 +1,199 @@
+# Workflow to build wheels for upload to PyPI.
+# Inspired by numpy's cibuildwheel config https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
+#
+# In an attempt to save CI resources, wheel builds do
+# not run on each push but only weekly and for releases.
+# Wheel builds can be triggered from the Actions page
+# (if you have the perms) on a commit to master.
+#
+# Alternatively, you can add labels to the pull request in order to trigger wheel
+# builds.
+# The label(s) that trigger builds are:
+# - Build
+name: Wheel builder
+
+on:
+  schedule:
+  #        ┌───────────── minute (0 - 59)
+  #        │  ┌───────────── hour (0 - 23)
+  #        │  │ ┌───────────── day of the month (1 - 31)
+  #        │  │ │ ┌───────────── month (1 - 12 or JAN-DEC)
+  #        │  │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
+  #        │  │ │ │ │
+  - cron: "27 3 */1 * *"
+  push:
+  pull_request:
+      types: [labeled, opened, synchronize, reopened]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build_wheels:
+    name: Build wheel for ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'Build')) ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
+    runs-on: ${{ matrix.buildplat[0] }}
+    strategy:
+      # Ensure that a wheel builder finishes even if another fails
+      fail-fast: false
+      matrix:
+        # GitHub Actions doesn't support pairing matrix values together, let's improvise
+        # https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
+        buildplat:
+        - [ubuntu-20.04, manylinux_x86_64]
+        - [macos-11, macosx_*]
+        - [windows-2019, win_amd64]
+        - [windows-2019, win32]
+        # TODO: support PyPy?
+        python: [["cp38", "3.8"], ["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11"]]# "pp38", "pp39"]
+    env:
+      IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+      IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout pandas
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+          # versioneer.py requires the latest tag to be reachable. Here we
+          # fetch the complete history to get access to the tags.
+          # A shallow clone can work when the following issue is resolved:
+          # https://github.com/actions/checkout/issues/338
+          fetch-depth: 0
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.9.0
+        env:
+          CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+
+      # Used to test(Windows-only) and push the built wheels
+      # You might need to use setup-python separately
+      # if the new Python-dev version
+      # is unavailable on conda-forge.
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python[1] }}
+          activate-environment: test
+          channels: conda-forge, anaconda
+          channel-priority: true
+          mamba-version: "*"
+
+      - name: Test wheels (Windows 64-bit only)
+        if: ${{ matrix.buildplat[1] == 'win_amd64' }}
+        shell: cmd /C CALL {0}
+        run: |
+          python ci/test_wheels.py wheelhouse
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.python[0] }}-${{ startsWith(matrix.buildplat[1], 'macosx') && 'macosx' || matrix.buildplat[1] }}
+          path: ./wheelhouse/*.whl
+
+
+      - name: Install anaconda client
+        if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
+        shell: bash -el {0}
+        run: conda install -q -y anaconda-client
+
+
+      - name: Upload wheels
+        if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
+        shell: bash -el {0}
+        env:
+          PANDAS_STAGING_UPLOAD_TOKEN: ${{ secrets.PANDAS_STAGING_UPLOAD_TOKEN }}
+          PANDAS_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN }}
+        run: |
+          source ci/upload_wheels.sh
+          set_upload_vars
+          # trigger an upload to
+          # https://anaconda.org/scipy-wheels-nightly/pandas
+          # for cron jobs or "Run workflow" (restricted to main branch).
+          # Tags will upload to
+          # https://anaconda.org/multibuild-wheels-staging/pandas
+          # The tokens were originally generated at anaconda.org
+          upload_wheels
+  build_sdist:
+    name: Build sdist
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'Build')) ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
+    runs-on: ubuntu-latest
+    env:
+      IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+      IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout pandas
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+          # versioneer.py requires the latest tag to be reachable. Here we
+          # fetch the complete history to get access to the tags.
+          # A shallow clone can work when the following issue is resolved:
+          # https://github.com/actions/checkout/issues/338
+          fetch-depth: 0
+
+      # Used to push the built sdist
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          # Really doesn't matter what version we upload with
+          # just the version we test with
+          python-version: '3.8'
+          channels: conda-forge
+          channel-priority: true
+          mamba-version: "*"
+
+      - name: Build sdist
+        run: |
+          pip install build
+          python -m build --sdist
+      - name: Test the sdist
+        shell: bash -el {0}
+        run: |
+          # TODO: Don't run test suite, and instead build wheels from sdist
+          # by splitting the wheel builders into a two stage job
+          # (1. Generate sdist 2. Build wheels from sdist)
+          # This tests the sdists, and saves some build time
+          python -m pip install dist/*.gz
+          pip install hypothesis==6.52.1 pytest>=6.2.5 pytest-xdist pytest-asyncio>=0.17
+          cd .. # Not a good idea to test within the src tree
+          python -c "import pandas; print(pandas.__version__);
+          pandas.test(extra_args=['-m not clipboard and not single_cpu', '--skip-slow', '--skip-network', '--skip-db', '-n=2']);
+          pandas.test(extra_args=['-m not clipboard and single_cpu', '--skip-slow', '--skip-network', '--skip-db'])"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: sdist
+          path: ./dist/*
+
+      - name: Install anaconda client
+        if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
+        shell: bash -el {0}
+        run: |
+          conda install -q -y anaconda-client
+
+      - name: Upload sdist
+        if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
+        shell: bash -el {0}
+        env:
+          PANDAS_STAGING_UPLOAD_TOKEN: ${{ secrets.PANDAS_STAGING_UPLOAD_TOKEN }}
+          PANDAS_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN }}
+        run: |
+          source ci/upload_wheels.sh
+          set_upload_vars
+          # trigger an upload to
+          # https://anaconda.org/scipy-wheels-nightly/pandas
+          # for cron jobs or "Run workflow" (restricted to main branch).
+          # Tags will upload to
+          # https://anaconda.org/multibuild-wheels-staging/pandas
+          # The tokens were originally generated at anaconda.org
+          upload_wheels

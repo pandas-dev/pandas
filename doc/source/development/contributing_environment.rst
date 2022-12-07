@@ -10,7 +10,7 @@ To test out code changes, you'll need to build pandas from source, which
 requires a C/C++ compiler and Python environment. If you're making documentation
 changes, you can skip to :ref:`contributing to the documentation <contributing_documentation>` but if you skip
 creating the development environment you won't be able to build the documentation
-locally before pushing your changes.
+locally before pushing your changes. It's recommended to also install the :ref:`pre-commit hooks <contributing.pre-commit>`.
 
 .. contents:: Table of contents:
    :local:
@@ -95,7 +95,8 @@ installed (or you wish to install a newer version) you can install a compiler
 For other Linux distributions, consult your favorite search engine for
 compiler installation instructions.
 
-Let us know if you have any difficulties by opening an issue or reaching out on `Gitter <https://gitter.im/pydata/pandas/>`_.
+Let us know if you have any difficulties by opening an issue or reaching out on our contributor
+community :ref:`Slack <community.slack>`.
 
 .. _contributing.mamba:
 
@@ -118,7 +119,7 @@ We'll now kick off a three-step process:
 .. code-block:: none
 
    # Create and activate the build environment
-   mamba env create
+   mamba env create --file environment.yml
    mamba activate pandas-dev
 
    # Build and install pandas
@@ -227,34 +228,22 @@ with a full pandas development environment.
 
 Build the Docker image::
 
-    # Build the image pandas-yourname-env
-    docker build --tag pandas-yourname-env .
-    # Or build the image by passing your GitHub username to use your own fork
-    docker build --build-arg gh_username=yourname --tag pandas-yourname-env .
+    # Build the image
+    docker build -t pandas-dev .
 
 Run Container::
 
     # Run a container and bind your local repo to the container
-    docker run -it -w /home/pandas --rm -v path-to-local-pandas-repo:/home/pandas pandas-yourname-env
+    # This command assumes you are running from your local repo
+    # but if not alter ${PWD} to match your local repo path
+    docker run -it --rm -v ${PWD}:/home/pandas pandas-dev
 
-Then a ``pandas-dev`` virtual environment will be available with all the development dependencies.
+When inside the running container you can build and install pandas the same way as the other methods
 
-.. code-block:: shell
+.. code-block:: bash
 
-    root@... :/home/pandas# conda env list
-    # conda environments:
-    #
-    base                  *  /opt/conda
-    pandas-dev               /opt/conda/envs/pandas-dev
-
-.. note::
-    If you bind your local repo for the first time, you have to build the C extensions afterwards.
-    Run the following command inside the container::
-
-        python setup.py build_ext -j 4
-
-    You need to rebuild the C extensions anytime the Cython code in ``pandas/_libs`` changes.
-    This most frequently occurs when changing or merging branches.
+   python setup.py build_ext -j 4
+   python -m pip install -e . --no-build-isolation --no-use-pep517
 
 *Even easier, you can integrate Docker with the following IDEs:*
 

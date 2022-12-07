@@ -54,11 +54,10 @@
         "openpyxl": [],
         "xlsxwriter": [],
         "xlrd": [],
-        "xlwt": [],
         "odfpy": [],
         "jinja2": [],
     },
-    "conda_channels": ["defaults", "conda-forge"],
+    "conda_channels": ["conda-forge"],
     // Combinations of libraries/python versions can be excluded/included
     // from the set to test. Each entry is a dictionary containing additional
     // key-value pairs to include/exclude.
@@ -126,6 +125,7 @@
     "regression_thresholds": {
     },
     "build_command":
-    ["python setup.py build -j4",
+    ["python -m pip install versioneer[toml]",
+     "python setup.py build -j4",
      "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"],
 }

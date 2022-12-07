@@ -19,10 +19,7 @@ from pandas._typing import (
     FilePath,
     ReadBuffer,
 )
-from pandas.util._decorators import (
-    deprecate_nonkeyword_arguments,
-    doc,
-)
+from pandas.util._decorators import doc
 
 from pandas.core.shared_docs import _shared_docs
 
@@ -61,6 +58,7 @@ class ReaderBase(metaclass=ABCMeta):
 @overload
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    *,
     format: str | None = ...,
     index: Hashable | None = ...,
     encoding: str | None = ...,
@@ -74,6 +72,7 @@ def read_sas(
 @overload
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    *,
     format: str | None = ...,
     index: Hashable | None = ...,
     encoding: str | None = ...,
@@ -84,10 +83,10 @@ def read_sas(
     ...
 
 
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @doc(decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer")
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    *,
     format: str | None = None,
     index: Hashable | None = None,
     encoding: str | None = None,

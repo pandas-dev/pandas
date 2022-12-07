@@ -35,7 +35,7 @@ class TestDataFrameToCSV:
     def test_to_csv_from_csv1(self, float_frame, datetime_frame):
 
         with tm.ensure_clean("__tmp_to_csv_from_csv1__") as path:
-            float_frame["A"][:5] = np.nan
+            float_frame.iloc[:5, float_frame.columns.get_loc("A")] = np.nan
 
             float_frame.to_csv(path)
             float_frame.to_csv(path, columns=["A", "B"])
@@ -390,7 +390,7 @@ class TestDataFrameToCSV:
     def test_to_csv_empty(self):
         df = DataFrame(index=np.arange(10))
         result, expected = self._return_result_expected(df, 1000)
-        tm.assert_frame_equal(result, expected, check_names=False)
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @pytest.mark.slow
     def test_to_csv_chunksize(self):

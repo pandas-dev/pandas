@@ -338,7 +338,7 @@ def main(
     Copy every file in the source directory to the target directory.
 
     For ``.md`` and ``.html`` files, render them with the context
-    before copyings them. ``.md`` files are transformed to HTML.
+    before copying them. ``.md`` files are transformed to HTML.
     """
     config_fname = os.path.join(source_path, "config.yml")
 
@@ -395,7 +395,7 @@ if __name__ == "__main__":
         action="store_true",
         help="do not fail if errors happen when fetching "
         "data from http sources, and those fail "
-        "(mostly useful to allow github quota errors "
+        "(mostly useful to allow GitHub quota errors "
         "when running the script locally)",
     )
     args = parser.parse_args()

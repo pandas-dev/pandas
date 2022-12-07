@@ -112,11 +112,14 @@ class TestMissing(base.BaseMissingTests):
 class Reduce:
     def check_reduce(self, s, op_name, skipna):
 
-        if op_name in ["median", "skew", "kurt"]:
+        if op_name in ["median", "skew", "kurt", "sem"]:
             msg = r"decimal does not support the .* operation"
             with pytest.raises(NotImplementedError, match=msg):
                 getattr(s, op_name)(skipna=skipna)
-
+        elif op_name == "count":
+            result = getattr(s, op_name)()
+            expected = len(s) - s.isna().sum()
+            tm.assert_almost_equal(result, expected)
         else:
             result = getattr(s, op_name)(skipna=skipna)
             expected = getattr(np.asarray(s), op_name)()
@@ -158,8 +161,7 @@ class TestCasting(base.BaseCastingTests):
 
 
 class TestGroupby(base.BaseGroupbyTests):
-    def test_groupby_agg_extension(self, data_for_grouping):
-        super().test_groupby_agg_extension(data_for_grouping)
+    pass
 
 
 class TestSetitem(base.BaseSetitemTests):
@@ -284,6 +286,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 class DecimalArrayWithoutFromSequence(DecimalArray):
     """Helper class for testing error handling in _from_sequence."""
 
+    @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         raise KeyError("For the test")
 

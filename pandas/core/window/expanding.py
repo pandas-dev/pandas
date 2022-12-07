@@ -55,13 +55,6 @@ class Expanding(RollingAndExpandingMixin):
         Minimum number of observations in window required to have a value;
         otherwise, result is ``np.nan``.
 
-    center : bool, default False
-        If False, set the window labels as the right edge of the window index.
-
-        If True, set the window labels as the center of the window index.
-
-        .. deprecated:: 1.1.0
-
     axis : int or str, default 0
         If ``0`` or ``'index'``, roll across the rows.
 
@@ -123,13 +116,12 @@ class Expanding(RollingAndExpandingMixin):
     4  7.0
     """
 
-    _attributes: list[str] = ["min_periods", "center", "axis", "method"]
+    _attributes: list[str] = ["min_periods", "axis", "method"]
 
     def __init__(
         self,
         obj: NDFrame,
         min_periods: int = 1,
-        center: bool | None = None,
         axis: Axis = 0,
         method: str = "single",
         selection=None,
@@ -137,7 +129,6 @@ class Expanding(RollingAndExpandingMixin):
         super().__init__(
             obj=obj,
             min_periods=min_periods,
-            center=center,
             axis=axis,
             method=method,
             selection=selection,

@@ -66,13 +66,9 @@ A,B,C
         with open(path, "wb") as f:
             f.write(bytes_data)
 
-        bytes_buffer = BytesIO(data.encode(utf8))
-        bytes_buffer = TextIOWrapper(bytes_buffer, encoding=utf8)
-
-        result = parser.read_csv(path, encoding=encoding, **kwargs)
-        expected = parser.read_csv(bytes_buffer, encoding=utf8, **kwargs)
-
-        bytes_buffer.close()
+        with TextIOWrapper(BytesIO(data.encode(utf8)), encoding=utf8) as bytes_buffer:
+            result = parser.read_csv(path, encoding=encoding, **kwargs)
+            expected = parser.read_csv(bytes_buffer, encoding=utf8, **kwargs)
         tm.assert_frame_equal(result, expected)
 
 

@@ -146,8 +146,8 @@ ll_params = [
     ((_ for _ in []), True, "generator-empty"),
     (Series([1]), True, "Series"),
     (Series([], dtype=object), True, "Series-empty"),
-    (Series(["a"]).str, True, "StringMethods"),
-    (Series([], dtype="O").str, True, "StringMethods-empty"),
+    (Series(["a"]).str, False, "StringMethods"),
+    (Series([], dtype="O").str, False, "StringMethods-empty"),
     (Index([1]), True, "Index"),
     (Index([]), True, "Index-empty"),
     (DataFrame([[1]]), True, "DataFrame"),
@@ -203,16 +203,16 @@ def test_is_list_like_disallow_sets(maybe_list_like):
 def test_is_list_like_recursion():
     # GH 33721
     # interpreter would crash with SIGABRT
-    def foo():
+    def list_like():
         inference.is_list_like([])
-        foo()
+        list_like()
 
     rec_limit = sys.getrecursionlimit()
     try:
         # Limit to avoid stack overflow on Windows CI
         sys.setrecursionlimit(100)
         with tm.external_error_raised(RecursionError):
-            foo()
+            list_like()
     finally:
         sys.setrecursionlimit(rec_limit)
 
@@ -701,6 +701,29 @@ class TestInference:
         result = lib.maybe_convert_objects(arr)
         tm.assert_numpy_array_equal(arr, result)
 
+    @pytest.mark.parametrize("val", [None, np.nan, float("nan")])
+    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+    def test_maybe_convert_objects_nat_inference(self, val, dtype):
+        dtype = np.dtype(dtype)
+        vals = np.array([pd.NaT, val], dtype=object)
+        result = lib.maybe_convert_objects(
+            vals,
+            convert_datetime=True,
+            convert_timedelta=True,
+            dtype_if_all_nat=dtype,
+        )
+        assert result.dtype == dtype
+        assert np.isnat(result).all()
+
+        result = lib.maybe_convert_objects(
+            vals[::-1],
+            convert_datetime=True,
+            convert_timedelta=True,
+            dtype_if_all_nat=dtype,
+        )
+        assert result.dtype == dtype
+        assert np.isnat(result).all()
+
     @pytest.mark.parametrize(
         "value, expected_dtype",
         [
@@ -839,6 +862,18 @@ class TestInference:
         result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=True)
 
         tm.assert_extension_array_equal(result, exp)
+
+    @pytest.mark.parametrize(
+        "dtype, val", [("int64", 1), ("uint64", np.iinfo(np.int64).max + 1)]
+    )
+    def test_maybe_convert_objects_nullable_none(self, dtype, val):
+        # GH#50043
+        arr = np.array([val, None, 3], dtype="object")
+        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=True)
+        expected = IntegerArray(
+            np.array([val, 0, 3], dtype=dtype), np.array([False, True, False])
+        )
+        tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize(
         "convert_to_masked_nullable, exp",
@@ -1331,72 +1366,6 @@ class TestTypeInference:
         arr = np.array([na_value, Period("2011-01", freq="D"), na_value])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
-    @pytest.mark.parametrize(
-        "data",
-        [
-            [datetime(2017, 6, 12, 19, 30), datetime(2017, 3, 11, 1, 15)],
-            [Timestamp("20170612"), Timestamp("20170311")],
-            [
-                Timestamp("20170612", tz="US/Eastern"),
-                Timestamp("20170311", tz="US/Eastern"),
-            ],
-            [date(2017, 6, 12), Timestamp("20170311", tz="US/Eastern")],
-            [np.datetime64("2017-06-12"), np.datetime64("2017-03-11")],
-            [np.datetime64("2017-06-12"), datetime(2017, 3, 11, 1, 15)],
-        ],
-    )
-    def test_infer_datetimelike_array_datetime(self, data):
-        assert lib.infer_datetimelike_array(data) == ("datetime", False)
-
-    @pytest.mark.parametrize(
-        "data",
-        [
-            [timedelta(2017, 6, 12), timedelta(2017, 3, 11)],
-            [timedelta(2017, 6, 12), date(2017, 3, 11)],
-            [np.timedelta64(2017, "D"), np.timedelta64(6, "s")],
-            [np.timedelta64(2017, "D"), timedelta(2017, 3, 11)],
-        ],
-    )
-    def test_infer_datetimelike_array_timedelta(self, data):
-        assert lib.infer_datetimelike_array(data) == ("timedelta", False)
-
-    def test_infer_datetimelike_array_date(self):
-        arr = [date(2017, 6, 12), date(2017, 3, 11)]
-        assert lib.infer_datetimelike_array(arr) == ("date", False)
-
-    @pytest.mark.parametrize(
-        "data",
-        [
-            ["2017-06-12", "2017-03-11"],
-            [20170612, 20170311],
-            [20170612.5, 20170311.8],
-            [Dummy(), Dummy()],
-            [Timestamp("20170612"), Timestamp("20170311", tz="US/Eastern")],
-            [Timestamp("20170612"), 20170311],
-            [timedelta(2017, 6, 12), Timestamp("20170311", tz="US/Eastern")],
-        ],
-    )
-    def test_infer_datetimelike_array_mixed(self, data):
-        assert lib.infer_datetimelike_array(data)[0] == "mixed"
-
-    @pytest.mark.parametrize(
-        "first, expected",
-        [
-            [[None], "mixed"],
-            [[np.nan], "mixed"],
-            [[pd.NaT], "nat"],
-            [[datetime(2017, 6, 12, 19, 30), pd.NaT], "datetime"],
-            [[np.datetime64("2017-06-12"), pd.NaT], "datetime"],
-            [[date(2017, 6, 12), pd.NaT], "date"],
-            [[timedelta(2017, 6, 12), pd.NaT], "timedelta"],
-            [[np.timedelta64(2017, "D"), pd.NaT], "timedelta"],
-        ],
-    )
-    @pytest.mark.parametrize("second", [None, np.nan])
-    def test_infer_datetimelike_array_nan_nat_like(self, first, second, expected):
-        first.append(second)
-        assert lib.infer_datetimelike_array(first) == (expected, False)
-
     def test_infer_dtype_all_nan_nat_like(self):
         arr = np.array([np.nan, np.nan])
         assert lib.infer_dtype(arr, skipna=True) == "floating"
@@ -1860,9 +1829,8 @@ class TestNumberScalar:
         assert is_timedelta64_ns_dtype(tdi)
         assert is_timedelta64_ns_dtype(tdi.astype("timedelta64[ns]"))
 
-        # Conversion to Int64Index:
-        assert not is_timedelta64_ns_dtype(tdi.astype("timedelta64"))
-        assert not is_timedelta64_ns_dtype(tdi.astype("timedelta64[h]"))
+        assert not is_timedelta64_ns_dtype(Index([], dtype=np.float64))
+        assert not is_timedelta64_ns_dtype(Index([], dtype=np.int64))
 
 
 class TestIsScalar:

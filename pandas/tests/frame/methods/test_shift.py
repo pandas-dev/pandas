@@ -447,64 +447,6 @@ class TestDataFrameShift:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
-    def test_tshift(self, datetime_frame, frame_or_series):
-        # TODO(2.0): remove this test when tshift deprecation is enforced
-
-        # PeriodIndex
-        ps = tm.makePeriodFrame()
-        ps = tm.get_obj(ps, frame_or_series)
-        shifted = ps.tshift(1)
-        unshifted = shifted.tshift(-1)
-
-        tm.assert_equal(unshifted, ps)
-
-        shifted2 = ps.tshift(freq="B")
-        tm.assert_equal(shifted, shifted2)
-
-        shifted3 = ps.tshift(freq=offsets.BDay())
-        tm.assert_equal(shifted, shifted3)
-
-        msg = "Given freq M does not match PeriodIndex freq B"
-        with pytest.raises(ValueError, match=msg):
-            ps.tshift(freq="M")
-
-        # DatetimeIndex
-        dtobj = tm.get_obj(datetime_frame, frame_or_series)
-        shifted = dtobj.tshift(1)
-        unshifted = shifted.tshift(-1)
-
-        tm.assert_equal(dtobj, unshifted)
-
-        shifted2 = dtobj.tshift(freq=dtobj.index.freq)
-        tm.assert_equal(shifted, shifted2)
-
-        inferred_ts = DataFrame(
-            datetime_frame.values,
-            Index(np.asarray(datetime_frame.index)),
-            columns=datetime_frame.columns,
-        )
-        inferred_ts = tm.get_obj(inferred_ts, frame_or_series)
-        shifted = inferred_ts.tshift(1)
-
-        expected = dtobj.tshift(1)
-        expected.index = expected.index._with_freq(None)
-        tm.assert_equal(shifted, expected)
-
-        unshifted = shifted.tshift(-1)
-        tm.assert_equal(unshifted, inferred_ts)
-
-        no_freq = dtobj.iloc[[0, 5, 7]]
-        msg = "Freq was not set in the index hence cannot be inferred"
-        with pytest.raises(ValueError, match=msg):
-            no_freq.tshift()
-
-    def test_tshift_deprecated(self, datetime_frame, frame_or_series):
-        # GH#11631
-        dtobj = tm.get_obj(datetime_frame, frame_or_series)
-        with tm.assert_produces_warning(FutureWarning):
-            dtobj.tshift()
-
     def test_period_index_frame_shift_with_freq(self, frame_or_series):
         ps = tm.makePeriodFrame()
         ps = tm.get_obj(ps, frame_or_series)
@@ -558,40 +500,30 @@ class TestDataFrameShift:
         with pytest.raises(ValueError, match=msg):
             no_freq.shift(freq="infer")
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) axis=1 support
     def test_shift_dt64values_int_fill_deprecated(self):
         # GH#31971
         ser = Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = ser.shift(1, fill_value=0)
-        expected = Series([pd.Timestamp(0), ser[0]])
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(TypeError, match="value should be a"):
+            ser.shift(1, fill_value=0)
 
         df = ser.to_frame()
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.shift(1, fill_value=0)
-        expected = expected.to_frame()
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match="value should be a"):
+            df.shift(1, fill_value=0)
 
         # axis = 1
         df2 = DataFrame({"A": ser, "B": ser})
         df2._consolidate_inplace()
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df2.shift(1, axis=1, fill_value=0)
-
-        expected = DataFrame({"A": [pd.Timestamp(0), pd.Timestamp(0)], "B": df2["A"]})
+        result = df2.shift(1, axis=1, fill_value=0)
+        expected = DataFrame({"A": [0, 0], "B": df2["A"]})
         tm.assert_frame_equal(result, expected)
 
-        # same thing but not consolidated
-        # This isn't great that we get different behavior, but
-        #  that will go away when the deprecation is enforced
+        # same thing but not consolidated; pre-2.0 we got different behavior
         df3 = DataFrame({"A": ser})
         df3["B"] = ser
         assert len(df3._mgr.arrays) == 2
         result = df3.shift(1, axis=1, fill_value=0)
-        expected = DataFrame({"A": [0, 0], "B": df2["A"]})
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -629,8 +561,6 @@ class TestDataFrameShift:
         ],
         ids=lambda x: str(x.dtype),
     )
-    # TODO(2.0): remove filtering
-    @pytest.mark.filterwarnings("ignore:Index.ravel.*:FutureWarning")
     def test_shift_dt64values_axis1_invalid_fill(self, vals, as_cat):
         # GH#44564
         ser = Series(vals)

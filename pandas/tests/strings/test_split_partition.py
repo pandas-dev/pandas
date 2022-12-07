@@ -130,23 +130,6 @@ def test_rsplit_max_number(any_string_dtype):
     tm.assert_series_equal(result, exp)
 
 
-@pytest.mark.parametrize("method", ["split", "rsplit"])
-def test_posargs_deprecation(method):
-    # GH 47423; Deprecate passing n as positional.
-    s = Series(["foo,bar,lorep"])
-
-    msg = (
-        f"In a future version of pandas all arguments of StringMethods.{method} "
-        "except for the argument 'pat' will be keyword-only"
-    )
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = getattr(s.str, method)(",", 3)
-
-    expected = Series([["foo", "bar", "lorep"]])
-    tm.assert_series_equal(result, expected)
-
-
 def test_split_blank_string(any_string_dtype):
     # expand blank split GH 20067
     values = Series([""], name="test", dtype=any_string_dtype)

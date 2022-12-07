@@ -12,7 +12,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets
 
 
 def scoreatpercentile(a, per):

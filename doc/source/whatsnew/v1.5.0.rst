@@ -1,7 +1,7 @@
 .. _whatsnew_150:
 
-What's new in 1.5.0 (??)
-------------------------
+What's new in 1.5.0 (September 19, 2022)
+----------------------------------------
 
 These are the changes in pandas 1.5.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -654,7 +654,7 @@ Deprecations
     In the next major version release, 2.0, several larger API changes are being considered without a formal deprecation such as
     making the standard library `zoneinfo <https://docs.python.org/3/library/zoneinfo.html>`_ the default timezone implementation instead of ``pytz``,
     having the :class:`Index` support all data types instead of having multiple subclasses (:class:`CategoricalIndex`, :class:`Int64Index`, etc.), and more.
-    The changes under consideration are logged in `this Github issue <https://github.com/pandas-dev/pandas/issues/44823>`_, and any
+    The changes under consideration are logged in `this GitHub issue <https://github.com/pandas-dev/pandas/issues/44823>`_, and any
     feedback or concerns are welcome.
 
 .. _whatsnew_150.deprecations.int_slicing_series:
@@ -1155,7 +1155,6 @@ Plotting
 - Bug in :meth:`DataFrame.boxplot` that prevented passing in ``xlabel`` and ``ylabel`` (:issue:`45463`)
 - Bug in :meth:`DataFrame.boxplot` that prevented specifying ``vert=False`` (:issue:`36918`)
 - Bug in :meth:`DataFrame.plot.scatter` that prevented specifying ``norm`` (:issue:`45809`)
-- The function :meth:`DataFrame.plot.scatter` now accepts ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` for consistency to other plotting functions (:issue:`44670`)
 - Fix showing "None" as ylabel in :meth:`Series.plot` when not setting ylabel (:issue:`46129`)
 - Bug in :meth:`DataFrame.plot` that led to xticks and vertical grids being improperly placed when plotting a quarterly series (:issue:`47602`)
 - Bug in :meth:`DataFrame.plot` that prevented setting y-axis label, limits and ticks for a secondary y-axis (:issue:`47753`)
@@ -1214,12 +1213,10 @@ Sparse
 ^^^^^^
 - Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``SparseDtype`` failing to retain the array's ``fill_value`` (:issue:`45691`)
 - Bug in :meth:`SparseArray.unique` fails to keep original elements order (:issue:`47809`)
--
 
 ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :meth:`IntegerArray.searchsorted` and :meth:`FloatingArray.searchsorted` returning inconsistent results when acting on ``np.nan`` (:issue:`45255`)
--
 
 Styler
 ^^^^^^
@@ -1234,7 +1231,6 @@ Metadata
 ^^^^^^^^
 - Fixed metadata propagation in :meth:`DataFrame.melt` (:issue:`28283`)
 - Fixed metadata propagation in :meth:`DataFrame.explode` (:issue:`28283`)
--
 
 Other
 ^^^^^
@@ -1242,10 +1238,11 @@ Other
 .. ***DO NOT USE THIS SECTION***
 
 - Bug in :func:`.assert_index_equal` with ``names=True`` and ``check_order=False`` not checking names (:issue:`47328`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.contributors:
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v1.4.4..v1.5.0

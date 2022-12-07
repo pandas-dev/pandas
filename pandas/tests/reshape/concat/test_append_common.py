@@ -70,11 +70,10 @@ class TestConcatAppendCommon:
         else:
             raise ValueError
 
-    @pytest.mark.parametrize("box", [Index, Series])
-    def test_dtypes(self, item, box):
+    def test_dtypes(self, item, index_or_series):
         # to confirm test case covers intended dtypes
         typ, vals = item
-        obj = box(vals)
+        obj = index_or_series(vals)
         if isinstance(obj, Index):
             assert obj.dtype == typ
         elif isinstance(obj, Series):

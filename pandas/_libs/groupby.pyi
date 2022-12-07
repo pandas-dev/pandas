@@ -13,13 +13,15 @@ def group_median_float64(
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
 ) -> None: ...
-def group_cumprod_float64(
+def group_cumprod(
     out: np.ndarray,  # float64_t[:, ::1]
     values: np.ndarray,  # const float64_t[:, :]
     labels: np.ndarray,  # const int64_t[:]
     ngroups: int,
     is_datetimelike: bool,
     skipna: bool = ...,
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_cumsum(
     out: np.ndarray,  # int64float_t[:, ::1]
