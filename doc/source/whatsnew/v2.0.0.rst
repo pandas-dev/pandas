@@ -311,6 +311,40 @@ The new behavior, as for datetime64, either gives exactly the requested dtype or
    ser.astype("timedelta64[s]")
    ser.astype("timedelta64[D]")
 
+.. _whatsnew_200.api_breaking.default_to_stdlib_tzinfos:
+
+UTC and fixed-offset timezones default to standard-library tzinfo objects
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In previous versions, the default ``tzinfo`` object used to represent UTC
+was ``pytz.UTC``. In pandas 2.0, we default to ``datetime.timezone.utc`` instead.
+Similarly, for timezones represent fixed UTC offsets, we use ``datetime.timezone``
+objects instead of ``pytz.FixedOffset`` objects. See (:issue:`34916`)
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [2]: ts = pd.Timestamp("2016-01-01", tz="UTC")
+   In [3]: type(ts.tzinfo)
+   Out[3]: pytz.UTC
+
+   In [4]: ts2 = pd.Timestamp("2016-01-01 04:05:06-07:00")
+   In [3]: type(ts2.tzinfo)
+   Out[5]: pytz._FixedOffset
+
+*New behavior*:
+
+.. ipython:: python
+
+   ts = pd.Timestamp("2016-01-01", tz="UTC")
+   type(ts.tzinfo)
+
+   ts2 = pd.Timestamp("2016-01-01 04:05:06-07:00")
+   type(ts2.tzinfo)
+
+For timezones that are neither UTC nor fixed offsets, e.g. "US/Pacific", we
+continue to default to ``pytz`` objects.
+
 .. _whatsnew_200.api_breaking.deps:
 
 Increased minimum versions for dependencies
@@ -350,7 +384,6 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 - The ``freq``, ``tz``, ``nanosecond``, and ``unit`` keywords in the :class:`Timestamp` constructor are now keyword-only (:issue:`45307`)
 - Passing ``nanoseconds`` greater than 999 or less than 0 in :class:`Timestamp` now raises a ``ValueError`` (:issue:`48538`, :issue:`48255`)
-- When inferring a fixed-offset ``tzinfo`` from a string or integer ``tz``, a standard-library ``datetime.timezone`` object is returned instead of a ``pytz`` object (:issue:`34916`)
 - :func:`read_csv`: specifying an incorrect number of columns with ``index_col`` of now raises ``ParserError`` instead of ``IndexError`` when using the c parser.
 - Default value of ``dtype`` in :func:`get_dummies` is changed to ``bool`` from ``uint8`` (:issue:`45848`)
 - :meth:`DataFrame.astype`, :meth:`Series.astype`, and :meth:`DatetimeIndex.astype` casting datetime64 data to any of "datetime64[s]", "datetime64[ms]", "datetime64[us]" will return an object with the given resolution instead of coercing back to "datetime64[ns]" (:issue:`48928`)
