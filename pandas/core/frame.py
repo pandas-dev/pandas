@@ -71,6 +71,7 @@ from pandas._typing import (
     IndexKeyFunc,
     IndexLabel,
     Level,
+    MergeHow,
     NaPosition,
     PythonFuncType,
     QuantileInterpolation,
@@ -489,8 +490,7 @@ class DataFrame(NDFrame, OpsMixin):
         occurs if data is a Series or a DataFrame itself. Alignment is done on
         Series/DataFrame inputs.
 
-        .. versionchanged:: 0.25.0
-           If data is a list of dicts, column order follows insertion-order.
+        If data is a list of dicts, column order follows insertion-order.
 
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
@@ -3151,9 +3151,7 @@ class DataFrame(NDFrame, OpsMixin):
         header="Whether to print column labels, default True",
         col_space_type="str or int, list or dict of int or str",
         col_space="The minimum width of each column in CSS length "
-        "units.  An int is assumed to be px units.\n\n"
-        "            .. versionadded:: 0.25.0\n"
-        "                Ability to use str",
+        "units.  An int is assumed to be px units.",
     )
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_html(
@@ -4349,9 +4347,6 @@ class DataFrame(NDFrame, OpsMixin):
             For example, if one of your columns is called ``a a`` and you want
             to sum it with ``b``, your query should be ```a a` + b``.
 
-            .. versionadded:: 0.25.0
-                Backtick quoting introduced.
-
             .. versionadded:: 1.0.0
                 Expanding functionality of backtick quoting for more than only spaces.
 
@@ -4887,7 +4882,7 @@ class DataFrame(NDFrame, OpsMixin):
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
         """
-        data = self.copy()
+        data = self.copy(deep=None)
 
         for k, v in kwargs.items():
             data[k] = com.apply_if_callable(v, data)
@@ -5168,7 +5163,7 @@ class DataFrame(NDFrame, OpsMixin):
         Remove rows or columns by specifying label names and corresponding
         axis, or by specifying directly index or column names. When using a
         multi-index, labels on different levels can be removed by specifying
-        the level. See the `user guide <advanced.shown_levels>`
+        the level. See the :ref:`user guide <advanced.shown_levels>`
         for more information about the now unused levels.
 
         Parameters
@@ -7407,7 +7402,7 @@ class DataFrame(NDFrame, OpsMixin):
             result.columns = result.columns.swaplevel(i, j)
         return result
 
-    def reorder_levels(self, order: Sequence[Axis], axis: Axis = 0) -> DataFrame:
+    def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> DataFrame:
         """
         Rearrange index levels using input order. May not drop or duplicate levels.
 
@@ -7452,7 +7447,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
             raise TypeError("Can only reorder levels on a hierarchical axis.")
 
-        result = self.copy()
+        result = self.copy(deep=None)
 
         if axis == 0:
             assert isinstance(result.index, MultiIndex)
@@ -8493,8 +8488,6 @@ Parrot 2  Parrot       24.0
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
-            .. versionchanged:: 0.25.0
-
         sort : bool, default True
             Specifies if the result should be sorted.
 
@@ -8807,8 +8800,6 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame:
         """
         Transform each element of a list-like to a row, replicating index values.
-
-        .. versionadded:: 0.25.0
 
         Parameters
         ----------
@@ -9598,7 +9589,7 @@ Parrot 2  Parrot       24.0
         self,
         other: DataFrame | Series | list[DataFrame | Series],
         on: IndexLabel | None = None,
-        how: str = "left",
+        how: MergeHow = "left",
         lsuffix: str = "",
         rsuffix: str = "",
         sort: bool = False,
@@ -9771,7 +9762,7 @@ Parrot 2  Parrot       24.0
         self,
         other: DataFrame | Series | Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
-        how: str = "left",
+        how: MergeHow = "left",
         lsuffix: str = "",
         rsuffix: str = "",
         sort: bool = False,
@@ -9857,7 +9848,7 @@ Parrot 2  Parrot       24.0
     def merge(
         self,
         right: DataFrame | Series,
-        how: str = "inner",
+        how: MergeHow = "inner",
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,

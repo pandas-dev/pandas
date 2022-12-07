@@ -461,7 +461,7 @@ def test_apply_convert_objects():
         }
     )
 
-    result = expected.apply(lambda x: x, axis=1)._convert(datetime=True)
+    result = expected.apply(lambda x: x, axis=1)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1181,8 +1181,7 @@ def test_agg_multiple_mixed_raises():
     )
 
     # sorted index
-    # TODO: GH#49399 will fix error message
-    msg = "DataFrame constructor called with"
+    msg = "does not support reduction"
     with pytest.raises(TypeError, match=msg):
         mdf.agg(["min", "sum"])
 
@@ -1283,7 +1282,7 @@ def test_nuiscance_columns():
     )
     tm.assert_frame_equal(result, expected)
 
-    msg = "DataFrame constructor called with incompatible data and dtype"
+    msg = "does not support reduction"
     with pytest.raises(TypeError, match=msg):
         df.agg("sum")
 
@@ -1291,8 +1290,7 @@ def test_nuiscance_columns():
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    # TODO: GH#49399 will fix error message
-    msg = "DataFrame constructor called with"
+    msg = "does not support reduction"
     with pytest.raises(TypeError, match=msg):
         df.agg(["sum"])
 

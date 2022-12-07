@@ -96,7 +96,7 @@ class TestEmptyConcat:
         "left,right,expected",
         [
             # booleans
-            (np.bool_, np.int32, np.int32),
+            (np.bool_, np.int32, np.object_),  # changed from int32 in 2.0 GH#39817
             (np.bool_, np.float32, np.object_),
             # datetime-like
             ("m8[ns]", np.bool_, np.object_),
@@ -109,12 +109,8 @@ class TestEmptyConcat:
         ],
     )
     def test_concat_empty_series_dtypes(self, left, right, expected):
-        warn = None
-        if (left is np.bool_ or right is np.bool_) and expected is not np.object_:
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
-            # GH#39817
-            result = concat([Series(dtype=left), Series(dtype=right)])
+        # GH#39817, GH#45101
+        result = concat([Series(dtype=left), Series(dtype=right)])
         assert result.dtype == expected
 
     @pytest.mark.parametrize(

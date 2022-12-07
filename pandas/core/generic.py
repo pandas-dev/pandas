@@ -6316,42 +6316,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self.copy(deep=True)
 
     @final
-    def _convert(
-        self: NDFrameT,
-        datetime: bool_t = False,
-        numeric: bool_t = False,
-        timedelta: bool_t = False,
-    ) -> NDFrameT:
-        """
-        Attempt to infer better dtype for object columns.
-
-        Parameters
-        ----------
-        datetime : bool, default False
-            If True, convert to date where possible.
-        numeric : bool, default False
-            If True, attempt to convert to numbers (including strings), with
-            unconvertible values becoming NaN.
-        timedelta : bool, default False
-            If True, convert to timedelta where possible.
-
-        Returns
-        -------
-        converted : same as input object
-        """
-        validate_bool_kwarg(datetime, "datetime")
-        validate_bool_kwarg(numeric, "numeric")
-        validate_bool_kwarg(timedelta, "timedelta")
-        return self._constructor(
-            self._mgr.convert(
-                datetime=datetime,
-                numeric=numeric,
-                timedelta=timedelta,
-                copy=True,
-            )
-        ).__finalize__(self)
-
-    @final
     def infer_objects(self: NDFrameT) -> NDFrameT:
         """
         Attempt to infer better dtypes for object columns.
@@ -6390,12 +6354,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         A    int64
         dtype: object
         """
-        # numeric=False necessary to only soft convert;
-        # python objects will still be converted to
-        # native numpy numeric types
-        return self._constructor(
-            self._mgr.convert(datetime=True, numeric=False, timedelta=True, copy=True)
-        ).__finalize__(self, method="infer_objects")
+        new_mgr = self._mgr.convert()
+        return self._constructor(new_mgr).__finalize__(self, method="infer_objects")
 
     @final
     def convert_dtypes(
