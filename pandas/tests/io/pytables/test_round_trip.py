@@ -553,3 +553,24 @@ def test_round_trip_equals(tmp_path, setup_path):
     tm.assert_frame_equal(df, other)
     assert df.equals(other)
     assert other.equals(df)
+
+
+def test_many_dataframes_get_storer(tmp_path, setup_path):
+    items = [
+        ({"x": {1.0: "a"}, "y": {1.0: 1}}, "/data00"),
+        ({"x": {2.0: "b"}, "y": {2.0: 2}}, "/data01"),
+        ({"x": {4.0: "d"}, "y": {4.0: 4}}, "/data03"),
+        ({"x": {6.0: "f"}, "y": {6.0: 6}}, "/data05"),
+        ({"x": {5.0: "e"}, "y": {5.0: 5}}, "/data04"),
+        ({"x": {11.0: "k"}, "y": {11.0: 11}}, "/data10"),
+        ({"x": {7.0: "g"}, "y": {7.0: 7}}, "/data06"),
+        ({"x": {8.0: "h"}, "y": {8.0: 8}}, "/data07"),
+        ({"x": {9.0: "i"}, "y": {9.0: 9}}, "/data08"),
+    ]
+
+    fn = tmp_path / setup_path
+    for df, key in items2:
+        pd.DataFrame(df).to_hdf(fn, key, format="table", mode="a", append=False)
+    with pd.HDFStore(fn, mode="r") as hdf:
+        for k in hdf.keys():
+            hdf.get_storer(k)
