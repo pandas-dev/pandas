@@ -182,7 +182,7 @@ def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
 
     cat_column = categorical["categories"]
     # for mypy/pyright
-    assert isinstance(cat_column, PandasColumn), "categories must be a PandasColumn"
+    assert isinstance(cat_column, Column), "categories must abide by __dataframe__ protocol API"
     categories = np.array(cat_column._col)
     buffers = col.get_buffers()
 
