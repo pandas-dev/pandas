@@ -156,11 +156,10 @@ def validate_argsort_with_ascending(ascending: bool | int | None, args, kwargs) 
     """
     if is_integer(ascending) or ascending is None:
         args = (ascending,) + args
-        ascending = True
+        ascend = True
 
     validate_argsort_kind(args, kwargs, max_fname_arg_count=3)
-    # error: Incompatible return value type (got "int", expected "bool")
-    return ascending  # type: ignore[return-value]
+    return ascend
 
 
 CLIP_DEFAULTS: dict[str, Any] = {"out": None}
@@ -192,12 +191,12 @@ def validate_clip_with_axis(
         args = (axis,) + args
         # error: Incompatible types in assignment (expression has type "None",
         # variable has type "Union[ndarray[Any, Any], str, int]")
-        axis = None  # type: ignore[assignment]
+        axes = None  # type: ignore[assignment]
 
     validate_clip(args, kwargs)
     # error: Incompatible return value type (got "Union[ndarray[Any, Any],
     # str, int]", expected "Union[str, int, None]")
-    return axis  # type: ignore[return-value]
+    return axes  # type: ignore[return-value]
 
 
 CUM_FUNC_DEFAULTS: dict[str, Any] = {}
