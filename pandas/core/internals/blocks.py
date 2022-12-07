@@ -1980,6 +1980,7 @@ class ObjectBlock(NumpyBlock):
             convert_datetime=True,
             convert_timedelta=True,
             convert_period=True,
+            convert_interval=True,
         )
         if copy and res_values is values:
             res_values = values.copy()
