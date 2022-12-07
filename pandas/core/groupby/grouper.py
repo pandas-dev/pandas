@@ -472,7 +472,6 @@ class Grouping:
 
         ilevel = self._ilevel
         if ilevel is not None:
-            mapper = self.grouping_vector
             # In extant tests, the new self.grouping_vector matches
             #  `index.get_level_values(ilevel)` whenever
             #  mapper is None and isinstance(index, MultiIndex)
@@ -480,11 +479,12 @@ class Grouping:
                 index_level = index.get_level_values(ilevel)
             else:
                 index_level = index
-            (
-                self.grouping_vector,  # Index
-                self._codes,
-                self._group_index,
-            ) = index_level._get_grouper_for_level(mapper, dropna=dropna)
+
+            if self.grouping_vector is None:
+                self.grouping_vector = index_level
+            else:
+                mapper = self.grouping_vector
+                self.grouping_vector = index_level.map(mapper)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -600,10 +600,6 @@ class Grouping:
 
     @property
     def codes(self) -> npt.NDArray[np.signedinteger]:
-        if self._codes is not None:
-            # _codes is set in __init__ for MultiIndex cases
-            return self._codes
-
         return self._codes_and_uniques[0]
 
     @cache_readonly
@@ -612,11 +608,7 @@ class Grouping:
         Analogous to result_index, but holding an ArrayLike to ensure
         we can retain ExtensionDtypes.
         """
-        if self._group_index is not None:
-            # _group_index is set in __init__ for MultiIndex cases
-            return self._group_index._values
-
-        elif self._all_grouper is not None:
+        if self._all_grouper is not None:
             # retain dtype for categories, including unobserved ones
             return self.result_index._values
 
@@ -636,10 +628,6 @@ class Grouping:
 
     @cache_readonly
     def group_index(self) -> Index:
-        if self._group_index is not None:
-            # _group_index is set in __init__ for MultiIndex cases
-            return self._group_index
-
         uniques = self._codes_and_uniques[1]
         return Index._with_infer(uniques, name=self.name)
 

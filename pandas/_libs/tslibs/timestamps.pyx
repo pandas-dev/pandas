@@ -497,9 +497,9 @@ cdef class _Timestamp(ABCTimestamp):
             # Matching numpy, we cast to the higher resolution. Unlike numpy,
             #  we raise instead of silently overflowing during this casting.
             if self._creso < other._creso:
-                self = (<_Timestamp>self)._as_creso(other._creso, round_ok=False)
+                self = (<_Timestamp>self)._as_creso(other._creso, round_ok=True)
             elif self._creso > other._creso:
-                other = (<_Timestamp>other)._as_creso(self._creso, round_ok=False)
+                other = (<_Timestamp>other)._as_creso(self._creso, round_ok=True)
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
@@ -983,15 +983,22 @@ cdef class _Timestamp(ABCTimestamp):
     # Conversion Methods
 
     @cython.cdivision(False)
-    cdef _Timestamp _as_creso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
+    cdef _Timestamp _as_creso(self, NPY_DATETIMEUNIT creso, bint round_ok=True):
         cdef:
             int64_t value
 
-        if reso == self._creso:
+        if creso == self._creso:
             return self
 
-        value = convert_reso(self.value, self._creso, reso, round_ok=round_ok)
-        return type(self)._from_value_and_reso(value, reso=reso, tz=self.tzinfo)
+        try:
+            value = convert_reso(self.value, self._creso, creso, round_ok=round_ok)
+        except OverflowError as err:
+            unit = npy_unit_to_abbrev(creso)
+            raise OutOfBoundsDatetime(
+                f"Cannot cast {self} to unit='{unit}' without overflow."
+            ) from err
+
+        return type(self)._from_value_and_reso(value, reso=creso, tz=self.tzinfo)
 
     def as_unit(self, str unit, bint round_ok=True):
         """
@@ -1025,7 +1032,7 @@ cdef class _Timestamp(ABCTimestamp):
         --------
         >>> ts = pd.Timestamp(2020, 3, 14, 15)
         >>> ts.asm8
-        numpy.datetime64('2020-03-14T15:00:00.000000000')
+        numpy.datetime64('2020-03-14T15:00:00.000000')
         """
         return self.to_datetime64()
 

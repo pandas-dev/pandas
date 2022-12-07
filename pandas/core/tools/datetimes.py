@@ -318,7 +318,14 @@ def _return_parsed_timezone_results(
     )
     if utc:
         # Convert to the same tz
-        tz_results = np.array([tz_result.tz_convert("utc") for tz_result in tz_results])
+        tz_results = np.array(
+            [
+                tz_result.tz_convert("utc")
+                if tz_result.tzinfo is not None
+                else tz_result.tz_localize("utc")
+                for tz_result in tz_results
+            ]
+        )
 
     return Index(tz_results, name=name)
 
@@ -468,7 +475,9 @@ def _array_strptime_with_fallback(
     Call array_strptime, with fallback behavior depending on 'errors'.
     """
     try:
-        result, timezones = array_strptime(arg, fmt, exact=exact, errors=errors)
+        result, timezones = array_strptime(
+            arg, fmt, exact=exact, errors=errors, utc=utc
+        )
     except OutOfBoundsDatetime:
         if errors == "raise":
             raise
@@ -495,7 +504,7 @@ def _array_strptime_with_fallback(
             # Indicates to the caller to fallback to objects_to_datetime64ns
             return None
     else:
-        if "%Z" in fmt or "%z" in fmt:
+        if any(tz is not None for tz in timezones):
             return _return_parsed_timezone_results(result, timezones, utc, name)
 
     return _box_as_indexlike(result, utc=utc, name=name)

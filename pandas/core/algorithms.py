@@ -73,7 +73,6 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
-    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaArray,
 )
@@ -738,13 +737,11 @@ def factorize(
     # Step 2 is dispatched to extension types (like Categorical). They are
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
-    if isinstance(values, ABCRangeIndex):
-        return values.factorize(sort=sort)
+    if isinstance(values, (ABCIndex, ABCSeries)):
+        return values.factorize(sort=sort, use_na_sentinel=use_na_sentinel)
 
     values = _ensure_arraylike(values)
     original = values
-    if not isinstance(values, ABCMultiIndex):
-        values = extract_array(values, extract_numpy=True)
 
     if (
         isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray))
@@ -753,7 +750,7 @@ def factorize(
         # The presence of 'freq' means we can fast-path sorting and know there
         #  aren't NAs
         codes, uniques = values.factorize(sort=sort)
-        return _re_wrap_factorize(original, uniques, codes)
+        return codes, uniques
 
     elif not isinstance(values.dtype, np.dtype):
         codes, uniques = values.factorize(use_na_sentinel=use_na_sentinel)
@@ -788,21 +785,6 @@ def factorize(
         )
 
     uniques = _reconstruct_data(uniques, original.dtype, original)
-
-    return _re_wrap_factorize(original, uniques, codes)
-
-
-def _re_wrap_factorize(original, uniques, codes: np.ndarray):
-    """
-    Wrap factorize results in Series or Index depending on original type.
-    """
-    if isinstance(original, ABCIndex):
-        uniques = ensure_wrapped_if_datetimelike(uniques)
-        uniques = original._shallow_copy(uniques, name=None)
-    elif isinstance(original, ABCSeries):
-        from pandas import Index
-
-        uniques = Index(uniques)
 
     return codes, uniques
 
