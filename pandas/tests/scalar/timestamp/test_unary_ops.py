@@ -258,12 +258,6 @@ class TestTimestampUnaryOps:
         # see GH#22591
         dt = Timestamp(timestamp).as_unit("ns")
         unit = to_offset(freq).nanos
-        # if dt._unit == "us":
-        #    unit //= 1000
-        # elif dt._unit == "ms":
-        #    unit //= 1_000_000
-        # elif dt._unit == "s":
-        #    unit //= 1_000_000_000
 
         # test floor
         result = dt.floor(freq)
