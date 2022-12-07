@@ -562,7 +562,7 @@ class StringMethods(NoNewAttributesMixin):
         if sep is None:
             sep = ""
 
-        data: Series
+        data: Series | np.ndarray
 
         if isinstance(self._orig, ABCIndex):
             data = Series(self._orig, index=self._orig, dtype=self._orig.dtype)
@@ -571,6 +571,7 @@ class StringMethods(NoNewAttributesMixin):
 
         # concatenate Series/Index with itself if no "others"
         if others is None:
+            data = ensure_object(data)
             na_mask = isna(data)
             if na_rep is None and na_mask.any():
                 return sep.join(data[~na_mask])
