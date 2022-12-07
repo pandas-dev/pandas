@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_integer,
     is_integer_dtype,
+    is_object_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.missing import isna
@@ -762,25 +763,19 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
-        # TODO: copy argument is ignored
-
-        if na_value is lib.no_default:
-            na_value = self.dtype.na_value
-
         pa_type = self._data.type
-        if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
-            result = np.array(self.tolist(), dtype=np.object_)
-        elif not self._hasna or (
-            np.issubdtype(float, np.floating) and na_value is np.nan
+        if (
+            is_object_dtype(dtype)
+            or pa.types.is_timestamp(pa_type)
+            or pa.types.is_duration(pa_type)
         ):
-            return np.array(self._data, dtype=dtype)
+            result = np.array(list(self), dtype=dtype)
         else:
-            result = np.array(self._data, dtype=np.object_)
-
-        if self._hasna:
+            result = np.asarray(self._data, dtype=dtype)
+            if copy or na_value is not lib.no_default:
+                result = result.copy()
+        if self._hasna and na_value is not lib.no_default:
             result[self.isna()] = na_value
-        if dtype is not None:
-            return result.astype(dtype, copy=False)
         return result
 
     def unique(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
