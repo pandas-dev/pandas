@@ -827,7 +827,7 @@ Reshaping
 
 Sparse
 ^^^^^^
-- Bug in :meth:`Series.astype` when converting a ``SparseDtype`` with ``datetime64[ns]`` subtype to ``int64`` dtype raising, inconsistent with the non-sparse behavior (:issue:`49631`)
+- Bug in :meth:`Series.astype` when converting a ``SparseDtype`` with ``datetime64[ns]`` subtype to ``int64`` dtype raising, inconsistent with the non-sparse behavior (:issue:`49631`,:issue:`50087`)
 - Bug in :meth:`Series.astype` when converting a from ``datetime64[ns]`` to ``Sparse[datetime64[ns]]`` incorrectly raising (:issue:`50082`)
 -
 
