@@ -259,7 +259,7 @@ class PythonParser(ParserBase):
         columns: Sequence[Hashable] = list(self.orig_names)
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
-            names = self._maybe_dedup_names(self.orig_names)
+            names = self._dedup_names(self.orig_names)
             # error: Cannot determine type of 'index_col'
             index, columns, col_dict = self._get_empty_meta(
                 names,
@@ -293,7 +293,7 @@ class PythonParser(ParserBase):
         self,
         alldata: list[np.ndarray],
     ) -> tuple[Mapping[Hashable, np.ndarray], Sequence[Hashable]]:
-        names = self._maybe_dedup_names(self.orig_names)
+        names = self._dedup_names(self.orig_names)
 
         offset = 0
         if self._implicit_index:
@@ -424,7 +424,7 @@ class PythonParser(ParserBase):
                     else:
                         this_columns.append(c)
 
-                if not have_mi_columns and self.mangle_dupe_cols:
+                if not have_mi_columns:
                     counts: DefaultDict = defaultdict(int)
                     # Ensure that regular columns are used before unnamed ones
                     # to keep given names and mangle unnamed columns

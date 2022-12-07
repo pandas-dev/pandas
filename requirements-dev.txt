@@ -30,8 +30,8 @@ numexpr>=2.8.0
 openpyxl
 odfpy
 pandas-gbq
-psycopg2
-pyarrow
+psycopg2-binary
+pyarrow<10
 pymysql
 pyreadstat
 tables
@@ -51,7 +51,6 @@ botocore
 cftime
 dask
 ipython
-geopandas
 seaborn
 scikit-learn
 statsmodels
