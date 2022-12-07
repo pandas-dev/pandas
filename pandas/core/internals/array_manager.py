@@ -384,6 +384,7 @@ class BaseArrayManager(DataManager):
                     convert_datetime=True,
                     convert_timedelta=True,
                     convert_period=True,
+                    convert_interval=True,
                 )
                 if result is arr and copy:
                     return arr.copy()

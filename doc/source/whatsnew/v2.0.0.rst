@@ -739,6 +739,7 @@ Strings
 Interval
 ^^^^^^^^
 - Bug in :meth:`IntervalIndex.is_overlapping` incorrect output if interval has duplicate left boundaries (:issue:`49581`)
+- Bug in :meth:`Series.infer_objects` failing to infer :class:`IntervalDtype` for an object series of :class:`Interval` objects (:issue:`50090`)
 -
 
 Indexing
