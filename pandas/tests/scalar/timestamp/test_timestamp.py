@@ -211,6 +211,11 @@ class TestTimestampProperties:
 
 
 class TestTimestamp:
+    def test_default_to_stdlib_utc(self):
+        assert Timestamp.utcnow().tz is timezone.utc
+        assert Timestamp.now("UTC").tz is timezone.utc
+        assert Timestamp("2016-01-01", tz="UTC").tz is timezone.utc
+
     def test_tz(self):
         tstr = "2014-02-01 09:00"
         ts = Timestamp(tstr)

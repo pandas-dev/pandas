@@ -1,5 +1,8 @@
 from collections import deque
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 from enum import Enum
 import functools
 import operator
@@ -7,7 +10,6 @@ import re
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas.util._test_decorators as td
 
@@ -1210,10 +1212,10 @@ class TestFrameArithmeticUnsorted:
 
         df_moscow = df.tz_convert("Europe/Moscow")
         result = df + df_moscow
-        assert result.index.tz is pytz.utc
+        assert result.index.tz is timezone.utc
 
         result = df_moscow + df
-        assert result.index.tz is pytz.utc
+        assert result.index.tz is timezone.utc
 
     def test_align_frame(self):
         rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")

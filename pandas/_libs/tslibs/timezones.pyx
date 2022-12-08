@@ -164,6 +164,8 @@ cpdef inline tzinfo maybe_get_tz(object tz):
             hours = int(tz[3:6])
             minutes = int(tz[3] + tz[7:9])
             tz = timezone(timedelta(hours=hours, minutes=minutes))
+        elif tz == "UTC" or tz == "utc":
+            tz = utc_stdlib
         else:
             tz = pytz.timezone(tz)
     elif is_integer_object(tz):
