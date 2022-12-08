@@ -30,7 +30,6 @@ from pandas.io.excel import (
     register_writer,
 )
 
-# added for last test
 from pandas.io.excel._util import _writers
 
 
@@ -1357,11 +1356,10 @@ class TestFSPath:
             with ExcelWriter(path) as writer:
                 assert os.fspath(writer) == str(path)
 
-# testing that subclasses of ExcelWriter don't have public attributes (issue 49602)
-
 
 @pytest.mark.parametrize("klass", _writers.values())
 def test_subclass_attr(klass):
+    # testing that subclasses of ExcelWriter don't have public attributes (issue 49602)
     attrs_base = {name for name in dir(ExcelWriter) if not name.startswith("_")}
     attrs_klass = {name for name in dir(klass) if not name.startswith("_")}
-    assert attrs_base.symmetric_difference(attrs_klass) == set()
+    assert not attrs_base.symmetric_difference(attrs_klass)
