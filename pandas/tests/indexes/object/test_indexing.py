@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.missing import is_matching_na
-from pandas.compat import is_numpy_dev
 
 import pandas as pd
 from pandas import Index
@@ -93,7 +92,6 @@ class TestGetIndexerNonUnique:
             tm.assert_numpy_array_equal(indexer, expected_indexer)
             tm.assert_numpy_array_equal(missing, expected_missing)
 
-    @pytest.mark.skipif(is_numpy_dev, reason="GH50124")
     @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
     def test_get_indexer_non_unique_np_nats(self, np_nat_fixture, np_nat_fixture2):
         expected_missing = np.array([], dtype=np.intp)
@@ -116,6 +114,13 @@ class TestGetIndexerNonUnique:
             tm.assert_numpy_array_equal(missing, expected_missing)
         # dt64nat vs td64nat
         else:
+            try:
+                np_nat_fixture == np_nat_fixture2
+            except (TypeError, OverflowError):
+                # Numpy will raise on uncomparable types, like
+                # np.datetime64('NaT', 'Y') and np.datetime64('NaT', 'ps')
+                # https://github.com/numpy/numpy/issues/22762
+                return
             index = Index(
                 np.array(
                     [
