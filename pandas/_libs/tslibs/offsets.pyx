@@ -297,46 +297,48 @@ _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
                        "milliseconds", "microseconds"}
 
 
-cdef _determine_offset(kwds):
-    # timedelta is used for sub-daily plural offsets and all singular
-    # offsets, relativedelta is used for plural offsets of daily length or
-    # more, nanosecond(s) are handled by apply_wraps
-    kwds_no_nanos = dict(
-        (k, v) for k, v in kwds.items()
-        if k not in ("nanosecond", "nanoseconds")
-    )
-    # TODO: Are nanosecond and nanoseconds allowed somewhere?
+def _determine_offset(kwds):
+    if not kwds:
+        # GH 45643/45890: (historically) defaults to 1 day
+        return timedelta(days=1), False
 
-    _kwds_use_relativedelta = ("years", "months", "weeks", "days",
-                               "year", "month", "week", "day", "weekday",
-                               "hour", "minute", "second", "microsecond",
-                               "millisecond")
+    _nanos = {"nanosecond", "nanoseconds"}
 
-    use_relativedelta = False
-    if len(kwds_no_nanos) > 0:
-        if "milliseconds" in kwds_no_nanos:
-            offset = timedelta(**kwds_no_nanos)
-        elif any(k in _kwds_use_relativedelta for k in kwds_no_nanos):
-            if "millisecond" in kwds_no_nanos:
-                raise NotImplementedError(
-                    "Using DateOffset to replace `millisecond` component in "
-                    "datetime object is not supported. Use "
-                    "`microsecond=timestamp.microsecond % 1000 + ms * 1000` "
-                    "instead."
-                )
-            offset = relativedelta(**kwds_no_nanos)
-            use_relativedelta = True
-        else:
-            # sub-daily offset - use timedelta (tz-aware)
-            offset = timedelta(**kwds_no_nanos)
-    elif any(nano in kwds for nano in ("nanosecond", "nanoseconds")):
-        offset = timedelta(days=0)
-    else:
-        # GH 45643/45890: (historically) defaults to 1 day for non-nano
-        # since datetime.timedelta doesn't handle nanoseconds
-        offset = timedelta(days=1)
-    return offset, use_relativedelta
+    # nanos are handled by apply_wraps
+    if all(k in _nanos for k in kwds):
+        return timedelta(days=0), False
 
+    kwds_no_nanos = {k: v for k, v in kwds.items() if k not in _nanos}
+
+    # Special case: "millisecond" (sing)
+    # TODO perhaps we can do the suggested conversion ourselves?
+    if "millisecond" in kwds_no_nanos:
+        raise NotImplementedError(
+            "Using DateOffset to replace `millisecond` component in "
+            "datetime object is not supported. Use "
+            "`microsecond=timestamp.microsecond % 1000 + ms * 1000` "
+            "instead."
+        )
+
+    kwds_use_relativedelta = {
+        "year", "month", "day", "hour", "minute",
+        "second", "microsecond", "weekday", "years", "months", "weeks", "days",
+        "hours", "seconds", "microseconds"
+    }
+    kwds_use_timedelta = {
+        "days", "seconds", "microseconds", "milliseconds", "minutes", "hours", "weeks"
+    }
+
+    if all(k in kwds_use_relativedelta for k in kwds_no_nanos):
+        return relativedelta(**kwds_no_nanos), True
+
+    if all(k in kwds_use_timedelta for k in kwds_no_nanos):
+        # Sub-daily offset - use timedelta (tz-aware).
+        # This also handles "milliseconds" (plur): see GH 49897
+        return timedelta(**kwds_no_nanos), False
+
+    # TODO what to do in this case?
+    return timedelta(days=0), False
 
 # ---------------------------------------------------------------------
 # Mixins & Singletons

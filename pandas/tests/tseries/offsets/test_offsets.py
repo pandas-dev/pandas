@@ -739,11 +739,21 @@ class TestDateOffset:
 
         assert DateOffset(milliseconds=3) != DateOffset(milliseconds=7)
 
-    def test_milliseconds_combination(self):
+    @pytest.mark.parametrize(
+        "offset_kwargs, expected_arg",
+        [
+            ({"days": 1, "milliseconds": 1}, "2022-01-02 00:0:00.001"),
+            ({"month": 1, "milliseconds": 1}, "2022-02-01 00:00:00.001"),
+        ],
+    )
+    def test_milliseconds_combination(self, offset_kwargs, expected_arg):
         # GH 10525
-        offset = DateOffset(days=1, milliseconds=1)
-        assert offset.days == 1
-        assert offset.milliseconds == 1
+        offset = DateOffset(**offset_kwargs)
+        ts = Timestamp("2022-01-01")
+        result = ts + offset
+        expected = Timestamp(expected_arg)
+
+        assert result == expected
 
 
 class TestOffsetNames:
