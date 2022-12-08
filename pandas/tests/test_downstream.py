@@ -116,7 +116,7 @@ def test_xarray(df):
 
 
 @td.skip_if_no("cftime")
-@td.skip_if_no("xarray", "0.10.4")
+@td.skip_if_no("xarray", "0.21.0")
 def test_xarray_cftimeindex_nearest():
     # https://github.com/pydata/xarray/issues/3751
     import cftime
@@ -124,10 +124,7 @@ def test_xarray_cftimeindex_nearest():
 
     times = xarray.cftime_range("0001", periods=2)
     key = cftime.DatetimeGregorian(2000, 1, 1)
-    with tm.assert_produces_warning(
-        FutureWarning, match="deprecated", check_stacklevel=False
-    ):
-        result = times.get_loc(key, method="nearest")
+    result = times.get_indexer([key], method="nearest")
     expected = 1
     assert result == expected
 

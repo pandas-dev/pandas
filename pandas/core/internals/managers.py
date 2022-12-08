@@ -15,7 +15,7 @@ import weakref
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     algos as libalgos,
@@ -441,10 +441,10 @@ class BaseBlockManager(DataManager):
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
-    def convert(self: T) -> T:
+    def convert(self: T, copy: bool) -> T:
         return self.apply(
             "convert",
-            copy=True,
+            copy=copy,
         )
 
     def replace(self: T, to_replace, value, inplace: bool) -> T:
@@ -2349,5 +2349,8 @@ def _preprocess_slice_or_indexer(
         return "fancy", indexer, len(indexer)
 
 
+_mode_options = _global_config["mode"]
+
+
 def _using_copy_on_write():
-    return get_option("mode.copy_on_write")
+    return _mode_options["copy_on_write"]
