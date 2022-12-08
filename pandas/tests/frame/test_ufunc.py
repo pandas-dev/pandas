@@ -200,9 +200,10 @@ def test_unary_accumulate_axis():
     tm.assert_frame_equal(result, expected)
 
 
-def test_frame_outer_deprecated():
+def test_frame_outer_disallowed():
     df = pd.DataFrame({"A": [1, 2]})
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(NotImplementedError, match=""):
+        # deprecation enforced in 2.0
         np.subtract.outer(df, df)
 
 

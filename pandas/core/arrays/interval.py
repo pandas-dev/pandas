@@ -919,6 +919,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
+            if is_float_dtype(self.dtype.subtype) and needs_i8_conversion(
+                dtype.subtype
+            ):
+                # This is allowed on the Index.astype but we disallow it here
+                msg = (
+                    f"Cannot convert {self.dtype} to {dtype}; subtypes are incompatible"
+                )
+                raise TypeError(msg)
+
             # need to cast to different subtype
             try:
                 # We need to use Index rules for astype to prevent casting
@@ -1586,8 +1595,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Return a boolean mask whether the value is contained in the Intervals
         of the %(klass)s.
-
-        .. versionadded:: 0.25.0
 
         Parameters
         ----------

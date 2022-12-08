@@ -571,20 +571,12 @@ def raise_assert_detail(
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif (
-        isinstance(left, CategoricalDtype)
-        or isinstance(left, PandasDtype)
-        or isinstance(left, StringDtype)
-    ):
+    elif isinstance(left, (CategoricalDtype, PandasDtype, StringDtype)):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif (
-        isinstance(right, CategoricalDtype)
-        or isinstance(right, PandasDtype)
-        or isinstance(right, StringDtype)
-    ):
+    elif isinstance(right, (CategoricalDtype, PandasDtype, StringDtype)):
         right = repr(right)
 
     msg += f"""
@@ -885,7 +877,7 @@ def assert_series_equal(
         )
 
     if check_like:
-        left, right = left.reindex_like(right), right
+        left = left.reindex_like(right)
 
     if check_freq and isinstance(left.index, (DatetimeIndex, TimedeltaIndex)):
         lidx = left.index
@@ -1167,7 +1159,7 @@ def assert_frame_equal(
     )
 
     if check_like:
-        left, right = left.reindex_like(right), right
+        left = left.reindex_like(right)
 
     # compare by blocks
     if by_blocks:

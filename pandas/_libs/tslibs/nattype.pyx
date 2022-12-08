@@ -259,13 +259,11 @@ cdef class _NaT(datetime):
         """
         Return a numpy.datetime64 object with 'ns' precision.
         """
-        return np.datetime64('NaT', "ns")
+        return np.datetime64("NaT", "ns")
 
     def to_numpy(self, dtype=None, copy=False) -> np.datetime64 | np.timedelta64:
         """
         Convert the Timestamp to a NumPy datetime64 or timedelta64.
-
-        .. versionadded:: 0.25.0
 
         With the default 'dtype', this is an alias method for `NaT.to_datetime64()`.
 
@@ -1195,6 +1193,22 @@ default 'raise'
     def tzinfo(self) -> None:
         return None
 
+    def as_unit(self, str unit, bint round_ok=True) -> "NaTType":
+        """
+        Convert the underlying int64 representaton to the given unit.
+
+        Parameters
+        ----------
+        unit : {"ns", "us", "ms", "s"}
+        round_ok : bool, default True
+            If False and the conversion requires rounding, raise.
+
+        Returns
+        -------
+        Timestamp
+        """
+        return c_NaT
+
 
 c_NaT = NaTType()  # C-visible
 NaT = c_NaT        # Python-visible
@@ -1202,14 +1216,14 @@ NaT = c_NaT        # Python-visible
 
 # ----------------------------------------------------------------------
 
-cdef inline bint checknull_with_nat(object val):
+cdef bint checknull_with_nat(object val):
     """
     Utility to check if a value is a nat or not.
     """
     return val is None or util.is_nan(val) or val is c_NaT
 
 
-cdef inline bint is_dt64nat(object val):
+cdef bint is_dt64nat(object val):
     """
     Is this a np.datetime64 object np.datetime64("NaT").
     """
@@ -1218,7 +1232,7 @@ cdef inline bint is_dt64nat(object val):
     return False
 
 
-cdef inline bint is_td64nat(object val):
+cdef bint is_td64nat(object val):
     """
     Is this a np.timedelta64 object np.timedelta64("NaT").
     """
