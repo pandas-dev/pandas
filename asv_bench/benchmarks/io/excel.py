@@ -42,9 +42,9 @@ class WriteExcel:
     def time_write_excel(self, engine):
         bio = BytesIO()
         bio.seek(0)
-        writer = ExcelWriter(bio, engine=engine)
-        self.df.to_excel(writer, sheet_name="Sheet1")
-        writer.save()
+        with ExcelWriter(bio, engine=engine) as writer:
+            self.df.to_excel(writer, sheet_name="Sheet1")
+            writer.save()
 
 
 class WriteExcelStyled:
