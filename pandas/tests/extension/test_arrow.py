@@ -1416,8 +1416,8 @@ def test_to_numpy_with_defaults(data, request):
     if pa.types.is_duration(pa_type) or pa.types.is_timestamp(pa_type):
         expected = np.array(list(data))
     else:
-
         expected = np.array(data._data)
+
     if data._hasna:
         expected = expected.astype(object)
         expected[pd.isna(data)] = pd.NA
