@@ -30,9 +30,9 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Install Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.9.7'
+        python-version: '3.9'
 
     - name: Run pre-commit
       uses: pre-commit/action@v2.0.3
@@ -171,7 +171,7 @@ jobs:
 
       - name: Setup Python
         id: setup_python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: '3.8'
           cache: 'pip'
