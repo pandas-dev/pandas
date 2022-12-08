@@ -2074,6 +2074,11 @@ def _adjust_dates_anchored(
     # not a multiple of the frequency. See GH 8683
     # To handle frequencies that are not multiple or divisible by a day we let
     # the possibility to define a fixed origin timestamp. See GH 31809
+    first = first.as_unit("ns")
+    last = last.as_unit("ns")
+    if offset is not None:
+        offset = offset.as_unit("ns")
+
     origin_nanos = 0  # origin == "epoch"
     if origin == "start_day":
         origin_nanos = first.normalize().value

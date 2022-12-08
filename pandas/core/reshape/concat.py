@@ -195,10 +195,7 @@ def concat(
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation.
     sort : bool, default False
-        Sort non-concatenation axis if it is not already aligned when `join`
-        is 'outer'.
-        This has no effect when ``join='inner'``, which already preserves
-        the order of the non-concatenation axis.
+        Sort non-concatenation axis if it is not already aligned.
 
         .. versionchanged:: 1.0.0
 

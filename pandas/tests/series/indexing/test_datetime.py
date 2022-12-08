@@ -274,9 +274,7 @@ def test_datetime_indexing():
     assert s[stamp] == 0
 
 
-"""
-test duplicates in time series
-"""
+# test duplicates in time series
 
 
 def test_indexing_with_duplicate_datetimeindex(
