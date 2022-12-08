@@ -1823,7 +1823,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             # Not an object dtype => all types will be the same so let the default
             # indexer return native python type
-            return into_c((k, v) for k, v in self.items())
+            return into_c(self.items())
 
     def to_frame(self, name: Hashable = lib.no_default) -> DataFrame:
         """
