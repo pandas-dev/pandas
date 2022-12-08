@@ -404,7 +404,7 @@ f : function, str
 
     Accepted inputs are:
 
-    - String function name
+    - String
     - Python function
     - Numba JIT function with ``engine='numba'`` specified.
 
