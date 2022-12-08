@@ -15,7 +15,7 @@ import weakref
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     algos as libalgos,
@@ -2424,5 +2424,8 @@ def _preprocess_slice_or_indexer(
         return "fancy", indexer, len(indexer)
 
 
+_mode_options = _global_config["mode"]
+
+
 def _using_copy_on_write():
-    return get_option("mode.copy_on_write")
+    return _mode_options["copy_on_write"]
