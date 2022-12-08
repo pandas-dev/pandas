@@ -1,6 +1,7 @@
 import numpy as np
-from pkg_resources import parse_version
 import pytest
+
+from pandas.compat import is_numpy_dev
 
 import pandas as pd
 import pandas._testing as tm
@@ -258,11 +259,7 @@ def test_compare_ea_and_np_dtype(val1, val2):
             ("b", "other"): np.nan,
         }
     )
-    if (
-        val1 is pd.NA
-        and parse_version(np.__version__) > parse_version("1.24.0")
-        and "dev" in np.__version__
-    ):
+    if val1 is pd.NA and is_numpy_dev:
         # can't compare with numpy array if it contains pd.NA
         with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):
             result = df1.compare(df2, keep_shape=True)

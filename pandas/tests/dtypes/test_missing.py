@@ -3,13 +3,13 @@ from datetime import datetime
 from decimal import Decimal
 
 import numpy as np
-from pkg_resources import parse_version
 import pytest
 
 from pandas._config import config as cf
 
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT
+from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -461,13 +461,7 @@ def test_array_equivalent_series(val):
     cm = (
         # stacklevel is chosen to make sense when called from .equals
         tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False)
-        if (
-            isinstance(val, str)
-            and not (
-                parse_version(np.__version__) > parse_version("1.24")
-                and "dev" in np.__version__
-            )
-        )
+        if isinstance(val, str) and not is_numpy_dev
         else nullcontext()
     )
     with cm:
