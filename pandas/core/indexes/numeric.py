@@ -133,6 +133,10 @@ class NumericIndex(Index):
         Ensure we have a valid array to pass to _simple_new.
         """
         cls._validate_dtype(dtype)
+        if dtype == np.float16:
+
+            # float16 not supported (no indexing engine)
+            raise NotImplementedError("float16 indexes are not supported")
 
         if not isinstance(data, (np.ndarray, Index)):
             # Coerce to ndarray if not already ndarray or Index
