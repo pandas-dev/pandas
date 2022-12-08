@@ -1,6 +1,9 @@
 import numpy as np
 
-from pandas import interval_range
+from pandas import (
+    Series,
+    interval_range,
+)
 import pandas._testing as tm
 
 
@@ -44,3 +47,10 @@ class TestInferObjects:
 
         result = obj.astype(object).infer_objects()
         tm.assert_equal(result, obj)
+
+    def test_infer_objects_bytes(self):
+        # GH#49650
+        ser = Series([b"a"], dtype="bytes")
+        expected = ser.copy()
+        result = ser.infer_objects()
+        tm.assert_series_equal(result, expected)
