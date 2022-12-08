@@ -58,14 +58,6 @@ class BaseSetitemTests(BaseExtensionTests):
         assert data[0] == original[1]
         assert data[1] == original[0]
 
-    def test_setitem_sequence_frame(self, data):
-        # GH50085
-        original = data.copy()
-        data = pd.DataFrame({"a": data.copy(), "b": data.copy()})
-        data.loc[[0, 1], "b"] = [original[1], original[0]]
-        assert data.loc[0, "b"] == original[1]
-        assert data.loc[1, "b"] == original[0]
-
     def test_setitem_sequence_mismatched_length_raises(self, data, as_array):
         ser = pd.Series(data)
         original = ser.copy()
@@ -449,3 +441,11 @@ class BaseSetitemTests(BaseExtensionTests):
 
         with pytest.raises((ValueError, TypeError), match=msg):
             data[:] = invalid_scalar
+
+    def test_setitem_2d_values(self, data):
+        # GH50085
+        original = data.copy()
+        df = pd.DataFrame({"a": data, "b": data})
+        df.loc[[0, 1], :] = df.loc[[1, 0], :].values
+        assert (df.loc[0, :] == original[1]).all()
+        assert (df.loc[1, :] == original[0]).all()
