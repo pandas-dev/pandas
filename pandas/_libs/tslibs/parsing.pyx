@@ -102,24 +102,24 @@ cdef:
     int MAX_DAYS_IN_MONTH = 31, MAX_MONTH = 12
 
 
-cdef inline bint _is_delimiter(const char ch):
+cdef bint _is_delimiter(const char ch):
     return strchr(delimiters, ch) != NULL
 
 
-cdef inline int _parse_1digit(const char* s):
+cdef int _parse_1digit(const char* s):
     cdef int result = 0
     result += getdigit_ascii(s[0], -10) * 1
     return result
 
 
-cdef inline int _parse_2digit(const char* s):
+cdef int _parse_2digit(const char* s):
     cdef int result = 0
     result += getdigit_ascii(s[0], -10) * 10
     result += getdigit_ascii(s[1], -100) * 1
     return result
 
 
-cdef inline int _parse_4digit(const char* s):
+cdef int _parse_4digit(const char* s):
     cdef int result = 0
     result += getdigit_ascii(s[0], -10) * 1000
     result += getdigit_ascii(s[1], -100) * 100
@@ -128,7 +128,7 @@ cdef inline int _parse_4digit(const char* s):
     return result
 
 
-cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
+cdef object _parse_delimited_date(str date_string, bint dayfirst):
     """
     Parse special cases of dates: MM/DD/YYYY, DD/MM/YYYY, MM/YYYY.
 
@@ -234,7 +234,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
     raise DateParseError(f"Invalid date specified ({month}/{day})")
 
 
-cdef inline bint does_string_look_like_time(str parse_string):
+cdef bint does_string_look_like_time(str parse_string):
     """
     Checks whether given string is a time: it has to start either from
     H:MM or from HH:MM, and hour and minute values must be valid.
@@ -500,8 +500,8 @@ cpdef bint _does_string_look_like_datetime(str py_string):
     return True
 
 
-cdef inline object _parse_dateabbr_string(object date_string, datetime default,
-                                          str freq=None):
+cdef object _parse_dateabbr_string(object date_string, datetime default,
+                                   str freq=None):
     cdef:
         object ret
         # year initialized to prevent compiler warnings
@@ -1074,7 +1074,7 @@ cdef str _fill_token(token: str, padding: int):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline object convert_to_unicode(object item, bint keep_trivial_numbers):
+cdef object convert_to_unicode(object item, bint keep_trivial_numbers):
     """
     Convert `item` to str.
 

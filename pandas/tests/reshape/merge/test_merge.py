@@ -154,7 +154,7 @@ class TestMerge:
         df_empty = DataFrame()
         df_a = DataFrame({"a": [1, 2]}, index=[0, 1], dtype="int64")
         result = merge(df_empty, df_a, left_index=True, right_index=True)
-        expected = DataFrame({"a": []}, index=[], dtype="int64")
+        expected = DataFrame({"a": []}, dtype="int64")
         tm.assert_frame_equal(result, expected)
 
     def test_merge_common(self, df, df2):
@@ -461,11 +461,7 @@ class TestMerge:
         left = DataFrame(columns=["a", "b", "c"])
         right = DataFrame(columns=["x", "y", "z"])
 
-        exp_in = DataFrame(
-            columns=["a", "b", "c", "x", "y", "z"],
-            index=pd.Index([], dtype=object),
-            dtype=object,
-        )
+        exp_in = DataFrame(columns=["a", "b", "c", "x", "y", "z"], dtype=object)
 
         result = merge(left, right, how=join_type, **kwarg)
         tm.assert_frame_equal(result, exp_in)
@@ -487,8 +483,6 @@ class TestMerge:
             columns=["a", "b", "c", "x", "y", "z"],
         )
         exp_in = exp_out[0:0]  # make empty DataFrame keeping dtype
-        # result will have object dtype
-        exp_in.index = exp_in.index.astype(object)
 
         def check1(exp, kwarg):
             result = merge(left, right, how="inner", **kwarg)
@@ -757,14 +751,18 @@ class TestMerge:
     def test_other_timedelta_unit(self, unit):
         # GH 13389
         df1 = DataFrame({"entity_id": [101, 102]})
-        s = Series([None, None], index=[101, 102], name="days")
+        ser = Series([None, None], index=[101, 102], name="days")
 
         dtype = f"m8[{unit}]"
-        df2 = s.astype(dtype).to_frame("days")
         if unit in ["D", "h", "m"]:
-            # We get nearest supported unit, i.e. "s"
-            assert df2["days"].dtype == "m8[s]"
+            # We cannot astype, instead do nearest supported unit, i.e. "s"
+            msg = "Supported resolutions are 's', 'ms', 'us', 'ns'"
+            with pytest.raises(ValueError, match=msg):
+                ser.astype(dtype)
+
+            df2 = ser.astype("m8[s]").to_frame("days")
         else:
+            df2 = ser.astype(dtype).to_frame("days")
             assert df2["days"].dtype == dtype
 
         result = df1.merge(df2, left_on="entity_id", right_index=True)
@@ -1668,7 +1666,10 @@ class TestMergeDtypes:
         d1 = DataFrame([(1,)], columns=["id"], dtype=any_numeric_ea_dtype)
         d2 = DataFrame([(2,)], columns=["id"], dtype=any_numeric_ea_dtype)
         result = merge(d1, d2, how=how)
-        expected = DataFrame(expected_data, columns=["id"], dtype=any_numeric_ea_dtype)
+        exp_index = RangeIndex(len(expected_data))
+        expected = DataFrame(
+            expected_data, index=exp_index, columns=["id"], dtype=any_numeric_ea_dtype
+        )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1685,7 +1686,10 @@ class TestMergeDtypes:
         d1 = DataFrame([("a",)], columns=["id"], dtype=any_string_dtype)
         d2 = DataFrame([("b",)], columns=["id"], dtype=any_string_dtype)
         result = merge(d1, d2, how=how)
-        expected = DataFrame(expected_data, columns=["id"], dtype=any_string_dtype)
+        exp_idx = RangeIndex(len(expected_data))
+        expected = DataFrame(
+            expected_data, index=exp_idx, columns=["id"], dtype=any_string_dtype
+        )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(

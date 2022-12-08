@@ -71,6 +71,7 @@ from pandas._typing import (
     IndexKeyFunc,
     IndexLabel,
     Level,
+    MergeHow,
     NaPosition,
     PythonFuncType,
     QuantileInterpolation,
@@ -489,8 +490,7 @@ class DataFrame(NDFrame, OpsMixin):
         occurs if data is a Series or a DataFrame itself. Alignment is done on
         Series/DataFrame inputs.
 
-        .. versionchanged:: 0.25.0
-           If data is a list of dicts, column order follows insertion-order.
+        If data is a list of dicts, column order follows insertion-order.
 
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
@@ -632,8 +632,6 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool | None = None,
     ) -> None:
 
-        if data is None:
-            data = {}
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
@@ -670,6 +668,12 @@ class DataFrame(NDFrame, OpsMixin):
                 copy = True
             else:
                 copy = False
+
+        if data is None:
+            index = index if index is not None else default_index(0)
+            columns = columns if columns is not None else default_index(0)
+            dtype = dtype if dtype is not None else pandas_dtype(object)
+            data = []
 
         if isinstance(data, (BlockManager, ArrayManager)):
             mgr = self._init_mgr(
@@ -777,7 +781,7 @@ class DataFrame(NDFrame, OpsMixin):
                 mgr = dict_to_mgr(
                     {},
                     index,
-                    columns,
+                    columns if columns is not None else default_index(0),
                     dtype=dtype,
                     typ=manager,
                 )
@@ -2309,8 +2313,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             result_index = None
             if len(arrays) == 0 and index is None and length == 0:
-                # for backward compat use an object Index instead of RangeIndex
-                result_index = Index([])
+                result_index = default_index(0)
 
             arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns, length)
             return arrays, arr_columns, result_index
@@ -3151,9 +3154,7 @@ class DataFrame(NDFrame, OpsMixin):
         header="Whether to print column labels, default True",
         col_space_type="str or int, list or dict of int or str",
         col_space="The minimum width of each column in CSS length "
-        "units.  An int is assumed to be px units.\n\n"
-        "            .. versionadded:: 0.25.0\n"
-        "                Ability to use str",
+        "units.  An int is assumed to be px units.",
     )
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_html(
@@ -3560,6 +3561,7 @@ class DataFrame(NDFrame, OpsMixin):
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
             index=self.columns,
+            dtype=np.intp,
         )
         if index:
             index_memory_usage = self._constructor_sliced(
@@ -4348,9 +4350,6 @@ class DataFrame(NDFrame, OpsMixin):
 
             For example, if one of your columns is called ``a a`` and you want
             to sum it with ``b``, your query should be ```a a` + b``.
-
-            .. versionadded:: 0.25.0
-                Backtick quoting introduced.
 
             .. versionadded:: 1.0.0
                 Expanding functionality of backtick quoting for more than only spaces.
@@ -8493,8 +8492,6 @@ Parrot 2  Parrot       24.0
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
-            .. versionchanged:: 0.25.0
-
         sort : bool, default True
             Specifies if the result should be sorted.
 
@@ -8807,8 +8804,6 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame:
         """
         Transform each element of a list-like to a row, replicating index values.
-
-        .. versionadded:: 0.25.0
 
         Parameters
         ----------
@@ -9598,7 +9593,7 @@ Parrot 2  Parrot       24.0
         self,
         other: DataFrame | Series | list[DataFrame | Series],
         on: IndexLabel | None = None,
-        how: str = "left",
+        how: MergeHow = "left",
         lsuffix: str = "",
         rsuffix: str = "",
         sort: bool = False,
@@ -9771,7 +9766,7 @@ Parrot 2  Parrot       24.0
         self,
         other: DataFrame | Series | Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
-        how: str = "left",
+        how: MergeHow = "left",
         lsuffix: str = "",
         rsuffix: str = "",
         sort: bool = False,
@@ -9857,7 +9852,7 @@ Parrot 2  Parrot       24.0
     def merge(
         self,
         right: DataFrame | Series,
-        how: str = "inner",
+        how: MergeHow = "inner",
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
