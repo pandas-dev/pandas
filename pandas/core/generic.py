@@ -3450,7 +3450,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "sparse_index": sparsify,
             "sparse_columns": sparsify,
             "environment": "longtable" if longtable else None,
-            "column_format": column_format,
             "multicol_align": multicolumn_format
             if multicolumn
             else f"naive-{multicolumn_format}",
