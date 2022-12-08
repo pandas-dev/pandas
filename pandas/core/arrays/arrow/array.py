@@ -763,6 +763,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
+        if dtype is None and self._hasna:
+            dtype = object
+        if na_value is lib.no_default:
+            na_value = self.dtype.na_value
+
         pa_type = self._data.type
         if (
             is_object_dtype(dtype)
@@ -772,9 +777,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             result = np.array(list(self), dtype=dtype)
         else:
             result = np.asarray(self._data, dtype=dtype)
-            if copy or na_value is not lib.no_default:
+            if copy or self._hasna:
                 result = result.copy()
-        if self._hasna and na_value is not lib.no_default:
+        if self._hasna:
             result[self.isna()] = na_value
         return result
 

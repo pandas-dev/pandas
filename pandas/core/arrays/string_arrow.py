@@ -150,18 +150,6 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         """
         return self._dtype
 
-    def to_numpy(
-        self,
-        dtype: npt.DTypeLike | None = None,
-        copy: bool = False,
-        na_value=lib.no_default,
-    ) -> np.ndarray:
-        # TODO: should na_value default to pyarrow's behavior of None (vs. pd.NA)?
-        if na_value is lib.no_default:
-            if not (dtype and np.issubdtype(dtype, np.floating)):
-                na_value = self._dtype.na_value
-        return super().to_numpy(dtype=dtype, copy=copy, na_value=na_value)
-
     def insert(self, loc: int, item) -> ArrowStringArray:
         if not isinstance(item, str) and item is not libmissing.NA:
             raise TypeError("Scalar must be NA or str")

@@ -1408,21 +1408,18 @@ def test_astype_from_non_pyarrow(data):
     tm.assert_extension_array_equal(result, data)
 
 
-def test_to_numpy_with_defaults_matches_pyarrow(data, request):
+def test_to_numpy_with_defaults(data, request):
     # GH49973
-    pa_type = data._data.type
-    if pa.types.is_duration(pa_type) or pa.types.is_timestamp(pa_type):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=AssertionError,
-                reason="numpy array are different",
-            )
-        )
     result = data.to_numpy()
 
-    # these should be equivalent
-    expected1 = np.array(data._data)
-    expected2 = data._data.to_numpy()
+    pa_type = data._data.type
+    if pa.types.is_duration(pa_type) or pa.types.is_timestamp(pa_type):
+        expected = np.array(list(data))
+    else:
 
-    tm.assert_numpy_array_equal(result, expected1)
-    tm.assert_numpy_array_equal(result, expected2)
+        expected = np.array(data._data)
+    if data._hasna:
+        expected = expected.astype(object)
+        expected[pd.isna(data)] = pd.NA
+
+    tm.assert_numpy_array_equal(result, expected)
