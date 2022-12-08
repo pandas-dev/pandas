@@ -20,7 +20,7 @@ permissions:
 jobs:
   pre_commit:
     name: pre-commit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-pre-commit
@@ -39,7 +39,7 @@ jobs:
 
   typing_and_docstring_validation:
     name: Docstring and typing validation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     defaults:
       run:
         shell: bash -el {0}
@@ -98,7 +98,7 @@ jobs:
 
   asv-benchmarks:
     name: ASV Benchmarks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     defaults:
       run:
         shell: bash -el {0}
@@ -129,7 +129,7 @@ jobs:
 
   build_docker_dev_environment:
     name: Build Docker Dev Environment
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     defaults:
       run:
         shell: bash -el {0}
@@ -156,7 +156,7 @@ jobs:
 
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
