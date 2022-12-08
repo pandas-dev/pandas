@@ -740,8 +740,10 @@ class TestDateOffset:
         assert DateOffset(milliseconds=3) != DateOffset(milliseconds=7)
 
     def test_milliseconds_combination(self):
-        # 10525
-        DateOffset(days=1, milliseconds=1)
+        # GH 10525
+        offset = DateOffset(days=1, milliseconds=1)
+        assert offset.days == 1
+        assert offset.milliseconds == 1
 
 
 class TestOffsetNames:
