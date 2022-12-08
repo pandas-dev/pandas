@@ -29,7 +29,6 @@ from pandas.io.excel import (
     _XlsxWriter,
     register_writer,
 )
-
 from pandas.io.excel._util import _writers
 
 
