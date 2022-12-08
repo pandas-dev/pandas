@@ -275,8 +275,6 @@ def test_transform(string_series):
         tm.assert_series_equal(result.reindex_like(expected), expected)
 
 
-@pytest.mark.filterwarnings("ignore:Calling Series.rank:FutureWarning")
-@pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
 @pytest.mark.parametrize("op", series_transform_kernels)
 def test_transform_partial_failure(op, request):
     # GH 35964
@@ -288,7 +286,7 @@ def test_transform_partial_failure(op, request):
     # Using object makes most transform kernels fail
     ser = Series(3 * [object])
 
-    if op in ("fillna", "ngroup", "rank"):
+    if op in ("fillna", "ngroup"):
         error = ValueError
         msg = "Transform function failed"
     else:

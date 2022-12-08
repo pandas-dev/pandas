@@ -130,7 +130,6 @@ def read_gbq(
         package. It also requires the ``google-cloud-bigquery-storage`` and
         ``fastavro`` packages.
 
-        .. versionadded:: 0.25.0
     max_results : int, optional
         If set, limit the maximum number of rows to fetch from the query
         results.

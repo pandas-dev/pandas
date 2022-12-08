@@ -579,7 +579,9 @@ class TestTimestampConversion:
         with tm.assert_produces_warning(exp_warning):
             pydt_max = Timestamp.max.to_pydatetime()
 
-        assert Timestamp(pydt_max).value / 1000 == Timestamp.max.value / 1000
+        assert (
+            Timestamp(pydt_max).as_unit("ns").value / 1000 == Timestamp.max.value / 1000
+        )
 
         exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
         with tm.assert_produces_warning(exp_warning):
@@ -590,7 +592,10 @@ class TestTimestampConversion:
         tdus = timedelta(microseconds=1)
         assert pydt_min + tdus > Timestamp.min
 
-        assert Timestamp(pydt_min + tdus).value / 1000 == Timestamp.min.value / 1000
+        assert (
+            Timestamp(pydt_min + tdus).as_unit("ns").value / 1000
+            == Timestamp.min.value / 1000
+        )
 
     def test_to_period_tz_warning(self):
         # GH#21333 make sure a warning is issued when timezone
@@ -756,7 +761,7 @@ class TestNonNano:
 
         # subtracting 3600*24 gives a datetime64 that _can_ fit inside the
         #  nanosecond implementation bounds.
-        other = Timestamp(dt64 - 3600 * 24)._as_unit("ns")
+        other = Timestamp(dt64 - 3600 * 24).as_unit("ns")
         assert other < ts
         assert other.asm8 > ts.asm8  # <- numpy gets this wrong
         assert ts > other
@@ -870,7 +875,7 @@ class TestNonNano:
             NpyDatetimeUnit.NPY_FR_ms.value: "s",
             NpyDatetimeUnit.NPY_FR_s.value: "us",
         }[ts._creso]
-        other = ts._as_unit(unit)
+        other = ts.as_unit(unit)
         assert other._creso != ts._creso
 
         result = ts - other
@@ -886,7 +891,7 @@ class TestNonNano:
         if ts._creso < other._creso:
             # Case where rounding is lossy
             other2 = other + Timedelta._from_value_and_reso(1, other._creso)
-            exp = ts._as_unit(other._unit) - other2
+            exp = ts.as_unit(other.unit) - other2
 
             res = ts - other2
             assert res == exp
@@ -897,7 +902,7 @@ class TestNonNano:
             assert res._creso == max(ts._creso, other._creso)
         else:
             ts2 = ts + Timedelta._from_value_and_reso(1, ts._creso)
-            exp = ts2 - other._as_unit(ts2._unit)
+            exp = ts2 - other.as_unit(ts2.unit)
 
             res = ts2 - other
             assert res == exp
@@ -918,7 +923,7 @@ class TestNonNano:
             NpyDatetimeUnit.NPY_FR_ms.value: "s",
             NpyDatetimeUnit.NPY_FR_s.value: "us",
         }[ts._creso]
-        other = Timedelta(0)._as_unit(unit)
+        other = Timedelta(0).as_unit(unit)
         assert other._creso != ts._creso
 
         result = ts + other
@@ -934,7 +939,7 @@ class TestNonNano:
         if ts._creso < other._creso:
             # Case where rounding is lossy
             other2 = other + Timedelta._from_value_and_reso(1, other._creso)
-            exp = ts._as_unit(other._unit) + other2
+            exp = ts.as_unit(other.unit) + other2
             res = ts + other2
             assert res == exp
             assert res._creso == max(ts._creso, other._creso)
@@ -943,7 +948,7 @@ class TestNonNano:
             assert res._creso == max(ts._creso, other._creso)
         else:
             ts2 = ts + Timedelta._from_value_and_reso(1, ts._creso)
-            exp = ts2 + other._as_unit(ts2._unit)
+            exp = ts2 + other.as_unit(ts2.unit)
 
             res = ts2 + other
             assert res == exp
@@ -954,8 +959,8 @@ class TestNonNano:
 
     def test_addition_doesnt_downcast_reso(self):
         # https://github.com/pandas-dev/pandas/pull/48748#pullrequestreview-1122635413
-        ts = Timestamp(year=2022, month=1, day=1, microsecond=999999)._as_unit("us")
-        td = Timedelta(microseconds=1)._as_unit("us")
+        ts = Timestamp(year=2022, month=1, day=1, microsecond=999999).as_unit("us")
+        td = Timedelta(microseconds=1).as_unit("us")
         res = ts + td
         assert res._creso == ts._creso
 
@@ -963,7 +968,7 @@ class TestNonNano:
         ts = ts_tz
 
         res = ts + np.timedelta64(1, "ns")
-        exp = ts._as_unit("ns") + np.timedelta64(1, "ns")
+        exp = ts.as_unit("ns") + np.timedelta64(1, "ns")
         assert exp == res
         assert exp._creso == NpyDatetimeUnit.NPY_FR_ns.value
 
@@ -1001,29 +1006,29 @@ class TestAsUnit:
     def test_as_unit(self):
         ts = Timestamp("1970-01-01")
 
-        assert ts._as_unit("ns") is ts
+        assert ts.as_unit("ns") is ts
 
-        res = ts._as_unit("us")
+        res = ts.as_unit("us")
         assert res.value == ts.value // 1000
         assert res._creso == NpyDatetimeUnit.NPY_FR_us.value
 
-        rt = res._as_unit("ns")
+        rt = res.as_unit("ns")
         assert rt.value == ts.value
         assert rt._creso == ts._creso
 
-        res = ts._as_unit("ms")
+        res = ts.as_unit("ms")
         assert res.value == ts.value // 1_000_000
         assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
 
-        rt = res._as_unit("ns")
+        rt = res.as_unit("ns")
         assert rt.value == ts.value
         assert rt._creso == ts._creso
 
-        res = ts._as_unit("s")
+        res = ts.as_unit("s")
         assert res.value == ts.value // 1_000_000_000
         assert res._creso == NpyDatetimeUnit.NPY_FR_s.value
 
-        rt = res._as_unit("ns")
+        rt = res.as_unit("ns")
         assert rt.value == ts.value
         assert rt._creso == ts._creso
 
@@ -1034,15 +1039,15 @@ class TestAsUnit:
 
         msg = "Cannot cast 2262-04-12 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            ts._as_unit("ns")
+            ts.as_unit("ns")
 
-        res = ts._as_unit("ms")
+        res = ts.as_unit("ms")
         assert res.value == us // 1000
         assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
 
     def test_as_unit_rounding(self):
         ts = Timestamp(1_500_000)  # i.e. 1500 microseconds
-        res = ts._as_unit("ms")
+        res = ts.as_unit("ms")
 
         expected = Timestamp(1_000_000)  # i.e. 1 millisecond
         assert res == expected
@@ -1051,17 +1056,17 @@ class TestAsUnit:
         assert res.value == 1
 
         with pytest.raises(ValueError, match="Cannot losslessly convert units"):
-            ts._as_unit("ms", round_ok=False)
+            ts.as_unit("ms", round_ok=False)
 
     def test_as_unit_non_nano(self):
         # case where we are going neither to nor from nano
-        ts = Timestamp("1970-01-02")._as_unit("ms")
+        ts = Timestamp("1970-01-02").as_unit("ms")
         assert ts.year == 1970
         assert ts.month == 1
         assert ts.day == 2
         assert ts.hour == ts.minute == ts.second == ts.microsecond == ts.nanosecond == 0
 
-        res = ts._as_unit("s")
+        res = ts.as_unit("s")
         assert res.value == 24 * 3600
         assert res.year == 1970
         assert res.month == 1

@@ -162,7 +162,8 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result = Timestamp(result)
+        result = (<_Timestamp>Timestamp(result))._as_creso(other._creso)
+
         if self._adjust_dst:
             result = result.tz_localize(tz)
 
@@ -175,9 +176,10 @@ def apply_wraps(func):
             if result.nanosecond != nano:
                 if result.tz is not None:
                     # convert to UTC
-                    value = result.tz_localize(None).value
+                    res = result.tz_localize(None)
                 else:
-                    value = result.value
+                    res = result
+                value = res.as_unit("ns").value
                 result = Timestamp(value + nano)
 
         if tz is not None and result.tzinfo is None:
@@ -238,9 +240,9 @@ cdef _get_calendar(weekmask, holidays, calendar):
     holidays = [_to_dt64D(dt) for dt in holidays]
     holidays = tuple(sorted(holidays))
 
-    kwargs = {'weekmask': weekmask}
+    kwargs = {"weekmask": weekmask}
     if holidays:
-        kwargs['holidays'] = holidays
+        kwargs["holidays"] = holidays
 
     busdaycalendar = np.busdaycalendar(**kwargs)
     return busdaycalendar, holidays
@@ -251,10 +253,12 @@ cdef _to_dt64D(dt):
     # > np.datetime64(dt.datetime(2013,5,1),dtype='datetime64[D]')
     # numpy.datetime64('2013-05-01T02:00:00.000000+0200')
     # Thus astype is needed to cast datetime to datetime64[D]
-    if getattr(dt, 'tzinfo', None) is not None:
+    if getattr(dt, "tzinfo", None) is not None:
         # Get the nanosecond timestamp,
         #  equiv `Timestamp(dt).value` or `dt.timestamp() * 10**9`
-        naive = dt.astimezone(None)
+        # The `naive` must be the `dt` naive wall time
+        #  instead of the naive absolute time (GH#49441)
+        naive = dt.replace(tzinfo=None)
         dt = np.datetime64(naive, "D")
     else:
         dt = np.datetime64(dt)
@@ -270,7 +274,7 @@ cdef _to_dt64D(dt):
 cdef _validate_business_time(t_input):
     if isinstance(t_input, str):
         try:
-            t = time.strptime(t_input, '%H:%M')
+            t = time.strptime(t_input, "%H:%M")
             return dt_time(hour=t.tm_hour, minute=t.tm_min)
         except ValueError:
             raise ValueError("time data must match '%H:%M' format")
@@ -299,14 +303,14 @@ cdef _determine_offset(kwds):
     # more, nanosecond(s) are handled by apply_wraps
     kwds_no_nanos = dict(
         (k, v) for k, v in kwds.items()
-        if k not in ('nanosecond', 'nanoseconds')
+        if k not in ("nanosecond", "nanoseconds")
     )
     # TODO: Are nanosecond and nanoseconds allowed somewhere?
 
-    _kwds_use_relativedelta = ('years', 'months', 'weeks', 'days',
-                               'year', 'month', 'week', 'day', 'weekday',
-                               'hour', 'minute', 'second', 'microsecond',
-                               'millisecond')
+    _kwds_use_relativedelta = ("years", "months", "weeks", "days",
+                               "year", "month", "week", "day", "weekday",
+                               "hour", "minute", "second", "microsecond",
+                               "millisecond")
 
     use_relativedelta = False
     if len(kwds_no_nanos) > 0:
@@ -323,7 +327,7 @@ cdef _determine_offset(kwds):
         else:
             # sub-daily offset - use timedelta (tz-aware)
             offset = timedelta(**kwds_no_nanos)
-    elif any(nano in kwds for nano in ('nanosecond', 'nanoseconds')):
+    elif any(nano in kwds for nano in ("nanosecond", "nanoseconds")):
         offset = timedelta(days=0)
     else:
         # GH 45643/45890: (historically) defaults to 1 day for non-nano
@@ -420,11 +424,11 @@ cdef class BaseOffset:
                 # cython attributes are not in __dict__
                 all_paras[attr] = getattr(self, attr)
 
-        if 'holidays' in all_paras and not all_paras['holidays']:
-            all_paras.pop('holidays')
-        exclude = ['kwds', 'name', 'calendar']
+        if "holidays" in all_paras and not all_paras["holidays"]:
+            all_paras.pop("holidays")
+        exclude = ["kwds", "name", "calendar"]
         attrs = [(k, v) for k, v in all_paras.items()
-                 if (k not in exclude) and (k[0] != '_')]
+                 if (k not in exclude) and (k[0] != "_")]
         attrs = sorted(set(attrs))
         params = tuple([str(type(self))] + attrs)
         return params
@@ -477,7 +481,7 @@ cdef class BaseOffset:
 
     def __sub__(self, other):
         if PyDateTime_Check(other):
-            raise TypeError('Cannot subtract datetime from offset.')
+            raise TypeError("Cannot subtract datetime from offset.")
         elif type(other) == type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
                               **self.kwds)
@@ -732,13 +736,13 @@ cdef class BaseOffset:
         ValueError if n != int(n)
         """
         if util.is_timedelta64_object(n):
-            raise TypeError(f'`n` argument must be an integer, got {type(n)}')
+            raise TypeError(f"`n` argument must be an integer, got {type(n)}")
         try:
             nint = int(n)
         except (ValueError, TypeError):
-            raise TypeError(f'`n` argument must be an integer, got {type(n)}')
+            raise TypeError(f"`n` argument must be an integer, got {type(n)}")
         if n != nint:
-            raise ValueError(f'`n` argument must be an integer, got {n}')
+            raise ValueError(f"`n` argument must be an integer, got {n}")
         return nint
 
     def __setstate__(self, state):
@@ -1611,16 +1615,24 @@ cdef class BusinessHour(BusinessMixin):
         Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
-    start : str, default "09:00"
+    start : str, time, or list of str/time, default "09:00"
         Start time of your custom business hour in 24h format.
-    end : str, default: "17:00"
+    end : str, time, or list of str/time, default: "17:00"
         End time of your custom business hour in 24h format.
 
     Examples
     --------
+    >>> from datetime import time
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
     >>> ts + pd.offsets.BusinessHour()
     Timestamp('2022-08-08 09:00:00')
+    >>> ts + pd.offsets.BusinessHour(start="11:00")
+    Timestamp('2022-08-08 11:00:00')
+    >>> ts + pd.offsets.BusinessHour(end=time(19, 0))
+    Timestamp('2022-08-05 17:00:00')
+    >>> ts + pd.offsets.BusinessHour(start=[time(9, 0), "20:00"],
+    ...                              end=["17:00", time(22, 0)])
+    Timestamp('2022-08-05 20:00:00')
     """
 
     _prefix = "BH"
@@ -1696,7 +1708,7 @@ cdef class BusinessHour(BusinessMixin):
         out = super()._repr_attrs()
         # Use python string formatting to be faster than strftime
         hours = ",".join(
-            f'{st.hour:02d}:{st.minute:02d}-{en.hour:02d}:{en.minute:02d}'
+            f"{st.hour:02d}:{st.minute:02d}-{en.hour:02d}:{en.minute:02d}"
             for st, en in zip(self.start, self.end)
         )
         attrs = [f"{self._prefix}={hours}"]
@@ -2410,10 +2422,27 @@ cdef class MonthEnd(MonthOffset):
     """
     DateOffset of one month end.
 
+    MonthEnd goes to the next date which is an end of the month.
+    To get the end of the current month pass the parameter n equals 0.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts = pd.Timestamp(2022, 1, 30)
     >>> ts + pd.offsets.MonthEnd()
+    Timestamp('2022-01-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 1, 31)
+    >>> ts + pd.offsets.MonthEnd()
+    Timestamp('2022-02-28 00:00:00')
+
+    If you want to get the end of the current month pass the parameter n equals 0:
+
+    >>> ts = pd.Timestamp(2022, 1, 31)
+    >>> ts + pd.offsets.MonthEnd(0)
     Timestamp('2022-01-31 00:00:00')
     """
     _period_dtype_code = PeriodDtypeCode.M
@@ -2439,16 +2468,25 @@ cdef class BusinessMonthEnd(MonthOffset):
     """
     DateOffset increments between the last business day of the month.
 
+    BusinessMonthEnd goes to the next date which is the last business day of the month.
+    To get the last business day of the current month pass the parameter n equals 0.
+
     Examples
     --------
-    >>> from pandas.tseries.offsets import BMonthEnd
-    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts + BMonthEnd()
-    Timestamp('2020-05-29 05:01:15')
-    >>> ts + BMonthEnd(2)
-    Timestamp('2020-06-30 05:01:15')
-    >>> ts + BMonthEnd(-2)
-    Timestamp('2020-03-31 05:01:15')
+    >>> ts = pd.Timestamp(2022, 11, 29)
+    >>> ts + pd.offsets.BMonthEnd()
+    Timestamp('2022-11-30 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 11, 30)
+    >>> ts + pd.offsets.BMonthEnd()
+    Timestamp('2022-12-30 00:00:00')
+
+    If you want to get the end of the current business month
+    pass the parameter n equals 0:
+
+    >>> ts = pd.Timestamp(2022, 11, 30)
+    >>> ts + pd.offsets.BMonthEnd(0)
+    Timestamp('2022-11-30 00:00:00')
     """
     _prefix = "BM"
     _day_opt = "business_end"
@@ -2621,11 +2659,24 @@ cdef class SemiMonthEnd(SemiMonthOffset):
 
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts = pd.Timestamp(2022, 1, 14)
     >>> ts + pd.offsets.SemiMonthEnd()
     Timestamp('2022-01-15 00:00:00')
-    """
 
+    >>> ts = pd.Timestamp(2022, 1, 15)
+    >>> ts + pd.offsets.SemiMonthEnd()
+    Timestamp('2022-01-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 1, 31)
+    >>> ts + pd.offsets.SemiMonthEnd()
+    Timestamp('2022-02-15 00:00:00')
+
+    If you want to get the result for the current month pass the parameter n equals 0:
+
+    >>> ts = pd.Timestamp(2022, 1, 15)
+    >>> ts + pd.offsets.SemiMonthEnd(0)
+    Timestamp('2022-01-15 00:00:00')
+    """
     _prefix = "SM"
     _min_day_of_month = 1
 
@@ -3576,16 +3627,24 @@ cdef class CustomBusinessHour(BusinessHour):
         Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
-    start : str, default "09:00"
+    start : str, time, or list of str/time, default "09:00"
         Start time of your custom business hour in 24h format.
-    end : str, default: "17:00"
+    end : str, time, or list of str/time, default: "17:00"
         End time of your custom business hour in 24h format.
 
     Examples
     --------
+    >>> from datetime import time
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
     >>> ts + pd.offsets.CustomBusinessHour()
     Timestamp('2022-08-08 09:00:00')
+    >>> ts + pd.offsets.CustomBusinessHour(start="11:00")
+    Timestamp('2022-08-08 11:00:00')
+    >>> ts + pd.offsets.CustomBusinessHour(end=time(19, 0))
+    Timestamp('2022-08-05 17:00:00')
+    >>> ts + pd.offsets.CustomBusinessHour(start=[time(9, 0), "20:00"],
+    ...                                    end=["17:00", time(22, 0)])
+    Timestamp('2022-08-05 20:00:00')
     """
 
     _prefix = "CBH"
@@ -3654,7 +3713,7 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         Define default roll function to be called in apply method.
         """
         cbday_kwds = self.kwds.copy()
-        cbday_kwds['offset'] = timedelta(0)
+        cbday_kwds["offset"] = timedelta(0)
 
         cbday = CustomBusinessDay(n=1, normalize=False, **cbday_kwds)
 
@@ -3961,14 +4020,14 @@ cdef datetime _shift_day(datetime other, int days):
     return localize_pydatetime(shifted, tz)
 
 
-cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
+cdef int year_add_months(npy_datetimestruct dts, int months) nogil:
     """
     New year number after shifting npy_datetimestruct number of months.
     """
     return dts.year + (dts.month + months - 1) // 12
 
 
-cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
+cdef int month_add_months(npy_datetimestruct dts, int months) nogil:
     """
     New month number after shifting npy_datetimestruct
     number of months.
@@ -4262,7 +4321,7 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     return stamp.replace(year=year, month=month, day=day)
 
 
-cdef inline int get_day_of_month(npy_datetimestruct* dts, str day_opt) nogil:
+cdef int get_day_of_month(npy_datetimestruct* dts, str day_opt) nogil:
     """
     Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
@@ -4373,10 +4432,10 @@ def roll_qtrday(other: datetime, n: int, month: int,
     return _roll_qtrday(&dts, n, months_since, day_opt)
 
 
-cdef inline int _roll_qtrday(npy_datetimestruct* dts,
-                             int n,
-                             int months_since,
-                             str day_opt) nogil except? -1:
+cdef int _roll_qtrday(npy_datetimestruct* dts,
+                      int n,
+                      int months_since,
+                      str day_opt) nogil except? -1:
     """
     See roll_qtrday.__doc__
     """

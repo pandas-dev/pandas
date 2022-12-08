@@ -75,10 +75,9 @@ def table(
 
     cellText = data.values
 
-    table = matplotlib.table.table(
+    return matplotlib.table.table(
         ax, cellText=cellText, rowLabels=rowLabels, colLabels=colLabels, **kwargs
     )
-    return table
 
 
 def _get_layout(

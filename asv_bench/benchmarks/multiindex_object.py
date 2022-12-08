@@ -379,4 +379,26 @@ class Isin:
         self.midx.isin(self.values_large)
 
 
+class Putmask:
+    def setup(self):
+        N = 10**5
+        level1 = range(1_000)
+
+        level2 = date_range(start="1/1/2000", periods=N // 1000)
+        self.midx = MultiIndex.from_product([level1, level2])
+
+        level1 = range(1_000, 2_000)
+        self.midx_values = MultiIndex.from_product([level1, level2])
+
+        level2 = date_range(start="1/1/2010", periods=N // 1000)
+        self.midx_values_different = MultiIndex.from_product([level1, level2])
+        self.mask = np.array([True, False] * (N // 2))
+
+    def time_putmask(self):
+        self.midx.putmask(self.mask, self.midx_values)
+
+    def time_putmask_all_different(self):
+        self.midx.putmask(self.mask, self.midx_values_different)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

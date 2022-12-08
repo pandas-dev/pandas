@@ -336,7 +336,7 @@ cpdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
         raise NotImplementedError(unit)
 
 
-cdef NPY_DATETIMEUNIT abbrev_to_npy_unit(str abbrev):
+cpdef NPY_DATETIMEUNIT abbrev_to_npy_unit(str abbrev):
     if abbrev == "Y":
         return NPY_DATETIMEUNIT.NPY_FR_Y
     elif abbrev == "M":

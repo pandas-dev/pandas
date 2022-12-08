@@ -18,7 +18,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 import weakref
 
 import numpy as np
@@ -69,7 +68,6 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -387,10 +385,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if index is not None:
             index = ensure_index(index)
 
-        if data is None:
-            data = {}
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
+
+        if data is None:
+            index = index if index is not None else default_index(0)
+            if len(index) or dtype is not None:
+                data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+            else:
+                data = []
 
         if isinstance(data, MultiIndex):
             raise NotImplementedError(
@@ -1655,14 +1658,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return result
         else:
             if hasattr(buf, "write"):
-                # error: Item "str" of "Union[str, PathLike[str], WriteBuffer
-                # [str]]" has no attribute "write"
-                buf.write(result)  # type: ignore[union-attr]
+                buf.write(result)
             else:
-                # error: Argument 1 to "open" has incompatible type "Union[str,
-                # PathLike[str], WriteBuffer[str]]"; expected "Union[Union[str,
-                # bytes, PathLike[str], PathLike[bytes]], int]"
-                with open(buf, "w") as f:  # type: ignore[arg-type]
+                with open(buf, "w") as f:
                     f.write(result)
         return None
 
@@ -1819,7 +1817,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         # GH16122
         into_c = com.standardize_mapping(into)
-        return into_c((k, maybe_box_native(v)) for k, v in self.items())
+
+        if is_object_dtype(self):
+            return into_c((k, maybe_box_native(v)) for k, v in self.items())
+        else:
+            # Not an object dtype => all types will be the same so let the default
+            # indexer return native python type
+            return into_c(self.items())
 
     def to_frame(self, name: Hashable = lib.no_default) -> DataFrame:
         """
@@ -1992,15 +1996,9 @@ Name: Max Speed, dtype: float64
     # Statistics, overridden ndarray methods
 
     # TODO: integrate bottleneck
-    def count(self, level: Level = None):
+    def count(self):
         """
         Return number of non-NA/null observations in the Series.
-
-        Parameters
-        ----------
-        level : int or level name, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a smaller Series.
 
         Returns
         -------
@@ -2017,40 +2015,7 @@ Name: Max Speed, dtype: float64
         >>> s.count()
         2
         """
-        if level is None:
-            return notna(self._values).sum().astype("int64")
-        else:
-            warnings.warn(
-                "Using the level keyword in DataFrame and Series aggregations is "
-                "deprecated and will be removed in a future version. Use groupby "
-                "instead. ser.count(level=1) should use ser.groupby(level=1).count().",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            if not isinstance(self.index, MultiIndex):
-                raise ValueError("Series.count level is only valid with a MultiIndex")
-
-        index = self.index
-        assert isinstance(index, MultiIndex)  # for mypy
-
-        if isinstance(level, str):
-            level = index._get_level_number(level)
-
-        lev = index.levels[level]
-        level_codes = np.array(index.codes[level], subok=False, copy=True)
-
-        mask = level_codes == -1
-        if mask.any():
-            level_codes[mask] = cnt = len(lev)
-            lev = lev.insert(cnt, lev._na_value)
-
-        obs = level_codes[notna(self._values)]
-        # error: Argument "minlength" to "bincount" has incompatible type
-        # "Optional[int]"; expected "SupportsIndex"
-        out = np.bincount(obs, minlength=len(lev) or None)  # type: ignore[arg-type]
-        return self._constructor(out, index=lev, dtype="int64").__finalize__(
-            self, method="count"
-        )
+        return notna(self._values).sum().astype("int64")
 
     def mode(self, dropna: bool = True) -> Series:
         """
@@ -2082,7 +2047,7 @@ Name: Max Speed, dtype: float64
             res_values, index=range(len(res_values)), name=self.name
         )
 
-    def unique(self) -> ArrayLike:
+    def unique(self) -> ArrayLike:  # pylint: disable=useless-parent-delegation
         """
         Return unique values of Series object.
 
@@ -3035,9 +3000,10 @@ Name: Max Speed, dtype: float64
             assert isinstance(res2, Series)
             return (res1, res2)
 
-        # We do not pass dtype to ensure that the Series constructor
-        #  does inference in the case where `result` has object-dtype.
-        out = self._constructor(result, index=self.index)
+        # TODO: result should always be ArrayLike, but this fails for some
+        #  JSONArray tests
+        dtype = getattr(result, "dtype", None)
+        out = self._constructor(result, index=self.index, dtype=dtype)
         out = out.__finalize__(self)
 
         # Set the result's name after __finalize__ is called because __finalize__
@@ -4157,8 +4123,6 @@ Keep all original rows and also all original values
         """
         Transform each element of a list-like to a row.
 
-        .. versionadded:: 0.25.0
-
         Parameters
         ----------
         ignore_index : bool, default False
@@ -4447,8 +4411,9 @@ Keep all original rows and also all original values
     ) -> Series | bool:
         ...
 
+    # error: Missing return statement
     @doc(NDFrame.any, **_shared_doc_kwargs)
-    def any(
+    def any(  # type: ignore[empty-body]
         self,
         axis: Axis = 0,
         bool_only: bool | None = None,
@@ -4618,14 +4583,9 @@ Keep all original rows and also all original values
                 if name in ["any", "all"]:
                     kwd_name = "bool_only"
                 # GH#47500 - change to TypeError to match other methods
-                warnings.warn(
-                    f"Calling Series.{name} with {kwd_name}={numeric_only} and "
-                    f"dtype {self.dtype} will raise a TypeError in the future",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                raise NotImplementedError(
-                    f"Series.{name} does not implement {kwd_name}."
+                raise TypeError(
+                    f"Series.{name} does not allow {kwd_name}={numeric_only} "
+                    "with non-numeric dtypes."
                 )
             with np.errstate(all="ignore"):
                 return op(delegate, skipna=skipna, **kwds)
@@ -5061,9 +5021,8 @@ Keep all original rows and also all original values
     ) -> Series | None:
         ...
 
-    #  error: Signature of "fillna" incompatible with supertype "NDFrame"
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
-    def fillna(  # type: ignore[override]
+    def fillna(
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
         *,
@@ -5136,14 +5095,13 @@ Keep all original rows and also all original values
     ) -> None:
         ...
 
-    # error: Signature of "replace" incompatible with supertype "NDFrame"
     @doc(
         NDFrame.replace,
         klass=_shared_doc_kwargs["klass"],
         inplace=_shared_doc_kwargs["inplace"],
         replace_iloc=_shared_doc_kwargs["replace_iloc"],
     )
-    def replace(  # type: ignore[override]
+    def replace(
         self,
         to_replace=None,
         value=lib.no_default,

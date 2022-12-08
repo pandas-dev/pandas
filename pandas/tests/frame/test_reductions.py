@@ -1,13 +1,11 @@
 from datetime import timedelta
 from decimal import Decimal
-import inspect
 import re
 
 from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
-from pandas._libs import lib
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
@@ -18,7 +16,6 @@ from pandas import (
     Categorical,
     DataFrame,
     Index,
-    MultiIndex,
     Series,
     Timestamp,
     date_range,
@@ -492,21 +489,6 @@ class TestDataFrameAnalytics:
         with pd.option_context("use_bottleneck", False):
             result = nanops.nansem(arr, axis=0)
             assert not (result < 0).any()
-
-    @td.skip_if_no_scipy
-    def test_kurt(self):
-        index = MultiIndex(
-            levels=[["bar"], ["one", "two", "three"], [0, 1]],
-            codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
-        )
-        df = DataFrame(np.random.randn(6, 3), index=index)
-
-        kurt = df.kurt()
-        with tm.assert_produces_warning(FutureWarning):
-            kurt2 = df.kurt(level=0).xs("bar")
-        tm.assert_series_equal(kurt, kurt2, check_names=False)
-        assert kurt.name is None
-        assert kurt2.name == "bar"
 
     @pytest.mark.parametrize(
         "dropna, expected",
@@ -1181,7 +1163,7 @@ class TestDataFrameAnalytics:
         )
 
         result = df.all(bool_only=True)
-        expected = Series(dtype=np.bool_)
+        expected = Series(dtype=np.bool_, index=[])
         tm.assert_series_equal(result, expected)
 
         df = DataFrame(
@@ -1316,19 +1298,6 @@ class TestDataFrameAnalytics:
 
         assert df.any(bool_only=True, axis=None)
 
-    @pytest.mark.parametrize("method", ["any", "all"])
-    def test_any_all_level_axis_none_raises(self, method):
-        df = DataFrame(
-            {"A": 1},
-            index=MultiIndex.from_product(
-                [["A", "B"], ["a", "b"]], names=["out", "in"]
-            ),
-        )
-        xpr = "Must specify 'axis' when aggregating by level."
-        with pytest.raises(ValueError, match=xpr):
-            with tm.assert_produces_warning(FutureWarning):
-                getattr(df, method)(axis=None, level="out")
-
     # ---------------------------------------------------------------------
     # Unsorted
 
@@ -1440,25 +1409,6 @@ class TestDataFrameReductions:
         result = getattr(df, method)(axis=1)
         tm.assert_series_equal(result, expected)
 
-    def test_frame_any_all_with_level(self):
-        df = DataFrame(
-            {"data": [False, False, True, False, True, False, True]},
-            index=[
-                ["one", "one", "two", "one", "two", "two", "two"],
-                [0, 1, 0, 2, 1, 2, 3],
-            ],
-        )
-
-        with tm.assert_produces_warning(FutureWarning, match="Using the level"):
-            result = df.any(level=0)
-        ex = DataFrame({"data": [False, True]}, index=["one", "two"])
-        tm.assert_frame_equal(result, ex)
-
-        with tm.assert_produces_warning(FutureWarning, match="Using the level"):
-            result = df.all(level=0)
-        ex = DataFrame({"data": [False, False]}, index=["one", "two"])
-        tm.assert_frame_equal(result, ex)
-
     def test_frame_any_with_timedelta(self):
         # GH#17667
         df = DataFrame(
@@ -1476,27 +1426,17 @@ class TestDataFrameReductions:
         expected = Series(data=[False, True])
         tm.assert_series_equal(result, expected)
 
-    def test_reductions_deprecation_level_argument(
-        self, frame_or_series, reduction_functions
-    ):
-        # GH#39983
-        obj = frame_or_series(
-            [1, 2, 3], index=MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
-        )
-        with tm.assert_produces_warning(FutureWarning, match="level"):
-            getattr(obj, reduction_functions)(level=0)
-
     def test_reductions_skipna_none_raises(
-        self, request, frame_or_series, reduction_functions
+        self, request, frame_or_series, all_reductions
     ):
-        if reduction_functions == "count":
+        if all_reductions == "count":
             request.node.add_marker(
                 pytest.mark.xfail(reason="Count does not accept skipna")
             )
         obj = frame_or_series([1, 2, 3])
         msg = 'For argument "skipna" expected type bool, received type NoneType.'
         with pytest.raises(ValueError, match=msg):
-            getattr(obj, reduction_functions)(skipna=None)
+            getattr(obj, all_reductions)(skipna=None)
 
 
 class TestNuisanceColumns:
@@ -1549,6 +1489,7 @@ class TestNuisanceColumns:
         # TODO: np.median(df, axis=0) gives np.array([2.0, 2.0]) instead
         #  of expected.values
 
+    @pytest.mark.filterwarnings("ignore:.*will return a scalar.*:FutureWarning")
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_min_max_categorical_dtype_non_ordered_nuisance_column(self, method):
         # GH#28949 DataFrame.min should behave like Series.min
@@ -1638,22 +1579,6 @@ def test_minmax_extensionarray(method, numeric_only):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("meth", ["max", "min", "sum", "mean", "median"])
-def test_groupby_regular_arithmetic_equivalent(meth):
-    # GH#40660
-    df = DataFrame(
-        {"a": [pd.Timedelta(hours=6), pd.Timedelta(hours=7)], "b": [12.1, 13.3]}
-    )
-    expected = df.copy()
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = getattr(df, meth)(level=0)
-    tm.assert_frame_equal(result, expected)
-
-    result = getattr(df.groupby(level=0), meth)(numeric_only=False)
-    tm.assert_frame_equal(result, expected)
-
-
 @pytest.mark.parametrize("ts_value", [Timestamp("2000-01-01"), pd.NaT])
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
@@ -1697,40 +1622,7 @@ def test_reduction_axis_none_deprecation(method):
     [
         "corr",
         "corrwith",
-        "count",
         "cov",
-        "mode",
-        "quantile",
-    ],
-)
-def test_numeric_only_deprecation(kernel):
-    # GH#46852
-    df = DataFrame({"a": [1, 2, 3], "b": object})
-    args = (df,) if kernel == "corrwith" else ()
-    signature = inspect.signature(getattr(DataFrame, kernel))
-    default = signature.parameters["numeric_only"].default
-    assert default is not True
-
-    if default is None or default is lib.no_default:
-        expected = getattr(df[["a"]], kernel)(*args)
-        warn = FutureWarning
-    else:
-        # default must be False and works on any nuisance columns
-        expected = getattr(df, kernel)(*args)
-        if kernel == "mode":
-            assert "b" in expected.columns
-        else:
-            assert "b" in expected.index
-        warn = None
-    msg = f"The default value of numeric_only in DataFrame.{kernel}"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(df, kernel)(*args)
-    tm.assert_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "kernel",
-    [
         "idxmax",
         "idxmin",
         "kurt",
@@ -1739,6 +1631,7 @@ def test_numeric_only_deprecation(kernel):
         "median",
         "min",
         "prod",
+        "quantile",
         "sem",
         "skew",
         "std",
@@ -1749,6 +1642,7 @@ def test_numeric_only_deprecation(kernel):
 def test_fails_on_non_numeric(kernel):
     # GH#46852
     df = DataFrame({"a": [1, 2, 3], "b": object})
+    args = (df,) if kernel == "corrwith" else ()
     msg = "|".join(
         [
             "not allowed for this dtype",
@@ -1759,4 +1653,4 @@ def test_fails_on_non_numeric(kernel):
         ]
     )
     with pytest.raises(TypeError, match=msg):
-        getattr(df, kernel)()
+        getattr(df, kernel)(*args)

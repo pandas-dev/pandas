@@ -1053,8 +1053,7 @@ class _IOWrapper:
 
     def readable(self) -> bool:
         if hasattr(self.buffer, "readable"):
-            # error: "BaseBuffer" has no attribute "readable"
-            return self.buffer.readable()  # type: ignore[attr-defined]
+            return self.buffer.readable()
         return True
 
     def seekable(self) -> bool:
@@ -1064,8 +1063,7 @@ class _IOWrapper:
 
     def writable(self) -> bool:
         if hasattr(self.buffer, "writable"):
-            # error: "BaseBuffer" has no attribute "writable"
-            return self.buffer.writable()  # type: ignore[attr-defined]
+            return self.buffer.writable()
         return True
 
 

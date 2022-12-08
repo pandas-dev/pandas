@@ -151,7 +151,7 @@ class TestFromRecords:
         for b in blocks.values():
             columns.extend(b.columns)
 
-        asdict = {x: y for x, y in df.items()}
+        asdict = dict(df.items())
         asdict2 = {x: y.values for x, y in df.items()}
 
         # dict of series & dict of ndarrays (have dtype info)

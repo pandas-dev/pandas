@@ -246,6 +246,7 @@ class TestTimedeltaIndex:
         with pytest.raises(ValueError, match=msg):
             TimedeltaIndex(["2000"], dtype="timedelta64")
 
+        msg = "The 'timedelta64' dtype has no unit. Please pass in"
         with pytest.raises(ValueError, match=msg):
             pd.Index(["2000"], dtype="timedelta64")
 
