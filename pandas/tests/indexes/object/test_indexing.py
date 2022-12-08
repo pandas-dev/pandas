@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 import numpy as np
+from pkg_resources import parse_version
 import pytest
 
 from pandas._libs.missing import is_matching_na
@@ -92,6 +93,11 @@ class TestGetIndexerNonUnique:
             tm.assert_numpy_array_equal(indexer, expected_indexer)
             tm.assert_numpy_array_equal(missing, expected_missing)
 
+    @pytest.mark.skipif(
+        parse_version(np.__version__) > parse_version("1.24.0")
+        and "dev" in np.__version__,
+        reason="GH50124",
+    )
     @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
     def test_get_indexer_non_unique_np_nats(self, np_nat_fixture, np_nat_fixture2):
         expected_missing = np.array([], dtype=np.intp)
