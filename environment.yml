@@ -42,7 +42,7 @@ dependencies:
   - odfpy
   - pandas-gbq
   - psycopg2
-  - pyarrow
+  - pyarrow<10
   - pymysql
   - pyreadstat
   - pytables
@@ -64,7 +64,6 @@ dependencies:
   - cftime
   - dask
   - ipython
-  - geopandas-base
   - seaborn
   - scikit-learn
   - statsmodels
@@ -85,9 +84,9 @@ dependencies:
   - cxx-compiler
 
   # code checks
-  - black=22.3.0
+  - black=22.10.0
   - cpplint
-  - flake8=5.0.4
+  - flake8=6.0.0
   - flake8-bugbear=22.7.1 # used by flake8, find likely bugs
   - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.990

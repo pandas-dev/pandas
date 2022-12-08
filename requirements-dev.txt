@@ -30,8 +30,8 @@ numexpr>=2.8.0
 openpyxl
 odfpy
 pandas-gbq
-psycopg2
-pyarrow
+psycopg2-binary
+pyarrow<10
 pymysql
 pyreadstat
 tables
@@ -51,7 +51,6 @@ botocore
 cftime
 dask
 ipython
-geopandas
 seaborn
 scikit-learn
 statsmodels
@@ -62,9 +61,9 @@ py
 moto
 flask
 asv
-black==22.3.0
+black==22.10.0
 cpplint
-flake8==5.0.4
+flake8==6.0.0
 flake8-bugbear==22.7.1
 isort>=5.2.1
 mypy==0.990
@@ -98,4 +97,4 @@ feedparser
 pyyaml
 requests
 sphinx-toggleprompt
-setuptools>=51.0.0
+setuptools>=61.0.0
