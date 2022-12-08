@@ -632,8 +632,6 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool | None = None,
     ) -> None:
 
-        if data is None:
-            data = {}
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
@@ -670,6 +668,12 @@ class DataFrame(NDFrame, OpsMixin):
                 copy = True
             else:
                 copy = False
+
+        if data is None:
+            index = index if index is not None else default_index(0)
+            columns = columns if columns is not None else default_index(0)
+            dtype = dtype if dtype is not None else pandas_dtype(object)
+            data = []
 
         if isinstance(data, (BlockManager, ArrayManager)):
             mgr = self._init_mgr(
@@ -777,7 +781,7 @@ class DataFrame(NDFrame, OpsMixin):
                 mgr = dict_to_mgr(
                     {},
                     index,
-                    columns,
+                    columns if columns is not None else default_index(0),
                     dtype=dtype,
                     typ=manager,
                 )
@@ -2309,8 +2313,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             result_index = None
             if len(arrays) == 0 and index is None and length == 0:
-                # for backward compat use an object Index instead of RangeIndex
-                result_index = Index([])
+                result_index = default_index(0)
 
             arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns, length)
             return arrays, arr_columns, result_index
@@ -3558,6 +3561,7 @@ class DataFrame(NDFrame, OpsMixin):
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
             index=self.columns,
+            dtype=np.intp,
         )
         if index:
             index_memory_usage = self._constructor_sliced(

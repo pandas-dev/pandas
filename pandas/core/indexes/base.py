@@ -6572,10 +6572,10 @@ class Index(IndexOpsMixin, PandasObject):
     def _construct_result(self, result, name):
         if isinstance(result, tuple):
             return (
-                Index._with_infer(result[0], name=name),
-                Index._with_infer(result[1], name=name),
+                Index(result[0], name=name, dtype=result[0].dtype),
+                Index(result[1], name=name, dtype=result[1].dtype),
             )
-        return Index._with_infer(result, name=name)
+        return Index(result, name=name, dtype=result.dtype)
 
     def _arith_method(self, other, op):
         if (

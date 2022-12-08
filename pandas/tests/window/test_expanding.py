@@ -453,9 +453,7 @@ def test_moment_functions_zero_length_pairwise(f):
     df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
     df2["a"] = df2["a"].astype("float64")
 
-    df1_expected = DataFrame(
-        index=MultiIndex.from_product([df1.index, df1.columns]), columns=Index([])
-    )
+    df1_expected = DataFrame(index=MultiIndex.from_product([df1.index, df1.columns]))
     df2_expected = DataFrame(
         index=MultiIndex.from_product([df2.index, df2.columns], names=["bar", "foo"]),
         columns=Index(["a"], name="foo"),
