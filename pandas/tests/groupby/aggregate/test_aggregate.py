@@ -468,7 +468,7 @@ def test_groupby_agg_coercing_bools():
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_agg_nested_dictionary():
+def test_groupby_agg_dict_with_getitem():
     # issue 25471
     dat = DataFrame({"A": ["A", "A", "B", "B", "B"], "B": [1, 2, 1, 1, 2]})
     result = dat.groupby("A")[["B"]].agg({"B": "sum"})
