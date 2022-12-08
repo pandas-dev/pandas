@@ -297,7 +297,7 @@ _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
                        "milliseconds", "microseconds"}
 
 
-def _determine_offset(kwds):
+cdef _determine_offset(kwds):
     if not kwds:
         # GH 45643/45890: (historically) defaults to 1 day
         return timedelta(days=1), False
@@ -310,7 +310,6 @@ def _determine_offset(kwds):
 
     kwds_no_nanos = {k: v for k, v in kwds.items() if k not in _nanos}
 
-    # Special case: "millisecond" (sing)
     # TODO perhaps we can do the suggested conversion ourselves?
     if "millisecond" in kwds_no_nanos:
         raise NotImplementedError(
