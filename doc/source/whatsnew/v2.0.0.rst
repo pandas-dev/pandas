@@ -811,6 +811,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.describe` would describe the group keys (:issue:`49256`)
 - Bug in :meth:`.SeriesGroupBy.describe` with ``as_index=False`` would have the incorrect shape (:issue:`49256`)
 - Bug in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` with ``dropna=False`` would drop NA values when the grouper was categorical (:issue:`36327`)
+- Bug in :meth:`.SeriesGroupBy.nunique` would incorrectly raise when the grouper was an empty categorical and ``observed=True`` (:issue:`21334`)
 
 Reshaping
 ^^^^^^^^^
