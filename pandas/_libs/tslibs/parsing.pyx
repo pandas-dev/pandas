@@ -12,7 +12,6 @@ from cpython.datetime cimport (
     datetime,
     datetime_new,
     import_datetime,
-    tzinfo,
 )
 from cpython.object cimport PyObject_Str
 from cython cimport Py_ssize_t
@@ -44,7 +43,6 @@ from dateutil.relativedelta import relativedelta
 from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
     tzoffset,
-    tzstr as _dateutil_tzstr,
     tzutc as _dateutil_tzutc,
 )
 
@@ -644,7 +642,7 @@ cdef dateutil_parse(
     cdef:
         str attr
         datetime ret
-        object res, tzdata
+        object res
         object reso = None
         dict repl = {}
 
