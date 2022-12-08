@@ -85,6 +85,7 @@ class Fillna:
         [
             "datetime64[ns]",
             "float64",
+            "Float64",
             "Int64",
             "int64[pyarrow]",
             "string",
@@ -99,7 +100,7 @@ class Fillna:
         if dtype == "datetime64[ns]":
             data = date_range("2000-01-01", freq="S", periods=N)
             na_value = NaT
-        elif dtype == "float64":
+        elif dtype in ("float64", "Float64"):
             data = np.random.randn(N)
             na_value = np.nan
         elif dtype in ("Int64", "int64[pyarrow]"):
