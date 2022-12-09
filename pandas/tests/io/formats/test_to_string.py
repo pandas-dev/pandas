@@ -5,6 +5,8 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under6p0
+
 from pandas import (
     DataFrame,
     Series,
@@ -342,6 +344,9 @@ def test_to_string_max_rows_zero(data, expected):
 
 def test_to_string_string_dtype():
     # GH#50099
+    if pa_version_under6p0:
+        pytest.skip()
+
     df = DataFrame({"x": ["foo", "bar", "baz"], "y": ["a", "b", "c"], "z": [1, 2, 3]})
     df = df.astype(
         {"x": "string[pyarrow]", "y": "string[python]", "z": "int64[pyarrow]"}
