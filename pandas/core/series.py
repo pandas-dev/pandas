@@ -1770,7 +1770,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Index : 1, Value : B
         Index : 2, Value : C
         """
-        return zip(iter(self.index), iter(self))
+        return zip(iter(self.index), iter(self._values))
 
     # ----------------------------------------------------------------------
     # Misc public methods
