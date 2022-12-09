@@ -36,29 +36,41 @@ These packages will automatically be installed by using the ``pandas``
 
 **Windows**
 
-You will need `Build Tools for Visual Studio 2019
+You will need `Build Tools for Visual Studio 2022
 <https://visualstudio.microsoft.com/downloads/>`_.
 
 .. warning::
-        You DO NOT need to install Visual Studio 2019.
-        You only need "Build Tools for Visual Studio 2019" found by
-        scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
-        In the installer, select the "C++ build tools" workload.
+        You DO NOT need to install Visual Studio 2022.
+        You only need "Build Tools for Visual Studio 2022" found by
+        scrolling down to "All downloads" -> "Tools for Visual Studio".
+        In the installer, select the "Desktop development with C++" Workloads.
 
 You can install the necessary components on the commandline using
-`vs_buildtools.exe <https://download.visualstudio.microsoft.com/download/pr/9a26f37e-6001-429b-a5db-c5455b93953c/460d80ab276046de2455a4115cc4e2f1e6529c9e6cb99501844ecafd16c619c4/vs_BuildTools.exe>`_:
+`vs_buildtools.exe <https://download.visualstudio.microsoft.com/download/pr/f3f8db49-2cd0-43df-9ced-12dcb6b3954b/1a327074f0b07f951467739a34f07c5db6b491aa5df2ed3e4054759ceb1c994d/vs_BuildTools.exe>`_:
 
 .. code::
 
-    vs_buildtools.exe --quiet --wait --norestart --nocache ^
+    vs_BuildTools.exe --quiet --wait --norestart --nocache ^
         --installPath C:\BuildTools ^
-        --add "Microsoft.VisualStudio.Workload.VCTools;includeRecommended" ^
-        --add Microsoft.VisualStudio.Component.VC.v141 ^
-        --add Microsoft.VisualStudio.Component.VC.v141.x86.x64 ^
-        --add Microsoft.VisualStudio.Component.Windows10SDK.17763
+        --add Microsoft.VisualStudio.Component.Roslyn.Compiler ^
+        --add Microsoft.Component.MSBuild ^
+        --add Microsoft.VisualStudio.Component.CoreBuildTools ^
+        --add Microsoft.VisualStudio.Workload.MSBuildTools ^
+        --add Microsoft.VisualStudio.Component.Windows10SDK ^
+        --add Microsoft.VisualStudio.Component.VC.CoreBuildTools ^
+        --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 ^
+        --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest ^
+        --add Microsoft.VisualStudio.Component.Windows11SDK.22000 ^
+        --add Microsoft.VisualStudio.Component.VC.CMake.Project ^
+        --add Microsoft.VisualStudio.Component.TestTools.BuildTools ^
+        --add Microsoft.VisualStudio.Component.VC.ASAN ^
+        --add Microsoft.VisualStudio.Component.TextTemplating ^
+        --add Microsoft.VisualStudio.Component.VC.CoreIde ^
+        --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core ^
+        --add Microsoft.VisualStudio.Workload.VCTools
 
 To setup the right paths on the commandline, call
-``"C:\BuildTools\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver=14.16 10.0.17763.0``.
+``C:\BuildTools\VC\Auxiliary\Build\vcvars64.bat``.
 
 **macOS**
 
