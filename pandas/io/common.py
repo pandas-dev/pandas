@@ -406,20 +406,24 @@ def _get_filepath_or_buffer(
         except ImportError:
             pass
 
+        # don't mutate user input.
+        storage_options = dict(storage_options or {})
+
+        # set fsspec `auto_mkdir`` argument to False
+        # if not explicitly specified in storage_options
+        auto_mkdir = storage_options.pop("auto_mkdir", False)
+
         try:
             file_obj = fsspec.open(
-                filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
+                filepath_or_buffer, mode=fsspec_mode,
+                auto_mkdir=auto_mkdir, **storage_options
             ).open()
         # GH 34626 Reads from Public Buckets without Credentials needs anon=True
         except tuple(err_types_to_retry_with_anon):
-            if storage_options is None:
-                storage_options = {"anon": True}
-            else:
-                # don't mutate user input.
-                storage_options = dict(storage_options)
-                storage_options["anon"] = True
+            storage_options.pop("anon", None)
             file_obj = fsspec.open(
-                filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
+                filepath_or_buffer, mode=fsspec_mode,
+                auto_mkdir=auto_mkdir, anon=True, **storage_options
             ).open()
 
         return IOArgs(
