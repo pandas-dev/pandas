@@ -290,7 +290,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         Notes
         -----
@@ -415,7 +415,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         Notes
         -----
@@ -1424,7 +1424,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -1727,7 +1727,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -1844,7 +1844,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -1948,7 +1948,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -2003,7 +2003,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -2105,7 +2105,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -2156,7 +2156,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         Notes
         -----
@@ -2180,7 +2180,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
         """
         msg = "`caption` must be either a string or 2-tuple of strings."
         if isinstance(caption, tuple):
@@ -2218,7 +2218,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         Notes
         -----
@@ -2379,7 +2379,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -2504,7 +2504,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         Notes
         -----
@@ -2748,7 +2748,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -2881,7 +2881,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         Notes
         -----
@@ -2978,7 +2978,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         Notes
         -----
@@ -3053,7 +3053,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -3099,7 +3099,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -3147,7 +3147,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -3203,7 +3203,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -3315,7 +3315,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------

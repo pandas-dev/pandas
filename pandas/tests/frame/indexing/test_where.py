@@ -1017,3 +1017,15 @@ def test_where_producing_ea_cond_for_np_dtype():
         {"a": Series([pd.NA, pd.NA, 2], dtype="Int64"), "b": [np.nan, 2, 3]}
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "replacement", [0.001, True, "snake", None, datetime(2022, 5, 4)]
+)
+def test_where_int_overflow(replacement):
+    # GH 31687
+    df = DataFrame([[1.0, 2e25, "nine"], [np.nan, 0.1, None]])
+    result = df.where(pd.notnull(df), replacement)
+    expected = DataFrame([[1.0, 2e25, "nine"], [replacement, 0.1, replacement]])
+
+    tm.assert_frame_equal(result, expected)

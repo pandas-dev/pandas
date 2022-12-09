@@ -3,8 +3,6 @@ These benchmarks are for Series and DataFrame indexing methods.  For the
 lower-level methods directly on Index and subclasses, see index_object.py,
 indexing_engine.py, and index_cached.py
 """
-import itertools
-import string
 import warnings
 
 import numpy as np
@@ -140,6 +138,12 @@ class DataFrameStringIndexing:
 
     def time_loc(self):
         self.df.loc[self.idx_scalar, self.col_scalar]
+
+    def time_at(self):
+        self.df.at[self.idx_scalar, self.col_scalar]
+
+    def time_at_setitem(self):
+        self.df.at[self.idx_scalar, self.col_scalar] = 0.0
 
     def time_getitem_scalar(self):
         self.df[self.col_scalar][self.idx_scalar]
@@ -353,15 +357,13 @@ class CategoricalIndexIndexing:
             "non_monotonic": CategoricalIndex(list("abc" * N)),
         }
         self.data = indices[index]
-        self.data_unique = CategoricalIndex(
-            ["".join(perm) for perm in itertools.permutations(string.printable, 3)]
-        )
+        self.data_unique = CategoricalIndex([str(i) for i in range(N * 3)])
 
         self.int_scalar = 10000
         self.int_list = list(range(10000))
 
         self.cat_scalar = "b"
-        self.cat_list = ["a", "c"]
+        self.cat_list = ["1", "3"]
 
     def time_getitem_scalar(self, index):
         self.data[self.int_scalar]

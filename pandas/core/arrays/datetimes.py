@@ -74,7 +74,10 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
@@ -445,7 +448,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 i8values = generate_regular_range(start, end, periods, freq, unit=unit)
             else:
                 xdr = _generate_range(
-                    start=start, end=end, periods=periods, offset=freq
+                    start=start, end=end, periods=periods, offset=freq, unit=unit
                 )
                 i8values = np.array([x.value for x in xdr], dtype=np.int64)
 
@@ -508,7 +511,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timestamp.")
         self._check_compatible_with(value)
-        return value.asm8
+        if value is NaT:
+            return np.datetime64(value.value, self.unit)
+        else:
+            return value.as_unit(self.unit).asm8
 
     def _scalar_from_string(self, value) -> Timestamp | NaTType:
         return Timestamp(value, tz=self.tz)
@@ -642,6 +648,25 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 return self.copy()
             return self
 
+        elif isinstance(dtype, ExtensionDtype):
+            if not isinstance(dtype, DatetimeTZDtype):
+                # e.g. Sparse[datetime64[ns]]
+                return super().astype(dtype, copy=copy)
+            elif self.tz is None:
+                # pre-2.0 this did self.tz_localize(dtype.tz), which did not match
+                #  the Series behavior which did
+                #  values.tz_localize("UTC").tz_convert(dtype.tz)
+                raise TypeError(
+                    "Cannot use .astype to convert from timezone-naive dtype to "
+                    "timezone-aware dtype. Use obj.tz_localize instead or "
+                    "series.dt.tz_localize instead"
+                )
+            else:
+                # tzaware unit conversion e.g. datetime64[s, UTC]
+                np_dtype = np.dtype(dtype.str)
+                res_values = astype_overflowsafe(self._ndarray, np_dtype, copy=copy)
+                return type(self)._simple_new(res_values, dtype=dtype, freq=self.freq)
+
         elif (
             self.tz is None
             and is_datetime64_dtype(dtype)
@@ -652,22 +677,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             res_values = astype_overflowsafe(self._ndarray, dtype, copy=True)
             return type(self)._simple_new(res_values, dtype=res_values.dtype)
             # TODO: preserve freq?
-
-        elif self.tz is not None and isinstance(dtype, DatetimeTZDtype):
-            # tzaware unit conversion e.g. datetime64[s, UTC]
-            np_dtype = np.dtype(dtype.str)
-            res_values = astype_overflowsafe(self._ndarray, np_dtype, copy=copy)
-            return type(self)._simple_new(res_values, dtype=dtype, freq=self.freq)
-
-        elif self.tz is None and isinstance(dtype, DatetimeTZDtype):
-            # pre-2.0 this did self.tz_localize(dtype.tz), which did not match
-            #  the Series behavior which did
-            #  values.tz_localize("UTC").tz_convert(dtype.tz)
-            raise TypeError(
-                "Cannot use .astype to convert from timezone-naive dtype to "
-                "timezone-aware dtype. Use obj.tz_localize instead or "
-                "series.dt.tz_localize instead"
-            )
 
         elif self.tz is not None and is_datetime64_dtype(dtype):
             # pre-2.0 behavior for DTA/DTI was
@@ -2059,6 +2068,7 @@ def _sequence_to_dt64ns(
             new_unit = npy_unit_to_abbrev(new_reso)
             new_dtype = np.dtype(f"M8[{new_unit}]")
             data = astype_overflowsafe(data, dtype=new_dtype, copy=False)
+            data_unit = get_unit_from_dtype(new_dtype)
             copy = False
 
         if data.dtype.byteorder == ">":
@@ -2474,6 +2484,8 @@ def _generate_range(
     end: Timestamp | None,
     periods: int | None,
     offset: BaseOffset,
+    *,
+    unit: str,
 ):
     """
     Generates a sequence of dates corresponding to the specified time
@@ -2485,7 +2497,8 @@ def _generate_range(
     start : Timestamp or None
     end : Timestamp or None
     periods : int or None
-    offset : DateOffset,
+    offset : DateOffset
+    unit : str
 
     Notes
     -----
@@ -2505,13 +2518,20 @@ def _generate_range(
     start = Timestamp(start)  # type: ignore[arg-type]
     # Non-overlapping identity check (left operand type: "Timestamp", right
     # operand type: "NaTType")
-    start = start if start is not NaT else None  # type: ignore[comparison-overlap]
+    if start is not NaT:  # type: ignore[comparison-overlap]
+        start = start.as_unit(unit)
+    else:
+        start = None
+
     # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
     # expected "Union[integer[Any], float, str, date, datetime64]"
     end = Timestamp(end)  # type: ignore[arg-type]
     # Non-overlapping identity check (left operand type: "Timestamp", right
     # operand type: "NaTType")
-    end = end if end is not NaT else None  # type: ignore[comparison-overlap]
+    if end is not NaT:  # type: ignore[comparison-overlap]
+        end = end.as_unit(unit)
+    else:
+        end = None
 
     if start and not offset.is_on_offset(start):
         # Incompatible types in assignment (expression has type "datetime",
@@ -2552,7 +2572,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)
+            next_date = offset._apply(cur).as_unit(unit)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
             cur = next_date
@@ -2566,7 +2586,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)
+            next_date = offset._apply(cur).as_unit(unit)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")
             cur = next_date
