@@ -343,6 +343,12 @@ PlottingOrientation = Literal["horizontal", "vertical"]
 # dropna
 AnyAll = Literal["any", "all"]
 
+# merge
+MergeHow = Literal["left", "right", "inner", "outer", "cross"]
+
+# join
+JoinHow = Literal["left", "right", "inner", "outer"]
+
 MatplotlibColor = Union[str, Sequence[float]]
 TimeGrouperOrigin = Union[
     "Timestamp", Literal["epoch", "start", "start_day", "end", "end_day"]

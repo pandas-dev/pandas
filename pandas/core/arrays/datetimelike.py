@@ -1594,8 +1594,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         Return the mean value of the Array.
 
-        .. versionadded:: 0.25.0
-
         Parameters
         ----------
         skipna : bool, default True
