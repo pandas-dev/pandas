@@ -26,7 +26,7 @@ RENAME = {
     "pytables": "tables",
     "psycopg2": "psycopg2-binary",
     "dask-core": "dask",
-    "seaborn-base": "sseaborn",
+    "seaborn-base": "seaborn",
 }
 
 
