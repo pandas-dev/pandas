@@ -139,6 +139,12 @@ class DataFrameStringIndexing:
     def time_loc(self):
         self.df.loc[self.idx_scalar, self.col_scalar]
 
+    def time_at(self):
+        self.df.at[self.idx_scalar, self.col_scalar]
+
+    def time_at_setitem(self):
+        self.df.at[self.idx_scalar, self.col_scalar] = 0.0
+
     def time_getitem_scalar(self):
         self.df[self.col_scalar][self.idx_scalar]
 
