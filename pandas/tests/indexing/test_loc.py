@@ -1097,6 +1097,7 @@ class TestLocBaseIndependent:
         sliced_df = original_df.loc[:]
         assert sliced_df is not original_df
         assert original_df[:] is not original_df
+        assert original_df.loc[:, :] is not original_df
 
         # should be a shallow copy
         assert np.shares_memory(original_df["a"]._values, sliced_df["a"]._values)
@@ -1110,7 +1111,6 @@ class TestLocBaseIndependent:
             assert (sliced_df["a"] == 4).all()
 
         # These should not return copies
-        assert original_df is original_df.loc[:, :]
         df = DataFrame(np.random.randn(10, 4))
         assert df[0] is df.loc[:, 0]
 
