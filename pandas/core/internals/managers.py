@@ -1236,6 +1236,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     removed_blknos.append(blkno_l)
                 else:
                     nbs = blk.delete(blk_locs)
+                    # Add first block where old block was and remaining blocks at
+                    # the end to avoid updating all block numbers
                     first_nb = nbs[0]
                     nbs_tup = tuple(nb for nb in nbs[1:])
                     nr_blocks = len(self.blocks)
