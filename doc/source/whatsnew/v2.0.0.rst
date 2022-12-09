@@ -230,39 +230,31 @@ a supported dtype:
 
 .. _whatsnew_200.api_breaking.value_counts:
 
-Value counts behaviour change
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Value counts sets the resulting name to ``count``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In past versions, when running :meth:`Series.value_counts`, the result would inherit
 the original object's name, and the result index would be nameless. This would cause
 confusion when resetting the index, and the column names would not correspond with the
 column values.
 Now, the result name will be ``'count'`` (or ``'proportion'`` if ``normalize=True`` was passed),
-and the index will be named after the original object.
+and the index will be named after the original object (:issue:`49497`).
 
 *Previous behavior*:
 
 .. code-block:: ipython
 
-    In [8]: (
-       ...:     pd.Series(['quetzal', 'quetzal', 'elk'], name='animal')
-       ...:     .value_counts()
-       ...:     .reset_index()
-       ...: )
-       ...:
-    Out[8]:
-         index  animal
-    0  quetzal       2
-    1      elk       1
+    In [8]: pd.Series(['quetzal', 'quetzal', 'elk'], name='animal').value_counts()
+
+    Out[2]:
+    quetzal    2
+    elk        1
+    Name: animal, dtype: int64
 
 *New behavior*:
 
 .. ipython:: python
 
-    (
-        pd.Series(['quetzal', 'quetzal', 'elk'], name='animal')
-        .value_counts()
-        .reset_index()
-    )
+    pd.Series(['quetzal', 'quetzal', 'elk'], name='animal').value_counts()
 
 Likewise for other ``value_counts`` methods (for example, :meth:`DataFrame.value_counts`).
 

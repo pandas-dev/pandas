@@ -626,7 +626,8 @@ class SeriesGroupBy(GroupBy[Series]):
                 sort=sort,
                 ascending=ascending,
                 bins=bins,
-            ).rename(name)
+            )
+            ser.name = name
             ser.index.names = index_names
             return ser
 

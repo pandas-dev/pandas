@@ -860,7 +860,8 @@ def value_counts(
             raise TypeError("bins argument only works with numeric data.") from err
 
         # count, remove nulls (from the index), and but the bins
-        result = ii.value_counts(dropna=dropna).rename(name)
+        result = ii.value_counts(dropna=dropna)
+        result.name = name
         result = result[result.index.notna()]
         result.index = result.index.astype("interval")
         result = result.sort_index()
