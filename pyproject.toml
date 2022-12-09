@@ -184,6 +184,20 @@ exclude = '''
 )
 '''
 
+[tool.ruff]
+line-length = 88
+
+# Enable Pyflakes `E` and `F` codes by default.
+select = ["E", "F"]
+ignore = [
+    # module level import not at top of file
+    "E402",
+    # do not assign a lambda expression, use a def
+    "E731",
+]
+
+exclude = ["*.pyi"]
+
 [tool.pylint.messages_control]
 max-line-length = 88
 disable = [
