@@ -216,7 +216,7 @@ you can pass the ``dayfirst`` flag:
 
    You see in the above example that ``dayfirst`` isn't strict. If a date
    can't be parsed with the day being first it will be parsed as if
-   ``dayfirst`` were False and a warning will also be raised.
+   ``dayfirst`` were ``False`` and a warning will also be raised.
 
 If you pass a single string to ``to_datetime``, it returns a single ``Timestamp``.
 ``Timestamp`` can also accept string input, but it doesn't accept string parsing
