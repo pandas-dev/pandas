@@ -1310,7 +1310,7 @@ def test_parse_dates_infer_datetime_format_warning(all_parsers):
         (
             "a\n04.15.2016",
             {"parse_dates": True, "index_col": 0},
-            DataFrame(index=DatetimeIndex(["2016-04-15"], name="a")),
+            DataFrame(index=DatetimeIndex(["2016-04-15"], name="a"), columns=[]),
         ),
         (
             "a,b\n04.15.2016,09.16.2013",
@@ -1325,7 +1325,8 @@ def test_parse_dates_infer_datetime_format_warning(all_parsers):
             DataFrame(
                 index=MultiIndex.from_tuples(
                     [(datetime(2016, 4, 15), datetime(2013, 9, 16))], names=["a", "b"]
-                )
+                ),
+                columns=[],
             ),
         ),
     ],
