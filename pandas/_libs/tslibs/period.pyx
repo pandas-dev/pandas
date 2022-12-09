@@ -2574,16 +2574,15 @@ class Period(_Period):
                 value = str(value)
             value = value.upper()
             dt, reso = parse_time_string(value, freq)
-            try:
-                ts = Timestamp(value)
-            except ValueError:
-                nanosecond = 0
-            else:
-                nanosecond = ts.nanosecond
-                if nanosecond != 0:
-                    reso = "nanosecond"
+            if reso == "nanosecond":
+                nanosecond = dt.nanosecond
+
             if dt is NaT:
                 ordinal = NPY_NAT
+                # Doesn't matter what this is, we just need to have it
+                # so that we don't error in block below. We get converted
+                # to NaT later on anyways
+                reso = "nanosecond"
 
             if freq is None:
                 try:
