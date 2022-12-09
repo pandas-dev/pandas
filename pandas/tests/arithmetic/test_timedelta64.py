@@ -584,7 +584,7 @@ class TestTimedelta64ArithmeticUnsorted:
 
         with tm.assert_produces_warning(PerformanceWarning):
             result = obj + other.astype(object)
-        tm.assert_equal(result, other)
+        tm.assert_equal(result, other.astype(object))
 
     # -------------------------------------------------------------
     # Binary operations TimedeltaIndex and timedelta-like
@@ -1296,8 +1296,8 @@ class TestTimedeltaArraylikeAddSubOps:
         )
 
         tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
-        expected_sub = tm.box_expected(expected_sub, box)
+        expected = tm.box_expected(expected, box).astype(object, copy=False)
+        expected_sub = tm.box_expected(expected_sub, box).astype(object, copy=False)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = tdi + other
@@ -1325,7 +1325,7 @@ class TestTimedeltaArraylikeAddSubOps:
         )
 
         tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, box).astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = tdi + other
@@ -1335,7 +1335,7 @@ class TestTimedeltaArraylikeAddSubOps:
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
-        expected_sub = tm.box_expected(expected_sub, box_with_array)
+        expected_sub = tm.box_expected(expected_sub, box_with_array).astype(object)
         with tm.assert_produces_warning(PerformanceWarning):
             res_sub = tdi - other
         tm.assert_equal(res_sub, expected_sub)
@@ -1349,9 +1349,11 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = Series([offsets.Hour(n=1), offsets.Minute(n=-2)], name=names[1])
 
-        expected_add = Series([tdi[n] + other[n] for n in range(len(tdi))], name=exname)
+        expected_add = Series(
+            [tdi[n] + other[n] for n in range(len(tdi))], name=exname, dtype=object
+        )
         obj = tm.box_expected(tdi, box)
-        expected_add = tm.box_expected(expected_add, box2)
+        expected_add = tm.box_expected(expected_add, box2).astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = obj + other
@@ -1361,8 +1363,10 @@ class TestTimedeltaArraylikeAddSubOps:
             res2 = other + obj
         tm.assert_equal(res2, expected_add)
 
-        expected_sub = Series([tdi[n] - other[n] for n in range(len(tdi))], name=exname)
-        expected_sub = tm.box_expected(expected_sub, box2)
+        expected_sub = Series(
+            [tdi[n] - other[n] for n in range(len(tdi))], name=exname, dtype=object
+        )
+        expected_sub = tm.box_expected(expected_sub, box2).astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res3 = obj - other
@@ -1395,7 +1399,7 @@ class TestTimedeltaArraylikeAddSubOps:
     # ------------------------------------------------------------------
     # Unsorted
 
-    def test_td64arr_add_sub_object_array(self, box_with_array, using_array_manager):
+    def test_td64arr_add_sub_object_array(self, box_with_array):
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
 
@@ -1410,12 +1414,7 @@ class TestTimedeltaArraylikeAddSubOps:
         expected = pd.Index(
             [Timedelta(days=2), Timedelta(days=4), Timestamp("2000-01-07")]
         )
-        expected = tm.box_expected(expected, xbox)
-        if not using_array_manager:
-            # TODO: avoid mismatched behavior. This occurs bc inference
-            #  can happen within TimedeltaArray method, which means results
-            #  depend on whether we split blocks.
-            expected = expected.astype(object)
+        expected = tm.box_expected(expected, xbox).astype(object)
         tm.assert_equal(result, expected)
 
         msg = "unsupported operand type|cannot subtract a datelike"
@@ -1427,9 +1426,7 @@ class TestTimedeltaArraylikeAddSubOps:
             result = other - tdarr
 
         expected = pd.Index([Timedelta(0), Timedelta(0), Timestamp("2000-01-01")])
-        expected = tm.box_expected(expected, xbox)
-        if not using_array_manager:
-            expected = expected.astype(object)
+        expected = tm.box_expected(expected, xbox).astype(object)
         tm.assert_equal(result, expected)
 
 
@@ -1822,6 +1819,10 @@ class TestTimedeltaArraylikeMulDivOps:
         warn = None
         if box_with_array is DataFrame and isinstance(three_days, pd.DateOffset):
             warn = PerformanceWarning
+            # TODO: making expected be object here a result of DataFrame.__divmod__
+            #  being defined in a naive way that does not dispatch to the underlying
+            #  array's __divmod__
+            expected = expected.astype(object)
 
         with tm.assert_produces_warning(warn):
             result = divmod(tdarr, three_days)

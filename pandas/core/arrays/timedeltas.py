@@ -628,6 +628,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             else:
                 result = floordiv_object_array(self._ndarray, other)
 
+            assert result.dtype == object
             return result
 
         elif is_integer_dtype(other.dtype) or is_float_dtype(other.dtype):

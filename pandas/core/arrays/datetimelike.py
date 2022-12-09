@@ -1353,11 +1353,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         assert self.shape == other.shape, (self.shape, other.shape)
 
         res_values = op(self.astype("O"), np.asarray(other))
-
-        ext_arr = pd_array(res_values.ravel())
-        result = cast(np.ndarray, extract_array(ext_arr, extract_numpy=True))
-        result = result.reshape(self.shape)
-        return result
+        return res_values
 
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):
