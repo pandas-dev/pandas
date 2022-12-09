@@ -1110,6 +1110,40 @@ class Window(BaseWindow):
     2  2.958621
     3       NaN
     4       NaN
+
+    **on**
+
+    Rolling sum with a window length of 2 on specific columons.
+
+    >>> df = pd.DataFrame({
+    ...     'A' : [1, 3, 5, np.nan, 7],
+    ...     'B' : [2, 4, np.nan, 6, 8],
+    ...     'C':  [1.0, 2, 3, 4, 5]})
+
+    >>> df
+        A    B    C
+    0  1.0  2.0  1.0
+    1  3.0  4.0  2.0
+    2  5.0  NaN  3.0
+    3  NaN  6.0  4.0
+    4  7.0  8.0  5.0
+
+    >>> df.rolling(2, on='A').sum()
+        A     B    C
+    0  1.0   NaN  NaN
+    1  3.0   6.0  3.0
+    2  5.0   NaN  5.0
+    3  NaN   NaN  7.0
+    4  7.0  14.0  9.0
+
+    >>> df.rolling(2, on='B').sum()
+        A    B    C
+    0  NaN  2.0  NaN
+    1  4.0  4.0  3.0
+    2  8.0  NaN  5.0
+    3  NaN  6.0  7.0
+    4  NaN  8.0  9.0
+
     """
 
     _attributes = [
