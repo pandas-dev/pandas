@@ -187,16 +187,76 @@ exclude = '''
 [tool.ruff]
 line-length = 88
 
-# Enable Pyflakes `E` and `F` codes by default.
-select = ["E", "F"]
-ignore = [
-    # module level import not at top of file
-    "E402",
-    # do not assign a lambda expression, use a def
-    "E731",
+select = [
+  # pyflakes
+  "F",
+  # pycodestyle
+  "E",
+  "W",
+  # flake8-bugbear
+  "B",
 ]
 
-exclude = ["*.pyi"]
+ignore = [
+  # space before : (needed for how black formats slicing)
+  # "E203",  # not yet implemented
+  # module level import not at top of file
+  "E402",
+  # do not assign a lambda expression, use a def
+  "E731",
+  # line break before binary operator
+  # "W503",  # not yet implemented
+  # line break after binary operator
+  # "W504",  # not yet implemented
+  # controversial
+  "B006",
+  # controversial
+  "B007",
+  # controversial
+  "B008",
+  # setattr is used to side-step mypy
+  "B009",
+  # getattr is used to side-step mypy
+  "B010",
+  # tests use assert False
+  "B011",
+  # tests use comparisons but not their returned value
+  "B015",
+  # false positives
+  "B019",
+  # Use of functools.lru_cache or functools.cache on methods can lead to memory leaks.
+  "B020",
+  # Loop control variable overrides iterable it iterates
+  "B023",
+  # Functions defined inside a loop must not use variables redefined in the loop
+  # "B301",  # not yet implemented
+
+  # Additional checks that don't pass yet
+  # `zip()` without an explicit `strict=` parameter
+  "B905",
+  # Within an except clause, raise exceptions with ...
+  "B904",
+]
+
+exclude = [
+  "*.pyi",
+  "doc/sphinxext/*.py",
+  "doc/build/*.py",
+  "doc/temp/*.py",
+  ".eggs/*.py",
+  "versioneer.py",
+  # exclude asv benchmark environments from linting
+  "env",
+]
+
+[tool.ruff.per-file-ignores]
+# ignoring multiline is not yet supported (https://github.com/charliermarsh/ruff/issues/1052)
+"pandas/util/__init__.py" = ["F401"]
+"pandas/tests/extension/base/__init__.py" = ["F401"]
+# undefined name with global (https://github.com/charliermarsh/ruff/issues/960)
+"pandas/io/clipboard/__init__.py" = ["F821"]
+# undefined name with Literal (https://github.com/charliermarsh/ruff/issues/733 but should be fixed?)
+"pandas/core/reshape/merge.py" = ["F821"]
 
 [tool.pylint.messages_control]
 max-line-length = 88
