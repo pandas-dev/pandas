@@ -3288,7 +3288,7 @@ class MultiIndex(Index):
             else:
                 indexer &= lvl_indexer
                 if not np.any(indexer) and np.any(lvl_indexer):
-                    raise KeyError(seq)
+                    return np.array([], dtype=np.intp)
 
         # empty indexer
         if indexer is None:
