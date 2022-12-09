@@ -585,7 +585,9 @@ class SeriesGroupBy(GroupBy[Series]):
         # we might have duplications among the bins
         if len(res) != len(ri):
             res, out = np.zeros(len(ri), dtype=out.dtype), res
-            res[ids[idx]] = out
+            if len(ids) > 0:
+                # GH#21334s
+                res[ids[idx]] = out
 
         result = self.obj._constructor(res, index=ri, name=self.obj.name)
         return self._reindex_output(result, fill_value=0)
