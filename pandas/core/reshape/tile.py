@@ -263,7 +263,7 @@ def cut(
             raise ValueError(
                 "cannot specify integer `bins` when input data contains infinity"
             )
-        elif mn == mx:  # adjust end points before binning
+        if mn == mx:  # adjust end points before binning
             mn -= 0.001 * abs(mn) if mn != 0 else 0.001
             mx += 0.001 * abs(mx) if mx != 0 else 0.001
             bins = np.linspace(mn, mx, bins + 1, endpoint=True)
@@ -421,8 +421,7 @@ def _bins_to_cuts(
                 f"Bin edges must be unique: {repr(bins)}.\n"
                 f"You can drop duplicate edges by setting the 'duplicates' kwarg"
             )
-        else:
-            bins = unique_bins
+        bins = unique_bins
 
     side: Literal["left", "right"] = "left" if right else "right"
     ids = ensure_platform_int(bins.searchsorted(x, side=side))
@@ -440,7 +439,7 @@ def _bins_to_cuts(
                 "list-like argument"
             )
 
-        elif labels is None:
+        if labels is None:
             labels = _format_labels(
                 bins, precision, right=right, include_lowest=include_lowest, dtype=dtype
             )

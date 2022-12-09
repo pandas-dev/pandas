@@ -729,7 +729,6 @@ class TestNamePreservation:
 
         name = op.__name__.strip("_")
         is_logical = name in ["and", "rand", "xor", "rxor", "or", "ror"]
-        is_rlogical = is_logical and name.startswith("r")
 
         right = box(right)
         if flex:
@@ -739,16 +738,7 @@ class TestNamePreservation:
             result = getattr(left, name)(right)
         else:
             # GH#37374 logical ops behaving as set ops deprecated
-            warn = FutureWarning if is_rlogical and box is Index else None
-            msg = "operating as a set operation is deprecated"
-            with tm.assert_produces_warning(warn, match=msg):
-                # stacklevel is correct for Index op, not reversed op
-                result = op(left, right)
-
-        if box is Index and is_rlogical:
-            # Index treats these as set operators, so does not defer
-            assert isinstance(result, Index)
-            return
+            result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:

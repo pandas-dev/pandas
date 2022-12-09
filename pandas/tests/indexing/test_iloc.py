@@ -246,7 +246,7 @@ class TestiLocBaseIndependent:
             tm.assert_frame_equal(result, expected)
 
         dfl = DataFrame(np.random.randn(5, 2), columns=list("AB"))
-        check(dfl.iloc[:, 2:3], DataFrame(index=dfl.index))
+        check(dfl.iloc[:, 2:3], DataFrame(index=dfl.index, columns=[]))
         check(dfl.iloc[:, 1:3], dfl.iloc[:, [1]])
         check(dfl.iloc[4:6], dfl.iloc[[4]])
 
@@ -1266,7 +1266,8 @@ class TestILocErrors:
         # GH#39004
         df = DataFrame({"a": [1, 2, 3]})
         indexer = DataFrame({"a": [True, False, True]})
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "DataFrame indexer for .iloc is not supported. Consider using .loc"
+        with pytest.raises(TypeError, match=msg):
             df.iloc[indexer] = 1
 
         msg = (

@@ -53,7 +53,7 @@ def recode_for_groupby(
         unique_codes = unique1d(c.codes)
 
         take_codes = unique_codes[unique_codes != -1]
-        if c.ordered:
+        if sort:
             take_codes = np.sort(take_codes)
 
         # we recode according to the uniques
@@ -75,7 +75,7 @@ def recode_for_groupby(
     all_codes = np.arange(c.categories.nunique())
     # GH 38140: exclude nan from indexer for categories
     unique_notnan_codes = unique1d(c.codes[c.codes != -1])
-    if c.ordered:
+    if sort:
         unique_notnan_codes = np.sort(unique_notnan_codes)
     if len(all_codes) > len(unique_notnan_codes):
         # GH 13179: All categories need to be present, even if missing from the data

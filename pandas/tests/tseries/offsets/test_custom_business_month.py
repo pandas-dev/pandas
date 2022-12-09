@@ -31,7 +31,7 @@ from pandas.tests.tseries.offsets.common import (
 )
 from pandas.tests.tseries.offsets.test_offsets import _ApplyCases
 
-from pandas.tseries import offsets as offsets
+from pandas.tseries import offsets
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
@@ -400,8 +400,6 @@ class TestCustomBusinessMonthEnd:
 
     @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_datetimeindex(self):
-        from pandas.tseries.holiday import USFederalHolidayCalendar
-
         hcal = USFederalHolidayCalendar()
         freq = CBMonthEnd(calendar=hcal)
 

@@ -115,8 +115,8 @@ class TestGetitemListLike:
             iter,
             Index,
             set,
-            lambda l: dict(zip(l, range(len(l)))),
-            lambda l: dict(zip(l, range(len(l)))).keys(),
+            lambda keys: dict(zip(keys, range(len(keys)))),
+            lambda keys: dict(zip(keys, range(len(keys)))).keys(),
         ],
         ids=["list", "iter", "Index", "set", "dict", "dict_keys"],
     )
@@ -142,8 +142,10 @@ class TestGetitemListLike:
         idx_check = list(idx_type(keys))
 
         if isinstance(idx, (set, dict)):
-            with tm.assert_produces_warning(FutureWarning):
-                result = frame[idx]
+            with pytest.raises(TypeError, match="as an indexer is not supported"):
+                frame[idx]
+
+            return
         else:
             result = frame[idx]
 
@@ -453,23 +455,18 @@ class TestGetitemSlice:
                 ]
             ),
         )
-        with tm.assert_produces_warning(FutureWarning):
-            result = df["2011-01-01":"2011-11-01"]
-        expected = DataFrame(
-            {"a": 0},
-            index=DatetimeIndex(
-                ["11.01.2011 22:00", "11.01.2011 23:00", "2011-01-13 00:00"]
-            ),
-        )
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(
+            KeyError, match="Value based partial slicing on non-monotonic"
+        ):
+            df["2011-01-01":"2011-11-01"]
 
 
 class TestGetitemDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{"a", "b"}, {"a": "a"}])
     def test_getitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         df = DataFrame(
             [[1, 2], [3, 4]], columns=MultiIndex.from_tuples([("a", 1), ("b", 2)])
         )
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df[key]

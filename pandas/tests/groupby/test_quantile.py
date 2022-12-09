@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._libs import lib
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -160,10 +158,7 @@ def test_quantile_raises():
     df = DataFrame([["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"])
 
     with pytest.raises(TypeError, match="cannot be performed against 'object' dtypes"):
-        with tm.assert_produces_warning(
-            FutureWarning, match="Dropping invalid columns"
-        ):
-            df.groupby("key").quantile()
+        df.groupby("key").quantile()
 
 
 def test_quantile_out_of_bounds_q_raises():
@@ -242,16 +237,11 @@ def test_groupby_quantile_nullable_array(values, q):
 
 
 @pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
-@pytest.mark.parametrize("numeric_only", [lib.no_default, True, False])
-def test_groupby_quantile_skips_invalid_dtype(q, numeric_only):
+@pytest.mark.parametrize("numeric_only", [True, False])
+def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
     df = DataFrame({"a": [1], "b": [2.0], "c": ["x"]})
-
-    if numeric_only is lib.no_default or numeric_only:
-        warn = FutureWarning if numeric_only is lib.no_default else None
-        msg = "The default value of numeric_only in DataFrameGroupBy.quantile"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = df.groupby("a").quantile(q, numeric_only=numeric_only)
-
+    if numeric_only:
+        result = df.groupby("a").quantile(q, numeric_only=numeric_only)
         expected = df.groupby("a")[["b"]].quantile(q)
         tm.assert_frame_equal(result, expected)
     else:

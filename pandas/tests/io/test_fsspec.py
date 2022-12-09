@@ -211,7 +211,7 @@ def test_from_s3_csv(s3_resource, tips_file, s3so):
 @td.skip_if_no("s3fs")
 def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
     tm.assert_equal(
-        read_csv("%s://pandas-test/tips.csv" % protocol, storage_options=s3so),
+        read_csv(f"{protocol}://pandas-test/tips.csv", storage_options=s3so),
         read_csv(tips_file),
     )
 

@@ -1,5 +1,6 @@
 import calendar
 from datetime import (
+    date,
     datetime,
     timedelta,
     timezone,
@@ -20,12 +21,16 @@ from pandas import (
     Timedelta,
     Timestamp,
 )
-import pandas._testing as tm
-
-from pandas.tseries import offsets
 
 
 class TestTimestampConstructors:
+    def test_constructor_from_date_second_reso(self):
+        # GH#49034 constructing from a pydate object gets lowest supported
+        #  reso, i.e. seconds
+        obj = date(2012, 9, 1)
+        ts = Timestamp(obj)
+        assert ts.unit == "s"
+
     @pytest.mark.parametrize("typ", [int, float])
     def test_constructor_int_float_with_YM_unit(self, typ):
         # GH#47266 avoid the conversions in cast_from_unit
@@ -100,8 +105,9 @@ class TestTimestampConstructors:
             (dateutil.tz.tzoffset(None, 18000), 5),
         ]
 
-        for date_str, date, expected in tests:
-            for result in [Timestamp(date_str), Timestamp(date)]:
+        for date_str, date_obj, expected in tests:
+            for result in [Timestamp(date_str), Timestamp(date_obj)]:
+                result = result.as_unit("ns")  # test originally written before non-nano
                 # only with timestring
                 assert result.value == expected
 
@@ -111,7 +117,10 @@ class TestTimestampConstructors:
 
             # with timezone
             for tz, offset in timezones:
-                for result in [Timestamp(date_str, tz=tz), Timestamp(date, tz=tz)]:
+                for result in [Timestamp(date_str, tz=tz), Timestamp(date_obj, tz=tz)]:
+                    result = result.as_unit(
+                        "ns"
+                    )  # test originally written before non-nano
                     expected_tz = expected - offset * 3600 * 1_000_000_000
                     assert result.value == expected_tz
 
@@ -233,13 +242,11 @@ class TestTimestampConstructors:
             Timestamp("2017-10-22", tzinfo=pytz.utc, tz="UTC")
 
         msg = "Cannot pass a date attribute keyword argument when passing a date string"
-        msg2 = "The 'freq' argument"
         with pytest.raises(ValueError, match=msg):
             # GH#5168
             # case where user tries to pass tz as an arg, not kwarg, gets
-            # interpreted as a `freq`
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                Timestamp("2012-01-01", "US/Pacific")
+            # interpreted as `year`
+            Timestamp("2012-01-01", "US/Pacific")
 
     def test_constructor_strptime(self):
         # GH25016
@@ -347,14 +354,11 @@ class TestTimestampConstructors:
             )
         ) == repr(Timestamp("2015-11-12 01:02:03.999999"))
 
-    @pytest.mark.filterwarnings("ignore:Timestamp.freq is:FutureWarning")
-    @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
     def test_constructor_fromordinal(self):
         base = datetime(2000, 1, 1)
 
-        ts = Timestamp.fromordinal(base.toordinal(), freq="D")
+        ts = Timestamp.fromordinal(base.toordinal())
         assert base == ts
-        assert ts.freq == "D"
         assert base.toordinal() == ts.toordinal()
 
         ts = Timestamp.fromordinal(base.toordinal(), tz="US/Eastern")
@@ -605,21 +609,6 @@ class TestTimestampConstructors:
         result = Timestamp(arg)
         expected = Timestamp(datetime(2013, 1, 1), tz=pytz.FixedOffset(540))
         assert result == expected
-
-    def test_construct_timestamp_preserve_original_frequency(self):
-        # GH 22311
-        with tm.assert_produces_warning(FutureWarning, match="The 'freq' argument"):
-            result = Timestamp(Timestamp("2010-08-08", freq="D")).freq
-        expected = offsets.Day()
-        assert result == expected
-
-    def test_constructor_invalid_frequency(self):
-        # GH 22311
-        msg = "Invalid frequency:"
-        msg2 = "The 'freq' argument"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                Timestamp("2012-01-01", freq=[])
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     def test_raise_tz_and_tzinfo_in_datetime_input(self, box):

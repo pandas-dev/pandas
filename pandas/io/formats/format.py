@@ -9,7 +9,7 @@ from csv import (
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
-import decimal
+from decimal import Decimal
 from functools import partial
 from io import StringIO
 import math
@@ -106,11 +106,7 @@ from pandas.io.common import (
     check_parent_directory,
     stringify_path,
 )
-from pandas.io.formats.printing import (
-    adjoin,
-    justify,
-    pprint_thing,
-)
+from pandas.io.formats import printing
 
 if TYPE_CHECKING:
     from pandas import (
@@ -339,7 +335,7 @@ class SeriesFormatter:
             if footer:
                 footer += ", "
 
-            series_name = pprint_thing(name, escape_chars=("\t", "\r", "\n"))
+            series_name = printing.pprint_thing(name, escape_chars=("\t", "\r", "\n"))
             footer += f"Name: {series_name}"
 
         if self.length is True or (
@@ -354,7 +350,7 @@ class SeriesFormatter:
             if dtype_name:
                 if footer:
                     footer += ", "
-                footer += f"dtype: {pprint_thing(dtype_name)}"
+                footer += f"dtype: {printing.pprint_thing(dtype_name)}"
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
@@ -433,10 +429,12 @@ class TextAdjustment:
         return len(text)
 
     def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
-        return justify(texts, max_len, mode=mode)
+        return printing.justify(texts, max_len, mode=mode)
 
     def adjoin(self, space: int, *lists, **kwargs) -> str:
-        return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
+        return printing.adjoin(
+            space, *lists, strlen=self.len, justfunc=self.justify, **kwargs
+        )
 
 
 class EastAsianTextAdjustment(TextAdjustment):
@@ -1375,7 +1373,7 @@ class GenericArrayFormatter:
         else:
             quote_strings = self.quoting is not None and self.quoting != QUOTE_NONE
             formatter = partial(
-                pprint_thing,
+                printing.pprint_thing,
                 escape_chars=("\t", "\r", "\n"),
                 quote_strings=quote_strings,
             )
@@ -1794,12 +1792,12 @@ def _format_datetime64_dateonly(
 
 
 def get_format_datetime64(
-    is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None
+    is_dates_only_: bool, nat_rep: str = "NaT", date_format: str | None = None
 ) -> Callable:
     """Return a formatter callable taking a datetime64 as input and providing
     a string as output"""
 
-    if is_dates_only:
+    if is_dates_only_:
         return lambda x: _format_datetime64_dateonly(
             x, nat_rep=nat_rep, date_format=date_format
         )
@@ -2071,12 +2069,12 @@ class EngFormatter:
 
         @return: engineering formatted string
         """
-        dnum = decimal.Decimal(str(num))
+        dnum = Decimal(str(num))
 
-        if decimal.Decimal.is_nan(dnum):
+        if Decimal.is_nan(dnum):
             return "NaN"
 
-        if decimal.Decimal.is_infinite(dnum):
+        if Decimal.is_infinite(dnum):
             return "inf"
 
         sign = 1
@@ -2086,9 +2084,9 @@ class EngFormatter:
             dnum = -dnum
 
         if dnum != 0:
-            pow10 = decimal.Decimal(int(math.floor(dnum.log10() / 3) * 3))
+            pow10 = Decimal(int(math.floor(dnum.log10() / 3) * 3))
         else:
-            pow10 = decimal.Decimal(0)
+            pow10 = Decimal(0)
 
         pow10 = pow10.min(max(self.ENG_PREFIXES.keys()))
         pow10 = pow10.max(min(self.ENG_PREFIXES.keys()))

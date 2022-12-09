@@ -12,7 +12,7 @@ from typing import (
 )
 import warnings
 
-from pandas._libs import json
+from pandas._libs.json import loads
 from pandas._typing import (
     DtypeObj,
     JSONSerializable,
@@ -41,7 +41,6 @@ if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.indexes.multi import MultiIndex
 
-loads = json.loads
 
 TABLE_SCHEMA_VERSION = "1.4.0"
 

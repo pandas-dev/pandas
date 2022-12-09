@@ -84,7 +84,6 @@ def test_getitem_setitem_ellipsis():
     assert (result == 5).all()
 
 
-@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 @pytest.mark.parametrize(
     "result_1, duplicate_item, expected_1",
     [
@@ -102,8 +101,8 @@ def test_getitem_setitem_ellipsis():
 )
 def test_getitem_with_duplicates_indices(result_1, duplicate_item, expected_1):
     # GH 17610
-    result = result_1.append(duplicate_item)
-    expected = expected_1.append(duplicate_item)
+    result = result_1._append(duplicate_item)
+    expected = expected_1._append(duplicate_item)
     tm.assert_series_equal(result[1], expected)
     assert result[2] == result_1[2]
 
@@ -287,9 +286,7 @@ def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer
     assert result.name == ser.name
 
 
-"""
-miscellaneous methods
-"""
+# miscellaneous methods
 
 
 @pytest.mark.parametrize(
@@ -379,28 +376,28 @@ def test_getitem_bool_int_key():
 class TestDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key]
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}, ({1}, 2), ({1: 1}, 2)])
     def test_getitem_dict_and_set_deprecated_multiindex(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key]
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
-    def test_setitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed(self, key):
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key] = 1
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}, ({1}, 2), ({1: 1}, 2)])
-    def test_setitem_dict_and_set_deprecated_multiindex(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed_multiindex(self, key):
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key] = 1

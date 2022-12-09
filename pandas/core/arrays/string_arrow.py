@@ -317,11 +317,11 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         return result
 
     def _str_startswith(self, pat: str, na=None):
-        pat = "^" + re.escape(pat)
+        pat = f"^{re.escape(pat)}"
         return self._str_contains(pat, na=na, regex=True)
 
     def _str_endswith(self, pat: str, na=None):
-        pat = re.escape(pat) + "$"
+        pat = f"{re.escape(pat)}$"
         return self._str_contains(pat, na=na, regex=True)
 
     def _str_replace(
@@ -345,14 +345,14 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
         if not pat.startswith("^"):
-            pat = "^" + pat
+            pat = f"^{pat}"
         return self._str_contains(pat, case, flags, na, regex=True)
 
     def _str_fullmatch(
         self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
         if not pat.endswith("$") or pat.endswith("//$"):
-            pat = pat + "$"
+            pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
 
     def _str_isalnum(self):

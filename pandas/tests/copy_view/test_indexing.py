@@ -612,6 +612,62 @@ def test_subset_chained_single_block_row(using_copy_on_write, using_array_manage
         assert subset.iloc[0] == 0
 
 
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda df: df[:],
+        lambda df: df.loc[:, :],
+        lambda df: df.loc[:],
+        lambda df: df.iloc[:, :],
+        lambda df: df.iloc[:],
+    ],
+    ids=["getitem", "loc", "loc-rows", "iloc", "iloc-rows"],
+)
+def test_null_slice(request, method, using_copy_on_write):
+    # Case: also all variants of indexing with a null slice (:) should return
+    # new objects to ensure we correctly use CoW for the results
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+    df_orig = df.copy()
+
+    df2 = method(df)
+
+    # we always return new objects (shallow copy), regardless of CoW or not
+    assert df2 is not df
+
+    # and those trigger CoW when mutated
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        assert df.iloc[0, 0] == 0
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda s: s[:],
+        lambda s: s.loc[:],
+        lambda s: s.iloc[:],
+    ],
+    ids=["getitem", "loc", "iloc"],
+)
+def test_null_slice_series(request, method, using_copy_on_write):
+    s = Series([1, 2, 3], index=["a", "b", "c"])
+    s_orig = s.copy()
+
+    s2 = method(s)
+
+    # we always return new objects, regardless of CoW or not
+    assert s2 is not s
+
+    # and those trigger CoW when mutated
+    s2.iloc[0] = 0
+    if using_copy_on_write:
+        tm.assert_series_equal(s, s_orig)
+    else:
+        assert s.iloc[0] == 0
+
+
 # TODO add more tests modifying the parent
 
 

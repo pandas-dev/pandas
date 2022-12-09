@@ -818,6 +818,19 @@ class NumericBase(Base):
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is False
 
+    def test_view(self, dtype):
+        index_cls = self._index_cls
+
+        idx = index_cls([], dtype=dtype, name="Foo")
+        idx_view = idx.view()
+        assert idx_view.name == "Foo"
+
+        idx_view = idx.view(dtype)
+        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
+
+        idx_view = idx.view(index_cls)
+        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
+
     def test_format(self, simple_index):
         # GH35439
         idx = simple_index
@@ -896,3 +909,9 @@ class NumericBase(Base):
         msg = rf"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}"
         with pytest.raises(ValueError, match=msg):
             self._index_cls([1, 2, 3], dtype=dtype)
+
+    @pytest.mark.parametrize("complex_dtype", [np.complex64, np.complex128])
+    def test_astype_to_complex(self, complex_dtype, simple_index):
+        result = simple_index.astype(complex_dtype)
+
+        assert type(result) is Index and result.dtype == complex_dtype

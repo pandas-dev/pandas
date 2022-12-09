@@ -377,6 +377,32 @@ class TestAstype:
         df = df.astype(dtype)
         tm.assert_index_equal(df.columns, columns)
 
+    @pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "m"])
+    def test_astype_from_object_to_datetime_unit(self, unit):
+        vals = [
+            ["2015-01-01", "2015-01-02", "2015-01-03"],
+            ["2017-01-01", "2017-01-02", "2017-02-03"],
+        ]
+        df = DataFrame(vals, dtype=object)
+        with pytest.raises(TypeError, match="Cannot cast"):
+            df.astype(f"M8[{unit}]")
+
+    @pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "m"])
+    def test_astype_from_object_to_timedelta_unit(self, unit):
+        vals = [
+            ["1 Day", "2 Days", "3 Days"],
+            ["4 Days", "5 Days", "6 Days"],
+        ]
+        df = DataFrame(vals, dtype=object)
+        msg = (
+            r"Cannot convert from timedelta64\[ns\] to timedelta64\[.*\]. "
+            "Supported resolutions are 's', 'ms', 'us', 'ns'"
+        )
+        with pytest.raises(ValueError, match=msg):
+            # TODO: this is ValueError while for DatetimeArray it is TypeError;
+            #  get these consistent
+            df.astype(f"m8[{unit}]")
+
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
     def test_astype_from_datetimelike_to_object(self, dtype, unit):
@@ -420,11 +446,9 @@ class TestAstype:
 
         if unit in ["ns", "us", "ms", "s"]:
             # GH#48928
-            exp_dtype = dtype
             result = df.astype(dtype)
         else:
             # we use the nearest supported dtype (i.e. M8[s])
-            exp_dtype = "M8[s]"
             msg = rf"Cannot cast DatetimeArray to dtype datetime64\[{unit}\]"
             with pytest.raises(TypeError, match=msg):
                 df.astype(dtype)
@@ -440,32 +464,24 @@ class TestAstype:
 
             return
 
-        # TODO(2.0): once DataFrame constructor doesn't cast ndarray inputs.
-        #  can simplify this
-        exp_values = arr.astype(exp_dtype)
-        exp_dta = pd.core.arrays.DatetimeArray._simple_new(
-            exp_values, dtype=exp_values.dtype
-        )
-        exp_df = DataFrame(exp_dta)
-        assert (exp_df.dtypes == exp_dtype).all()
-
+        exp_df = DataFrame(arr.astype(dtype))
+        assert (exp_df.dtypes == dtype).all()
         tm.assert_frame_equal(result, exp_df)
 
         res_ser = ser.astype(dtype)
         exp_ser = exp_df.iloc[:, 0]
-        assert exp_ser.dtype == exp_dtype
+        assert exp_ser.dtype == dtype
         tm.assert_series_equal(res_ser, exp_ser)
 
         exp_dta = exp_ser._values
 
         res_index = idx.astype(dtype)
-        # TODO(2.0): should be able to just call pd.Index(exp_ser)
-        exp_index = pd.DatetimeIndex._simple_new(exp_dta, name=idx.name)
-        assert exp_index.dtype == exp_dtype
+        exp_index = pd.Index(exp_ser)
+        assert exp_index.dtype == dtype
         tm.assert_index_equal(res_index, exp_index)
 
         res_dta = dta.astype(dtype)
-        assert exp_dta.dtype == exp_dtype
+        assert exp_dta.dtype == dtype
         tm.assert_extension_array_equal(res_dta, exp_dta)
 
     @pytest.mark.parametrize("unit", ["ns"])

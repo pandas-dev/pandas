@@ -304,8 +304,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             # well. Previously this raised an internal ValueError. We might
             # support it someday, so raise a NotImplementedError.
             raise NotImplementedError(
-                "Cannot apply ufunc {} to mixed DataFrame and Series "
-                "inputs.".format(ufunc)
+                f"Cannot apply ufunc {ufunc} to mixed DataFrame and Series inputs."
             )
         axes = self.axes
         for obj in alignable[1:]:
@@ -342,19 +341,6 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
 
         if result.ndim != self.ndim:
             if method == "outer":
-                if self.ndim == 2:
-                    # we already deprecated for Series
-                    msg = (
-                        "outer method for ufunc {} is not implemented on "
-                        "pandas objects. Returning an ndarray, but in the "
-                        "future this will raise a 'NotImplementedError'. "
-                        "Consider explicitly converting the DataFrame "
-                        "to an array with '.to_numpy()' first."
-                    )
-                    warnings.warn(
-                        msg.format(ufunc), FutureWarning, stacklevel=find_stack_level()
-                    )
-                    return result
                 raise NotImplementedError
             return result
         if isinstance(result, BlockManager):

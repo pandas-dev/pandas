@@ -1192,7 +1192,7 @@ def test_read_with_parse_dates_scalar_non_bool(all_parsers, kwargs):
         parser.read_csv(StringIO(data), parse_dates="C", **kwargs)
 
 
-@pytest.mark.parametrize("parse_dates", [(1,), np.array([4, 5]), {1, 3, 3}])
+@pytest.mark.parametrize("parse_dates", [(1,), np.array([4, 5]), {1, 3}])
 def test_read_with_parse_dates_invalid_type(all_parsers, parse_dates):
     parser = all_parsers
     msg = (
@@ -1249,7 +1249,7 @@ def test_parse_dates_empty_string(all_parsers):
         (
             "a\n04.15.2016",
             {"parse_dates": True, "index_col": 0},
-            DataFrame(index=DatetimeIndex(["2016-04-15"], name="a")),
+            DataFrame(index=DatetimeIndex(["2016-04-15"], name="a"), columns=[]),
         ),
         (
             "a,b\n04.15.2016,09.16.2013",
@@ -1264,7 +1264,8 @@ def test_parse_dates_empty_string(all_parsers):
             DataFrame(
                 index=MultiIndex.from_tuples(
                     [(datetime(2016, 4, 15), datetime(2013, 9, 16))], names=["a", "b"]
-                )
+                ),
+                columns=[],
             ),
         ),
     ],
