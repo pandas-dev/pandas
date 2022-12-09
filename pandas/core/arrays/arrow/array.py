@@ -5,9 +5,9 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    TypeVar,
     Literal,
     Sequence,
+    TypeVar,
     cast,
 )
 
@@ -20,8 +20,8 @@ from pandas._typing import (
     FillnaOptions,
     Iterator,
     PositionalIndexer,
-    SortKind,
     Scalar,
+    SortKind,
     TakeIndexer,
     npt,
 )
@@ -1124,7 +1124,9 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
         elif side == "both":
             pa_pad = pc.utf8_center
         else:
-            raise ValueError(f"Invalid side: {side}. Side must be one of 'left', 'right', 'both'")
+            raise ValueError(
+                f"Invalid side: {side}. Side must be one of 'left', 'right', 'both'"
+            )
         return type(self)(pa_pad(self._data, fillchar))
 
     def _str_map(
@@ -1250,6 +1252,50 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
 
+    def _str_encode(self, encoding: str, errors: str = "strict"):
+        if errors != "strict" or encoding.lower() != "utf-8":
+            fallback_performancewarning()
+            super()._str_encode(encoding, errors)
+        return type(self)(self._data.cast(pa.binary()))
+
+    def _str_find(self, sub: str, start: int = 0, end: int | None = None):
+        if start != 0 or end is not None:
+            slices = pc.utf8_slice_codeunits(self._data, start, stop=end)
+        else:
+            slices = self._data
+        return type(self)(pc.find_substring(slices, sub))
+
+    def _str_get(self, i: int):
+        lengths = pc.utf8_length(self._data)
+        if i > 0:
+            out_of_bounds = pc.greater_equal(lengths, i)
+            start = i
+            stop = i + 1
+            step = 1
+        else:
+            out_of_bounds = pc.greater(lengths, -i)
+            start = i
+            stop = i - 1
+            step = -1
+        selected = pc.utf8_slice_codeunits(self._data, start, stop=stop, step=step)
+        masked_selected = pc.replace_with_mask(selected, out_of_bounds, None)
+        return type(self)(masked_selected)
+
+    def _str_join(self, sep: str):
+        return type(self)(pc.binary_join(self._data, sep))
+
+    def _str_slice(
+        self, start: int | None = None, stop: int | None = None, step: int | None = None
+    ):
+        return type(self)(
+            pc.utf8_slice_codeunits(self._data, start, stop=stop, step=step)
+        )
+
+    def _str_slice_replace(self, start=None, stop=None, repl=None):
+        if repl is None:
+            repl = ""
+        return type(self)(pc.utf8_replace_slice(self._data, start, stop, repl))
+
     def _str_isalnum(self):
         return type(self)(pc.utf8_is_alnum(self._data))
 
@@ -1274,8 +1320,17 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
     def _str_istitle(self):
         return type(self)(pc.utf8_is_title(self._data))
 
+    def _str_capitalize(self):
+        return type(self)(pc.utf8_capitalize(self._data))
+
+    def _str_title(self):
+        return type(self)(pc.utf8_title(self._data))
+
     def _str_isupper(self):
         return type(self)(pc.utf8_is_upper(self._data))
+
+    def _str_swapcase(self):
+        return type(self)(pc.utf8_swapcase(self._data))
 
     def _str_len(self):
         return type(self)(pc.utf8_length(self._data))
@@ -1307,3 +1362,14 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
             result = pc.utf8_rtrim(self._data, characters=to_strip)
         return type(self)(result)
 
+    def _str_removeprefix(self, prefix: str) -> Series:
+        starts_with = pc.starts_with(self._data, prefix)
+        removed = pc.utf8_slice_codeunits(self._data, len(prefix))
+        result = pc.replace_with_mask(self._data, starts_with, removed)
+        return type(self)(result)
+
+    def _str_removesuffix(self, suffix: str) -> Series:
+        ends_with = pc.ends_with(self._data, suffix)
+        removed = pc.utf8_slice_codeunits(self._data, 0, stop=-len(suffix))
+        result = pc.replace_with_mask(self._data, ends_with, removed)
+        return type(self)(result)
