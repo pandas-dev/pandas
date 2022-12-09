@@ -3,7 +3,7 @@ name: pandas-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
+  - python=3.8
   - pip
 
   # build dependencies
@@ -65,6 +65,7 @@ dependencies:
   # downstream packages
   - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
   - dask-core
+  - seaborn-base
 
   # local testing dependencies
   - moto

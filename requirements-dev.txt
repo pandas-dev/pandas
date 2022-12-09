@@ -52,6 +52,7 @@ xlsxwriter
 zstandard
 aiobotocore<2.0.0
 dask
+sseaborn
 moto
 flask
 asv
