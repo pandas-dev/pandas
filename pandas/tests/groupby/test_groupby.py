@@ -2743,18 +2743,10 @@ def test_groupby_none_column_name():
 
 def test_single_element_list_grouping():
     # GH 42795
-    df = DataFrame(
-        {"a": [np.nan, 1], "b": [np.nan, 5], "c": [np.nan, 2]}, index=["x", "y"]
-    )
-    msg = (
-        "In a future version of pandas, a length 1 "
-        "tuple will be returned when iterating over "
-        "a groupby with a grouper equal to a list of "
-        "length 1. Don't supply a list with a single grouper "
-        "to avoid this warning."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        values, _ = next(iter(df.groupby(["a"])))
+    df = DataFrame({"a": [1, 2], "b": [np.nan, 5], "c": [np.nan, 2]}, index=["x", "y"])
+    result = [key for key, _ in df.groupby(["a"])]
+    expected = [(1,), (2,)]
+    assert result == expected
 
 
 @pytest.mark.parametrize("func", ["sum", "cumsum", "cumprod", "prod"])

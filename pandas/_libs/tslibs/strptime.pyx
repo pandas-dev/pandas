@@ -14,13 +14,17 @@ from _thread import allocate_lock as _thread_allocate_lock
 import numpy as np
 import pytz
 
+cimport numpy as cnp
 from numpy cimport (
     int64_t,
     ndarray,
 )
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.tslibs.conversion cimport convert_timezone
+from pandas._libs.tslibs.conversion cimport (
+    convert_timezone,
+    get_datetime64_nanos,
+)
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_nat_strings as nat_strings,
@@ -33,6 +37,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.util cimport is_datetime64_object
+
+cnp.import_array()
 
 
 cdef dict _parse_code_table = {"y": 0,
@@ -165,6 +172,9 @@ def array_strptime(
                 iresult[i] = pydatetime_to_dt64(val.replace(tzinfo=None), &dts)
                 check_dts_bounds(&dts)
             result_timezone[i] = val.tzinfo
+            continue
+        elif is_datetime64_object(val):
+            iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
             continue
         else:
             val = str(val)

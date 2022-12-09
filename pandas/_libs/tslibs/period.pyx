@@ -311,21 +311,21 @@ cdef int64_t DtoB(npy_datetimestruct *dts, int roll_back,
     return DtoB_weekday(unix_date)
 
 
-cdef inline int64_t upsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
+cdef int64_t upsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
     if af_info.is_end:
         return (ordinal + 1) * af_info.intraday_conversion_factor - 1
     else:
         return ordinal * af_info.intraday_conversion_factor
 
 
-cdef inline int64_t downsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
+cdef int64_t downsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
     return ordinal // af_info.intraday_conversion_factor
 
 
-cdef inline int64_t transform_via_day(int64_t ordinal,
-                                      asfreq_info *af_info,
-                                      freq_conv_func first_func,
-                                      freq_conv_func second_func) nogil:
+cdef int64_t transform_via_day(int64_t ordinal,
+                               asfreq_info *af_info,
+                               freq_conv_func first_func,
+                               freq_conv_func second_func) nogil:
     cdef:
         int64_t result
 
@@ -677,12 +677,12 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
 # ----------------------------------------------------------------------
 # Conversion between date_info and npy_datetimestruct
 
-cdef inline int get_freq_group(int freq) nogil:
+cdef int get_freq_group(int freq) nogil:
     # See also FreqGroup.get_freq_group
     return (freq // 1000) * 1000
 
 
-cdef inline int get_freq_group_index(int freq) nogil:
+cdef int get_freq_group_index(int freq) nogil:
     return freq // 1000
 
 
@@ -721,12 +721,12 @@ cdef int64_t unix_date_from_ymd(int year, int month, int day) nogil:
     return unix_date
 
 
-cdef inline int64_t dts_to_month_ordinal(npy_datetimestruct* dts) nogil:
+cdef int64_t dts_to_month_ordinal(npy_datetimestruct* dts) nogil:
     # AKA: use npy_datetimestruct_to_datetime(NPY_FR_M, &dts)
     return <int64_t>((dts.year - 1970) * 12 + dts.month - 1)
 
 
-cdef inline int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end) nogil:
+cdef int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end) nogil:
     cdef:
         int64_t result
 
@@ -737,7 +737,7 @@ cdef inline int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end) nog
         return result
 
 
-cdef inline int64_t dts_to_qtr_ordinal(npy_datetimestruct* dts, int to_end) nogil:
+cdef int64_t dts_to_qtr_ordinal(npy_datetimestruct* dts, int to_end) nogil:
     cdef:
         int quarter
 
@@ -746,7 +746,7 @@ cdef inline int64_t dts_to_qtr_ordinal(npy_datetimestruct* dts, int to_end) nogi
     return <int64_t>((dts.year - 1970) * 4 + quarter - 1)
 
 
-cdef inline int get_anchor_month(int freq, int freq_group) nogil:
+cdef int get_anchor_month(int freq, int freq_group) nogil:
     cdef:
         int fmonth
     fmonth = freq - freq_group
@@ -930,7 +930,7 @@ cdef int get_yq(int64_t ordinal, int freq, npy_datetimestruct* dts):
     return quarter
 
 
-cdef inline int month_to_quarter(int month) nogil:
+cdef int month_to_quarter(int month) nogil:
     return (month - 1) // 3 + 1
 
 
@@ -1027,7 +1027,7 @@ cdef int calc_a_year_end(int freq, int group) nogil:
         return result
 
 
-cdef inline int calc_week_end(int freq, int group) nogil:
+cdef int calc_week_end(int freq, int group) nogil:
     return freq - group
 
 
@@ -1465,7 +1465,7 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
     return ordinals
 
 
-cdef inline int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
+cdef int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
     """
     See extract_ordinals.
     """

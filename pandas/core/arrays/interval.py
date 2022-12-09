@@ -1596,8 +1596,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Return a boolean mask whether the value is contained in the Intervals
         of the %(klass)s.
 
-        .. versionadded:: 0.25.0
-
         Parameters
         ----------
         other : scalar

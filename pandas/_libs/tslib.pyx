@@ -431,7 +431,11 @@ def first_non_null(values: ndarray) -> int:
         val = values[i]
         if checknull_with_nat_and_na(val):
             continue
-        if isinstance(val, str) and (len(val) == 0 or val in nat_strings):
+        if (
+            isinstance(val, str)
+            and
+            (len(val) == 0 or val in nat_strings or val in ("now", "today"))
+        ):
             continue
         return i
     else:
@@ -838,7 +842,7 @@ cdef _array_to_datetime_object(
     return oresult, None
 
 
-cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
+cdef bint _parse_today_now(str val, int64_t* iresult, bint utc):
     # We delay this check for as long as possible
     # because it catches relatively rare cases
 

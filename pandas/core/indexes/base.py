@@ -53,6 +53,7 @@ from pandas._typing import (
     F,
     IgnoreRaise,
     IndexLabel,
+    JoinHow,
     Level,
     Shape,
     npt,
@@ -216,7 +217,7 @@ def _maybe_return_indexers(meth: F) -> F:
         self,
         other: Index,
         *,
-        how: str_t = "left",
+        how: JoinHow = "left",
         level=None,
         return_indexers: bool = False,
         sort: bool = False,
@@ -2916,8 +2917,6 @@ class Index(IndexOpsMixin, PandasObject):
         If the Index objects are incompatible, both Index objects will be
         cast to dtype('object') first.
 
-            .. versionchanged:: 0.25.0
-
         Parameters
         ----------
         other : Index or array-like
@@ -3430,27 +3429,13 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def get_loc(self, key, method=None, tolerance=None):
+    def get_loc(self, key):
         """
         Get integer location, slice or boolean mask for requested label.
 
         Parameters
         ----------
         key : label
-        method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
-            * default: exact matches only.
-            * pad / ffill: find the PREVIOUS index value if no exact match.
-            * backfill / bfill: use NEXT index value if no exact match
-            * nearest: use the NEAREST index value if no exact match. Tied
-              distances are broken by preferring the larger index value.
-
-            .. deprecated:: 1.4
-                Use index.get_indexer([item], method=...) instead.
-
-        tolerance : int or float, optional
-            Maximum distance from index value for inexact matches. The value of
-            the index at the matching location must satisfy the equation
-            ``abs(index[loc] - key) <= tolerance``.
 
         Returns
         -------
@@ -3470,46 +3455,17 @@ class Index(IndexOpsMixin, PandasObject):
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True])
         """
-        if method is None:
-            if tolerance is not None:
-                raise ValueError(
-                    "tolerance argument only valid if using pad, "
-                    "backfill or nearest lookups"
-                )
-            casted_key = self._maybe_cast_indexer(key)
-            try:
-                return self._engine.get_loc(casted_key)
-            except KeyError as err:
-                raise KeyError(key) from err
-            except TypeError:
-                # If we have a listlike key, _check_indexing_error will raise
-                #  InvalidIndexError. Otherwise we fall through and re-raise
-                #  the TypeError.
-                self._check_indexing_error(key)
-                raise
-
-        # GH#42269
-        warnings.warn(
-            f"Passing method to {type(self).__name__}.get_loc is deprecated "
-            "and will raise in a future version. Use "
-            "index.get_indexer([item], method=...) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        if is_scalar(key) and isna(key) and not self.hasnans:
-            raise KeyError(key)
-
-        if tolerance is not None:
-            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
-
-        indexer = self.get_indexer([key], method=method, tolerance=tolerance)
-        if indexer.ndim > 1 or indexer.size > 1:
-            raise TypeError("get_loc requires scalar valued input")
-        loc = indexer.item()
-        if loc == -1:
-            raise KeyError(key)
-        return loc
+        casted_key = self._maybe_cast_indexer(key)
+        try:
+            return self._engine.get_loc(casted_key)
+        except KeyError as err:
+            raise KeyError(key) from err
+        except TypeError:
+            # If we have a listlike key, _check_indexing_error will raise
+            #  InvalidIndexError. Otherwise we fall through and re-raise
+            #  the TypeError.
+            self._check_indexing_error(key)
+            raise
 
     _index_shared_docs[
         "get_indexer"
@@ -4245,7 +4201,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         other: Index,
         *,
-        how: str_t = ...,
+        how: JoinHow = ...,
         level: Level = ...,
         return_indexers: Literal[True],
         sort: bool = ...,
@@ -4257,7 +4213,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         other: Index,
         *,
-        how: str_t = ...,
+        how: JoinHow = ...,
         level: Level = ...,
         return_indexers: Literal[False] = ...,
         sort: bool = ...,
@@ -4269,7 +4225,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         other: Index,
         *,
-        how: str_t = ...,
+        how: JoinHow = ...,
         level: Level = ...,
         return_indexers: bool = ...,
         sort: bool = ...,
@@ -4282,7 +4238,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         other: Index,
         *,
-        how: str_t = "left",
+        how: JoinHow = "left",
         level: Level = None,
         return_indexers: bool = False,
         sort: bool = False,
@@ -4357,7 +4313,8 @@ class Index(IndexOpsMixin, PandasObject):
                 return join_index, None, rindexer
 
         if self._join_precedence < other._join_precedence:
-            how = {"right": "left", "left": "right"}.get(how, how)
+            flip: dict[JoinHow, JoinHow] = {"right": "left", "left": "right"}
+            how = flip.get(how, how)
             join_index, lidx, ridx = other.join(
                 self, how=how, level=level, return_indexers=True
             )
@@ -4403,7 +4360,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _join_via_get_indexer(
-        self, other: Index, how: str_t, sort: bool
+        self, other: Index, how: JoinHow, sort: bool
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         # Fallback if we do not have any fastpaths available based on
         #  uniqueness/monotonicity
@@ -4437,7 +4394,7 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, lindexer, rindexer
 
     @final
-    def _join_multi(self, other: Index, how: str_t):
+    def _join_multi(self, other: Index, how: JoinHow):
         from pandas.core.indexes.multi import MultiIndex
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
@@ -4509,7 +4466,8 @@ class Index(IndexOpsMixin, PandasObject):
             self, other = other, self
             flip_order = True
             # flip if join method is right or left
-            how = {"right": "left", "left": "right"}.get(how, how)
+            flip: dict[JoinHow, JoinHow] = {"right": "left", "left": "right"}
+            how = flip.get(how, how)
 
         level = other.names.index(jl)
         result = self._join_level(other, level, how=how)
@@ -4520,7 +4478,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _join_non_unique(
-        self, other: Index, how: str_t = "left"
+        self, other: Index, how: JoinHow = "left"
     ) -> tuple[Index, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         from pandas.core.reshape.merge import get_join_indexers
 
@@ -4539,7 +4497,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _join_level(
-        self, other: Index, level, how: str_t = "left", keep_order: bool = True
+        self, other: Index, level, how: JoinHow = "left", keep_order: bool = True
     ) -> tuple[MultiIndex, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         """
         The join method *only* affects the level of the resulting
@@ -4590,7 +4548,8 @@ class Index(IndexOpsMixin, PandasObject):
         flip_order = not isinstance(self, MultiIndex)
         if flip_order:
             left, right = right, left
-            how = {"right": "left", "left": "right"}.get(how, how)
+            flip: dict[JoinHow, JoinHow] = {"right": "left", "left": "right"}
+            how = flip.get(how, how)
 
         assert isinstance(left, MultiIndex)
 
@@ -4687,7 +4646,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _join_monotonic(
-        self, other: Index, how: str_t = "left"
+        self, other: Index, how: JoinHow = "left"
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         # We only get here with matching dtypes and both monotonic increasing
         assert other.dtype == self.dtype
@@ -6519,6 +6478,36 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[~mask]
         return self.delete(indexer)
 
+    def infer_objects(self, copy: bool = True) -> Index:
+        """
+        If we have an object dtype, try to infer a non-object dtype.
+
+        Parameters
+        ----------
+        copy : bool, default True
+            Whether to make a copy in cases where no inference occurs.
+        """
+        if self._is_multi:
+            raise NotImplementedError(
+                "infer_objects is not implemented for MultiIndex. "
+                "Use index.to_frame().infer_objects() instead."
+            )
+        if self.dtype != object:
+            return self.copy() if copy else self
+
+        values = self._values
+        values = cast("npt.NDArray[np.object_]", values)
+        res_values = lib.maybe_convert_objects(
+            values,
+            convert_datetime=True,
+            convert_timedelta=True,
+            convert_period=True,
+            convert_interval=True,
+        )
+        if copy and res_values is values:
+            return self.copy()
+        return Index(res_values, name=self.name)
+
     # --------------------------------------------------------------------
     # Generated Arithmetic, Comparison, and Unary Methods
 
@@ -6583,10 +6572,10 @@ class Index(IndexOpsMixin, PandasObject):
     def _construct_result(self, result, name):
         if isinstance(result, tuple):
             return (
-                Index._with_infer(result[0], name=name),
-                Index._with_infer(result[1], name=name),
+                Index(result[0], name=name, dtype=result[0].dtype),
+                Index(result[1], name=name, dtype=result[1].dtype),
             )
-        return Index._with_infer(result, name=name)
+        return Index(result, name=name, dtype=result.dtype)
 
     def _arith_method(self, other, op):
         if (
