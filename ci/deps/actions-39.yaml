@@ -26,6 +26,7 @@ dependencies:
   - blosc
   - bottleneck
   - brotlipy
+  - cachetools>5.0.0
   - fastparquet
   - fsspec
   - html5lib
