@@ -1865,8 +1865,8 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
         # Add one out-of-bounds indexer as maximum to collect
         # all columns after our last indexer if any
         loc = np.concatenate([loc, [self.values.shape[0]]])
-        mgr_locs = self._mgr_locs.as_array
-        new_blocks = []
+        mgr_locs_arr = self._mgr_locs.as_array
+        new_blocks: list[Block] = []
 
         previous_loc = -1
         for idx in loc:
@@ -1876,7 +1876,7 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
                 pass
             else:
                 values = self.values[previous_loc + 1 : idx, :]
-                locs = mgr_locs[previous_loc + 1 : idx]
+                locs = mgr_locs_arr[previous_loc + 1 : idx]
                 nb = type(self)(values, placement=BlockPlacement(locs), ndim=self.ndim)
                 new_blocks.append(nb)
 
