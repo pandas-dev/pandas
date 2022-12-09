@@ -44,7 +44,6 @@ class WriteExcel:
         bio.seek(0)
         with ExcelWriter(bio, engine=engine) as writer:
             self.df.to_excel(writer, sheet_name="Sheet1")
-            writer.save()
 
 
 class WriteExcelStyled:
