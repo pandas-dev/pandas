@@ -1309,10 +1309,14 @@ cdef class Seen:
     @property
     def is_bool(self):
         # i.e. not (anything but bool)
-        return not (
-            self.datetime_ or self.datetimetz_ or self.timedelta_ or self.nat_
-            or self.period_ or self.interval_
-            or self.numeric_ or self.nan_ or self.null_ or self.object_
+        return self.is_bool_or_na and not (self.nan_ or self.null_)
+
+    @property
+    def is_bool_or_na(self):
+        # i.e. not (anything but bool or missing values)
+        return self.bool_ and not (
+            self.datetime_ or self.datetimetz_ or self.nat_ or self.timedelta_
+            or self.period_ or self.interval_ or self.numeric_ or self.object_
         )
 
 
@@ -2335,7 +2339,7 @@ def maybe_convert_objects(ndarray[object] objects,
                           bint convert_timedelta=False,
                           bint convert_period=False,
                           bint convert_interval=False,
-                          bint convert_to_nullable_integer=False,
+                          bint convert_to_nullable_dtype=False,
                           object dtype_if_all_nat=None) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
@@ -2362,9 +2366,9 @@ def maybe_convert_objects(ndarray[object] objects,
     convert_interval : bool, default False
         If an array-like object contains only Interval objects (with matching
         dtypes and closedness) or NaN, whether to convert to IntervalArray.
-    convert_to_nullable_integer : bool, default False
-        If an array-like object contains only integer values (and NaN) is
-        encountered, whether to convert and return an IntegerArray.
+    convert_to_nullable_dtype : bool, default False
+        If an array-like object contains only integer or boolean values (and NaN) is
+        encountered, whether to convert and return an Boolean/IntegerArray.
     dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None
         Dtype to cast to if we have all-NaT.
 
@@ -2446,7 +2450,7 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.int_ = True
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
-            if not seen.null_ or convert_to_nullable_integer:
+            if not seen.null_ or convert_to_nullable_dtype:
                 seen.saw_int(val)
 
                 if ((seen.uint_ and seen.sint_) or
@@ -2606,6 +2610,9 @@ def maybe_convert_objects(ndarray[object] objects,
         if seen.is_bool:
             # is_bool property rules out everything else
             return bools.view(np.bool_)
+        elif convert_to_nullable_dtype and seen.is_bool_or_na:
+            from pandas.core.arrays import BooleanArray
+            return BooleanArray(bools.view(np.bool_), mask)
         seen.object_ = True
 
     if not seen.object_:
@@ -2617,7 +2624,7 @@ def maybe_convert_objects(ndarray[object] objects,
                 elif seen.float_:
                     result = floats
                 elif seen.int_ or seen.uint_:
-                    if convert_to_nullable_integer:
+                    if convert_to_nullable_dtype:
                         from pandas.core.arrays import IntegerArray
                         if seen.uint_:
                             result = IntegerArray(uints, mask)
