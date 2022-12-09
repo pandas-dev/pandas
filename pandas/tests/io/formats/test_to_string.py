@@ -289,6 +289,22 @@ def test_nullable_float_to_string(float_ea_dtype):
     assert result == expected
 
 
+def test_to_string_complex_nan():
+    # GH#50069
+    ser = Series(
+        [np.nan + 1j, 2 + 3.12345j, 4, np.nan + np.nan * 0j], dtype=np.complex128
+    )
+    result = ser.to_string()
+    expected = dedent(
+        """\
+        0    NaN    +1.00000j
+        1    2.00000+3.12345j
+        2    4.00000+0.00000j
+        3    NaN    +NaN    j"""
+    )
+    assert result == expected
+
+
 def test_nullable_int_to_string(any_int_ea_dtype):
     # https://github.com/pandas-dev/pandas/issues/36775
     dtype = any_int_ea_dtype

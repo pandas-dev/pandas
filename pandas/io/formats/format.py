@@ -1507,11 +1507,28 @@ class FloatArrayFormatter(GenericArrayFormatter):
         the parameters given at initialisation, as a numpy array
         """
 
-        def format_with_na_rep(values: ArrayLike, formatter: Callable, na_rep: str):
+        def format_with_na_rep(
+            values: ArrayLike,
+            formatter: Callable,
+            na_rep: str,
+            is_complex: bool = False,
+        ):
+            def _format_complex_na(val, fmt) -> str:
+                return (
+                    (na_rep if np.isnan(np.real(val)) else fmt(np.real(val)).strip())
+                    + "+"
+                    + (na_rep if np.isnan(np.imag(val)) else fmt(np.imag(val)).strip())
+                    + "j"
+                )
+
             mask = isna(values)
             formatted = np.array(
                 [
-                    formatter(val) if not m else na_rep
+                    formatter(val)
+                    if not m
+                    else na_rep
+                    if not is_complex
+                    else _format_complex_na(val, formatter)
                     for val, m in zip(values.ravel(), mask.ravel())
                 ]
             ).reshape(values.shape)
@@ -1539,11 +1556,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
             # separate the wheat from the chaff
             values = self.values
             is_complex = is_complex_dtype(values)
-            values = format_with_na_rep(values, formatter, na_rep)
+            values = format_with_na_rep(values, formatter, na_rep, is_complex)
 
             if self.fixed_width:
                 if is_complex:
-                    result = _trim_zeros_complex(values, self.decimal)
+                    result = _trim_zeros_complex(values, self.decimal, na_rep)
                 else:
                     result = _trim_zeros_float(values, self.decimal)
                 return np.asarray(result, dtype="object")
@@ -1935,7 +1952,9 @@ def _make_fixed_width(
     return result
 
 
-def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> list[str]:
+def _trim_zeros_complex(
+    str_complexes: np.ndarray, decimal: str = ".", na_rep: str = "NaN"
+) -> list[str]:
     """
     Separates the real and imaginary parts from the complex number, and
     executes the _trim_zeros_float method on each of those.
@@ -1948,15 +1967,22 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> list[s
     # pad strings to the length of the longest trimmed string for alignment
     lengths = [len(s) for s in trimmed]
     max_length = max(lengths)
-    padded = [
-        s[: -((k - 1) // 2 + 1)]  # real part
-        + (max_length - k) // 2 * "0"
-        + s[-((k - 1) // 2 + 1) : -((k - 1) // 2)]  # + / -
-        + s[-((k - 1) // 2) : -1]  # imaginary part
-        + (max_length - k) // 2 * "0"
-        + s[-1]
-        for s, k in zip(trimmed, lengths)
-    ]
+    padded = []
+    for s, k in zip(trimmed, lengths):
+        mid = -((k - 1) // 2 + 1) if not s.startswith(na_rep) else len(na_rep)
+        real_part = s[:mid]
+        sign = s[mid]
+        imag_part = s[mid + 1 : -1]
+        j = s[-1]
+        padded.append(
+            real_part
+            + (max_length - k) // 2 * ("0" if real_part != na_rep else " ")
+            + sign
+            + imag_part
+            + (max_length - k) // 2 * ("0" if imag_part != na_rep else " ")
+            + j
+        )
+
     return padded
 
 
