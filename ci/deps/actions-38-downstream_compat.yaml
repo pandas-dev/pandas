@@ -57,7 +57,6 @@ dependencies:
   - zstandard
 
   # downstream packages
-  - aiobotocore
   - botocore
   - cftime
   - dask
