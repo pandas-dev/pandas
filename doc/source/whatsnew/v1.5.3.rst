@@ -18,6 +18,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrameGroupBy.transform` when used with ``as_index=False`` (:issue:`49834`)
 - Enforced reversion of ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` in function :meth:`DataFrame.plot.scatter` (:issue:`49732`)
 - Fixed regression in :meth:`SeriesGroupBy.apply` setting a ``name`` attribute on the result if the result was a :class:`DataFrame` (:issue:`49907`)
+- Fixed performance regression in setting with the :meth:`~DataFrame.at` indexer (:issue:`49771`)
 -
 
 .. ---------------------------------------------------------------------------
