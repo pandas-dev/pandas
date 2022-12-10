@@ -5582,7 +5582,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
         >>> index.get_indexer_non_unique(['f', 'b', 's'])
         (array([-1,  1,  3,  4, -1]), array([0, 2]))
-
         """
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
