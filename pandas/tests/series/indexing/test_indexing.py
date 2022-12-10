@@ -373,6 +373,14 @@ def test_getitem_bool_int_key():
         ser.loc[0]
 
 
+def test_iloc_ea_series():
+    # GH#49521
+    df = DataFrame([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
+    result = df.iloc[Series([1], dtype="Int64"), Series([0, 1], dtype="Int64")]
+    expected = DataFrame([[5, 6]], index=[1])
+    tm.assert_frame_equal(result, expected)
+
+
 class TestDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):

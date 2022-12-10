@@ -1481,7 +1481,10 @@ class _iLocIndexer(_LocationIndexer):
             # so don't treat a tuple as a valid indexer
             raise IndexingError("Too many indexers")
         elif is_list_like_indexer(key):
-            arr = np.array(key)
+            if isinstance(key, ABCSeries):
+                arr = key._values
+            else:
+                arr = np.array(key)
             len_axis = len(self.obj._get_axis(axis))
 
             # check that the key has a numeric dtype
