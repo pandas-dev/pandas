@@ -98,6 +98,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_hashable,
     is_integer,
+    is_integer_dtype,
     is_interval_dtype,
     is_iterator,
     is_list_like,
@@ -2188,7 +2189,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        is_integer : Check if the Index only consists of integers.
+        is_integer : Check if the Index only consists of integers (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
@@ -2215,6 +2216,9 @@ class Index(IndexOpsMixin, PandasObject):
     def is_integer(self) -> bool:
         """
         Check if the Index only consists of integers.
+
+        .. deprecated:: 2.0.0
+            Use `pandas.api.types.is_integer_dtype` instead.
 
         Returns
         -------
@@ -2244,6 +2248,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_integer()
         False
         """
+        warnings.warn(
+            f"{type(self).__name__}.is_integer is deprecated."
+            "Use pandas.api.types.is_integer_dtype instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.inferred_type in ["integer"]
 
     @final
@@ -2266,7 +2276,7 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         is_boolean : Check if the Index only consists of booleans.
-        is_integer : Check if the Index only consists of integers.
+        is_integer : Check if the Index only consists of integers (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
@@ -2311,7 +2321,7 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         is_boolean : Check if the Index only consists of booleans.
-        is_integer : Check if the Index only consists of integers.
+        is_integer : Check if the Index only consists of integers (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
@@ -2354,7 +2364,7 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         is_boolean : Check if the Index only consists of booleans.
-        is_integer : Check if the Index only consists of integers.
+        is_integer : Check if the Index only consists of integers (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
         is_categorical : Check if the Index holds categorical data.
@@ -2395,7 +2405,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         CategoricalIndex : Index for categorical data.
         is_boolean : Check if the Index only consists of booleans.
-        is_integer : Check if the Index only consists of integers.
+        is_integer : Check if the Index only consists of integers (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
@@ -2438,7 +2448,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         IntervalIndex : Index for Interval objects.
         is_boolean : Check if the Index only consists of booleans.
-        is_integer : Check if the Index only consists of integers.
+        is_integer : Check if the Index only consists of integers (deprecated).
         is_floating : Check if the Index is a floating type (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
@@ -3877,7 +3887,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if kind == "getitem":
             # called from the getitem slicers, validate that we are in fact integers
-            if self.is_integer() or is_index_slice:
+            if is_integer_dtype(self.dtype) or is_index_slice:
                 # Note: these checks are redundant if we know is_index_slice
                 self._validate_indexer("slice", key.start, "getitem")
                 self._validate_indexer("slice", key.stop, "getitem")
