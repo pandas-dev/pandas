@@ -119,3 +119,13 @@ Note that code execution under valgrind will take much longer than usual. While 
 .. note::
 
    For best results, you should run use a Python installation configured with Valgrind support (--with-valgrind)
+
+
+Easier code navigation
+======================
+
+Generating a ``compile_commands.json`` file may make it easier to navigate the C extensions, as this makes it easier for your code editor to list references, jump to definitions, etc... To make this work with setuptools you may use the `Bear <https://github.com/rizsotto/Bear>`_ application.
+
+.. code-block::
+
+   bear -- python setup.py build_ext --inplace -j4 --with-debugging-symbols
