@@ -220,7 +220,7 @@ class SharedTests:
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
         result = arr._unbox_scalar(arr[0])
-        expected = arr._data.dtype.type
+        expected = arr._ndarray.dtype.type
         assert isinstance(result, expected)
 
         result = arr._unbox_scalar(NaT)
@@ -350,13 +350,13 @@ class SharedTests:
 
     def test_getitem_2d(self, arr1d):
         # 2d slicing on a 1D array
-        expected = type(arr1d)(arr1d._data[:, np.newaxis], dtype=arr1d.dtype)
+        expected = type(arr1d)(arr1d._ndarray[:, np.newaxis], dtype=arr1d.dtype)
         result = arr1d[:, np.newaxis]
         tm.assert_equal(result, expected)
 
         # Lookup on a 2D array
         arr2d = expected
-        expected = type(arr2d)(arr2d._data[:3, 0], dtype=arr2d.dtype)
+        expected = type(arr2d)(arr2d._ndarray[:3, 0], dtype=arr2d.dtype)
         result = arr2d[:3, 0]
         tm.assert_equal(result, expected)
 
@@ -366,7 +366,7 @@ class SharedTests:
         assert result == expected
 
     def test_iter_2d(self, arr1d):
-        data2d = arr1d._data[:3, np.newaxis]
+        data2d = arr1d._ndarray[:3, np.newaxis]
         arr2d = type(arr1d)._simple_new(data2d, dtype=arr1d.dtype)
         result = list(arr2d)
         assert len(result) == 3
@@ -376,7 +376,7 @@ class SharedTests:
             assert x.dtype == arr1d.dtype
 
     def test_repr_2d(self, arr1d):
-        data2d = arr1d._data[:3, np.newaxis]
+        data2d = arr1d._ndarray[:3, np.newaxis]
         arr2d = type(arr1d)._simple_new(data2d, dtype=arr1d.dtype)
 
         result = repr(arr2d)
@@ -632,7 +632,7 @@ class TestDatetimeArray(SharedTests):
 
         # default asarray gives the same underlying data (for tz naive)
         result = np.asarray(arr)
-        expected = arr._data
+        expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, copy=False)
@@ -641,7 +641,7 @@ class TestDatetimeArray(SharedTests):
 
         # specifying M8[ns] gives the same result as default
         result = np.asarray(arr, dtype="datetime64[ns]")
-        expected = arr._data
+        expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, dtype="datetime64[ns]", copy=False)
@@ -720,13 +720,13 @@ class TestDatetimeArray(SharedTests):
         assert result.base is None
 
     def test_from_array_keeps_base(self):
-        # Ensure that DatetimeArray._data.base isn't lost.
+        # Ensure that DatetimeArray._ndarray.base isn't lost.
         arr = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
         dta = DatetimeArray(arr)
 
-        assert dta._data is arr
+        assert dta._ndarray is arr
         dta = DatetimeArray(arr[:0])
-        assert dta._data.base is arr
+        assert dta._ndarray.base is arr
 
     def test_from_dti(self, arr1d):
         arr = arr1d
@@ -941,7 +941,7 @@ class TestTimedeltaArray(SharedTests):
 
         # default asarray gives the same underlying data
         result = np.asarray(arr)
-        expected = arr._data
+        expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, copy=False)
@@ -950,7 +950,7 @@ class TestTimedeltaArray(SharedTests):
 
         # specifying m8[ns] gives the same result as default
         result = np.asarray(arr, dtype="timedelta64[ns]")
-        expected = arr._data
+        expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, dtype="timedelta64[ns]", copy=False)

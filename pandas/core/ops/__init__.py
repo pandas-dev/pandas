@@ -6,7 +6,10 @@ This is not a public API.
 from __future__ import annotations
 
 import operator
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
@@ -333,7 +336,7 @@ def align_method_FRAME(
 
 
 def should_reindex_frame_op(
-    left: DataFrame, right, op, axis, default_axis, fill_value, level
+    left: DataFrame, right, op, axis: int, fill_value, level
 ) -> bool:
     """
     Check if this is an operation between DataFrames that will need to reindex.
@@ -347,7 +350,7 @@ def should_reindex_frame_op(
     if not isinstance(right, ABCDataFrame):
         return False
 
-    if fill_value is None and level is None and axis is default_axis:
+    if fill_value is None and level is None and axis == 1:
         # TODO: any other cases we should handle here?
 
         # Intersection is always unique so we have to check the unique columns
@@ -435,25 +438,22 @@ def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: AxisInt
 
 def flex_arith_method_FRAME(op):
     op_name = op.__name__.strip("_")
-    default_axis = "columns"
 
     na_op = get_array_op(op)
     doc = make_flex_doc(op_name, "dataframe")
 
     @Appender(doc)
-    def f(self, other, axis=default_axis, level=None, fill_value=None):
+    def f(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        axis = self._get_axis_number(axis) if axis is not None else 1
+        axis = cast(int, axis)
 
-        if should_reindex_frame_op(
-            self, other, op, axis, default_axis, fill_value, level
-        ):
+        if should_reindex_frame_op(self, other, op, axis, fill_value, level):
             return frame_arith_method_with_reindex(self, other, op)
 
         if isinstance(other, ABCSeries) and fill_value is not None:
             # TODO: We could allow this in cases where we end up going
             #  through the DataFrame path
             raise NotImplementedError(f"fill_value {fill_value} not supported.")
-
-        axis = self._get_axis_number(axis) if axis is not None else 1
 
         other = maybe_prepare_scalar_for_op(other, self.shape)
         self, other = align_method_FRAME(self, other, axis, flex=True, level=level)
@@ -480,14 +480,13 @@ def flex_arith_method_FRAME(op):
 
 def flex_comp_method_FRAME(op):
     op_name = op.__name__.strip("_")
-    default_axis = "columns"  # because we are "flex"
 
     doc = _flex_comp_doc_FRAME.format(
         op_name=op_name, desc=_op_descriptions[op_name]["desc"]
     )
 
     @Appender(doc)
-    def f(self, other, axis=default_axis, level=None):
+    def f(self, other, axis: Axis = "columns", level=None):
         axis = self._get_axis_number(axis) if axis is not None else 1
 
         self, other = align_method_FRAME(self, other, axis, flex=True, level=level)

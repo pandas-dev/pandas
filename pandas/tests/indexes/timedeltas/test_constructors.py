@@ -47,7 +47,7 @@ class TestTimedeltaIndex:
         #  and copy=False
         arr = np.arange(10, dtype=np.int64)
         tdi = TimedeltaIndex(arr, copy=False)
-        assert tdi._data._data.base is arr
+        assert tdi._data._ndarray.base is arr
 
     def test_infer_from_tdi(self):
         # GH#23539

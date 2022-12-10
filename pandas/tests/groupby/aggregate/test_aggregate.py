@@ -1085,7 +1085,6 @@ class TestLambdaMangling:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="GH-26611. kwargs for multi-agg.")
-    @pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
     def test_with_kwargs(self):
         f1 = lambda x, y, b=1: x.sum() + y + b
         f2 = lambda x, y, b=2: x.sum() + y * b

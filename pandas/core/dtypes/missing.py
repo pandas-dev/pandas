@@ -18,7 +18,6 @@ from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import (
     NaT,
-    Period,
     iNaT,
 )
 
@@ -749,10 +748,8 @@ def isna_all(arr: ArrayLike) -> bool:
     if dtype.kind == "f" and isinstance(dtype, np.dtype):
         checker = nan_checker
 
-    elif (
-        (isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"])
-        or isinstance(dtype, DatetimeTZDtype)
-        or dtype.type is Period
+    elif (isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"]) or isinstance(
+        dtype, (DatetimeTZDtype, PeriodDtype)
     ):
         # error: Incompatible types in assignment (expression has type
         # "Callable[[Any], Any]", variable has type "ufunc")

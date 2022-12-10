@@ -668,7 +668,7 @@ class TestDatetimeArray:
         dti = pd.date_range("2016-01-01", periods=3)
 
         dta = dti._data
-        expected = DatetimeArray(np.roll(dta._data, 1))
+        expected = DatetimeArray(np.roll(dta._ndarray, 1))
 
         fv = dta[-1]
         for fill_value in [fv, fv.to_pydatetime(), fv.to_datetime64()]:

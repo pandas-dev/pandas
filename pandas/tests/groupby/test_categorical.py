@@ -311,7 +311,6 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
 def test_observed(observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper
@@ -1317,7 +1316,6 @@ def test_groupby_categorical_axis_1(code):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_groupby_cat_preserves_structure(observed, ordered):
     # GH 28787
     df = DataFrame(

@@ -1638,8 +1638,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return result
 
-        # TypeError -> we may have an exception in trying to aggregate
-        #  continue and exclude the block
         new_mgr = data.grouped_reduce(array_func)
 
         res = self._wrap_agged_manager(new_mgr)

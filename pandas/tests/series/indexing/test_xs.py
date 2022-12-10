@@ -11,7 +11,7 @@ import pandas._testing as tm
 
 def test_xs_datetimelike_wrapping():
     # GH#31630 a case where we shouldn't wrap datetime64 in Timestamp
-    arr = date_range("2016-01-01", periods=3)._data._data
+    arr = date_range("2016-01-01", periods=3)._data._ndarray
 
     ser = Series(arr, dtype=object)
     for i in range(len(ser)):

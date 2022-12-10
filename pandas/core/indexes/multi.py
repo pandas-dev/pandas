@@ -841,7 +841,9 @@ class MultiIndex(Index):
 
         self._reset_cache()
 
-    def set_levels(self, levels, *, level=None, verify_integrity: bool = True):
+    def set_levels(
+        self, levels, *, level=None, verify_integrity: bool = True
+    ) -> MultiIndex:
         """
         Set new levels on MultiIndex. Defaults to returning new index.
 
@@ -856,8 +858,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        new index (of same type and class...etc) or None
-            The same type as the caller or None if ``inplace=True``.
+        MultiIndex
 
         Examples
         --------

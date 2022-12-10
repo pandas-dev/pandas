@@ -70,7 +70,6 @@ def raw_frame():
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("sort", [True, False])
-@pytest.mark.filterwarnings("ignore:The default value of numeric_only:FutureWarning")
 def test_regression_allowlist_methods(raw_frame, op, axis, skipna, sort):
     # GH6944
     # GH 17537

@@ -10,10 +10,6 @@ from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 pyarrow = pytest.importorskip("pyarrow", minversion="1.0.1")
 
 
-filter_sparse = pytest.mark.filterwarnings("ignore:The Sparse")
-
-
-@filter_sparse
 @pytest.mark.single_cpu
 class TestFeather:
     def check_error_on_write(self, df, exc, err_msg):
