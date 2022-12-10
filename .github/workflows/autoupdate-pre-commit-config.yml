@@ -15,7 +15,7 @@ jobs:
       pull-requests: write  # for technote-space/create-pr-action to create a PR
     if: github.repository_owner == 'pandas-dev'
     name: Autoupdate pre-commit config
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Set up Python
         uses: actions/setup-python@v4
