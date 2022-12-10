@@ -37,40 +37,16 @@ These packages will automatically be installed by using the ``pandas``
 **Windows**
 
 You will need `Build Tools for Visual Studio 2022
-<https://visualstudio.microsoft.com/downloads/>`_.
+<https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022>`_.
 
-.. warning::
+.. note::
         You DO NOT need to install Visual Studio 2022.
         You only need "Build Tools for Visual Studio 2022" found by
         scrolling down to "All downloads" -> "Tools for Visual Studio".
         In the installer, select the "Desktop development with C++" Workloads.
 
-You can install the necessary components on the commandline using
-`vs_buildtools.exe <https://download.visualstudio.microsoft.com/download/pr/f3f8db49-2cd0-43df-9ced-12dcb6b3954b/1a327074f0b07f951467739a34f07c5db6b491aa5df2ed3e4054759ceb1c994d/vs_BuildTools.exe>`_:
-
-.. code::
-
-    vs_BuildTools.exe --quiet --wait --norestart --nocache ^
-        --installPath C:\BuildTools ^
-        --add Microsoft.VisualStudio.Component.Roslyn.Compiler ^
-        --add Microsoft.Component.MSBuild ^
-        --add Microsoft.VisualStudio.Component.CoreBuildTools ^
-        --add Microsoft.VisualStudio.Workload.MSBuildTools ^
-        --add Microsoft.VisualStudio.Component.Windows10SDK ^
-        --add Microsoft.VisualStudio.Component.VC.CoreBuildTools ^
-        --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 ^
-        --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest ^
-        --add Microsoft.VisualStudio.Component.Windows11SDK.22000 ^
-        --add Microsoft.VisualStudio.Component.VC.CMake.Project ^
-        --add Microsoft.VisualStudio.Component.TestTools.BuildTools ^
-        --add Microsoft.VisualStudio.Component.VC.ASAN ^
-        --add Microsoft.VisualStudio.Component.TextTemplating ^
-        --add Microsoft.VisualStudio.Component.VC.CoreIde ^
-        --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core ^
-        --add Microsoft.VisualStudio.Workload.VCTools
-
-To setup the right paths on the commandline, call
-``C:\BuildTools\VC\Auxiliary\Build\vcvars64.bat``.
+Alternatively, you can install the necessary components on the commandline use
+`vs_BuildTools.exe <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`_
 
 **macOS**
 
