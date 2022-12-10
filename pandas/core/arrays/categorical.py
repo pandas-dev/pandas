@@ -47,6 +47,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
+    is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
@@ -600,7 +601,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 cats = to_datetime(inferred_categories, errors="coerce")
             elif is_timedelta64_dtype(dtype.categories):
                 cats = to_timedelta(inferred_categories, errors="coerce")
-            elif dtype.categories.is_boolean():
+            elif is_bool_dtype(dtype.categories):
                 if true_values is None:
                     true_values = ["True", "TRUE", "true"]
 
