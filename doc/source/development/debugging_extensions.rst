@@ -124,7 +124,7 @@ Note that code execution under valgrind will take much longer than usual. While 
 Easier code navigation
 ======================
 
-Generating a ``compile_commands.json`` file may make it easier to navigate the C extensions, as this makes it easier for your code editor to list references, jump to definitions, etc... To make this work with setuptools you may use the `Bear <https://github.com/rizsotto/Bear>`_ application.
+Generating a ``compile_commands.json`` file may make it easier to navigate the C extensions, as this allows your code editor to list references, jump to definitions, etc... To make this work with setuptools you can use `Bear <https://github.com/rizsotto/Bear>`_.
 
 .. code-block::
 
