@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import abc
 import datetime
+from decimal import Decimal
 from functools import partial
 from io import BytesIO
-from decimal import Decimal
 import os
 from textwrap import fill
 from types import TracebackType
@@ -49,9 +49,9 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
+    is_decimal,
     is_float,
     is_integer,
-    is_decimal,
     is_list_like,
 )
 
