@@ -128,6 +128,13 @@ class TestGetIndexerNonUnique:
             tm.assert_numpy_array_equal(missing, expected_missing)
         # dt64nat vs td64nat
         else:
+            try:
+                np_nat_fixture == np_nat_fixture2
+            except (TypeError, OverflowError):
+                # Numpy will raise on uncomparable types, like
+                # np.datetime64('NaT', 'Y') and np.datetime64('NaT', 'ps')
+                # https://github.com/numpy/numpy/issues/22762
+                return
             index = Index(
                 np.array(
                     [
