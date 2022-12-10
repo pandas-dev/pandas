@@ -313,8 +313,7 @@ def _return_parsed_timezone_results(
     -------
     tz_result : Index-like of parsed dates with timezone
     """
-    dta = DatetimeArray(result)
-    tz_results = np.empty(len(dta), dtype=object)
+    tz_results = np.empty(len(result), dtype=object)
     for zone in unique(timezones):
         mask = timezones == zone
         dta = DatetimeArray(result[mask]).tz_localize(zone)
