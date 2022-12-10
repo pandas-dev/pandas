@@ -81,7 +81,8 @@ class PandasColumn(Column):
         self._col = column
         self._allow_copy = allow_copy
 
-    def size(self) -> int:  # type: ignore[override]
+    @property
+    def size(self) -> int:
         """
         Size of the column, in elements.
         """
