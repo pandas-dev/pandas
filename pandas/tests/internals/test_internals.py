@@ -475,7 +475,7 @@ class TestBlockManager:
                 assert cp_blk.values.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
-                assert cp_blk.values._data.base is blk.values._data.base
+                assert cp_blk.values._ndarray.base is blk.values._ndarray.base
 
         # copy(deep=True) consolidates, so the block-wise assertions will
         #  fail is mgr is not consolidated

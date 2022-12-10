@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.missing import is_matching_na
+from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.common import is_float
 
@@ -50,7 +51,7 @@ def test_equals_list_array(val):
 
     cm = (
         tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
-        if isinstance(val, str)
+        if isinstance(val, str) and not is_numpy_dev
         else nullcontext()
     )
     with cm:
