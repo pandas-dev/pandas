@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -257,8 +259,13 @@ def test_compare_ea_and_np_dtype(val1, val2):
             ("b", "other"): np.nan,
         }
     )
-    result = df1.compare(df2, keep_shape=True)
-    tm.assert_frame_equal(result, expected)
+    if val1 is pd.NA and is_numpy_dev:
+        # can't compare with numpy array if it contains pd.NA
+        with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):
+            result = df1.compare(df2, keep_shape=True)
+    else:
+        result = df1.compare(df2, keep_shape=True)
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
