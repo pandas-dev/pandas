@@ -415,7 +415,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def _accumulate(self, name: str, *, skipna: bool = True, **kwargs):
 
-        data = self._data.copy()
+        data = self._ndarray.copy()
 
         if name in {"cumsum", "cumprod"}:
             # TODO: cumprod should not work here GH#48111
