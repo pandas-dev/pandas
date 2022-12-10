@@ -405,6 +405,10 @@ Other API changes
 - Files are now closed when encountering an exception in :func:`read_json` (:issue:`49921`)
 - Changed behavior of :func:`read_csv`, :func:`read_json` & :func:`read_fwf`, where the index will now always be a :class:`RangeIndex`, when no index is specified. Previously the index would be a :class:`Index` with dtype ``object`` if the new DataFrame/Series has length 0 (:issue:`49572`)
 - :meth:`DataFrame.values`, :meth:`DataFrame.to_numpy`, :meth:`DataFrame.xs`, :meth:`DataFrame.reindex`, :meth:`DataFrame.fillna`, and :meth:`DataFrame.replace` no longer silently consolidate the underlying arrays; do ``df = df.copy()`` to ensure consolidation (:issue:`49356`)
+- Creating a new DataFrame using a full slice on both axes with :attr:`~DataFrame.loc`
+  or :attr:`~DataFrame.iloc` (thus, ``df.loc[:, :]`` or ``df.iloc[:, :]``) now returns a
+  new DataFrame (shallow copy) instead of the original DataFrame, consistent with other
+  methods to get a full slice (for example ``df.loc[:]`` or ``df[:]``) (:issue:`49469`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -653,7 +657,7 @@ Performance improvements
 - Performance improvement in :meth:`MultiIndex.isin` when ``level=None`` (:issue:`48622`, :issue:`49577`)
 - Performance improvement in :meth:`MultiIndex.putmask` (:issue:`49830`)
 - Performance improvement in :meth:`Index.union` and :meth:`MultiIndex.union` when index contains duplicates (:issue:`48900`)
-- Performance improvement in :meth:`Series.fillna` for pyarrow-backed dtypes (:issue:`49722`)
+- Performance improvement in :meth:`Series.fillna` for extension array dtypes (:issue:`49722`, :issue:`50078`)
 - Performance improvement for :meth:`Series.value_counts` with nullable dtype (:issue:`48338`)
 - Performance improvement for :class:`Series` constructor passing integer numpy array with nullable dtype (:issue:`48338`)
 - Performance improvement for :class:`DatetimeIndex` constructor passing a list (:issue:`48609`)
@@ -811,6 +815,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.describe` would describe the group keys (:issue:`49256`)
 - Bug in :meth:`.SeriesGroupBy.describe` with ``as_index=False`` would have the incorrect shape (:issue:`49256`)
 - Bug in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` with ``dropna=False`` would drop NA values when the grouper was categorical (:issue:`36327`)
+- Bug in :meth:`.SeriesGroupBy.nunique` would incorrectly raise when the grouper was an empty categorical and ``observed=True`` (:issue:`21334`)
 
 Reshaping
 ^^^^^^^^^
