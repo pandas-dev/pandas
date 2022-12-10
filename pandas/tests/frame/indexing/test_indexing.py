@@ -1437,6 +1437,13 @@ class TestDataFrameIndexing:
             df.loc[:, "a"] = rhs
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_ea_series_indexer(self):
+        # GH#49521
+        df = DataFrame([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
+        result = df.iloc[Series([1], dtype="Int64"), Series([0, 1], dtype="Int64")]
+        expected = DataFrame([[5, 6]], index=[1])
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("indexer", [True, (True,)])
     @pytest.mark.parametrize("dtype", [bool, "boolean"])
     def test_loc_bool_multiindex(self, dtype, indexer):
