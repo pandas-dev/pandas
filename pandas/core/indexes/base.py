@@ -5564,23 +5564,25 @@ class Index(IndexOpsMixin, PandasObject):
         >>> index.get_indexer_non_unique(['b', 'b'])
         (array([1, 3, 4, 1, 3, 4]), array([], dtype=int64))
 
-        In the example below there are no matched values. For this reason,
-        the returned ``indexer`` contains only integers equal to -1.
-        It demonstrates no index at these positions that match the corresponding
-        ``target`` values. The mask [0, 1, 2] in the return value shows that the first,
-        second, and third elements are missing.
+        In the example below there are no matched values.
 
         >>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
         >>> index.get_indexer_non_unique(['q', 'r', 't'])
         (array([-1, -1, -1]), array([0, 1, 2]))
 
+        For this reason, the returned ``indexer`` contains only integers equal to -1.
+        It demonstrates no index at these positions that match the corresponding
+        ``target`` values. The mask [0, 1, 2] in the return value shows that the first,
+        second, and third elements are missing.
+
+        Notice that the return value is a tuple contains two items. In the example
+        below the first item is an array of locations in ``index``. The second
+        item is a mask shows that the first and third elements are missing.
+
         >>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
         >>> index.get_indexer_non_unique(['f', 'b', 's'])
         (array([-1,  1,  3,  4, -1]), array([0, 2]))
 
-        Notice that the return value is a tuple contains two items. In the example
-        above the first item is an array of locations in ``index``. The second
-        item is a mask shows that the first and third elements are missing.
         """
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
