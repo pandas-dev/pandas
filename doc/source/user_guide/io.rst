@@ -294,8 +294,6 @@ cache_dates : boolean, default True
   conversion. May produce significant speed-up when parsing duplicate
   date strings, especially ones with timezone offsets.
 
-  .. versionadded:: 0.25.0
-
 Iteration
 +++++++++
 
@@ -3829,8 +3827,6 @@ using the `odfpy <https://pypi.org/project/odfpy/>`__ module. The semantics and 
 OpenDocument spreadsheets match what can be done for `Excel files`_ using
 ``engine='odf'``.
 
-.. versionadded:: 0.25
-
 The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
 
 .. code-block:: python
@@ -6133,8 +6129,6 @@ No official documentation is available for the SAS7BDAT format.
 
 SPSS formats
 ------------
-
-.. versionadded:: 0.25.0
 
 The top-level function :func:`read_spss` can read (but not write) SPSS
 SAV (.sav) and  ZSAV (.zsav) format files.

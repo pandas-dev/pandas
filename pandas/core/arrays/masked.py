@@ -38,7 +38,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_bool,
@@ -492,10 +491,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             raise ValueError("cannot convert float NaN to bool")
 
         data = self.to_numpy(dtype=dtype, na_value=na_value, copy=copy)
-        if self.dtype.kind == "f":
-            # TODO: make this consistent between IntegerArray/FloatingArray,
-            #  see test_astype_str
-            return astype_nansafe(data, dtype, copy=False)
         return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
