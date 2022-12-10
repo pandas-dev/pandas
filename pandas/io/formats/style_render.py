@@ -873,7 +873,7 @@ class StylerRenderer:
         def concatenated_visible_rows(obj):
             row_indices: list[int] = []
             _concatenated_visible_rows(obj, 0, row_indices)
-            # TODO try to consolidate the concat visible rows 
+            # TODO try to consolidate the concat visible rows
             # methods to a single function / recursion for simplicity
             return row_indices
 
