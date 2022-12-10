@@ -247,7 +247,6 @@ class TestRank:
                     tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
-    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_rank_descending(self, method, dtype):
         if "i" in dtype:
             df = self.df.dropna().astype(dtype)
