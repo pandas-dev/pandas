@@ -313,12 +313,16 @@ def _return_parsed_timezone_results(
     -------
     tz_result : Index-like of parsed dates with timezone
     """
-    tz_results = np.array(
-        [Timestamp(res).tz_localize(zone) for res, zone in zip(result, timezones)]
-    )
-    if utc:
-        # Convert to the same tz
-        tz_results = np.array([tz_result.tz_convert("utc") for tz_result in tz_results])
+    tz_results = np.empty(len(result), dtype=object)
+    for zone in unique(timezones):
+        mask = timezones == zone
+        dta = DatetimeArray(result[mask]).tz_localize(zone)
+        if utc:
+            if dta.tzinfo is None:
+                dta = dta.tz_localize("utc")
+            else:
+                dta = dta.tz_convert("utc")
+        tz_results[mask] = dta
 
     return Index(tz_results, name=name)
 
@@ -468,7 +472,9 @@ def _array_strptime_with_fallback(
     Call array_strptime, with fallback behavior depending on 'errors'.
     """
     try:
-        result, timezones = array_strptime(arg, fmt, exact=exact, errors=errors)
+        result, timezones = array_strptime(
+            arg, fmt, exact=exact, errors=errors, utc=utc
+        )
     except OutOfBoundsDatetime:
         if errors == "raise":
             raise
@@ -495,7 +501,7 @@ def _array_strptime_with_fallback(
             # Indicates to the caller to fallback to objects_to_datetime64ns
             return None
     else:
-        if "%Z" in fmt or "%z" in fmt:
+        if any(tz is not None for tz in timezones):
             return _return_parsed_timezone_results(result, timezones, utc, name)
 
     return _box_as_indexlike(result, utc=utc, name=name)
@@ -814,9 +820,6 @@ def to_datetime(
         is only used when there are at least 50 values. The presence of
         out-of-bounds values will render the cache unusable and may slow down
         parsing.
-
-        .. versionchanged:: 0.25.0
-            changed default value from :const:`False` to :const:`True`.
 
     Returns
     -------

@@ -592,7 +592,6 @@ def test_append_with_data_columns(setup_path):
         df_dc.loc[df_dc.index[7:9], "string"] = "bar"
         df_dc["string2"] = "cool"
         df_dc["datetime"] = Timestamp("20010102")
-        df_dc = df_dc._convert(datetime=True)
         df_dc.loc[df_dc.index[3:5], ["A", "B", "datetime"]] = np.nan
 
         _maybe_remove(store, "df_dc")

@@ -841,7 +841,9 @@ class MultiIndex(Index):
 
         self._reset_cache()
 
-    def set_levels(self, levels, *, level=None, verify_integrity: bool = True):
+    def set_levels(
+        self, levels, *, level=None, verify_integrity: bool = True
+    ) -> MultiIndex:
         """
         Set new levels on MultiIndex. Defaults to returning new index.
 
@@ -856,8 +858,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        new index (of same type and class...etc) or None
-            The same type as the caller or None if ``inplace=True``.
+        MultiIndex
 
         Examples
         --------
@@ -1457,32 +1458,6 @@ class MultiIndex(Index):
     )
 
     # --------------------------------------------------------------------
-
-    @doc(Index._get_grouper_for_level)
-    def _get_grouper_for_level(
-        self,
-        mapper,
-        *,
-        level=None,
-        dropna: bool = True,
-    ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
-        if mapper is not None:
-            indexer = self.codes[level]
-            # Handle group mapping function and return
-            level_values = self.levels[level].take(indexer)
-            grouper = level_values.map(mapper)
-            return grouper, None, None
-
-        values = self.get_level_values(level)
-        codes, uniques = algos.factorize(values, sort=True, use_na_sentinel=dropna)
-        assert isinstance(uniques, Index)
-
-        if self.levels[level]._can_hold_na:
-            grouper = uniques.take(codes, fill_value=True)
-        else:
-            grouper = uniques.take(codes)
-
-        return grouper, codes, uniques
 
     @cache_readonly
     def inferred_type(self) -> str:
@@ -2138,7 +2113,7 @@ class MultiIndex(Index):
             # setting names to None automatically
             return MultiIndex.from_tuples(new_tuples)
         except (TypeError, IndexError):
-            return Index._with_infer(new_tuples)
+            return Index(new_tuples)
 
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         if len(args) == 0 and len(kwargs) == 0:
@@ -2756,7 +2731,7 @@ class MultiIndex(Index):
         else:
             return level_index.get_loc(key)
 
-    def get_loc(self, key, method=None):
+    def get_loc(self, key):
         """
         Get location for a label or a tuple of labels.
 
@@ -2766,7 +2741,6 @@ class MultiIndex(Index):
         Parameters
         ----------
         key : label or tuple of labels (one for each level)
-        method : None
 
         Returns
         -------
@@ -2798,12 +2772,6 @@ class MultiIndex(Index):
         >>> mi.get_loc(('b', 'e'))
         1
         """
-        if method is not None:
-            raise NotImplementedError(
-                "only the default get_loc method is "
-                "currently supported for MultiIndex"
-            )
-
         self._check_indexing_error(key)
 
         def _maybe_to_slice(loc):
