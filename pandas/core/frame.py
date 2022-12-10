@@ -10492,10 +10492,6 @@ Parrot 2  Parrot       24.0
         axis = self._get_axis_number(axis)
         assert axis in [0, 1]
 
-        def func(values: np.ndarray):
-            # We only use this in the case that operates on self.values
-            return op(values, axis=axis, skipna=skipna, **kwds)
-
         def blk_func(values, axis: Axis = 1):
             if isinstance(values, ExtensionArray):
                 if not is_1d_only_ea_dtype(values.dtype) and not isinstance(
@@ -10536,7 +10532,6 @@ Parrot 2  Parrot       24.0
                 result.index = df.index
                 return result
             df = df.T
-            axis = 0
 
         # After possibly _get_data and transposing, we are now in the
         #  simple case where we can use BlockManager.reduce
