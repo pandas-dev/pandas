@@ -531,7 +531,7 @@ def assert_interval_array_equal(
 def assert_period_array_equal(left, right, obj: str = "PeriodArray") -> None:
     _check_isinstance(left, right, PeriodArray)
 
-    assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
+    assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
     assert_attr_equal("freq", left, right, obj=obj)
 
 
@@ -541,7 +541,7 @@ def assert_datetime_array_equal(
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
-    assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
+    assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
     if check_freq:
         assert_attr_equal("freq", left, right, obj=obj)
     assert_attr_equal("tz", left, right, obj=obj)
@@ -552,7 +552,7 @@ def assert_timedelta_array_equal(
 ) -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
-    assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
+    assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
     if check_freq:
         assert_attr_equal("freq", left, right, obj=obj)
 
