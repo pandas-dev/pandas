@@ -485,7 +485,7 @@ def maybe_cast_to_extension_array(
 
     try:
         result = cls._from_sequence(obj, dtype=dtype)
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         # We can't predict what downstream EA constructors may raise
         result = obj
     return result
@@ -1137,9 +1137,7 @@ def maybe_cast_to_datetime(
 
     # TODO: _from_sequence would raise ValueError in cases where
     #  _ensure_nanosecond_dtype raises TypeError
-    # Incompatible types in assignment (expression has type "Union[dtype[Any],
-    # ExtensionDtype]", variable has type "Optional[dtype[Any]]")
-    dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
+    _ensure_nanosecond_dtype(dtype)
 
     if is_timedelta64_dtype(dtype):
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
@@ -1177,12 +1175,11 @@ def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarra
     return values
 
 
-def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
+def _ensure_nanosecond_dtype(dtype: DtypeObj) -> None:
     """
     Convert dtypes with granularity less than nanosecond to nanosecond
 
     >>> _ensure_nanosecond_dtype(np.dtype("M8[us]"))
-    dtype('<M8[us]')
 
     >>> _ensure_nanosecond_dtype(np.dtype("M8[D]"))
     Traceback (most recent call last):
@@ -1219,7 +1216,6 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
                 f"dtype={dtype} is not supported. Supported resolutions are 's', "
                 "'ms', 'us', and 'ns'"
             )
-    return dtype
 
 
 # TODO: other value-dependent functions to standardize here include

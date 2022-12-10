@@ -3429,27 +3429,13 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def get_loc(self, key, method=None, tolerance=None):
+    def get_loc(self, key):
         """
         Get integer location, slice or boolean mask for requested label.
 
         Parameters
         ----------
         key : label
-        method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
-            * default: exact matches only.
-            * pad / ffill: find the PREVIOUS index value if no exact match.
-            * backfill / bfill: use NEXT index value if no exact match
-            * nearest: use the NEAREST index value if no exact match. Tied
-              distances are broken by preferring the larger index value.
-
-            .. deprecated:: 1.4
-                Use index.get_indexer([item], method=...) instead.
-
-        tolerance : int or float, optional
-            Maximum distance from index value for inexact matches. The value of
-            the index at the matching location must satisfy the equation
-            ``abs(index[loc] - key) <= tolerance``.
 
         Returns
         -------
@@ -3469,46 +3455,17 @@ class Index(IndexOpsMixin, PandasObject):
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True])
         """
-        if method is None:
-            if tolerance is not None:
-                raise ValueError(
-                    "tolerance argument only valid if using pad, "
-                    "backfill or nearest lookups"
-                )
-            casted_key = self._maybe_cast_indexer(key)
-            try:
-                return self._engine.get_loc(casted_key)
-            except KeyError as err:
-                raise KeyError(key) from err
-            except TypeError:
-                # If we have a listlike key, _check_indexing_error will raise
-                #  InvalidIndexError. Otherwise we fall through and re-raise
-                #  the TypeError.
-                self._check_indexing_error(key)
-                raise
-
-        # GH#42269
-        warnings.warn(
-            f"Passing method to {type(self).__name__}.get_loc is deprecated "
-            "and will raise in a future version. Use "
-            "index.get_indexer([item], method=...) instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-        if is_scalar(key) and isna(key) and not self.hasnans:
-            raise KeyError(key)
-
-        if tolerance is not None:
-            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
-
-        indexer = self.get_indexer([key], method=method, tolerance=tolerance)
-        if indexer.ndim > 1 or indexer.size > 1:
-            raise TypeError("get_loc requires scalar valued input")
-        loc = indexer.item()
-        if loc == -1:
-            raise KeyError(key)
-        return loc
+        casted_key = self._maybe_cast_indexer(key)
+        try:
+            return self._engine.get_loc(casted_key)
+        except KeyError as err:
+            raise KeyError(key) from err
+        except TypeError:
+            # If we have a listlike key, _check_indexing_error will raise
+            #  InvalidIndexError. Otherwise we fall through and re-raise
+            #  the TypeError.
+            self._check_indexing_error(key)
+            raise
 
     _index_shared_docs[
         "get_indexer"
@@ -5600,6 +5557,31 @@ class Index(IndexOpsMixin, PandasObject):
         missing : np.ndarray[np.intp]
             An indexer into the target of the values not found.
             These correspond to the -1 in the indexer array.
+
+        Examples
+        --------
+        >>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
+        >>> index.get_indexer_non_unique(['b', 'b'])
+        (array([1, 3, 4, 1, 3, 4]), array([], dtype=int64))
+
+        In the example below there are no matched values.
+
+        >>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
+        >>> index.get_indexer_non_unique(['q', 'r', 't'])
+        (array([-1, -1, -1]), array([0, 1, 2]))
+
+        For this reason, the returned ``indexer`` contains only integers equal to -1.
+        It demonstrates that there's no match between the index and the ``target``
+        values at these positions. The mask [0, 1, 2] in the return value shows that
+        the first, second, and third elements are missing.
+
+        Notice that the return value is a tuple contains two items. In the example
+        below the first item is an array of locations in ``index``. The second
+        item is a mask shows that the first and third elements are missing.
+
+        >>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
+        >>> index.get_indexer_non_unique(['f', 'b', 's'])
+        (array([-1,  1,  3,  4, -1]), array([0, 2]))
         """
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
@@ -6521,6 +6503,36 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[~mask]
         return self.delete(indexer)
 
+    def infer_objects(self, copy: bool = True) -> Index:
+        """
+        If we have an object dtype, try to infer a non-object dtype.
+
+        Parameters
+        ----------
+        copy : bool, default True
+            Whether to make a copy in cases where no inference occurs.
+        """
+        if self._is_multi:
+            raise NotImplementedError(
+                "infer_objects is not implemented for MultiIndex. "
+                "Use index.to_frame().infer_objects() instead."
+            )
+        if self.dtype != object:
+            return self.copy() if copy else self
+
+        values = self._values
+        values = cast("npt.NDArray[np.object_]", values)
+        res_values = lib.maybe_convert_objects(
+            values,
+            convert_datetime=True,
+            convert_timedelta=True,
+            convert_period=True,
+            convert_interval=True,
+        )
+        if copy and res_values is values:
+            return self.copy()
+        return Index(res_values, name=self.name)
+
     # --------------------------------------------------------------------
     # Generated Arithmetic, Comparison, and Unary Methods
 
@@ -6585,10 +6597,10 @@ class Index(IndexOpsMixin, PandasObject):
     def _construct_result(self, result, name):
         if isinstance(result, tuple):
             return (
-                Index._with_infer(result[0], name=name),
-                Index._with_infer(result[1], name=name),
+                Index(result[0], name=name, dtype=result[0].dtype),
+                Index(result[1], name=name, dtype=result[1].dtype),
             )
-        return Index._with_infer(result, name=name)
+        return Index(result, name=name, dtype=result.dtype)
 
     def _arith_method(self, other, op):
         if (

@@ -934,6 +934,11 @@ class _LocationIndexer(NDFrameIndexerBase):
             #  be handled by the _getitem_lowerdim call above.
             assert retval.ndim == self.ndim
 
+        if retval is self.obj:
+            # if all axes were a null slice (`df.loc[:, :]`), ensure we still
+            # return a new object (https://github.com/pandas-dev/pandas/pull/49469)
+            retval = retval.copy(deep=False)
+
         return retval
 
     @final

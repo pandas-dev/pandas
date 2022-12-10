@@ -1934,7 +1934,7 @@ class TestPivotTable:
             frame, index=["foo"], aggfunc=len, margins=True, margins_name=greek
         )
         index = Index([1, 2, 3, greek], dtype="object", name="foo")
-        expected = DataFrame(index=index)
+        expected = DataFrame(index=index, columns=[])
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_string_as_func(self):
@@ -2107,8 +2107,8 @@ class TestPivotTable:
         result = df.pivot_table(
             index="A", columns="D", values="id", aggfunc=np.size, margins=margins
         )
-        expected = DataFrame(index=Index([], dtype="int64", name="A"))
-        expected.columns.name = "D"
+        exp_cols = Index([], name="D")
+        expected = DataFrame(index=Index([], dtype="int64", name="A"), columns=exp_cols)
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_no_column_raises(self):
@@ -2342,7 +2342,7 @@ class TestPivot:
     def test_pivot_empty(self):
         df = DataFrame(columns=["a", "b", "c"])
         result = df.pivot(index="a", columns="b", values="c")
-        expected = DataFrame()
+        expected = DataFrame(index=[], columns=[])
         tm.assert_frame_equal(result, expected, check_names=False)
 
     def test_pivot_integer_bug(self):

@@ -7,6 +7,7 @@ from __future__ import annotations
 import inspect
 from typing import (
     TYPE_CHECKING,
+    cast,
     overload,
 )
 
@@ -36,7 +37,11 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import ExtensionArray
+    from pandas.core.arrays import (
+        DatetimeArray,
+        ExtensionArray,
+        TimedeltaArray,
+    )
 
 
 _dtype_obj = np.dtype(object)
@@ -109,7 +114,11 @@ def astype_nansafe(
 
         # allow frequency conversions
         if dtype.kind == "M":
-            return arr.astype(dtype)
+            from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+            dta = ensure_wrapped_if_datetimelike(arr)
+            dta = cast("DatetimeArray", dta)
+            return dta.astype(dtype, copy=copy)._ndarray
 
         raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
 
@@ -124,8 +133,9 @@ def astype_nansafe(
             #  and doing the old convert-to-float behavior otherwise.
             from pandas.core.construction import ensure_wrapped_if_datetimelike
 
-            arr = ensure_wrapped_if_datetimelike(arr)
-            return arr.astype(dtype, copy=copy)
+            tda = ensure_wrapped_if_datetimelike(arr)
+            tda = cast("TimedeltaArray", tda)
+            return tda.astype(dtype, copy=copy)._ndarray
 
         raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 
@@ -145,10 +155,15 @@ def astype_nansafe(
             return dta.astype(dtype, copy=False)._ndarray
 
         elif is_timedelta64_dtype(dtype):
+            from pandas.core.construction import ensure_wrapped_if_datetimelike
+
             # bc we know arr.dtype == object, this is equivalent to
             #  `np.asarray(to_timedelta(arr))`, but using a lower-level API that
             #  does not require a circular import.
-            return array_to_timedelta64(arr).view("m8[ns]").astype(dtype, copy=False)
+            tdvals = array_to_timedelta64(arr).view("m8[ns]")
+
+            tda = ensure_wrapped_if_datetimelike(tdvals)
+            return tda.astype(dtype, copy=False)._ndarray
 
     if dtype.name in ("datetime64", "timedelta64"):
         msg = (

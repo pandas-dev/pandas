@@ -471,12 +471,11 @@ user defined function, and no alternative execution attempts will be tried.
     The resulting dtype will reflect the return value of the passed ``func``,
     see the examples below.
 
-.. deprecated:: 1.5.0
+.. versionchanged:: 2.0.0
 
     When using ``.transform`` on a grouped DataFrame and the transformation function
-    returns a DataFrame, currently pandas does not align the result's index
-    with the input's index. This behavior is deprecated and alignment will
-    be performed in a future version of pandas. You can apply ``.to_numpy()`` to the
+    returns a DataFrame, pandas now aligns the result's index
+    with the input's index. You can call ``.to_numpy()`` on the
     result of the transformation function to avoid alignment.
 
 Examples
@@ -1639,8 +1638,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return result
 
-        # TypeError -> we may have an exception in trying to aggregate
-        #  continue and exclude the block
         new_mgr = data.grouped_reduce(array_func)
 
         res = self._wrap_agged_manager(new_mgr)
