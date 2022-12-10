@@ -45,7 +45,7 @@ You will need `Build Tools for Visual Studio 2022
         scrolling down to "All downloads" -> "Tools for Visual Studio".
         In the installer, select the "Desktop development with C++" Workloads.
 
-Alternatively, you can install the necessary components on the commandline use
+Alternatively, you can install the necessary components on the commandline using
 `vs_BuildTools.exe <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`_
 
 **macOS**
