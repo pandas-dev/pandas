@@ -11,73 +11,38 @@ https://www.statsmodels.org/devel/
 """
 from __future__ import annotations
 
-from collections import abc
 import datetime
-from io import BytesIO
 import os
 import struct
 import sys
-from types import TracebackType
-from typing import (
-    IO,
-    TYPE_CHECKING,
-    Any,
-    AnyStr,
-    Final,
-    Hashable,
-    Sequence,
-    cast,
-)
 import warnings
+from collections import abc
+from io import BytesIO
+from types import TracebackType
+from typing import (IO, TYPE_CHECKING, Any, AnyStr, Final, Hashable, Sequence,
+                    cast)
 
-from dateutil.relativedelta import relativedelta
 import numpy as np
-
+from dateutil.relativedelta import relativedelta
+from pandas import (Categorical, DatetimeIndex, NaT, Timestamp, isna,
+                    to_datetime, to_timedelta)
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
-from pandas.errors import (
-    CategoricalConversionWarning,
-    InvalidColumnName,
-    PossiblePrecisionLoss,
-    ValueLabelTypeMismatch,
-)
-from pandas.util._decorators import (
-    Appender,
-    doc,
-)
-from pandas.util._exceptions import find_stack_level
-
-from pandas.core.dtypes.common import (
-    ensure_object,
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_numeric_dtype,
-)
-
-from pandas import (
-    Categorical,
-    DatetimeIndex,
-    NaT,
-    Timestamp,
-    isna,
-    to_datetime,
-    to_timedelta,
-)
+from pandas._typing import (CompressionOptions, FilePath, ReadBuffer,
+                            StorageOptions, WriteBuffer)
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import IntegerDtype
+from pandas.core.dtypes.common import (ensure_object, is_categorical_dtype,
+                                       is_datetime64_dtype, is_numeric_dtype)
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
-
+from pandas.errors import (CategoricalConversionWarning, InvalidColumnName,
+                           PossiblePrecisionLoss, ValueLabelTypeMismatch)
 from pandas.io.common import get_handle
+from pandas.util._decorators import Appender, doc
+from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -418,7 +383,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         d = {}
         if is_datetime64_dtype(dates.dtype):
             if delta:
-                time_delta = dates - Timestamp(stata_epoch).as_unit("ns")
+                time_delta = dates - stata_epoch
                 d["delta"] = time_delta._values.view(np.int64) // 1000  # microseconds
             if days or year:
                 date_index = DatetimeIndex(dates)
@@ -613,8 +578,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                     dtype = c_data[1]
                 else:
                     dtype = c_data[2]
-                if c_data[2] == np.int64:  # Warn if necessary
-                    if data[col].max() >= 2**53:
+                if c_data[2] == np.int64 and data[col].max() >= 2**53:  # Warn if necessary
                         ws = precision_loss_doc.format("uint64", "float64")
 
                 data[col] = data[col].astype(dtype)
@@ -642,17 +606,16 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
             value = data[col].max()
             if dtype == np.float32 and value > float32_max:
                 data[col] = data[col].astype(np.float64)
-            elif dtype == np.float64:
-                if value > float64_max:
-                    raise ValueError(
-                        f"Column {col} has a maximum value ({value}) outside the range "
-                        f"supported by Stata ({float64_max})"
-                    )
-        if is_nullable_int:
-            if orig_missing.any():
-                # Replace missing by Stata sentinel value
-                sentinel = StataMissingValue.BASE_MISSING_VALUES[data[col].dtype.name]
-                data.loc[orig_missing, col] = sentinel
+            elif dtype == np.float64 and value > float64_max:
+                
+                raise ValueError(
+                    f"Column {col} has a maximum value ({value}) outside the range "
+                    f"supported by Stata ({float64_max})"
+                )
+        if is_nullable_int and  orig_missing.any():
+            # Replace missing by Stata sentinel value
+            sentinel = StataMissingValue.BASE_MISSING_VALUES[data[col].dtype.name]
+            data.loc[orig_missing, col] = sentinel
     if ws:
         warnings.warn(
             ws,
@@ -1426,37 +1389,8 @@ class StataReader(StataParser, abc.Iterator):
         self.time_stamp = self._get_time_stamp()
 
         # descriptors
-        if self.format_version > 108:
-            typlist = [ord(self.path_or_buf.read(1)) for _ in range(self.nvar)]
-        else:
-            buf = self.path_or_buf.read(self.nvar)
-            typlistb = np.frombuffer(buf, dtype=np.uint8)
-            typlist = []
-            for tp in typlistb:
-                if tp in self.OLD_TYPE_MAPPING:
-                    typlist.append(self.OLD_TYPE_MAPPING[tp])
-                else:
-                    typlist.append(tp - 127)  # bytes
+        self._read_old_header_descriptors()
 
-        try:
-            self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
-        except ValueError as err:
-            invalid_types = ",".join([str(x) for x in typlist])
-            raise ValueError(f"cannot convert stata types [{invalid_types}]") from err
-        try:
-            self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
-        except ValueError as err:
-            invalid_dtypes = ",".join([str(x) for x in typlist])
-            raise ValueError(f"cannot convert stata dtypes [{invalid_dtypes}]") from err
-
-        if self.format_version > 108:
-            self.varlist = [
-                self._decode(self.path_or_buf.read(33)) for _ in range(self.nvar)
-            ]
-        else:
-            self.varlist = [
-                self._decode(self.path_or_buf.read(9)) for _ in range(self.nvar)
-            ]
         self.srtlist = struct.unpack(
             self.byteorder + ("h" * (self.nvar + 1)),
             self.path_or_buf.read(2 * (self.nvar + 1)),
@@ -1492,6 +1426,37 @@ class StataReader(StataParser, abc.Iterator):
 
         # necessary data to continue parsing
         self.data_location = self.path_or_buf.tell()
+
+    def _read_old_header_descriptors(self) -> None:
+        if self.format_version > 108:
+            typlist = [ord(self.path_or_buf.read(1)) for _ in range(self.nvar)]
+        else:
+            buf = self.path_or_buf.read(self.nvar)
+            typlistb = np.frombuffer(buf, dtype=np.uint8)
+            typlist = []
+            for tp in typlistb:
+                if tp in self.OLD_TYPE_MAPPING:
+                    typlist.append(self.OLD_TYPE_MAPPING[tp])
+                else:
+                    typlist.append(tp - 127)  # bytes
+        try:
+            self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
+        except ValueError as err:
+            invalid_types = ",".join([str(x) for x in typlist])
+            raise ValueError(f"cannot convert stata types [{invalid_types}]") from err
+        try:
+            self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
+        except ValueError as err:
+            invalid_dtypes = ",".join([str(x) for x in typlist])
+            raise ValueError(f"cannot convert stata dtypes [{invalid_dtypes}]") from err
+        if self.format_version > 108:
+            self.varlist = [
+                self._decode(self.path_or_buf.read(33)) for _ in range(self.nvar)
+            ]
+        else:
+            self.varlist = [
+                self._decode(self.path_or_buf.read(9)) for _ in range(self.nvar)
+            ]
 
     def _setup_dtype(self) -> np.dtype:
         """Map between numpy and state dtypes"""
@@ -1556,10 +1521,8 @@ the string values returned are correct."""
         self.value_label_dict = {}
 
         while True:
-            if self.format_version >= 117:
-                if self.path_or_buf.read(5) == b"</val":  # <lbl>
-                    break  # end of value label table
-
+            if self.format_version >= 117 and self.path_or_buf.read(5) == b"</val":  # <lbl>:
+                break  # end of value label table
             slength = self.path_or_buf.read(4)
             if not slength:
                 break  # end of value label table (format < 117)
@@ -1663,23 +1626,7 @@ the string values returned are correct."""
             return DataFrame(columns=self.varlist)
 
         # Handle options
-        if convert_dates is None:
-            convert_dates = self._convert_dates
-        if convert_categoricals is None:
-            convert_categoricals = self._convert_categoricals
-        if convert_missing is None:
-            convert_missing = self._convert_missing
-        if preserve_dtypes is None:
-            preserve_dtypes = self._preserve_dtypes
-        if columns is None:
-            columns = self._columns
-        if order_categoricals is None:
-            order_categoricals = self._order_categoricals
-        if index_col is None:
-            index_col = self._index_col
-
-        if nrows is None:
-            nrows = self.nobs
+        self._read_option_handler()
 
         if (self.format_version >= 117) and (not self._value_labels_read):
             self._can_read_value_labels = True
@@ -1725,7 +1672,7 @@ the string values returned are correct."""
         # If index is not specified, use actual row number rather than
         # restarting at 0 for each chunk.
         if index_col is None:
-            rng = range(self._lines_read - read_lines, self._lines_read)
+            rng = np.arange(self._lines_read - read_lines, self._lines_read)
             data.index = Index(rng)  # set attr instead of set_index to avoid copy
 
         if columns is not None:
@@ -1808,6 +1755,24 @@ the string values returned are correct."""
             data = data.set_index(data.pop(index_col))
 
         return data
+
+    def _read_option_handler(self):
+        if convert_dates is None:
+            convert_dates = self._convert_dates
+        if convert_categoricals is None:
+            convert_categoricals = self._convert_categoricals
+        if convert_missing is None:
+            convert_missing = self._convert_missing
+        if preserve_dtypes is None:
+            preserve_dtypes = self._preserve_dtypes
+        if columns is None:
+            columns = self._columns
+        if order_categoricals is None:
+            order_categoricals = self._order_categoricals
+        if index_col is None:
+            index_col = self._index_col
+        if nrows is None:
+            nrows = self.nobs
 
     def _do_convert_missing(self, data: DataFrame, convert_missing: bool) -> DataFrame:
         # Check for missing values, and replace if found
