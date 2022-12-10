@@ -406,6 +406,10 @@ Other API changes
 - Files are now closed when encountering an exception in :func:`read_json` (:issue:`49921`)
 - Changed behavior of :func:`read_csv`, :func:`read_json` & :func:`read_fwf`, where the index will now always be a :class:`RangeIndex`, when no index is specified. Previously the index would be a :class:`Index` with dtype ``object`` if the new DataFrame/Series has length 0 (:issue:`49572`)
 - :meth:`DataFrame.values`, :meth:`DataFrame.to_numpy`, :meth:`DataFrame.xs`, :meth:`DataFrame.reindex`, :meth:`DataFrame.fillna`, and :meth:`DataFrame.replace` no longer silently consolidate the underlying arrays; do ``df = df.copy()`` to ensure consolidation (:issue:`49356`)
+- Creating a new DataFrame using a full slice on both axes with :attr:`~DataFrame.loc`
+  or :attr:`~DataFrame.iloc` (thus, ``df.loc[:, :]`` or ``df.iloc[:, :]``) now returns a
+  new DataFrame (shallow copy) instead of the original DataFrame, consistent with other
+  methods to get a full slice (for example ``df.loc[:]`` or ``df[:]``) (:issue:`49469`)
 -
 
 .. ---------------------------------------------------------------------------
