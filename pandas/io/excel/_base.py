@@ -4,6 +4,7 @@ import abc
 import datetime
 from functools import partial
 from io import BytesIO
+from decimal import Decimal
 import os
 from textwrap import fill
 from types import TracebackType
@@ -50,6 +51,7 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_float,
     is_integer,
+    is_decimal,
     is_list_like,
 )
 
@@ -1368,6 +1370,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             val = int(val)
         elif is_float(val):
             val = float(val)
+        elif is_decimal(val):
+            val = Decimal(val)
         elif is_bool(val):
             val = bool(val)
         elif isinstance(val, datetime.datetime):
