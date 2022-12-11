@@ -154,6 +154,7 @@ def validate_argsort_with_ascending(ascending: bool | int | None, args, kwargs) 
     'None', so check if the 'ascending' parameter has either integer type or is
     None, since 'ascending' itself should be a boolean
     """
+    ascend = False
     if is_integer(ascending) or ascending is None:
         args = (ascending,) + args
         ascend = True
