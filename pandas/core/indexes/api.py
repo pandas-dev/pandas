@@ -222,7 +222,7 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
     if len(indexes) == 1:
         result = indexes[0]
         if isinstance(result, list):
-            result = Index(sorted(result))
+            result = Index(result)
         return result
 
     indexes, kind = _sanitize_and_check(indexes)

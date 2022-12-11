@@ -382,3 +382,12 @@ class TestDataFrameMisc:
         df = DataFrame()
         with tm.assert_produces_warning(None):
             inspect.getmembers(df)
+
+
+    def test_dict_key_order_single_col(self):
+        # GH 49233
+        df1 = pd.DataFrame({"a":{"b":1, "c":2, "d":3}})
+        assert df1.iloc[0]['a'] == 1 and df1.iloc[1]['a'] == 2 and df1.iloc[2]['a'] == 3
+
+        df2 = pd.DataFrame({"a":{"c":2, "d":3, "b":1}})
+        assert df2.iloc[0]['a'] == 2 and df2.iloc[1]['a'] == 3 and df2.iloc[2]['a'] == 1
