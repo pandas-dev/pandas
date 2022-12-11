@@ -46,7 +46,6 @@ xarray
 xlrd
 xlsxwriter
 zstandard
-aiobotocore<2.0.0
 botocore
 cftime
 dask
