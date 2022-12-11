@@ -987,7 +987,7 @@ class StylerRenderer:
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -1202,7 +1202,7 @@ class StylerRenderer:
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
@@ -1365,7 +1365,7 @@ class StylerRenderer:
 
         Returns
         -------
-        self : Styler
+        Styler
 
         See Also
         --------
