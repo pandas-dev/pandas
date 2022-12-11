@@ -2142,8 +2142,8 @@ class Styler(StylerRenderer):
 
         self.hide_index_names = styles.get("hide_index_names", False)
         self.hide_column_names = styles.get("hide_column_names", False)
-        if styles.get("css"):
-            self.css = styles.get("css")  # type: ignore[assignment]
+        if css := styles.get("css"):
+            self.css = css
         return self
 
     def set_uuid(self, uuid: str) -> Styler:
