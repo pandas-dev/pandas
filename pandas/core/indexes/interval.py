@@ -572,7 +572,7 @@ class IntervalIndex(ExtensionIndex):
     def _maybe_convert_numeric_to_64bit(self, idx: Index) -> Index:
         # IntervalTree only supports 64 bit numpy array
         dtype = idx.dtype
-        if np.issubclass_(idx.dtype.type, np.number):
+        if np.issubclass_(dtype.type, np.number):
             return idx
         elif is_signed_integer_dtype(dtype) and dtype != np.int64:
             return idx.astype(np.int64)
