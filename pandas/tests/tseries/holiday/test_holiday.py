@@ -193,6 +193,13 @@ def test_holidays_within_dates(holiday, start, expected):
         holiday.dates(utc.localize(Timestamp(start)), utc.localize(Timestamp(start)))
     ) == [utc.localize(dt) for dt in expected]
 
+    
+def test_holidays_outside_dates():
+    hol = Holiday("Dec 25", month=12, day=25, observance=next_monday, days_of_week=(5, 6),
+                  end_date=Timestamp("2013-01-01"))
+    expected = hol.dates(Timestamp("2010-01-01"), Timestamp("2023-01-01"))
+    assert(isinstance(hol.dates(Timestamp("2020-01-01"), Timestamp("2023-01-01")), type(expected)))
+    
 
 @pytest.mark.parametrize(
     "transform", [lambda x: x.strftime("%Y-%m-%d"), lambda x: Timestamp(x)]
