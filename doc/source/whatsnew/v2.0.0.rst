@@ -181,7 +181,7 @@ the appropriate rows. Also, when ``n`` is larger than the group, no rows instead
     
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous versions, an error occured if the :meth:`dates` method is ran for a date range.
+In previous versions, an error occurred if the :meth:`dates` method is ran for a date range.
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.api_breaking:
