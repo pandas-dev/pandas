@@ -1116,7 +1116,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        repeated_index : %(klass)s
+        %(klass)s
             Newly created %(klass)s with repeated elements.
 
         See Also
@@ -2755,7 +2755,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        deduplicated : Index
+        Index
 
         See Also
         --------
@@ -3128,7 +3128,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        intersection : Index
+        Index
 
         Examples
         --------
@@ -5943,7 +5943,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        applied : Union[Index, MultiIndex], inferred
+        Union[Index, MultiIndex]
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
@@ -6422,7 +6422,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        new_index : Index
+        Index
         """
         item = lib.item_from_zerodim(item)
         if is_valid_na_for_dtype(item, self.dtype) and self.dtype != object:
@@ -6482,7 +6482,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        dropped : Index
+        Index
             Will be same type as self, except for RangeIndex.
 
         Raises
