@@ -25,14 +25,13 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`.Styler.to_excel` leading to error when unrecognized ``border-style`` (e.g. ``"hair"``) provided to Excel writers (:issue:`48649`)
-- Bug in :meth:`.Timestamp.floor` fixed tz_localize so 'ambiguous' parameter can only be True, False, 'NaT' or 'raise' and all other invalid arguments to ambiguous have same error, including 'infer' (:issue:`49565`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_153.other:
 
 Other
 ~~~~~
-- Modified test cases in test_timezones.py to reflect new error message from bug fix for bug: (:issue:`49565`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -40,6 +39,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
-- Julia Chaker Aoun
 
 .. contributors:: v1.5.2..v1.5.3|HEAD
