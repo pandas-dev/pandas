@@ -32,7 +32,6 @@ numba>=0.53.1
 numexpr>=2.8.0
 openpyxl
 odfpy
-pandas-gbq
 py
 psycopg2-binary
 pyarrow<10
