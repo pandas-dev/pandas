@@ -275,7 +275,7 @@ class Holiday:
                     np.in1d(holiday_dates.dayofweek, self.days_of_week)
                 ]
             else:
-                holiday_dates = date_range(start_date, end_date)
+                holiday_dates = date_range(start=start_date, end=end_date)
 
         if self.start_date is not None:
             filter_start_date = max(

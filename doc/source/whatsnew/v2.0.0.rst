@@ -179,10 +179,6 @@ the appropriate rows. Also, when ``n`` is larger than the group, no rows instead
 
     gb.nth(n=3, dropna="any")
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In previous versions, an error occurred if the :meth:`dates` method is ran for a date range.
-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.api_breaking:
 
@@ -721,7 +717,7 @@ Timezones
 ^^^^^^^^^
 - Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` with object-dtype containing multiple timezone-aware ``datetime`` objects with heterogeneous timezones to a :class:`DatetimeTZDtype` incorrectly raising (:issue:`32581`)
 - Bug in :func:`to_datetime` was failing to parse date strings with timezone name when ``format`` was specified with ``%Z`` (:issue:`49748`)
--
+- Bug in :meth:`dates` was trying to access an DatetimeIndex attribute on an Index object when holiday landed outside of date range provided (:issue:`49925`)
 
 Numeric
 ^^^^^^^
