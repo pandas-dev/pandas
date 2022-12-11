@@ -198,7 +198,7 @@ tried to access a DateTimeIndex attribute on an Index object (:issue:`49925`).
   File "C:\Users\marco\anaconda3\envs\pandas\Lib\site-packages\pandas\tseries\holiday.py", line 274, in dates
     np.in1d(holiday_dates.dayofweek, self.days_of_week)
             ^^^^^^^^^^^^^^^^^^^^^^^
-            AttributeError: 'Index' object has no attribute 'dayofweek'
+ AttributeError: 'Index' object has no attribute 'dayofweek'
 
 *New Behavior*
 
