@@ -1,5 +1,6 @@
-import numpy as np
 import math
+
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -158,8 +159,7 @@ def test_indices_with_missing():
 
 def test_categorical_nan_no_dropna():
     # GH 50100
-    df = DataFrame.from_dict({"a": pd.Categorical([np.nan]),
-                                "b": [1]})
+    df = DataFrame.from_dict({"a": pd.Categorical([np.nan]), "b": [1]})
     g = df.groupby(["a", "b"], dropna=False)
     ng = g.ngroup()
     result = ng.iloc[0]
