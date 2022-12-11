@@ -413,11 +413,19 @@ class Apply(metaclass=abc.ABCMeta):
                 keys_to_use = ktu
 
             axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
-            result = concat(
-                {k: results[k] for k in keys_to_use},
-                axis=axis,
-                keys=keys_to_use,
-            )
+
+            # GH 48581 - Adding consistency to empty agg types
+            if not results:
+                # return empty DataFrame if results is empty, following pattern
+                # empty list and tuple
+                from pandas import DataFrame
+
+                result = DataFrame()
+            else:
+                result = concat(
+                    {k: results[k] for k in keys_to_use}, axis=axis, keys=keys_to_use
+                )
+
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars
             raise ValueError(

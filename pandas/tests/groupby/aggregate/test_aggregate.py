@@ -1443,3 +1443,12 @@ def test_agg_of_mode_list(test, constant):
     expected = expected.set_index(0)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_empty_container_consistency():
+    df = pd.DataFrame(data={"a": [1, 2], "b": [3, 4], "c": [5, 6]})
+    dict_result = df.groupby("a").agg({})
+
+    expected = DataFrame()
+
+    tm.assert_frame_equal(dict_result, expected)
