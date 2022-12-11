@@ -270,9 +270,12 @@ class Holiday:
         dates = self._reference_dates(start_date, end_date)
         holiday_dates = self._apply_rule(dates)
         if self.days_of_week is not None:
-            holiday_dates = holiday_dates[
-                np.in1d(holiday_dates.dayofweek, self.days_of_week)
-            ]
+            if len(holiday_dates) != 0:
+                holiday_dates = holiday_dates[
+                    np.in1d(holiday_dates.dayofweek, self.days_of_week)
+                ]
+            else:
+                holiday_dates = date_range(start_date, end_date)
 
         if self.start_date is not None:
             filter_start_date = max(
