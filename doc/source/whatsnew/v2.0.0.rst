@@ -178,7 +178,7 @@ the appropriate rows. Also, when ``n`` is larger than the group, no rows instead
 .. ipython:: python
 
     gb.nth(n=3, dropna="any")
-    
+
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In previous versions, an error occurred if the :meth:`dates` method is ran for a date range.
