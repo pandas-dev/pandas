@@ -16,7 +16,6 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -334,6 +333,7 @@ def test_apply_series_to_frame():
     result = grouped.apply(f)
 
     assert isinstance(result, DataFrame)
+    assert not hasattr(result, "name")  # GH49907
     tm.assert_index_equal(result.index, ts.index)
 
 
@@ -798,11 +798,9 @@ def test_apply_with_mixed_types():
 
 def test_func_returns_object():
     # GH 28652
-    df = DataFrame({"a": [1, 2]}, index=Int64Index([1, 2]))
+    df = DataFrame({"a": [1, 2]}, index=Index([1, 2]))
     result = df.groupby("a").apply(lambda g: g.index)
-    expected = Series(
-        [Int64Index([1]), Int64Index([2])], index=Int64Index([1, 2], name="a")
-    )
+    expected = Series([Index([1]), Index([2])], index=Index([1, 2], name="a"))
 
     tm.assert_series_equal(result, expected)
 

@@ -338,7 +338,22 @@ Writing tests
 
 All tests should go into the ``tests`` subdirectory of the specific package.
 This folder contains many current examples of tests, and we suggest looking to these for
-inspiration. Ideally, there should be one, and only one, obvious place for a test to reside.
+inspiration.
+
+As a general tip, you can use the search functionality in your integrated development
+environment (IDE) or the git grep command in a terminal to find test files in which the method
+is called. If you are unsure of the best location to put your test, take your best guess,
+but note that reviewers may request that you move the test to a different location.
+
+To use git grep, you can run the following command in a terminal:
+
+``git grep "function_name("``
+
+This will search through all files in your repository for the text ``function_name(``.
+This can be a useful way to quickly locate the function in the
+codebase and determine the best location to add a test for it.
+
+Ideally, there should be one, and only one, obvious place for a test to reside.
 Until we reach that ideal, these are some rules of thumb for where a test should
 be located.
 
@@ -776,6 +791,14 @@ The tests can then be run directly inside your Git clone (without having to
 install pandas) by typing::
 
     pytest pandas
+
+.. note::
+
+    If a handful of tests don't pass, it may not be an issue with your pandas installation.
+    Some tests (e.g. some SQLAlchemy ones) require additional setup, others might start
+    failing because a non-pinned library released a new version, and others might be flaky
+    if run in parallel. As long as you can import pandas from your locally built version,
+    your installation is probably fine and you can start contributing!
 
 Often it is worth running only a subset of tests first around your changes before running the
 entire suite.

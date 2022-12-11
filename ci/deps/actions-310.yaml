@@ -4,8 +4,11 @@ channels:
 dependencies:
   - python=3.10
 
-  # test dependencies
+  # build dependencies
+  - versioneer[toml]
   - cython>=0.29.32
+
+  # test dependencies
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
@@ -39,7 +42,7 @@ dependencies:
   - psycopg2
   - pymysql
   - pytables
-  - pyarrow
+  - pyarrow<10
   - pyreadstat
   - python-snappy
   - pyxlsb

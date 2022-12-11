@@ -55,7 +55,6 @@ from pandas.arrays import (
     SparseArray,
     TimedeltaArray,
 )
-from pandas.core.api import Int64Index
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [
@@ -194,13 +193,11 @@ class TestDataFrameConstructors:
         [
             lambda: DataFrame(),
             lambda: DataFrame(None),
-            lambda: DataFrame({}),
             lambda: DataFrame(()),
             lambda: DataFrame([]),
             lambda: DataFrame(_ for _ in []),
             lambda: DataFrame(range(0)),
             lambda: DataFrame(data=None),
-            lambda: DataFrame(data={}),
             lambda: DataFrame(data=()),
             lambda: DataFrame(data=[]),
             lambda: DataFrame(data=(_ for _ in [])),
@@ -213,6 +210,20 @@ class TestDataFrameConstructors:
         assert len(result.index) == 0
         assert len(result.columns) == 0
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "constructor",
+        [
+            lambda: DataFrame({}),
+            lambda: DataFrame(data={}),
+        ],
+    )
+    def test_empty_constructor_object_index(self, constructor):
+        expected = DataFrame(columns=Index([]))
+        result = constructor()
+        assert len(result.index) == 0
+        assert len(result.columns) == 0
+        tm.assert_frame_equal(result, expected, check_index_type=True)
 
     @pytest.mark.parametrize(
         "emptylike,expected_index,expected_columns",
@@ -626,7 +637,7 @@ class TestDataFrameConstructors:
         df = DataFrame([[1]], columns=[[1]], index=[1, 2])
         expected = DataFrame(
             [1, 1],
-            index=Int64Index([1, 2], dtype="int64"),
+            index=Index([1, 2], dtype="int64"),
             columns=MultiIndex(levels=[[1]], codes=[[0]]),
         )
         tm.assert_frame_equal(df, expected)
@@ -870,12 +881,7 @@ class TestDataFrameConstructors:
             index=[Timedelta(td, "D") for td in td_as_int],
         )
 
-        if name == "Timedelta[s]":
-            # TODO(2.0): passing index here shouldn't be necessary, is for now
-            #  otherwise we raise in _extract_index
-            result = DataFrame(data, index=expected.index)
-        else:
-            result = DataFrame(data)
+        result = DataFrame(data)
 
         tm.assert_frame_equal(result, expected)
 
@@ -1397,7 +1403,17 @@ class TestDataFrameConstructors:
     def test_constructor_list_of_dicts(self):
 
         result = DataFrame([{}])
-        expected = DataFrame(index=[0])
+        expected = DataFrame(index=RangeIndex(1), columns=[])
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_ordered_dict_nested_preserve_order(self):
+        # see gh-18166
+        nested1 = OrderedDict([("b", 1), ("a", 2)])
+        nested2 = OrderedDict([("b", 2), ("a", 5)])
+        data = OrderedDict([("col2", nested1), ("col1", nested2)])
+        result = DataFrame(data)
+        data = {"col2": [1, 2], "col1": [2, 5]}
+        expected = DataFrame(data=data, index=["b", "a"])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dict_type", [dict, OrderedDict])
@@ -1758,7 +1774,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_empty_with_string_extension(self, nullable_string_dtype):
         # GH 34915
-        expected = DataFrame(index=[], columns=["c1"], dtype=nullable_string_dtype)
+        expected = DataFrame(columns=["c1"], dtype=nullable_string_dtype)
         df = DataFrame(columns=["c1"], dtype=nullable_string_dtype)
         tm.assert_frame_equal(df, expected)
 
@@ -1960,19 +1976,11 @@ class TestDataFrameConstructors:
 
     @pytest.mark.parametrize("order", ["K", "A", "C", "F"])
     @pytest.mark.parametrize(
-        "dtype",
-        [
-            "datetime64[M]",
-            "datetime64[D]",
-            "datetime64[h]",
-            "datetime64[m]",
-            "datetime64[s]",
-            "datetime64[ms]",
-            "datetime64[us]",
-            "datetime64[ns]",
-        ],
+        "unit",
+        ["M", "D", "h", "m", "s", "ms", "us", "ns"],
     )
-    def test_constructor_datetimes_non_ns(self, order, dtype):
+    def test_constructor_datetimes_non_ns(self, order, unit):
+        dtype = f"datetime64[{unit}]"
         na = np.array(
             [
                 ["2015-01-01", "2015-01-02", "2015-01-03"],
@@ -1982,13 +1990,16 @@ class TestDataFrameConstructors:
             order=order,
         )
         df = DataFrame(na)
-        expected = DataFrame(
-            [
-                ["2015-01-01", "2015-01-02", "2015-01-03"],
-                ["2017-01-01", "2017-01-02", "2017-02-03"],
-            ]
-        )
-        expected = expected.astype(dtype=dtype)
+        expected = DataFrame(na.astype("M8[ns]"))
+        if unit in ["M", "D", "h", "m"]:
+            with pytest.raises(TypeError, match="Cannot cast"):
+                expected.astype(dtype)
+
+            # instead the constructor casts to the closest supported reso, i.e. "s"
+            expected = expected.astype("datetime64[s]")
+        else:
+            expected = expected.astype(dtype=dtype)
+
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("order", ["K", "A", "C", "F"])
@@ -3031,10 +3042,10 @@ class TestFromScalar:
         "but DatetimeArray._from_sequence has not"
     )
     @pytest.mark.parametrize("cls", [datetime, np.datetime64])
-    def test_from_out_of_ns_bounds_datetime(self, constructor, cls, request):
+    def test_from_out_of_bounds_ns_datetime(self, constructor, cls):
         # scalar that won't fit in nanosecond dt64, but will fit in microsecond
         scalar = datetime(9999, 1, 1)
-        exp_dtype = "M8[us]"  # smallest reso that fits
+        exp_dtype = "M8[us]"  # pydatetime objects default to this reso
         if cls is np.datetime64:
             scalar = np.datetime64(scalar, "D")
             exp_dtype = "M8[s]"  # closest reso to input
@@ -3076,11 +3087,12 @@ class TestFromScalar:
         assert item.asm8.dtype == exp_dtype
         assert dtype == exp_dtype
 
-    def test_out_of_s_bounds_timedelta64(self, constructor):
-        scalar = np.timedelta64(np.iinfo(np.int64).max, "D")
+    @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
+    def test_out_of_s_bounds_timedelta64(self, constructor, cls):
+        scalar = cls(np.iinfo(np.int64).max, "D")
         result = constructor(scalar)
         item = get1(result)
-        assert type(item) is np.timedelta64
+        assert type(item) is cls
         dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
         assert dtype == object
 
@@ -3139,12 +3151,6 @@ class TestAllowNonNano:
         df = DataFrame(arr)
         assert df.dtypes[0] == arr.dtype
 
-    @pytest.mark.xfail(
-        # TODO(2.0): xfail should become unnecessary
-        strict=False,
-        reason="stack_arrays converts TDA to ndarray, then goes "
-        "through ensure_wrapped_if_datetimelike",
-    )
     def test_frame_from_dict_allow_non_nano(self, arr):
         df = DataFrame({0: arr})
         assert df.dtypes[0] == arr.dtype
