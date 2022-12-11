@@ -1449,6 +1449,8 @@ class TestDataFrameIndexing:
             names=["a", "b"],
         )
         df = DataFrame({"c": [1, 2, 3, 4]}, index=midx)
+        df.sort_index()
+
         result = df.loc[indexer]
         expected = DataFrame(
             {"c": [1, 2]}, index=Index([True, False], name="b", dtype=dtype)
