@@ -3643,7 +3643,7 @@ cdef class CustomBusinessHour(BusinessHour):
 
     Examples
     --------
-    In the example below the default parameters give as the next business hour.
+    In the example below the default parameters give the next business hour.
 
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
     >>> ts + pd.offsets.CustomBusinessHour()
