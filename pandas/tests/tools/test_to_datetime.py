@@ -1637,7 +1637,7 @@ class TestToDatetimeUnit:
         should_succeed = Series(
             [0, tsmax_in_years - 0.05, -tsmax_in_years + 0.05], dtype=float
         )
-        expected = should_succeed * oneyear_in_ns
+        expected = (should_succeed * oneyear_in_ns).astype(np.int64)
         for error_mode in ["raise", "coerce", "ignore"]:
             result1 = to_datetime(should_succeed, unit="Y", errors=error_mode)
             tm.assert_almost_equal(result1.astype(np.int64), expected, rtol=1e-10)
