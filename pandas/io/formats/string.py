@@ -191,6 +191,9 @@ class StringFormatter:
         strcols = self._get_strcols()
         return self.adj.adjoin(1, *strcols)
 
+    def _string_as_repr(self, data):
+        return data.apply(repr)
+
 
 def _binify(cols: list[int], line_width: int) -> list[int]:
     adjoin_width = 1
@@ -210,3 +213,4 @@ def _binify(cols: list[int], line_width: int) -> list[int]:
 
     bins.append(len(cols))
     return bins
+
