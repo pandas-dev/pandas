@@ -471,7 +471,7 @@ class TestGetitemBooleanMask:
         ser = Series(dti._data)
 
         res = ser[key]
-        assert res._values._data.base is None
+        assert res._values._ndarray.base is None
 
         # compare with numeric case for reference
         ser2 = Series(range(4))
