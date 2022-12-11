@@ -1630,25 +1630,24 @@ class TestToDatetimeUnit:
         tm.assert_index_equal(result, expected)
 
     def test_float_to_datetime_raise_near_bounds(self):
-        mag="cannot convert input with unit 'Y'"
+        msg = "cannot convert input with unit 'Y'"
         oneyear_in_ns = 1e9 * 60 * 60 * 24 * 365.2425
-        tsmax_in_years = 2**63 / oneyear_in_ns # 2**63 ns, in years
+        tsmax_in_years = 2**63 / oneyear_in_ns  # 2**63 ns, in years
         should_succeed = Series(
-            [0, tsmax_in_years - 0.05, -tsmax_in_years + 0.05],
-            dtype=float
+            [0, tsmax_in_years - 0.05, -tsmax_in_years + 0.05], dtype=float
         )
         should_fail1 = Series([0, tsmax_in_years + 0.05], dtype=float)
         should_fail2 = Series([0, -tsmax_in_years - 0.05], dtype=float)
 
-        result1=to_datetime(should_succeed, unit="Y", errors='raise')
-        result2=to_datetime(should_succeed, unit="Y", errors='coerce')
-        result3=to_datetime(should_succeed, unit="Y", errors='ignore')
+        result1 = to_datetime(should_succeed, unit="Y", errors="raise")
+        result2 = to_datetime(should_succeed, unit="Y", errors="coerce")
+        result3 = to_datetime(should_succeed, unit="Y", errors="ignore")
         tm.assert_series_equal(result1, result2)
         tm.assert_series_equal(result1, result3)
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            to_datetime(should_fail1, unit="Y", errors='raise')
+            to_datetime(should_fail1, unit="Y", errors="raise")
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            to_datetime(should_fail2, unit="Y", errors='raise')
+            to_datetime(should_fail2, unit="Y", errors="raise")
 
 
 class TestToDatetimeDataFrame:
