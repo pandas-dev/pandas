@@ -178,6 +178,37 @@ the appropriate rows. Also, when ``n`` is larger than the group, no rows instead
 .. ipython:: python
 
     gb.nth(n=3, dropna="any")
+    
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions, an error occured if the :meth:`dates` method is ran for a date range 
+outside of the holiday's start_date/end_date. The problem arised because the method
+tried to access a DateTimeIndex attribute on an Index object (:issue:`49925`).
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [1]: from pandas import Timestamp as T
+    In [2]: from pandas.tseries.holiday import Holiday, next_monday
+    In [3]: hol = Holiday("Dec 25", month=12, day=25, observance=next_monday, days_of_week=(5, 6), end_date=T("2013-01-01"))
+    In [4]: hol.dates(pd.Timestamp("2020-01-01"), pd.Timestamp("2023-01-01"))
+    Out[5]: Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "C:\Users\marco\anaconda3\envs\pandas\Lib\site-packages\pandas\tseries\holiday.py", line 274, in dates
+    np.in1d(holiday_dates.dayofweek, self.days_of_week)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Index' object has no attribute 'dayofweek'
+
+*New Behavior*
+
+.. code-block:: python
+
+    In [1]: from pandas import Timestamp as T
+    In [2]: from pandas.tseries.holiday import Holiday, next_monday
+    In [3]: hol = Holiday("Dec 25", month=12, day=25, observance=next_monday, days_of_week=(5, 6), end_date=T("2013-01-01"))
+    In [4]: hol.dates(pd.Timestamp("2020-01-01"), pd.Timestamp("2023-01-01"))
+    Out[5]: DatetimeIndex([], dtype='datetime64[ns]', freq='D')
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.api_breaking:
