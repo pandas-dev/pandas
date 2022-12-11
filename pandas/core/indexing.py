@@ -1483,6 +1483,8 @@ class _iLocIndexer(_LocationIndexer):
         elif is_list_like_indexer(key):
             if isinstance(key, ABCSeries):
                 arr = key._values
+            elif is_array_like(key):
+                arr = key
             else:
                 arr = np.array(key)
             len_axis = len(self.obj._get_axis(axis))
