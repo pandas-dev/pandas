@@ -2848,7 +2848,6 @@ def test_groupby_on_column_drops_na():
         {"a": [np.nan, "foo", "bar", np.nan, np.nan, "baz"], "b": [0, 1, 2, 3, 4, 5]}
     )
     result = df.groupby("a").head(1)
-    expected = DataFrame({"a": ["foo", "bar", "baz"], "b": [1, 2, 5]})
-    expected.index = [1, 2, 5]
+    expected = DataFrame({"a": ["foo", "bar", "baz"], "b": [1, 2, 5]}, index=[1, 2, 5])
 
     tm.assert_frame_equal(result, expected)
