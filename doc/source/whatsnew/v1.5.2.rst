@@ -29,7 +29,6 @@ Bug fixes
 ~~~~~~~~~
 - Bug in the Copy-on-Write implementation losing track of views in certain chained indexing cases (:issue:`48996`)
 - Fixed memory leak in :meth:`.Styler.to_excel` (:issue:`49751`)
-- Fixed bug when instantiating a :class:`DataFrame` subclass inheriting from ``typing.Generic`` that triggered a ``UserWarning`` on python 3.11 (:issue:`49649`)
 -
 
 .. ---------------------------------------------------------------------------
