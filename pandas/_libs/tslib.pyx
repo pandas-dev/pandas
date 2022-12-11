@@ -294,12 +294,20 @@ def array_with_unit_to_datetime(
         # if we have nulls that are not type-compat
         # then need to iterate
 
-        if values.dtype.kind in ["i", "f", "u"]:
+        if values.dtype.kind in ["i", "u"]:
             iresult = values.astype("i8", copy=False)
             # fill missing values by comparing to NPY_NAT
             mask = iresult == NPY_NAT
             iresult[mask] = 0
+            # for bounds checking, which can't use (integer) iresult * mult
+            # because it needs arithmetic overflow to not wrap around
             fvalues = iresult.astype("f8") * mult
+            need_to_iterate = False
+
+        if values.dtype.kind in ["f",]:
+            mask = (values != values) | (values == NPY_NAT) # first is NaNs
+            fvalues = (values * mult).astype("f8")
+            fvalues[mask] = 0
             need_to_iterate = False
 
         if not need_to_iterate:
@@ -313,11 +321,9 @@ def array_with_unit_to_datetime(
                 result = (iresult * mult).astype("M8[ns]")
 
             elif values.dtype.kind == "f":
-                fresult = (values * mult).astype("f8")
-                fresult[mask] = 0
                 if prec:
-                    fresult = round(fresult, prec)
-                result = fresult.astype("M8[ns]", copy=False)
+                    fvalues = round(fvalues, prec)
+                result = fvalues.astype("M8[ns]", copy=False)
 
             iresult = result.view("i8")
             iresult[mask] = NPY_NAT
