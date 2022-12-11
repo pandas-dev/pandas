@@ -3256,8 +3256,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             dtype: type
             if self.grouper.has_dropped_na:
-                comp_ids = np.where(comp_ids == -1, np.nan, comp_ids)
-                dtype = np.float64
+                if self.grouper.dropna:
+                    comp_ids = np.where(comp_ids == -1, np.nan, comp_ids)
+                    dtype = np.float64
+                else:
+                    comp_ids = np.where(comp_ids == -1, len(comp_ids) - 1, comp_ids)
+                    dtype = np.int64
             else:
                 dtype = np.int64
 

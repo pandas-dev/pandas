@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import pytest
 
 import pandas as pd
@@ -163,5 +164,5 @@ def test_categorical_nan_no_dropna():
     ng = g.ngroup()
     result = ng.iloc[0]
     expected = 0
-    assert isinstance(result, int)
+    assert not math.isnan(result)
     assert result == expected
