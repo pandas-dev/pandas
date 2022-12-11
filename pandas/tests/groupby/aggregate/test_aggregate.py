@@ -1446,7 +1446,7 @@ def test_agg_of_mode_list(test, constant):
 
 
 def test_empty_container_consistency():
-    df = pd.DataFrame(data={"a": [1, 2], "b": [3, 4], "c": [5, 6]})
+    df = DataFrame(data={"a": [1, 2], "b": [3, 4], "c": [5, 6]})
     dict_result = df.groupby("a").agg({})
 
     expected = DataFrame()
