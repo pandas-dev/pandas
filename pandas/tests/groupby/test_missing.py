@@ -153,3 +153,15 @@ def test_indices_with_missing():
     result = g.indices
     expected = {(1.0, 2): np.array([0]), (1.0, 3): np.array([1])}
     assert result == expected
+
+
+def test_categorical_nan_no_dropna():
+    # GH 50100
+    df = DataFrame.from_dict({"a": pd.Categorical([np.nan]),
+                                "b": [1]})
+    g = df.groupby(["a", "b"], dropna=False)
+    ng = g.ngroup()
+    result = ng.iloc[0]
+    expected = 0
+    assert isinstance(result, int)
+    assert result == expected
