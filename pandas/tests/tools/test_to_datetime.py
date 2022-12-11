@@ -1640,7 +1640,7 @@ class TestToDatetimeUnit:
         expected = should_succeed * oneyear_in_ns
         for error_mode in ["raise", "coerce", "ignore"]:
             result1 = to_datetime(should_succeed, unit="Y", errors=error_mode)
-            tm.assert_almost_equal(result1.astype(float), expected, rtol=1e-10)
+            tm.assert_almost_equal(result1.astype(np.int64), expected, rtol=1e-10)
         # just out of bounds
         should_fail1 = Series([0, tsmax_in_years + 0.05], dtype=float)
         should_fail2 = Series([0, -tsmax_in_years - 0.05], dtype=float)
