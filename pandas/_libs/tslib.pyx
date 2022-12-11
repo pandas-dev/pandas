@@ -305,7 +305,7 @@ def array_with_unit_to_datetime(
             need_to_iterate = False
 
         if values.dtype.kind in ["f",]:
-            mask = (values != values) | (values == NPY_NAT) # first is NaNs
+            mask = (values != values) | (values == NPY_NAT)  # first is NaNs
             fvalues = (values * mult).astype("f8")
             fvalues[mask] = 0
             need_to_iterate = False
