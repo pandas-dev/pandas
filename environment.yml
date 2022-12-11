@@ -93,6 +93,7 @@ dependencies:
   - pre-commit>=2.15.0
   - pycodestyle  # used by flake8
   - pyupgrade
+  - ruff=0.0.174
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew

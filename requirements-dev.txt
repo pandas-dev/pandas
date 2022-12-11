@@ -70,6 +70,7 @@ mypy==0.990
 pre-commit>=2.15.0
 pycodestyle
 pyupgrade
+ruff==0.0.174
 gitpython
 gitdb
 natsort

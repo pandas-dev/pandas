@@ -5,6 +5,10 @@ default_stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, pos
 ci:
     autofix_prs: false
 repos:
+-   repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.0.174
+    hooks:
+    -   id: ruff
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
     rev: v0.3.1
     hooks:
