@@ -357,7 +357,7 @@ Concretely:
 - the testing burden would be too high. Properly testing this would mean almost doubling the size of the test suite.
   Coverage for options already is not great: for example [this issue](https://github.com/pandas-dev/pandas/issues/49732)
   was caused by a PR which passed CI, but CI did not (and still does not) cover that option (plotting backends);
-- it will not benefit users, as users do not tend to use nor discover options which are not the default.
+- it will not benefit most users, as users do not tend to use nor discover options which are not the default.
 
 In order to make no-index the pandas default and have a chance of benefiting users, a more comprehensive set of changes
 would need to made at the same time. This would require a proposal much larger in scope, and would be a much more radical change.
