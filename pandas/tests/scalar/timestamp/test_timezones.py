@@ -6,6 +6,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import re
 
 import dateutil
 from dateutil.tz import (
@@ -102,7 +103,10 @@ class TestTimestampTZOperations:
         ts_no_dst = ts.tz_localize("US/Eastern", ambiguous=False)
 
         assert (ts_no_dst.value - ts_dst.value) / 1e9 == 3600
-        msg = "Cannot infer offset with only one time"
+        msg = re.escape(
+            "'ambiguous' parameter must be one of: "
+            "True, False, 'NaT', 'raise' (default)"
+        )
         with pytest.raises(ValueError, match=msg):
             ts.tz_localize("US/Eastern", ambiguous="infer")
 
@@ -182,8 +186,8 @@ class TestTimestampTZOperations:
 
         pytz_zone = "Europe/London"
         dateutil_zone = "dateutil/Europe/London"
-        result_pytz = naive.tz_localize(pytz_zone, ambiguous=0)
-        result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=0)
+        result_pytz = naive.tz_localize(pytz_zone, ambiguous=False)
+        result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=False)
         assert result_pytz.value == result_dateutil.value
         assert result_pytz.value == 1382835600000000000
 
@@ -194,8 +198,8 @@ class TestTimestampTZOperations:
         assert str(result_pytz) == str(result_dateutil)
 
         # 1 hour difference
-        result_pytz = naive.tz_localize(pytz_zone, ambiguous=1)
-        result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=1)
+        result_pytz = naive.tz_localize(pytz_zone, ambiguous=True)
+        result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=True)
         assert result_pytz.value == result_dateutil.value
         assert result_pytz.value == 1382832000000000000
 
@@ -357,7 +361,6 @@ class TestTimestampTZOperations:
 
     @td.skip_if_windows
     def test_tz_convert_utc_with_system_utc(self):
-
         # from system utc to real utc
         ts = Timestamp("2001-01-05 11:56", tz=timezones.maybe_get_tz("dateutil/UTC"))
         # check that the time hasn't changed.
