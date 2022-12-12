@@ -2579,12 +2579,9 @@ class Period(_Period):
 
             if dt is NaT:
                 ordinal = NPY_NAT
-                # Doesn't matter what this is, we just need to have it
-                # so that we don't error in block below. We get converted
-                # to NaT later on anyways
-                reso = "nanosecond"
 
-            if freq is None:
+            if freq is None and ordinal != NPY_NAT:
+                # Skip NaT, since it doesn't have a resolution
                 try:
                     freq = attrname_to_abbrevs[reso]
                 except KeyError:
