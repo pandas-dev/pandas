@@ -1429,6 +1429,10 @@ class TestLocBaseIndependent:
         expected = Series(categories, index=df.index, name="Alpha").astype(object)
         tm.assert_series_equal(result, expected)
 
+        # double-check that the non-loc setting retains categoricalness
+        df["Alpha"] = categories
+        tm.assert_series_equal(df["Alpha"], Series(categories, name="Alpha"))
+
     def test_loc_setitem_datetime_coercion(self):
         # GH#1048
         df = DataFrame({"c": [Timestamp("2010-10-01")] * 3})

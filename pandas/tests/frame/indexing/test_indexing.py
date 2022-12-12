@@ -556,15 +556,14 @@ class TestDataFrameIndexing:
 
         assert np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
 
+        sliced.loc[:, "C"] = 4.0
         if not using_copy_on_write:
-            sliced.loc[:, "C"] = 4.0
 
             assert (float_frame["C"] == 4).all()
 
             # with the enforcement of GH#45333 in 2.0, this remains a view
             np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
         else:
-            sliced.loc[:, "C"] = 4.0
             tm.assert_frame_equal(float_frame, original)
 
     def test_getitem_setitem_non_ix_labels(self):
@@ -1005,14 +1004,7 @@ class TestDataFrameIndexing:
         expected = df.reindex(df.index[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_row_slice_view(
-        self, using_array_manager, using_copy_on_write, request
-    ):
-        if using_array_manager:
-            mark = pytest.mark.xfail(
-                reason="Enforcement of GH#45333 causing the last assertion to fail"
-            )
-            request.node.add_marker(mark)
+    def test_iloc_row_slice_view(self, using_copy_on_write, request):
 
         df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
         original = df.copy()
@@ -1024,14 +1016,10 @@ class TestDataFrameIndexing:
         assert np.shares_memory(df[2], subset[2])
 
         exp_col = original[2].copy()
-        if using_copy_on_write:
+        subset.loc[:, 2] = 0.0
+        if not using_copy_on_write:
             subset.loc[:, 2] = 0.0
-        else:
-            subset.loc[:, 2] = 0.0
-
-            # TODO(ArrayManager) verify it is expected that the original didn't change
-            if not using_array_manager:
-                exp_col._values[4:8] = 0.0
+            exp_col._values[4:8] = 0.0
 
             # With the enforcement of GH#45333 in 2.0, this remains a view
             assert np.shares_memory(df[2], subset[2])

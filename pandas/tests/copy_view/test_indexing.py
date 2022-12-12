@@ -337,8 +337,6 @@ def test_subset_set_column_with_loc(using_copy_on_write, using_array_manager, dt
         subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
     else:
         with pd.option_context("chained_assignment", "warn"):
-            # The (i)loc[:, col] inplace deprecation gets triggered here, ignore those
-            # warnings and only assert the SettingWithCopyWarning
             with tm.assert_produces_warning(
                 None,
                 raise_on_extra_warnings=not using_array_manager,
@@ -373,8 +371,6 @@ def test_subset_set_column_with_loc2(using_copy_on_write, using_array_manager):
         subset.loc[:, "a"] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            # The (i)loc[:, col] inplace deprecation gets triggered here, ignore those
-            # warnings and only assert the SettingWithCopyWarning
             with tm.assert_produces_warning(
                 None,
                 raise_on_extra_warnings=not using_array_manager,
@@ -439,8 +435,6 @@ def test_subset_set_with_column_indexer(
         subset.loc[:, indexer] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            # The (i)loc[:, col] inplace deprecation gets triggered here, ignore those
-            # warnings and only assert the SettingWithCopyWarning
             # As of 2.0, this setitem attempts (successfully) to set values
             #  inplace, so the assignment is not chained.
             subset.loc[:, indexer] = 0
