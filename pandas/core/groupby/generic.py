@@ -496,7 +496,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Returns
         -------
-        filtered : Series
+        Series
 
         Notes
         -----
@@ -1498,7 +1498,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Returns
         -------
-        filtered : DataFrame
+        DataFrame
 
         Notes
         -----
