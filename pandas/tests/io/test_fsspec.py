@@ -150,7 +150,7 @@ def test_to_parquet_new_file(cleared_fs, df1):
     )
 
 
-@td.skip_if_no("pyarrow", min_version="2")
+@td.skip_if_no("pyarrow")
 def test_arrowparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df = DataFrame({"a": [0]})

@@ -148,7 +148,7 @@ Look,a snake,🐍"""
             assert result == data.encode("utf-8")
 
     # Test that pyarrow can handle a file opened with get_handle
-    @td.skip_if_no("pyarrow", min_version="0.15.0")
+    @td.skip_if_no("pyarrow")
     def test_get_handle_pyarrow_compat(self):
         from pyarrow import csv
 

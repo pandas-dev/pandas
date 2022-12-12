@@ -51,9 +51,7 @@ class BaseCastingTests(BaseExtensionTests):
         "nullable_string_dtype",
         [
             "string[python]",
-            pytest.param(
-                "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-            ),
+            pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
         ],
     )
     def test_astype_string(self, data, nullable_string_dtype):
