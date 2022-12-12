@@ -1253,8 +1253,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     for i, nb in enumerate(nbs_tup):
                         self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
                         self._blknos[nb.mgr_locs.indexer] = i + nr_blocks
-                    # blk.delete gives a copy, so we can remove a possible reference
-                    self._clear_reference_block(blkno_l)
 
         if len(removed_blknos):
             # Remove blocks & update blknos and refs accordingly

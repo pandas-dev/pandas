@@ -1872,7 +1872,7 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
         for idx in loc:
 
             if idx == previous_loc + 1:
-                # There is now column between current and last idx
+                # There is no column between current and last idx
                 pass
             else:
                 values = self.values[previous_loc + 1 : idx, :]
