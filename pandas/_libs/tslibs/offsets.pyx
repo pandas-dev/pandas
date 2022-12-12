@@ -3638,8 +3638,6 @@ cdef class CustomBusinessHour(BusinessHour):
         Start time of your custom business hour in 24h format.
     end : str, time, or list of str/time, default: "17:00"
         End time of your custom business hour in 24h format.
-    offset : timedelta, default timedelta(0)
-        Time offset to apply.
 
     Examples
     --------
@@ -3651,10 +3649,6 @@ cdef class CustomBusinessHour(BusinessHour):
 
     We can also change the start and the end of business hours.
 
-    >>> ts = pd.Timestamp(2022, 8, 5, 15)
-    >>> ts + pd.offsets.CustomBusinessHour(start="11:00")
-    Timestamp('2022-08-05 16:00:00')
-
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
     >>> ts + pd.offsets.CustomBusinessHour(start="11:00")
     Timestamp('2022-08-08 11:00:00')
@@ -3664,7 +3658,6 @@ cdef class CustomBusinessHour(BusinessHour):
     >>> ts + pd.offsets.CustomBusinessHour(end=dt_time(19, 0))
     Timestamp('2022-08-05 17:00:00')
 
-    >>> from datetime import time as dt_time
     >>> ts = pd.Timestamp(2022, 8, 5, 22)
     >>> ts + pd.offsets.CustomBusinessHour(end=dt_time(19, 0))
     Timestamp('2022-08-08 10:00:00')
@@ -3679,7 +3672,7 @@ cdef class CustomBusinessHour(BusinessHour):
     >>> pd.offsets.CustomBusinessHour(end="8:00")
     <CustomBusinessHour: CBH=09:00-08:00>
 
-    In the example below we devide our business day hours into several parts.
+    In the example below we divide our business day hours into several parts.
 
     >>> import datetime as dt
     >>> freq = pd.offsets.CustomBusinessHour(start=["06:00", "10:00", "15:00"],
@@ -3693,18 +3686,21 @@ cdef class CustomBusinessHour(BusinessHour):
                    '2022-12-12 15:00:00', '2022-12-12 16:00:00'],
                    dtype='datetime64[ns]', freq='CBH')
 
-    Business days can be specified by ``weekmask`` parameter.
+    Business days can be specified by ``weekmask`` parameter. To convert
+    the returned datetime object to its string representation
+    the function strftime() is used in the next example.
 
     >>> import datetime as dt
     >>> freq = pd.offsets.CustomBusinessHour(weekmask="Mon Wed Fri",
     ...                                      start="10:00", end="13:00")
-    >>> pd.date_range(dt.datetime(2022, 12, 10), dt.datetime(2022, 12, 18), freq=freq)
-    DatetimeIndex(['2022-12-12 10:00:00', '2022-12-12 11:00:00',
-                   '2022-12-12 12:00:00', '2022-12-14 10:00:00',
-                   '2022-12-14 11:00:00', '2022-12-14 12:00:00',
-                   '2022-12-16 10:00:00', '2022-12-16 11:00:00',
-                   '2022-12-16 12:00:00'],
-                   dtype='datetime64[ns]', freq='CBH')
+    >>> pd.date_range(dt.datetime(2022, 12, 10), dt.datetime(2022, 12, 18),
+    ...               freq=freq).strftime('%a %d %b %Y %H:%M')
+    Index(['Mon 12 Dec 2022 10:00', 'Mon 12 Dec 2022 11:00',
+           'Mon 12 Dec 2022 12:00', 'Wed 14 Dec 2022 10:00',
+           'Wed 14 Dec 2022 11:00', 'Wed 14 Dec 2022 12:00',
+           'Fri 16 Dec 2022 10:00', 'Fri 16 Dec 2022 11:00',
+           'Fri 16 Dec 2022 12:00'],
+           dtype='object')
 
     In the example below we define custom holidays by using NumPy business day calendar.
 
