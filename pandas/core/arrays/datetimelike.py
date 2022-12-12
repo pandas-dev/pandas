@@ -1357,7 +1357,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if is_period_dtype(self.dtype):
             data = self
         else:
-            data = self._ndarray.copy()
+            # Incompatible types in assignment (expression has type
+            # "ndarray[Any, Any]", variable has type "DatetimeLikeArrayMixin"
+            data = self._ndarray.copy()  # type: ignore[assignment]
 
         if name in {"cummin", "cummax"}:
             func = np.minimum.accumulate if name == "cummin" else np.maximum.accumulate
