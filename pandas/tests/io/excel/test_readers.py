@@ -1646,7 +1646,7 @@ class TestExcelFileRead:
                 pd.to_datetime("03/01/2020").to_pydatetime(),
             ],
         )
-        expected = DataFrame([], columns=expected_column_index)
+        expected = DataFrame([], index=[], columns=expected_column_index)
 
         tm.assert_frame_equal(expected, actual)
 

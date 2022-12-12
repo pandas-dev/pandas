@@ -6316,7 +6316,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self.copy(deep=True)
 
     @final
-    def infer_objects(self: NDFrameT) -> NDFrameT:
+    def infer_objects(self: NDFrameT, copy: bool_t = True) -> NDFrameT:
         """
         Attempt to infer better dtypes for object columns.
 
@@ -6324,6 +6324,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         columns, leaving non-object and unconvertible
         columns unchanged. The inference rules are the
         same as during normal Series/DataFrame construction.
+
+        Parameters
+        ----------
+        copy : bool, default True
+            Whether to make a copy for non-object or non-inferrable columns
+            or Series.
 
         Returns
         -------
@@ -6354,7 +6360,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         A    int64
         dtype: object
         """
-        new_mgr = self._mgr.convert()
+        new_mgr = self._mgr.convert(copy=copy)
         return self._constructor(new_mgr).__finalize__(self, method="infer_objects")
 
     @final
@@ -6405,7 +6411,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         By default, ``convert_dtypes`` will attempt to convert a Series (or each
         Series in a DataFrame) to dtypes that support ``pd.NA``. By using the options
         ``convert_string``, ``convert_integer``, ``convert_boolean`` and
-        ``convert_boolean``, it is possible to turn off individual conversions
+        ``convert_floating``, it is possible to turn off individual conversions
         to ``StringDtype``, the integer extension types, ``BooleanDtype``
         or floating extension types, respectively.
 

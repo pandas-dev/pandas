@@ -374,19 +374,23 @@ class BaseArrayManager(DataManager):
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
-    def convert(self: T) -> T:
+    def convert(self: T, copy: bool) -> T:
         def _convert(arr):
             if is_object_dtype(arr.dtype):
                 # extract PandasArray for tests that patch PandasArray._typ
                 arr = np.asarray(arr)
-                return lib.maybe_convert_objects(
+                result = lib.maybe_convert_objects(
                     arr,
                     convert_datetime=True,
                     convert_timedelta=True,
                     convert_period=True,
+                    convert_interval=True,
                 )
+                if result is arr and copy:
+                    return arr.copy()
+                return result
             else:
-                return arr.copy()
+                return arr.copy() if copy else arr
 
         return self.apply(_convert)
 
@@ -750,9 +754,9 @@ class ArrayManager(BaseArrayManager):
             result = dtype.construct_array_type()._from_sequence(values, dtype=dtype)
         # for datetime64/timedelta64, the np.ndarray constructor cannot handle pd.NaT
         elif is_datetime64_ns_dtype(dtype):
-            result = DatetimeArray._from_sequence(values, dtype=dtype)._data
+            result = DatetimeArray._from_sequence(values, dtype=dtype)._ndarray
         elif is_timedelta64_ns_dtype(dtype):
-            result = TimedeltaArray._from_sequence(values, dtype=dtype)._data
+            result = TimedeltaArray._from_sequence(values, dtype=dtype)._ndarray
         else:
             result = np.array(values, dtype=dtype)
         return SingleArrayManager([result], [self._axes[1]])
@@ -851,7 +855,9 @@ class ArrayManager(BaseArrayManager):
             self.arrays[mgr_idx] = value_arr
         return
 
-    def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value) -> None:
+    def column_setitem(
+        self, loc: int, idx: int | slice | np.ndarray, value, inplace: bool = False
+    ) -> None:
         """
         Set values ("setitem") into a single column (not setting the full column).
 
@@ -862,9 +868,12 @@ class ArrayManager(BaseArrayManager):
             raise TypeError("The column index should be an integer")
         arr = self.arrays[loc]
         mgr = SingleArrayManager([arr], [self._axes[0]])
-        new_mgr = mgr.setitem((idx,), value)
-        # update existing ArrayManager in-place
-        self.arrays[loc] = new_mgr.arrays[0]
+        if inplace:
+            mgr.setitem_inplace(idx, value)
+        else:
+            new_mgr = mgr.setitem((idx,), value)
+            # update existing ArrayManager in-place
+            self.arrays[loc] = new_mgr.arrays[0]
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
