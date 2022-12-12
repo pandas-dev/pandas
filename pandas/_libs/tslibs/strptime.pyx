@@ -1,6 +1,7 @@
 """Strptime-related classes and functions.
 """
 from cpython.datetime cimport (
+    PyDate_Check,
     PyDateTime_Check,
     date,
     import_datetime,
@@ -34,6 +35,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
+    pydate_to_dt64,
     pydatetime_to_dt64,
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -172,6 +174,10 @@ def array_strptime(
                 iresult[i] = pydatetime_to_dt64(val.replace(tzinfo=None), &dts)
                 check_dts_bounds(&dts)
             result_timezone[i] = val.tzinfo
+            continue
+        elif PyDate_Check(val):
+            iresult[i] = pydate_to_dt64(val, &dts)
+            check_dts_bounds(&dts)
             continue
         elif is_datetime64_object(val):
             iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)

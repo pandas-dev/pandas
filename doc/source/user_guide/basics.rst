@@ -1247,12 +1247,6 @@ With a DataFrame, you can simultaneously reindex the index and columns:
    df
    df.reindex(index=["c", "f", "b"], columns=["three", "two", "one"])
 
-You may also use ``reindex`` with an ``axis`` keyword:
-
-.. ipython:: python
-
-   df.reindex(["c", "f", "b"], axis="index")
-
 Note that the ``Index`` objects containing the actual axis labels can be
 **shared** between objects. So if we have a Series and a DataFrame, the
 following can be done:
