@@ -22,20 +22,14 @@ class BaseAccumulateTests(BaseExtensionTests):
         expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
         self.assert_series_equal(result, expected, check_dtype=False)
 
-
-class BaseNoAccumulateTests(BaseAccumulateTests):
-    """we don't define any accumulations"""
-
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series_numeric(self, data, all_numeric_accumulations, skipna):
+    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
         op_name = all_numeric_accumulations
         ser = pd.Series(data)
 
         with pytest.raises(NotImplementedError):
             getattr(ser, op_name)(skipna=skipna)
 
-
-class BaseNumericAccumulateTests(BaseAccumulateTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
         op_name = all_numeric_accumulations

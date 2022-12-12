@@ -219,5 +219,7 @@ class Test2DCompat(base.Dim2CompatTests):
     pass
 
 
-class TestNumericAccumulation(base.BaseNumericAccumulateTests):
-    pass
+class TestAccumulation(base.BaseAccumulateTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
+        pass

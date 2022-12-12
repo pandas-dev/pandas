@@ -232,7 +232,7 @@ class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
 
 
-class TestNumericAccumulation(base.BaseNumericAccumulateTests):
+class TestAccumulation(base.BaseAccumulateTests):
     def check_accumulate(self, s, op_name, skipna):
         # overwrite to ensure pd.NA is tested instead of np.nan
         # https://github.com/pandas-dev/pandas/issues/30958
@@ -276,6 +276,10 @@ class TestNumericAccumulation(base.BaseNumericAccumulateTests):
 
         else:
             raise NotImplementedError(f"{op_name} not supported")
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
+        pass
 
 
 class TestPrinting(base.BasePrintingTests):

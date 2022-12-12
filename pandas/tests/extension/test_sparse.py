@@ -484,5 +484,7 @@ class TestParsing(BaseSparseTests, base.BaseParsingTests):
                 super().test_EA_types(engine, data)
 
 
-class TestNoNumericAccumulations(base.BaseNoAccumulateTests):
-    pass
+class TestNoNumericAccumulations(base.BaseAccumulateTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
+        pass
