@@ -15,8 +15,6 @@ locally before pushing your changes. It's recommended to also install the :ref:`
 .. contents:: Table of contents:
    :local:
 
-.. _contributing.c_compiler:
-
 Step 1: install a C compiler
 ----------------------------
 
@@ -49,7 +47,12 @@ https://devguide.python.org/setup/#macos
 
 **Linux**
 
-You probably already have a C compiler installed. You can check this with::
+For Linux-based :ref:`mamba <contributing.mamba>` installations, you won't have to install any
+additional components outside of the mamba environment. The instructions
+below are only needed if your setup isn't based on mamba environments.
+
+Some Linux distributions will come with a pre-installed C compiler. To find out
+which compilers (and versions) are installed on your system::
 
     # for Debian/Ubuntu:
     dpkg --list | grep compiler
@@ -66,8 +69,6 @@ instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on our contributor
 community :ref:`Slack <community.slack>`.
-
-.. _contributing.isolated_environment:
 
 Step 2: create an isolated environment
 ----------------------------------------
