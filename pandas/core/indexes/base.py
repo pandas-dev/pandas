@@ -89,7 +89,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     ensure_platform_int,
     is_bool_dtype,
-    is_interval_dtype,
     is_categorical_dtype,
     is_dtype_equal,
     is_ea_or_datetimelike_dtype,
