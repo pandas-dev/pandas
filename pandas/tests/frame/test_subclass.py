@@ -577,7 +577,6 @@ class TestDataFrameSubclassing:
         assert not isinstance(result, tm.SubclassedDataFrame)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:.*None will no longer:FutureWarning")
     def test_subclassed_reductions(self, all_reductions):
         # GH 25596
 

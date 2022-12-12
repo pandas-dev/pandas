@@ -21,14 +21,6 @@ import pandas as pd
     "ignore:Using or importing the ABCs from:DeprecationWarning"
 )
 @pytest.mark.filterwarnings(
-    # fastparquet
-    "ignore:pandas.core.index is deprecated:FutureWarning"
-)
-@pytest.mark.filterwarnings(
-    # pandas_datareader
-    "ignore:pandas.util.testing is deprecated:FutureWarning"
-)
-@pytest.mark.filterwarnings(
     # https://github.com/pandas-dev/pandas/issues/35252
     "ignore:Distutils:UserWarning"
 )

@@ -25,12 +25,17 @@ in the next step, then you can skip this step.
 
 **Windows**
 
-You will need `Build Tools for Visual Studio <https://visualstudio.microsoft.com/downloads/>`_.
+You will need `Build Tools for Visual Studio 2022
+<https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022>`_.
 
-Note: you do not need to install Visual Studio.
-You only need "Build Tools for Visual Studio" found by
-scrolling down to "All downloads" -> "Tools for Visual Studio".
-In the installer, select the "C++ build tools" workload.
+.. note::
+        You DO NOT need to install Visual Studio 2022.
+        You only need "Build Tools for Visual Studio 2022" found by
+        scrolling down to "All downloads" -> "Tools for Visual Studio".
+        In the installer, select the "Desktop development with C++" Workloads.
+
+Alternatively, you can install the necessary components on the commandline using
+`vs_BuildTools.exe <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`_
 
 Alternatively, you could use the `WSL <https://learn.microsoft.com/en-us/windows/wsl/install>`_
 and consult the ``Linux`` instructions below.
@@ -196,7 +201,7 @@ At this point you should be able to import pandas from your locally built versio
    $ python
    >>> import pandas
    >>> print(pandas.__version__)  # note: the exact output may differ
-   1.5.0.dev0+1355.ge65a30e3eb.dirty
+   2.0.0.dev0+880.g2b9e661fbb.dirty
 
 This will create the new environment, and not touch any of your existing environments,
 nor any existing Python installation.
