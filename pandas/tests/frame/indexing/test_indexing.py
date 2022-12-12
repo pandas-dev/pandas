@@ -29,6 +29,7 @@ from pandas import (
     date_range,
     isna,
     notna,
+    to_datetime,
 )
 import pandas._testing as tm
 
@@ -1460,6 +1461,26 @@ class TestDataFrameIndexing:
             {"c": [1, 2]}, index=Index([True, False], name="b", dtype=dtype)
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("utc", [False, True])
+    @pytest.mark.parametrize("indexer", ["date", ["date"]])
+    def test_loc_datetime_assignment_dtype_does_not_change(self, utc, indexer):
+        # GH#49837
+        df = DataFrame(
+            {
+                "date": to_datetime(
+                    [datetime(2022, 1, 20), datetime(2022, 1, 22)], utc=utc
+                ),
+                "update": [True, False],
+            }
+        )
+        expected = df.copy(deep=True)
+
+        update_df = df[df["update"]]
+
+        df.loc[df["update"], indexer] = update_df["date"]
+
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameIndexingUInt64:

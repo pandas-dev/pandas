@@ -24,7 +24,6 @@ from typing import (
     Union,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -51,7 +50,6 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -587,7 +585,9 @@ class SeriesGroupBy(GroupBy[Series]):
         # we might have duplications among the bins
         if len(res) != len(ri):
             res, out = np.zeros(len(ri), dtype=out.dtype), res
-            res[ids[idx]] = out
+            if len(ids) > 0:
+                # GH#21334s
+                res[ids[idx]] = out
 
         result = self.obj._constructor(res, index=ri, name=self.obj.name)
         return self._reindex_output(result, fill_value=0)
@@ -1392,32 +1392,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 applied.append(res)
 
         # Compute and process with the remaining groups
-        emit_alignment_warning = False
         for name, group in gen:
             if group.size == 0:
                 continue
             object.__setattr__(group, "name", name)
             res = path(group)
-            if (
-                not emit_alignment_warning
-                and res.ndim == 2
-                and not res.index.equals(group.index)
-            ):
-                emit_alignment_warning = True
 
             res = _wrap_transform_general_frame(self.obj, group, res)
             applied.append(res)
-
-        if emit_alignment_warning:
-            # GH#45648
-            warnings.warn(
-                "In a future version of pandas, returning a DataFrame in "
-                "groupby.transform will align with the input's index. Apply "
-                "`.to_numpy()` to the result in the transform function to keep "
-                "the current behavior and silence this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
         concat_index = obj.columns if self.axis == 0 else obj.index
         other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1
@@ -2336,5 +2318,7 @@ def _wrap_transform_general_frame(
             )
         assert isinstance(res_frame, DataFrame)
         return res_frame
+    elif isinstance(res, DataFrame) and not res.index.is_(group.index):
+        return res._align_frame(group)[0]
     else:
         return res

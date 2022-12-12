@@ -84,6 +84,7 @@ from pandas.core.arrays import (
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
+    default_index,
     ensure_index_from_sequences,
 )
 from pandas.core.series import Series
@@ -1093,8 +1094,9 @@ class ParserBase:
         #
         # Both must be non-null to ensure a successful construction. Otherwise,
         # we have to create a generic empty Index.
+        index: Index
         if (index_col is None or index_col is False) or index_names is None:
-            index = Index([])
+            index = default_index(0)
         else:
             data = [Series([], dtype=dtype_dict[name]) for name in index_names]
             index = ensure_index_from_sequences(data, names=index_names)

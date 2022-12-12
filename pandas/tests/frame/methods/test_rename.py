@@ -326,7 +326,7 @@ class TestRename:
 
         # Duplicates
         with pytest.raises(TypeError, match="multiple values"):
-            df.rename(id, mapper=id)  # pylint: disable=redundant-keyword-arg
+            df.rename(id, mapper=id)
 
     def test_rename_positional_raises(self):
         # GH 29136

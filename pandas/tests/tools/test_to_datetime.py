@@ -3,6 +3,7 @@
 import calendar
 from collections import deque
 from datetime import (
+    date,
     datetime,
     timedelta,
     timezone,
@@ -470,6 +471,16 @@ class TestToDatetime:
         tm.assert_index_equal(res, expected)
 
     @pytest.mark.parametrize(
+        "format", ["%Y-%m-%d", "%Y-%d-%m"], ids=["ISO8601", "non-ISO8601"]
+    )
+    def test_to_datetime_mixed_date_and_string(self, format):
+        # https://github.com/pandas-dev/pandas/issues/50108
+        d1 = date(2020, 1, 2)
+        res = to_datetime(["2020-01-01", d1], format=format)
+        expected = DatetimeIndex(["2020-01-01", "2020-01-02"])
+        tm.assert_index_equal(res, expected)
+
+    @pytest.mark.parametrize(
         "fmt",
         ["%Y-%d-%m %H:%M:%S%z", "%Y-%m-%d %H:%M:%S%z"],
         ids=["non-ISO8601 format", "ISO8601 format"],
@@ -757,6 +768,19 @@ class TestToDatetime:
     )
     def test_to_datetime_dt64s(self, cache, dt):
         assert to_datetime(dt, cache=cache) == Timestamp(dt)
+
+    @pytest.mark.parametrize(
+        "arg, format",
+        [
+            ("2001-01-01", "%Y-%m-%d"),
+            ("01-01-2001", "%d-%m-%Y"),
+        ],
+    )
+    def test_to_datetime_dt64s_and_str(self, arg, format):
+        # https://github.com/pandas-dev/pandas/issues/50036
+        result = to_datetime([arg, np.datetime64("2020-01-01")], format=format)
+        expected = DatetimeIndex(["2001-01-01", "2020-01-01"])
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "dt", [np.datetime64("1000-01-01"), np.datetime64("5000-01-02")]
@@ -2318,6 +2342,8 @@ class TestGuessDatetimeFormat:
             ["", "2011-12-30 00:00:00.000000"],
             ["NaT", "2011-12-30 00:00:00.000000"],
             ["2011-12-30 00:00:00.000000", "random_string"],
+            ["now", "2011-12-30 00:00:00.000000"],
+            ["today", "2011-12-30 00:00:00.000000"],
         ],
     )
     def test_guess_datetime_format_for_array(self, test_list):

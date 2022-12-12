@@ -1127,7 +1127,6 @@ class Block(PandasObject):
 
         return [self.make_block(result)]
 
-    @final
     def fillna(
         self, value, limit: int | None = None, inplace: bool = False, downcast=None
     ) -> list[Block]:
@@ -1592,6 +1591,18 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
     values: ExtensionArray
 
+    def fillna(
+        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+    ) -> list[Block]:
+        if is_interval_dtype(self.dtype):
+            # Block.fillna handles coercion (test_fillna_interval)
+            return super().fillna(
+                value=value, limit=limit, inplace=inplace, downcast=downcast
+            )
+        new_values = self.values.fillna(value=value, method=None, limit=limit)
+        nb = self.make_block_same_class(new_values)
+        return nb._maybe_downcast([nb], downcast)
+
     @cache_readonly
     def shape(self) -> Shape:
         # TODO(EA2D): override unnecessary with 2D EAs
@@ -1969,6 +1980,9 @@ class ObjectBlock(NumpyBlock):
         attempt to cast any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
         """
+        if self.dtype != object:
+            return [self]
+
         values = self.values
         if values.ndim == 2:
             # maybe_split ensures we only get here with values.shape[0] == 1,
@@ -1980,7 +1994,10 @@ class ObjectBlock(NumpyBlock):
             convert_datetime=True,
             convert_timedelta=True,
             convert_period=True,
+            convert_interval=True,
         )
+        if copy and res_values is values:
+            res_values = values.copy()
         res_values = ensure_block_shape(res_values, self.ndim)
         return [self.make_block(res_values)]
 
@@ -2281,6 +2298,6 @@ def external_values(values: ArrayLike) -> ArrayLike:
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
         # Avoid raising in .astype in casting from dt64tz to dt64
-        return values._data
+        return values._ndarray
     else:
         return values
