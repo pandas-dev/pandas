@@ -29,7 +29,6 @@ Bug fixes
 ~~~~~~~~~
 - Bug in the Copy-on-Write implementation losing track of views in certain chained indexing cases (:issue:`48996`)
 - Fixed memory leak in :meth:`.Styler.to_excel` (:issue:`49751`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_152.other:
