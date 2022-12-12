@@ -1083,7 +1083,7 @@ def convert_dtypes(
         elif isinstance(inferred_dtype, (BaseMaskedDtype, ArrowDtype)):
             base_dtype = inferred_dtype.numpy_dtype
         elif isinstance(inferred_dtype, StringDtype):
-            base_dtype = str
+            base_dtype = np.dtype(str)
         else:
             base_dtype = inferred_dtype
         pa_type = to_pyarrow_type(base_dtype)
