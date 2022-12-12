@@ -3662,16 +3662,6 @@ cdef class CustomBusinessHour(BusinessHour):
     >>> ts + pd.offsets.CustomBusinessHour(end=dt_time(19, 0))
     Timestamp('2022-08-08 10:00:00')
 
-    In the example below the business hours start at the default value "09:00"
-    and end at "8:00".
-
-    >>> ts = pd.Timestamp(2022, 8, 5, 22)
-    >>> ts + pd.offsets.CustomBusinessHour(end="8:00")
-    Timestamp('2022-08-05 23:00:00')
-
-    >>> pd.offsets.CustomBusinessHour(end="8:00")
-    <CustomBusinessHour: CBH=09:00-08:00>
-
     In the example below we divide our business day hours into several parts.
 
     >>> import datetime as dt
