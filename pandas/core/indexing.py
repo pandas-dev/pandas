@@ -818,14 +818,12 @@ class _LocationIndexer(NDFrameIndexerBase):
                 #  below would create float64 columns in this example, which
                 #  would successfully hold 7, so we would end up with the wrong
                 #  dtype.
-                arr = np.empty(len(self.obj), dtype=np.void)
-                df = type(self.obj)({i: arr for i in range(len(diff))})
-                df.columns = diff
-                df.index = self.obj.index
-                from pandas import concat
-
-                new_obj = concat([self.obj, df], axis=1)
-                self.obj._mgr = new_obj._mgr
+                indexer = np.arange(len(keys), dtype=np.intp)
+                indexer[len(self.obj.columns) :] = -1
+                new_mgr = self.obj._mgr.reindex_indexer(
+                    keys, indexer=indexer, axis=0, only_slice=True, use_na_proxy=True
+                )
+                self.obj._mgr = new_mgr
                 return
 
             self.obj._mgr = self.obj._mgr.reindex_axis(keys, axis=0, only_slice=True)

@@ -318,7 +318,7 @@ class TestDataFrameNonuniqueIndexes:
         xp.columns = ["A", "A", "B"]
         tm.assert_frame_equal(rs, xp)
 
-    def test_set_value_by_index(self, using_array_manager):
+    def test_set_value_by_index(self):
         # See gh-12344
         warn = None
         msg = "will attempt to set the values inplace"
