@@ -600,6 +600,7 @@ indices_dict = {
     "uint16": tm.makeUIntIndex(100, dtype="uint16"),
     "uint32": tm.makeUIntIndex(100, dtype="uint32"),
     "uint64": tm.makeUIntIndex(100, dtype="uint64"),
+    "float16": tm.makeNumericIndex(100, dtype="float32").astype("float16"),
     "float32": tm.makeFloatIndex(100, dtype="float32"),
     "float64": tm.makeFloatIndex(100, dtype="float64"),
     "bool-object": tm.makeBoolIndex(10).astype(object),

@@ -63,3 +63,15 @@ cdef class {{name}}Engine(IndexEngine):
 
 
 {{endfor}}
+
+
+class Float16Engine(Float32Engine):
+    # See GH#49536 discussion
+    def __init__(self, ndarray values):
+        values = values.astype(np.float32)
+        super().__init__(values)
+
+    def get_indexer(self, ndarray values) -> np.ndarray:
+        if values.dtype == np.float16:
+            values = values.astype(np.float32)
+        return super().get_indexer(values)

@@ -4720,6 +4720,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Whether we can use the fastpaths implement in _libs.join
         """
+        if self.dtype == np.float16:
+            # Alternatively, we could have the _outer_indexer etc methods
+            #  cast np.float16 to np.float32 and then cast results back
+            #  to np.float16
+            return False
         if type(self) is Index:
             # excludes EAs
             return isinstance(self.dtype, np.dtype)

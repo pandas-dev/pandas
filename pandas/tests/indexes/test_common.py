@@ -147,7 +147,7 @@ class TestCommon:
         new_copy = index.copy(deep=True, name="banana")
         assert new_copy.name == "banana"
 
-    def test_copy_name(self, index_flat):
+    def test_copy_name(self, index_flat, request):
         # GH#12309: Check that the "name" argument
         # passed at initialization is honored.
         index = index_flat
@@ -164,6 +164,15 @@ class TestCommon:
 
         assert first.name == "mario"
         assert second.name == "mario"
+
+        if index.dtype == np.float16:
+            mark = pytest.mark.xfail(
+                reason="Looks like alignment fails in "
+                "_convert_arrays_and_get_rizer_klass",
+                # xpasses about 1 time in 6 locally
+                strict=False,
+            )
+            request.node.add_marker(mark)
 
         # TODO: belongs in series arithmetic tests?
         s1 = pd.Series(2, index=first)

@@ -268,7 +268,7 @@ class TestSetOps:
     @pytest.mark.filterwarnings(
         "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
     )
-    def test_difference_base(self, sort, index):
+    def test_difference_base(self, sort, index, request):
         first = index[2:]
         second = index[:4]
         if index.is_boolean():
@@ -280,6 +280,11 @@ class TestSetOps:
         else:
             answer = index[4:]
         result = first.difference(second, sort)
+
+        if index.dtype == np.float16:
+            mark = pytest.mark.xfail(reason="Looks like it messes up on inf")
+            request.node.add_marker(mark)
+
         assert tm.equalContents(result, answer)
 
         # GH#10149

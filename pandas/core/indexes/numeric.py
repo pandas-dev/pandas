@@ -99,6 +99,7 @@ class NumericIndex(Index):
         np.dtype(np.uint16): libindex.UInt16Engine,
         np.dtype(np.uint32): libindex.UInt32Engine,
         np.dtype(np.uint64): libindex.UInt64Engine,
+        np.dtype(np.float16): libindex.Float16Engine,
         np.dtype(np.float32): libindex.Float32Engine,
         np.dtype(np.float64): libindex.Float64Engine,
         np.dtype(np.complex64): libindex.Complex64Engine,
