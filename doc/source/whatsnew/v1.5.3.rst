@@ -27,6 +27,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`.Styler.to_excel` leading to error when unrecognized ``border-style`` (e.g. ``"hair"``) provided to Excel writers (:issue:`48649`)
+- Bug when chaining several :meth:`.Styler.concat` calls, only the last styler was concatenated (:issue:`49207`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -34,7 +35,6 @@ Bug fixes
 
 Other
 ~~~~~
--
 -
 
 .. ---------------------------------------------------------------------------
