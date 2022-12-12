@@ -3,6 +3,7 @@
 import calendar
 from collections import deque
 from datetime import (
+    date,
     datetime,
     timedelta,
     timezone,
@@ -477,6 +478,16 @@ class TestToDatetime:
                 Timestamp("2020-01-01 18:00:00-0100", tz="UTC-01:00"),
             ],
         )
+        tm.assert_index_equal(res, expected)
+
+    @pytest.mark.parametrize(
+        "format", ["%Y-%m-%d", "%Y-%d-%m"], ids=["ISO8601", "non-ISO8601"]
+    )
+    def test_to_datetime_mixed_date_and_string(self, format):
+        # https://github.com/pandas-dev/pandas/issues/50108
+        d1 = date(2020, 1, 2)
+        res = to_datetime(["2020-01-01", d1], format=format)
+        expected = DatetimeIndex(["2020-01-01", "2020-01-02"])
         tm.assert_index_equal(res, expected)
 
     @pytest.mark.parametrize(
