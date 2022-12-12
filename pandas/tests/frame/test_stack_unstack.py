@@ -1325,18 +1325,10 @@ def test_unstack_non_slice_like_blocks(using_array_manager):
     mi = MultiIndex.from_product([range(5), ["A", "B", "C"]])
     df = DataFrame(
         {
-            0: np.random.randn(
-                15,
-            ),
-            1: np.random.randn(
-                15,
-            ).astype(np.int64),
-            2: np.random.randn(
-                15,
-            ),
-            3: np.random.randn(
-                15,
-            ),
+            0: np.random.randn(15),
+            1: np.random.randn(15).astype(np.int64),
+            2: np.random.randn(15),
+            3: np.random.randn(15),
         },
         index=mi,
     )
