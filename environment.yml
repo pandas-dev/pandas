@@ -17,6 +17,7 @@ dependencies:
   - psutil
   - pytest-asyncio>=0.17
   - boto3
+  - coverage
 
   # required dependencies
   - python-dateutil
@@ -27,20 +28,22 @@ dependencies:
   - beautifulsoup4
   - blosc
   - brotlipy
+  - botocore
   - bottleneck
   - fastparquet
   - fsspec
   - html5lib
   - hypothesis
   - gcsfs
+  - ipython
   - jinja2
   - lxml
-  - matplotlib
+  - matplotlib>=3.6.1
   - numba>=0.53.1
   - numexpr>=2.8.0  # pin for "Run checks on imported code" job
   - openpyxl
   - odfpy
-  - pandas-gbq
+  - py
   - psycopg2
   - pyarrow<10
   - pymysql
@@ -60,17 +63,8 @@ dependencies:
 
   # downstream packages
   - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
-  - botocore
-  - cftime
-  - dask
-  - ipython
-  - seaborn
-  - scikit-learn
-  - statsmodels
-  - coverage
-  - pandas-datareader
-  - pyyaml
-  - py
+  - dask-core
+  - seaborn-base
 
   # local testing dependencies
   - moto
