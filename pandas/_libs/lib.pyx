@@ -1,7 +1,10 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
-from typing import Literal
+from typing import (
+    Literal,
+    _GenericAlias,
+)
 
 cimport cython
 from cpython.datetime cimport (
@@ -1119,7 +1122,8 @@ cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
         # equiv: `isinstance(obj, abc.Iterable)`
         getattr(obj, "__iter__", None) is not None and not isinstance(obj, type)
         # we do not count strings/unicode/bytes as list-like
-        and not isinstance(obj, (str, bytes))
+        # exclude Generic types that have __iter__
+        and not isinstance(obj, (str, bytes, _GenericAlias))
         # exclude zero-dimensional duck-arrays, effectively scalars
         and not (hasattr(obj, "ndim") and obj.ndim == 0)
         # exclude sets if allow_sets is False

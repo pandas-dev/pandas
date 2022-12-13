@@ -388,19 +388,33 @@ class TestTimeConversionFormats:
             [
                 "%Y-%m-%d %H:%M:%S%z",
                 ["2010-01-01 12:00:00+0100"] * 2,
-                [Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(60))] * 2,
+                [
+                    Timestamp(
+                        "2010-01-01 12:00:00", tzinfo=timezone(timedelta(minutes=60))
+                    )
+                ]
+                * 2,
             ],
             [
                 "%Y-%m-%d %H:%M:%S %z",
                 ["2010-01-01 12:00:00 +0100"] * 2,
-                [Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(60))] * 2,
+                [
+                    Timestamp(
+                        "2010-01-01 12:00:00", tzinfo=timezone(timedelta(minutes=60))
+                    )
+                ]
+                * 2,
             ],
             [
                 "%Y-%m-%d %H:%M:%S %z",
                 ["2010-01-01 12:00:00 +0100", "2010-01-01 12:00:00 -0100"],
                 [
-                    Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(60)),
-                    Timestamp("2010-01-01 12:00:00", tzinfo=pytz.FixedOffset(-60)),
+                    Timestamp(
+                        "2010-01-01 12:00:00", tzinfo=timezone(timedelta(minutes=60))
+                    ),
+                    Timestamp(
+                        "2010-01-01 12:00:00", tzinfo=timezone(timedelta(minutes=-60))
+                    ),
                 ],
             ],
             [
@@ -467,7 +481,7 @@ class TestToDatetime:
         d1 = datetime(2020, 1, 1, 17, tzinfo=timezone(-timedelta(hours=1)))
         d2 = datetime(2020, 1, 1, 18, tzinfo=timezone(-timedelta(hours=1)))
         res = to_datetime(["2020-01-01 17:00 -0100", d2])
-        expected = to_datetime([d1, d2]).tz_convert(pytz.FixedOffset(-60))
+        expected = to_datetime([d1, d2]).tz_convert(timezone(timedelta(minutes=-60)))
         tm.assert_index_equal(res, expected)
 
     @pytest.mark.parametrize(
@@ -1380,7 +1394,7 @@ class TestToDatetime:
     def test_non_iso_strings_with_tz_offset(self):
         result = to_datetime(["March 1, 2018 12:00:00+0400"] * 2)
         expected = DatetimeIndex(
-            [datetime(2018, 3, 1, 12, tzinfo=pytz.FixedOffset(240))] * 2
+            [datetime(2018, 3, 1, 12, tzinfo=timezone(timedelta(minutes=240)))] * 2
         )
         tm.assert_index_equal(result, expected)
 
@@ -1410,7 +1424,7 @@ class TestToDatetime:
         arr = np.array([parse("2012-06-13T01:39:00Z")], dtype=object)
 
         result = to_datetime(arr, utc=True)
-        assert result.tz is pytz.utc
+        assert result.tz is timezone.utc
 
     def test_to_datetime_fixed_offset(self):
         from pandas.tests.indexes.datetimes.test_timezones import fixed_off
@@ -2438,9 +2452,8 @@ class TestToDatetimeInferFormat:
         # GH 33133
         ser = Series([f"2019-02-02 08:07:13 {tz_name}"])
         result = to_datetime(ser, infer_datetime_format=True)
-        expected = Series(
-            [Timestamp("2019-02-02 08:07:13").tz_localize(pytz.FixedOffset(offset))]
-        )
+        tz = timezone(timedelta(minutes=offset))
+        expected = Series([Timestamp("2019-02-02 08:07:13").tz_localize(tz)])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -2725,13 +2738,13 @@ class TestDatetimeParsingWrappers:
         [
             (
                 "2013-01-01 05:45+0545",
-                pytz.FixedOffset(345),
-                "Timestamp('2013-01-01 05:45:00+0545', tz='pytz.FixedOffset(345)')",
+                timezone(timedelta(minutes=345)),
+                "Timestamp('2013-01-01 05:45:00+0545', tz='UTC+05:45')",
             ),
             (
                 "2013-01-01 05:30+0530",
-                pytz.FixedOffset(330),
-                "Timestamp('2013-01-01 05:30:00+0530', tz='pytz.FixedOffset(330)')",
+                timezone(timedelta(minutes=330)),
+                "Timestamp('2013-01-01 05:30:00+0530', tz='UTC+05:30')",
             ),
         ],
     )

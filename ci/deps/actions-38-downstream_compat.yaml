@@ -39,7 +39,6 @@ dependencies:
   - numexpr
   - openpyxl
   - odfpy
-  - pandas-gbq
   - psycopg2
   - pyarrow<10
   - pymysql
@@ -68,5 +67,6 @@ dependencies:
   - statsmodels
   - coverage
   - pandas-datareader
+  - pandas-gbq
   - pyyaml
   - py
