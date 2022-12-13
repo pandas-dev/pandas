@@ -2201,7 +2201,7 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         is_integer : Check if the Index only consists of integers.
-        is_floating : Check if the Index is a floating type.
+        is_floating : Check if the Index is a floating type (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
@@ -2236,7 +2236,7 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         is_boolean : Check if the Index only consists of booleans.
-        is_floating : Check if the Index is a floating type.
+        is_floating : Check if the Index is a floating type (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
@@ -2265,6 +2265,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         The Index may consist of only floats, NaNs, or a mix of floats,
         integers, or NaNs.
+
+        ..deprecated:: 2.0.0
+            Use `pandas.api.types.is_float_dtype` instead
 
         Returns
         -------
@@ -2299,6 +2302,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_floating()
         False
         """
+        warnings.warn(
+             f"{type(self).__name__}.is_floating is deprecated."
+             "Use pandas.api.types.is_float_type instead",
+             FutureWarning,
+             stacklevel=find_stack_level(),
+         )
         return self.inferred_type in ["floating", "mixed-integer-float", "integer-na"]
 
     @final
@@ -2315,7 +2324,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         is_boolean : Check if the Index only consists of booleans.
         is_integer : Check if the Index only consists of integers.
-        is_floating : Check if the Index is a floating type.
+        is_floating : Check if the Index is a floating type (deprecated).
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects.
@@ -2358,7 +2367,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         is_boolean : Check if the Index only consists of booleans.
         is_integer : Check if the Index only consists of integers.
-        is_floating : Check if the Index is a floating type.
+        is_floating : Check if the Index is a floating type (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects.
@@ -2399,7 +2408,7 @@ class Index(IndexOpsMixin, PandasObject):
         CategoricalIndex : Index for categorical data.
         is_boolean : Check if the Index only consists of booleans.
         is_integer : Check if the Index only consists of integers.
-        is_floating : Check if the Index is a floating type.
+        is_floating : Check if the Index is a floating type (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
         is_interval : Check if the Index holds Interval objects.
@@ -2442,7 +2451,7 @@ class Index(IndexOpsMixin, PandasObject):
         IntervalIndex : Index for Interval objects.
         is_boolean : Check if the Index only consists of booleans.
         is_integer : Check if the Index only consists of integers.
-        is_floating : Check if the Index is a floating type.
+        is_floating : Check if the Index is a floating type (deprecated).
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
         is_categorical : Check if the Index holds categorical data.
