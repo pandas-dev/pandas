@@ -25,7 +25,6 @@ import pandas._testing as tm
 from pandas.io.formats.printing import pprint_thing
 
 
-@pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
 def test_agg_partial_failure_raises():
     # GH#43741
 
@@ -293,8 +292,7 @@ def test_agg_item_by_item_raise_typeerror():
         raise TypeError("test")
 
     with pytest.raises(TypeError, match="test"):
-        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
-            df.groupby(0).agg(raiseException)
+        df.groupby(0).agg(raiseException)
 
 
 def test_series_agg_multikey():

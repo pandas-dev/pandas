@@ -87,7 +87,7 @@ class PandasColumn(Column):
         Size of the column, in elements.
         """
         # error: Signature of "size" incompatible with supertype "Column"  [override]
-        return self._col.size
+        return len(self._col._values)
 
     @property
     def offset(self) -> int:
@@ -317,7 +317,7 @@ class PandasColumn(Column):
             valid = invalid == 0
             invalid = not valid
 
-            mask = np.zeros(shape=(len(buf),), dtype=np.bool8)
+            mask = np.zeros(shape=(len(buf),), dtype=np.bool_)
             for i, obj in enumerate(buf):
                 mask[i] = valid if isinstance(obj, str) else invalid
 

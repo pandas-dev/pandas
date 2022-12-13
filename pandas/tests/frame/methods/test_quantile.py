@@ -47,7 +47,7 @@ class TestDataFrameQuantile:
         # GH#17198
         # GH#24600
         result = df.quantile()
-
+        expected = expected.astype("Sparse[float]")
         tm.assert_series_equal(result, expected)
 
     def test_quantile(
@@ -420,7 +420,7 @@ class TestDataFrameQuantile:
         tm.assert_series_equal(result, expected)
 
         result = df[["a", "c"]].quantile([0.5], numeric_only=True)
-        expected = DataFrame(index=[0.5])
+        expected = DataFrame(index=[0.5], columns=[])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -451,7 +451,7 @@ class TestDataFrameQuantile:
             interpolation=interpolation,
             method=method,
         )
-        expected = DataFrame(index=[0.5])
+        expected = DataFrame(index=[0.5], columns=[])
         tm.assert_frame_equal(res, expected)
 
     @pytest.mark.parametrize("invalid", [-1, 2, [0.5, -1], [0.5, 2]])

@@ -18,6 +18,11 @@ import numpy as np
 import pytest
 import pytz
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
 from pandas._libs.tslibs import (
     conversion,
     timezones,
@@ -355,7 +360,17 @@ class TestDatetimeIndexTimezones:
         expected = dti.tz_convert("US/Eastern")
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("tz", [pytz.timezone("US/Eastern"), gettz("US/Eastern")])
+    easts = [pytz.timezone("US/Eastern"), gettz("US/Eastern")]
+    if ZoneInfo is not None:
+        try:
+            tz = ZoneInfo("US/Eastern")
+        except KeyError:
+            # no tzdata
+            pass
+        else:
+            easts.append(tz)
+
+    @pytest.mark.parametrize("tz", easts)
     def test_dti_tz_localize_ambiguous_infer(self, tz):
         # November 6, 2011, fall back, repeat 2 AM hour
         # With no repeated hours, we cannot infer the transition
@@ -634,30 +649,6 @@ class TestDatetimeIndexTimezones:
         localized = dr.tz_localize(pytz.utc)
         tm.assert_index_equal(dr_utc, localized)
 
-    @pytest.mark.parametrize("tz", ["Europe/Warsaw", "dateutil/Europe/Warsaw"])
-    @pytest.mark.parametrize(
-        "method, exp", [["NaT", pd.NaT], ["raise", None], ["foo", "invalid"]]
-    )
-    def test_dti_tz_localize_nonexistent(self, tz, method, exp):
-        # GH 8917
-        n = 60
-        dti = date_range(start="2015-03-29 02:00:00", periods=n, freq="min")
-        if method == "raise":
-            with pytest.raises(pytz.NonExistentTimeError, match="2015-03-29 02:00:00"):
-                dti.tz_localize(tz, nonexistent=method)
-        elif exp == "invalid":
-            msg = (
-                "The nonexistent argument must be one of "
-                "'raise', 'NaT', 'shift_forward', 'shift_backward' "
-                "or a timedelta object"
-            )
-            with pytest.raises(ValueError, match=msg):
-                dti.tz_localize(tz, nonexistent=method)
-        else:
-            result = dti.tz_localize(tz, nonexistent=method)
-            expected = DatetimeIndex([exp] * n, tz=tz)
-            tm.assert_index_equal(result, expected)
-
     @pytest.mark.parametrize(
         "start_ts, tz, end_ts, shift",
         [
@@ -715,10 +706,9 @@ class TestDatetimeIndexTimezones:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("offset", [-1, 1])
-    @pytest.mark.parametrize("tz_type", ["", "dateutil/"])
-    def test_dti_tz_localize_nonexistent_shift_invalid(self, offset, tz_type):
+    def test_dti_tz_localize_nonexistent_shift_invalid(self, offset, warsaw):
         # GH 8917
-        tz = tz_type + "Europe/Warsaw"
+        tz = warsaw
         dti = DatetimeIndex([Timestamp("2015-03-29 02:20:00")])
         msg = "The provided timedelta will relocalize on a nonexistent time"
         with pytest.raises(ValueError, match=msg):
@@ -1147,7 +1137,7 @@ class TestDatetimeIndexTimezones:
         assert timezones.tz_compare(result.tz, tz)
 
         converted = to_datetime(dates_aware, utc=True)
-        ex_vals = np.array([Timestamp(x).value for x in dates_aware])
+        ex_vals = np.array([Timestamp(x).as_unit("ns").value for x in dates_aware])
         tm.assert_numpy_array_equal(converted.asi8, ex_vals)
         assert converted.tz is pytz.utc
 
@@ -1196,7 +1186,7 @@ class TestDatetimeIndexTimezones:
             ["2018-02-08 15:00:00.168456358", "2018-02-08 15:00:00.168456359"], tz=tz
         )
         for i, ts in enumerate(index):
-            assert ts == index[i]
+            assert ts == index[i]  # pylint: disable=unnecessary-list-index-lookup
 
 
 def test_tz_localize_invalidates_freq():

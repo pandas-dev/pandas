@@ -73,7 +73,6 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
-    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaArray,
 )
@@ -407,6 +406,29 @@ def unique(values):
     return unique_with_mask(values)
 
 
+def nunique_ints(values: ArrayLike) -> int:
+    """
+    Return the number of unique values for integer array-likes.
+
+    Significantly faster than pandas.unique for long enough sequences.
+    No checks are done to ensure input is integral.
+
+    Parameters
+    ----------
+    values : 1d array-like
+
+    Returns
+    -------
+    int : The number of unique values in ``values``
+    """
+    if len(values) == 0:
+        return 0
+    values = _ensure_data(values)
+    # bincount requires intp
+    result = (np.bincount(values.ravel().astype("intp")) != 0).sum()
+    return result
+
+
 def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
     """See algorithms.unique for docs. Takes a mask for masked arrays."""
     values = _ensure_arraylike(values)
@@ -463,7 +485,11 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
         orig_values = list(values)
         values = _ensure_arraylike(orig_values)
 
-        if is_numeric_dtype(values) and not is_signed_integer_dtype(comps):
+        if (
+            len(values) > 0
+            and is_numeric_dtype(values)
+            and not is_signed_integer_dtype(comps)
+        ):
             # GH#46485 Use object to avoid upcast to float64 later
             # TODO: Share with _find_common_type_compat
             values = construct_1d_object_array_from_listlike(orig_values)
@@ -734,13 +760,11 @@ def factorize(
     # Step 2 is dispatched to extension types (like Categorical). They are
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
-    if isinstance(values, ABCRangeIndex):
-        return values.factorize(sort=sort)
+    if isinstance(values, (ABCIndex, ABCSeries)):
+        return values.factorize(sort=sort, use_na_sentinel=use_na_sentinel)
 
     values = _ensure_arraylike(values)
     original = values
-    if not isinstance(values, ABCMultiIndex):
-        values = extract_array(values, extract_numpy=True)
 
     if (
         isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray))
@@ -749,7 +773,7 @@ def factorize(
         # The presence of 'freq' means we can fast-path sorting and know there
         #  aren't NAs
         codes, uniques = values.factorize(sort=sort)
-        return _re_wrap_factorize(original, uniques, codes)
+        return codes, uniques
 
     elif not isinstance(values.dtype, np.dtype):
         codes, uniques = values.factorize(use_na_sentinel=use_na_sentinel)
@@ -784,21 +808,6 @@ def factorize(
         )
 
     uniques = _reconstruct_data(uniques, original.dtype, original)
-
-    return _re_wrap_factorize(original, uniques, codes)
-
-
-def _re_wrap_factorize(original, uniques, codes: np.ndarray):
-    """
-    Wrap factorize results in Series or Index depending on original type.
-    """
-    if isinstance(original, ABCIndex):
-        uniques = ensure_wrapped_if_datetimelike(uniques)
-        uniques = original._shallow_copy(uniques, name=None)
-    elif isinstance(original, ABCSeries):
-        from pandas import Index
-
-        uniques = Index(uniques)
 
     return codes, uniques
 
@@ -885,7 +894,7 @@ def value_counts(
 
             # For backwards compatibility, we let Index do its normal type
             #  inference, _except_ for if if infers from object to bool.
-            idx = Index._with_infer(keys)
+            idx = Index(keys)
             if idx.dtype == bool and keys.dtype == object:
                 idx = idx.astype(object)
 
@@ -1490,8 +1499,6 @@ def searchsorted(
     """
     Find indices where elements should be inserted to maintain order.
 
-    .. versionadded:: 0.25.0
-
     Find the indices into a sorted array `arr` (a) such that, if the
     corresponding elements in `value` were inserted before the indices,
     the order of `arr` would be preserved.
@@ -1717,8 +1724,6 @@ def safe_sort(
         Check if codes are out of bound for the values and put out of bound
         codes equal to ``-1``. If ``verify=False``, it is assumed there
         are no out of bound codes. Ignored when ``codes`` is None.
-
-        .. versionadded:: 0.25.0
 
     Returns
     -------

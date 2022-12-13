@@ -12,11 +12,11 @@ except ImportError:
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import tz_compare
-from pandas._libs.tslibs.dtypes import (
-    NpyDatetimeUnit,
+from pandas._libs.tslibs import (
     npy_unit_to_abbrev,
+    tz_compare,
 )
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -403,6 +403,15 @@ class TestDatetimeArray:
         assert result.dtype == expected_dtype
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_astype_to_sparse_dt64(self):
+        # GH#50082
+        dti = pd.date_range("2016-01-01", periods=4)
+        dta = dti._data
+        result = dta.astype("Sparse[datetime64[ns]]")
+
+        assert result.dtype == "Sparse[datetime64[ns]]"
+        assert (result == dta).all()
+
     def test_tz_setter_raises(self):
         arr = DatetimeArray._from_sequence(
             ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
@@ -659,7 +668,7 @@ class TestDatetimeArray:
         dti = pd.date_range("2016-01-01", periods=3)
 
         dta = dti._data
-        expected = DatetimeArray(np.roll(dta._data, 1))
+        expected = DatetimeArray(np.roll(dta._ndarray, 1))
 
         fv = dta[-1]
         for fill_value in [fv, fv.to_pydatetime(), fv.to_datetime64()]:
@@ -715,10 +724,12 @@ class TestDatetimeArray:
     easts = ["US/Eastern", "dateutil/US/Eastern"]
     if ZoneInfo is not None:
         try:
-            easts.append(ZoneInfo("US/Eastern"))
+            tz = ZoneInfo("US/Eastern")
         except KeyError:
-            # No tzdata
+            # no tzdata
             pass
+        else:
+            easts.append(tz)
 
     @pytest.mark.parametrize("tz", easts)
     def test_iter_zoneinfo_fold(self, tz):
