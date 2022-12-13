@@ -1,0 +1,44 @@
+.. _whatsnew_153:
+
+What's new in 1.5.3 (December ??, 2022)
+---------------------------------------
+
+These are the changes in pandas 1.5.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_153.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed performance regression in :meth:`Series.isin` when ``values`` is empty (:issue:`49839`)
+- Fixed regression in :meth:`DataFrameGroupBy.transform` when used with ``as_index=False`` (:issue:`49834`)
+- Enforced reversion of ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` in function :meth:`DataFrame.plot.scatter` (:issue:`49732`)
+- Fixed regression in :meth:`SeriesGroupBy.apply` setting a ``name`` attribute on the result if the result was a :class:`DataFrame` (:issue:`49907`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_153.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :meth:`.Styler.to_excel` leading to error when unrecognized ``border-style`` (e.g. ``"hair"``) provided to Excel writers (:issue:`48649`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_153.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_153.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.5.2..v1.5.3|HEAD

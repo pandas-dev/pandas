@@ -206,22 +206,6 @@ str_t = str
 _dtype_obj = np.dtype("object")
 
 
-def _wrapped_sanitize(cls, data, dtype: DtypeObj | None, copy: bool):
-    """
-    Call sanitize_array with wrapping for differences between Index/Series.
-    """
-    try:
-        arr = sanitize_array(data, None, dtype=dtype, copy=copy, strict_ints=True)
-    except ValueError as err:
-        if "index must be specified when data is not list-like" in str(err):
-            raise cls._raise_scalar_data_error(data) from err
-        if "Data must be 1-dimensional" in str(err):
-            raise ValueError("Index data must be 1-dimensional") from err
-        raise
-    arr = ensure_wrapped_if_datetimelike(arr)
-    return arr
-
-
 def _maybe_return_indexers(meth: F) -> F:
     """
     Decorator to simplify 'return_indexers' checks in Index.join.
@@ -514,7 +498,16 @@ class Index(IndexOpsMixin, PandasObject):
                 # Ensure we get 1-D array of tuples instead of 2D array.
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
-        arr = _wrapped_sanitize(cls, data, dtype, copy)
+        try:
+            arr = sanitize_array(data, None, dtype=dtype, copy=copy, strict_ints=True)
+        except ValueError as err:
+            if "index must be specified when data is not list-like" in str(err):
+                raise cls._raise_scalar_data_error(data) from err
+            if "Data must be 1-dimensional" in str(err):
+                raise ValueError("Index data must be 1-dimensional") from err
+            raise
+        arr = ensure_wrapped_if_datetimelike(arr)
+
         klass = cls._dtype_to_subclass(arr.dtype)
 
         # _ensure_array _may_ be unnecessary once Int64Index etc are gone
@@ -594,20 +587,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise NotImplementedError(dtype)
 
-    """
-    NOTE for new Index creation:
+    # NOTE for new Index creation:
 
-    - _simple_new: It returns new Index with the same type as the caller.
-      All metadata (such as name) must be provided by caller's responsibility.
-      Using _shallow_copy is recommended because it fills these metadata
-      otherwise specified.
+    # - _simple_new: It returns new Index with the same type as the caller.
+    #   All metadata (such as name) must be provided by caller's responsibility.
+    #   Using _shallow_copy is recommended because it fills these metadata
+    #   otherwise specified.
 
-    - _shallow_copy: It returns new Index with the same type (using
-      _simple_new), but fills caller's metadata otherwise specified. Passed
-      kwargs will overwrite corresponding metadata.
+    # - _shallow_copy: It returns new Index with the same type (using
+    #   _simple_new), but fills caller's metadata otherwise specified. Passed
+    #   kwargs will overwrite corresponding metadata.
 
-    See each method's docstring.
-    """
+    # See each method's docstring.
 
     @classmethod
     def _simple_new(cls: type[_IndexT], values, name: Hashable = None) -> _IndexT:
@@ -865,19 +856,11 @@ class Index(IndexOpsMixin, PandasObject):
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
             return NotImplemented
 
-        # TODO(2.0) the 'and', 'or' and 'xor' dunder methods are currently set
-        # operations and not logical operations, so don't dispatch
-        # This is deprecated, so this full 'if' clause can be removed once
-        # deprecation is enforced in 2.0
-        if not (
-            method == "__call__"
-            and ufunc in (np.bitwise_and, np.bitwise_or, np.bitwise_xor)
-        ):
-            result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
-                self, ufunc, method, *inputs, **kwargs
-            )
-            if result is not NotImplemented:
-                return result
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
 
         if "out" in kwargs:
             # e.g. test_dti_isub_tdi
@@ -2078,42 +2061,6 @@ class Index(IndexOpsMixin, PandasObject):
                 names=new_names,
                 verify_integrity=False,
             )
-
-    def _get_grouper_for_level(
-        self,
-        mapper,
-        *,
-        level=None,
-        dropna: bool = True,
-    ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
-        """
-        Get index grouper corresponding to an index level
-
-        Parameters
-        ----------
-        mapper: Group mapping function or None
-            Function mapping index values to groups
-        level : int or None
-            Index level, positional
-        dropna : bool
-            dropna from groupby
-
-        Returns
-        -------
-        grouper : Index
-            Index of values to group on.
-        labels : ndarray of int or None
-            Array of locations in level_index.
-        uniques : Index or None
-            Index of unique values for level.
-        """
-        assert level is None or level == 0
-        if mapper is None:
-            grouper = self
-        else:
-            grouper = self.map(mapper)
-
-        return grouper, None, None
 
     # --------------------------------------------------------------------
     # Introspection Methods
@@ -3978,10 +3925,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_positional = is_index_slice and ints_are_positional
 
         if kind == "getitem":
-            """
-            called from the getitem slicers, validate that we are in fact
-            integers
-            """
+            # called from the getitem slicers, validate that we are in fact integers
             if self.is_integer():
                 if is_frame:
                     # unambiguously positional, no deprecation
@@ -4587,22 +4531,9 @@ class Index(IndexOpsMixin, PandasObject):
         )
         mask = left_idx == -1
 
-        join_array = self._values.take(left_idx)
-        right = other._values.take(right_idx)
-
-        if isinstance(join_array, np.ndarray):
-            # error: Argument 3 to "putmask" has incompatible type
-            # "Union[ExtensionArray, ndarray[Any, Any]]"; expected
-            # "Union[_SupportsArray[dtype[Any]], _NestedSequence[
-            # _SupportsArray[dtype[Any]]], bool, int, float, complex,
-            # str, bytes, _NestedSequence[Union[bool, int, float,
-            # complex, str, bytes]]]"
-            np.putmask(join_array, mask, right)  # type: ignore[arg-type]
-        else:
-            join_array._putmask(mask, right)
-
-        join_index = self._wrap_joined_index(join_array, other)
-
+        join_idx = self.take(left_idx)
+        right = other.take(right_idx)
+        join_index = join_idx.putmask(mask, right)
         return join_index, left_idx, right_idx
 
     @final
@@ -4764,8 +4695,8 @@ class Index(IndexOpsMixin, PandasObject):
             ret_index = other if how == "right" else self
             return ret_index, None, None
 
-        ridx: np.ndarray | None
-        lidx: np.ndarray | None
+        ridx: npt.NDArray[np.intp] | None
+        lidx: npt.NDArray[np.intp] | None
 
         if self.is_unique and other.is_unique:
             # We can perform much better than the general case
@@ -4779,10 +4710,10 @@ class Index(IndexOpsMixin, PandasObject):
                 ridx = None
             elif how == "inner":
                 join_array, lidx, ridx = self._inner_indexer(other)
-                join_index = self._wrap_joined_index(join_array, other)
+                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
             elif how == "outer":
                 join_array, lidx, ridx = self._outer_indexer(other)
-                join_index = self._wrap_joined_index(join_array, other)
+                join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
         else:
             if how == "left":
                 join_array, lidx, ridx = self._left_indexer(other)
@@ -4793,20 +4724,33 @@ class Index(IndexOpsMixin, PandasObject):
             elif how == "outer":
                 join_array, lidx, ridx = self._outer_indexer(other)
 
-            join_index = self._wrap_joined_index(join_array, other)
+            assert lidx is not None
+            assert ridx is not None
+
+            join_index = self._wrap_joined_index(join_array, other, lidx, ridx)
 
         lidx = None if lidx is None else ensure_platform_int(lidx)
         ridx = None if ridx is None else ensure_platform_int(ridx)
         return join_index, lidx, ridx
 
-    def _wrap_joined_index(self: _IndexT, joined: ArrayLike, other: _IndexT) -> _IndexT:
+    def _wrap_joined_index(
+        self: _IndexT,
+        joined: ArrayLike,
+        other: _IndexT,
+        lidx: npt.NDArray[np.intp],
+        ridx: npt.NDArray[np.intp],
+    ) -> _IndexT:
         assert other.dtype == self.dtype
 
         if isinstance(self, ABCMultiIndex):
             name = self.names if self.names == other.names else None
             # error: Incompatible return value type (got "MultiIndex",
             # expected "_IndexT")
-            return self._constructor(joined, name=name)  # type: ignore[return-value]
+            mask = lidx == -1
+            join_idx = self.take(lidx)
+            right = other.take(ridx)
+            join_index = join_idx.putmask(mask, right)
+            return join_index.set_names(name)  # type: ignore[return-value]
         else:
             name = get_op_result_name(self, other)
             return self._constructor._with_infer(joined, name=name, dtype=self.dtype)
@@ -4960,14 +4904,6 @@ class Index(IndexOpsMixin, PandasObject):
         raise TypeError(
             f"{cls.__name__}(...) must be called with a collection of some "
             f"kind, {repr(data)} was passed"
-        )
-
-    @final
-    @classmethod
-    def _string_data_error(cls, data):
-        raise TypeError(
-            "String dtype not supported, you may need "
-            "to explicitly cast to a numeric type"
         )
 
     def _validate_fill_value(self, value):
@@ -5167,7 +5103,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Index._with_infer(result, name=name)
 
-    @final
     def putmask(self, mask, value) -> Index:
         """
         Return a new Index of the values set with the mask.

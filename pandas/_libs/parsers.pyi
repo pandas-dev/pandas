@@ -58,7 +58,6 @@ class TextReader:
         skiprows=...,
         skipfooter: int = ...,  # int64_t
         verbose: bool = ...,
-        mangle_dupe_cols: bool = ...,
         float_precision: Literal["round_trip", "legacy", "high"] | None = ...,
         skip_blank_lines: bool = ...,
         encoding_errors: bytes | str = ...,

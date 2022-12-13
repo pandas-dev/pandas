@@ -1,14 +1,11 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
-from base64 import decode
 from collections import defaultdict
 from csv import (
     QUOTE_MINIMAL,
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
-from errno import ENOENT
-import inspect
 import sys
 import time
 import warnings
@@ -24,10 +21,7 @@ from pandas.core.arrays import (
 )
 
 cimport cython
-from cpython.bytes cimport (
-    PyBytes_AsString,
-    PyBytes_FromString,
-)
+from cpython.bytes cimport PyBytes_AsString
 from cpython.exc cimport (
     PyErr_Fetch,
     PyErr_Occurred,
@@ -323,7 +317,7 @@ cdef class TextReader:
         object handle
         object orig_header
         bint na_filter, keep_default_na, verbose, has_usecols, has_mi_columns
-        bint mangle_dupe_cols, allow_leading_cols
+        bint allow_leading_cols
         uint64_t parser_start  # this is modified after __init__
         list clocks
         const char *encoding_errors
@@ -379,7 +373,6 @@ cdef class TextReader:
                   skiprows=None,
                   skipfooter=0,         # int64_t
                   bint verbose=False,
-                  bint mangle_dupe_cols=True,
                   float_precision=None,
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
@@ -395,8 +388,6 @@ cdef class TextReader:
 
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
-
-        self.mangle_dupe_cols = mangle_dupe_cols
 
         # For timekeeping
         self.clocks = []
@@ -631,7 +622,7 @@ cdef class TextReader:
         cdef:
             Py_ssize_t i, start, field_count, passed_count, unnamed_count, level
             char *word
-            str name, old_name
+            str name
             uint64_t hr, data_line = 0
             list header = []
             set unnamed_cols = set()
@@ -686,7 +677,7 @@ cdef class TextReader:
 
                     this_header.append(name)
 
-                if not self.has_mi_columns and self.mangle_dupe_cols:
+                if not self.has_mi_columns:
                     # Ensure that regular columns are used before unnamed ones
                     # to keep given names and mangle unnamed columns
                     col_loop_order = [i for i in range(len(this_header))
@@ -939,7 +930,7 @@ cdef class TextReader:
             object name, na_flist, col_dtype = None
             bint na_filter = 0
             int64_t num_cols
-            dict result
+            dict results
             bint use_nullable_dtypes
 
         start = self.parser_start
@@ -1461,7 +1452,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
                       bint na_filter, kh_str_starts_t *na_hashset,
                       const char *encoding_errors):
     cdef:
-        int error, na_count = 0
+        int na_count = 0
         Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
@@ -1517,15 +1508,13 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
     "Convert column data into codes, categories"
     cdef:
         int na_count = 0
-        Py_ssize_t i, size, lines
+        Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
 
         int64_t NA = -1
         int64_t[::1] codes
         int64_t current_category = 0
-
-        char *errors = "strict"
 
         int ret = 0
         kh_str_t *table
@@ -1972,7 +1961,6 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
 cdef kh_float64_t* kset_float64_from_list(values) except NULL:
     # caller takes responsibility for freeing the hash table
     cdef:
-        khiter_t k
         kh_float64_t *table
         int ret = 0
         float64_t val
@@ -1983,7 +1971,7 @@ cdef kh_float64_t* kset_float64_from_list(values) except NULL:
     for value in values:
         val = float(value)
 
-        k = kh_put_float64(table, val, &ret)
+        kh_put_float64(table, val, &ret)
 
     if table.n_buckets <= 128:
         # See reasoning in kset_from_list

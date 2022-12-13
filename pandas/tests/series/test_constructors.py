@@ -53,6 +53,12 @@ from pandas.core.internals.blocks import NumericBlock
 
 
 class TestSeriesConstructors:
+    def test_from_na_value_and_interval_of_datetime_dtype(self):
+        # GH#41805
+        ser = Series([None], dtype="interval[datetime64[ns]]")
+        assert ser.isna().all()
+        assert ser.dtype == "interval[datetime64[ns], right]"
+
     def test_infer_with_date_and_datetime(self):
         # GH#49341 pre-2.0 we inferred datetime-and-date to datetime64, which
         #  was inconsistent with Index behavior

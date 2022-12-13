@@ -870,12 +870,7 @@ class TestDataFrameConstructors:
             index=[Timedelta(td, "D") for td in td_as_int],
         )
 
-        if name == "Timedelta[s]":
-            # TODO(2.0): passing index here shouldn't be necessary, is for now
-            #  otherwise we raise in _extract_index
-            result = DataFrame(data, index=expected.index)
-        else:
-            result = DataFrame(data)
+        result = DataFrame(data)
 
         tm.assert_frame_equal(result, expected)
 
@@ -3031,10 +3026,10 @@ class TestFromScalar:
         "but DatetimeArray._from_sequence has not"
     )
     @pytest.mark.parametrize("cls", [datetime, np.datetime64])
-    def test_from_out_of_ns_bounds_datetime(self, constructor, cls, request):
+    def test_from_out_of_bounds_ns_datetime(self, constructor, cls):
         # scalar that won't fit in nanosecond dt64, but will fit in microsecond
         scalar = datetime(9999, 1, 1)
-        exp_dtype = "M8[us]"  # smallest reso that fits
+        exp_dtype = "M8[us]"  # pydatetime objects default to this reso
         if cls is np.datetime64:
             scalar = np.datetime64(scalar, "D")
             exp_dtype = "M8[s]"  # closest reso to input
@@ -3076,11 +3071,12 @@ class TestFromScalar:
         assert item.asm8.dtype == exp_dtype
         assert dtype == exp_dtype
 
-    def test_out_of_s_bounds_timedelta64(self, constructor):
-        scalar = np.timedelta64(np.iinfo(np.int64).max, "D")
+    @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
+    def test_out_of_s_bounds_timedelta64(self, constructor, cls):
+        scalar = cls(np.iinfo(np.int64).max, "D")
         result = constructor(scalar)
         item = get1(result)
-        assert type(item) is np.timedelta64
+        assert type(item) is cls
         dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
         assert dtype == object
 
@@ -3139,12 +3135,6 @@ class TestAllowNonNano:
         df = DataFrame(arr)
         assert df.dtypes[0] == arr.dtype
 
-    @pytest.mark.xfail(
-        # TODO(2.0): xfail should become unnecessary
-        strict=False,
-        reason="stack_arrays converts TDA to ndarray, then goes "
-        "through ensure_wrapped_if_datetimelike",
-    )
     def test_frame_from_dict_allow_non_nano(self, arr):
         df = DataFrame({0: arr})
         assert df.dtypes[0] == arr.dtype

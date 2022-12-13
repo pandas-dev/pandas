@@ -112,20 +112,20 @@ def safe_import(mod_name: str, min_version: str | None = None):
     return False
 
 
-def _skip_if_no_mpl() -> bool | None:
+def _skip_if_no_mpl() -> bool:
     mod = safe_import("matplotlib")
     if mod:
         mod.use("Agg")
-        return None
+        return False
     else:
         return True
 
 
-def _skip_if_not_us_locale() -> bool | None:
+def _skip_if_not_us_locale() -> bool:
     lang, _ = locale.getlocale()
     if lang != "en_US":
         return True
-    return None
+    return False
 
 
 def _skip_if_no_scipy() -> bool:
@@ -193,18 +193,14 @@ def skip_if_no(package: str, min_version: str | None = None):
     )
 
 
-# error: Argument 1 to "__call__" of "_SkipifMarkDecorator" has incompatible type
-# "Optional[bool]"; expected "Union[str, bool]"
 skip_if_no_mpl = pytest.mark.skipif(
-    _skip_if_no_mpl(), reason="Missing matplotlib dependency"  # type: ignore[arg-type]
+    _skip_if_no_mpl(), reason="Missing matplotlib dependency"
 )
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(), reason="matplotlib is present")
 skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
-# error: Argument 1 to "__call__" of "_SkipifMarkDecorator" has incompatible type
-# "Optional[bool]"; expected "Union[str, bool]"
 skip_if_not_us_locale = pytest.mark.skipif(
-    _skip_if_not_us_locale(),  # type: ignore[arg-type]
+    _skip_if_not_us_locale(),
     reason=f"Specific locale is set {locale.getlocale()[0]}",
 )
 skip_if_no_scipy = pytest.mark.skipif(

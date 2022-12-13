@@ -64,6 +64,10 @@ class TestFloatNumericIndex(NumericBase):
         else:
             self.check_is_index(b)
 
+    def test_constructor_from_list_no_dtype(self):
+        index = self._index_cls([1.5, 2.5, 3.5])
+        assert index.dtype == np.float64
+
     def test_constructor(self, dtype):
         index_cls = self._index_cls
 
@@ -115,17 +119,10 @@ class TestFloatNumericIndex(NumericBase):
         with pytest.raises(TypeError, match=msg):
             index_cls(0.0)
 
-        # 2021-02-1 we get ValueError in numpy 1.20, but not on all builds
-        msg = "|".join(
-            [
-                "String dtype not supported, you may need to explicitly cast ",
-                "could not convert string to float: 'a'",
-            ]
-        )
-        with pytest.raises((TypeError, ValueError), match=msg):
+        msg = f"data is not compatible with {index_cls.__name__}"
+        with pytest.raises(ValueError, match=msg):
             index_cls(["a", "b", 0.0])
 
-        msg = f"data is not compatible with {index_cls.__name__}"
         with pytest.raises(ValueError, match=msg):
             index_cls([Timestamp("20130101")])
 
@@ -327,18 +324,16 @@ class NumericInt(NumericBase):
         assert not index.astype(dtype=object).identical(index.astype(dtype=dtype))
 
     def test_cant_or_shouldnt_cast(self):
-        msg = (
-            "String dtype not supported, "
-            "you may need to explicitly cast to a numeric type"
-        )
+        msg = f"data is not compatible with {self._index_cls.__name__}"
+
         # can't
         data = ["foo", "bar", "baz"]
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             self._index_cls(data)
 
         # shouldn't
         data = ["0", "1", "2"]
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             self._index_cls(data)
 
     def test_view_index(self, simple_index):
@@ -371,6 +366,10 @@ class TestIntNumericIndex(NumericInt):
     )
     def index(self, request, dtype):
         return self._index_cls(request.param, dtype=dtype)
+
+    def test_constructor_from_list_no_dtype(self):
+        index = self._index_cls([1, 2, 3])
+        assert index.dtype == np.int64
 
     def test_constructor(self, dtype):
         index_cls = self._index_cls

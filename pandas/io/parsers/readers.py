@@ -41,10 +41,7 @@ from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
 )
-from pandas.util._decorators import (
-    Appender,
-    deprecate_kwarg,
-)
+from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -152,14 +149,6 @@ usecols : list-like or callable, optional
     example of a valid callable argument would be ``lambda x: x.upper() in
     ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
     parsing time and lower memory usage.
-mangle_dupe_cols : bool, default True
-    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
-    'X'...'X'. Passing in False will cause data to be overwritten if there
-    are duplicate names in the columns.
-
-    .. deprecated:: 1.5.0
-        Not implemented, and a new argument to specify the pattern for the
-        names of duplicated columns will be added instead
 dtype : Type name or dict of column -> type, optional
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
     'c': 'Int64'}}
@@ -406,6 +395,11 @@ use_nullable_dtypes : bool = False
     set to True, nullable dtypes are used for all dtypes that have a nullable
     implementation, even if no nulls are present.
 
+    The nullable dtype implementation can be configured by setting the global
+    ``io.nullable_backend`` configuration option to ``"pandas"`` to use
+    numpy-backed nullable dtypes or ``"pyarrow"`` to use pyarrow-backed
+    nullable dtypes (using ``pd.ArrowDtype``).
+
     .. versionadded:: 2.0
 
 Returns
@@ -599,7 +593,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -656,7 +649,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -713,7 +705,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -770,7 +761,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -816,7 +806,6 @@ def read_csv(
     ...
 
 
-@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
@@ -837,7 +826,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols=None,
-    mangle_dupe_cols: bool = True,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -918,7 +906,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -975,7 +962,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -1032,7 +1018,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -1089,7 +1074,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -1135,7 +1119,6 @@ def read_table(
     ...
 
 
-@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_table",
@@ -1156,7 +1139,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols=None,
-    mangle_dupe_cols: bool = True,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -1401,9 +1383,6 @@ class TextFileReader(abc.Iterator):
                     f"The {repr(argname)} option is not supported with the "
                     f"'pyarrow' engine"
                 )
-            if argname == "mangle_dupe_cols" and value is False:
-                # GH12935
-                raise ValueError("Setting mangle_dupe_cols=False is not supported yet")
             options[argname] = value
 
         for argname, default in _c_parser_defaults.items():

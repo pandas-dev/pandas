@@ -1427,16 +1427,16 @@ class TestDataFrameReductions:
         tm.assert_series_equal(result, expected)
 
     def test_reductions_skipna_none_raises(
-        self, request, frame_or_series, reduction_functions
+        self, request, frame_or_series, all_reductions
     ):
-        if reduction_functions == "count":
+        if all_reductions == "count":
             request.node.add_marker(
                 pytest.mark.xfail(reason="Count does not accept skipna")
             )
         obj = frame_or_series([1, 2, 3])
         msg = 'For argument "skipna" expected type bool, received type NoneType.'
         with pytest.raises(ValueError, match=msg):
-            getattr(obj, reduction_functions)(skipna=None)
+            getattr(obj, all_reductions)(skipna=None)
 
 
 class TestNuisanceColumns:

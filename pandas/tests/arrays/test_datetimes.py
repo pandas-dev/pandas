@@ -12,11 +12,11 @@ except ImportError:
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import tz_compare
-from pandas._libs.tslibs.dtypes import (
-    NpyDatetimeUnit,
+from pandas._libs.tslibs import (
     npy_unit_to_abbrev,
+    tz_compare,
 )
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -715,10 +715,12 @@ class TestDatetimeArray:
     easts = ["US/Eastern", "dateutil/US/Eastern"]
     if ZoneInfo is not None:
         try:
-            easts.append(ZoneInfo("US/Eastern"))
+            tz = ZoneInfo("US/Eastern")
         except KeyError:
-            # No tzdata
+            # no tzdata
             pass
+        else:
+            easts.append(tz)
 
     @pytest.mark.parametrize("tz", easts)
     def test_iter_zoneinfo_fold(self, tz):
