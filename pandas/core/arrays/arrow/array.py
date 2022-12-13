@@ -37,6 +37,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
+import pandas.core.common as com
 from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
@@ -896,6 +897,27 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         None
         """
+        # fast path (GH#####)
+        if com.is_null_slice(key):
+            if is_scalar(value) and not pa_version_under6p0:
+                fill_value = pa.scalar(value, type=self._data.type, from_pandas=True)
+                try:
+                    self._data = pc.if_else(True, fill_value, self._data)
+                    return
+                except pa.ArrowNotImplementedError:
+                    # ArrowNotImplementedError: Function 'if_else' has no kernel
+                    #   matching input types (bool, duration[ns], duration[ns])
+                    # TODO: remove try/except wrapper if/when pyarrow implements
+                    #   a kernel for duration types.
+                    pass
+            elif len(value) == len(self):
+                if isinstance(value, type(self)) and value.dtype == self.dtype:
+                    self._data = value._data
+                else:
+                    arr = pa.array(value, type=self._data.type, from_pandas=True)
+                    self._data = pa.chunked_array([arr])
+                return
+
         key = check_array_indexer(self, key)
         indices = self._indexing_key_to_indices(key)
         value = self._maybe_convert_setitem_value(value)
