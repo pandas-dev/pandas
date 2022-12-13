@@ -2304,7 +2304,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         warnings.warn(
              f"{type(self).__name__}.is_floating is deprecated."
-             "Use pandas.api.types.is_float_type instead",
+             "Use pandas.api.types.is_float_dtype instead",
              FutureWarning,
              stacklevel=find_stack_level(),
          )
