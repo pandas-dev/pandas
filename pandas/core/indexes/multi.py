@@ -2863,8 +2863,9 @@ class MultiIndex(Index):
         Returns
         -------
         tuple
-        A 2-tuple where the elements :
-            Element 0: int, slice object or boolean array
+            A 2-tuple where the elements :
+
+            Element 0: int, slice object or boolean array.
 
             Element 1: The resulting sliced multiindex/index. If the key
             contains all levels, this will be ``None``.
