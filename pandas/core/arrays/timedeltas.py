@@ -411,6 +411,23 @@ class TimedeltaArray(dtl.TimelikeOps):
         return self._from_backing_data(result)
 
     # ----------------------------------------------------------------
+    # Accumulations
+
+    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs):
+
+        data = self._ndarray.copy()
+
+        if name in {"cumsum", "cumprod"}:
+            # TODO: cumprod should not work here GH#48111
+            func = np.cumsum if name == "cumsum" else np.cumprod
+            result = cast(np.ndarray, nanops.na_accum_func(data, func, skipna=skipna))
+
+            return type(self)._simple_new(result, freq=None, dtype=self.dtype)
+
+        else:
+            return super()._accumulate(name, skipna=skipna, **kwargs)
+
+    # ----------------------------------------------------------------
     # Rendering Methods
 
     def _formatter(self, boxed: bool = False):
