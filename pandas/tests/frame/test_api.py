@@ -383,18 +383,9 @@ class TestDataFrameMisc:
         with tm.assert_produces_warning(None):
             inspect.getmembers(df)
 
-
-    def test_inspect_getmembers(self):
-        # GH38740
-        df = DataFrame()
-        with tm.assert_produces_warning(None):
-            inspect.getmembers(df)
-
-
-
     def test_dict_key_order_single_col(self):
         # GH 49233
-        df1 = DataFrame({"a":{"b":1, "c":2, "d":3}})
+        df1 = DataFrame({"a": {"b": 1, "c": 2, "d": 3}})
         df1_correct = DataFrame()
         df1_correct["a"] = [1, 2, 3]
         df1_correct["index"] = ["b", "c", "d"]
@@ -402,14 +393,10 @@ class TestDataFrameMisc:
         df1_correct.index.name = None
         tm.assert_frame_equal(df1, df1_correct)
 
-        df2 = DataFrame({"a":{"c":2, "d":3, "b":1}})
+        df2 = DataFrame({"a": {"c": 2, "d": 3, "b": 1}})
         df2_correct = DataFrame()
         df2_correct["a"] = [2, 3, 1]
         df2_correct["index"] = ["c", "d", "b"]
         df2_correct.set_index("index", drop=True, inplace=True)
         df2_correct.index.name = None
         tm.assert_frame_equal(df2, df2_correct)
-
-    
-
-        
