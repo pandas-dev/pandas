@@ -209,4 +209,4 @@ nor any existing Python installation.
 
 .. note::
    You will need to repeat this step each time the C extensions change, for example
-   if you modified them or if you did a fetch and merge from ``upstream/main``.
+   if you modified any file in ``pandas/_libs`` or if you did a fetch and merge from ``upstream/main``.
