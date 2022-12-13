@@ -109,6 +109,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    LossySetitemError,
     can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
@@ -4216,13 +4217,14 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)
-            self._mgr.column_setitem(icol, iindex, value)
+            self._mgr.column_setitem(icol, iindex, value, inplace=True)
             self._clear_item_cache()
 
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError, LossySetitemError):
             # get_loc might raise a KeyError for missing labels (falling back
             #  to (i)loc will do expansion of the index)
-            # column_setitem will do validation that may raise TypeError or ValueError
+            # column_setitem will do validation that may raise TypeError,
+            #  ValueError, or LossySetitemError
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
@@ -7474,7 +7476,7 @@ class DataFrame(NDFrame, OpsMixin):
         return self._construct_result(new_data)
 
     def _arith_method(self, other, op):
-        if ops.should_reindex_frame_op(self, other, op, 1, 1, None, None):
+        if ops.should_reindex_frame_op(self, other, op, 1, None, None):
             return ops.frame_arith_method_with_reindex(self, other, op)
 
         axis: Literal[1] = 1  # only relevant for Series other case
@@ -8039,7 +8041,8 @@ Keep all original rows and columns and also all original values
 
         Returns
         -------
-        None : method directly changes calling object
+        None
+            This method directly changes calling object.
 
         Raises
         ------

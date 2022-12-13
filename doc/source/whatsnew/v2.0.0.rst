@@ -37,6 +37,7 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 
 * :func:`read_csv`
 * :func:`read_excel`
+* :func:`read_sql`
 
 Additionally a new global configuration, ``io.nullable_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
 to select the nullable dtypes implementation.
@@ -76,6 +77,7 @@ Other enhancements
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
 - Added support for extension array dtypes in :func:`merge` (:issue:`44240`)
 - Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
+- Added ``cumsum``, ``cumprod``, ``cummin`` and ``cummax`` to the ``ExtensionArray`` interface via ``_accumulate`` (:issue:`28385`)
 - :class:`.CategoricalConversionWarning`, :class:`.InvalidComparison`, :class:`.InvalidVersion`, :class:`.LossySetitemError`, and :class:`.NoBufferPresent` are now exposed in ``pandas.errors`` (:issue:`27656`)
 - Fix ``test`` optional_extra by adding missing test package ``pytest-asyncio`` (:issue:`48361`)
 - :func:`DataFrame.astype` exception message thrown improved to include column name when type conversion is not possible. (:issue:`47571`)
@@ -83,6 +85,7 @@ Other enhancements
 - :func:`timedelta_range` now supports a ``unit`` keyword ("s", "ms", "us", or "ns") to specify the desired resolution of the output index (:issue:`49824`)
 - :meth:`DataFrame.to_json` now supports a ``mode`` keyword with supported inputs 'w' and 'a'. Defaulting to 'w', 'a' can be used when lines=True and orient='records' to append record oriented json lines to an existing json file. (:issue:`35849`)
 - Added ``name`` parameter to :meth:`IntervalIndex.from_breaks`, :meth:`IntervalIndex.from_arrays` and :meth:`IntervalIndex.from_tuples` (:issue:`48911`)
+- Improved error message for :func:`merge_asof` when join-columns were duplicated (:issue:`50102`)
 - Added :meth:`Index.infer_objects` analogous to :meth:`Series.infer_objects` (:issue:`50034`)
 - Added ``copy`` parameter to :meth:`Series.infer_objects` and :meth:`DataFrame.infer_objects`, passing ``False`` will avoid making copies for series or columns that are already non-object or where no better dtype can be inferred (:issue:`50096`)
 - :meth:`DataFrame.plot.hist` now recognizes ``xlabel`` and ``ylabel`` arguments (:issue:`49793`)
@@ -312,6 +315,40 @@ The new behavior, as for datetime64, either gives exactly the requested dtype or
    ser.astype("timedelta64[s]")
    ser.astype("timedelta64[D]")
 
+.. _whatsnew_200.api_breaking.default_to_stdlib_tzinfos:
+
+UTC and fixed-offset timezones default to standard-library tzinfo objects
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In previous versions, the default ``tzinfo`` object used to represent UTC
+was ``pytz.UTC``. In pandas 2.0, we default to ``datetime.timezone.utc`` instead.
+Similarly, for timezones represent fixed UTC offsets, we use ``datetime.timezone``
+objects instead of ``pytz.FixedOffset`` objects. See (:issue:`34916`)
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [2]: ts = pd.Timestamp("2016-01-01", tz="UTC")
+   In [3]: type(ts.tzinfo)
+   Out[3]: pytz.UTC
+
+   In [4]: ts2 = pd.Timestamp("2016-01-01 04:05:06-07:00")
+   In [3]: type(ts2.tzinfo)
+   Out[5]: pytz._FixedOffset
+
+*New behavior*:
+
+.. ipython:: python
+
+   ts = pd.Timestamp("2016-01-01", tz="UTC")
+   type(ts.tzinfo)
+
+   ts2 = pd.Timestamp("2016-01-01 04:05:06-07:00")
+   type(ts2.tzinfo)
+
+For timezones that are neither UTC nor fixed offsets, e.g. "US/Pacific", we
+continue to default to ``pytz`` objects.
+
 .. _whatsnew_200.api_breaking.zero_len_indexes:
 
 Empty DataFrames/Series will now default to have a ``RangeIndex``
@@ -374,6 +411,38 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
+Datetimes are now parsed with a consistent format
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the past, :func:`to_datetime` guessed the format for each element independently. This was appropriate for some cases where elements had mixed date formats - however, it would regularly cause problems when users expected a consistent format but the function would switch formats between elements. As of version 2.0.0, parsing will use a consistent format, determined by the first non-NA value (unless the user specifies a format, in which case that is used).
+
+*Old behavior*:
+
+  .. code-block:: ipython
+
+     In [1]: ser = pd.Series(['13-01-2000', '12-01-2000'])
+     In [2]: pd.to_datetime(ser)
+     Out[2]:
+     0   2000-01-13
+     1   2000-12-01
+     dtype: datetime64[ns]
+
+*New behavior*:
+
+  .. ipython:: python
+    :okwarning:
+
+     ser = pd.Series(['13-01-2000', '12-01-2000'])
+     pd.to_datetime(ser)
+
+Note that this affects :func:`read_csv` as well.
+
+If you still need to parse dates with inconsistent formats, you'll need to apply :func:`to_datetime`
+to each element individually, e.g. ::
+
+     ser = pd.Series(['13-01-2000', '12 January 2000'])
+     ser.apply(pd.to_datetime)
+
 .. _whatsnew_200.api_breaking.other:
 
 Other API changes
@@ -405,6 +474,10 @@ Other API changes
 - Files are now closed when encountering an exception in :func:`read_json` (:issue:`49921`)
 - Changed behavior of :func:`read_csv`, :func:`read_json` & :func:`read_fwf`, where the index will now always be a :class:`RangeIndex`, when no index is specified. Previously the index would be a :class:`Index` with dtype ``object`` if the new DataFrame/Series has length 0 (:issue:`49572`)
 - :meth:`DataFrame.values`, :meth:`DataFrame.to_numpy`, :meth:`DataFrame.xs`, :meth:`DataFrame.reindex`, :meth:`DataFrame.fillna`, and :meth:`DataFrame.replace` no longer silently consolidate the underlying arrays; do ``df = df.copy()`` to ensure consolidation (:issue:`49356`)
+- Creating a new DataFrame using a full slice on both axes with :attr:`~DataFrame.loc`
+  or :attr:`~DataFrame.iloc` (thus, ``df.loc[:, :]`` or ``df.iloc[:, :]``) now returns a
+  new DataFrame (shallow copy) instead of the original DataFrame, consistent with other
+  methods to get a full slice (for example ``df.loc[:]`` or ``df[:]``) (:issue:`49469`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -412,7 +485,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated argument ``infer_datetime_format`` in :func:`to_datetime` and :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
 
 .. ---------------------------------------------------------------------------
 
@@ -636,6 +709,8 @@ Removal of prior version deprecations/changes
 - Changed default of ``numeric_only`` to ``False`` in :class:`.Resampler` methods (:issue:`47177`)
 - Using the method :meth:`DataFrameGroupBy.transform` with a callable that returns DataFrames will align to the input's index (:issue:`47244`)
 - When providing a list of columns of length one to :meth:`DataFrame.groupby`, the keys that are returned by iterating over the resulting :class:`DataFrameGroupBy` object will now be tuples of length one (:issue:`47761`)
+- Removed deprecated methods :meth:`ExcelWriter.write_cells`, :meth:`ExcelWriter.save`, :meth:`ExcelWriter.cur_sheet`, :meth:`ExcelWriter.handles`, :meth:`ExcelWriter.path` (:issue:`45795`)
+- The :class:`ExcelWriter` attribute ``book`` can no longer be set; it is still available to be accessed and mutated (:issue:`48943`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -658,6 +733,7 @@ Performance improvements
 - Performance improvement for :class:`Series` constructor passing integer numpy array with nullable dtype (:issue:`48338`)
 - Performance improvement for :class:`DatetimeIndex` constructor passing a list (:issue:`48609`)
 - Performance improvement in :func:`merge` and :meth:`DataFrame.join` when joining on a sorted :class:`MultiIndex` (:issue:`48504`)
+- Performance improvement in :func:`to_datetime` when parsing strings with timezone offsets (:issue:`50107`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`48384`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
 - Performance improvement for :func:`concat` with extension array backed indexes (:issue:`49128`, :issue:`49178`)
@@ -698,7 +774,7 @@ Datetimelike
 - Bug in subtracting a ``datetime`` scalar from :class:`DatetimeIndex` failing to retain the original ``freq`` attribute (:issue:`48818`)
 - Bug in ``pandas.tseries.holiday.Holiday`` where a half-open date interval causes inconsistent return types from :meth:`USFederalHolidayCalendar.holidays` (:issue:`49075`)
 - Bug in rendering :class:`DatetimeIndex` and :class:`Series` and :class:`DataFrame` with timezone-aware dtypes with ``dateutil`` or ``zoneinfo`` timezones near daylight-savings transitions (:issue:`49684`)
-- Bug in :func:`to_datetime` was raising ``ValueError`` when parsing :class:`Timestamp`, ``datetime``, or ``np.datetime64`` objects with non-ISO8601 ``format`` (:issue:`49298`, :issue:`50036`)
+- Bug in :func:`to_datetime` was raising ``ValueError`` when parsing :class:`Timestamp`, ``datetime.datetime``, ``datetime.date``, or ``np.datetime64`` objects when non-ISO8601 ``format`` was passed (:issue:`49298`, :issue:`50036`)
 -
 
 Timedelta
@@ -712,7 +788,7 @@ Timezones
 ^^^^^^^^^
 - Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` with object-dtype containing multiple timezone-aware ``datetime`` objects with heterogeneous timezones to a :class:`DatetimeTZDtype` incorrectly raising (:issue:`32581`)
 - Bug in :func:`to_datetime` was failing to parse date strings with timezone name when ``format`` was specified with ``%Z`` (:issue:`49748`)
--
+- Better error message when passing invalid values to ``ambiguous`` parameter in :meth:`Timestamp.tz_localize` (:issue:`49565`)
 
 Numeric
 ^^^^^^^
@@ -749,6 +825,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` with ``bool`` indexer and :class:`MultiIndex` (:issue:`47687`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` when right hand side is :class:`DataFrame` with :class:`MultiIndex` columns (:issue:`49121`)
 - Bug in :meth:`DataFrame.reindex` casting dtype to ``object`` when :class:`DataFrame` has single extension array column when re-indexing ``columns`` and ``index`` (:issue:`48190`)
+- Bug in :meth:`DataFrame.iloc` raising ``IndexError`` when indexer is a :class:`Series` with numeric extension array dtype (:issue:`49521`)
 - Bug in :func:`~DataFrame.describe` when formatting percentiles in the resulting index showed more decimals than needed (:issue:`46362`)
 - Bug in :meth:`DataFrame.compare` does not recognize differences when comparing ``NA`` with value in nullable dtypes (:issue:`48939`)
 -
@@ -783,6 +860,7 @@ I/O
 - Improved error message in :func:`read_excel` by including the offending sheet name when an exception is raised while reading a file (:issue:`48706`)
 - Bug when a pickling a subset PyArrow-backed data that would serialize the entire data instead of the subset (:issue:`42600`)
 - Bug in :func:`read_csv` for a single-line csv with fewer columns than ``names`` raised :class:`.errors.ParserError` with ``engine="c"`` (:issue:`47566`)
+- Bug in displaying ``string`` dtypes not showing storage option (:issue:`50099`)
 - Bug in :func:`DataFrame.to_string` with ``header=False`` that printed the index name on the same line as the first row of the data (:issue:`49230`)
 - Fixed memory leak which stemmed from the initialization of the internal JSON module (:issue:`49222`)
 - Fixed issue where :func:`json_normalize` would incorrectly remove leading characters from column names that matched the ``sep`` argument (:issue:`49861`)
