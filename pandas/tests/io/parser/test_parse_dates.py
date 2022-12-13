@@ -6,6 +6,8 @@ parsers defined in parsers.py
 from datetime import (
     date,
     datetime,
+    timedelta,
+    timezone,
 )
 from io import StringIO
 import warnings
@@ -947,7 +949,11 @@ def test_parse_tz_aware(all_parsers, request):
         {"x": [0.5]}, index=Index([Timestamp("2012-06-13 01:39:00+00:00")], name="Date")
     )
     tm.assert_frame_equal(result, expected)
-    assert result.index.tz is pytz.utc
+    if parser.engine == "pyarrow":
+        expected_tz = pytz.utc
+    else:
+        expected_tz = timezone.utc
+    assert result.index.tz is expected_tz
 
 
 @xfail_pyarrow
@@ -1625,7 +1631,7 @@ def test_parse_timezone(all_parsers):
                 start="2018-01-04 09:01:00",
                 end="2018-01-04 09:05:00",
                 freq="1min",
-                tz=pytz.FixedOffset(540),
+                tz=timezone(timedelta(minutes=540)),
             )
         ),
         freq=None,
