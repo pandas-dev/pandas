@@ -89,6 +89,7 @@ from pandas.core.arrays import (
     DatetimeArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -1395,6 +1396,8 @@ class GenericArrayFormatter:
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
+            elif isinstance(x, StringDtype):
+                return repr(x)
             else:
                 # object dtype
                 return str(formatter(x))
