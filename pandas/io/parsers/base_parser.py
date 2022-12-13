@@ -129,13 +129,11 @@ class ParserBase:
 
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
-        self.infer_datetime_format = kwds.pop("infer_datetime_format", False)
         self.cache_dates = kwds.pop("cache_dates", True)
 
         self._date_conv = _make_date_converter(
             date_parser=self.date_parser,
             dayfirst=self.dayfirst,
-            infer_datetime_format=self.infer_datetime_format,
             cache_dates=self.cache_dates,
         )
 
@@ -1117,7 +1115,6 @@ class ParserBase:
 def _make_date_converter(
     date_parser=None,
     dayfirst: bool = False,
-    infer_datetime_format: bool = False,
     cache_dates: bool = True,
 ):
     def converter(*date_cols):
@@ -1130,7 +1127,6 @@ def _make_date_converter(
                     utc=False,
                     dayfirst=dayfirst,
                     errors="ignore",
-                    infer_datetime_format=infer_datetime_format,
                     cache=cache_dates,
                 ).to_numpy()
 
@@ -1194,7 +1190,6 @@ parser_defaults = {
     "verbose": False,
     "encoding": None,
     "compression": None,
-    "infer_datetime_format": False,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
     "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
