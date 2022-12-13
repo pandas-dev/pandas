@@ -34,6 +34,7 @@ def test_read_jsonl(engine):
 
 
 def test_read_jsonl_engine_pyarrow(json_dir_path, engine):
+    print(os.path.join(json_dir_path, "line_delimited.json"))
     result = read_json(
         os.path.join(json_dir_path, "line_delimited.json"),
         lines=True,
@@ -114,8 +115,8 @@ def test_to_jsonl_count_new_lines():
 # pyarrow takes file path as an input
 # and only supports line delimited json
 # and doesn't have a chunksize argument
-@pytest.mark.parametrize("chunksize", [1, 1.0])
 @xfail_json_engine_pyarrow
+@pytest.mark.parametrize("chunksize", [1, 1.0])
 def test_readjson_chunks(lines_json_df, chunksize, engine):
     # Basic test that read_json(chunks=True) gives the same result as
     # read_json(chunks=False)

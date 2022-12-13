@@ -40,6 +40,7 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
@@ -76,7 +77,6 @@ from pandas.io.json._table_schema import (
     build_table_schema,
     parse_table_schema,
 )
-from pandas.io.json.arrow_json_parser_wrapper import ArrowJsonParserWrapper
 from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
@@ -661,6 +661,10 @@ def read_json(
 
         .. versionadded:: 2.0
 
+    engine : {{'ujson', 'pyarrow'}}, default "ujson"
+        Parser engine to use.
+
+
     Returns
     -------
     Series or DataFrame
@@ -843,6 +847,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.chunksize = validate_integer("chunksize", self.chunksize, 1)
             if not self.lines:
                 raise ValueError("chunksize can only be passed if lines=True")
+            if self.engine == "pyarrow":
+                raise ValueError(
+                    "currently pyarrow engine doesn't support chunksize parameter"
+                )
         if self.nrows is not None:
             self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
@@ -858,10 +866,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 f"The engine type {self.engine} is currently not supported."
             )
 
-        data = self._get_data_from_filepath(filepath_or_buffer)
         if self.engine == "pyarrow":
-            self.data = ArrowJsonParserWrapper(filepath_or_buffer)
+            self.data = filepath_or_buffer
         elif self.engine == "ujson":
+            data = self._get_data_from_filepath(filepath_or_buffer)
             self.data = self._preprocess_data(data)
 
     def _preprocess_data(self, data):
@@ -948,7 +956,9 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         obj: DataFrame | Series
         with self:
             if self.engine == "pyarrow":
-                obj = self.data.read()
+                pyarrow_json = import_optional_dependency("pyarrow.json")
+                table = pyarrow_json.read_json(self.data)
+                obj = table.to_pandas()
             if self.engine == "ujson":
                 if self.lines:
                     if self.chunksize:
