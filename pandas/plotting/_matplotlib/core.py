@@ -1197,7 +1197,7 @@ class ScatterPlot(PlanePlot):
         elif is_hashable(s) and s in data.columns:
             s = data[s]
         super().__init__(data, x, y, s=s, **kwargs)
-        if is_integer(c) and not holds_integer(self.data.columns.holds):
+        if is_integer(c) and not holds_integer(self.data.columns):
             c = self.data.columns[c]
         self.c = c
 
