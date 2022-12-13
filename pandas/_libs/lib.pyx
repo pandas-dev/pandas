@@ -5,6 +5,7 @@ from typing import (
     Literal,
     _GenericAlias,
 )
+import warnings
 
 cimport cython
 from cpython.datetime cimport (
