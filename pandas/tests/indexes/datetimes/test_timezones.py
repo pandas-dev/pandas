@@ -6,6 +6,7 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
     tzinfo,
 )
 
@@ -1059,12 +1060,12 @@ class TestDatetimeIndexTimezones:
         arr = np.array([dt], dtype=object)
 
         result = to_datetime(arr, utc=True)
-        assert result.tz is pytz.utc
+        assert result.tz is timezone.utc
 
         rng = date_range("2012-11-03 03:00", "2012-11-05 03:00", tz=tzlocal())
         arr = rng.to_pydatetime()
         result = to_datetime(arr, utc=True)
-        assert result.tz is pytz.utc
+        assert result.tz is timezone.utc
 
     def test_dti_to_pydatetime_fizedtz(self):
         dates = np.array(
@@ -1139,7 +1140,7 @@ class TestDatetimeIndexTimezones:
         converted = to_datetime(dates_aware, utc=True)
         ex_vals = np.array([Timestamp(x).as_unit("ns").value for x in dates_aware])
         tm.assert_numpy_array_equal(converted.asi8, ex_vals)
-        assert converted.tz is pytz.utc
+        assert converted.tz is timezone.utc
 
     # Note: not difference, as there is no symmetry requirement there
     @pytest.mark.parametrize("setop", ["union", "intersection", "symmetric_difference"])
@@ -1158,8 +1159,8 @@ class TestDatetimeIndexTimezones:
         tm.assert_index_equal(result, expected)
         assert result.tz == left.tz
         if len(result):
-            assert result[0].tz.zone == "UTC"
-            assert result[-1].tz.zone == "UTC"
+            assert result[0].tz is timezone.utc
+            assert result[-1].tz is timezone.utc
 
     def test_dti_union_mixed(self):
         # GH 21671

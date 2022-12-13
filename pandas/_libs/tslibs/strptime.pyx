@@ -1,10 +1,13 @@
 """Strptime-related classes and functions.
 """
+from datetime import timezone
+
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
     date,
     import_datetime,
+    timedelta,
     tzinfo,
 )
 
@@ -96,7 +99,7 @@ def array_strptime(
         int week_of_year, week_of_year_start, parse_code, ordinal
         int iso_week, iso_year
         int64_t us, ns
-        object val, group_key, ampm, found, timezone
+        object val, group_key, ampm, found, tz
         bint is_raise = errors=="raise"
         bint is_ignore = errors=="ignore"
         bint is_coerce = errors=="coerce"
@@ -214,7 +217,7 @@ def array_strptime(
         year = 1900
         month = day = 1
         hour = minute = second = ns = us = 0
-        timezone = None
+        tz = None
         # Default to -1 to signify that values not known; not critical to have,
         # though
         iso_week = week_of_year = -1
@@ -304,9 +307,9 @@ def array_strptime(
                     # W starts week on Monday.
                     week_of_year_start = 0
             elif parse_code == 17:
-                timezone = pytz.timezone(found_dict["Z"])
+                tz = pytz.timezone(found_dict["Z"])
             elif parse_code == 19:
-                timezone = parse_timezone_directive(found_dict["z"])
+                tz = parse_timezone_directive(found_dict["z"])
             elif parse_code == 20:
                 iso_year = int(found_dict["G"])
             elif parse_code == 21:
@@ -388,7 +391,7 @@ def array_strptime(
                 continue
             raise
 
-        result_timezone[i] = timezone
+        result_timezone[i] = tz
 
     return result, result_timezone.base
 
@@ -538,7 +541,7 @@ cdef (int, int) _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday)
 
 cdef tzinfo parse_timezone_directive(str z):
     """
-    Parse the '%z' directive and return a pytz.FixedOffset
+    Parse the '%z' directive and return a datetime.timezone object.
 
     Parameters
     ----------
@@ -546,7 +549,7 @@ cdef tzinfo parse_timezone_directive(str z):
 
     Returns
     -------
-    pytz.FixedOffset
+    datetime.timezone
 
     Notes
     -----
@@ -560,7 +563,7 @@ cdef tzinfo parse_timezone_directive(str z):
         object gmtoff_remainder, gmtoff_remainder_padding
 
     if z == "Z":
-        return pytz.FixedOffset(0)
+        return timezone(timedelta(0))
     if z[3] == ":":
         z = z[:3] + z[4:]
         if len(z) > 5:
@@ -580,4 +583,4 @@ cdef tzinfo parse_timezone_directive(str z):
     total_minutes = ((hours * 60) + minutes + (seconds // 60) +
                      (microseconds // 60_000_000))
     total_minutes = -total_minutes if z.startswith("-") else total_minutes
-    return pytz.FixedOffset(total_minutes)
+    return timezone(timedelta(minutes=total_minutes))

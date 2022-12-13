@@ -1,12 +1,13 @@
 from datetime import (
     date,
     datetime,
+    timedelta,
+    timezone,
 )
 
 from dateutil.tz.tz import tzoffset
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs import (
     iNaT,
@@ -63,7 +64,7 @@ def test_parsing_timezone_offsets(dt_string, expected_tz):
     result, result_tz = tslib.array_to_datetime(arr)
 
     tm.assert_numpy_array_equal(result, expected)
-    assert result_tz is pytz.FixedOffset(expected_tz)
+    assert result_tz == timezone(timedelta(minutes=expected_tz))
 
 
 def test_parsing_non_iso_timezone_offset():
@@ -74,7 +75,7 @@ def test_parsing_non_iso_timezone_offset():
     expected = np.array([np.datetime64("2013-01-01 00:00:00.000000000")])
 
     tm.assert_numpy_array_equal(result, expected)
-    assert result_tz is pytz.FixedOffset(0)
+    assert result_tz is timezone.utc
 
 
 def test_parsing_different_timezone_offsets():

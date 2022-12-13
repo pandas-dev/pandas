@@ -635,7 +635,7 @@ class TestDatetimeIndex:
 
     @pytest.mark.parametrize("freq", ["AS", "W-SUN"])
     def test_constructor_datetime64_tzformat(self, freq):
-        # see GH#6572: ISO 8601 format results in pytz.FixedOffset
+        # see GH#6572: ISO 8601 format results in stdlib timezone object
         idx = date_range(
             "2013-01-01T00:00:00-05:00", "2016-01-01T23:59:59-05:00", freq=freq
         )
@@ -643,7 +643,7 @@ class TestDatetimeIndex:
             "2013-01-01T00:00:00",
             "2016-01-01T23:59:59",
             freq=freq,
-            tz=pytz.FixedOffset(-300),
+            tz=timezone(timedelta(minutes=-300)),
         )
         tm.assert_index_equal(idx, expected)
         # Unable to use `US/Eastern` because of DST
@@ -659,7 +659,7 @@ class TestDatetimeIndex:
             "2013-01-01T00:00:00",
             "2016-01-01T23:59:59",
             freq=freq,
-            tz=pytz.FixedOffset(540),
+            tz=timezone(timedelta(minutes=540)),
         )
         tm.assert_index_equal(idx, expected)
         expected_i8 = date_range(
@@ -673,7 +673,7 @@ class TestDatetimeIndex:
             "2013-01-01T00:00:00",
             "2016-01-01T23:59:59",
             freq=freq,
-            tz=pytz.FixedOffset(-300),
+            tz=timezone(timedelta(minutes=-300)),
         )
         tm.assert_index_equal(idx, expected)
         # Unable to use `US/Eastern` because of DST
@@ -687,7 +687,7 @@ class TestDatetimeIndex:
             "2013-01-01T00:00:00",
             "2016-01-01T23:59:59",
             freq=freq,
-            tz=pytz.FixedOffset(540),
+            tz=timezone(timedelta(minutes=540)),
         )
         tm.assert_index_equal(idx, expected)
         expected_i8 = date_range(

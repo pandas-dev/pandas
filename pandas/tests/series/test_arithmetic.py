@@ -1,9 +1,11 @@
-from datetime import timedelta
+from datetime import (
+    timedelta,
+    timezone,
+)
 import operator
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
@@ -676,7 +678,7 @@ class TestTimeSeriesArithmetic:
         uts2 = ser2.tz_convert("utc")
         expected = uts1 + uts2
 
-        assert result.index.tz == pytz.UTC
+        assert result.index.tz is timezone.utc
         tm.assert_series_equal(result, expected)
 
     def test_series_add_aware_naive_raises(self):

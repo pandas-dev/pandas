@@ -991,7 +991,7 @@ def to_datetime(
 
     >>> pd.to_datetime(['2018-10-26 12:00 -0500', '2018-10-26 13:00 -0500'])
     DatetimeIndex(['2018-10-26 12:00:00-05:00', '2018-10-26 13:00:00-05:00'],
-                  dtype='datetime64[ns, pytz.FixedOffset(-300)]', freq=None)
+                  dtype='datetime64[ns, UTC-05:00]', freq=None)
 
     - However, timezone-aware inputs *with mixed time offsets* (for example
       issued from a timezone with daylight savings, such as Europe/Paris)
@@ -1010,7 +1010,7 @@ def to_datetime(
     >>> from datetime import datetime
     >>> pd.to_datetime(["2020-01-01 01:00 -01:00", datetime(2020, 1, 1, 3, 0)])
     DatetimeIndex(['2020-01-01 01:00:00-01:00', '2020-01-01 02:00:00-01:00'],
-                  dtype='datetime64[ns, pytz.FixedOffset(-60)]', freq=None)
+                  dtype='datetime64[ns, UTC-01:00]', freq=None)
 
     |
 

@@ -312,6 +312,40 @@ The new behavior, as for datetime64, either gives exactly the requested dtype or
    ser.astype("timedelta64[s]")
    ser.astype("timedelta64[D]")
 
+.. _whatsnew_200.api_breaking.default_to_stdlib_tzinfos:
+
+UTC and fixed-offset timezones default to standard-library tzinfo objects
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In previous versions, the default ``tzinfo`` object used to represent UTC
+was ``pytz.UTC``. In pandas 2.0, we default to ``datetime.timezone.utc`` instead.
+Similarly, for timezones represent fixed UTC offsets, we use ``datetime.timezone``
+objects instead of ``pytz.FixedOffset`` objects. See (:issue:`34916`)
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [2]: ts = pd.Timestamp("2016-01-01", tz="UTC")
+   In [3]: type(ts.tzinfo)
+   Out[3]: pytz.UTC
+
+   In [4]: ts2 = pd.Timestamp("2016-01-01 04:05:06-07:00")
+   In [3]: type(ts2.tzinfo)
+   Out[5]: pytz._FixedOffset
+
+*New behavior*:
+
+.. ipython:: python
+
+   ts = pd.Timestamp("2016-01-01", tz="UTC")
+   type(ts.tzinfo)
+
+   ts2 = pd.Timestamp("2016-01-01 04:05:06-07:00")
+   type(ts2.tzinfo)
+
+For timezones that are neither UTC nor fixed offsets, e.g. "US/Pacific", we
+continue to default to ``pytz`` objects.
+
 .. _whatsnew_200.api_breaking.zero_len_indexes:
 
 Empty DataFrames/Series will now default to have a ``RangeIndex``
