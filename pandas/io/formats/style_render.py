@@ -119,7 +119,7 @@ class StylerRenderer:
             "blank": "blank",
             "foot": "foot",
         }
-        self.concatenated: StylerRenderer | None = None
+        self.concatenated: list[StylerRenderer] = []
         # add rendering variables
         self.hide_index_names: bool = False
         self.hide_column_names: bool = False
@@ -161,27 +161,34 @@ class StylerRenderer:
         stylers for use within `_translate_latex`
         """
         self._compute()
-        dx = None
-        if self.concatenated is not None:
-            self.concatenated.hide_index_ = self.hide_index_
-            self.concatenated.hidden_columns = self.hidden_columns
-            self.concatenated.css = {
+        dxs = []
+        ctx_len = len(self.index)
+        for i, concatenated in enumerate(self.concatenated):
+            concatenated.hide_index_ = self.hide_index_
+            concatenated.hidden_columns = self.hidden_columns
+            foot = f"{self.css['foot']}{i}"
+            concatenated.css = {
                 **self.css,
-                "data": f"{self.css['foot']}_{self.css['data']}",
-                "row_heading": f"{self.css['foot']}_{self.css['row_heading']}",
-                "row": f"{self.css['foot']}_{self.css['row']}",
-                "foot": self.css["foot"],
+                "data": f"{foot}_data",
+                "row_heading": f"{foot}_row_heading",
+                "row": f"{foot}_row",
+                "foot": f"{foot}_foot",
             }
-            dx = self.concatenated._render(
+            dx = concatenated._render(
                 sparse_index, sparse_columns, max_rows, max_cols, blank
             )
+            dxs.append(dx)
 
-            for (r, c), v in self.concatenated.ctx.items():
-                self.ctx[(r + len(self.index), c)] = v
-            for (r, c), v in self.concatenated.ctx_index.items():
-                self.ctx_index[(r + len(self.index), c)] = v
+            for (r, c), v in concatenated.ctx.items():
+                self.ctx[(r + ctx_len, c)] = v
+            for (r, c), v in concatenated.ctx_index.items():
+                self.ctx_index[(r + ctx_len, c)] = v
 
-        d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank, dx)
+            ctx_len += len(concatenated.index)
+
+        d = self._translate(
+            sparse_index, sparse_columns, max_rows, max_cols, blank, dxs
+        )
         return d
 
     def _render_html(
@@ -258,7 +265,7 @@ class StylerRenderer:
         max_rows: int | None = None,
         max_cols: int | None = None,
         blank: str = "&nbsp;",
-        dx: dict | None = None,
+        dxs: list[dict] | None = None,
     ):
         """
         Process Styler data and settings into a dict for template rendering.
@@ -278,8 +285,8 @@ class StylerRenderer:
             Specific max rows and cols. max_elements always take precedence in render.
         blank : str
             Entry to top-left blank cells.
-        dx : dict
-            The render dict of the concatenated Styler.
+        dxs : list[dict]
+            The render dicts of the concatenated Stylers.
 
         Returns
         -------
@@ -287,6 +294,8 @@ class StylerRenderer:
             The following structure: {uuid, table_styles, caption, head, body,
             cellstyle, table_attributes}
         """
+        if dxs is None:
+            dxs = []
         self.css["blank_value"] = blank
 
         # construct render dict
@@ -340,10 +349,12 @@ class StylerRenderer:
             ]
             d.update({k: map})
 
-        if dx is not None:  # self.concatenated is not None
+        for dx in dxs:  # self.concatenated is not empty
             d["body"].extend(dx["body"])  # type: ignore[union-attr]
             d["cellstyle"].extend(dx["cellstyle"])  # type: ignore[union-attr]
-            d["cellstyle_index"].extend(dx["cellstyle"])  # type: ignore[union-attr]
+            d["cellstyle_index"].extend(  # type: ignore[union-attr]
+                dx["cellstyle_index"]
+            )
 
         table_attr = self.table_attributes
         if not get_option("styler.html.mathjax"):
@@ -847,23 +858,27 @@ class StylerRenderer:
             for r, row in enumerate(d["head"])
         ]
 
-        def concatenated_visible_rows(obj, n, row_indices):
+        def _concatenated_visible_rows(obj, n, row_indices):
             """
             Extract all visible row indices recursively from concatenated stylers.
             """
             row_indices.extend(
                 [r + n for r in range(len(obj.index)) if r not in obj.hidden_rows]
             )
-            return (
-                row_indices
-                if obj.concatenated is None
-                else concatenated_visible_rows(
-                    obj.concatenated, n + len(obj.index), row_indices
-                )
-            )
+            n += len(obj.index)
+            for concatenated in obj.concatenated:
+                n = _concatenated_visible_rows(concatenated, n, row_indices)
+            return n
+
+        def concatenated_visible_rows(obj):
+            row_indices: list[int] = []
+            _concatenated_visible_rows(obj, 0, row_indices)
+            # TODO try to consolidate the concat visible rows
+            # methods to a single function / recursion for simplicity
+            return row_indices
 
         body = []
-        for r, row in zip(concatenated_visible_rows(self, 0, []), d["body"]):
+        for r, row in zip(concatenated_visible_rows(self), d["body"]):
             # note: cannot enumerate d["body"] because rows were dropped if hidden
             # during _translate_body so must zip to acquire the true r-index associated
             # with the ctx obj which contains the cell styles.
