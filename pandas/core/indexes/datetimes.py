@@ -838,7 +838,7 @@ def date_range(
 
     Returns
     -------
-    rng : DatetimeIndex
+    DatetimeIndex
 
     See Also
     --------

@@ -258,13 +258,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------
-    # NDArrayBackedExtensionArray compat
-
-    @cache_readonly
-    def _data(self) -> np.ndarray:
-        return self._ndarray
-
-    # ------------------------------------------------------------------
 
     def _box_func(self, x):
         """
@@ -1358,6 +1351,27 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result = cast(np.ndarray, extract_array(ext_arr, extract_numpy=True))
         result = result.reshape(self.shape)
         return result
+
+    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs):
+
+        if is_period_dtype(self.dtype):
+            data = self
+        else:
+            # Incompatible types in assignment (expression has type
+            # "ndarray[Any, Any]", variable has type "DatetimeLikeArrayMixin"
+            data = self._ndarray.copy()  # type: ignore[assignment]
+
+        if name in {"cummin", "cummax"}:
+            func = np.minimum.accumulate if name == "cummin" else np.maximum.accumulate
+            result = cast(np.ndarray, nanops.na_accum_func(data, func, skipna=skipna))
+
+            # error: Unexpected keyword argument "freq" for
+            # "_simple_new" of "NDArrayBacked"  [call-arg]
+            return type(self)._simple_new(
+                result, freq=self.freq, dtype=self.dtype  # type: ignore[call-arg]
+            )
+
+        raise TypeError(f"Accumulation {name} not supported for {type(self)}")
 
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):

@@ -6,8 +6,8 @@ construction requirements, we need to do object instantiation in python
 (see Timestamp class below). This will serve as a C extension type that
 shadows the python class, where we do any heavy lifting.
 """
-import warnings
 
+import warnings
 cimport cython
 
 import numpy as np
@@ -111,7 +111,7 @@ from pandas._libs.tslibs.timezones cimport (
     is_utc,
     maybe_get_tz,
     treat_tz_as_pytz,
-    utc_pytz as UTC,
+    utc_stdlib as UTC,
 )
 from pandas._libs.tslibs.tzconversion cimport (
     tz_convert_from_utc_single,
@@ -1954,8 +1954,11 @@ default 'raise'
         >>> pd.NaT.tz_localize()
         NaT
         """
-        if ambiguous == "infer":
-            raise ValueError("Cannot infer offset with only one time.")
+        if not isinstance(ambiguous, bool) and ambiguous not in {"NaT", "raise"}:
+            raise ValueError(
+                        "'ambiguous' parameter must be one of: "
+                        "True, False, 'NaT', 'raise' (default)"
+                    )
 
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not PyDelta_Check(nonexistent):
