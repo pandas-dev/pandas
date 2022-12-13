@@ -2027,13 +2027,16 @@ class TestTimedeltaArraylikeMulDivOps:
         result = tdser / vector.astype(object)
         if box_with_array is DataFrame:
             expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
+            expected = tm.box_expected(expected, xbox).astype(object)
         else:
             expected = [tdser[n] / vector[n] for n in range(len(tdser))]
             expected = [
                 x if x is not NaT else np.timedelta64("NaT", "ns") for x in expected
             ]
-        expected = pd.Index(expected, dtype=object)
-        expected = tm.box_expected(expected, xbox, dtype=object)
+            if xbox is tm.to_array:
+                expected = tm.to_array(expected).astype(object)
+            else:
+                expected = xbox(expected, dtype=object)
 
         tm.assert_equal(result, expected)
 
@@ -2102,9 +2105,8 @@ class TestTimedeltaArraylikeMulDivOps:
         right = np.array([2, 2.0], dtype=object)
 
         expected = pd.Index([np.timedelta64("NaT", "ns")] * 2, dtype=object)
-        expected = tm.box_expected(expected, box_with_array, dtype=object).astype(
-            object
-        )
+        if box_with_array is not pd.Index:
+            expected = tm.box_expected(expected, box_with_array).astype(object)
 
         result = left / right
         tm.assert_equal(result, expected)
