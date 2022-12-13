@@ -372,7 +372,7 @@ kwargs : dict, optional
 
 Returns
 -------
-object : the return type of `func`.
+the return type of `func`.
 
 See Also
 --------
@@ -774,7 +774,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         Returns
         -------
-        group : same type as obj
+        same type as obj
         """
         if obj is None:
             obj = self._selected_obj

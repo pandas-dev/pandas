@@ -43,7 +43,7 @@ def is_number(obj) -> bool:
 
     Returns
     -------
-    is_number : bool
+    bool
         Whether `obj` is a number or not.
 
     See Also
@@ -113,7 +113,7 @@ def is_file_like(obj) -> bool:
 
     Returns
     -------
-    is_file_like : bool
+    bool
         Whether `obj` has file-like properties.
 
     Examples
@@ -141,7 +141,7 @@ def is_re(obj) -> bool:
 
     Returns
     -------
-    is_regex : bool
+    bool
         Whether `obj` is a regex pattern.
 
     Examples
@@ -164,7 +164,7 @@ def is_re_compilable(obj) -> bool:
 
     Returns
     -------
-    is_regex_compilable : bool
+    bool
         Whether `obj` can be compiled as a regex pattern.
 
     Examples
@@ -270,7 +270,7 @@ def is_dict_like(obj) -> bool:
 
     Returns
     -------
-    is_dict_like : bool
+    bool
         Whether `obj` has dict-like properties.
 
     Examples
@@ -302,7 +302,7 @@ def is_named_tuple(obj) -> bool:
 
     Returns
     -------
-    is_named_tuple : bool
+    bool
         Whether `obj` is a named tuple.
 
     Examples

@@ -374,7 +374,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Returns
         -------
-        transformed : Series
+        Series
 
         Examples
         --------

@@ -370,7 +370,7 @@ def read_hdf(
 
     Returns
     -------
-    item : object
+    object
         The selected object. Return type depends on the object stored.
 
     See Also

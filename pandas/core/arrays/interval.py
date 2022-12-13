@@ -1368,7 +1368,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Returns
         -------
-        new_index : %(klass)s
+        %(klass)s
 
         %(examples)s\
         """
