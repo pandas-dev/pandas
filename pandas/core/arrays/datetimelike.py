@@ -58,6 +58,7 @@ from pandas._typing import (
     DatetimeLikeScalar,
     Dtype,
     DtypeObj,
+    F,
     NpDtype,
     PositionalIndexer2D,
     PositionalIndexerTuple,
@@ -158,7 +159,7 @@ DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
 
 
-def _period_dispatch(meth):
+def _period_dispatch(meth: F) -> F:
     """
     For PeriodArray methods, dispatch to DatetimeArray and re-wrap the results
     in PeriodArray.  We cannot use ._ndarray directly for the affected
@@ -180,7 +181,7 @@ def _period_dispatch(meth):
         res_i8 = result.view("i8")
         return self._from_backing_data(res_i8)
 
-    return new_meth
+    return cast(F, new_meth)
 
 
 class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
