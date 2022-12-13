@@ -21,7 +21,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 import zipfile
 
 from pandas._config import config
@@ -44,7 +43,6 @@ from pandas.util._decorators import (
     Appender,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -1136,40 +1134,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         This attribute can be used to access engine-specific features.
         """
 
-    @book.setter
-    @abc.abstractmethod
-    def book(self, other) -> None:
-        """
-        Set book instance. Class type will depend on the engine used.
-        """
-
-    def write_cells(
-        self,
-        cells,
-        sheet_name: str | None = None,
-        startrow: int = 0,
-        startcol: int = 0,
-        freeze_panes: tuple[int, int] | None = None,
-    ) -> None:
-        """
-        Write given formatted cells into Excel an excel sheet
-
-        .. deprecated:: 1.5.0
-
-        Parameters
-        ----------
-        cells : generator
-            cell of formatted data to save to Excel sheet
-        sheet_name : str, default None
-            Name of Excel sheet, if None, then use self.cur_sheet
-        startrow : upper left cell row to dump data frame
-        startcol : upper left cell column to dump data frame
-        freeze_panes: int tuple of length 2
-            contains the bottom-most row and right-most column to freeze
-        """
-        self._deprecate("write_cells")
-        return self._write_cells(cells, sheet_name, startrow, startcol, freeze_panes)
-
     @abc.abstractmethod
     def _write_cells(
         self,
@@ -1193,15 +1157,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         freeze_panes: int tuple of length 2
             contains the bottom-most row and right-most column to freeze
         """
-
-    def save(self) -> None:
-        """
-        Save workbook to disk.
-
-        .. deprecated:: 1.5.0
-        """
-        self._deprecate("save")
-        return self._save()
 
     @abc.abstractmethod
     def _save(self) -> None:
@@ -1232,7 +1187,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         # the excel backend first read the existing file and then write any data to it
         mode = mode.replace("a", "r+")
 
-        # cast ExcelWriter to avoid adding 'if self.handles is not None'
+        # cast ExcelWriter to avoid adding 'if self._handles is not None'
         self._handles = IOHandles(
             cast(IO[bytes], path), compression={"compression": None}
         )
@@ -1264,29 +1219,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             if_sheet_exists = "error"
         self._if_sheet_exists = if_sheet_exists
 
-    def _deprecate(self, attr: str) -> None:
-        """
-        Deprecate attribute or method for ExcelWriter.
-        """
-        warnings.warn(
-            f"{attr} is not part of the public API, usage can give unexpected "
-            "results and will be removed in a future version",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-    def _deprecate_set_book(self) -> None:
-        """
-        Deprecate setting the book attribute - GH#48780.
-        """
-        warnings.warn(
-            "Setting the `book` attribute is not part of the public API, "
-            "usage can give unexpected or corrupted results and will be "
-            "removed in a future version",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
     @property
     def date_format(self) -> str:
         """
@@ -1307,36 +1239,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         How to behave when writing to a sheet that already exists in append mode.
         """
         return self._if_sheet_exists
-
-    @property
-    def cur_sheet(self):
-        """
-        Current sheet for writing.
-
-        .. deprecated:: 1.5.0
-        """
-        self._deprecate("cur_sheet")
-        return self._cur_sheet
-
-    @property
-    def handles(self) -> IOHandles[bytes]:
-        """
-        Handles to Excel sheets.
-
-        .. deprecated:: 1.5.0
-        """
-        self._deprecate("handles")
-        return self._handles
-
-    @property
-    def path(self):
-        """
-        Path to Excel file.
-
-        .. deprecated:: 1.5.0
-        """
-        self._deprecate("path")
-        return self._path
 
     def __fspath__(self) -> str:
         return getattr(self._handles.handle, "name", "")
