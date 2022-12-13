@@ -214,7 +214,7 @@ you can pass the ``dayfirst`` flag:
 
 .. warning::
 
-   You see in the above example that ``dayfirst`` isn't strict. If a date
+   You see in the above example that ``dayfirst`` isn't strict, so if a date
    can't be parsed with the day being first it will be parsed as if
    ``dayfirst`` were ``False`` and a warning will also be raised.
 
