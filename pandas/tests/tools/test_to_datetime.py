@@ -2329,7 +2329,7 @@ class TestToDatetimeInferFormat:
         without_format = to_datetime(s_as_dt_strings, cache=cache)
 
         # Whether the format is explicitly passed, or
-        # it is not inferred, the results should all be the same
+        # it is inferred, the results should all be the same
         tm.assert_series_equal(with_format, without_format)
 
     def test_to_datetime_inconsistent_format(self, cache):
