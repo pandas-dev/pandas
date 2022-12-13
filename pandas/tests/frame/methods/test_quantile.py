@@ -47,7 +47,7 @@ class TestDataFrameQuantile:
         # GH#17198
         # GH#24600
         result = df.quantile()
-
+        expected = expected.astype("Sparse[float]")
         tm.assert_series_equal(result, expected)
 
     def test_quantile(

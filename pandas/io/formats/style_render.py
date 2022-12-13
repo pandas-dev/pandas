@@ -1110,7 +1110,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame({"A": [1, 0, -1]})
         >>> pseudo_css = "number-format: 0§[Red](0)§-§@;"
-        >>> df.style.applymap(lambda v: css).to_excel("formatted_file.xlsx")
+        >>> df.style.applymap(lambda: pseudo_css).to_excel("formatted_file.xlsx")
         ...  # doctest: +SKIP
 
         .. figure:: ../../_static/style/format_excel_css.png

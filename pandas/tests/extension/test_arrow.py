@@ -346,7 +346,10 @@ class TestGetitemTests(base.BaseGetitemTests):
 class TestBaseNumericReduce(base.BaseNumericReduceTests):
     def check_reduce(self, ser, op_name, skipna):
         pa_dtype = ser.dtype.pyarrow_dtype
-        result = getattr(ser, op_name)(skipna=skipna)
+        if op_name == "count":
+            result = getattr(ser, op_name)()
+        else:
+            result = getattr(ser, op_name)(skipna=skipna)
         if pa.types.is_boolean(pa_dtype):
             # Can't convert if ser contains NA
             pytest.skip(
@@ -354,7 +357,10 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             )
         elif pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
             ser = ser.astype("Float64")
-        expected = getattr(ser, op_name)(skipna=skipna)
+        if op_name == "count":
+            expected = getattr(ser, op_name)()
+        else:
+            expected = getattr(ser, op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("skipna", [True, False])
@@ -374,6 +380,8 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             and pa_version_under6p0
         ):
             request.node.add_marker(xfail_mark)
+        elif all_numeric_reductions == "sem" and pa_version_under8p0:
+            request.node.add_marker(xfail_mark)
         elif (
             all_numeric_reductions in {"sum", "mean"}
             and skipna is False
@@ -389,20 +397,28 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
                     ),
                 )
             )
-        elif not (
-            pa.types.is_integer(pa_dtype)
-            or pa.types.is_floating(pa_dtype)
-            or pa.types.is_boolean(pa_dtype)
-        ) and not (
-            all_numeric_reductions in {"min", "max"}
-            and (
-                (pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype))
-                or pa.types.is_string(pa_dtype)
-                or pa.types.is_binary(pa_dtype)
+        elif (
+            not (
+                pa.types.is_integer(pa_dtype)
+                or pa.types.is_floating(pa_dtype)
+                or pa.types.is_boolean(pa_dtype)
             )
+            and not (
+                all_numeric_reductions in {"min", "max"}
+                and (
+                    (
+                        pa.types.is_temporal(pa_dtype)
+                        and not pa.types.is_duration(pa_dtype)
+                    )
+                    or pa.types.is_string(pa_dtype)
+                    or pa.types.is_binary(pa_dtype)
+                )
+            )
+            and not all_numeric_reductions == "count"
         ):
             request.node.add_marker(xfail_mark)
         elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
+            "sem",
             "std",
             "var",
             "median",
@@ -631,6 +647,18 @@ class TestBaseMissing(base.BaseMissingTests):
     @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     def test_dropna_array(self, data_missing):
         super().test_dropna_array(data_missing)
+
+    def test_fillna_no_op_returns_copy(self, data):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_fillna_no_op_returns_copy(data)
+
+    def test_fillna_series_method(self, data_missing, fillna_method):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_fillna_series_method(data_missing, fillna_method)
 
 
 class TestBasePrinting(base.BasePrintingTests):
@@ -1369,3 +1397,12 @@ def test_pickle_roundtrip(data):
 
     result_sliced = pickle.loads(sliced_pickled)
     tm.assert_series_equal(result_sliced, expected_sliced)
+
+
+def test_astype_from_non_pyarrow(data):
+    # GH49795
+    pd_array = data._data.to_pandas().array
+    result = pd_array.astype(data.dtype)
+    assert not isinstance(pd_array.dtype, ArrowDtype)
+    assert isinstance(result.dtype, ArrowDtype)
+    tm.assert_extension_array_equal(result, data)

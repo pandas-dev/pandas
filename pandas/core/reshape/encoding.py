@@ -10,7 +10,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs.sparse import IntIndex
-from pandas._typing import Dtype
+from pandas._typing import NpDtype
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -36,7 +36,7 @@ def get_dummies(
     columns=None,
     sparse: bool = False,
     drop_first: bool = False,
-    dtype: Dtype | None = None,
+    dtype: NpDtype | None = None,
 ) -> DataFrame:
     """
     Convert categorical variable into dummy/indicator variables.
@@ -231,7 +231,7 @@ def _get_dummies_1d(
     dummy_na: bool = False,
     sparse: bool = False,
     drop_first: bool = False,
-    dtype: Dtype | None = None,
+    dtype: NpDtype | None = None,
 ) -> DataFrame:
     from pandas.core.reshape.concat import concat
 
@@ -240,9 +240,7 @@ def _get_dummies_1d(
 
     if dtype is None:
         dtype = np.dtype(bool)
-    # error: Argument 1 to "dtype" has incompatible type "Union[ExtensionDtype, str,
-    # dtype[Any], Type[object]]"; expected "Type[Any]"
-    dtype = np.dtype(dtype)  # type: ignore[arg-type]
+    dtype = np.dtype(dtype)
 
     if is_object_dtype(dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")

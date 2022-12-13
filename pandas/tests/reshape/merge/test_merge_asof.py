@@ -210,7 +210,6 @@ class TestAsOfMerge:
     def test_basic_right_index(self, trades, asof, quotes):
 
         expected = asof
-        trades = trades
         quotes = quotes.set_index("time")
 
         result = merge_asof(

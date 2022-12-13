@@ -55,14 +55,11 @@ def test_pipe_args():
     )
 
     def f(dfgb, arg1):
-        return dfgb.filter(lambda grp: grp.y.mean() > arg1, dropna=False).groupby(
-            dfgb.grouper
-        )
+        filtered = dfgb.filter(lambda grp: grp.y.mean() > arg1, dropna=False)
+        return filtered.groupby("group")
 
     def g(dfgb, arg2):
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            return dfgb.sum() / dfgb.sum().sum() + arg2
+        return dfgb.sum() / dfgb.sum().sum() + arg2
 
     def h(df, arg3):
         return df.x + df.y - arg3
@@ -70,10 +67,10 @@ def test_pipe_args():
     result = df.groupby("group").pipe(f, 0).pipe(g, 10).pipe(h, 100)
 
     # Assert the results here
-    index = Index(["A", "B", "C"], name="group")
-    expected = pd.Series([-79.5160891089, -78.4839108911, -80], index=index)
+    index = Index(["A", "B"], name="group")
+    expected = pd.Series([-79.5160891089, -78.4839108911], index=index)
 
-    tm.assert_series_equal(expected, result)
+    tm.assert_series_equal(result, expected)
 
     # test SeriesGroupby.pipe
     ser = pd.Series([1, 1, 2, 2, 3, 3])
