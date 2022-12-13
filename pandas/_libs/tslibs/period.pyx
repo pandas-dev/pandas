@@ -1,3 +1,5 @@
+import warnings
+
 cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
