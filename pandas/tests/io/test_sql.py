@@ -53,6 +53,10 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 
 from pandas.io import sql
 from pandas.io.sql import (
@@ -2266,6 +2270,94 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pass
         # TODO(GH#36893) fill this in when we add more engines
 
+    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
+    def test_read_sql_nullable_dtypes(self, storage):
+        # GH#50048
+        table = "test"
+        df = self.nullable_data()
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        with pd.option_context("mode.string_storage", storage):
+            result = pd.read_sql(
+                f"Select * from {table}", self.conn, use_nullable_dtypes=True
+            )
+        expected = self.nullable_expected(storage)
+        tm.assert_frame_equal(result, expected)
+
+        with pd.option_context("mode.string_storage", storage):
+            iterator = pd.read_sql(
+                f"Select * from {table}",
+                self.conn,
+                use_nullable_dtypes=True,
+                chunksize=3,
+            )
+            expected = self.nullable_expected(storage)
+            for result in iterator:
+                tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
+    def test_read_sql_nullable_dtypes_table(self, storage):
+        # GH#50048
+        table = "test"
+        df = self.nullable_data()
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        with pd.option_context("mode.string_storage", storage):
+            result = pd.read_sql(table, self.conn, use_nullable_dtypes=True)
+        expected = self.nullable_expected(storage)
+        tm.assert_frame_equal(result, expected)
+
+        with pd.option_context("mode.string_storage", storage):
+            iterator = pd.read_sql(
+                f"Select * from {table}",
+                self.conn,
+                use_nullable_dtypes=True,
+                chunksize=3,
+            )
+            expected = self.nullable_expected(storage)
+            for result in iterator:
+                tm.assert_frame_equal(result, expected)
+
+    def nullable_data(self) -> DataFrame:
+        return DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": [True, False, None],
+                "f": [True, False, True],
+                "g": ["a", "b", "c"],
+                "h": ["a", "b", None],
+            }
+        )
+
+    def nullable_expected(self, storage) -> DataFrame:
+
+        string_array: StringArray | ArrowStringArray
+        string_array_na: StringArray | ArrowStringArray
+        if storage == "python":
+            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
+            string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
+
+        else:
+            pa = pytest.importorskip("pyarrow")
+            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
+
+        return DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": Series([True, False, pd.NA], dtype="boolean"),
+                "f": Series([True, False, True], dtype="boolean"),
+                "g": string_array,
+                "h": string_array_na,
+            }
+        )
+
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
     """
@@ -2349,6 +2441,14 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
 
         assert list(df.columns) == ["id", "string_column"]
 
+    def nullable_expected(self, storage) -> DataFrame:
+        return super().nullable_expected(storage).astype({"e": "Int64", "f": "Int64"})
+
+    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
+    def test_read_sql_nullable_dtypes_table(self, storage):
+        # GH#50048 Not supported for sqlite
+        pass
+
 
 @pytest.mark.db
 class TestMySQLAlchemy(_TestSQLAlchemy):
@@ -2375,6 +2475,9 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
 
     def test_default_type_conversion(self):
         pass
+
+    def nullable_expected(self, storage) -> DataFrame:
+        return super().nullable_expected(storage).astype({"e": "Int64", "f": "Int64"})
 
 
 @pytest.mark.db
