@@ -1029,7 +1029,7 @@ def convert_dtypes(
             elif (
                 infer_objects
                 and is_object_dtype(input_array.dtype)
-                and inferred_dtype == "integer"
+                and (isinstance(inferred_dtype, str) and inferred_dtype == "integer")
             ):
                 inferred_dtype = target_int_dtype
 
