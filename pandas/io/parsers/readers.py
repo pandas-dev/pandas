@@ -1749,8 +1749,6 @@ def TextParser(*args, **kwds) -> TextFileReader:
         transformed content.
     encoding : str, optional
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
-    squeeze : bool, default False
-        returns Series if only one column.
     float_precision : str, optional
         Specifies which converter the C engine should use for floating-point
         values. The options are `None` or `high` for the ordinary converter,
