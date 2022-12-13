@@ -145,6 +145,7 @@ from pandas.core.array_algos.putmask import (
     validate_putmask,
 )
 from pandas.core.arrays import (
+    BaseMaskedArray,
     Categorical,
     ExtensionArray,
 )
@@ -812,7 +813,6 @@ class Index(IndexOpsMixin, PandasObject):
         # For base class (object dtype) we get ObjectEngine
         target_values = self._get_engine_target()
         if isinstance(target_values, ExtensionArray):
-            from pandas.core.arrays import BaseMaskedArray
 
             if isinstance(target_values, BaseMaskedArray):
                 return _masked_engines[target_values.dtype.name](
@@ -3652,8 +3652,6 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 tgt_values = target._get_engine_target()
 
-            from pandas.core.arrays import BaseMaskedArray
-
             if isinstance(tgt_values, BaseMaskedArray):
                 # Too many arguments for "get_indexer_non_unique" of "IndexEngine"
                 indexer = self._engine.get_indexer(  # type: ignore[call-arg]
@@ -4825,8 +4823,6 @@ class Index(IndexOpsMixin, PandasObject):
             # GH#45652 much more performant than ExtensionEngine
             return vals._ndarray
         if type(self) is Index and isinstance(self._values, ExtensionArray):
-            from pandas.core.arrays import BaseMaskedArray
-
             if not isinstance(self._values, BaseMaskedArray):
                 # TODO(ExtensionIndex): remove special-case, just use self._values
                 return self._values.astype(object)
@@ -5662,9 +5658,6 @@ class Index(IndexOpsMixin, PandasObject):
             # no attribute "_extract_level_codes"
             tgt_values = engine._extract_level_codes(target)  # type: ignore[union-attr]
         if is_extension_array_dtype(tgt_values.dtype):
-            # Hide here for performance reasons
-            from pandas.core.arrays import BaseMaskedArray
-
             if isinstance(tgt_values, BaseMaskedArray):
                 # Too many arguments for "get_indexer_non_unique" of "IndexEngine"
                 indexer, missing = self._engine.get_indexer_non_unique(
