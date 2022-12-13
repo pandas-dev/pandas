@@ -207,5 +207,6 @@ At this point you should be able to import pandas from your locally built versio
 This will create the new environment, and not touch any of your existing environments,
 nor any existing Python installation.
 
-Note that you will need to repeat this step each time the C extensions change, for example
-if you modified them or if you did a fetch and merge from ``upstream/main``.
+.. note::
+   You will need to repeat this step each time the C extensions change, for example
+   if you modified them or if you did a fetch and merge from ``upstream/main``.
