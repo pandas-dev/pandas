@@ -1,9 +1,13 @@
 cimport cython
+
+from datetime import timezone
+
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
     datetime,
     import_datetime,
+    timedelta,
     tzinfo,
 )
 from cpython.object cimport PyObject
@@ -22,8 +26,6 @@ from numpy cimport (
 import numpy as np
 
 cnp.import_array()
-
-import pytz
 
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -95,7 +97,7 @@ def _test_parse_iso8601(ts: str):
     obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:
-        obj.tzinfo = pytz.FixedOffset(out_tzoffset)
+        obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))
         obj.value = tz_localize_to_utc_single(obj.value, obj.tzinfo)
         return Timestamp(obj.value, tz=obj.tzinfo)
     else:
@@ -464,7 +466,7 @@ cpdef array_to_datetime(
         2) datetime.datetime objects, if OutOfBoundsDatetime or TypeError
            is encountered
 
-    Also returns a pytz.FixedOffset if an array of strings with the same
+    Also returns a fixed-offset tzinfo object if an array of strings with the same
     timezone offset is passed and utc=True is not passed. Otherwise, None
     is returned
 
@@ -654,7 +656,7 @@ cpdef array_to_datetime(
                             # since we store the total_seconds of
                             # dateutil.tz.tzoffset objects
                             out_tzoffset_vals.add(out_tzoffset * 60.)
-                            tz = pytz.FixedOffset(out_tzoffset)
+                            tz = timezone(timedelta(minutes=out_tzoffset))
                             value = tz_localize_to_utc_single(value, tz)
                             out_local = 0
                             out_tzoffset = 0
@@ -722,7 +724,7 @@ cpdef array_to_datetime(
             return _array_to_datetime_object(values, errors, dayfirst, yearfirst)
         else:
             tz_offset = out_tzoffset_vals.pop()
-            tz_out = pytz.FixedOffset(tz_offset / 60.)
+            tz_out = timezone(timedelta(seconds=tz_offset))
     return result, tz_out
 
 

@@ -8,9 +8,9 @@ from numpy cimport (
 
 cnp.import_array()
 
-import pytz
-
 # stdlib datetime imports
+
+from datetime import timezone
 
 from cpython.datetime cimport (
     PyDate_Check,
@@ -18,6 +18,7 @@ from cpython.datetime cimport (
     datetime,
     import_datetime,
     time,
+    timedelta,
     tzinfo,
 )
 
@@ -428,7 +429,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
 
     value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
     obj.dts = dts
-    obj.tzinfo = pytz.FixedOffset(tzoffset)
+    obj.tzinfo = timezone(timedelta(minutes=tzoffset))
     obj.value = tz_localize_to_utc_single(value, obj.tzinfo)
     if tz is None:
         check_overflows(obj, NPY_FR_ns)
