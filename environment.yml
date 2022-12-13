@@ -45,7 +45,7 @@ dependencies:
   - odfpy
   - py
   - psycopg2
-  - pyarrow<10
+  - pyarrow
   - pymysql
   - pyreadstat
   - pytables

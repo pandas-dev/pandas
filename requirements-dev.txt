@@ -34,7 +34,7 @@ openpyxl
 odfpy
 py
 psycopg2-binary
-pyarrow<10
+pyarrow
 pymysql
 pyreadstat
 tables
