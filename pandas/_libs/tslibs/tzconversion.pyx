@@ -752,7 +752,7 @@ cdef datetime _astimezone(npy_datetimestruct dts, tzinfo tz):
     Optimized equivalent to:
 
     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                  dts.min, dts.sec, dts.us, utc_pytz)
+                  dts.min, dts.sec, dts.us, utc_stdlib)
     dt = dt.astimezone(tz)
 
     Derived from the datetime.astimezone implementation at
