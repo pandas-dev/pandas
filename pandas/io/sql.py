@@ -222,6 +222,7 @@ def read_sql_table(
     parse_dates: list[str] | dict[str, str] | None = ...,
     columns: list[str] | None = ...,
     chunksize: None = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -236,6 +237,7 @@ def read_sql_table(
     parse_dates: list[str] | dict[str, str] | None = ...,
     columns: list[str] | None = ...,
     chunksize: int = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -249,6 +251,7 @@ def read_sql_table(
     parse_dates: list[str] | dict[str, str] | None = None,
     columns: list[str] | None = None,
     chunksize: int | None = None,
+    use_nullable_dtypes: bool = False,
 ) -> DataFrame | Iterator[DataFrame]:
     """
     Read SQL database table into a DataFrame.
@@ -285,6 +288,12 @@ def read_sql_table(
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
         rows to include in each chunk.
+    use_nullable_dtypes : bool = False
+        Whether to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        .. versionadded:: 2.0
 
     Returns
     -------
@@ -316,6 +325,7 @@ def read_sql_table(
             parse_dates=parse_dates,
             columns=columns,
             chunksize=chunksize,
+            use_nullable_dtypes=use_nullable_dtypes,
         )
 
     if table is not None:
@@ -334,6 +344,7 @@ def read_sql_query(
     parse_dates: list[str] | dict[str, str] | None = ...,
     chunksize: None = ...,
     dtype: DtypeArg | None = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -348,6 +359,7 @@ def read_sql_query(
     parse_dates: list[str] | dict[str, str] | None = ...,
     chunksize: int = ...,
     dtype: DtypeArg | None = ...,
+    use_nullable_dtypes: bool = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -361,6 +373,7 @@ def read_sql_query(
     parse_dates: list[str] | dict[str, str] | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
+    use_nullable_dtypes: bool = False,
 ) -> DataFrame | Iterator[DataFrame]:
     """
     Read SQL query into a DataFrame.
@@ -404,6 +417,12 @@ def read_sql_query(
         {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
 
         .. versionadded:: 1.3.0
+    use_nullable_dtypes : bool = False
+        Whether to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        .. versionadded:: 2.0
 
     Returns
     -------
@@ -428,6 +447,7 @@ def read_sql_query(
             parse_dates=parse_dates,
             chunksize=chunksize,
             dtype=dtype,
+            use_nullable_dtypes=use_nullable_dtypes,
         )
 
 

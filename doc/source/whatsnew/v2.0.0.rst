@@ -38,6 +38,8 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 * :func:`read_csv`
 * :func:`read_excel`
 * :func:`read_sql`
+* :func:`read_sql_query`
+* :func:`read_sql_table`
 
 Additionally a new global configuration, ``io.nullable_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
 to select the nullable dtypes implementation.
