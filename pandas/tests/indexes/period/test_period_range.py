@@ -28,7 +28,7 @@ class TestPeriodRange:
             "M",
             "Q",
             "A",
-        ]
+        ],
     )
     def test_construction_from_string(self, freq):
         # non-empty
