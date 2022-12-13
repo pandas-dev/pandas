@@ -551,9 +551,6 @@ _shared_docs[
         The method to use when for replacement, when `to_replace` is a
         scalar, list or tuple and `value` is ``None``.
 
-        .. versionchanged:: 0.23.0
-            Added to DataFrame.
-
     Returns
     -------
     {klass}

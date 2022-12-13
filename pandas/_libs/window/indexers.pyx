@@ -53,16 +53,16 @@ def calculate_variable_window_bounds(
         Py_ssize_t i, j
 
     if num_values <= 0:
-        return np.empty(0, dtype='int64'), np.empty(0, dtype='int64')
+        return np.empty(0, dtype="int64"), np.empty(0, dtype="int64")
 
     # default is 'right'
     if closed is None:
-        closed = 'right'
+        closed = "right"
 
-    if closed in ['right', 'both']:
+    if closed in ["right", "both"]:
         right_closed = True
 
-    if closed in ['left', 'both']:
+    if closed in ["left", "both"]:
         left_closed = True
 
     # GH 43997:
@@ -76,9 +76,9 @@ def calculate_variable_window_bounds(
     if index[num_values - 1] < index[0]:
         index_growth_sign = -1
 
-    start = np.empty(num_values, dtype='int64')
+    start = np.empty(num_values, dtype="int64")
     start.fill(-1)
-    end = np.empty(num_values, dtype='int64')
+    end = np.empty(num_values, dtype="int64")
     end.fill(-1)
 
     start[0] = 0

@@ -42,6 +42,7 @@ from pandas._libs import (
     Timestamp,
     lib,
 )
+from pandas._libs.algos import rank_1d
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     AnyArrayLike,
@@ -69,7 +70,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
 from pandas.core.dtypes.common import (
@@ -372,7 +372,7 @@ kwargs : dict, optional
 
 Returns
 -------
-object : the return type of `func`.
+the return type of `func`.
 
 See Also
 --------
@@ -399,17 +399,24 @@ filled with the transformed values.
 
 Parameters
 ----------
-f : function
+f : function, str
     Function to apply to each group. See the Notes section below for requirements.
 
-    Can also accept a Numba JIT function with
-    ``engine='numba'`` specified.
+    Accepted inputs are:
 
+    - String
+    - Python function
+    - Numba JIT function with ``engine='numba'`` specified.
+
+    Only passing a single function is supported with this engine.
     If the ``'numba'`` engine is chosen, the function must be
     a user defined function with ``values`` and ``index`` as the
     first and second arguments respectively in the function signature.
     Each group's index will be passed to the user defined function
     and optionally available for use.
+
+    If a string is chosen, then it needs to be the name
+    of the groupby method you want to use.
 
     .. versionchanged:: 1.1.0
 *args
@@ -471,58 +478,16 @@ user defined function, and no alternative execution attempts will be tried.
     The resulting dtype will reflect the return value of the passed ``func``,
     see the examples below.
 
-.. deprecated:: 1.5.0
+.. versionchanged:: 2.0.0
 
     When using ``.transform`` on a grouped DataFrame and the transformation function
-    returns a DataFrame, currently pandas does not align the result's index
-    with the input's index. This behavior is deprecated and alignment will
-    be performed in a future version of pandas. You can apply ``.to_numpy()`` to the
+    returns a DataFrame, pandas now aligns the result's index
+    with the input's index. You can call ``.to_numpy()`` on the
     result of the transformation function to avoid alignment.
 
 Examples
 --------
-
->>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-...                           'foo', 'bar'],
-...                    'B' : ['one', 'one', 'two', 'three',
-...                           'two', 'two'],
-...                    'C' : [1, 5, 5, 2, 5, 5],
-...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
->>> grouped = df.groupby('A')[['C', 'D']]
->>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-          C         D
-0 -1.154701 -0.577350
-1  0.577350  0.000000
-2  0.577350  1.154701
-3 -1.154701 -1.000000
-4  0.577350 -0.577350
-5  0.577350  1.000000
-
-Broadcast result of the transformation
-
->>> grouped.transform(lambda x: x.max() - x.min())
-     C    D
-0  4.0  6.0
-1  3.0  8.0
-2  4.0  6.0
-3  3.0  8.0
-4  4.0  6.0
-5  3.0  8.0
-
-.. versionchanged:: 1.3.0
-
-    The resulting dtype will reflect the return value of the passed ``func``,
-    for example:
-
->>> grouped.transform(lambda x: x.astype(int).max())
-   C  D
-0  5  8
-1  5  9
-2  5  8
-3  5  9
-4  5  8
-5  5  9
-"""
+%(example)s"""
 
 _agg_template = """
 Aggregate using one or more operations over the specified axis.
@@ -809,7 +774,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         Returns
         -------
-        group : same type as obj
+        same type as obj
         """
         if obj is None:
             obj = self._selected_obj
@@ -831,19 +796,11 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         for each group
         """
         keys = self.keys
+        result = self.grouper.get_iterator(self._selected_obj, axis=self.axis)
         if isinstance(keys, list) and len(keys) == 1:
-            warnings.warn(
-                (
-                    "In a future version of pandas, a length 1 "
-                    "tuple will be returned when iterating over a "
-                    "groupby with a grouper equal to a list of "
-                    "length 1. Don't supply a list with a single grouper "
-                    "to avoid this warning."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return self.grouper.get_iterator(self._selected_obj, axis=self.axis)
+            # GH#42795 - when keys is a list, return tuples even when length is 1
+            result = (((key,), group) for key, group in result)
+        return result
 
 
 # To track operations that expand dimensions, like ohlc
@@ -1007,15 +964,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if kwargs.get("axis", None) is None or kwargs.get("axis") is lib.no_default:
                 kwargs["axis"] = self.axis
 
-        numeric_only = kwargs.get("numeric_only", lib.no_default)
-
         def curried(x):
-            with warnings.catch_warnings():
-                # Catch any warnings from dispatch to DataFrame; we'll emit
-                # a warning for groupby below
-                match = "The default value of numeric_only "
-                warnings.filterwarnings("ignore", match, FutureWarning)
-                return f(x, *args, **kwargs)
+            return f(x, *args, **kwargs)
 
         # preserve the name so we can detect it when calling plot methods,
         # to avoid duplicates
@@ -1036,13 +986,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             is_transform=is_transform,
             not_indexed_same=not is_transform,
         )
-
-        if self._selected_obj.ndim != 1 and self.axis != 1 and result.ndim != 1:
-            missing = self._obj_with_exclusions.columns.difference(result.columns)
-            if len(missing) > 0:
-                warn_dropping_nuisance_columns_deprecated(
-                    type(self), name, numeric_only
-                )
 
         if self.grouper.has_dropped_na and is_transform:
             # result will have dropped rows due to nans, fill with null
@@ -1308,80 +1251,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         raise AbstractMethodError(self)
 
-    def _resolve_numeric_only(
-        self, how: str, numeric_only: bool | lib.NoDefault, axis: AxisInt
-    ) -> bool:
-        """
-        Determine subclass-specific default value for 'numeric_only'.
-
-        For SeriesGroupBy we want the default to be False (to match Series behavior).
-        For DataFrameGroupBy we want it to be True (for backwards-compat).
-
-        Parameters
-        ----------
-        numeric_only : bool or lib.no_default
-        axis : int
-            Axis passed to the groupby op (not self.axis).
-
-        Returns
-        -------
-        bool
-        """
-        # GH#41291
-        if numeric_only is lib.no_default:
-            # i.e. not explicitly passed by user
-            if self.obj.ndim == 2:
-                # i.e. DataFrameGroupBy
-                numeric_only = axis != 1
-                # GH#42395 GH#43108 GH#43154
-                # Regression from 1.2.5 to 1.3 caused object columns to be dropped
-                if self.axis:
-                    obj = self._obj_with_exclusions.T
-                else:
-                    obj = self._obj_with_exclusions
-                check = obj._get_numeric_data()
-                if len(obj.columns) and not len(check.columns) and not obj.empty:
-                    numeric_only = False
-
-            else:
-                numeric_only = False
-
-        if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
-            # GH#47500
-            warnings.warn(
-                f"{type(self).__name__}.{how} called with "
-                f"numeric_only={numeric_only} and dtype {self.obj.dtype}. This will "
-                "raise a TypeError in a future version of pandas",
-                category=FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            raise NotImplementedError(
-                f"{type(self).__name__}.{how} does not implement numeric_only"
-            )
-
-        return numeric_only
-
-    def _maybe_warn_numeric_only_depr(
-        self, how: str, result: DataFrame | Series, numeric_only: bool | lib.NoDefault
-    ) -> None:
-        """Emit warning on numeric_only behavior deprecation when appropriate.
-
-        Parameters
-        ----------
-        how : str
-            Groupby kernel name.
-        result :
-            Result of the groupby operation.
-        numeric_only : bool or lib.no_default
-            Argument as passed by user.
-        """
-        if (
-            self._obj_with_exclusions.ndim != 1
-            and result.ndim > 1
-            and len(result.columns) < len(self._obj_with_exclusions.columns)
-        ):
-            warn_dropping_nuisance_columns_deprecated(type(self), how, numeric_only)
-
     # -----------------------------------------------------------------
     # numba
 
@@ -1606,9 +1475,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _python_agg_general(
-        self, func, *args, raise_on_typeerror: bool = False, **kwargs
-    ):
+    def _python_agg_general(self, func, *args, **kwargs):
         func = com.is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
@@ -1621,18 +1488,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
-
-            try:
-                # if this function is invalid for this dtype, we will ignore it.
-                result = self.grouper.agg_series(obj, f)
-            except TypeError:
-                if raise_on_typeerror:
-                    raise
-                warn_dropping_nuisance_columns_deprecated(
-                    type(self), "agg", numeric_only=False
-                )
-                continue
-
+            result = self.grouper.agg_series(obj, f)
             key = base.OutputKey(label=name, position=idx)
             output[key] = result
 
@@ -1644,7 +1500,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _agg_general(
         self,
-        numeric_only: bool | lib.NoDefault = True,
+        numeric_only: bool = False,
         min_count: int = -1,
         *,
         alias: str,
@@ -1706,26 +1562,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         how: str,
         alt: Callable,
-        numeric_only: bool | lib.NoDefault,
+        numeric_only: bool = False,
         min_count: int = -1,
         **kwargs,
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
-        numeric_only_bool = self._resolve_numeric_only(how, numeric_only, axis=0)
 
         data = self._get_data_to_aggregate()
         is_ser = data.ndim == 1
 
-        orig_len = len(data)
-        if numeric_only_bool:
+        if numeric_only:
             if is_ser and not is_numeric_dtype(self._selected_obj.dtype):
                 # GH#41291 match Series behavior
                 kwd_name = "numeric_only"
                 if how in ["any", "all"]:
                     kwd_name = "bool_only"
-                raise NotImplementedError(
-                    f"{type(self).__name__}.{how} does not implement {kwd_name}."
+                raise TypeError(
+                    f"Cannot use {kwd_name}={numeric_only} with "
+                    f"{type(self).__name__}.{how} and non-numeric types."
                 )
             if not is_ser:
                 data = data.get_numeric_data(copy=False)
@@ -1749,12 +1604,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return result
 
-        # TypeError -> we may have an exception in trying to aggregate
-        #  continue and exclude the block
-        new_mgr = data.grouped_reduce(array_func, ignore_failures=False)
-
-        if not is_ser and len(new_mgr) < orig_len:
-            warn_dropping_nuisance_columns_deprecated(type(self), how, numeric_only)
+        new_mgr = data.grouped_reduce(array_func)
 
         res = self._wrap_agged_manager(new_mgr)
         if is_ser:
@@ -1764,7 +1614,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return res
 
     def _cython_transform(
-        self, how: str, numeric_only: bool = True, axis: AxisInt = 0, **kwargs
+        self, how: str, numeric_only: bool = False, axis: AxisInt = 0, **kwargs
     ):
         raise AbstractMethodError(self)
 
@@ -2136,7 +1986,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def median(self, numeric_only: bool | lib.NoDefault = lib.no_default):
+    def median(self, numeric_only: bool = False):
         """
         Compute median of groups, excluding missing values.
 
@@ -2144,23 +1994,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only float, int, boolean columns.
 
             .. versionchanged:: 2.0.0
 
-                numeric_only no longer accepts ``None``.
+                numeric_only no longer accepts ``None`` and defaults to False.
 
         Returns
         -------
         Series or DataFrame
             Median of values within each group.
         """
-        numeric_only_bool = self._resolve_numeric_only("median", numeric_only, axis=0)
-
         result = self._cython_agg_general(
             "median",
-            alt=lambda x: Series(x).median(numeric_only=numeric_only_bool),
+            alt=lambda x: Series(x).median(numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
         return result.__finalize__(self.obj, method="groupby")
@@ -2173,7 +2021,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof: int = 1,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ):
         """
         Compute standard deviation of groups, excluding missing values.
@@ -2202,10 +2050,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 1.4.0
 
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
 
         Returns
         -------
@@ -2217,10 +2069,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
         else:
-            # Resolve numeric_only so that var doesn't warn
-            numeric_only_bool = self._resolve_numeric_only("std", numeric_only, axis=0)
             if (
-                numeric_only_bool
+                numeric_only
                 and self.obj.ndim == 1
                 and not is_numeric_dtype(self.obj.dtype)
             ):
@@ -2231,12 +2081,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._get_cythonized_result(
                 libgroupby.group_var,
                 cython_dtype=np.dtype(np.float64),
-                numeric_only=numeric_only_bool,
+                numeric_only=numeric_only,
                 needs_counts=True,
                 post_processing=lambda vals, inference: np.sqrt(vals),
                 ddof=ddof,
             )
-            self._maybe_warn_numeric_only_depr("std", result, numeric_only)
             return result
 
     @final
@@ -2247,7 +2096,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof: int = 1,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ):
         """
         Compute variance of groups, excluding missing values.
@@ -2276,10 +2125,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 1.4.0
 
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
 
         Returns
         -------
@@ -2301,7 +2154,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def sem(self, ddof: int = 1, numeric_only: bool | lib.NoDefault = lib.no_default):
+    def sem(self, ddof: int = 1, numeric_only: bool = False):
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -2312,29 +2165,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof : int, default 1
             Degrees of freedom.
 
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
 
         Returns
         -------
         Series or DataFrame
             Standard error of the mean of values within each group.
         """
-        # Reolve numeric_only so that std doesn't warn
-        numeric_only_bool = self._resolve_numeric_only("sem", numeric_only, axis=0)
-        if (
-            numeric_only_bool
-            and self.obj.ndim == 1
-            and not is_numeric_dtype(self.obj.dtype)
-        ):
+        if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             raise TypeError(
                 f"{type(self).__name__}.sem called with "
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
-        result = self.std(ddof=ddof, numeric_only=numeric_only_bool)
-        self._maybe_warn_numeric_only_depr("sem", result, numeric_only)
+        result = self.std(ddof=ddof, numeric_only=numeric_only)
 
         if result.ndim == 1:
             result /= np.sqrt(self.count())
@@ -2373,12 +2223,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             result = self._obj_1d_constructor(result)
 
+        with com.temp_setattr(self, "as_index", True):
+            # size already has the desired behavior in GH#49519, but this makes the
+            # as_index=False path of _reindex_output fail on categorical groupers.
+            result = self._reindex_output(result, fill_value=0)
         if not self.as_index:
             # error: Incompatible types in assignment (expression has
             # type "DataFrame", variable has type "Series")
             result = result.rename("size").reset_index()  # type: ignore[assignment]
-
-        return self._reindex_output(result, fill_value=0)
+        return result
 
     @final
     @doc(_groupby_agg_method_template, fname="sum", no=False, mc=0)
@@ -2411,10 +2264,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return self._reindex_output(result, fill_value=0)
 
     @final
-    @doc(_groupby_agg_method_template, fname="prod", no=True, mc=0)
-    def prod(
-        self, numeric_only: bool | lib.NoDefault = lib.no_default, min_count: int = 0
-    ):
+    @doc(_groupby_agg_method_template, fname="prod", no=False, mc=0)
+    def prod(self, numeric_only: bool = False, min_count: int = 0):
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
@@ -3103,7 +2954,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         q: float | AnyArrayLike = 0.5,
         interpolation: str = "linear",
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
     ):
         """
         Return group values at the given quantile, a la numpy.percentile.
@@ -3114,10 +2965,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Value(s) between 0 and 1 providing the quantile(s) to compute.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             Method to use when the desired quantile falls between two points.
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only now defaults to ``False``.
 
         Returns
         -------
@@ -3142,12 +2997,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    2.0
         b    3.0
         """
-        numeric_only_bool = self._resolve_numeric_only("quantile", numeric_only, axis=0)
-        if (
-            numeric_only_bool
-            and self.obj.ndim == 1
-            and not is_numeric_dtype(self.obj.dtype)
-        ):
+        if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             raise TypeError(
                 f"{type(self).__name__}.quantile called with "
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
@@ -3292,25 +3142,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1
         mgr = self._get_data_to_aggregate()
-        data = mgr.get_numeric_data() if numeric_only_bool else mgr
-        res_mgr = data.grouped_reduce(blk_func, ignore_failures=False)
-
-        if (
-            numeric_only is lib.no_default
-            and not is_ser
-            and len(res_mgr.items) != len(mgr.items)
-        ):
-            warn_dropping_nuisance_columns_deprecated(
-                type(self), "quantile", numeric_only
-            )
-
-            if len(res_mgr.items) == 0:
-                # re-call grouped_reduce to get the desired exception message
-                mgr.grouped_reduce(blk_func, ignore_failures=False)
-                # grouped_reduce _should_ raise, so this should not be reached
-                raise TypeError(  # pragma: no cover
-                    "All columns were dropped in grouped_reduce"
-                )
+        data = mgr.get_numeric_data() if numeric_only else mgr
+        res_mgr = data.grouped_reduce(blk_func)
 
         if is_ser:
             res = self._wrap_agged_manager(res_mgr)
@@ -3393,6 +3226,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 dtype = np.float64
             else:
                 dtype = np.int64
+
+            if any(ping._passed_categorical for ping in self.grouper.groupings):
+                # comp_ids reflect non-observed groups, we need only observed
+                comp_ids = rank_1d(comp_ids, ties_method="dense") - 1
 
             result = self._obj_1d_constructor(comp_ids, index, dtype=dtype)
             if not ascending:
@@ -3609,9 +3446,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         skipna = kwargs.get("skipna", True)
         if axis != 0:
             f = lambda x: np.minimum.accumulate(x, axis)
-            numeric_only_bool = self._resolve_numeric_only("cummax", numeric_only, axis)
             obj = self._selected_obj
-            if numeric_only_bool:
+            if numeric_only:
                 obj = obj._get_numeric_data()
             return self._python_apply_general(f, obj, is_transform=True)
 
@@ -3635,9 +3471,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         skipna = kwargs.get("skipna", True)
         if axis != 0:
             f = lambda x: np.maximum.accumulate(x, axis)
-            numeric_only_bool = self._resolve_numeric_only("cummax", numeric_only, axis)
             obj = self._selected_obj
-            if numeric_only_bool:
+            if numeric_only:
                 obj = obj._get_numeric_data()
             return self._python_apply_general(f, obj, is_transform=True)
 
@@ -3650,7 +3485,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         base_func: Callable,
         cython_dtype: np.dtype,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
         needs_counts: bool = False,
         needs_nullable: bool = False,
         needs_mask: bool = False,
@@ -3666,7 +3501,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         base_func : callable, Cythonized function to be called
         cython_dtype : np.dtype
             Type of the array that will be modified by the Cython call.
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             Whether only numeric datatypes should be computed
         needs_counts : bool, default False
             Whether the counts should be a part of the Cython call
@@ -3697,9 +3532,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         `Series` or `DataFrame`  with filled values
         """
-        how = base_func.__name__
-        numeric_only_bool = self._resolve_numeric_only(how, numeric_only, axis=0)
-
         if post_processing and not callable(post_processing):
             raise ValueError("'post_processing' must be a callable!")
         if pre_processing and not callable(pre_processing):
@@ -3768,18 +3600,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         mgr = self._get_data_to_aggregate()
         orig_mgr_len = len(mgr)
 
-        if numeric_only_bool:
+        if numeric_only:
             mgr = mgr.get_numeric_data()
 
-        res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=False)
+        res_mgr = mgr.grouped_reduce(blk_func)
 
         if not is_ser and len(res_mgr.items) != orig_mgr_len:
-            howstr = how.replace("group_", "")
-            warn_dropping_nuisance_columns_deprecated(type(self), howstr, numeric_only)
-
             if len(res_mgr.items) == 0:
                 # We re-call grouped_reduce to get the right exception message
-                mgr.grouped_reduce(blk_func, ignore_failures=False)
+                mgr.grouped_reduce(blk_func)
                 # grouped_reduce _should_ raise, so this should not be reached
                 raise TypeError(  # pragma: no cover
                     "All columns were dropped in grouped_reduce"
@@ -4083,7 +3912,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             names = names + [None]
         index = MultiIndex.from_product(levels_list, names=names)
         if self.sort:
-            index = index.sortlevel()[0]
+            index = index.sort_values()
 
         if self.as_index:
             # Always holds for SeriesGroupBy unless GH#36507 is implemented
@@ -4105,12 +3934,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # reindex `output`, and then reset the in-axis grouper columns.
 
         # Select in-axis groupers
-        in_axis_grps = (
+        in_axis_grps = list(
             (i, ping.name) for (i, ping) in enumerate(groupings) if ping.in_axis
         )
-        g_nums, g_names = zip(*in_axis_grps)
-
-        output = output.drop(labels=list(g_names), axis=1)
+        if len(in_axis_grps) > 0:
+            g_nums, g_names = zip(*in_axis_grps)
+            output = output.drop(labels=list(g_names), axis=1)
 
         # Set a temp index and reindex (possibly expanding)
         output = output.set_index(self.grouper.result_index).reindex(
@@ -4119,7 +3948,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # Reset in-axis grouper columns
         # (using level numbers `g_nums` because level names may not be unique)
-        output = output.reset_index(level=g_nums)
+        if len(in_axis_grps) > 0:
+            output = output.reset_index(level=g_nums)
 
         return output.reset_index(drop=True)
 
@@ -4327,27 +4157,3 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     else:
         mi = MultiIndex.from_product([idx, qs])
     return mi
-
-
-def warn_dropping_nuisance_columns_deprecated(cls, how: str, numeric_only) -> None:
-    if numeric_only is not lib.no_default and not numeric_only:
-        # numeric_only was specified and falsey but still dropped nuisance columns
-        warnings.warn(
-            "Dropping invalid columns in "
-            f"{cls.__name__}.{how} is deprecated. "
-            "In a future version, a TypeError will be raised. "
-            f"Before calling .{how}, select only columns which "
-            "should be valid for the function.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    elif numeric_only is lib.no_default:
-        warnings.warn(
-            "The default value of numeric_only in "
-            f"{cls.__name__}.{how} is deprecated. "
-            "In a future version, numeric_only will default to False. "
-            f"Either specify numeric_only or select only columns which "
-            "should be valid for the function.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )

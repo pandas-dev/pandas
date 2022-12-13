@@ -4,6 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from functools import wraps
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -57,6 +58,7 @@ from pandas._typing import (
     DatetimeLikeScalar,
     Dtype,
     DtypeObj,
+    F,
     NpDtype,
     PositionalIndexer2D,
     PositionalIndexerTuple,
@@ -70,7 +72,6 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     InvalidComparison,
-    NullFrequencyError,
     PerformanceWarning,
 )
 from pandas.util._decorators import (
@@ -156,6 +157,31 @@ if TYPE_CHECKING:
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
+
+
+def _period_dispatch(meth: F) -> F:
+    """
+    For PeriodArray methods, dispatch to DatetimeArray and re-wrap the results
+    in PeriodArray.  We cannot use ._ndarray directly for the affected
+    methods because the i8 data has different semantics on NaT values.
+    """
+
+    @wraps(meth)
+    def new_meth(self, *args, **kwargs):
+        if not is_period_dtype(self.dtype):
+            return meth(self, *args, **kwargs)
+
+        arr = self.view("M8[ns]")
+        result = meth(arr, *args, **kwargs)
+        if result is NaT:
+            return NaT
+        elif isinstance(result, Timestamp):
+            return self._box_func(result.value)
+
+        res_i8 = result.view("i8")
+        return self._from_backing_data(res_i8)
+
+    return cast(F, new_meth)
 
 
 class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
@@ -257,13 +283,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Exception
         """
         raise AbstractMethodError(self)
-
-    # ------------------------------------------------------------------
-    # NDArrayBackedExtensionArray compat
-
-    @cache_readonly
-    def _data(self) -> np.ndarray:
-        return self._ndarray
 
     # ------------------------------------------------------------------
 
@@ -1360,43 +1379,26 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result = result.reshape(self.shape)
         return result
 
-    def _time_shift(
-        self: DatetimeLikeArrayT, periods: int, freq=None
-    ) -> DatetimeLikeArrayT:
-        """
-        Shift each value by `periods`.
+    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs):
 
-        Note this is different from ExtensionArray.shift, which
-        shifts the *position* of each element, padding the end with
-        missing values.
+        if is_period_dtype(self.dtype):
+            data = self
+        else:
+            # Incompatible types in assignment (expression has type
+            # "ndarray[Any, Any]", variable has type "DatetimeLikeArrayMixin"
+            data = self._ndarray.copy()  # type: ignore[assignment]
 
-        Parameters
-        ----------
-        periods : int
-            Number of periods to shift by.
-        freq : pandas.DateOffset, pandas.Timedelta, or str
-            Frequency increment to shift by.
-        """
-        if freq is not None and freq != self.freq:
-            if isinstance(freq, str):
-                freq = to_offset(freq)
-            offset = periods * freq
-            return self + offset
+        if name in {"cummin", "cummax"}:
+            func = np.minimum.accumulate if name == "cummin" else np.maximum.accumulate
+            result = cast(np.ndarray, nanops.na_accum_func(data, func, skipna=skipna))
 
-        if periods == 0 or len(self) == 0:
-            # GH#14811 empty case
-            return self.copy()
+            # error: Unexpected keyword argument "freq" for
+            # "_simple_new" of "NDArrayBacked"  [call-arg]
+            return type(self)._simple_new(
+                result, freq=self.freq, dtype=self.dtype  # type: ignore[call-arg]
+            )
 
-        if self.freq is None:
-            raise NullFrequencyError("Cannot shift with no freq")
-
-        start = self[0] + periods * self.freq
-        end = self[-1] + periods * self.freq
-
-        # Note: in the DatetimeTZ case, _generate_range will infer the
-        #  appropriate timezone from `start` and `end`, so tz does not need
-        #  to be passed explicitly.
-        return self._generate_range(start=start, end=end, periods=None, freq=self.freq)
+        raise TypeError(f"Accumulation {name} not supported for {type(self)}")
 
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):
@@ -1571,6 +1573,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # --------------------------------------------------------------
     # Reductions
 
+    @_period_dispatch
+    def _quantile(
+        self: DatetimeLikeArrayT,
+        qs: npt.NDArray[np.float64],
+        interpolation: str,
+    ) -> DatetimeLikeArrayT:
+        return super()._quantile(qs=qs, interpolation=interpolation)
+
+    @_period_dispatch
     def min(self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs):
         """
         Return the minimum value of the Array or minimum along
@@ -1585,21 +1596,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         nv.validate_min((), kwargs)
         nv.validate_minmax_axis(axis, self.ndim)
 
-        if is_period_dtype(self.dtype):
-            # pass datetime64 values to nanops to get correct NaT semantics
-            result = nanops.nanmin(
-                self._ndarray.view("M8[ns]"), axis=axis, skipna=skipna
-            )
-            if result is NaT:
-                return NaT
-            result = result.view("i8")
-            if axis is None or self.ndim == 1:
-                return self._box_func(result)
-            return self._from_backing_data(result)
-
         result = nanops.nanmin(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
+    @_period_dispatch
     def max(self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs):
         """
         Return the maximum value of the Array or maximum along
@@ -1614,26 +1614,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         nv.validate_max((), kwargs)
         nv.validate_minmax_axis(axis, self.ndim)
 
-        if is_period_dtype(self.dtype):
-            # pass datetime64 values to nanops to get correct NaT semantics
-            result = nanops.nanmax(
-                self._ndarray.view("M8[ns]"), axis=axis, skipna=skipna
-            )
-            if result is NaT:
-                return result
-            result = result.view("i8")
-            if axis is None or self.ndim == 1:
-                return self._box_func(result)
-            return self._from_backing_data(result)
-
         result = nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
     def mean(self, *, skipna: bool = True, axis: AxisInt | None = 0):
         """
         Return the mean value of the Array.
-
-        .. versionadded:: 0.25.0
 
         Parameters
         ----------
@@ -1668,21 +1654,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         )
         return self._wrap_reduction_result(axis, result)
 
+    @_period_dispatch
     def median(self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs):
         nv.validate_median((), kwargs)
 
         if axis is not None and abs(axis) >= self.ndim:
             raise ValueError("abs(axis) must be less than ndim")
-
-        if is_period_dtype(self.dtype):
-            # pass datetime64 values to nanops to get correct NaT semantics
-            result = nanops.nanmedian(
-                self._ndarray.view("M8[ns]"), axis=axis, skipna=skipna
-            )
-            result = result.view("i8")
-            if axis is None or self.ndim == 1:
-                return self._box_func(result)
-            return self._from_backing_data(result)
 
         result = nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)

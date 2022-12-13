@@ -1034,6 +1034,7 @@ def all_arithmetic_functions(request):
 
 
 _all_numeric_reductions = [
+    "count",
     "sum",
     "max",
     "min",
@@ -1044,6 +1045,7 @@ _all_numeric_reductions = [
     "median",
     "kurt",
     "skew",
+    "sem",
 ]
 
 
@@ -1117,6 +1119,17 @@ def all_logical_operators(request):
     * |
     * &
     * ^
+    """
+    return request.param
+
+
+_all_numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
+
+
+@pytest.fixture(params=_all_numeric_accumulations)
+def all_numeric_accumulations(request):
+    """
+    Fixture for numeric accumulation names
     """
     return request.param
 
@@ -1895,3 +1908,16 @@ def using_copy_on_write() -> bool:
     Fixture to check if Copy-on-Write is enabled.
     """
     return pd.options.mode.copy_on_write and pd.options.mode.data_manager == "block"
+
+
+warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
+if zoneinfo is not None:
+    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))
+
+
+@pytest.fixture(params=warsaws)
+def warsaw(request):
+    """
+    tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
+    """
+    return request.param

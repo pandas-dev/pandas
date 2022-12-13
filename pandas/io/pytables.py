@@ -370,7 +370,7 @@ def read_hdf(
 
     Returns
     -------
-    item : object
+    object
         The selected object. Return type depends on the object stored.
 
     See Also
@@ -4368,7 +4368,7 @@ class AppendableTable(Table):
         bvalues = []
         for i, v in enumerate(values):
             new_shape = (nrows,) + self.dtype[names[nindexes + i]].shape
-            bvalues.append(values[i].reshape(new_shape))
+            bvalues.append(v.reshape(new_shape))
 
         # write the chunks
         if chunksize is None:

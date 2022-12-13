@@ -41,10 +41,7 @@ from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
 )
-from pandas.util._decorators import (
-    Appender,
-    deprecate_kwarg,
-)
+from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -152,14 +149,6 @@ usecols : list-like or callable, optional
     example of a valid callable argument would be ``lambda x: x.upper() in
     ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
     parsing time and lower memory usage.
-mangle_dupe_cols : bool, default True
-    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
-    'X'...'X'. Passing in False will cause data to be overwritten if there
-    are duplicate names in the columns.
-
-    .. deprecated:: 1.5.0
-        Not implemented, and a new argument to specify the pattern for the
-        names of duplicated columns will be added instead
 dtype : Type name or dict of column -> type, optional
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
     'c': 'Int64'}}
@@ -258,6 +247,10 @@ infer_datetime_format : bool, default False
     format of the datetime strings in the columns, and if it can be inferred,
     switch to a faster method of parsing them. In some cases this can increase
     the parsing speed by 5-10x.
+
+    .. deprecated:: 2.0.0
+        A strict version of this argument is now the default, passing it has no effect.
+
 keep_date_col : bool, default False
     If True and `parse_dates` specifies combining multiple columns then
     keep the original columns.
@@ -278,7 +271,6 @@ cache_dates : bool, default True
     conversion. May produce significant speed-up when parsing duplicate
     date strings, especially ones with timezone offsets.
 
-    .. versionadded:: 0.25.0
 iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
@@ -461,7 +453,6 @@ _pyarrow_unsupported = {
     "decimal",
     "iterator",
     "dayfirst",
-    "infer_datetime_format",
     "verbose",
     "skipinitialspace",
     "low_memory",
@@ -604,7 +595,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -620,7 +610,7 @@ def read_csv(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -661,7 +651,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -677,7 +666,7 @@ def read_csv(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -718,7 +707,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -734,7 +722,7 @@ def read_csv(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -775,7 +763,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -791,7 +778,7 @@ def read_csv(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -821,7 +808,6 @@ def read_csv(
     ...
 
 
-@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
@@ -842,7 +828,6 @@ def read_csv(
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols=None,
-    mangle_dupe_cols: bool = True,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -861,7 +846,7 @@ def read_csv(
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
-    infer_datetime_format: bool = False,
+    infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     keep_date_col: bool = False,
     date_parser=None,
     dayfirst: bool = False,
@@ -892,6 +877,15 @@ def read_csv(
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool = False,
 ) -> DataFrame | TextFileReader:
+    if infer_datetime_format is not lib.no_default:
+        warnings.warn(
+            "The argument 'infer_datetime_format' is deprecated and will "
+            "be removed in a future version. "
+            "A strict version of it is now the default, see "
+            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
+            "You can safely remove this argument.",
+            stacklevel=find_stack_level(),
+        )
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -923,7 +917,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -939,7 +932,7 @@ def read_table(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -980,7 +973,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -996,7 +988,7 @@ def read_table(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -1037,7 +1029,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -1053,7 +1044,7 @@ def read_table(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -1094,7 +1085,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -1110,7 +1100,7 @@ def read_table(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -1140,7 +1130,6 @@ def read_table(
     ...
 
 
-@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_table",
@@ -1161,7 +1150,6 @@ def read_table(
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols=None,
-    mangle_dupe_cols: bool = True,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -1180,7 +1168,7 @@ def read_table(
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] = False,
-    infer_datetime_format: bool = False,
+    infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     keep_date_col: bool = False,
     date_parser=None,
     dayfirst: bool = False,
@@ -1406,9 +1394,6 @@ class TextFileReader(abc.Iterator):
                     f"The {repr(argname)} option is not supported with the "
                     f"'pyarrow' engine"
                 )
-            if argname == "mangle_dupe_cols" and value is False:
-                # GH12935
-                raise ValueError("Setting mangle_dupe_cols=False is not supported yet")
             options[argname] = value
 
         for argname, default in _c_parser_defaults.items():
@@ -1764,10 +1749,6 @@ def TextParser(*args, **kwds) -> TextFileReader:
         transformed content.
     encoding : str, optional
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
-    infer_datetime_format: bool, default False
-        If True and `parse_dates` is True for a column, try to infer the
-        datetime format based on the first datetime string. If the format
-        can be inferred, there often will be a large parsing speed-up.
     float_precision : str, optional
         Specifies which converter the C engine should use for floating-point
         values. The options are `None` or `high` for the ordinary converter,
