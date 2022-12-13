@@ -27,13 +27,6 @@ from pandas.tseries.offsets import (
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-def test_union_many_deprecated():
-    dti = date_range("2016-01-01", periods=3)
-
-    with tm.assert_produces_warning(FutureWarning):
-        dti.union_many([dti, dti])
-
-
 class TestDatetimeIndexSetOps:
     tz = [
         None,
@@ -312,8 +305,7 @@ class TestDatetimeIndexSetOps:
         index_1 = date_range("1/1/2012", periods=4, freq="12H")
         index_2 = index_1 + DateOffset(hours=1)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = index_1 & index_2
+        result = index_1.intersection(index_2)
         assert len(result) == 0
 
     @pytest.mark.parametrize("tz", tz)

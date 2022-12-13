@@ -32,7 +32,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
-from pandas.tests.indexing.common import Base
+from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 
 # We pass through the error message from numpy
 _slice_iloc_msg = re.escape(
@@ -41,13 +41,19 @@ _slice_iloc_msg = re.escape(
 )
 
 
-class TestiLoc(Base):
+class TestiLoc:
     @pytest.mark.parametrize("key", [2, -1, [0, 1, 2]])
-    def test_iloc_getitem_int_and_list_int(self, key):
-        self.check_result(
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    @pytest.mark.parametrize(
+        "col",
+        ["labels", "mixed", "ts", "floats", "empty"],
+    )
+    def test_iloc_getitem_int_and_list_int(self, key, kind, col, request):
+        obj = request.getfixturevalue(f"{kind}_{col}")
+        check_indexing_smoketest_or_raises(
+            obj,
             "iloc",
             key,
-            typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
         )
 
@@ -240,7 +246,7 @@ class TestiLocBaseIndependent:
             tm.assert_frame_equal(result, expected)
 
         dfl = DataFrame(np.random.randn(5, 2), columns=list("AB"))
-        check(dfl.iloc[:, 2:3], DataFrame(index=dfl.index))
+        check(dfl.iloc[:, 2:3], DataFrame(index=dfl.index, columns=[]))
         check(dfl.iloc[:, 1:3], dfl.iloc[:, [1]])
         check(dfl.iloc[4:6], dfl.iloc[[4]])
 
@@ -1265,7 +1271,8 @@ class TestILocErrors:
         # GH#39004
         df = DataFrame({"a": [1, 2, 3]})
         indexer = DataFrame({"a": [True, False, True]})
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "DataFrame indexer for .iloc is not supported. Consider using .loc"
+        with pytest.raises(TypeError, match=msg):
             df.iloc[indexer] = 1
 
         msg = (

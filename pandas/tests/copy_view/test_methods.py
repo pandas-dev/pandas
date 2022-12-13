@@ -1,7 +1,9 @@
 import numpy as np
+import pytest
 
 from pandas import (
     DataFrame,
+    MultiIndex,
     Series,
 )
 import pandas._testing as tm
@@ -131,6 +133,25 @@ def test_reindex_columns(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_drop_on_column(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.drop(columns="a")
+    df2._mgr._verify_integrity()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    else:
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    df2.iloc[0, 0] = 0
+    assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_select_dtypes(using_copy_on_write):
     # Case: selecting columns using `select_dtypes()` returns a new dataframe
     # + afterwards modifying the result
@@ -139,18 +160,16 @@ def test_select_dtypes(using_copy_on_write):
     df2 = df.select_dtypes("int64")
     df2._mgr._verify_integrity()
 
-    # currently this always returns a "view"
-    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     # mutating df2 triggers a copy-on-write for that column/block
     df2.iloc[0, 0] = 0
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        # but currently select_dtypes() actually returns a view -> mutates parent
-        df_orig.iloc[0, 0] = 0
-        tm.assert_frame_equal(df, df_orig)
+    tm.assert_frame_equal(df, df_orig)
 
 
 def test_to_frame(using_copy_on_write):
@@ -158,7 +177,7 @@ def test_to_frame(using_copy_on_write):
     ser = Series([1, 2, 3])
     ser_orig = ser.copy()
 
-    df = ser.to_frame()
+    df = ser[:].to_frame()
 
     # currently this always returns a "view"
     assert np.shares_memory(ser.values, get_array(df, 0))
@@ -171,5 +190,169 @@ def test_to_frame(using_copy_on_write):
         tm.assert_series_equal(ser, ser_orig)
     else:
         # but currently select_dtypes() actually returns a view -> mutates parent
-        ser_orig.iloc[0] = 0
-        tm.assert_series_equal(ser, ser_orig)
+        expected = ser_orig.copy()
+        expected.iloc[0] = 0
+        tm.assert_series_equal(ser, expected)
+
+    # modify original series -> don't modify dataframe
+    df = ser[:].to_frame()
+    ser.iloc[0] = 0
+
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, ser_orig.to_frame())
+    else:
+        expected = ser_orig.copy().to_frame()
+        expected.iloc[0, 0] = 0
+        tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "method, idx",
+    [
+        (lambda df: df.copy(deep=False).copy(deep=False), 0),
+        (lambda df: df.reset_index().reset_index(), 2),
+        (lambda df: df.rename(columns=str.upper).rename(columns=str.lower), 0),
+        (lambda df: df.copy(deep=False).select_dtypes(include="number"), 0),
+    ],
+    ids=["shallow-copy", "reset_index", "rename", "select_dtypes"],
+)
+def test_chained_methods(request, method, idx, using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+
+    # when not using CoW, only the copy() variant actually gives a view
+    df2_is_view = not using_copy_on_write and request.node.callspec.id == "shallow-copy"
+
+    # modify df2 -> don't modify df
+    df2 = method(df)
+    df2.iloc[0, idx] = 0
+    if not df2_is_view:
+        tm.assert_frame_equal(df, df_orig)
+
+    # modify df -> don't modify df2
+    df2 = method(df)
+    df.iloc[0, 0] = 0
+    if not df2_is_view:
+        tm.assert_frame_equal(df2.iloc[:, idx:], df_orig)
+
+
+def test_set_index(using_copy_on_write):
+    # GH 49473
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.set_index("a")
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    else:
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    # mutating df2 triggers a copy-on-write for that column / block
+    df2.iloc[0, 1] = 0
+    assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_add_prefix(using_copy_on_write):
+    # GH 49473
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.add_prefix("CoW_")
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "CoW_a"), get_array(df, "a"))
+    df2.iloc[0, 0] = 0
+
+    assert not np.shares_memory(get_array(df2, "CoW_a"), get_array(df, "a"))
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "CoW_c"), get_array(df, "c"))
+    expected = DataFrame(
+        {"CoW_a": [0, 2, 3], "CoW_b": [4, 5, 6], "CoW_c": [0.1, 0.2, 0.3]}
+    )
+    tm.assert_frame_equal(df2, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_add_suffix(using_copy_on_write):
+    # GH 49473
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.add_suffix("_CoW")
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a_CoW"), get_array(df, "a"))
+    df2.iloc[0, 0] = 0
+    assert not np.shares_memory(get_array(df2, "a_CoW"), get_array(df, "a"))
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "c_CoW"), get_array(df, "c"))
+    expected = DataFrame(
+        {"a_CoW": [0, 2, 3], "b_CoW": [4, 5, 6], "c_CoW": [0.1, 0.2, 0.3]}
+    )
+    tm.assert_frame_equal(df2, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda df: df.head(),
+        lambda df: df.head(2),
+        lambda df: df.tail(),
+        lambda df: df.tail(3),
+    ],
+)
+def test_head_tail(method, using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = method(df)
+    df2._mgr._verify_integrity()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    # modify df2 to trigger CoW for that block
+    df2.iloc[0, 0] = 0
+    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        # without CoW enabled, head and tail return views. Mutating df2 also mutates df.
+        df2.iloc[0, 0] = 1
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_assign(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    df2 = df.assign()
+    df2._mgr._verify_integrity()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_reorder_levels(using_copy_on_write):
+    index = MultiIndex.from_tuples(
+        [(1, 1), (1, 2), (2, 1), (2, 2)], names=["one", "two"]
+    )
+    df = DataFrame({"a": [1, 2, 3, 4]}, index=index)
+    df_orig = df.copy()
+    df2 = df.reorder_levels(order=["two", "one"])
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)

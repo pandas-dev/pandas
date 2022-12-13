@@ -63,11 +63,9 @@ Indexing, iteration
    DataFrame.insert
    DataFrame.__iter__
    DataFrame.items
-   DataFrame.iteritems
    DataFrame.keys
    DataFrame.iterrows
    DataFrame.itertuples
-   DataFrame.lookup
    DataFrame.pop
    DataFrame.tail
    DataFrame.xs
@@ -151,7 +149,6 @@ Computations / descriptive stats
    DataFrame.eval
    DataFrame.kurt
    DataFrame.kurtosis
-   DataFrame.mad
    DataFrame.max
    DataFrame.mean
    DataFrame.median
@@ -252,7 +249,6 @@ Combining / comparing / joining / merging
 .. autosummary::
    :toctree: api/
 
-   DataFrame.append
    DataFrame.assign
    DataFrame.compare
    DataFrame.join
@@ -267,8 +263,6 @@ Time Series-related
    DataFrame.asfreq
    DataFrame.asof
    DataFrame.shift
-   DataFrame.slice_shift
-   DataFrame.tshift
    DataFrame.first_valid_index
    DataFrame.last_valid_index
    DataFrame.resample

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import inspect
 from typing import (
     Callable,
     Hashable,
 )
-import warnings
 
 import numpy as np
 
@@ -21,7 +19,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_dtype_equal,
@@ -35,6 +32,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
+from pandas.core.construction import sanitize_array
 from pandas.core.indexes.base import (
     Index,
     maybe_extract_name,
@@ -88,7 +86,6 @@ class NumericIndex(Index):
         is_numeric_dtype,
         "numeric type",
     )
-    _is_numeric_dtype = True
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
 
@@ -123,7 +120,7 @@ class NumericIndex(Index):
         }[self.dtype.kind]
 
     def __new__(
-        cls, data=None, dtype: Dtype | None = None, copy=False, name=None
+        cls, data=None, dtype: Dtype | None = None, copy: bool = False, name=None
     ) -> NumericIndex:
         name = maybe_extract_name(name, data, cls)
 
@@ -140,21 +137,23 @@ class NumericIndex(Index):
         if not isinstance(data, (np.ndarray, Index)):
             # Coerce to ndarray if not already ndarray or Index
             if is_scalar(data):
-                raise cls._scalar_data_error(data)
+                cls._raise_scalar_data_error(data)
 
             # other iterable of some kind
             if not isinstance(data, (ABCSeries, list, tuple)):
                 data = list(data)
 
             orig = data
-            data = np.asarray(data, dtype=dtype)
+            if isinstance(data, (list, tuple)):
+                if len(data):
+                    data = sanitize_array(data, index=None)
+                else:
+                    data = np.array([], dtype=np.int64)
+
             if dtype is None and data.dtype.kind == "f":
                 if cls is UInt64Index and (data >= 0).all():
                     # https://github.com/numpy/numpy/issues/19146
                     data = np.asarray(orig, dtype=np.uint64)
-
-        if issubclass(data.dtype.type, str):
-            cls._string_data_error(data)
 
         dtype = cls._ensure_dtype(dtype)
 
@@ -201,7 +200,8 @@ class NumericIndex(Index):
             return cls._default_dtype
 
         dtype = pandas_dtype(dtype)
-        assert isinstance(dtype, np.dtype)
+        if not isinstance(dtype, np.dtype):
+            raise TypeError(f"{dtype} not a numpy type")
 
         if cls._is_backward_compat_public_numeric_index:
             # dtype for NumericIndex
@@ -213,8 +213,7 @@ class NumericIndex(Index):
     # ----------------------------------------------------------------
     # Indexing Methods
 
-    # error: Decorated property not supported
-    @cache_readonly  # type: ignore[misc]
+    @cache_readonly
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
         return False
@@ -235,10 +234,7 @@ class NumericIndex(Index):
         return super()._convert_slice_indexer(key, kind=kind, is_frame=is_frame)
 
     @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
-        assert kind in ["loc", "getitem", None, lib.no_default]
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
-
+    def _maybe_cast_slice_bound(self, label, side: str):
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
 
@@ -261,11 +257,11 @@ class NumericIndex(Index):
                     f"tolerance argument for {type(self).__name__} must contain "
                     "numeric elements if it is list type"
                 )
-            else:
-                raise ValueError(
-                    f"tolerance argument for {type(self).__name__} must be numeric "
-                    f"if it is a scalar: {repr(tolerance)}"
-                )
+
+            raise ValueError(
+                f"tolerance argument for {type(self).__name__} must be numeric "
+                f"if it is a scalar: {repr(tolerance)}"
+            )
         return tolerance
 
     @classmethod
@@ -281,7 +277,13 @@ class NumericIndex(Index):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
     def _format_native_types(
-        self, *, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
+        self,
+        *,
+        na_rep: str = "",
+        float_format=None,
+        decimal: str = ".",
+        quoting=None,
+        **kwargs,
     ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import FloatArrayFormatter
 
@@ -354,16 +356,6 @@ class IntegerIndex(NumericIndex):
     """
 
     _is_backward_compat_public_numeric_index: bool = False
-
-    @property
-    def asi8(self) -> npt.NDArray[np.int64]:
-        # do not cache or you'll create a memory leak
-        warnings.warn(
-            "Index.asi8 is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self._values.view(self._default_dtype)
 
 
 class Int64Index(IntegerIndex):

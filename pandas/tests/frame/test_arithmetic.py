@@ -1,5 +1,8 @@
 from collections import deque
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 from enum import Enum
 import functools
 import operator
@@ -7,7 +10,6 @@ import re
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas.util._test_decorators as td
 
@@ -31,9 +33,7 @@ from pandas.tests.frame.common import (
 )
 
 
-@pytest.fixture(
-    autouse=True, scope="module", params=[0, 1000000], ids=["numexpr", "python"]
-)
+@pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
 def switch_numexpr_min_elements(request):
     _MIN_ELEMENTS = expr._MIN_ELEMENTS
     expr._MIN_ELEMENTS = request.param
@@ -1135,6 +1135,26 @@ class TestFrameArithmetic:
                 expected = op(df, value).dtypes
             tm.assert_series_equal(result, expected)
 
+    def test_arithmetic_midx_cols_different_dtypes(self):
+        # GH#49769
+        midx = MultiIndex.from_arrays([Series([1, 2]), Series([3, 4])])
+        midx2 = MultiIndex.from_arrays([Series([1, 2], dtype="Int8"), Series([3, 4])])
+        left = DataFrame([[1, 2], [3, 4]], columns=midx)
+        right = DataFrame([[1, 2], [3, 4]], columns=midx2)
+        result = left - right
+        expected = DataFrame([[0, 0], [0, 0]], columns=midx)
+        tm.assert_frame_equal(result, expected)
+
+    def test_arithmetic_midx_cols_different_dtypes_different_order(self):
+        # GH#49769
+        midx = MultiIndex.from_arrays([Series([1, 2]), Series([3, 4])])
+        midx2 = MultiIndex.from_arrays([Series([2, 1], dtype="Int8"), Series([4, 3])])
+        left = DataFrame([[1, 2], [3, 4]], columns=midx)
+        right = DataFrame([[1, 2], [3, 4]], columns=midx2)
+        result = left - right
+        expected = DataFrame([[-1, 1], [-1, 1]], columns=midx)
+        tm.assert_frame_equal(result, expected)
+
 
 def test_frame_with_zero_len_series_corner_cases():
     # GH#28600
@@ -1146,19 +1166,15 @@ def test_frame_with_zero_len_series_corner_cases():
     expected = DataFrame(df.values * np.nan, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning):
-        # Automatic alignment for comparisons deprecated
-        result = df == ser
-    expected = DataFrame(False, index=df.index, columns=df.columns)
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match="not aligned"):
+        # Automatic alignment for comparisons deprecated GH#36795, enforced 2.0
+        df == ser
 
-    # non-float case should not raise on comparison
+    # non-float case should not raise TypeError on comparison
     df2 = DataFrame(df.values.view("M8[ns]"), columns=df.columns)
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(ValueError, match="not aligned"):
         # Automatic alignment for comparisons deprecated
-        result = df2 == ser
-    expected = DataFrame(False, index=df.index, columns=df.columns)
-    tm.assert_frame_equal(result, expected)
+        df2 == ser
 
 
 def test_zero_len_frame_with_series_corner_cases():
@@ -1171,7 +1187,6 @@ def test_zero_len_frame_with_series_corner_cases():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_frame_single_columns_object_sum_axis_1():
     # GH 13758
     data = {
@@ -1196,10 +1211,10 @@ class TestFrameArithmeticUnsorted:
 
         df_moscow = df.tz_convert("Europe/Moscow")
         result = df + df_moscow
-        assert result.index.tz is pytz.utc
+        assert result.index.tz is timezone.utc
 
         result = df_moscow + df
-        assert result.index.tz is pytz.utc
+        assert result.index.tz is timezone.utc
 
     def test_align_frame(self):
         rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
@@ -2032,7 +2047,7 @@ def test_frame_op_subclass_nonclass_constructor():
     class SubclassedDataFrame(DataFrame):
         _metadata = ["my_extra_data"]
 
-        def __init__(self, my_extra_data, *args, **kwargs):
+        def __init__(self, my_extra_data, *args, **kwargs) -> None:
             self.my_extra_data = my_extra_data
             super().__init__(*args, **kwargs)
 

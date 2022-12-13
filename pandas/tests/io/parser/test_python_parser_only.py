@@ -11,6 +11,7 @@ from io import (
     BytesIO,
     StringIO,
 )
+from typing import Iterator
 
 import pytest
 
@@ -322,7 +323,7 @@ def test_python_engine_file_no_next(python_parser_only):
         def __init__(self, csv_data) -> None:
             self.data = csv_data
 
-        def __iter__(self):
+        def __iter__(self) -> Iterator:
             return self.data.__iter__()
 
         def read(self):

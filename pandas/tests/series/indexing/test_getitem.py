@@ -201,6 +201,12 @@ class TestSeriesGetitemScalars:
         with pytest.raises(KeyError, match=msg):
             ser["50 days"]
 
+    def test_getitem_bool_index_positional(self):
+        # GH#48653
+        ser = Series({True: 1, False: 0})
+        result = ser[0]
+        assert result == 1
+
 
 class TestSeriesGetitemSlices:
     def test_getitem_partial_str_slice_with_datetimeindex(self):
@@ -263,28 +269,22 @@ class TestSeriesGetitemSlices:
 
     def test_getitem_slice_2d(self, datetime_series):
         # GH#30588 multi-dimensional indexing deprecated
-
-        with tm.assert_produces_warning(
-            FutureWarning, match="Support for multi-dimensional indexing"
-        ):
-            # GH#30867 Don't want to support this long-term, but
-            # for now ensure that the warning from Index
-            # doesn't comes through via Series.__getitem__.
-            result = datetime_series[:, np.newaxis]
-        expected = datetime_series.values[:, np.newaxis]
-        tm.assert_almost_equal(result, expected)
+        with pytest.raises(ValueError, match="Multi-dimensional indexing"):
+            datetime_series[:, np.newaxis]
 
     # FutureWarning from NumPy.
-    @pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
     def test_getitem_median_slice_bug(self):
         index = date_range("20090415", "20090519", freq="2B")
-        s = Series(np.random.randn(13), index=index)
+        ser = Series(np.random.randn(13), index=index)
 
         indexer = [slice(6, 7, None)]
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "Indexing with a single-item list"
+        with pytest.raises(ValueError, match=msg):
             # GH#31299
-            result = s[indexer]
-        expected = s[indexer[0]]
+            ser[indexer]
+        # but we're OK with a single-element tuple
+        result = ser[(indexer[0],)]
+        expected = ser[indexer[0]]
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -471,7 +471,7 @@ class TestGetitemBooleanMask:
         ser = Series(dti._data)
 
         res = ser[key]
-        assert res._values._data.base is None
+        assert res._values._ndarray.base is None
 
         # compare with numeric case for reference
         ser2 = Series(range(4))
@@ -549,14 +549,8 @@ def test_getitem_generator(string_series):
     ],
 )
 def test_getitem_ndim_deprecated(series):
-    with tm.assert_produces_warning(
-        FutureWarning,
-        match="Support for multi-dimensional indexing",
-    ):
-        result = series[:, None]
-
-    expected = np.asarray(series)[:, None]
-    tm.assert_numpy_array_equal(result, expected)
+    with pytest.raises(ValueError, match="Multi-dimensional indexing"):
+        series[:, None]
 
 
 def test_getitem_multilevel_scalar_slice_not_implemented(
@@ -641,7 +635,7 @@ def test_getitem_with_integer_labels():
 def test_getitem_missing(datetime_series):
     # missing
     d = datetime_series.index[0] - BDay()
-    msg = r"Timestamp\('1999-12-31 00:00:00', freq='B'\)"
+    msg = r"Timestamp\('1999-12-31 00:00:00'\)"
     with pytest.raises(KeyError, match=msg):
         datetime_series[d]
 
@@ -680,11 +674,6 @@ def test_getitem_categorical_str():
     expected = ser.iloc[[0, 3]]
     tm.assert_series_equal(result, expected)
 
-    # Check the intermediate steps work as expected
-    with tm.assert_produces_warning(FutureWarning):
-        result = ser.index.get_value(ser, "a")
-    tm.assert_series_equal(result, expected)
-
 
 def test_slice_can_reorder_not_uniquely_indexed():
     ser = Series(1, index=["a", "a", "b", "b", "c"])
@@ -702,14 +691,14 @@ def test_duplicated_index_getitem_positional_indexer(index_vals):
 class TestGetitemDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser[key]
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
-    def test_setitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed(self, key):
+        # GH#42825 enforced in 2.0
         ser = Series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser[key] = 1

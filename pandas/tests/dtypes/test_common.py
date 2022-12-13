@@ -13,6 +13,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     CategoricalDtypeType,
     DatetimeTZDtype,
+    ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
 )
@@ -207,22 +208,6 @@ def test_is_scipy_sparse():
     assert not com.is_scipy_sparse(SparseArray([1, 2, 3]))
 
 
-def test_is_categorical():
-    cat = pd.Categorical([1, 2, 3])
-    with tm.assert_produces_warning(FutureWarning):
-        assert com.is_categorical(cat)
-        assert com.is_categorical(pd.Series(cat))
-        assert com.is_categorical(pd.CategoricalIndex([1, 2, 3]))
-
-        assert not com.is_categorical([1, 2, 3])
-
-
-def test_is_categorical_deprecation():
-    # GH#33385
-    with tm.assert_produces_warning(FutureWarning):
-        com.is_categorical([1, 2, 3])
-
-
 def test_is_datetime64_dtype():
     assert not com.is_datetime64_dtype(object)
     assert not com.is_datetime64_dtype([1, 2, 3])
@@ -237,6 +222,18 @@ def test_is_datetime64tz_dtype():
     assert not com.is_datetime64tz_dtype([1, 2, 3])
     assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
     assert com.is_datetime64tz_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+
+
+def test_custom_ea_kind_M_not_datetime64tz():
+    # GH 34986
+    class NotTZDtype(ExtensionDtype):
+        @property
+        def kind(self) -> str:
+            return "M"
+
+    not_tz_dtype = NotTZDtype()
+    assert not com.is_datetime64tz_dtype(not_tz_dtype)
+    assert not com.needs_i8_conversion(not_tz_dtype)
 
 
 def test_is_timedelta64_dtype():
@@ -291,6 +288,15 @@ def test_is_string_dtype():
     assert com.is_string_dtype(object)
     assert com.is_string_dtype(np.array(["a", "b"]))
     assert com.is_string_dtype(pd.StringDtype())
+
+
+@pytest.mark.parametrize(
+    "data",
+    [[(0, 1), (1, 1)], pd.Categorical([1, 2, 3]), np.array([1, 2], dtype=object)],
+)
+def test_is_string_dtype_arraylike_with_object_elements_not_strings(data):
+    # GH 15585
+    assert not com.is_string_dtype(pd.Series(data))
 
 
 def test_is_string_dtype_nullable(nullable_string_dtype):
@@ -586,36 +592,6 @@ def test_is_bool_dtype_numpy_error():
     assert not com.is_bool_dtype("0 - Name")
 
 
-@pytest.mark.filterwarnings("ignore:'is_extension_type' is deprecated:FutureWarning")
-@pytest.mark.parametrize(
-    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
-)
-def test_is_extension_type(check_scipy):
-    assert not com.is_extension_type([1, 2, 3])
-    assert not com.is_extension_type(np.array([1, 2, 3]))
-    assert not com.is_extension_type(pd.DatetimeIndex([1, 2, 3]))
-
-    cat = pd.Categorical([1, 2, 3])
-    assert com.is_extension_type(cat)
-    assert com.is_extension_type(pd.Series(cat))
-    assert com.is_extension_type(SparseArray([1, 2, 3]))
-    assert com.is_extension_type(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
-
-    dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
-    assert com.is_extension_type(s)
-
-    if check_scipy:
-        import scipy.sparse
-
-        assert not com.is_extension_type(scipy.sparse.bsr_matrix([1, 2, 3]))
-
-
-def test_is_extension_type_deprecation():
-    with tm.assert_produces_warning(FutureWarning):
-        com.is_extension_type([1, 2, 3])
-
-
 @pytest.mark.parametrize(
     "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
 )
@@ -781,7 +757,13 @@ def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
 
     to_type = np.dtype(to_type)
 
-    with pytest.raises(TypeError, match="cannot astype"):
+    msg = "|".join(
+        [
+            "cannot astype a timedelta",
+            "cannot astype a datetimelike",
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
         astype_nansafe(arr, dtype=to_type)
 
 

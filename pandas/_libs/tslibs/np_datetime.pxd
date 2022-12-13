@@ -75,11 +75,13 @@ cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
 
-cdef int64_t dtstruct_to_dt64(npy_datetimestruct* dts) nogil
-
-cdef int64_t pydatetime_to_dt64(datetime val, npy_datetimestruct *dts)
+cdef int64_t pydatetime_to_dt64(
+    datetime val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=?
+)
 cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts)
-cdef int64_t pydate_to_dt64(date val, npy_datetimestruct *dts)
+cdef int64_t pydate_to_dt64(
+    date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=?
+)
 cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts)
 
 cdef npy_datetime get_datetime64_value(object obj) nogil
@@ -93,6 +95,8 @@ cdef int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
+    format: str | None = *,
+    bint exact = *
 ) except? -1
 
 cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype)

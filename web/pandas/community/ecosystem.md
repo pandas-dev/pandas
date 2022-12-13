@@ -399,7 +399,7 @@ Install pandas-stubs to enable basic type coverage of pandas API.
 Learn more by reading through these issues [14468](https://github.com/pandas-dev/pandas/issues/14468),
 [26766](https://github.com/pandas-dev/pandas/issues/26766), [28142](https://github.com/pandas-dev/pandas/issues/28142).
 
-See installation and usage instructions on the [github page](https://github.com/VirtusLab/pandas-stubs).
+See installation and usage instructions on the [GitHub page](https://github.com/VirtusLab/pandas-stubs).
 
 ### [Hamilton](https://github.com/stitchfix/hamilton)
 
@@ -411,8 +411,8 @@ It prescibes an opinionated paradigm, that ensures all code is:
 * unit testable
 * integration testing friendly
 * documentation friendly
-* transformation logic is reuseable, as it is decoupled from the context of where it is used.
-* integrateable with runtime data quality checks.
+* transformation logic is reusable, as it is decoupled from the context of where it is used.
+* integratable with runtime data quality checks.
 
 This helps one to scale your pandas code base, at the same time, keeping maintenance costs low.
 

@@ -383,12 +383,17 @@ this pathological behavior (:issue:`37827`):
 
 *New behavior*:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-    df.mean()
+    In [3]: df.mean()
+    Out[3]:
+    A    1.0
+    dtype: float64
 
-    df[["A"]].mean()
+    In [4]: df[["A"]].mean()
+    Out[4]:
+    A    1.0
+    dtype: float64
 
 Moreover, DataFrame reductions with ``numeric_only=None`` will now be
 consistent with their Series counterparts.  In particular, for
@@ -415,10 +420,10 @@ instead of casting to a NumPy array which may have different semantics (:issue:`
 
 *New behavior*:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-    df.any()
+    In [5]: df.any()
+    Out[5]: Series([], dtype: bool)
 
 
 .. _whatsnew_120.api_breaking.python:
@@ -561,9 +566,9 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Performance improvements when creating DataFrame or Series with dtype ``str`` or :class:`StringDtype` from array with many string elements (:issue:`36304`, :issue:`36317`, :issue:`36325`, :issue:`36432`, :issue:`37371`)
-- Performance improvement in :meth:`.GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
+- Performance improvement in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGroupBy.agg` with the ``numba`` engine (:issue:`35759`)
 - Performance improvements when creating :meth:`Series.map` from a huge dictionary (:issue:`34717`)
-- Performance improvement in :meth:`.GroupBy.transform` with the ``numba`` engine (:issue:`36240`)
+- Performance improvement in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` with the ``numba`` engine (:issue:`36240`)
 - :class:`.Styler` uuid method altered to compress data transmission over web whilst maintaining reasonably low table collision probability (:issue:`36345`)
 - Performance improvement in :func:`to_datetime` with non-ns time unit for ``float`` ``dtype`` columns (:issue:`20445`)
 - Performance improvement in setting values on an :class:`IntervalArray` (:issue:`36310`)

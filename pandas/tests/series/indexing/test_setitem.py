@@ -418,14 +418,14 @@ class TestSetitemViewCopySemantics:
         ts = dti[1]
         ser = Series(dti)
         assert ser._values is not dti
-        assert ser._values._data.base is not dti._data._data.base
+        assert ser._values._ndarray.base is not dti._data._ndarray.base
         assert dti.freq == "D"
         ser.iloc[1] = NaT
         assert ser._values.freq is None
 
         # check that the DatetimeIndex was not altered in place
         assert ser._values is not dti
-        assert ser._values._data.base is not dti._data._data.base
+        assert ser._values._ndarray.base is not dti._data._ndarray.base
         assert dti[1] == ts
         assert dti.freq == "D"
 
@@ -435,9 +435,9 @@ class TestSetitemViewCopySemantics:
         ts = dti[0]
         ser = Series(dti)
         assert ser._values is not dti
-        assert ser._values._data.base is not dti._data._data.base
+        assert ser._values._ndarray.base is not dti._data._ndarray.base
         assert ser._mgr.arrays[0] is not dti
-        assert ser._mgr.arrays[0]._data.base is not dti._data._data.base
+        assert ser._mgr.arrays[0]._ndarray.base is not dti._data._ndarray.base
 
         ser[::3] = NaT
         assert ser[0] is NaT
@@ -562,6 +562,14 @@ class TestSetitemWithExpansion:
         expected = Series(expected_values, dtype=target_dtype)
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_enlargement_object_none(self, nulls_fixture):
+        # GH#48665
+        ser = Series(["a", "b"])
+        ser[3] = nulls_fixture
+        expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3])
+        tm.assert_series_equal(ser, expected)
+        assert ser[3] is nulls_fixture
+
 
 def test_setitem_scalar_into_readonly_backing_data():
     # GH#14359: test that you cannot mutate a read only buffer
@@ -570,7 +578,7 @@ def test_setitem_scalar_into_readonly_backing_data():
     array.flags.writeable = False  # make the array immutable
     series = Series(array)
 
-    for n in range(len(series)):
+    for n in series.index:
         msg = "assignment destination is read-only"
         with pytest.raises(ValueError, match=msg):
             series[n] = 1
@@ -1027,27 +1035,17 @@ class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
         return 0
 
     @pytest.fixture
-    def expected(self):
+    def expected(self, obj, val):
+        # pre-2.0 this would cast to object, in 2.0 we cast the val to
+        #  the target tz
         expected = Series(
             [
-                Timestamp("2000-01-01 00:00:00-05:00", tz="US/Eastern"),
+                val.tz_convert("US/Central"),
                 Timestamp("2000-01-02 00:00:00-06:00", tz="US/Central"),
             ],
-            dtype=object,
+            dtype=obj.dtype,
         )
         return expected
-
-    @pytest.fixture(autouse=True)
-    def assert_warns(self, request):
-        # check that we issue a FutureWarning about timezone-matching
-        if request.function.__name__ == "test_slice_key":
-            key = request.getfixturevalue("key")
-            if not isinstance(key, slice):
-                # The test is a no-op, so no warning will be issued
-                yield
-            return
-        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
-            yield
 
 
 @pytest.mark.parametrize(
@@ -1333,7 +1331,8 @@ class TestCoercionDatetime64(CoercionTest):
     "val,exp_dtype",
     [
         (Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[ns, US/Eastern]"),
-        (Timestamp("2012-01-01", tz="US/Pacific"), object),
+        # pre-2.0, a mis-matched tz would end up casting to object
+        (Timestamp("2012-01-01", tz="US/Pacific"), "datetime64[ns, US/Eastern]"),
         (Timestamp("2012-01-01"), object),
         (1, object),
     ],
@@ -1344,24 +1343,6 @@ class TestCoercionDatetime64TZ(CoercionTest):
     def obj(self):
         tz = "US/Eastern"
         return Series(date_range("2011-01-01", freq="D", periods=4, tz=tz))
-
-    @pytest.fixture(autouse=True)
-    def assert_warns(self, request):
-        # check that we issue a FutureWarning about timezone-matching
-        if request.function.__name__ == "test_slice_key":
-            key = request.getfixturevalue("key")
-            if not isinstance(key, slice):
-                # The test is a no-op, so no warning will be issued
-                yield
-            return
-
-        exp_dtype = request.getfixturevalue("exp_dtype")
-        val = request.getfixturevalue("val")
-        if exp_dtype == object and isinstance(val, Timestamp) and val.tz is not None:
-            with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
-                yield
-        else:
-            yield
 
 
 @pytest.mark.parametrize(
@@ -1555,41 +1536,37 @@ def test_setitem_positional_float_into_int_coerces():
     tm.assert_series_equal(ser, expected)
 
 
-def test_setitem_int_as_positional_fallback_deprecation():
+def test_setitem_int_not_positional():
     # GH#42215 deprecated falling back to positional on __setitem__ with an
-    #  int not contained in the index
+    #  int not contained in the index; enforced in 2.0
     ser = Series([1, 2, 3, 4], index=[1.1, 2.1, 3.0, 4.1])
     assert not ser.index._should_fallback_to_positional
     # assert not ser.index.astype(object)._should_fallback_to_positional
 
-    with tm.assert_produces_warning(None):
-        # 3.0 is in our index, so future behavior is unchanged
-        ser[3] = 10
+    # 3.0 is in our index, so post-enforcement behavior is unchanged
+    ser[3] = 10
     expected = Series([1, 2, 10, 4], index=ser.index)
     tm.assert_series_equal(ser, expected)
 
-    msg = "Treating integers as positional in Series.__setitem__"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        with pytest.raises(IndexError, match="index 5 is out of bounds"):
-            ser[5] = 5
-    # Once the deprecation is enforced, we will have
-    #  expected = Series([1, 2, 3, 4, 5], index=[1.1, 2.1, 3.0, 4.1, 5.0])
+    # pre-enforcement `ser[5] = 5` raised IndexError
+    ser[5] = 5
+    expected = Series([1, 2, 10, 4, 5], index=[1.1, 2.1, 3.0, 4.1, 5.0])
+    tm.assert_series_equal(ser, expected)
 
     ii = IntervalIndex.from_breaks(range(10))[::2]
     ser2 = Series(range(len(ii)), index=ii)
-    expected2 = ser2.copy()
-    expected2.iloc[-1] = 9
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        ser2[4] = 9
+    exp_index = ii.astype(object).append(Index([4]))
+    expected2 = Series([0, 1, 2, 3, 4, 9], index=exp_index)
+    # pre-enforcement `ser2[4] = 9` interpreted 4 as positional
+    ser2[4] = 9
     tm.assert_series_equal(ser2, expected2)
 
     mi = MultiIndex.from_product([ser.index, ["A", "B"]])
     ser3 = Series(range(len(mi)), index=mi)
     expected3 = ser3.copy()
-    expected3.iloc[4] = 99
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        ser3[4] = 99
+    expected3.loc[4] = 99
+    # pre-enforcement `ser3[4] = 99` interpreted 4 as positional
+    ser3[4] = 99
     tm.assert_series_equal(ser3, expected3)
 
 

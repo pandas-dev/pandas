@@ -1,8 +1,10 @@
+import os
 from textwrap import dedent
 
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_mac
 from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
@@ -389,11 +391,12 @@ class TestClipboard:
     def test_round_trip_valid_encodings(self, enc, df):
         self.check_round_trip_frame(df, encoding=enc)
 
+    @pytest.mark.single_cpu
     @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
     @pytest.mark.xfail(
-        reason="Flaky test in multi-process CI environment: GH 44584",
-        raises=AssertionError,
-        strict=False,
+        os.environ.get("DISPLAY") is None and not is_platform_mac(),
+        reason="Cannot be runed if a headless system is not put in place with Xvfb",
+        strict=True,
     )
     def test_raw_roundtrip(self, data):
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows

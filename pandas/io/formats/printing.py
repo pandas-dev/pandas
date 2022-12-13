@@ -51,7 +51,7 @@ def adjoin(space: int, *lists: list[str], **kwargs) -> str:
     maxLen = max(map(len, lists))
     for i, lst in enumerate(lists):
         nl = justfunc(lst, lengths[i], mode="left")
-        nl.extend([" " * lengths[i]] * (maxLen - len(lst)))
+        nl = ([" " * lengths[i]] * (maxLen - len(lst))) + nl
         newLists.append(nl)
     toJoin = zip(*newLists)
     for lines in toJoin:
@@ -312,8 +312,6 @@ def format_object_summary(
         If False, only break lines when the a line of values gets wider
         than the display width.
 
-        .. versionadded:: 0.25.0
-
     Returns
     -------
     summary string
@@ -426,8 +424,8 @@ def format_object_summary(
         summary = ""
         line = space2
 
-        for max_items in range(len(head)):
-            word = head[max_items] + sep + " "
+        for head_value in head:
+            word = head_value + sep + " "
             summary, line = _extend_line(summary, line, word, display_width, space2)
 
         if is_truncated:
@@ -435,8 +433,8 @@ def format_object_summary(
             summary += line.rstrip() + space2 + "..."
             line = space2
 
-        for max_items in range(len(tail) - 1):
-            word = tail[max_items] + sep + " "
+        for tail_item in tail[:-1]:
+            word = tail_item + sep + " "
             summary, line = _extend_line(summary, line, word, display_width, space2)
 
         # last value: no sep added + 1 space of width used for trailing ','
@@ -491,17 +489,13 @@ def _justify(
         max_length = [max(x, y) for x, y in zip(max_length, length)]
 
     # justify each item in each list-like in head and tail using max_length
-    head = [
+    head_tuples = [
         tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in head
     ]
-    tail = [
+    tail_tuples = [
         tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in tail
     ]
-    # https://github.com/python/mypy/issues/4975
-    # error: Incompatible return value type (got "Tuple[List[Sequence[str]],
-    #  List[Sequence[str]]]", expected "Tuple[List[Tuple[str, ...]],
-    #  List[Tuple[str, ...]]]")
-    return head, tail  # type: ignore[return-value]
+    return head_tuples, tail_tuples
 
 
 class PrettyDict(Dict[_KT, _VT]):

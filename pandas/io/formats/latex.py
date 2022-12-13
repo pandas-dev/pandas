@@ -180,7 +180,7 @@ class RowStringConverter(ABC):
         return strcols
 
     @property
-    def _empty_info_line(self):
+    def _empty_info_line(self) -> str:
         return (
             f"Empty {type(self.frame).__name__}\n"
             f"Columns: {self.frame.columns}\n"
@@ -211,7 +211,7 @@ class RowStringConverter(ABC):
         ncol = 1
         coltext = ""
 
-        def append_col():
+        def append_col() -> None:
             # write multicolumn if needed
             if ncol > 1:
                 row2.append(
@@ -773,7 +773,7 @@ class LatexFormatter:
         Right alignment for numbers and left - for strings.
         """
 
-        def get_col_type(dtype):
+        def get_col_type(dtype) -> str:
             if issubclass(dtype.type, np.number):
                 return "r"
             return "l"

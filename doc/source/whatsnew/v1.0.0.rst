@@ -774,7 +774,7 @@ source, you should no longer need to install Cython into your build environment 
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
-- :class:`core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
+- :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` now raises on invalid operation names (:issue:`27489`)
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
 - In order to improve tab-completion, pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
@@ -1232,8 +1232,8 @@ GroupBy/resample/rolling
 - Bug in :meth:`core.groupby.DataFrameGroupBy.agg` with timezone-aware datetime64 column incorrectly casting results to the original dtype (:issue:`29641`)
 - Bug in :meth:`DataFrame.groupby` when using axis=1 and having a single level columns index (:issue:`30208`)
 - Bug in :meth:`DataFrame.groupby` when using nunique on axis=1 (:issue:`30253`)
-- Bug in :meth:`GroupBy.quantile` with multiple list-like q value and integer column names (:issue:`30289`)
-- Bug in :meth:`GroupBy.pct_change` and :meth:`core.groupby.SeriesGroupBy.pct_change` causes ``TypeError`` when ``fill_method`` is ``None`` (:issue:`30463`)
+- Bug in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` with multiple list-like q value and integer column names (:issue:`30289`)
+- Bug in :meth:`.DataFrameGroupBy.pct_change` and :meth:`.SeriesGroupBy.pct_change` causes ``TypeError`` when ``fill_method`` is ``None`` (:issue:`30463`)
 - Bug in :meth:`Rolling.count` and :meth:`Expanding.count` argument where ``min_periods`` was ignored (:issue:`26996`)
 
 Reshaping

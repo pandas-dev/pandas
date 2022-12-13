@@ -10,18 +10,15 @@ class TestToFrame:
     def test_to_frame_respects_name_none(self):
         # GH#44212 if we explicitly pass name=None, then that should be respected,
         #  not changed to 0
-        # GH-45448 this is first deprecated to only change in the future
+        # GH-45448 this is first deprecated & enforced in 2.0
         ser = Series(range(3))
-        with tm.assert_produces_warning(FutureWarning):
-            result = ser.to_frame(None)
+        result = ser.to_frame(None)
 
-        # exp_index = Index([None], dtype=object)
-        exp_index = Index([0])
+        exp_index = Index([None], dtype=object)
         tm.assert_index_equal(result.columns, exp_index)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = ser.rename("foo").to_frame(None)
-        exp_index = Index(["foo"], dtype=object)
+        result = ser.rename("foo").to_frame(None)
+        exp_index = Index([None], dtype=object)
         tm.assert_index_equal(result.columns, exp_index)
 
     def test_to_frame(self, datetime_series):

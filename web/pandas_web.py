@@ -55,6 +55,15 @@ class Preprocessors:
     """
 
     @staticmethod
+    def current_year(context):
+        """
+        Add the current year to the context, so it can be used for the copyright
+        note, or other places where it is needed.
+        """
+        context["current_year"] = datetime.datetime.now().year
+        return context
+
+    @staticmethod
     def navbar_add_info(context):
         """
         Items in the main navigation bar can be direct links, or dropdowns with
@@ -329,7 +338,7 @@ def main(
     Copy every file in the source directory to the target directory.
 
     For ``.md`` and ``.html`` files, render them with the context
-    before copyings them. ``.md`` files are transformed to HTML.
+    before copying them. ``.md`` files are transformed to HTML.
     """
     config_fname = os.path.join(source_path, "config.yml")
 
@@ -386,7 +395,7 @@ if __name__ == "__main__":
         action="store_true",
         help="do not fail if errors happen when fetching "
         "data from http sources, and those fail "
-        "(mostly useful to allow github quota errors "
+        "(mostly useful to allow GitHub quota errors "
         "when running the script locally)",
     )
     args = parser.parse_args()

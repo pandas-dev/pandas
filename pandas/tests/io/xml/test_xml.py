@@ -27,59 +27,57 @@ import pandas._testing as tm
 from pandas.io.common import get_handle
 from pandas.io.xml import read_xml
 
-"""
-CHECK LIST
+# CHECK LIST
 
-[x] - ValueError: "Values for parser can only be lxml or etree."
+# [x] - ValueError: "Values for parser can only be lxml or etree."
 
-etree
-[X] - ImportError: "lxml not found, please install or use the etree parser."
-[X] - TypeError: "expected str, bytes or os.PathLike object, not NoneType"
-[X] - ValueError: "Either element or attributes can be parsed not both."
-[X] - ValueError: "xpath does not return any nodes..."
-[X] - SyntaxError: "You have used an incorrect or unsupported XPath"
-[X] - ValueError: "names does not match length of child elements in xpath."
-[X] - TypeError: "...is not a valid type for names"
-[X] - ValueError: "To use stylesheet, you need lxml installed..."
-[]  - URLError: (GENERAL ERROR WITH HTTPError AS SUBCLASS)
-[X] - HTTPError: "HTTP Error 404: Not Found"
-[]  - OSError: (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
-[X] - FileNotFoundError: "No such file or directory"
-[]  - ParseError    (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
-[X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
-[X] - UnicodeError: "UTF-16 stream does not start with BOM"
-[X] - BadZipFile: "File is not a zip file"
-[X] - OSError: "Invalid data stream"
-[X] - LZMAError: "Input format not supported by decoder"
-[X] - ValueError: "Unrecognized compression type"
-[X] - PermissionError: "Forbidden"
+# etree
+# [X] - ImportError: "lxml not found, please install or use the etree parser."
+# [X] - TypeError: "expected str, bytes or os.PathLike object, not NoneType"
+# [X] - ValueError: "Either element or attributes can be parsed not both."
+# [X] - ValueError: "xpath does not return any nodes..."
+# [X] - SyntaxError: "You have used an incorrect or unsupported XPath"
+# [X] - ValueError: "names does not match length of child elements in xpath."
+# [X] - TypeError: "...is not a valid type for names"
+# [X] - ValueError: "To use stylesheet, you need lxml installed..."
+# []  - URLError: (GENERAL ERROR WITH HTTPError AS SUBCLASS)
+# [X] - HTTPError: "HTTP Error 404: Not Found"
+# []  - OSError: (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
+# [X] - FileNotFoundError: "No such file or directory"
+# []  - ParseError    (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
+# [X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
+# [X] - UnicodeError: "UTF-16 stream does not start with BOM"
+# [X] - BadZipFile: "File is not a zip file"
+# [X] - OSError: "Invalid data stream"
+# [X] - LZMAError: "Input format not supported by decoder"
+# [X] - ValueError: "Unrecognized compression type"
+# [X] - PermissionError: "Forbidden"
 
-lxml
-[X] - ValueError: "Either element or attributes can be parsed not both."
-[X] - AttributeError: "__enter__"
-[X] - XSLTApplyError: "Cannot resolve URI"
-[X] - XSLTParseError: "document is not a stylesheet"
-[X] - ValueError: "xpath does not return any nodes."
-[X] - XPathEvalError: "Invalid expression"
-[]  - XPathSyntaxError: (OLD VERSION IN lxml FOR XPATH ERRORS)
-[X] - TypeError: "empty namespace prefix is not supported in XPath"
-[X] - ValueError: "names does not match length of child elements in xpath."
-[X] - TypeError: "...is not a valid type for names"
-[X] - LookupError: "unknown encoding"
-[]  - URLError: (USUALLY DUE TO NETWORKING)
-[X  - HTTPError: "HTTP Error 404: Not Found"
-[X] - OSError: "failed to load external entity"
-[X] - XMLSyntaxError: "Start tag expected, '<' not found"
-[]  - ParserError: (FAILSAFE CATCH ALL FOR VERY COMPLEX XML
-[X] - ValueError: "Values for parser can only be lxml or etree."
-[X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
-[X] - UnicodeError: "UTF-16 stream does not start with BOM"
-[X] - BadZipFile: "File is not a zip file"
-[X] - OSError: "Invalid data stream"
-[X] - LZMAError: "Input format not supported by decoder"
-[X] - ValueError: "Unrecognized compression type"
-[X] - PermissionError: "Forbidden"
-"""
+# lxml
+# [X] - ValueError: "Either element or attributes can be parsed not both."
+# [X] - AttributeError: "__enter__"
+# [X] - XSLTApplyError: "Cannot resolve URI"
+# [X] - XSLTParseError: "document is not a stylesheet"
+# [X] - ValueError: "xpath does not return any nodes."
+# [X] - XPathEvalError: "Invalid expression"
+# []  - XPathSyntaxError: (OLD VERSION IN lxml FOR XPATH ERRORS)
+# [X] - TypeError: "empty namespace prefix is not supported in XPath"
+# [X] - ValueError: "names does not match length of child elements in xpath."
+# [X] - TypeError: "...is not a valid type for names"
+# [X] - LookupError: "unknown encoding"
+# []  - URLError: (USUALLY DUE TO NETWORKING)
+# [X  - HTTPError: "HTTP Error 404: Not Found"
+# [X] - OSError: "failed to load external entity"
+# [X] - XMLSyntaxError: "Start tag expected, '<' not found"
+# []  - ParserError: (FAILSAFE CATCH ALL FOR VERY COMPLEX XML
+# [X] - ValueError: "Values for parser can only be lxml or etree."
+# [X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
+# [X] - UnicodeError: "UTF-16 stream does not start with BOM"
+# [X] - BadZipFile: "File is not a zip file"
+# [X] - OSError: "Invalid data stream"
+# [X] - LZMAError: "Input format not supported by decoder"
+# [X] - ValueError: "Unrecognized compression type"
+# [X] - PermissionError: "Forbidden"
 
 geom_df = DataFrame(
     {
@@ -471,7 +469,14 @@ def test_file_handle_close(datapath, parser):
 def test_empty_string_lxml(val):
     from lxml.etree import XMLSyntaxError
 
-    with pytest.raises(XMLSyntaxError, match="Document is empty"):
+    msg = "|".join(
+        [
+            "Document is empty",
+            # Seen on Mac with lxml 4.91
+            r"None \(line 0\)",
+        ]
+    )
+    with pytest.raises(XMLSyntaxError, match=msg):
         read_xml(val, parser="lxml")
 
 
@@ -758,6 +763,45 @@ def test_elem_and_attrs_only(datapath, parser):
         match=("Either element or attributes can be parsed not both"),
     ):
         read_xml(filename, elems_only=True, attrs_only=True, parser=parser)
+
+
+def test_empty_attrs_only(parser):
+    xml = """
+      <data>
+        <row>
+          <shape sides="4">square</shape>
+          <degrees>360</degrees>
+        </row>
+        <row>
+          <shape sides="0">circle</shape>
+          <degrees>360</degrees>
+        </row>
+        <row>
+          <shape sides="3">triangle</shape>
+          <degrees>180</degrees>
+        </row>
+      </data>"""
+
+    with pytest.raises(
+        ValueError,
+        match=("xpath does not return any nodes or attributes"),
+    ):
+        read_xml(xml, xpath="./row", attrs_only=True, parser=parser)
+
+
+def test_empty_elems_only(parser):
+    xml = """
+      <data>
+        <row sides="4" shape="square" degrees="360"/>
+        <row sides="0" shape="circle" degrees="360"/>
+        <row sides="3" shape="triangle" degrees="180"/>
+      </data>"""
+
+    with pytest.raises(
+        ValueError,
+        match=("xpath does not return any nodes or attributes"),
+    ):
+        read_xml(xml, xpath="./row", elems_only=True, parser=parser)
 
 
 @td.skip_if_no("lxml")
@@ -1048,19 +1092,6 @@ def test_stylesheet_file(datapath):
 
     tm.assert_frame_equal(df_kml, df_style)
     tm.assert_frame_equal(df_kml, df_iter)
-
-
-def test_read_xml_passing_as_positional_deprecated(datapath, parser):
-    # GH#45133
-    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
-
-    with tm.assert_produces_warning(FutureWarning, match="keyword-only"):
-        read_xml(
-            kml,
-            ".//k:Placemark",
-            namespaces={"k": "http://www.opengis.net/kml/2.2"},
-            parser=parser,
-        )
 
 
 @td.skip_if_no("lxml")

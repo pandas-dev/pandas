@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 1.4.x
+      - 1.5.x
   pull_request:
     branches:
       - main
-      - 1.4.x
+      - 1.5.x
     paths-ignore:
       - "doc/**"
 
@@ -20,18 +20,16 @@ permissions:
 
 jobs:
   pytest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash -el {0}
-    timeout-minutes: 120
+    timeout-minutes: 180
     strategy:
       matrix:
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
         pattern: ["not single_cpu", "single_cpu"]
-        # Don't test pyarrow v2/3: Causes timeouts in read_csv engine
-        # even if tests are skipped/xfailed
-        pyarrow_version: ["5", "6", "7"]
+        pyarrow_version: ["7", "8", "9"]
         include:
           - name: "Downstream Compat"
             env_file: actions-38-downstream_compat.yaml
@@ -40,18 +38,26 @@ jobs:
           - name: "Minimum Versions"
             env_file: actions-38-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
-          - name: "Locale: it_IT.utf8"
+          - name: "Locale: it_IT"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-it"
+            # Use the utf8 version as the default, it has no bad side-effect.
             lang: "it_IT.utf8"
             lc_all: "it_IT.utf8"
-          - name: "Locale: zh_CN.utf8"
+            # Also install it_IT (its encoding is ISO8859-1) but do not activate it.
+            # It will be temporarily activated during tests with locale.setlocale
+            extra_loc: "it_IT"
+          - name: "Locale: zh_CN"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
+            # Use the utf8 version as the default, it has no bad side-effect.
             lang: "zh_CN.utf8"
             lc_all: "zh_CN.utf8"
+            # Also install zh_CN (its encoding is gb2312) but do not activate it.
+            # It will be temporarily activated during tests with locale.setlocale
+            extra_loc: "zh_CN"
           - name: "Copy-on-Write"
             env_file: actions-310.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -67,7 +73,6 @@ jobs:
           - name: "Numpy Dev"
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
-            pandas_testing_mode: "deprecate"
             test_args: "-W error::DeprecationWarning:numpy -W error::FutureWarning:numpy"
         exclude:
           - env_file: actions-39.yaml
@@ -86,7 +91,6 @@ jobs:
       EXTRA_APT: ${{ matrix.extra_apt || '' }}
       LANG: ${{ matrix.lang || '' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
-      PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode || '' }}
       PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
@@ -145,6 +149,12 @@ jobs:
     - name: Extra installs
       # xsel for clipboard tests
       run: sudo apt-get update && sudo apt-get install -y xsel ${{ env.EXTRA_APT }}
+
+    - name: Generate extra locales
+      # These extra locales will be available for locale.setlocale() calls in tests
+      run: |
+        sudo locale-gen ${{ matrix.extra_loc }}
+      if: ${{ matrix.extra_loc }}
 
     - name: Set up Conda
       uses: ./.github/actions/setup-conda

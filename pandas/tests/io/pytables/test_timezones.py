@@ -20,7 +20,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_path,
     ensure_clean_store,
 )
 
@@ -341,7 +340,7 @@ def test_dst_transitions(setup_path):
             tm.assert_frame_equal(result, df)
 
 
-def test_read_with_where_tz_aware_index(setup_path):
+def test_read_with_where_tz_aware_index(tmp_path, setup_path):
     # GH 11926
     periods = 10
     dts = date_range("20151201", periods=periods, freq="D", tz="UTC")
@@ -349,11 +348,11 @@ def test_read_with_where_tz_aware_index(setup_path):
     expected = DataFrame({"MYCOL": 0}, index=mi)
 
     key = "mykey"
-    with ensure_clean_path(setup_path) as path:
-        with pd.HDFStore(path) as store:
-            store.append(key, expected, format="table", append=True)
-        result = pd.read_hdf(path, key, where="DATE > 20151130")
-        tm.assert_frame_equal(result, expected)
+    path = tmp_path / setup_path
+    with pd.HDFStore(path) as store:
+        store.append(key, expected, format="table", append=True)
+    result = pd.read_hdf(path, key, where="DATE > 20151130")
+    tm.assert_frame_equal(result, expected)
 
 
 def test_py2_created_with_datetimez(datapath):

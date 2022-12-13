@@ -271,12 +271,12 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
    such as :func:`to_datetime`.
 
    .. ipython:: python
-      :okwarning:
 
       df = pd.read_csv(StringIO(data), dtype="category")
       df.dtypes
       df["col3"]
-      df["col3"].cat.categories = pd.to_numeric(df["col3"].cat.categories)
+      new_categories = pd.to_numeric(df["col3"].cat.categories)
+      df["col3"] = df["col3"].cat.rename_categories(new_categories)
       df["col3"]
 
 .. _whatsnew_0190.enhancements.union_categoricals:
@@ -1245,10 +1245,9 @@ Previously, sparse data were ``float64`` dtype by default, even if all inputs we
 As of v0.19.0, sparse data keeps the input dtype, and uses more appropriate ``fill_value`` defaults (``0`` for ``int64`` dtype, ``False`` for ``bool`` dtype).
 
 .. ipython:: python
-   :okwarning:
 
-   pd.SparseArray([1, 2, 0, 0], dtype=np.int64)
-   pd.SparseArray([True, False, False, False])
+   pd.arrays.SparseArray([1, 2, 0, 0], dtype=np.int64)
+   pd.arrays.SparseArray([True, False, False, False])
 
 See the :ref:`docs <sparse.dtype>` for more details.
 

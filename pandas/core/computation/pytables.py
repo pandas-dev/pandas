@@ -11,6 +11,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs.tslibs import (
+    NaT,
     Timedelta,
     Timestamp,
 )
@@ -112,7 +113,7 @@ class BinOp(ops.BinOp):
         self.encoding = encoding
         self.condition = None
 
-    def _disallow_scalar_only_bool_ops(self):
+    def _disallow_scalar_only_bool_ops(self) -> None:
         pass
 
     def prune(self, klass):
@@ -211,15 +212,17 @@ class BinOp(ops.BinOp):
 
         kind = ensure_decoded(self.kind)
         meta = ensure_decoded(self.meta)
-        if kind == "datetime64" or kind == "datetime":
+        if kind in ("datetime64", "datetime"):
             if isinstance(v, (int, float)):
                 v = stringify(v)
             v = ensure_decoded(v)
             v = Timestamp(v)
+            if v is not NaT:
+                v = v.as_unit("ns")  # pyright: ignore[reportGeneralTypeIssues]
             if v.tz is not None:
                 v = v.tz_convert("UTC")
             return TermValue(v, v.value, kind)
-        elif kind == "timedelta64" or kind == "timedelta":
+        elif kind in ("timedelta64", "timedelta"):
             if isinstance(v, str):
                 v = Timedelta(v).value
             else:
@@ -261,7 +264,7 @@ class BinOp(ops.BinOp):
         else:
             raise TypeError(f"Cannot compare {v} of type {type(v)} to {kind} column")
 
-    def convert_values(self):
+    def convert_values(self) -> None:
         pass
 
 
@@ -470,7 +473,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
             # try to get the value to see if we are another expression
             try:
                 resolved = resolved.value
-            except (AttributeError):
+            except AttributeError:
                 pass
 
             try:
@@ -650,7 +653,7 @@ def maybe_expression(s) -> bool:
     """loose checking if s is a pytables-acceptable expression"""
     if not isinstance(s, str):
         return False
-    ops = PyTablesExprVisitor.binary_ops + PyTablesExprVisitor.unary_ops + ("=",)
+    operations = PyTablesExprVisitor.binary_ops + PyTablesExprVisitor.unary_ops + ("=",)
 
     # make sure we have an op at least
-    return any(op in s for op in ops)
+    return any(op in s for op in operations)

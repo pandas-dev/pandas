@@ -4,15 +4,20 @@ channels:
   - conda-forge
 dependencies:
   - python=3.8
+  - pip
+
+  # build dependencies
+  - versioneer[toml]
+  - cython=0.29.32
 
   # test dependencies
-  - cython=0.29.32
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
   - psutil
   - pytest-asyncio>=0.17
   - boto3
+  - coverage
 
   # required dependencies
   - python-dateutil
@@ -23,28 +28,30 @@ dependencies:
   - beautifulsoup4
   - blosc
   - brotlipy
+  - botocore
   - bottleneck
   - fastparquet
   - fsspec
   - html5lib
   - hypothesis
   - gcsfs
+  - ipython
   - jinja2
   - lxml
-  - matplotlib
+  - matplotlib>=3.6.1
   - numba>=0.53.1
   - numexpr>=2.8.0  # pin for "Run checks on imported code" job
   - openpyxl
   - odfpy
-  - pandas-gbq
+  - py
   - psycopg2
-  - pyarrow
+  - pyarrow<10
   - pymysql
   - pyreadstat
   - pytables
   - python-snappy
   - pyxlsb
-  - s3fs
+  - s3fs>=2021.08.0
   - scipy
   - sqlalchemy
   - tabulate
@@ -52,24 +59,12 @@ dependencies:
   - xarray
   - xlrd
   - xlsxwriter
-  - xlwt
   - zstandard
 
   # downstream packages
   - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
-  - botocore
-  - cftime
-  - dask
-  - ipython
-  - geopandas-base
-  - seaborn
-  - scikit-learn
-  - statsmodels
-  - coverage
-  - pandas-datareader
-  - pyyaml
-  - py
-  - pytorch
+  - dask-core
+  - seaborn-base
 
   # local testing dependencies
   - moto
@@ -83,12 +78,12 @@ dependencies:
   - cxx-compiler
 
   # code checks
-  - black=22.3.0
+  - black=22.10.0
   - cpplint
-  - flake8=5.0.4
+  - flake8=6.0.0
   - flake8-bugbear=22.7.1 # used by flake8, find likely bugs
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.971
+  - mypy=0.990
   - pre-commit>=2.15.0
   - pycodestyle  # used by flake8
   - pyupgrade
@@ -99,7 +94,7 @@ dependencies:
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
   - pandas-dev-flaker=0.5.0
-  - pydata-sphinx-theme=0.8.0
+  - pydata-sphinx-theme<0.11
   - pytest-cython  # doctest
   - sphinx
   - sphinx-panels
@@ -125,8 +120,5 @@ dependencies:
   - pyyaml
   - requests
 
-  # build the interactive terminal
-  - jupyterlab >=3.4,<4
   - pip:
-      - jupyterlite==0.1.0b10
       - sphinx-toggleprompt

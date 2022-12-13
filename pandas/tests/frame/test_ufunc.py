@@ -1,4 +1,5 @@
 from functools import partial
+import re
 
 import numpy as np
 import pytest
@@ -199,9 +200,10 @@ def test_unary_accumulate_axis():
     tm.assert_frame_equal(result, expected)
 
 
-def test_frame_outer_deprecated():
+def test_frame_outer_disallowed():
     df = pd.DataFrame({"A": [1, 2]})
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.raises(NotImplementedError, match=""):
+        # deprecation enforced in 2.0
         np.subtract.outer(df, df)
 
 
@@ -301,3 +303,24 @@ def test_alignment_deprecation_many_inputs(request):
         result = my_ufunc(df1.values, df2, df3)
     expected = expected.set_axis(["b", "c"], axis=1)
     tm.assert_frame_equal(result, expected)
+
+
+def test_array_ufuncs_for_many_arguments():
+    # GH39853
+    def add3(x, y, z):
+        return x + y + z
+
+    ufunc = np.frompyfunc(add3, 3, 1)
+    df = pd.DataFrame([[1, 2], [3, 4]])
+
+    result = ufunc(df, df, 1)
+    expected = pd.DataFrame([[3, 5], [7, 9]], dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+    ser = pd.Series([1, 2])
+    msg = (
+        "Cannot apply ufunc <ufunc 'add3 (vectorized)'> "
+        "to mixed DataFrame and Series inputs."
+    )
+    with pytest.raises(NotImplementedError, match=re.escape(msg)):
+        ufunc(df, df, ser)

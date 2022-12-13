@@ -26,10 +26,11 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 from __future__ import annotations
 
 from contextlib import contextmanager
+import gc
 import locale
 from typing import (
     Callable,
-    Iterator,
+    Generator,
 )
 import warnings
 
@@ -111,18 +112,20 @@ def safe_import(mod_name: str, min_version: str | None = None):
     return False
 
 
-def _skip_if_no_mpl():
+def _skip_if_no_mpl() -> bool:
     mod = safe_import("matplotlib")
     if mod:
         mod.use("Agg")
+        return False
     else:
         return True
 
 
-def _skip_if_not_us_locale():
+def _skip_if_not_us_locale() -> bool:
     lang, _ = locale.getlocale()
     if lang != "en_US":
         return True
+    return False
 
 
 def _skip_if_no_scipy() -> bool:
@@ -197,7 +200,8 @@ skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(), reason="matplotlib is pr
 skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
 skip_if_not_us_locale = pytest.mark.skipif(
-    _skip_if_not_us_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}"
+    _skip_if_not_us_locale(),
+    reason=f"Specific locale is set {locale.getlocale()[0]}",
 )
 skip_if_no_scipy = pytest.mark.skipif(
     _skip_if_no_scipy(), reason="Missing SciPy requirement"
@@ -256,7 +260,7 @@ def check_file_leaks(func) -> Callable:
 
 
 @contextmanager
-def file_leak_context() -> Iterator[None]:
+def file_leak_context() -> Generator[None, None, None]:
     """
     ContextManager analogue to check_file_leaks.
     """
@@ -272,12 +276,13 @@ def file_leak_context() -> Iterator[None]:
         try:
             yield
         finally:
+            gc.collect()
             flist2 = proc.open_files()
             # on some builds open_files includes file position, which we _dont_
             #  expect to remain unchanged, so we need to compare excluding that
             flist_ex = [(x.path, x.fd) for x in flist]
             flist2_ex = [(x.path, x.fd) for x in flist2]
-            assert flist2_ex == flist_ex, (flist2, flist)
+            assert set(flist2_ex) <= set(flist_ex), (flist2, flist)
 
             conns2 = proc.connections()
             assert conns2 == conns, (conns2, conns)

@@ -4,11 +4,13 @@ on:
   push:
     branches:
       - main
-      - 1.4.x
+      - 1.5.x
+    tags:
+      - '*'
   pull_request:
     branches:
       - main
-      - 1.4.x
+      - 1.5.x
 
 env:
   ENV_FILE: environment.yml
@@ -20,7 +22,7 @@ permissions:
 jobs:
   web_and_docs:
     name: Doc Build and Upload
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -49,29 +51,31 @@ jobs:
     - name: Build documentation
       run: doc/make.py --warnings-are-errors
 
-    - name: Build the interactive terminal
-      run: |
-        cd web/interactive_terminal
-        jupyter lite build
+    - name: Build documentation zip
+      run: doc/make.py zip_html
 
     - name: Install ssh key
       run: |
         mkdir -m 700 -p ~/.ssh
         echo "${{ secrets.server_ssh_key }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        echo "${{ secrets.server_ip }} ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBE1Kkopomm7FHG5enATf7SgnpICZ4W2bw+Ho+afqin+w7sMcrsa0je7sbztFAV8YchDkiBKnWTG4cRT+KZgZCaY=" > ~/.ssh/known_hosts
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        echo "${{ secrets.server_ip }} ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFjYkJBk7sos+r7yATODogQc3jUdW1aascGpyOD4bohj8dWjzwLJv/OJ/fyOQ5lmj81WKDk67tGtqNJYGL9acII=" > ~/.ssh/known_hosts
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
 
     - name: Copy cheatsheets into site directory
       run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
 
     - name: Upload web
-      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
+      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' web/build/ web@${{ secrets.server_ip }}:/var/www/html
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     - name: Upload dev docs
-      run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
+      run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/dev
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    - name: Upload prod docs
+      run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/version/${GITHUB_REF_NAME:1}
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
 
     - name: Move docs into site directory
       run: mv doc/build/html web/build/docs

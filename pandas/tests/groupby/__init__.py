@@ -22,6 +22,4 @@ def get_groupby_method_args(name, obj):
         return (0.5,)
     if name == "corrwith":
         return (obj,)
-    if name == "tshift":
-        return (0, 0)
     return ()

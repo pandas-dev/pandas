@@ -1240,6 +1240,17 @@ If instead you don't want to or cannot name your index, you can use the name
    renaming your columns to something less ambiguous.
 
 
+The :class:`DataFrame.query` method has a ``inplace`` keyword which determines
+whether the query modifies the original frame.
+
+.. ipython:: python
+
+   df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
+   df.query("a > 2")
+   df.query("a > 2", inplace=True)
+   df
+
+
 :class:`~pandas.MultiIndex` :meth:`~pandas.DataFrame.query` Syntax
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1438,15 +1449,18 @@ Performance of :meth:`~pandas.DataFrame.query`
 ``DataFrame.query()`` using ``numexpr`` is slightly faster than Python for
 large frames.
 
+..
+    The eval-perf.png figure below was generated with /doc/scripts/eval_performance.py
+
 .. image:: ../_static/query-perf.png
 
-.. note::
 
-   You will only see the performance benefits of using the ``numexpr`` engine
-   with ``DataFrame.query()`` if your frame has more than approximately 200,000
-   rows.
 
-      .. image:: ../_static/query-perf-small.png
+You will only see the performance benefits of using the ``numexpr`` engine
+with ``DataFrame.query()`` if your frame has more than approximately 100,000
+rows.
+
+
 
 This plot was created using a ``DataFrame`` with 3 columns each containing
 floating point values generated using ``numpy.random.randn()``.
@@ -1545,7 +1559,7 @@ For instance:
     df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
 
 Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method
-which was deprecated in version 1.2.0.
+which was deprecated in version 1.2.0 and removed in version 2.0.0.
 
 .. _indexing.class:
 
@@ -1723,12 +1737,13 @@ the given columns to a MultiIndex:
    frame
 
 Other options in ``set_index`` allow you not drop the index columns or to add
-the index without creating a copy of the underlying data:
+the index in-place (without creating a new object):
 
 .. ipython:: python
 
    data.set_index('c', drop=False)
-   data.set_index(['a', 'b'], copy=False)
+   data.set_index(['a', 'b'], inplace=True)
+   data
 
 Reset the index
 ~~~~~~~~~~~~~~~

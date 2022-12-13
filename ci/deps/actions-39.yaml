@@ -4,8 +4,11 @@ channels:
 dependencies:
   - python=3.9
 
-  # test dependencies
+  # build dependencies
+  - versioneer[toml]
   - cython>=0.29.32
+
+  # test dependencies
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
@@ -30,7 +33,7 @@ dependencies:
   - gcsfs
   - jinja2
   - lxml
-  - matplotlib
+  - matplotlib>=3.6.1
   - numba
   - numexpr
   - openpyxl
@@ -38,12 +41,12 @@ dependencies:
   - pandas-gbq
   - psycopg2
   - pymysql
-  - pyarrow
+  - pyarrow<10
   - pyreadstat
   - pytables
   - python-snappy
   - pyxlsb
-  - s3fs
+  - s3fs>=2021.08.0
   - scipy
   - sqlalchemy
   - tabulate
@@ -51,5 +54,4 @@ dependencies:
   - xarray
   - xlrd
   - xlsxwriter
-  - xlwt
   - zstandard

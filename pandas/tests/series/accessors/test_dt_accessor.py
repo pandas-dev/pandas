@@ -107,8 +107,7 @@ class TestSeriesDatetimeValues:
 
         for prop in ok_for_dt:
             # we test freq below
-            # we ignore week and weekofyear because they are deprecated
-            if prop not in ["freq", "week", "weekofyear"]:
+            if prop != "freq":
                 self._compare(ser, prop)
 
         for prop in ok_for_dt_methods:
@@ -146,8 +145,7 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt:
 
             # we test freq below
-            # we ignore week and weekofyear because they are deprecated
-            if prop not in ["freq", "week", "weekofyear"]:
+            if prop != "freq":
                 self._compare(ser, prop)
 
         for prop in ok_for_dt_methods:
@@ -432,7 +430,7 @@ class TestSeriesDatetimeValues:
 
     # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
-        "time_locale", [None] + (tm.get_locales() or [])  # type: ignore[operator]
+        "time_locale", [None] + tm.get_locales()  # type: ignore[operator]
     )
     def test_dt_accessor_datetime_name_accessors(self, time_locale):
         # Test Monday -> Sunday and January -> December, in that sequence
@@ -634,12 +632,6 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
     def test_valid_dt_with_missing_values(self):
-
-        from datetime import (
-            date,
-            time,
-        )
-
         # GH 8689
         ser = Series(date_range("20130101", periods=5, freq="D"))
         ser.iloc[2] = pd.NaT
@@ -733,7 +725,6 @@ class TestSeriesDatetimeValues:
             [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],
         ],
     )
-    @pytest.mark.filterwarnings("ignore:Inferring datetime64:FutureWarning")
     def test_isocalendar(self, input_series, expected_output):
         result = pd.to_datetime(Series(input_series)).dt.isocalendar()
         expected_frame = DataFrame(
@@ -792,15 +783,6 @@ class TestSeriesPeriodValuesDtAccessor:
         expected = Series([input_vals], dtype="Period[D]")
         result = Series([input_vals], dtype="datetime64[ns]").dt.to_period("D")
         tm.assert_series_equal(result, expected)
-
-
-def test_week_and_weekofyear_are_deprecated():
-    # GH#33595 Deprecate week and weekofyear
-    series = pd.to_datetime(Series(["2020-01-01"]))
-    with tm.assert_produces_warning(FutureWarning):
-        series.dt.week
-    with tm.assert_produces_warning(FutureWarning):
-        series.dt.weekofyear
 
 
 def test_normalize_pre_epoch_dates():

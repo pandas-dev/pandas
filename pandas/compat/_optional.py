@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import inspect
 import sys
 import types
 import warnings
@@ -10,21 +9,21 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.util.version import Version
 
-# Update install.rst when updating versions!
+# Update install.rst & setup.cfg when updating versions!
 
 VERSIONS = {
     "bs4": "4.9.3",
     "blosc": "1.21.0",
     "bottleneck": "1.3.2",
     "brotli": "0.7.0",
-    "fastparquet": "0.4.0",
-    "fsspec": "2021.05.0",
+    "fastparquet": "0.6.3",
+    "fsspec": "2021.07.0",
     "html5lib": "1.1",
     "hypothesis": "6.13.0",
-    "gcsfs": "2021.05.0",
+    "gcsfs": "2021.07.0",
     "jinja2": "3.0.0",
     "lxml.etree": "4.6.3",
-    "matplotlib": "3.3.2",
+    "matplotlib": "3.6.1",
     "numba": "0.53.1",
     "numexpr": "2.7.3",
     "odfpy": "1.4.1",
@@ -32,22 +31,23 @@ VERSIONS = {
     "pandas_gbq": "0.15.0",
     "psycopg2": "2.8.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.0.2",
-    "pyarrow": "1.0.1",
+    "pyarrow": "6.0.0",
     "pyreadstat": "1.1.2",
     "pytest": "6.0",
     "pyxlsb": "1.0.8",
-    "s3fs": "2021.05.0",
+    "s3fs": "2021.08.0",
     "scipy": "1.7.1",
     "snappy": "0.6.0",
     "sqlalchemy": "1.4.16",
     "tables": "3.6.1",
     "tabulate": "0.8.9",
-    "xarray": "0.19.0",
+    "xarray": "0.21.0",
     "xlrd": "2.0.1",
-    "xlwt": "1.3.0",
     "xlsxwriter": "1.4.3",
     "zstandard": "0.15.2",
     "tzdata": "2022.1",
+    "qtpy": "2.2.0",
+    "pyqt5": "5.15.1",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
@@ -143,8 +143,7 @@ def import_optional_dependency(
     except ImportError:
         if errors == "raise":
             raise ImportError(msg)
-        else:
-            return None
+        return None
 
     # Handle submodules: if we have submodule, grab parent module from sys.modules
     parent = name.split(".")[0]
@@ -165,7 +164,7 @@ def import_optional_dependency(
                 warnings.warn(
                     msg,
                     UserWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 return None
             elif errors == "raise":

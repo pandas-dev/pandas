@@ -12,6 +12,8 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
 )
 
+from pandas.util.version import InvalidVersion
+
 
 class IntCastingNaNError(ValueError):
     """
@@ -281,7 +283,7 @@ class SettingWithCopyError(ValueError):
     The ``mode.chained_assignment`` needs to be set to set to 'raise.' This can
     happen unintentionally when chained indexing.
 
-    For more information on eveluation order,
+    For more information on evaluation order,
     see :ref:`the user guide<indexing.evaluation_order>`.
 
     For more information on view vs. copy,
@@ -304,7 +306,7 @@ class SettingWithCopyWarning(Warning):
     'Warn' is the default option. This can happen unintentionally when
     chained indexing.
 
-    For more information on eveluation order,
+    For more information on evaluation order,
     see :ref:`the user guide<indexing.evaluation_order>`.
 
     For more information on view vs. copy,
@@ -535,6 +537,24 @@ class CategoricalConversionWarning(Warning):
     """
 
 
+class LossySetitemError(Exception):
+    """
+    Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
+    """
+
+
+class NoBufferPresent(Exception):
+    """
+    Exception is raised in _get_data_buffer to signal that there is no requested buffer.
+    """
+
+
+class InvalidComparison(Exception):
+    """
+    Exception is raised by _validate_comparison_value to indicate an invalid comparison.
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
@@ -550,9 +570,13 @@ __all__ = [
     "IncompatibilityWarning",
     "IntCastingNaNError",
     "InvalidColumnName",
+    "InvalidComparison",
     "InvalidIndexError",
+    "InvalidVersion",
     "IndexingError",
+    "LossySetitemError",
     "MergeError",
+    "NoBufferPresent",
     "NullFrequencyError",
     "NumbaUtilError",
     "NumExprClobberingError",

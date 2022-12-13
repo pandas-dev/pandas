@@ -5,17 +5,21 @@ This is not a public API.
 """
 from __future__ import annotations
 
-import inspect
 import operator
-from typing import TYPE_CHECKING
-import warnings
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
-from pandas._typing import Level
+from pandas._typing import (
+    Axis,
+    AxisInt,
+    Level,
+)
 from pandas.util._decorators import Appender
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -175,7 +179,7 @@ def flex_method_SERIES(op):
     doc = make_flex_doc(name, "series")
 
     @Appender(doc)
-    def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
+    def flex_wrapper(self, other, level=None, fill_value=None, axis: Axis = 0):
         # validate axis
         if axis is not None:
             self._get_axis_number(axis)
@@ -229,18 +233,27 @@ def align_method_FRAME(
 
     def to_series(right):
         msg = "Unable to coerce to Series, length must be {req_len}: given {given_len}"
+
+        # pass dtype to avoid doing inference, which would break consistency
+        #  with Index/Series ops
+        dtype = None
+        if getattr(right, "dtype", None) == object:
+            # can't pass right.dtype unconditionally as that would break on e.g.
+            #  datetime64[h] ndarray
+            dtype = object
+
         if axis is not None and left._get_axis_name(axis) == "index":
             if len(left.index) != len(right):
                 raise ValueError(
                     msg.format(req_len=len(left.index), given_len=len(right))
                 )
-            right = left._constructor_sliced(right, index=left.index)
+            right = left._constructor_sliced(right, index=left.index, dtype=dtype)
         else:
             if len(left.columns) != len(right):
                 raise ValueError(
                     msg.format(req_len=len(left.columns), given_len=len(right))
                 )
-            right = left._constructor_sliced(right, index=left.columns)
+            right = left._constructor_sliced(right, index=left.columns, dtype=dtype)
         return right
 
     if isinstance(right, np.ndarray):
@@ -249,13 +262,25 @@ def align_method_FRAME(
             right = to_series(right)
 
         elif right.ndim == 2:
+            # We need to pass dtype=right.dtype to retain object dtype
+            #  otherwise we lose consistency with Index and array ops
+            dtype = None
+            if getattr(right, "dtype", None) == object:
+                # can't pass right.dtype unconditionally as that would break on e.g.
+                #  datetime64[h] ndarray
+                dtype = object
+
             if right.shape == left.shape:
-                right = left._constructor(right, index=left.index, columns=left.columns)
+                right = left._constructor(
+                    right, index=left.index, columns=left.columns, dtype=dtype
+                )
 
             elif right.shape[0] == left.shape[0] and right.shape[1] == 1:
                 # Broadcast across columns
                 right = np.broadcast_to(right, left.shape)
-                right = left._constructor(right, index=left.index, columns=left.columns)
+                right = left._constructor(
+                    right, index=left.index, columns=left.columns, dtype=dtype
+                )
 
             elif right.shape[1] == left.shape[1] and right.shape[0] == 1:
                 # Broadcast along rows
@@ -296,13 +321,10 @@ def align_method_FRAME(
 
         if not flex:
             if not left.axes[axis].equals(right.index):
-                warnings.warn(
-                    "Automatic reindexing on DataFrame vs Series comparisons "
-                    "is deprecated and will raise ValueError in a future version. "
-                    "Do `left, right = left.align(right, axis=1, copy=False)` "
-                    "before e.g. `left == right`",
-                    FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                raise ValueError(
+                    "Operands are not aligned. Do "
+                    "`left, right = left.align(right, axis=1, copy=False)` "
+                    "before operating."
                 )
 
         left, right = left.align(
@@ -314,7 +336,7 @@ def align_method_FRAME(
 
 
 def should_reindex_frame_op(
-    left: DataFrame, right, op, axis, default_axis, fill_value, level
+    left: DataFrame, right, op, axis: int, fill_value, level
 ) -> bool:
     """
     Check if this is an operation between DataFrames that will need to reindex.
@@ -328,14 +350,16 @@ def should_reindex_frame_op(
     if not isinstance(right, ABCDataFrame):
         return False
 
-    if fill_value is None and level is None and axis is default_axis:
+    if fill_value is None and level is None and axis == 1:
         # TODO: any other cases we should handle here?
 
         # Intersection is always unique so we have to check the unique columns
         left_uniques = left.columns.unique()
         right_uniques = right.columns.unique()
         cols = left_uniques.intersection(right_uniques)
-        if len(cols) and not (cols.equals(left_uniques) and cols.equals(right_uniques)):
+        if len(cols) and not (
+            len(cols) == len(left_uniques) and len(cols) == len(right_uniques)
+        ):
             # TODO: is there a shortcut available when len(cols) == 0?
             return True
 
@@ -386,7 +410,7 @@ def frame_arith_method_with_reindex(left: DataFrame, right: DataFrame, op) -> Da
     return result
 
 
-def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: int):
+def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: AxisInt):
     """
     If the Series operand is not EA-dtype, we can broadcast to 2D and operate
     blockwise.
@@ -394,7 +418,7 @@ def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: int):
     rvalues = series._values
     if not isinstance(rvalues, np.ndarray):
         # TODO(EA2D): no need to special-case with 2D EAs
-        if rvalues.dtype == "datetime64[ns]" or rvalues.dtype == "timedelta64[ns]":
+        if rvalues.dtype in ("datetime64[ns]", "timedelta64[ns]"):
             # We can losslessly+cheaply cast to ndarray
             rvalues = np.asarray(rvalues)
         else:
@@ -406,30 +430,30 @@ def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: int):
         rvalues = rvalues.reshape(1, -1)
 
     rvalues = np.broadcast_to(rvalues, frame.shape)
-    return type(frame)(rvalues, index=frame.index, columns=frame.columns)
+    # pass dtype to avoid doing inference
+    return type(frame)(
+        rvalues, index=frame.index, columns=frame.columns, dtype=rvalues.dtype
+    )
 
 
 def flex_arith_method_FRAME(op):
     op_name = op.__name__.strip("_")
-    default_axis = "columns"
 
     na_op = get_array_op(op)
     doc = make_flex_doc(op_name, "dataframe")
 
     @Appender(doc)
-    def f(self, other, axis=default_axis, level=None, fill_value=None):
+    def f(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        axis = self._get_axis_number(axis) if axis is not None else 1
+        axis = cast(int, axis)
 
-        if should_reindex_frame_op(
-            self, other, op, axis, default_axis, fill_value, level
-        ):
+        if should_reindex_frame_op(self, other, op, axis, fill_value, level):
             return frame_arith_method_with_reindex(self, other, op)
 
         if isinstance(other, ABCSeries) and fill_value is not None:
             # TODO: We could allow this in cases where we end up going
             #  through the DataFrame path
             raise NotImplementedError(f"fill_value {fill_value} not supported.")
-
-        axis = self._get_axis_number(axis) if axis is not None else 1
 
         other = maybe_prepare_scalar_for_op(other, self.shape)
         self, other = align_method_FRAME(self, other, axis, flex=True, level=level)
@@ -456,14 +480,13 @@ def flex_arith_method_FRAME(op):
 
 def flex_comp_method_FRAME(op):
     op_name = op.__name__.strip("_")
-    default_axis = "columns"  # because we are "flex"
 
     doc = _flex_comp_doc_FRAME.format(
         op_name=op_name, desc=_op_descriptions[op_name]["desc"]
     )
 
     @Appender(doc)
-    def f(self, other, axis=default_axis, level=None):
+    def f(self, other, axis: Axis = "columns", level=None):
         axis = self._get_axis_number(axis) if axis is not None else 1
 
         self, other = align_method_FRAME(self, other, axis, flex=True, level=level)

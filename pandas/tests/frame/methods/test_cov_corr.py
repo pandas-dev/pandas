@@ -40,11 +40,10 @@ class TestDataFrameCov:
         expected = frame["A"].cov(frame["C"])
         tm.assert_almost_equal(result["A"]["C"], expected)
 
-        # exclude non-numeric types
-        with tm.assert_produces_warning(
-            FutureWarning, match="The default value of numeric_only"
-        ):
-            result = float_string_frame.cov()
+        # fails on non-numeric types
+        with pytest.raises(ValueError, match="could not convert string to float"):
+            float_string_frame.cov()
+        result = float_string_frame.cov(numeric_only=True)
         expected = float_string_frame.loc[:, ["A", "B", "C", "D"]].cov()
         tm.assert_frame_equal(result, expected)
 
@@ -107,9 +106,9 @@ class TestDataFrameCorr:
     @pytest.mark.parametrize("method", ["pearson", "kendall", "spearman"])
     @td.skip_if_no_scipy
     def test_corr_scipy_method(self, float_frame, method):
-        float_frame["A"][:5] = np.nan
-        float_frame["B"][5:10] = np.nan
-        float_frame["A"][:10] = float_frame["A"][10:20]
+        float_frame.loc[float_frame.index[:5], "A"] = np.nan
+        float_frame.loc[float_frame.index[5:10], "B"] = np.nan
+        float_frame.loc[float_frame.index[:10], "A"] = float_frame["A"][10:20]
 
         correls = float_frame.corr(method=method)
         expected = float_frame["A"].corr(float_frame["C"], method=method)
@@ -118,11 +117,9 @@ class TestDataFrameCorr:
     # ---------------------------------------------------------------------
 
     def test_corr_non_numeric(self, float_string_frame):
-        # exclude non-numeric types
-        with tm.assert_produces_warning(
-            FutureWarning, match="The default value of numeric_only"
-        ):
-            result = float_string_frame.corr()
+        with pytest.raises(ValueError, match="could not convert string to float"):
+            float_string_frame.corr()
+        result = float_string_frame.corr(numeric_only=True)
         expected = float_string_frame.loc[:, ["A", "B", "C", "D"]].corr()
         tm.assert_frame_equal(result, expected)
 
@@ -218,7 +215,7 @@ class TestDataFrameCorr:
         ser = df["A"]  # populate item_cache
         assert len(df._mgr.arrays) == 2  # i.e. 2 blocks
 
-        _ = df.corr()
+        _ = df.corr(numeric_only=True)
 
         # Check that the corr didn't break link between ser and df
         ser.values[0] = 99
@@ -313,17 +310,15 @@ class TestDataFrameCorrWith:
         df1["obj"] = "foo"
         df2["obj"] = "bar"
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="The default value of numeric_only"
-        ):
-            result = df1.corrwith(df2)
+        with pytest.raises(TypeError, match="Could not convert"):
+            df1.corrwith(df2)
+        result = df1.corrwith(df2, numeric_only=True)
         expected = df1.loc[:, cols].corrwith(df2.loc[:, cols])
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="The default value of numeric_only"
-        ):
-            result = df1.corrwith(df2, axis=1)
+        with pytest.raises(TypeError, match="unsupported operand type"):
+            df1.corrwith(df2, axis=1)
+        result = df1.corrwith(df2, axis=1, numeric_only=True)
         expected = df1.loc[:, cols].corrwith(df2.loc[:, cols], axis=1)
         tm.assert_series_equal(result, expected)
 
@@ -355,7 +350,10 @@ class TestDataFrameCorrWith:
             expected = Series(data=corrs, index=["a", "b"])
             tm.assert_series_equal(result, expected)
         else:
-            with pytest.raises(TypeError, match="not supported for the input types"):
+            with pytest.raises(
+                TypeError,
+                match=r"unsupported operand type\(s\) for /: 'str' and 'int'",
+            ):
                 df.corrwith(s, numeric_only=numeric_only)
 
     def test_corrwith_index_intersection(self):
@@ -405,4 +403,27 @@ class TestDataFrameCorrWith:
         df = DataFrame(np.random.random(size=(100, 3)))
         result = df.corrwith(df**2, method="kendall")
         expected = Series(np.ones(len(result)))
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no_scipy
+    def test_corrwith_spearman_with_tied_data(self):
+        # GH#48826
+        df1 = DataFrame(
+            {
+                "A": [1, np.nan, 7, 8],
+                "B": [False, True, True, False],
+                "C": [10, 4, 9, 3],
+            }
+        )
+        df2 = df1[["B", "C"]]
+        result = (df1 + 1).corrwith(df2.B, method="spearman")
+        expected = Series([0.0, 1.0, 0.0], index=["A", "B", "C"])
+        tm.assert_series_equal(result, expected)
+
+        df_bool = DataFrame(
+            {"A": [True, True, False, False], "B": [True, False, False, True]}
+        )
+        ser_bool = Series([True, True, False, True])
+        result = df_bool.corrwith(ser_bool)
+        expected = Series([0.57735, 0.57735], index=["A", "B"])
         tm.assert_series_equal(result, expected)

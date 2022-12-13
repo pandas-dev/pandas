@@ -187,18 +187,6 @@ class TestSeriesSortValues:
         tm.assert_series_equal(result_ser, expected)
         tm.assert_series_equal(ser, Series(original_list))
 
-    def test_sort_values_pos_args_deprecation(self):
-        # https://github.com/pandas-dev/pandas/issues/41485
-        ser = Series([1, 2, 3])
-        msg = (
-            r"In a future version of pandas all arguments of Series\.sort_values "
-            r"will be keyword-only"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.sort_values(0)
-        expected = Series([1, 2, 3])
-        tm.assert_series_equal(result, expected)
-
     def test_mergesort_decending_stability(self):
         # GH 28697
         s = Series([1, 2, 1, 3], ["first", "b", "second", "c"])

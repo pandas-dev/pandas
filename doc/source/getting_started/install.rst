@@ -20,7 +20,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.8, 3.9 and 3.10.
+Officially Python 3.8, 3.9, 3.10 and 3.11.
 
 Installing pandas
 -----------------
@@ -139,6 +139,16 @@ pandas can be installed via pip from
 
     pip install pandas
 
+pandas can also be installed with sets of optional dependencies to enable certain functionality. For example,
+to install pandas with the optional dependencies to read Excel files.
+
+::
+
+    pip install "pandas[excel]"
+
+
+The full list of extras that can be installed can be found in the :ref:`dependency section.<install.optional_dependencies>`
+
 Installing with ActivePython
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -232,32 +242,20 @@ This is just an example of what information is shown. You might see a slightly d
 Dependencies
 ------------
 
+.. _install.required_dependencies:
+
+Required dependencies
+~~~~~~~~~~~~~~~~~~~~~
+
+pandas requires the following dependencies.
+
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
 `NumPy <https://numpy.org>`__                                    1.20.3
-`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.1
+`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
 ================================================================ ==========================
-
-.. _install.recommended_dependencies:
-
-Recommended dependencies
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-* `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
-  ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.7.3 or higher.
-
-* `bottleneck <https://github.com/pydata/bottleneck>`__: for accelerating certain types of ``nan``
-  evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
-  must be Version 1.3.2 or higher.
-
-.. note::
-
-   You are highly encouraged to install these libraries, as they provide speed improvements, especially
-   when working with large data sets.
-
 
 .. _install.optional_dependencies:
 
@@ -270,69 +268,100 @@ For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
+If using pip, optional pandas dependencies can be installed or managed in a file (e.g. requirements.txt or pyproject.toml)
+as optional extras (e.g.,``pandas[performance, aws]>=1.5.0``). All optional dependencies can be installed with ``pandas[all]``,
+and specific sets of dependencies are listed in the sections below.
+
+.. _install.recommended_dependencies:
+
+Performance dependencies (recommended)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+
+   You are highly encouraged to install these libraries, as they provide speed improvements, especially
+   when working with large data sets.
+
+Installable with ``pip install "pandas[performance]"``
+
+===================================================== ================== ================== ===================================================================================================================================================================================
+Dependency                                            Minimum Version    pip extra          Notes
+===================================================== ================== ================== ===================================================================================================================================================================================
+`numexpr <https://github.com/pydata/numexpr>`__       2.7.3              performance        Accelerates certain numerical operations by using uses multiple cores as well as smart chunking and caching to achieve large speedups
+`bottleneck <https://github.com/pydata/bottleneck>`__ 1.3.2              performance        Accelerates certain types of ``nan`` by using specialized cython routines to achieve large speedup.
+`numba <https://github.com/numba/numba>`__            0.53.1             performance        Alternative execution engine for operations that accept ``engine="numba"`` using a JIT compiler that translates Python functions to optimized machine code using the LLVM compiler.
+===================================================== ================== ================== ===================================================================================================================================================================================
+
 Timezones
 ^^^^^^^^^
 
-========================= ========================= =============================================================
-Dependency                Minimum Version           Notes
-========================= ========================= =============================================================
-tzdata                    2022.1(pypi)/             Allows the use of ``zoneinfo`` timezones with pandas.
-                          2022a(for system tzdata)  **Note**: You only need to install the pypi package if your
-                                                    system does not already provide the IANA tz database.
-                                                    However, the minimum tzdata version still applies, even if it
-                                                    is not enforced through an error.
+Installable with ``pip install "pandas[timezone]"``
 
-                                                    If you would like to keep your system tzdata version updated,
-                                                    it is recommended to use the ``tzdata`` package from
-                                                    conda-forge.
-========================= ========================= =============================================================
+========================= ========================= =============== =============================================================
+Dependency                Minimum Version           pip extra       Notes
+========================= ========================= =============== =============================================================
+tzdata                    2022.1(pypi)/             timezone        Allows the use of ``zoneinfo`` timezones with pandas.
+                          2022a(for system tzdata)                  **Note**: You only need to install the pypi package if your
+                                                                    system does not already provide the IANA tz database.
+                                                                    However, the minimum tzdata version still applies, even if it
+                                                                    is not enforced through an error.
+
+                                                                    If you would like to keep your system tzdata version updated,
+                                                                    it is recommended to use the ``tzdata`` package from
+                                                                    conda-forge.
+========================= ========================= =============== =============================================================
 
 Visualization
 ^^^^^^^^^^^^^
 
-========================= ================== =============================================================
-Dependency                Minimum Version    Notes
-========================= ================== =============================================================
-matplotlib                3.3.2              Plotting library
-Jinja2                    3.0.0              Conditional formatting with DataFrame.style
-tabulate                  0.8.9              Printing in Markdown-friendly format (see `tabulate`_)
-========================= ================== =============================================================
+Installable with ``pip install "pandas[plot, output_formatting]"``.
+
+========================= ================== ================== =============================================================
+Dependency                Minimum Version    pip extra          Notes
+========================= ================== ================== =============================================================
+matplotlib                3.6.1              plot               Plotting library
+Jinja2                    3.0.0              output_formatting  Conditional formatting with DataFrame.style
+tabulate                  0.8.9              output_formatting  Printing in Markdown-friendly format (see `tabulate`_)
+========================= ================== ================== =============================================================
 
 Computation
 ^^^^^^^^^^^
 
-========================= ================== =============================================================
-Dependency                Minimum Version    Notes
-========================= ================== =============================================================
-SciPy                     1.7.1              Miscellaneous statistical functions
-numba                     0.53.1             Alternative execution engine for rolling operations
-                                             (see :ref:`Enhancing Performance <enhancingperf.numba>`)
-xarray                    0.19.0             pandas-like API for N-dimensional data
-========================= ================== =============================================================
+Installable with ``pip install "pandas[computation]"``.
+
+========================= ================== =============== =============================================================
+Dependency                Minimum Version    pip extra       Notes
+========================= ================== =============== =============================================================
+SciPy                     1.7.1              computation     Miscellaneous statistical functions
+xarray                    0.21.0             computation     pandas-like API for N-dimensional data
+========================= ================== =============== =============================================================
 
 Excel files
 ^^^^^^^^^^^
 
-========================= ================== =============================================================
-Dependency                Minimum Version    Notes
-========================= ================== =============================================================
-xlrd                      2.0.1              Reading Excel
-xlwt                      1.3.0              Writing Excel
-xlsxwriter                1.4.3              Writing Excel
-openpyxl                  3.0.7              Reading / writing for xlsx files
-pyxlsb                    1.0.8              Reading for xlsb files
-========================= ================== =============================================================
+Installable with ``pip install "pandas[excel]"``.
+
+========================= ================== =============== =============================================================
+Dependency                Minimum Version    pip extra       Notes
+========================= ================== =============== =============================================================
+xlrd                      2.0.1              excel           Reading Excel
+xlsxwriter                1.4.3              excel           Writing Excel
+openpyxl                  3.0.7              excel           Reading / writing for xlsx files
+pyxlsb                    1.0.8              excel           Reading for xlsb files
+========================= ================== =============== =============================================================
 
 HTML
 ^^^^
 
-========================= ================== =============================================================
-Dependency                Minimum Version    Notes
-========================= ================== =============================================================
-BeautifulSoup4            4.9.3              HTML parser for read_html
-html5lib                  1.1                HTML parser for read_html
-lxml                      4.6.3              HTML parser for read_html
-========================= ================== =============================================================
+Installable with ``pip install "pandas[html]"``.
+
+========================= ================== =============== =============================================================
+Dependency                Minimum Version    pip extra       Notes
+========================= ================== =============== =============================================================
+BeautifulSoup4            4.9.3              html            HTML parser for read_html
+html5lib                  1.1                html            HTML parser for read_html
+lxml                      4.6.3              html            HTML parser for read_html
+========================= ================== =============== =============================================================
 
 One of the following combinations of libraries is needed to use the
 top-level :func:`~pandas.read_html` function:
@@ -361,36 +390,45 @@ top-level :func:`~pandas.read_html` function:
 XML
 ^^^
 
-========================= ================== =============================================================
-Dependency                Minimum Version    Notes
-========================= ================== =============================================================
-lxml                      4.5.0              XML parser for read_xml and tree builder for to_xml
-========================= ================== =============================================================
+Installable with ``pip install "pandas[xml]"``.
+
+========================= ================== =============== =============================================================
+Dependency                Minimum Version    pip extra       Notes
+========================= ================== =============== =============================================================
+lxml                      4.6.3              xml             XML parser for read_xml and tree builder for to_xml
+========================= ================== =============== =============================================================
 
 SQL databases
 ^^^^^^^^^^^^^
 
-========================= ================== =============================================================
-Dependency                Minimum Version    Notes
-========================= ================== =============================================================
-SQLAlchemy                1.4.16             SQL support for databases other than sqlite
-psycopg2                  2.8.6              PostgreSQL engine for sqlalchemy
-pymysql                   1.0.2              MySQL engine for sqlalchemy
-========================= ================== =============================================================
+Installable with ``pip install "pandas[postgresql, mysql, sql-other]"``.
+
+========================= ================== =============== =============================================================
+Dependency                Minimum Version    pip extra       Notes
+========================= ================== =============== =============================================================
+SQLAlchemy                1.4.16             postgresql,     SQL support for databases other than sqlite
+                                             mysql,
+                                             sql-other
+psycopg2                  2.8.6              postgresql      PostgreSQL engine for sqlalchemy
+pymysql                   1.0.2              mysql           MySQL engine for sqlalchemy
+========================= ================== =============== =============================================================
 
 Other data sources
 ^^^^^^^^^^^^^^^^^^
 
-========================= ================== =============================================================
-Dependency                Minimum Version    Notes
-========================= ================== =============================================================
-PyTables                  3.6.1              HDF5-based reading / writing
-blosc                     1.21.0             Compression for HDF5
-zlib                                         Compression for HDF5
-fastparquet               0.4.0              Parquet reading / writing
-pyarrow                   1.0.1              Parquet, ORC, and feather reading / writing
-pyreadstat                1.1.2              SPSS files (.sav) reading
-========================= ================== =============================================================
+Installable with ``pip install "pandas[hdf5, parquet, feather, spss, excel]"``
+
+========================= ================== ================ =============================================================
+Dependency                Minimum Version    pip extra        Notes
+========================= ================== ================ =============================================================
+PyTables                  3.6.1              hdf5             HDF5-based reading / writing
+blosc                     1.21.0             hdf5             Compression for HDF5; only available on ``conda``
+zlib                                         hdf5             Compression for HDF5
+fastparquet               0.6.3              -                Parquet reading / writing (pyarrow is default)
+pyarrow                   6.0.0              parquet, feather Parquet, ORC, and feather reading / writing
+pyreadstat                1.1.2              spss             SPSS files (.sav) reading
+odfpy                     1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing
+========================= ================== ================ =============================================================
 
 .. _install.warn_orc:
 
@@ -402,7 +440,7 @@ pyreadstat                1.1.2              SPSS files (.sav) reading
       ========================= ================== =============================================================
       System                    Conda              PyPI
       ========================= ================== =============================================================
-      Linux                     Successful         Failed(pyarrow==3.0 Successful)
+      Linux                     Successful         Failed
       macOS                     Successful         Failed
       Windows                   Failed             Failed
       ========================= ================== =============================================================
@@ -410,35 +448,45 @@ pyreadstat                1.1.2              SPSS files (.sav) reading
 Access data in the cloud
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-========================= ================== =============================================================
-Dependency                Minimum Version    Notes
-========================= ================== =============================================================
-fsspec                    2021.5.0           Handling files aside from simple local and HTTP
-gcsfs                     2021.5.0           Google Cloud Storage access
-pandas-gbq                0.15.0             Google Big Query access
-s3fs                      2021.05.0          Amazon S3 access
-========================= ================== =============================================================
+Installable with ``pip install "pandas[fss, aws, gcp]"``
+
+========================= ================== =============== =============================================================
+Dependency                Minimum Version    pip extra       Notes
+========================= ================== =============== =============================================================
+fsspec                    2021.7.0           fss, gcp, aws   Handling files aside from simple local and HTTP (required
+                                                             dependency of s3fs, gcsfs).
+gcsfs                     2021.7.0           gcp             Google Cloud Storage access
+pandas-gbq                0.15.0             gcp             Google Big Query access
+s3fs                      2021.08.0          aws             Amazon S3 access
+========================= ================== =============== =============================================================
 
 Clipboard
 ^^^^^^^^^
 
-========================= ================== =============================================================
-Dependency                Minimum Version    Notes
-========================= ================== =============================================================
-PyQt4/PyQt5                                  Clipboard I/O
-qtpy                                         Clipboard I/O
-xclip                                        Clipboard I/O on linux
-xsel                                         Clipboard I/O on linux
-========================= ================== =============================================================
+Installable with ``pip install "pandas[clipboard]"``.
+
+========================= ================== =============== =============================================================
+Dependency                Minimum Version    pip extra       Notes
+========================= ================== =============== =============================================================
+PyQt4/PyQt5               5.15.1             clipboard       Clipboard I/O
+qtpy                      2.2.0              clipboard       Clipboard I/O
+========================= ================== =============== =============================================================
+
+.. note::
+
+   Depending on operating system, system-level packages may need to installed.
+   For clipboard to operate on Linux one of the CLI tools ``xclip`` or ``xsel`` must be installed on your system.
 
 
 Compression
 ^^^^^^^^^^^
 
-========================= ================== =============================================================
-Dependency                Minimum Version    Notes
-========================= ================== =============================================================
-brotli                    0.7.0              Brotli compression
-python-snappy             0.6.0              Snappy compression
-Zstandard                 0.15.2             Zstandard compression
-========================= ================== =============================================================
+Installable with ``pip install "pandas[compression]"``
+
+========================= ================== =============== =============================================================
+Dependency                Minimum Version    pip extra       Notes
+========================= ================== =============== =============================================================
+brotli                    0.7.0              compression     Brotli compression
+python-snappy             0.6.0              compression     Snappy compression
+Zstandard                 0.15.2             compression     Zstandard compression
+========================= ================== =============== =============================================================

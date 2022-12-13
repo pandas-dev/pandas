@@ -23,9 +23,8 @@ class BadDocstrings:
         pandas.Series.rename : Alter Series index labels or name.
         DataFrame.head : The first `n` rows of the caller object.
         """
-        pass
 
-    def redundant_import(self, foo=None, bar=None):
+    def redundant_import(self, paramx=None, paramy=None):
         """
         A sample DataFrame method.
 
@@ -45,7 +44,6 @@ class BadDocstrings:
         >>> df.all(bool_only=True)
         Series([], dtype: bool)
         """
-        pass
 
     def unused_import(self):
         """
@@ -54,7 +52,6 @@ class BadDocstrings:
         >>> import pandas as pdf
         >>> df = pd.DataFrame(np.ones((3, 3)), columns=('a', 'b', 'c'))
         """
-        pass
 
     def missing_whitespace_around_arithmetic_operator(self):
         """
@@ -63,7 +60,6 @@ class BadDocstrings:
         >>> 2+5
         7
         """
-        pass
 
     def indentation_is_not_a_multiple_of_four(self):
         """
@@ -72,7 +68,6 @@ class BadDocstrings:
         >>> if 2 + 5:
         ...   pass
         """
-        pass
 
     def missing_whitespace_after_comma(self):
         """
@@ -80,13 +75,11 @@ class BadDocstrings:
         --------
         >>> df = pd.DataFrame(np.ones((3,3)),columns=('a','b', 'c'))
         """
-        pass
 
     def write_array_like_with_hyphen_not_underscore(self):
         """
         In docstrings, use array-like over array_like
         """
-        pass
 
     def leftover_files(self):
         """
@@ -95,7 +88,6 @@ class BadDocstrings:
         >>> import pathlib
         >>> pathlib.Path("foo.txt").touch()
         """
-        pass
 
 
 class TestValidator:

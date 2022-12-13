@@ -1,9 +1,11 @@
-from datetime import timedelta
+from datetime import (
+    timedelta,
+    timezone,
+)
 import operator
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
@@ -30,9 +32,7 @@ from pandas.core import (
 from pandas.core.computation import expressions as expr
 
 
-@pytest.fixture(
-    autouse=True, scope="module", params=[0, 1000000], ids=["numexpr", "python"]
-)
+@pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
 def switch_numexpr_min_elements(request):
     _MIN_ELEMENTS = expr._MIN_ELEMENTS
     expr._MIN_ELEMENTS = request.param
@@ -678,7 +678,7 @@ class TestTimeSeriesArithmetic:
         uts2 = ser2.tz_convert("utc")
         expected = uts1 + uts2
 
-        assert result.index.tz == pytz.UTC
+        assert result.index.tz is timezone.utc
         tm.assert_series_equal(result, expected)
 
     def test_series_add_aware_naive_raises(self):
@@ -731,7 +731,6 @@ class TestNamePreservation:
 
         name = op.__name__.strip("_")
         is_logical = name in ["and", "rand", "xor", "rxor", "or", "ror"]
-        is_rlogical = is_logical and name.startswith("r")
 
         right = box(right)
         if flex:
@@ -741,16 +740,7 @@ class TestNamePreservation:
             result = getattr(left, name)(right)
         else:
             # GH#37374 logical ops behaving as set ops deprecated
-            warn = FutureWarning if is_rlogical and box is Index else None
-            msg = "operating as a set operation is deprecated"
-            with tm.assert_produces_warning(warn, match=msg):
-                # stacklevel is correct for Index op, not reversed op
-                result = op(left, right)
-
-        if box is Index and is_rlogical:
-            # Index treats these as set operators, so does not defer
-            assert isinstance(result, Index)
-            return
+            result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:

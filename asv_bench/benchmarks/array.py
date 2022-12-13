@@ -32,15 +32,34 @@ class BooleanArray:
 
 class IntegerArray:
     def setup(self):
-        self.values_integer = np.array([1, 0, 1, 0])
-        self.data = np.array([1, 2, 3, 4], dtype="int64")
-        self.mask = np.array([False, False, True, False])
+        N = 250_000
+        self.values_integer = np.array([1, 0, 1, 0] * N)
+        self.data = np.array([1, 2, 3, 4] * N, dtype="int64")
+        self.mask = np.array([False, False, True, False] * N)
 
     def time_constructor(self):
         pd.arrays.IntegerArray(self.data, self.mask)
 
     def time_from_integer_array(self):
         pd.array(self.values_integer, dtype="Int64")
+
+
+class StringArray:
+    def setup(self):
+        N = 100_000
+        values = tm.rands_array(3, N)
+        self.values_obj = np.array(values, dtype="object")
+        self.values_str = np.array(values, dtype="U")
+        self.values_list = values.tolist()
+
+    def time_from_np_object_array(self):
+        pd.array(self.values_obj, dtype="string")
+
+    def time_from_np_str_array(self):
+        pd.array(self.values_str, dtype="string")
+
+    def time_from_list(self):
+        pd.array(self.values_list, dtype="string")
 
 
 class ArrowStringArray:
@@ -70,3 +89,6 @@ class ArrowStringArray:
 
     def time_setitem_slice(self, multiple_chunks):
         self.array[::10] = "foo"
+
+    def time_tolist(self, multiple_chunks):
+        self.array.tolist()

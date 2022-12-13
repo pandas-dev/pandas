@@ -7,12 +7,10 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import locale
+import platform
 import re
 import subprocess
-from typing import (
-    Callable,
-    Iterator,
-)
+from typing import Generator
 
 from pandas._config.config import options
 
@@ -20,7 +18,7 @@ from pandas._config.config import options
 @contextmanager
 def set_locale(
     new_locale: str | tuple[str, str], lc_var: int = locale.LC_ALL
-) -> Iterator[str | tuple[str, str]]:
+) -> Generator[str | tuple[str, str], None, None]:
     """
     Context manager for temporarily setting a locale.
 
@@ -107,15 +105,10 @@ def _valid_locales(locales: list[str] | str, normalize: bool) -> list[str]:
     ]
 
 
-def _default_locale_getter() -> bytes:
-    return subprocess.check_output(["locale -a"], shell=True)
-
-
 def get_locales(
     prefix: str | None = None,
     normalize: bool = True,
-    locale_getter: Callable[[], bytes] = _default_locale_getter,
-) -> list[str] | None:
+) -> list[str]:
     """
     Get all the locales that are available on the system.
 
@@ -129,9 +122,6 @@ def get_locales(
         Call ``locale.normalize`` on the resulting list of available locales.
         If ``True``, only locales that can be set without throwing an
         ``Exception`` are returned.
-    locale_getter : callable
-        The function to use to retrieve the current locales. This should return
-        a string with each locale separated by a newline character.
 
     Returns
     -------
@@ -141,15 +131,15 @@ def get_locales(
 
             locale.setlocale(locale.LC_ALL, locale_string)
 
-    On error will return None (no locale available, e.g. Windows)
+    On error will return an empty list (no locale available, e.g. Windows)
 
     """
-    try:
-        raw_locales = locale_getter()
-    except subprocess.CalledProcessError:
-        # Raised on (some? all?) Windows platforms because Note: "locale -a"
-        #  is not defined
-        return None
+    if platform.system() in ("Linux", "Darwin"):
+        raw_locales = subprocess.check_output(["locale", "-a"])
+    else:
+        # Other platforms e.g. windows platforms don't define "locale -a"
+        #  Note: is_platform_windows causes circular import here
+        return []
 
     try:
         # raw_locales is "\n" separated list of locales

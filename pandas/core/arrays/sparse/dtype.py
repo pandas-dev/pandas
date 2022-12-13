@@ -1,7 +1,6 @@
 """Sparse Dtype"""
 from __future__ import annotations
 
-import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -128,7 +127,15 @@ class SparseDtype(ExtensionDtype):
                     or isinstance(other.fill_value, type(self.fill_value))
                 )
             else:
-                fill_value = self.fill_value == other.fill_value
+                with warnings.catch_warnings():
+                    # Ignore spurious numpy warning
+                    warnings.filterwarnings(
+                        "ignore",
+                        "elementwise comparison failed",
+                        category=DeprecationWarning,
+                    )
+
+                    fill_value = self.fill_value == other.fill_value
 
             return subtype and fill_value
         return False
@@ -355,7 +362,8 @@ class SparseDtype(ExtensionDtype):
             if not isinstance(dtype, np.dtype):
                 raise TypeError("sparse arrays of extension dtypes not supported")
 
-            fvarr = astype_nansafe(np.array(self.fill_value), dtype)
+            fv_asarray = np.atleast_1d(np.array(self.fill_value))
+            fvarr = astype_nansafe(fv_asarray, dtype)
             # NB: not fv_0d.item(), as that casts dt64->int
             fill_value = fvarr[0]
             dtype = cls(dtype, fill_value=fill_value)
@@ -410,7 +418,7 @@ class SparseDtype(ExtensionDtype):
                 f"values: '{fill_values}'. Picking the first and "
                 "converting the rest.",
                 PerformanceWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]

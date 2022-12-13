@@ -27,13 +27,13 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
-from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_list_like
 
 from pandas import isna
-from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.indexes.base import Index
+from pandas.core.indexes.multi import MultiIndex
+from pandas.core.series import Series
 
 from pandas.io.common import (
     file_exists,
@@ -526,7 +526,7 @@ class _HtmlFrameParser:
 
                 # Append the text from this <td>, colspan times
                 text = _remove_whitespace(self._text_getter(td))
-                if self.extract_links == "all" or self.extract_links == section:
+                if self.extract_links in ("all", section):
                     href = self._href_getter(td)
                     text = (text, href)
                 rowspan = int(self._attr_getter(td, "rowspan") or 1)
@@ -744,8 +744,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
         pattern = match.pattern
 
         # 1. check all descendants for the given pattern and only search tables
-        # 2. go up the tree until we find a table
-        xpath_expr = f"//table//*[re:test(text(), {repr(pattern)})]/ancestor::table"
+        # GH 49929
+        xpath_expr = f"//table[.//text()[re:test(., {repr(pattern)})]]"
 
         # if any table attributes were given build an xpath expression to
         # search for them
@@ -855,9 +855,9 @@ class _LxmlFrameParser(_HtmlFrameParser):
         return table.xpath(".//tfoot//tr")
 
 
-def _expand_elements(body):
+def _expand_elements(body) -> None:
     data = [len(elem) for elem in body]
-    lens = create_series_with_explicit_dtype(data, dtype_if_empty=object)
+    lens = Series(data)
     lens_max = lens.max()
     not_max = lens[lens != lens_max]
 
@@ -1009,9 +1009,11 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **
         try:
             df = _data_to_frame(data=table, **kwargs)
             # Cast MultiIndex header to an Index of tuples when extracting header
-            # links and replace nan with None.
+            # links and replace nan with None (therefore can't use mi.to_flat_index()).
             # This maintains consistency of selection (e.g. df.columns.str[1])
-            if extract_links in ("all", "header"):
+            if extract_links in ("all", "header") and isinstance(
+                df.columns, MultiIndex
+            ):
                 df.columns = Index(
                     ((col[0], None if isna(col[1]) else col[1]) for col in df.columns),
                     tupleize_cols=False,
@@ -1023,9 +1025,9 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **
     return ret
 
 
-@deprecate_nonkeyword_arguments(version="2.0")
 def read_html(
     io: FilePath | ReadBuffer[str],
+    *,
     match: str | Pattern = ".+",
     flavor: str | None = None,
     header: int | Sequence[int] | None = None,

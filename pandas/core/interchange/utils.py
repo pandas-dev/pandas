@@ -89,7 +89,3 @@ def dtype_to_arrow_c_fmt(dtype: DtypeObj) -> str:
     raise NotImplementedError(
         f"Conversion of {dtype} to Arrow C format string is not implemented."
     )
-
-
-class NoBufferPresent(Exception):
-    """Exception to signal that there is no requested buffer."""

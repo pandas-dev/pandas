@@ -42,6 +42,37 @@ cdef:
     type cDecimal = Decimal  # for faster isinstance checks
 
 
+cpdef bint check_na_tuples_nonequal(object left, object right):
+    """
+    When we have NA in one of the tuples but not the other we have to check here,
+    because our regular checks fail before with ambigous boolean value.
+
+    Parameters
+    ----------
+    left: Any
+    right: Any
+
+    Returns
+    -------
+    True if we are dealing with tuples that have NA on one side and non NA on
+    the other side.
+
+    """
+    if not isinstance(left, tuple) or not isinstance(right, tuple):
+        return False
+
+    if len(left) != len(right):
+        return False
+
+    for left_element, right_element in zip(left, right):
+        if left_element is C_NA and right_element is not C_NA:
+            return True
+        elif right_element is C_NA and left_element is not C_NA:
+            return True
+
+    return False
+
+
 cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False):
     """
     Check if two scalars are both NA of matching types.
@@ -136,7 +167,7 @@ cpdef bint checknull(object val, bint inf_as_na=False):
         return is_decimal_na(val)
 
 
-cdef inline bint is_decimal_na(object val):
+cdef bint is_decimal_na(object val):
     """
     Is this a decimal.Decimal object Decimal("NAN").
     """
@@ -227,7 +258,7 @@ def isneginf_scalar(val: object) -> bool:
     return util.is_float_object(val) and val == NEGINF
 
 
-cdef inline bint is_null_datetime64(v):
+cdef bint is_null_datetime64(v):
     # determine if we have a null for a datetime (or integer versions),
     # excluding np.timedelta64('nat')
     if checknull_with_nat(v) or is_dt64nat(v):
@@ -235,7 +266,7 @@ cdef inline bint is_null_datetime64(v):
     return False
 
 
-cdef inline bint is_null_timedelta64(v):
+cdef bint is_null_timedelta64(v):
     # determine if we have a null for a timedelta (or integer versions),
     # excluding np.datetime64('nat')
     if checknull_with_nat(v) or is_td64nat(v):
@@ -310,7 +341,7 @@ def is_numeric_na(values: ndarray) -> ndarray:
 def _create_binary_propagating_op(name, is_divmod=False):
 
     def method(self, other):
-        if (other is C_NA or isinstance(other, str)
+        if (other is C_NA or isinstance(other, (str, bytes))
                 or isinstance(other, (numbers.Number, np.bool_))
                 or util.is_array(other) and not other.shape):
             # Need the other.shape clause to handle NumPy scalars,

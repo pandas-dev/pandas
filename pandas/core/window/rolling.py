@@ -14,7 +14,9 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Iterator,
     Sized,
+    cast,
 )
 import warnings
 
@@ -140,8 +142,7 @@ class BaseWindow(SelectionMixin):
         self.window = window
         self.min_periods = min_periods
         self.center = center
-        # TODO(2.0): Change this back to self.win_type once deprecation is enforced
-        self._win_type = win_type
+        self.win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.method = method
         self._win_freq_i8: int | None = None
@@ -164,44 +165,15 @@ class BaseWindow(SelectionMixin):
         self._selection = selection
         self._validate()
 
-    @property
-    def win_type(self):
-        if self._win_freq_i8 is not None:
-            warnings.warn(
-                "win_type will no longer return 'freq' in a future version. "
-                "Check the type of self.window instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-            return "freq"
-        return self._win_type
-
-    @property
-    def is_datetimelike(self) -> bool:
-        warnings.warn(
-            "is_datetimelike is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self._win_freq_i8 is not None
-
-    def validate(self) -> None:
-        warnings.warn(
-            "validate is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self._validate()
-
     def _validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
         if self.min_periods is not None:
             if not is_integer(self.min_periods):
                 raise ValueError("min_periods must be an integer")
-            elif self.min_periods < 0:
+            if self.min_periods < 0:
                 raise ValueError("min_periods must be >= 0")
-            elif is_integer(self.window) and self.min_periods > self.window:
+            if is_integer(self.window) and self.min_periods > self.window:
                 raise ValueError(
                     f"min_periods {self.min_periods} must be <= window {self.window}"
                 )
@@ -233,7 +205,7 @@ class BaseWindow(SelectionMixin):
         if self.step is not None:
             if not is_integer(self.step):
                 raise ValueError("step must be an integer")
-            elif self.step < 0:
+            if self.step < 0:
                 raise ValueError("step must be >= 0")
 
     def _check_window_bounds(
@@ -244,7 +216,7 @@ class BaseWindow(SelectionMixin):
                 f"start ({len(start)}) and end ({len(end)}) bounds must be the "
                 f"same length"
             )
-        elif len(start) != (num_vals + (self.step or 1) - 1) // (self.step or 1):
+        if len(start) != (num_vals + (self.step or 1) - 1) // (self.step or 1):
             raise ValueError(
                 f"start and end bounds ({len(start)}) must be the same length "
                 f"as the object ({num_vals}) divided by the step ({self.step}) "
@@ -330,10 +302,7 @@ class BaseWindow(SelectionMixin):
 
         # we need to make a shallow copy of ourselves
         # with the same groupby
-        with warnings.catch_warnings():
-            # TODO(2.0): Remove once win_type deprecation is enforced
-            warnings.filterwarnings("ignore", "win_type", FutureWarning)
-            kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
 
         selection = None
         if subset.ndim == 2 and (
@@ -369,7 +338,7 @@ class BaseWindow(SelectionMixin):
         attrs = ",".join(attrs_list)
         return f"{type(self).__name__} [{attrs}]"
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         obj = self._selected_obj.set_axis(self._on)
         obj = self._create_data(obj)
         indexer = self._get_window_indexer()
@@ -394,16 +363,15 @@ class BaseWindow(SelectionMixin):
                 f"ops for {type(self).__name__} for this "
                 f"dtype {values.dtype} are not implemented"
             )
-        else:
-            # GH #12373 : rolling functions error on float32 data
-            # make sure the data is coerced to float64
-            try:
-                if isinstance(values, ExtensionArray):
-                    values = values.to_numpy(np.float64, na_value=np.nan)
-                else:
-                    values = ensure_float64(values)
-            except (ValueError, TypeError) as err:
-                raise TypeError(f"cannot handle this type -> {values.dtype}") from err
+        # GH #12373 : rolling functions error on float32 data
+        # make sure the data is coerced to float64
+        try:
+            if isinstance(values, ExtensionArray):
+                values = values.to_numpy(np.float64, na_value=np.nan)
+            else:
+                values = ensure_float64(values)
+        except (ValueError, TypeError) as err:
+            raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
         inf = np.isinf(values)
@@ -441,14 +409,15 @@ class BaseWindow(SelectionMixin):
     def _index_array(self):
         # TODO: why do we get here with e.g. MultiIndex?
         if needs_i8_conversion(self._on.dtype):
-            return self._on.asi8
+            idx = cast("PeriodIndex | DatetimeIndex | TimedeltaIndex", self._on)
+            return idx.asi8
         return None
 
     def _resolve_output(self, out: DataFrame, obj: DataFrame) -> DataFrame:
         """Validate and finalize result."""
         if out.shape[1] == 0 and obj.shape[1] > 0:
             raise DataError("No numeric types to aggregate")
-        elif out.shape[1] == 0:
+        if out.shape[1] == 0:
             return obj.astype("float64")
 
         self._insert_on_column(out, obj)
@@ -549,7 +518,7 @@ class BaseWindow(SelectionMixin):
                 "Select only valid columns before calling the operation. "
                 f"Dropped columns were {dropped}",
                 FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
 
         return self._resolve_output(df, obj)
@@ -921,13 +890,13 @@ class Window(BaseWindow):
 
     Parameters
     ----------
-    window : int, offset, or BaseIndexer subclass
+    window : int, timedelta, str, offset, or BaseIndexer subclass
         Size of the moving window.
 
         If an integer, the fixed number of observations used for
         each window.
 
-        If an offset, the time period of each window. Each
+        If a timedelta, str, or offset, the time period of each window. Each
         window will be a variable sized based on the observations included in
         the time-period. This is only valid for datetimelike indexes.
         To learn more about the offsets & frequency strings, please see `this link
@@ -994,7 +963,7 @@ class Window(BaseWindow):
 
     step : int, default None
 
-        ..versionadded:: 1.5.0
+        .. versionadded:: 1.5.0
 
         Evaluate the window at every ``step`` result, equivalent to slicing as
         ``[::step]``. ``window`` must be an integer. Using a step argument other
@@ -1171,7 +1140,7 @@ class Window(BaseWindow):
             raise NotImplementedError(
                 "BaseIndexer subclasses not implemented with win_types."
             )
-        elif not is_integer(self.window) or self.window < 0:
+        if not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
 
         if self.method != "single":
@@ -1589,10 +1558,9 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 raise NotImplementedError("std not supported with method='table'")
-            else:
-                from pandas.core._numba.kernels import sliding_var
+            from pandas.core._numba.kernels import sliding_var
 
-                return zsqrt(self._numba_apply(sliding_var, engine_kwargs, ddof))
+            return zsqrt(self._numba_apply(sliding_var, engine_kwargs, ddof))
         window_func = window_aggregations.roll_var
 
         def zsqrt_func(values, begin, end, min_periods):
@@ -1618,10 +1586,9 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 raise NotImplementedError("var not supported with method='table'")
-            else:
-                from pandas.core._numba.kernels import sliding_var
+            from pandas.core._numba.kernels import sliding_var
 
-                return self._numba_apply(sliding_var, engine_kwargs, ddof)
+            return self._numba_apply(sliding_var, engine_kwargs, ddof)
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
         return self._apply(
             window_func,
@@ -1861,7 +1828,7 @@ class Rolling(RollingAndExpandingMixin):
         elif not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
 
-    def _validate_datetimelike_monotonic(self):
+    def _validate_datetimelike_monotonic(self) -> None:
         """
         Validate self._on is monotonic (increasing or decreasing) and has
         no NaT values for frequency windows.
@@ -1935,21 +1902,21 @@ class Rolling(RollingAndExpandingMixin):
             """
         >>> s = pd.Series([2, 3, np.nan, 10])
         >>> s.rolling(2).count()
-        0    1.0
+        0    NaN
         1    2.0
         2    1.0
         3    1.0
         dtype: float64
         >>> s.rolling(3).count()
-        0    1.0
-        1    2.0
+        0    NaN
+        1    NaN
         2    2.0
         3    2.0
         dtype: float64
         >>> s.rolling(4).count()
-        0    1.0
-        1    2.0
-        2    2.0
+        0    NaN
+        1    NaN
+        2    NaN
         3    3.0
         dtype: float64
         """
@@ -1959,22 +1926,7 @@ class Rolling(RollingAndExpandingMixin):
         agg_method="count",
     )
     def count(self, numeric_only: bool = False):
-        if self.min_periods is None:
-            warnings.warn(
-                (
-                    "min_periods=None will default to the size of window "
-                    "consistent with other methods in a future version. "
-                    "Specify min_periods=0 instead."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-            self.min_periods = 0
-            result = super().count()
-            self.min_periods = None
-        else:
-            result = super().count(numeric_only)
-        return result
+        return super().count(numeric_only)
 
     @doc(
         template_header,

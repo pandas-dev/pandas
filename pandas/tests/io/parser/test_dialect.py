@@ -97,9 +97,9 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
 
     # arg=None tests when we pass in the dialect without any other arguments.
     if arg is not None:
-        if "value" == "dialect":  # No conflict --> no warning.
+        if value == "dialect":  # No conflict --> no warning.
             kwds[arg] = dialect_kwargs[arg]
-        elif "value" == "default":  # Default --> no warning.
+        elif value == "default":  # Default --> no warning.
             from pandas.io.parsers.base_parser import parser_defaults
 
             kwds[arg] = parser_defaults[arg]

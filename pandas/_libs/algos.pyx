@@ -14,18 +14,12 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
-    NPY_COMPLEX64,
-    NPY_COMPLEX128,
-    NPY_FLOAT32,
     NPY_FLOAT64,
     NPY_INT8,
     NPY_INT16,
     NPY_INT32,
     NPY_INT64,
     NPY_OBJECT,
-    NPY_UINT8,
-    NPY_UINT16,
-    NPY_UINT32,
     NPY_UINT64,
     float32_t,
     float64_t,
@@ -76,7 +70,7 @@ tiebreakers = {
 }
 
 
-cdef inline bint are_diff(object left, object right):
+cdef bint are_diff(object left, object right):
     try:
         return fabs(left - right) > FP_ERR
     except TypeError:
@@ -87,26 +81,48 @@ class Infinity:
     """
     Provide a positive Infinity comparison method for ranking.
     """
-    __lt__ = lambda self, other: False
-    __le__ = lambda self, other: isinstance(other, Infinity)
-    __eq__ = lambda self, other: isinstance(other, Infinity)
-    __ne__ = lambda self, other: not isinstance(other, Infinity)
-    __gt__ = lambda self, other: (not isinstance(other, Infinity) and
-                                  not missing.checknull(other))
-    __ge__ = lambda self, other: not missing.checknull(other)
+    def __lt__(self, other):
+        return False
+
+    def __le__(self, other):
+        return isinstance(other, Infinity)
+
+    def __eq__(self, other):
+        return isinstance(other, Infinity)
+
+    def __ne__(self, other):
+        return not isinstance(other, Infinity)
+
+    def __gt__(self, other):
+        return (not isinstance(other, Infinity) and
+                not missing.checknull(other))
+
+    def __ge__(self, other):
+        return not missing.checknull(other)
 
 
 class NegInfinity:
     """
     Provide a negative Infinity comparison method for ranking.
     """
-    __lt__ = lambda self, other: (not isinstance(other, NegInfinity) and
-                                  not missing.checknull(other))
-    __le__ = lambda self, other: not missing.checknull(other)
-    __eq__ = lambda self, other: isinstance(other, NegInfinity)
-    __ne__ = lambda self, other: not isinstance(other, NegInfinity)
-    __gt__ = lambda self, other: False
-    __ge__ = lambda self, other: isinstance(other, NegInfinity)
+    def __lt__(self, other):
+        return  (not isinstance(other, NegInfinity) and
+                 not missing.checknull(other))
+
+    def __le__(self, other):
+        return not missing.checknull(other)
+
+    def __eq__(self, other):
+        return isinstance(other, NegInfinity)
+
+    def __ne__(self, other):
+        return not isinstance(other, NegInfinity)
+
+    def __gt__(self, other):
+        return False
+
+    def __ge__(self, other):
+        return isinstance(other, NegInfinity)
 
 
 @cython.wraparound(False)
@@ -164,7 +180,7 @@ def is_lexsorted(list_of_arrays: list) -> bint:
     cdef int64_t **vecs = <int64_t**>malloc(nlevels * sizeof(int64_t*))
     for i in range(nlevels):
         arr = list_of_arrays[i]
-        assert arr.dtype.name == 'int64'
+        assert arr.dtype.name == "int64"
         vecs[i] = <int64_t*>cnp.PyArray_DATA(arr)
 
     # Assume uniqueness??
@@ -241,7 +257,7 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     return indexer.base, counts.base
 
 
-cdef inline Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
+cdef Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
     cdef:
         numeric_t t
 
@@ -252,7 +268,7 @@ cdef inline Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
     return 0
 
 
-cdef inline numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) nogil:
+cdef numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) nogil:
     """
     See kth_smallest.__doc__. The additional parameter n specifies the maximum
     number of elements considered in arr, needed for compatibility with usage
@@ -327,7 +343,7 @@ def kth_smallest(numeric_t[::1] arr, Py_ssize_t k) -> numeric_t:
 @cython.cdivision(True)
 def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     cdef:
-        Py_ssize_t i, j, xi, yi, N, K
+        Py_ssize_t i, xi, yi, N, K
         bint minpv
         float64_t[:, ::1] result
         ndarray[uint8_t, ndim=2] mask
@@ -383,7 +399,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 @cython.wraparound(False)
 def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarray:
     cdef:
-        Py_ssize_t i, j, xi, yi, N, K
+        Py_ssize_t i, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
         ndarray[float64_t, ndim=2] ranked_mat
         ndarray[float64_t, ndim=1] rankedx, rankedy
@@ -498,9 +514,9 @@ def validate_limit(nobs: int | None, limit=None) -> int:
         lim = nobs
     else:
         if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
+            raise ValueError("Limit must be an integer")
         if limit < 1:
-            raise ValueError('Limit must be greater than 0')
+            raise ValueError("Limit must be greater than 0")
         lim = limit
 
     return lim
@@ -752,7 +768,8 @@ def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
     n = len(arr)
 
     if n == 1:
-        if arr[0] != arr[0] or (numeric_object_t is int64_t and timelike and arr[0] == NPY_NAT):
+        if arr[0] != arr[0] or (numeric_object_t is int64_t and timelike and
+                                arr[0] == NPY_NAT):
             # single value is NaN
             return False, False, True
         else:
@@ -941,7 +958,7 @@ def rank_1d(
         if not ascending:
             tiebreak = TIEBREAK_FIRST_DESCENDING
 
-    keep_na = na_option == 'keep'
+    keep_na = na_option == "keep"
 
     N = len(values)
     if labels is not None:
@@ -967,7 +984,7 @@ def rank_1d(
     # with mask, without obfuscating location of missing data
     # in values array
     if numeric_object_t is object and values.dtype != np.object_:
-        masked_vals = values.astype('O')
+        masked_vals = values.astype("O")
     else:
         masked_vals = values.copy()
 
@@ -988,7 +1005,7 @@ def rank_1d(
     # If descending, fill with highest value since descending
     # will flip the ordering to still end up with lowest rank.
     # Symmetric logic applies to `na_option == 'bottom'`
-    nans_rank_highest = ascending ^ (na_option == 'top')
+    nans_rank_highest = ascending ^ (na_option == "top")
     nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
     if nans_rank_highest:
         order = [masked_vals, mask]
@@ -1328,7 +1345,7 @@ def rank_2d(
         if not ascending:
             tiebreak = TIEBREAK_FIRST_DESCENDING
 
-    keep_na = na_option == 'keep'
+    keep_na = na_option == "keep"
 
     # For cases where a mask is not possible, we can avoid mask checks
     check_mask = (
@@ -1345,9 +1362,9 @@ def rank_2d(
 
     if numeric_object_t is object:
         if values.dtype != np.object_:
-            values = values.astype('O')
+            values = values.astype("O")
 
-    nans_rank_highest = ascending ^ (na_option == 'top')
+    nans_rank_highest = ascending ^ (na_option == "top")
     if check_mask:
         nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
 
@@ -1368,7 +1385,7 @@ def rank_2d(
         order = (values, ~np.asarray(mask))
 
     n, k = (<object>values).shape
-    out = np.empty((n, k), dtype='f8', order='F')
+    out = np.empty((n, k), dtype="f8", order="F")
     grp_sizes = np.ones(n, dtype=np.int64)
 
     # lexsort is slower, so only use if we need to worry about the mask
