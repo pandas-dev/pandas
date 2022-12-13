@@ -2425,6 +2425,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> s.index.is_categorical()
         False
         """
+        warnings.warn(
+            f"{type(self).__name__}.is_categorical is deprecated."
+            "Use pandas.api.types.is_categorical_dtype instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         return self.inferred_type in ["categorical"]
 
     @final
