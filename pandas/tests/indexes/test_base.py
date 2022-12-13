@@ -43,7 +43,7 @@ from pandas.core.indexes.api import (
     ensure_index_from_sequences,
 )
 from pandas.tests.indexes.common import Base
-
+from pandas.core.dtypes.common import is_object_dtype
 
 class TestIndex(Base):
     _index_cls = Index
@@ -677,7 +677,7 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_object(self, index, expected):
-        assert index.is_object() is expected
+        assert is_object_dtype(index) is expected
 
     def test_summary(self, index):
         index._summary()
