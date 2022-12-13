@@ -86,7 +86,6 @@ class NumericIndex(Index):
         is_numeric_dtype,
         "numeric type",
     )
-    _is_numeric_dtype = True
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
 

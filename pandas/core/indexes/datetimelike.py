@@ -88,7 +88,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
-    _is_numeric_dtype = False
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
     freq: BaseOffset | None
