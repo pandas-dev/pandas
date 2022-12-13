@@ -810,7 +810,7 @@ class Base:
             idx.is_integer()
 
     def test_holds_integer_deprecated(selfm, simple_index):
-        # GHXXXXX
+        # GH50243
         idx = simple_index
         with tm.assert_produces_warning(FutureWarning):
             idx.holds_integer()

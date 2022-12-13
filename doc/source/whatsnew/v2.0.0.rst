@@ -575,7 +575,7 @@ Deprecations
 - Deprecated :func:`pandas.io.sql.execute`(:issue:`50185`)
 - :meth:`Index.is_integer` has been deprecated. Use :func:`pandas.api.types.is_integer_dtype` instead (:issue:`50042`)
 - :meth:`Index.is_floating` has been deprecated. Use :func:`pandas.api.types.is_float_dtype` instead (:issue:`50042`)
-- :meth:`Index.holds_integer` has been deprecated. Use :func:`pandas.api.types.infer_dtype` instead (:issue:`xxxxx`)
+- :meth:`Index.holds_integer` has been deprecated. Use :func:`pandas.api.types.infer_dtype` instead (:issue:`50243`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.prior_deprecations:
