@@ -13,7 +13,7 @@ from pandas.errors import IndexingError
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
-    is_object_dtype
+    is_object_dtype,
 )
 
 import pandas as pd
