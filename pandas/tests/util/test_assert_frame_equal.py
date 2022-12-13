@@ -366,3 +366,75 @@ def test_assert_frame_equal_check_like_categorical_midx():
         ),
     )
     tm.assert_frame_equal(left, right, check_like=True)
+
+
+def test_assert_frame_equal_check_series_type_setted_as_false():
+
+   class Series(pd.Series):
+        @property
+        def _constructor( self ):
+            return Series
+
+        @property
+        def _constructor_expanddim( self ):
+            return DataFrame
+
+   class DataFrame(pd.DataFrame):
+        @property
+        def _constructor_sliced( self ):
+            return Series
+
+   s1 = pd.Series( [0] )
+   s2 = Series( s1 )
+
+   df1 = s1.to_frame()
+   df2 = s2.to_frame()
+   tm.assert_frame_equal(df1, df2, check_frame_type=False,check_series_type=False)
+
+def test_assert_frame_equal_check_series_type_setted_as_true():
+
+   class Series(pd.Series):
+        @property
+        def _constructor( self ):
+            return Series
+
+        @property
+        def _constructor_expanddim( self ):
+            return DataFrame
+
+   class DataFrame(pd.DataFrame):
+        @property
+        def _constructor_sliced( self ):
+            return Series
+
+   s1 = pd.Series( [0] )
+   s2 = Series( s1 )
+
+   df1 = s1.to_frame()
+   df2 = s2.to_frame()
+   with pytest.raises(Exception):
+    tm.assert_frame_equal(df1, df2, check_frame_type=False,check_series_type=True)
+
+def test_assert_frame_equal_check_series_type_is_a_optional_parameter_So_it_has_a_default_value_set_to_true():
+
+   class Series(pd.Series):
+        @property
+        def _constructor( self ):
+            return Series
+
+        @property
+        def _constructor_expanddim( self ):
+            return DataFrame
+
+   class DataFrame(pd.DataFrame):
+        @property
+        def _constructor_sliced( self ):
+            return Series
+
+   s1 = pd.Series( [0] )
+   s2 = Series( s1 )
+  
+   df1 = s1.to_frame()
+   df2 = s2.to_frame()
+   with pytest.raises(Exception):
+    tm.assert_frame_equal(df1, df2, check_frame_type=False)
