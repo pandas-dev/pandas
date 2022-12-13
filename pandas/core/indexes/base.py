@@ -23,6 +23,7 @@ import warnings
 
 import numpy as np
 
+import pandas.api.types
 from pandas._config import get_option
 
 from pandas._libs import (
@@ -2204,7 +2205,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_floating : Check if the Index is a floating type.
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
-        is_categorical : Check if the Index holds categorical data.
+        is_categorical : Check if the Index holds categorical data (deprecated).
         is_interval : Check if the Index holds Interval objects.
 
         Examples
@@ -2239,7 +2240,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_floating : Check if the Index is a floating type.
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
-        is_categorical : Check if the Index holds categorical data.
+        is_categorical : Check if the Index holds categorical data (deprecated).
         is_interval : Check if the Index holds Interval objects.
 
         Examples
@@ -2278,7 +2279,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_integer : Check if the Index only consists of integers.
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
-        is_categorical : Check if the Index holds categorical data.
+        is_categorical : Check if the Index holds categorical data (deprecated).
         is_interval : Check if the Index holds Interval objects.
 
         Examples
@@ -2317,7 +2318,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_integer : Check if the Index only consists of integers.
         is_floating : Check if the Index is a floating type.
         is_object : Check if the Index is of the object dtype.
-        is_categorical : Check if the Index holds categorical data.
+        is_categorical : Check if the Index holds categorical data (deprecated).
         is_interval : Check if the Index holds Interval objects.
 
         Examples
@@ -2360,7 +2361,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_integer : Check if the Index only consists of integers.
         is_floating : Check if the Index is a floating type.
         is_numeric : Check if the Index only consists of numeric data.
-        is_categorical : Check if the Index holds categorical data.
+        is_categorical : Check if the Index holds categorical data (deprecated).
         is_interval : Check if the Index holds Interval objects.
 
         Examples
@@ -2388,6 +2389,10 @@ class Index(IndexOpsMixin, PandasObject):
     def is_categorical(self) -> bool:
         """
         Check if the Index holds categorical data.
+
+        .. deprecated:: 1.3.0
+
+              Use :meth:`is_categorical_dtype` instead.
 
         Returns
         -------
@@ -2425,6 +2430,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> s.index.is_categorical()
         False
         """
+        warnings.warn(
+            f"{type(self).__name__}.is_categorical is deprecated."
+            "Use pandas.api.types.is_categorical_dtype instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.inferred_type in ["categorical"]
 
     @final
@@ -2445,7 +2456,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_floating : Check if the Index is a floating type.
         is_numeric : Check if the Index only consists of numeric data.
         is_object : Check if the Index is of the object dtype.
-        is_categorical : Check if the Index holds categorical data.
+        is_categorical : Check if the Index holds categorical data (deprecated).
 
         Examples
         --------
