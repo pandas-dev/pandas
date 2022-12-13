@@ -934,6 +934,11 @@ class _LocationIndexer(NDFrameIndexerBase):
             #  be handled by the _getitem_lowerdim call above.
             assert retval.ndim == self.ndim
 
+        if retval is self.obj:
+            # if all axes were a null slice (`df.loc[:, :]`), ensure we still
+            # return a new object (https://github.com/pandas-dev/pandas/pull/49469)
+            retval = retval.copy(deep=False)
+
         return retval
 
     @final
@@ -1476,7 +1481,12 @@ class _iLocIndexer(_LocationIndexer):
             # so don't treat a tuple as a valid indexer
             raise IndexingError("Too many indexers")
         elif is_list_like_indexer(key):
-            arr = np.array(key)
+            if isinstance(key, ABCSeries):
+                arr = key._values
+            elif is_array_like(key):
+                arr = key
+            else:
+                arr = np.array(key)
             len_axis = len(self.obj._get_axis(axis))
 
             # check that the key has a numeric dtype

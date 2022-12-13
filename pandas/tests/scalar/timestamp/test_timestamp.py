@@ -4,6 +4,7 @@ import calendar
 from datetime import (
     datetime,
     timedelta,
+    timezone,
 )
 import locale
 import unicodedata
@@ -12,10 +13,7 @@ from dateutil.tz import tzutc
 import numpy as np
 import pytest
 import pytz
-from pytz import (
-    timezone,
-    utc,
-)
+from pytz import utc
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
@@ -213,6 +211,11 @@ class TestTimestampProperties:
 
 
 class TestTimestamp:
+    def test_default_to_stdlib_utc(self):
+        assert Timestamp.utcnow().tz is timezone.utc
+        assert Timestamp.now("UTC").tz is timezone.utc
+        assert Timestamp("2016-01-01", tz="UTC").tz is timezone.utc
+
     def test_tz(self):
         tstr = "2014-02-01 09:00"
         ts = Timestamp(tstr)
@@ -233,7 +236,7 @@ class TestTimestamp:
         assert conv.hour == 19
 
     def test_utc_z_designator(self):
-        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is utc
+        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is timezone.utc
 
     def test_asm8(self):
         np.random.seed(7_960_929)
@@ -251,7 +254,7 @@ class TestTimestamp:
             assert int((Timestamp(x).value - Timestamp(y).value) / 1e9) == 0
 
         compare(Timestamp.now(), datetime.now())
-        compare(Timestamp.now("UTC"), datetime.now(timezone("UTC")))
+        compare(Timestamp.now("UTC"), datetime.now(pytz.timezone("UTC")))
         compare(Timestamp.utcnow(), datetime.utcnow())
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
@@ -579,7 +582,9 @@ class TestTimestampConversion:
         with tm.assert_produces_warning(exp_warning):
             pydt_max = Timestamp.max.to_pydatetime()
 
-        assert Timestamp(pydt_max).value / 1000 == Timestamp.max.value / 1000
+        assert (
+            Timestamp(pydt_max).as_unit("ns").value / 1000 == Timestamp.max.value / 1000
+        )
 
         exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
         with tm.assert_produces_warning(exp_warning):
@@ -590,7 +595,10 @@ class TestTimestampConversion:
         tdus = timedelta(microseconds=1)
         assert pydt_min + tdus > Timestamp.min
 
-        assert Timestamp(pydt_min + tdus).value / 1000 == Timestamp.min.value / 1000
+        assert (
+            Timestamp(pydt_min + tdus).as_unit("ns").value / 1000
+            == Timestamp.min.value / 1000
+        )
 
     def test_to_period_tz_warning(self):
         # GH#21333 make sure a warning is issued when timezone

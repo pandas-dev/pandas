@@ -89,7 +89,7 @@ def test_astype_index(all_data, dropna):
         other = all_data
 
     dtype = all_data.dtype
-    idx = pd.Index._with_infer(np.array(other))
+    idx = pd.Index(np.array(other))
     assert isinstance(idx, ABCIndex)
 
     result = idx.astype(dtype)
