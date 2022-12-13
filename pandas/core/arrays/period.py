@@ -672,30 +672,21 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     ) -> npt.NDArray[np.intp] | np.intp:
         npvalue = self._validate_setitem_value(value).view("M8[ns]")
 
-        # Cast to M8 to get datetime-like NaT placement
+        # Cast to M8 to get datetime-like NaT placement,
+        #  similar to dtl._period_dispatch
         m8arr = self._ndarray.view("M8[ns]")
         return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
     def fillna(self, value=None, method=None, limit=None) -> PeriodArray:
         if method is not None:
-            # view as dt64 so we get treated as timelike in core.missing
+            # view as dt64 so we get treated as timelike in core.missing,
+            #  similar to dtl._period_dispatch
             dta = self.view("M8[ns]")
             result = dta.fillna(value=value, method=method, limit=limit)
             # error: Incompatible return value type (got "Union[ExtensionArray,
             # ndarray[Any, Any]]", expected "PeriodArray")
             return result.view(self.dtype)  # type: ignore[return-value]
         return super().fillna(value=value, method=method, limit=limit)
-
-    def _quantile(
-        self: PeriodArray,
-        qs: npt.NDArray[np.float64],
-        interpolation: str,
-    ) -> PeriodArray:
-        # dispatch to DatetimeArray implementation
-        dtres = self.view("M8[ns]")._quantile(qs, interpolation)
-        # error: Incompatible return value type (got "Union[ExtensionArray,
-        # ndarray[Any, Any]]", expected "PeriodArray")
-        return dtres.view(self.dtype)  # type: ignore[return-value]
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
