@@ -87,7 +87,7 @@ class PandasColumn(Column):
         Size of the column, in elements.
         """
         # error: Signature of "size" incompatible with supertype "Column"  [override]
-        return len(self._col._values)
+        return self._col.size
 
     @property
     def offset(self) -> int:
