@@ -1609,6 +1609,13 @@ def infer_dtype_from_object(dtype) -> type:
     return infer_dtype_from_object(np.dtype(dtype))
 
 
+def holds_integer(value) -> bool:
+    """
+    Whether the type is an integer type.
+    """
+    return lib.infer_dtype(value) in ["integer", "mixed-integer"]
+
+
 def _validate_date_like_dtype(dtype) -> None:
     """
     Check whether the dtype is a date-like dtype. Raises an error if invalid.
