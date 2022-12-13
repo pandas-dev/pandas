@@ -2392,7 +2392,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         .. deprecated:: 2.0.0
 
-              Use `pandas.api.types.is_bool_dtype`
+              Use `pandas.api.types.is_categorical_dtype` instead.
 
         Returns
         -------
