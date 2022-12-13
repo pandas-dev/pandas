@@ -2390,9 +2390,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Check if the Index holds categorical data.
 
-        .. deprecated:: 1.3.0
+        .. deprecated:: 2.0.0
 
-              Use :meth:`is_categorical_dtype` instead.
+              Use `pandas.api.types.is_bool_dtype`
 
         Returns
         -------
