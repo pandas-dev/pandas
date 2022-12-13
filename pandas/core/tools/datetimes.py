@@ -15,10 +15,14 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
-from pandas._libs import tslib
+from pandas._libs import (
+    lib,
+    tslib,
+)
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     Timedelta,
@@ -40,6 +44,7 @@ from pandas._typing import (
     DateTimeErrorChoices,
     npt,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -126,7 +131,18 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
     if (first_non_null := tslib.first_non_null(arr)) != -1:
         if type(first_non_nan_element := arr[first_non_null]) is str:
             # GH#32264 np.str_ object
-            return guess_datetime_format(first_non_nan_element, dayfirst=dayfirst)
+            guessed_format = guess_datetime_format(
+                first_non_nan_element, dayfirst=dayfirst
+            )
+            if guessed_format is not None:
+                return guessed_format
+            warnings.warn(
+                "Could not infer format, so each element will be parsed "
+                "individually by `dateutil`. To ensure parsing is "
+                "consistent and as-expected, please specify a format.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
     return None
 
 
@@ -334,7 +350,6 @@ def _convert_listlike_datetimes(
     utc: bool = False,
     unit: str | None = None,
     errors: DateTimeErrorChoices = "raise",
-    infer_datetime_format: bool = False,
     dayfirst: bool | None = None,
     yearfirst: bool | None = None,
     exact: bool = True,
@@ -355,8 +370,6 @@ def _convert_listlike_datetimes(
         None or string of the frequency of the passed data
     errors : str
         error handing behaviors from to_datetime, 'raise', 'coerce', 'ignore'
-    infer_datetime_format : bool, default False
-        inferring format behavior from to_datetime
     dayfirst : bool
         dayfirst parsing behavior from to_datetime
     yearfirst : bool
@@ -419,24 +432,22 @@ def _convert_listlike_datetimes(
     arg = ensure_object(arg)
     require_iso8601 = False
 
-    if infer_datetime_format and format is None:
+    if format is None:
         format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
 
-    if format is not None:
-        # There is a special fast-path for iso8601 formatted
-        # datetime strings, so in those cases don't use the inferred
-        # format because this path makes process slower in this
-        # special case
-        format_is_iso8601 = format_is_iso(format)
-        if format_is_iso8601:
-            require_iso8601 = not infer_datetime_format
+    # There is a special fast-path for iso8601 formatted datetime strings
+    require_iso8601 = format is not None and format_is_iso(format)
 
     if format is not None and not require_iso8601:
-        res = _to_datetime_with_format(
-            arg, orig_arg, name, utc, format, exact, errors, infer_datetime_format
+        return _to_datetime_with_format(
+            arg,
+            orig_arg,
+            name,
+            utc,
+            format,
+            exact,
+            errors,
         )
-        if res is not None:
-            return res
 
     result, tz_parsed = objects_to_datetime64ns(
         arg,
@@ -466,8 +477,7 @@ def _array_strptime_with_fallback(
     fmt: str,
     exact: bool,
     errors: str,
-    infer_datetime_format: bool,
-) -> Index | None:
+) -> Index:
     """
     Call array_strptime, with fallback behavior depending on 'errors'.
     """
@@ -485,21 +495,14 @@ def _array_strptime_with_fallback(
         else:
             result = arg
     except ValueError:
-        # if fmt was inferred, try falling back
-        # to array_to_datetime - terminate here
-        # for specified formats
-        if not infer_datetime_format:
-            if errors == "raise":
-                raise
-            if errors == "coerce":
-                result = np.empty(arg.shape, dtype="M8[ns]")
-                iresult = result.view("i8")
-                iresult.fill(iNaT)
-            else:
-                result = arg
+        if errors == "raise":
+            raise
+        if errors == "coerce":
+            result = np.empty(arg.shape, dtype="M8[ns]")
+            iresult = result.view("i8")
+            iresult.fill(iNaT)
         else:
-            # Indicates to the caller to fallback to objects_to_datetime64ns
-            return None
+            result = arg
     else:
         if any(tz is not None for tz in timezones):
             return _return_parsed_timezone_results(result, timezones, utc, name)
@@ -515,10 +518,9 @@ def _to_datetime_with_format(
     fmt: str,
     exact: bool,
     errors: str,
-    infer_datetime_format: bool,
-) -> Index | None:
+) -> Index:
     """
-    Try parsing with the given format, returning None on failure.
+    Try parsing with the given format.
     """
     result = None
 
@@ -538,9 +540,7 @@ def _to_datetime_with_format(
             return _box_as_indexlike(result, utc=utc, name=name)
 
     # fallback
-    res = _array_strptime_with_fallback(
-        arg, name, utc, fmt, exact, errors, infer_datetime_format
-    )
+    res = _array_strptime_with_fallback(arg, name, utc, fmt, exact, errors)
     return res
 
 
@@ -714,7 +714,7 @@ def to_datetime(
     format: str | None = None,
     exact: bool = True,
     unit: str | None = None,
-    infer_datetime_format: bool = False,
+    infer_datetime_format: lib.NoDefault | bool = lib.no_default,
     origin: str = "unix",
     cache: bool = True,
 ) -> DatetimeIndex | Series | DatetimeScalar | NaTType | None:
@@ -801,6 +801,11 @@ def to_datetime(
         of the datetime strings based on the first non-NaN element,
         and if it can be inferred, switch to a faster method of parsing them.
         In some cases this can increase the parsing speed by ~5-10x.
+
+        .. deprecated:: 2.0.0
+            A strict version of this argument is now the default, passing it has
+            no effect.
+
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.
@@ -916,24 +921,6 @@ def to_datetime(
     1   2016-03-05
     dtype: datetime64[ns]
 
-    Passing ``infer_datetime_format=True`` can often-times speedup a parsing
-    if its not an ISO8601 format exactly, but in a regular format.
-
-    >>> s = pd.Series(['3/11/2000', '3/12/2000', '3/13/2000'] * 1000)
-    >>> s.head()
-    0    3/11/2000
-    1    3/12/2000
-    2    3/13/2000
-    3    3/11/2000
-    4    3/12/2000
-    dtype: object
-
-    >>> %timeit pd.to_datetime(s, infer_datetime_format=True)  # doctest: +SKIP
-    100 loops, best of 3: 10.4 ms per loop
-
-    >>> %timeit pd.to_datetime(s, infer_datetime_format=False)  # doctest: +SKIP
-    1 loop, best of 3: 471 ms per loop
-
     Using a unix epoch time
 
     >>> pd.to_datetime(1490195805, unit='s')
@@ -982,7 +969,7 @@ def to_datetime(
 
     - Timezone-naive inputs are converted to timezone-naive :class:`DatetimeIndex`:
 
-    >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 13:00:15'])
+    >>> pd.to_datetime(['2018-10-26 12:00:00', '2018-10-26 13:00:15'])
     DatetimeIndex(['2018-10-26 12:00:00', '2018-10-26 13:00:15'],
                   dtype='datetime64[ns]', freq=None)
 
@@ -1008,7 +995,7 @@ def to_datetime(
       are constant:
 
     >>> from datetime import datetime
-    >>> pd.to_datetime(["2020-01-01 01:00 -01:00", datetime(2020, 1, 1, 3, 0)])
+    >>> pd.to_datetime(["2020-01-01 01:00:00-01:00", datetime(2020, 1, 1, 3, 0)])
     DatetimeIndex(['2020-01-01 01:00:00-01:00', '2020-01-01 02:00:00-01:00'],
                   dtype='datetime64[ns, UTC-01:00]', freq=None)
 
@@ -1030,19 +1017,22 @@ def to_datetime(
     DatetimeIndex(['2018-10-26 17:30:00+00:00', '2018-10-26 17:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
 
-    - Inputs can contain both naive and aware, string or datetime, the above
+    - Inputs can contain both string or datetime, the above
       rules still apply
 
-    >>> from datetime import timezone, timedelta
-    >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 12:00 -0530',
-    ...                datetime(2020, 1, 1, 18),
-    ...                datetime(2020, 1, 1, 18,
-    ...                tzinfo=timezone(-timedelta(hours=1)))],
-    ...                utc=True)
-    DatetimeIndex(['2018-10-26 12:00:00+00:00', '2018-10-26 17:30:00+00:00',
-                   '2020-01-01 18:00:00+00:00', '2020-01-01 19:00:00+00:00'],
+    >>> pd.to_datetime(['2018-10-26 12:00', datetime(2020, 1, 1, 18)], utc=True)
+    DatetimeIndex(['2018-10-26 12:00:00+00:00', '2020-01-01 18:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
     """
+    if infer_datetime_format is not lib.no_default:
+        warnings.warn(
+            "The argument 'infer_datetime_format' is deprecated and will "
+            "be removed in a future version. "
+            "A strict version of it is now the default, see "
+            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
+            "You can safely remove this argument.",
+            stacklevel=find_stack_level(),
+        )
     if arg is None:
         return None
 
@@ -1057,7 +1047,6 @@ def to_datetime(
         yearfirst=yearfirst,
         errors=errors,
         exact=exact,
-        infer_datetime_format=infer_datetime_format,
     )
     # pylint: disable-next=used-before-assignment
     result: Timestamp | NaTType | Series | Index
