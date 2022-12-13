@@ -23,7 +23,7 @@ import warnings
 
 import numpy as np
 
-import pandas.api.types
+
 from pandas._config import get_option
 
 from pandas._libs import (
