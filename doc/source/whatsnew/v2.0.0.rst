@@ -76,6 +76,7 @@ Other enhancements
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
 - Added support for extension array dtypes in :func:`merge` (:issue:`44240`)
 - Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
+- Added ``cumsum``, ``cumprod``, ``cummin`` and ``cummax`` to the ``ExtensionArray`` interface via ``_accumulate`` (:issue:`28385`)
 - :class:`.CategoricalConversionWarning`, :class:`.InvalidComparison`, :class:`.InvalidVersion`, :class:`.LossySetitemError`, and :class:`.NoBufferPresent` are now exposed in ``pandas.errors`` (:issue:`27656`)
 - Fix ``test`` optional_extra by adding missing test package ``pytest-asyncio`` (:issue:`48361`)
 - :func:`DataFrame.astype` exception message thrown improved to include column name when type conversion is not possible. (:issue:`47571`)
