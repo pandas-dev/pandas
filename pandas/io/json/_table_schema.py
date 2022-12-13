@@ -249,7 +249,7 @@ def build_table_schema(
 
     Returns
     -------
-    schema : dict
+    dict
 
     Notes
     -----
