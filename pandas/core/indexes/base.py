@@ -2266,7 +2266,7 @@ class Index(IndexOpsMixin, PandasObject):
         The Index may consist of only floats, NaNs, or a mix of floats,
         integers, or NaNs.
 
-        ..deprecated:: 2.0.0
+        .. deprecated:: 2.0.0
             Use `pandas.api.types.is_float_dtype` instead
 
         Returns
