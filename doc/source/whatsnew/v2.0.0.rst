@@ -453,7 +453,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- :meth:`Index.is_categorical` has been deprecated. Use :func:`pandas.api.types.is_categorical_dtype` instead (:issue:`50042`)
 
 .. ---------------------------------------------------------------------------
 
