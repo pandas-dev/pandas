@@ -1,0 +1,1 @@
+"{\"schema\":{\"fields\":[{\"name\":\"index\",\"type\":\"integer\"},{\"name\":\"a\",\"type\":\"number\"},{\"name\":\"b\",\"type\":\"number\"}],\"primaryKey\":[\"index\"],\"pandas_version\":\"1.4.0\"},\"data\":[{\"index\":0,\"a\":{\"imag\":2.0,\"real\":1.0},\"b\":{\"imag\":6.0,\"real\":5.0}},{\"index\":1,\"a\":{\"imag\":4.0,\"real\":3.0},\"b\":{\"imag\":8.0,\"real\":7.0}}]}"
