@@ -29,6 +29,7 @@ Bug fixes
 - Bug in :meth:`.Styler.to_excel` leading to error when unrecognized ``border-style`` (e.g. ``"hair"``) provided to Excel writers (:issue:`48649`)
 - Bug when chaining several :meth:`.Styler.concat` calls, only the last styler was concatenated (:issue:`49207`)
 - Fixed bug when instantiating a :class:`DataFrame` subclass inheriting from ``typing.Generic`` that triggered a ``UserWarning`` on python 3.11 (:issue:`49649`)
+- :class:`Period` now raises a warning when created with data that contains timezone information. This is necessary because :class:`Period`, :class:`PeriodArray` and :class:`PeriodIndex` do not support timezones and hence drop any timezone information used when creating them. (:issue:`47005`)
 -
 
 .. ---------------------------------------------------------------------------
