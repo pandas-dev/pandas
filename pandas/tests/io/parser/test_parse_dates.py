@@ -10,6 +10,7 @@ from datetime import (
     timezone,
 )
 from io import StringIO
+import warnings
 
 from dateutil.parser import parse as du_parse
 from hypothesis import given
@@ -1664,16 +1665,16 @@ def test_invalid_parse_delimited_date(all_parsers, date_string):
     "date_string,dayfirst,expected",
     [
         # %d/%m/%Y; month > 12 thus replacement
-        ("13/02/2019", False, datetime(2019, 2, 13)),
         ("13/02/2019", True, datetime(2019, 2, 13)),
         # %m/%d/%Y; day > 12 thus there will be no replacement
         ("02/13/2019", False, datetime(2019, 2, 13)),
-        ("02/13/2019", True, datetime(2019, 2, 13)),
         # %d/%m/%Y; dayfirst==True thus replacement
         ("04/02/2019", True, datetime(2019, 2, 4)),
     ],
 )
-def test_parse_delimited_date_swap(all_parsers, date_string, dayfirst, expected):
+def test_parse_delimited_date_swap_no_warning(
+    all_parsers, date_string, dayfirst, expected
+):
     parser = all_parsers
     expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
     result = parser.read_csv(
@@ -1750,9 +1751,11 @@ def test_hypothesis_delimited_date(
         )
     date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
 
-    except_out_dateutil, result = _helper_hypothesis_delimited_date(
-        parse_datetime_string, date_string, dayfirst=dayfirst
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning)
+        except_out_dateutil, result = _helper_hypothesis_delimited_date(
+            parse_datetime_string, date_string, dayfirst=dayfirst
+        )
     except_in_dateutil, expected = _helper_hypothesis_delimited_date(
         du_parse,
         date_string,
