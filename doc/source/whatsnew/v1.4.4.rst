@@ -46,7 +46,6 @@ Bug fixes
 - Bug in :meth:`.DataFrameGroupBy.value_counts` where ``subset`` had no effect (:issue:`46383`)
 - Bug when getting values with :meth:`DataFrame.loc` with a list of keys causing an internal inconsistency that could lead to a disconnect between ``frame.at[x, y]`` vs ``frame[y].loc[x]`` (:issue:`22372`)
 - Bug in the :meth:`Series.dt.strftime` accessor return a float instead of object dtype Series for all-NaT input, which also causes a spurious deprecation warning (:issue:`45858`)
-- :class:`Period` now raises a warning when created with data that contains timezone information. This is necessary because :class:`Period`, :class:`PeriodArray` and :class:`PeriodIndex` do not support timezones and hence drop any timezone information used when creating them. (:issue:`47005`)
 
 .. ---------------------------------------------------------------------------
 
