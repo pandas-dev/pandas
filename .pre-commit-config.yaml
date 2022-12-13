@@ -1,7 +1,17 @@
 minimum_pre_commit_version: 2.15.0
 exclude: ^LICENSES/|\.(html|csv|svg)$
-# reserve "manual" for mypy and pyright
-default_stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
+# reserve "manual" for relatively slow hooks which we still want to run in CI
+default_stages: [
+    commit,
+    merge-commit,
+    push,
+    prepare-commit-msg,
+    commit-msg,
+    post-checkout,
+    post-commit,
+    post-merge,
+    post-rewrite
+]
 ci:
     autofix_prs: false
 repos:
@@ -34,9 +44,11 @@ repos:
     -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
-        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
+        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg,
+                 post-checkout, post-commit, post-merge, post-rewrite]
     -   id: trailing-whitespace
-        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
+        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg,
+                 post-checkout, post-commit, post-merge, post-rewrite]
 -   repo: https://github.com/cpplint/cpplint
     rev: 1.6.1
     hooks:
@@ -46,7 +58,13 @@ repos:
         # this particular codebase (e.g. src/headers, src/klib). However,
         # we can lint all header files since they aren't "generated" like C files are.
         exclude: ^pandas/_libs/src/(klib|headers)/
-        args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
+        args: [
+            --quiet,
+            '--extensions=c,h',
+            '--headers=h',
+            --recursive,
+            '--filter=-readability/casting,-runtime/int,-build/include_subdir'
+        ]
 -   repo: https://github.com/PyCQA/flake8
     rev: 6.0.0
     hooks:
@@ -107,6 +125,7 @@ repos:
     hooks:
     -   id: yesqa
         additional_dependencies: *flake8_dependencies
+        stages: [manual]
 -   repo: local
     hooks:
     # NOTE: we make `black` a local hook because if it's installed from
@@ -214,7 +233,6 @@ repos:
         exclude: ^pandas/tests/extension/base/base\.py
     -   id: pip-to-conda
         name: Generate pip dependency from conda
-        description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
         language: python
         entry: python scripts/generate_pip_deps_from_conda.py
         files: ^(environment.yml|requirements-dev.txt)$
@@ -311,6 +329,7 @@ repos:
         files: ^pandas
         exclude: ^(pandas/tests|pandas/_version.py|pandas/io/clipboard)
         language: python
+        stages: [manual]
         additional_dependencies:
         - autotyping==22.9.0
         - libcst==0.4.7

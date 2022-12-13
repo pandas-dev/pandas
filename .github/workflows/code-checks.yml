@@ -39,8 +39,8 @@ jobs:
       with:
         extra_args: --verbose --all-files
 
-  docstring_typing_pylint:
-    name: Docstring validation, typing, and pylint
+  docstring_typing_manual_hooks:
+    name: Docstring validation, typing, and other manual pre-commit hooks
     runs-on: ubuntu-22.04
     defaults:
       run:
