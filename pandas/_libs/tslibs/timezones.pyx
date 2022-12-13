@@ -27,13 +27,9 @@ from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
     tzutc as _dateutil_tzutc,
 )
+import numpy as np
 import pytz
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
-
-UTC = pytz.utc
-
-
-import numpy as np
 
 cimport numpy as cnp
 from numpy cimport int64_t
@@ -49,7 +45,7 @@ from pandas._libs.tslibs.util cimport (
 
 cdef int64_t NPY_NAT = get_nat()
 cdef tzinfo utc_stdlib = timezone.utc
-cdef tzinfo utc_pytz = UTC
+cdef tzinfo utc_pytz = pytz.utc
 cdef tzinfo utc_dateutil_str = dateutil_gettz("UTC")  # NB: *not* the same as tzutc()
 
 cdef tzinfo utc_zoneinfo = None
@@ -168,10 +164,12 @@ cpdef inline tzinfo maybe_get_tz(object tz):
             hours = int(tz[3:6])
             minutes = int(tz[3] + tz[7:9])
             tz = timezone(timedelta(hours=hours, minutes=minutes))
+        elif tz == "UTC" or tz == "utc":
+            tz = utc_stdlib
         else:
             tz = pytz.timezone(tz)
     elif is_integer_object(tz):
-        tz = pytz.FixedOffset(tz / 60)
+        tz = timezone(timedelta(seconds=tz))
     elif isinstance(tz, tzinfo):
         pass
     elif tz is None:

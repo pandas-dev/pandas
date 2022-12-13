@@ -2312,6 +2312,7 @@ useful if you are reading in data which is mostly of the desired dtype (e.g. num
 non-conforming elements intermixed that you want to represent as missing:
 
 .. ipython:: python
+   :okwarning:
 
     import datetime
 
@@ -2328,6 +2329,7 @@ The ``errors`` parameter has a third option of ``errors='ignore'``, which will s
 encounters any errors with the conversion to a desired data type:
 
 .. ipython:: python
+    :okwarning:
 
     import datetime
 
