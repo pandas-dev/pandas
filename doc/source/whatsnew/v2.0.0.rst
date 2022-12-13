@@ -417,6 +417,38 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
+Datetimes are now parsed with a consistent format
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the past, :func:`to_datetime` guessed the format for each element independently. This was appropriate for some cases where elements had mixed date formats - however, it would regularly cause problems when users expected a consistent format but the function would switch formats between elements. As of version 2.0.0, parsing will use a consistent format, determined by the first non-NA value (unless the user specifies a format, in which case that is used).
+
+*Old behavior*:
+
+  .. code-block:: ipython
+
+     In [1]: ser = pd.Series(['13-01-2000', '12-01-2000'])
+     In [2]: pd.to_datetime(ser)
+     Out[2]:
+     0   2000-01-13
+     1   2000-12-01
+     dtype: datetime64[ns]
+
+*New behavior*:
+
+  .. ipython:: python
+    :okwarning:
+
+     ser = pd.Series(['13-01-2000', '12-01-2000'])
+     pd.to_datetime(ser)
+
+Note that this affects :func:`read_csv` as well.
+
+If you still need to parse dates with inconsistent formats, you'll need to apply :func:`to_datetime`
+to each element individually, e.g. ::
+
+     ser = pd.Series(['13-01-2000', '12 January 2000'])
+     ser.apply(pd.to_datetime)
+
 .. _whatsnew_200.api_breaking.other:
 
 Other API changes
@@ -459,7 +491,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated argument ``infer_datetime_format`` in :func:`to_datetime` and :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
 
 .. ---------------------------------------------------------------------------
 
@@ -834,6 +866,7 @@ I/O
 - Improved error message in :func:`read_excel` by including the offending sheet name when an exception is raised while reading a file (:issue:`48706`)
 - Bug when a pickling a subset PyArrow-backed data that would serialize the entire data instead of the subset (:issue:`42600`)
 - Bug in :func:`read_csv` for a single-line csv with fewer columns than ``names`` raised :class:`.errors.ParserError` with ``engine="c"`` (:issue:`47566`)
+- Bug in displaying ``string`` dtypes not showing storage option (:issue:`50099`)
 - Bug in :func:`DataFrame.to_string` with ``header=False`` that printed the index name on the same line as the first row of the data (:issue:`49230`)
 - Fixed memory leak which stemmed from the initialization of the internal JSON module (:issue:`49222`)
 - Fixed issue where :func:`json_normalize` would incorrectly remove leading characters from column names that matched the ``sep`` argument (:issue:`49861`)

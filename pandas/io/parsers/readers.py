@@ -247,6 +247,10 @@ infer_datetime_format : bool, default False
     format of the datetime strings in the columns, and if it can be inferred,
     switch to a faster method of parsing them. In some cases this can increase
     the parsing speed by 5-10x.
+
+    .. deprecated:: 2.0.0
+        A strict version of this argument is now the default, passing it has no effect.
+
 keep_date_col : bool, default False
     If True and `parse_dates` specifies combining multiple columns then
     keep the original columns.
@@ -450,7 +454,6 @@ _pyarrow_unsupported = {
     "decimal",
     "iterator",
     "dayfirst",
-    "infer_datetime_format",
     "verbose",
     "skipinitialspace",
     "low_memory",
@@ -608,7 +611,7 @@ def read_csv(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -664,7 +667,7 @@ def read_csv(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -720,7 +723,7 @@ def read_csv(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -776,7 +779,7 @@ def read_csv(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -844,7 +847,7 @@ def read_csv(
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
-    infer_datetime_format: bool = False,
+    infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     keep_date_col: bool = False,
     date_parser=None,
     dayfirst: bool = False,
@@ -875,6 +878,15 @@ def read_csv(
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool = False,
 ) -> DataFrame | TextFileReader:
+    if infer_datetime_format is not lib.no_default:
+        warnings.warn(
+            "The argument 'infer_datetime_format' is deprecated and will "
+            "be removed in a future version. "
+            "A strict version of it is now the default, see "
+            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
+            "You can safely remove this argument.",
+            stacklevel=find_stack_level(),
+        )
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -921,7 +933,7 @@ def read_table(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -977,7 +989,7 @@ def read_table(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -1033,7 +1045,7 @@ def read_table(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -1089,7 +1101,7 @@ def read_table(
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
-    infer_datetime_format: bool = ...,
+    infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser=...,
     dayfirst: bool = ...,
@@ -1157,7 +1169,7 @@ def read_table(
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] = False,
-    infer_datetime_format: bool = False,
+    infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     keep_date_col: bool = False,
     date_parser=None,
     dayfirst: bool = False,
@@ -1738,10 +1750,6 @@ def TextParser(*args, **kwds) -> TextFileReader:
         transformed content.
     encoding : str, optional
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
-    infer_datetime_format: bool, default False
-        If True and `parse_dates` is True for a column, try to infer the
-        datetime format based on the first datetime string. If the format
-        can be inferred, there often will be a large parsing speed-up.
     float_precision : str, optional
         Specifies which converter the C engine should use for floating-point
         values. The options are `None` or `high` for the ordinary converter,

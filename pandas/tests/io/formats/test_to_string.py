@@ -5,6 +5,8 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     Series,
@@ -337,4 +339,21 @@ def test_to_string_na_rep_and_float_format(na_rep):
 def test_to_string_max_rows_zero(data, expected):
     # GH35394
     result = DataFrame(data=data).to_string(max_rows=0)
+    assert result == expected
+
+
+@td.skip_if_no("pyarrow")
+def test_to_string_string_dtype():
+    # GH#50099
+    df = DataFrame({"x": ["foo", "bar", "baz"], "y": ["a", "b", "c"], "z": [1, 2, 3]})
+    df = df.astype(
+        {"x": "string[pyarrow]", "y": "string[python]", "z": "int64[pyarrow]"}
+    )
+    result = df.dtypes.to_string()
+    expected = dedent(
+        """\
+        x    string[pyarrow]
+        y     string[python]
+        z     int64[pyarrow]"""
+    )
     assert result == expected

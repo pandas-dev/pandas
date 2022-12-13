@@ -300,6 +300,10 @@ def array_with_unit_to_datetime(
             iresult = values.astype("i8", copy=False)
             # fill missing values by comparing to NPY_NAT
             mask = iresult == NPY_NAT
+            # Trying to Convert NaN to integer results in undefined
+            # behaviour, so handle it explicitly (see GH #48705)
+            if values.dtype.kind == "f":
+                mask |= values != values
             iresult[mask] = 0
             fvalues = iresult.astype("f8") * mult
             need_to_iterate = False

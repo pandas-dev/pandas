@@ -141,7 +141,7 @@ def read_pickle(
 
     Returns
     -------
-    unpickled : same type as object stored in file
+    same type as object stored in file
 
     See Also
     --------

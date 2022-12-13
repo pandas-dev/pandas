@@ -428,7 +428,7 @@ def merge_asof(
 
     Returns
     -------
-    merged : DataFrame
+    DataFrame
 
     See Also
     --------
