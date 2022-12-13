@@ -677,6 +677,8 @@ Removal of prior version deprecations/changes
 - Changed default of ``numeric_only`` to ``False`` in :class:`.Resampler` methods (:issue:`47177`)
 - Using the method :meth:`DataFrameGroupBy.transform` with a callable that returns DataFrames will align to the input's index (:issue:`47244`)
 - When providing a list of columns of length one to :meth:`DataFrame.groupby`, the keys that are returned by iterating over the resulting :class:`DataFrameGroupBy` object will now be tuples of length one (:issue:`47761`)
+- Removed deprecated methods :meth:`ExcelWriter.write_cells`, :meth:`ExcelWriter.save`, :meth:`ExcelWriter.cur_sheet`, :meth:`ExcelWriter.handles`, :meth:`ExcelWriter.path` (:issue:`45795`)
+- The :class:`ExcelWriter` attribute ``book`` can no longer be set; it is still available to be accessed and mutated (:issue:`48943`)
 -
 
 .. ---------------------------------------------------------------------------
