@@ -858,36 +858,11 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 f"The engine type {self.engine} is currently not supported."
             )
 
+        data = self._get_data_from_filepath(filepath_or_buffer)
         if self.engine == "pyarrow":
-            self._engine = self._make_engine(filepath_or_buffer)
+            self.data = ArrowJsonParserWrapper(filepath_or_buffer)
         elif self.engine == "ujson":
-            data = self._get_data_from_filepath(filepath_or_buffer)
             self.data = self._preprocess_data(data)
-
-    def _make_engine(
-        self,
-        filepath_or_buffer: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
-    ) -> ArrowJsonParserWrapper:
-
-        if not isinstance(filepath_or_buffer, list):
-            is_text = False
-            mode = "rb"
-            self.handles = get_handle(
-                self._get_data_from_filepath(filepath_or_buffer),
-                mode=mode,
-                encoding=self.encoding,
-                is_text=is_text,
-                compression=self.compression,
-                storage_options=self.storage_options,
-                errors=self.encoding_errors,
-            )
-            filepath_or_buffer = self.handles.handle
-
-        try:
-            return ArrowJsonParserWrapper(filepath_or_buffer)
-        finally:
-            if self.handles is not None:
-                self.handles.close()
 
     def _preprocess_data(self, data):
         """
@@ -973,7 +948,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         obj: DataFrame | Series
         with self:
             if self.engine == "pyarrow":
-                obj = self._engine.read()
+                obj = self.data.read()
             if self.engine == "ujson":
                 if self.lines:
                     if self.chunksize:
