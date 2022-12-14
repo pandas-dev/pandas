@@ -531,7 +531,7 @@ def assert_interval_array_equal(
 def assert_period_array_equal(left, right, obj: str = "PeriodArray") -> None:
     _check_isinstance(left, right, PeriodArray)
 
-    assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
+    assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
     assert_attr_equal("freq", left, right, obj=obj)
 
 
@@ -541,7 +541,7 @@ def assert_datetime_array_equal(
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
-    assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
+    assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
     if check_freq:
         assert_attr_equal("freq", left, right, obj=obj)
     assert_attr_equal("tz", left, right, obj=obj)
@@ -552,7 +552,7 @@ def assert_timedelta_array_equal(
 ) -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
-    assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
+    assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
     if check_freq:
         assert_attr_equal("freq", left, right, obj=obj)
 
@@ -571,20 +571,12 @@ def raise_assert_detail(
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif (
-        isinstance(left, CategoricalDtype)
-        or isinstance(left, PandasDtype)
-        or isinstance(left, StringDtype)
-    ):
+    elif isinstance(left, (CategoricalDtype, PandasDtype, StringDtype)):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif (
-        isinstance(right, CategoricalDtype)
-        or isinstance(right, PandasDtype)
-        or isinstance(right, StringDtype)
-    ):
+    elif isinstance(right, (CategoricalDtype, PandasDtype, StringDtype)):
         right = repr(right)
 
     msg += f"""
@@ -885,7 +877,7 @@ def assert_series_equal(
         )
 
     if check_like:
-        left, right = left.reindex_like(right), right
+        left = left.reindex_like(right)
 
     if check_freq and isinstance(left.index, (DatetimeIndex, TimedeltaIndex)):
         lidx = left.index
@@ -1167,7 +1159,7 @@ def assert_frame_equal(
     )
 
     if check_like:
-        left, right = left.reindex_like(right), right
+        left = left.reindex_like(right)
 
     # compare by blocks
     if by_blocks:

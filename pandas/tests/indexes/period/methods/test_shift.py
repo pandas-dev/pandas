@@ -66,7 +66,7 @@ class TestPeriodIndexShift:
         # GH#9903
         idx = PeriodIndex([], name="xxx", freq="H")
 
-        msg = "`freq` argument is not supported for PeriodArray._time_shift"
+        msg = "`freq` argument is not supported for PeriodIndex.shift"
         with pytest.raises(TypeError, match=msg):
             # period shift doesn't accept freq
             idx.shift(1, freq="H")

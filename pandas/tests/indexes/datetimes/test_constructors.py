@@ -37,6 +37,14 @@ if PY39:
 
 
 class TestDatetimeIndex:
+    def test_from_dt64_unsupported_unit(self):
+        # GH#49292
+        val = np.datetime64(1, "D")
+        result = DatetimeIndex([val], tz="US/Pacific")
+
+        expected = DatetimeIndex([val.astype("M8[s]")], tz="US/Pacific")
+        tm.assert_index_equal(result, expected)
+
     def test_explicit_tz_none(self):
         # GH#48659
         dti = date_range("2016-01-01", periods=10, tz="UTC")
@@ -627,7 +635,7 @@ class TestDatetimeIndex:
 
     @pytest.mark.parametrize("freq", ["AS", "W-SUN"])
     def test_constructor_datetime64_tzformat(self, freq):
-        # see GH#6572: ISO 8601 format results in pytz.FixedOffset
+        # see GH#6572: ISO 8601 format results in stdlib timezone object
         idx = date_range(
             "2013-01-01T00:00:00-05:00", "2016-01-01T23:59:59-05:00", freq=freq
         )
@@ -635,7 +643,7 @@ class TestDatetimeIndex:
             "2013-01-01T00:00:00",
             "2016-01-01T23:59:59",
             freq=freq,
-            tz=pytz.FixedOffset(-300),
+            tz=timezone(timedelta(minutes=-300)),
         )
         tm.assert_index_equal(idx, expected)
         # Unable to use `US/Eastern` because of DST
@@ -651,7 +659,7 @@ class TestDatetimeIndex:
             "2013-01-01T00:00:00",
             "2016-01-01T23:59:59",
             freq=freq,
-            tz=pytz.FixedOffset(540),
+            tz=timezone(timedelta(minutes=540)),
         )
         tm.assert_index_equal(idx, expected)
         expected_i8 = date_range(
@@ -665,7 +673,7 @@ class TestDatetimeIndex:
             "2013-01-01T00:00:00",
             "2016-01-01T23:59:59",
             freq=freq,
-            tz=pytz.FixedOffset(-300),
+            tz=timezone(timedelta(minutes=-300)),
         )
         tm.assert_index_equal(idx, expected)
         # Unable to use `US/Eastern` because of DST
@@ -679,7 +687,7 @@ class TestDatetimeIndex:
             "2013-01-01T00:00:00",
             "2016-01-01T23:59:59",
             freq=freq,
-            tz=pytz.FixedOffset(540),
+            tz=timezone(timedelta(minutes=540)),
         )
         tm.assert_index_equal(idx, expected)
         expected_i8 = date_range(
@@ -872,10 +880,16 @@ class TestDatetimeIndex:
         result = date_range(end=end, periods=2, ambiguous=False)
         tm.assert_index_equal(result, expected)
 
-    def test_constructor_with_nonexistent_keyword_arg(self):
+    def test_constructor_with_nonexistent_keyword_arg(self, warsaw, request):
         # GH 35297
+        if type(warsaw).__name__ == "ZoneInfo":
+            mark = pytest.mark.xfail(
+                reason="nonexistent-shift not yet implemented for ZoneInfo",
+                raises=NotImplementedError,
+            )
+            request.node.add_marker(mark)
 
-        timezone = "Europe/Warsaw"
+        timezone = warsaw
 
         # nonexistent keyword in start
         start = Timestamp("2015-03-29 02:30:00").tz_localize(
@@ -912,6 +926,7 @@ class TestDatetimeIndex:
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(["2000"], dtype="datetime64")
 
+        msg = "The 'datetime64' dtype has no unit. Please pass in"
         with pytest.raises(ValueError, match=msg):
             Index(["2000"], dtype="datetime64")
 
@@ -1045,19 +1060,13 @@ class TestTimeSeries:
         arr = np.array(["1/1/2005", "1/2/2005", "1/3/2005", "2005-01-04"], dtype="O")
         idx4 = DatetimeIndex(arr)
 
-        arr = to_datetime(["1/1/2005", "1/2/2005", "1/3/2005", "2005-01-04"])
-        idx5 = DatetimeIndex(arr)
-
-        arr = to_datetime(["1/1/2005", "1/2/2005", "Jan 3, 2005", "2005-01-04"])
-        idx6 = DatetimeIndex(arr)
-
-        idx7 = DatetimeIndex(["12/05/2007", "25/01/2008"], dayfirst=True)
-        idx8 = DatetimeIndex(
+        idx5 = DatetimeIndex(["12/05/2007", "25/01/2008"], dayfirst=True)
+        idx6 = DatetimeIndex(
             ["2007/05/12", "2008/01/25"], dayfirst=False, yearfirst=True
         )
-        tm.assert_index_equal(idx7, idx8)
+        tm.assert_index_equal(idx5, idx6)
 
-        for other in [idx2, idx3, idx4, idx5, idx6]:
+        for other in [idx2, idx3, idx4]:
             assert (idx1.values == other.values).all()
 
         sdate = datetime(1999, 12, 25)
@@ -1189,8 +1198,8 @@ def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
 @pytest.mark.parametrize(
     "ts_input,fold,value_out",
     [
-        (datetime(2019, 10, 27, 1, 30, 0, 0), 0, 1572136200000000000),
-        (datetime(2019, 10, 27, 1, 30, 0, 0), 1, 1572139800000000000),
+        (datetime(2019, 10, 27, 1, 30, 0, 0), 0, 1572136200000000),
+        (datetime(2019, 10, 27, 1, 30, 0, 0), 1, 1572139800000000),
     ],
 )
 def test_timestamp_constructor_adjust_value_for_fold(tz, ts_input, fold, value_out):

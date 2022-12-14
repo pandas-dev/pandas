@@ -87,7 +87,7 @@ class TestPandasDelegate:
 
         msg = "You cannot access the property prop"
         with pytest.raises(TypeError, match=msg):
-            delegate.prop()
+            delegate.prop
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self):

@@ -671,12 +671,8 @@ class String:
         ["str", "string[python]"],
         [
             "sum",
-            "prod",
             "min",
             "max",
-            "mean",
-            "median",
-            "var",
             "first",
             "last",
             "any",

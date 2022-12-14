@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Series
-from pandas.core import strings as strings
+from pandas.core import strings
 
 _any_string_method = [
     ("cat", (), {"sep": ","}),
