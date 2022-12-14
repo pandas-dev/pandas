@@ -1056,7 +1056,10 @@ def convert_dtypes(
             elif (
                 infer_objects
                 and is_object_dtype(input_array.dtype)
-                and inferred_dtype == "mixed-integer-float"
+                and (
+                    isinstance(inferred_dtype, str)
+                    and inferred_dtype == "mixed-integer-float"
+                )
             ):
                 inferred_dtype = pandas_dtype_func("Float64")
 
@@ -1085,7 +1088,10 @@ def convert_dtypes(
         elif isinstance(inferred_dtype, StringDtype):
             base_dtype = np.dtype(str)
         else:
-            base_dtype = inferred_dtype
+            # error: Incompatible types in assignment (expression has type
+            # "Union[str, Any, dtype[Any], ExtensionDtype]",
+            # variable has type "Union[dtype[Any], ExtensionDtype, None]")
+            base_dtype = inferred_dtype  # type: ignore[assignment]
         pa_type = to_pyarrow_type(base_dtype)
         if pa_type is not None:
             inferred_dtype = ArrowDtype(pa_type)
