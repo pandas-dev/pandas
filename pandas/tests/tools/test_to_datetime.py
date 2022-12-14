@@ -2019,17 +2019,13 @@ class TestToDatetimeMisc:
         assert result == expected
 
     @td.skip_if_not_us_locale
-    def test_to_datetime_with_apply_with_empty_str(self, cache):
+    @pytest.mark.parametrize("errors", ["raise", "coerce", "ignore"])
+    def test_to_datetime_with_apply_with_empty_str(self, cache, errors):
         # this is only locale tested with US/None locales
-        # GH 5195
+        # GH 5195, GH50251
         # with a format and coerce a single item to_datetime fails
         td = Series(["May 04", "Jun 02", ""], index=[1, 2, 3])
-        msg = r"time data '' does not match format '%b %y' \(match\)"
-        with pytest.raises(ValueError, match=msg):
-            to_datetime(td, format="%b %y", errors="raise", cache=cache)
-        with pytest.raises(ValueError, match=msg):
-            td.apply(to_datetime, format="%b %y", errors="raise", cache=cache)
-        expected = to_datetime(td, format="%b %y", errors="coerce", cache=cache)
+        expected = to_datetime(td, format="%b %y", errors=errors, cache=cache)
 
         result = td.apply(
             lambda x: to_datetime(x, format="%b %y", errors="coerce", cache=cache)
@@ -2976,23 +2972,16 @@ def test_na_to_datetime(nulls_fixture, klass):
         assert result[0] is NaT
 
 
-def test_empty_string_datetime_coerce_format():
-    # GH13044
+@pytest.mark.parametrize("errors", ["raise", "coerce", "ignore"])
+def test_empty_string_datetime_coerce_format(errors):
+    # GH13044, GH50251
     td = Series(["03/24/2016", "03/25/2016", ""])
     format = "%m/%d/%Y"
 
     # coerce empty string to pd.NaT
-    result = to_datetime(td, format=format, errors="coerce")
+    result = to_datetime(td, format=format, errors=errors)
     expected = Series(["2016-03-24", "2016-03-25", NaT], dtype="datetime64[ns]")
     tm.assert_series_equal(expected, result)
-
-    # raise an exception in case a format is given
-    with pytest.raises(ValueError, match="does not match format"):
-        to_datetime(td, format=format, errors="raise")
-
-    # still raise an exception in case no format is given
-    with pytest.raises(ValueError, match="does not match format"):
-        to_datetime(td, errors="raise")
 
 
 def test_empty_string_datetime_coerce__unit():
