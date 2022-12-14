@@ -22,6 +22,8 @@ from urllib.parse import quote_plus
 from pandas._typing import (
     FilePath,
     ReadBuffer,
+    BaseBufferT,
+    Union
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
@@ -1203,7 +1205,9 @@ def read_html(
     io = stringify_path(io)
 
     if is_url(io):
+        io = cast(str, io)
         io = quote_plus(io, "/:?=&")
+        io = cast(Union(FilePath, BaseBufferT), io)
 
     return _parse(
         flavor=flavor,
