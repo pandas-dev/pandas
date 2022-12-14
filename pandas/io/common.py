@@ -40,6 +40,7 @@ from urllib.parse import (
     uses_netloc,
     uses_params,
     uses_relative,
+    quote_plus,
 )
 import warnings
 import zipfile

@@ -268,6 +268,10 @@ def can_connect(url, error_classes=None) -> bool:
         error_classes = _get_default_network_errors()
 
     try:
+        from urllib.parse import quote_plus
+
+        url = quote_plus(url, "/:?=&")
+
         with urlopen(url, timeout=20) as response:
             # Timeout just in case rate-limiting is applied
             if response.status != 200:

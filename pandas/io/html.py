@@ -1201,6 +1201,10 @@ def read_html(
 
     io = stringify_path(io)
 
+    if is_url(io):
+        from urllib.parse import quote_plus
+        io = quote_plus(io, "/:?=&")
+
     return _parse(
         flavor=flavor,
         io=io,
