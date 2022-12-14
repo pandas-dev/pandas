@@ -20,10 +20,10 @@ from typing import (
 from urllib.parse import quote_plus
 
 from pandas._typing import (
+    BaseBuffer,
     FilePath,
     ReadBuffer,
-    BaseBuffer,
-    Union
+    Union,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
