@@ -1113,7 +1113,7 @@ class Window(BaseWindow):
 
     **on**
 
-    Rolling sum with a window length of 2 on specific columon.
+    Rolling sum with a window length of 2 days.
 
     >>> df = pd.DataFrame({
     ...     'A': [pd.to_datetime('2020-01-01'),
@@ -1128,13 +1128,7 @@ class Window(BaseWindow):
     2020-01-02 2020-01-01  2
     2020-01-03 2020-01-02  3
 
-    >>> df['B'].rolling('2D').sum()  # to avoid warning when sum on 'A'
-    2020-01-01    1.0
-    2020-01-02    3.0
-    2020-01-03    5.0
-    Freq: D, Name: B, dtype: float64
-
-    >>> df.rolling('2D', on='A').sum()   # value of 'B' differs from above
+    >>> df.rolling('2D', on='A').sum()
                         A    B
     2020-01-01 2020-01-01  1.0
     2020-01-02 2020-01-01  3.0
