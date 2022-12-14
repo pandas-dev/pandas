@@ -57,6 +57,11 @@ def dtype(request):
 
 
 @pytest.fixture
+def nullable_string_dtype():
+    return ArrowDtype(pa.string())
+
+
+@pytest.fixture
 def data(dtype):
     pa_dtype = dtype.pyarrow_dtype
     if pa.types.is_boolean(pa_dtype):
@@ -1421,3 +1426,95 @@ def test_astype_from_non_pyarrow(data):
     assert not isinstance(pd_array.dtype, ArrowDtype)
     assert isinstance(result.dtype, ArrowDtype)
     tm.assert_extension_array_equal(result, data)
+
+
+@pytest.mark.filterwarnings("ignore:Falling back")
+def test_string_array(nullable_string_dtype, any_string_method):
+    method_name, args, kwargs = any_string_method
+
+    data = ["a", "bb", np.nan, "ccc"]
+    a = pd.Series(data, dtype=object)
+    b = pd.Series(data, dtype=nullable_string_dtype)
+
+    if method_name == "decode":
+        with pytest.raises(TypeError, match="a bytes-like object is required"):
+            getattr(b.str, method_name)(*args, **kwargs)
+        return
+
+    expected = getattr(a.str, method_name)(*args, **kwargs)
+    result = getattr(b.str, method_name)(*args, **kwargs)
+
+    if isinstance(expected, pd.Series):
+        # if expected.dtype == "object" and lib.is_string_array(
+        #     expected.dropna().values,
+        # ):
+        #     assert result.dtype == nullable_string_dtype
+        #     result = result.astype(object)
+        #
+        # elif expected.dtype == "object" and lib.is_bool_array(
+        #     expected.values, skipna=True
+        # ):
+        #     assert result.dtype == "boolean"
+        #     result = result.astype(object)
+
+        if expected.dtype == "bool":
+            assert result.dtype == "boolean"
+            result = result.astype("bool")
+
+        elif expected.dtype == "float" and expected.isna().any():
+            assert result.dtype == "Int64"
+            result = result.astype("float")
+
+    elif isinstance(expected, pd.DataFrame):
+        columns = expected.select_dtypes(include="object").columns
+        assert all(result[columns].dtypes == nullable_string_dtype)
+        result[columns] = result[columns].astype(object)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method,expected",
+    [
+        ("count", [2, None]),
+        ("find", [0, None]),
+        ("index", [0, None]),
+        ("rindex", [2, None]),
+    ],
+)
+def test_string_array_numeric_integer_array(nullable_string_dtype, method, expected):
+    s = pd.Series(["aba", None], dtype=nullable_string_dtype)
+    result = getattr(s.str, method)("a")
+    expected = pd.Series(expected, dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method,expected",
+    [
+        ("isdigit", [False, None, True]),
+        ("isalpha", [True, None, False]),
+        ("isalnum", [True, None, True]),
+        ("isnumeric", [False, None, True]),
+    ],
+)
+def test_string_array_boolean_array(nullable_string_dtype, method, expected):
+    s = pd.Series(["a", None, "1"], dtype=nullable_string_dtype)
+    result = getattr(s.str, method)()
+    expected = pd.Series(expected, dtype="boolean")
+    tm.assert_series_equal(result, expected)
+
+
+def test_string_array_extract(nullable_string_dtype):
+    # https://github.com/pandas-dev/pandas/issues/30969
+    # Only expand=False & multiple groups was failing
+
+    a = pd.Series(["a1", "b2", "cc"], dtype=nullable_string_dtype)
+    b = pd.Series(["a1", "b2", "cc"], dtype="object")
+    pat = r"(\w)(\d)"
+
+    result = a.str.extract(pat, expand=False)
+    expected = b.str.extract(pat, expand=False)
+    assert all(result.dtypes == nullable_string_dtype)
+
+    result = result.astype(object)
+    tm.assert_equal(result, expected)

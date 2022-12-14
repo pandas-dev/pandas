@@ -13,7 +13,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import missing as libmissing
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 from pandas._typing import (
     ArrayLike,
     Dtype,
@@ -1134,60 +1137,65 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
     ):
         # TODO: de-duplicate with StringArray method. This method is moreless copy and
         # paste.
-
-        from pandas.arrays import (
-            BooleanArray,
-            IntegerArray,
-        )
-
         if dtype is None:
             dtype = self.dtype
         if na_value is None:
             na_value = self.dtype.na_value
 
-        mask = isna(self)
+        mask = self.isna()
         arr = np.asarray(self)
 
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: type[IntegerArray] | type[BooleanArray]
-            if is_integer_dtype(dtype):
-                constructor = IntegerArray
-            else:
-                constructor = BooleanArray
-
-            na_value_is_na = isna(na_value)
-            if na_value_is_na:
-                na_value = 1
-            result = lib.map_infer_mask(
-                arr,
-                f,
-                mask.view("uint8"),
-                convert=False,
-                na_value=na_value,
-                # error: Argument 1 to "dtype" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
-                # "Type[object]"
-                dtype=np.dtype(dtype),  # type: ignore[arg-type]
-            )
-
-            if not na_value_is_na:
-                mask[:] = False
-
-            return constructor(result, mask)
-
-        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-            # i.e. StringDtype
-            result = lib.map_infer_mask(
-                arr, f, mask.view("uint8"), convert=False, na_value=na_value
-            )
-            result = pa.array(result, mask=mask, type=pa.string(), from_pandas=True)
-            return type(self)(result)
-        else:
-            # This is when the result type is object. We reach this when
-            # -> We know the result type is truly object (e.g. .encode returns bytes
-            #    or .findall returns a list).
-            # -> We don't know the result type. E.g. `.get` can return anything.
-            return lib.map_infer_mask(arr, f, mask.view("uint8"))
+        np_result = lib.map_infer_mask(arr, f, mask.view("uint8"), convert=False, na_value=na_value)
+        try:
+            return type(self)(pa.array(np_result, mask=mask, from_pandas=True))
+        except pa.ArrowInvalid:
+            return np_result
+        # if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+        #
+        #     from pandas.arrays import (
+        #         BooleanArray,
+        #         IntegerArray,
+        #     )
+        #
+        #     constructor: type[IntegerArray] | type[BooleanArray]
+        #     if is_integer_dtype(dtype):
+        #         constructor = IntegerArray
+        #     else:
+        #         constructor = BooleanArray
+        #
+        #     na_value_is_na = isna(na_value)
+        #     if na_value_is_na:
+        #         na_value = 1
+        #     result = lib.map_infer_mask(
+        #         arr,
+        #         f,
+        #         mask.view("uint8"),
+        #         convert=False,
+        #         na_value=na_value,
+        #         # error: Argument 1 to "dtype" has incompatible type
+        #         # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
+        #         # "Type[object]"
+        #         dtype=np.dtype(dtype),  # type: ignore[arg-type]
+        #     )
+        #
+        #     if not na_value_is_na:
+        #         mask[:] = False
+        #
+        #     return constructor(result, mask)
+        #
+        # elif is_string_dtype(dtype) and not is_object_dtype(dtype):
+        #     # i.e. StringDtype
+        #     result = lib.map_infer_mask(
+        #         arr, f, mask.view("uint8"), convert=False, na_value=na_value
+        #     )
+        #     result = pa.array(result, mask=mask, type=pa.string(), from_pandas=True)
+        #     return type(self)(result)
+        # else:
+        #     # This is when the result type is object. We reach this when
+        #     # -> We know the result type is truly object (e.g. .encode returns bytes
+        #     #    or .findall returns a list).
+        #     # -> We don't know the result type. E.g. `.get` can return anything.
+        #     return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
@@ -1255,7 +1263,7 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
     def _str_encode(self, encoding: str, errors: str = "strict"):
         if errors != "strict" or encoding.lower() != "utf-8":
             fallback_performancewarning()
-            super()._str_encode(encoding, errors)
+            return super()._str_encode(encoding, errors)
         return type(self)(self._data.cast(pa.binary()))
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
@@ -1291,7 +1299,7 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
             pc.utf8_slice_codeunits(self._data, start, stop=stop, step=step)
         )
 
-    def _str_slice_replace(self, start=None, stop=None, repl=None):
+    def _str_slice_replace(self, start: int | None = None, stop: int | None = None, repl: str | None = None):
         if repl is None:
             repl = ""
         return type(self)(pc.utf8_replace_slice(self._data, start, stop, repl))

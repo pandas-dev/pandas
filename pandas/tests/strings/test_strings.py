@@ -606,7 +606,7 @@ def test_normalize_index():
     ],
 )
 def test_index_str_accessor_visibility(values, inferred_type, index_or_series):
-    from pandas.core.strings import StringMethods
+    from pandas.core.strings.accessor import StringMethods
 
     obj = index_or_series(values)
     if index_or_series is Index:
