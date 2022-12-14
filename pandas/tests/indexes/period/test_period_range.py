@@ -132,7 +132,7 @@ class TestPeriodRange:
 
 def test_range_tz():
     # GH 47005 Time zone should be ignored with warning.
-    with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(UserWarning):
         pi_tz = period_range(
             "2022-01-01 06:00:00+02:00", "2022-01-01 09:00:00+02:00", freq="H"
         )
