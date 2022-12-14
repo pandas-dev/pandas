@@ -85,12 +85,6 @@ class DateParseError(ValueError):
 _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
                                               second=0, microsecond=0)
 
-PARSING_WARNING_MSG = (
-    "Parsing dates in {format} format when dayfirst={dayfirst} was specified. "
-    "This may lead to inconsistently parsed dates! Specify a format "
-    "to ensure consistent parsing."
-)
-
 cdef:
     set _not_datelike_strings = {"a", "A", "m", "M", "p", "P", "t", "T"}
 
@@ -203,28 +197,10 @@ cdef object _parse_delimited_date(str date_string, bint dayfirst):
         # date_string can't be converted to date, above format
         return None, None
 
-    swapped_day_and_month = False
     if 1 <= month <= MAX_DAYS_IN_MONTH and 1 <= day <= MAX_DAYS_IN_MONTH \
             and (month <= MAX_MONTH or day <= MAX_MONTH):
         if (month > MAX_MONTH or (day <= MAX_MONTH and dayfirst)) and can_swap:
             day, month = month, day
-            swapped_day_and_month = True
-        if dayfirst and not swapped_day_and_month:
-            warnings.warn(
-                PARSING_WARNING_MSG.format(
-                    format="MM/DD/YYYY",
-                    dayfirst="True",
-                ),
-                stacklevel=find_stack_level(),
-            )
-        elif not dayfirst and swapped_day_and_month:
-            warnings.warn(
-                PARSING_WARNING_MSG.format(
-                    format="DD/MM/YYYY",
-                    dayfirst="False (the default)",
-                ),
-                stacklevel=find_stack_level(),
-            )
         # In Python <= 3.6.0 there is no range checking for invalid dates
         # in C api, thus we call faster C version for 3.6.1 or newer
         return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
