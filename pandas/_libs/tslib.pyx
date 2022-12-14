@@ -39,6 +39,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
     string_to_dts,
 )
+from pandas._libs.tslibs.strptime cimport strptime
 from pandas._libs.util cimport (
     is_datetime64_object,
     is_float_object,
@@ -74,6 +75,19 @@ from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
+
+from _thread import allocate_lock as _thread_allocate_lock
+
+from _strptime import _getlang
+
+from pandas._libs.tslibs.strptime import TimeRE
+
+_cache_lock = _thread_allocate_lock()
+# DO NOT modify _TimeRE_cache or _regex_cache without acquiring the cache lock
+# first!
+_TimeRE_cache = TimeRE()
+_CACHE_MAX_SIZE = 5  # Max number of regexes stored in _regex_cache
+_regex_cache = {}
 
 
 def _test_parse_iso8601(ts: str):
@@ -524,6 +538,41 @@ cpdef array_to_datetime(
     result = np.empty(n, dtype="M8[ns]")
     iresult = result.view("i8")
 
+    if format is not None and not require_iso8601:
+        if "%W" in format or "%U" in format:
+            if "%Y" not in format and "%y" not in format:
+                raise ValueError("Cannot use '%W' or '%U' without day and year")
+            if "%A" not in format and "%a" not in format and "%w" not in format:
+                raise ValueError("Cannot use '%W' or '%U' without day and year")
+        elif "%Z" in format and "%z" in format:
+            raise ValueError("Cannot parse both %Z and %z")
+
+        global _TimeRE_cache, _regex_cache
+        with _cache_lock:
+            if _getlang() != _TimeRE_cache.locale_time.lang:
+                _TimeRE_cache = TimeRE()
+                _regex_cache.clear()
+            if len(_regex_cache) > _CACHE_MAX_SIZE:
+                _regex_cache.clear()
+            locale_time = _TimeRE_cache.locale_time
+            format_regex = _regex_cache.get(format)
+            if not format_regex:
+                try:
+                    format_regex = _TimeRE_cache.compile(format)
+                # KeyError raised when a bad format is found; can be specified as
+                # \\, in which case it was a stray % but with a space after it
+                except KeyError, err:
+                    bad_directive = err.args[0]
+                    if bad_directive == "\\":
+                        bad_directive = "%"
+                    del err
+                    raise ValueError(f"'{bad_directive}' is a bad directive "
+                                     f"in format '{format}'")
+                # IndexError only occurs when the format string is "%"
+                except IndexError:
+                    raise ValueError(f"stray % in format '{format}'")
+                _regex_cache[format] = format_regex
+
     try:
         for i in range(n):
             val = values[i]
@@ -556,17 +605,10 @@ cpdef array_to_datetime(
                     seen_datetime = True
                     iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
 
-                elif is_integer_object(val) or is_float_object(val):
-                    if require_iso8601:
-                        if is_coerce:
-                            iresult[i] = NPY_NAT
-                            continue
-                        elif is_raise:
-                            raise ValueError(
-                                f"time data \"{val}\" at position {i} doesn't "
-                                f"match format \"{format}\""
-                            )
-                        return values, tz_out
+                elif (
+                    (is_integer_object(val) or is_float_object(val))
+                    and format is None
+                ):
                     # these must be ns unit by-definition
                     seen_integer = True
 
@@ -585,7 +627,15 @@ cpdef array_to_datetime(
                         except OverflowError:
                             iresult[i] = NPY_NAT
 
-                elif isinstance(val, str):
+                elif (
+                    (is_integer_object(val) or is_float_object(val))
+                    or isinstance(val, str)
+                ):
+                    if not isinstance(val, str):
+                        if val != val or val == NPY_NAT:
+                            iresult[i] = NPY_NAT
+                            continue
+
                     # string
                     if type(val) is not str:
                         # GH#32264 np.str_ object
@@ -593,6 +643,42 @@ cpdef array_to_datetime(
 
                     if len(val) == 0 or val in nat_strings:
                         iresult[i] = NPY_NAT
+                        continue
+
+                    if (
+                        format is not None
+                        and (
+                            not require_iso8601
+                            or (
+                                require_iso8601 and format == "%Y%m%d" and len(val) != 8
+                            )
+                        )
+                        and val not in ("today", "now")
+                    ):
+                        try:
+                            _iresult, _tzinfo = strptime(
+                                val, format, exact, format_regex, locale_time, dts
+                            )
+                        except (ValueError, OverflowError):
+                            if is_coerce:
+                                iresult[i] = NPY_NAT
+                                continue
+                            elif is_raise:
+                                raise
+                            return values, tz_out
+                        value = tz_localize_to_utc_single(_iresult, _tzinfo)
+                        if _tzinfo is not None:
+                            found_tz = True
+                            tz_out = convert_timezone(
+                                _tzinfo,
+                                tz_out,
+                                found_naive,
+                                found_tz,
+                                utc_convert,
+                            )
+                        else:
+                            found_naive = True
+                        iresult[i] = value
                         continue
 
                     string_to_dts_failed = string_to_dts(

@@ -71,6 +71,196 @@ cdef dict _parse_code_table = {"y": 0,
                                "V": 21,
                                "u": 22}
 
+cdef strptime(
+    val,
+    str fmt,
+    bint exact,
+    format_regex,
+    locale_time,
+    npy_datetimestruct dts,
+):
+    if exact:
+        found = format_regex.match(val)
+        if not found:
+            raise ValueError(f"time data '{val}' does not match "
+                             f"format '{fmt}' (match)")
+        if len(val) != found.end():
+            raise ValueError(f"unconverted data remains: {val[found.end():]}")
+
+    # search
+    else:
+        found = format_regex.search(val)
+        if not found:
+            raise ValueError(f"time data {repr(val)} does not match format "
+                             f"{repr(fmt)} (search)")
+
+    iso_year = -1
+    year = 1900
+    month = day = 1
+    hour = minute = second = ns = us = 0
+    tz = None
+    # Default to -1 to signify that values not known; not critical to have,
+    # though
+    iso_week = week_of_year = -1
+    week_of_year_start = -1
+    # weekday and julian defaulted to -1 so as to signal need to calculate
+    # values
+    weekday = julian = -1
+    found_dict = found.groupdict()
+    for group_key in found_dict.iterkeys():
+        # Directives not explicitly handled below:
+        #   c, x, X
+        #      handled by making out of other directives
+        #   U, W
+        #      worthless without day of the week
+        parse_code = _parse_code_table[group_key]
+
+        if parse_code == 0:
+            year = int(found_dict["y"])
+            # Open Group specification for strptime() states that a %y
+            # value in the range of [00, 68] is in the century 2000, while
+            # [69,99] is in the century 1900
+            if year <= 68:
+                year += 2000
+            else:
+                year += 1900
+        elif parse_code == 1:
+            year = int(found_dict["Y"])
+        elif parse_code == 2:
+            month = int(found_dict["m"])
+        # elif group_key == 'B':
+        elif parse_code == 3:
+            month = locale_time.f_month.index(found_dict["B"].lower())
+        # elif group_key == 'b':
+        elif parse_code == 4:
+            month = locale_time.a_month.index(found_dict["b"].lower())
+        # elif group_key == 'd':
+        elif parse_code == 5:
+            day = int(found_dict["d"])
+        # elif group_key == 'H':
+        elif parse_code == 6:
+            hour = int(found_dict["H"])
+        elif parse_code == 7:
+            hour = int(found_dict["I"])
+            ampm = found_dict.get("p", "").lower()
+            # If there was no AM/PM indicator, we'll treat this like AM
+            if ampm in ("", locale_time.am_pm[0]):
+                # We're in AM so the hour is correct unless we're
+                # looking at 12 midnight.
+                # 12 midnight == 12 AM == hour 0
+                if hour == 12:
+                    hour = 0
+            elif ampm == locale_time.am_pm[1]:
+                # We're in PM so we need to add 12 to the hour unless
+                # we're looking at 12 noon.
+                # 12 noon == 12 PM == hour 12
+                if hour != 12:
+                    hour += 12
+        elif parse_code == 8:
+            minute = int(found_dict["M"])
+        elif parse_code == 9:
+            second = int(found_dict["S"])
+        elif parse_code == 10:
+            s = found_dict["f"]
+            # Pad to always return nanoseconds
+            s += "0" * (9 - len(s))
+            us = long(s)
+            ns = us % 1000
+            us = us // 1000
+        elif parse_code == 11:
+            weekday = locale_time.f_weekday.index(found_dict["A"].lower())
+        elif parse_code == 12:
+            weekday = locale_time.a_weekday.index(found_dict["a"].lower())
+        elif parse_code == 13:
+            weekday = int(found_dict["w"])
+            if weekday == 0:
+                weekday = 6
+            else:
+                weekday -= 1
+        elif parse_code == 14:
+            julian = int(found_dict["j"])
+        elif parse_code == 15 or parse_code == 16:
+            week_of_year = int(found_dict[group_key])
+            if group_key == "U":
+                # U starts week on Sunday.
+                week_of_year_start = 6
+            else:
+                # W starts week on Monday.
+                week_of_year_start = 0
+        elif parse_code == 17:
+            tz = pytz.timezone(found_dict["Z"])
+        elif parse_code == 19:
+            tz = parse_timezone_directive(found_dict["z"])
+        elif parse_code == 20:
+            iso_year = int(found_dict["G"])
+        elif parse_code == 21:
+            iso_week = int(found_dict["V"])
+        elif parse_code == 22:
+            weekday = int(found_dict["u"])
+            weekday -= 1
+
+    # don't assume default values for ISO week/year
+    if iso_year != -1:
+        if iso_week == -1 or weekday == -1:
+            raise ValueError("ISO year directive '%G' must be used with "
+                             "the ISO week directive '%V' and a weekday "
+                             "directive '%A', '%a', '%w', or '%u'.")
+        if julian != -1:
+            raise ValueError("Day of the year directive '%j' is not "
+                             "compatible with ISO year directive '%G'. "
+                             "Use '%Y' instead.")
+    elif year != -1 and week_of_year == -1 and iso_week != -1:
+        if weekday == -1:
+            raise ValueError("ISO week directive '%V' must be used with "
+                             "the ISO year directive '%G' and a weekday "
+                             "directive '%A', '%a', '%w', or '%u'.")
+        else:
+            raise ValueError("ISO week directive '%V' is incompatible with "
+                             "the year directive '%Y'. Use the ISO year "
+                             "'%G' instead.")
+
+    # If we know the wk of the year and what day of that wk, we can figure
+    # out the Julian day of the year.
+    if julian == -1 and weekday != -1:
+        if week_of_year != -1:
+            week_starts_Mon = week_of_year_start == 0
+            julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
+                                              week_starts_Mon)
+        elif iso_year != -1 and iso_week != -1:
+            year, julian = _calc_julian_from_V(iso_year, iso_week,
+                                               weekday + 1)
+    # Cannot pre-calculate date() since can change in Julian
+    # calculation and thus could have different value for the day of the wk
+    # calculation.
+    if julian == -1:
+        # Need to add 1 to result since first day of the year is 1, not
+        # 0.
+        ordinal = date(year, month, day).toordinal()
+        julian = ordinal - date(year, 1, 1).toordinal() + 1
+    else:
+        # Assume that if they bothered to include Julian day it will
+        # be accurate.
+        datetime_result = date.fromordinal(
+            (julian - 1) + date(year, 1, 1).toordinal())
+        year = datetime_result.year
+        month = datetime_result.month
+        day = datetime_result.day
+    if weekday == -1:
+        weekday = date(year, month, day).weekday()
+
+    dts.year = year
+    dts.month = month
+    dts.day = day
+    dts.hour = hour
+    dts.min = minute
+    dts.sec = second
+    dts.us = us
+    dts.ps = ns * 1000
+
+    iresult = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
+    check_dts_bounds(&dts)
+    return iresult, tz
+
 
 def array_strptime(
     ndarray[object] values,
