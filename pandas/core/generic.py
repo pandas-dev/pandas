@@ -724,7 +724,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        renamed : %(klass)s
+        %(klass)s
             An object of type %(klass)s.
 
         See Also
@@ -763,7 +763,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        y : same as input
+        same as input
         """
         i = self._get_axis_number(axis1)
         j = self._get_axis_number(axis2)
@@ -3712,7 +3712,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        taken : same type as caller
+        same type as caller
             An array-like containing the elements taken from the object.
 
         See Also
@@ -4164,7 +4164,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        value : same type as items contained in object
+        same type as items contained in object
 
         Examples
         --------
@@ -5730,7 +5730,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        object : the return type of ``func``.
+        the return type of ``func``.
 
         See Also
         --------
@@ -6024,7 +6024,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        casted : same type as caller
+        same type as caller
 
         See Also
         --------
@@ -6210,7 +6210,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        copy : Series or DataFrame
+        Series or DataFrame
             Object type matches caller.
 
         Notes
@@ -6333,7 +6333,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        converted : same type as input object
+        same type as input object
 
         See Also
         --------
@@ -6473,12 +6473,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  3  z   <NA>  <NA>    20  200.0
 
         >>> dfn.dtypes
-        a      Int32
-        b     string
-        c    boolean
-        d     string
-        e      Int64
-        f    Float64
+        a             Int32
+        b    string[python]
+        c           boolean
+        d    string[python]
+        e             Int64
+        f           Float64
         dtype: object
 
         Start with a Series of strings and missing data represented by ``np.nan``.
@@ -10630,7 +10630,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        chg : Series or DataFrame
+        Series or DataFrame
             The same type as the calling object.
 
         See Also
@@ -11649,7 +11649,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        scalar : type of index
+        type of index
 
         Notes
         -----

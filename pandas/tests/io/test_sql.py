@@ -1395,7 +1395,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
         # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
         df = DataFrame(
-            {"time": to_datetime(["201412120154", "201412110254"], utc=True)}
+            {"time": to_datetime(["2014-12-12 01:54", "2014-12-11 02:54"], utc=True)}
         )
         db = sql.SQLDatabase(self.conn)
         table = sql.SQLTable("test_type", db, frame=df)
@@ -1577,7 +1577,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
 
         # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
         df = DataFrame(
-            {"time": to_datetime(["201412120154", "201412110254"], utc=True)}
+            {"time": to_datetime(["2014-12-12 01:54", "2014-12-11 02:54"], utc=True)}
         )
         db = sql.SQLiteDatabase(self.conn)
         table = sql.SQLiteTable("test_type", db, frame=df)

@@ -1060,19 +1060,13 @@ class TestTimeSeries:
         arr = np.array(["1/1/2005", "1/2/2005", "1/3/2005", "2005-01-04"], dtype="O")
         idx4 = DatetimeIndex(arr)
 
-        arr = to_datetime(["1/1/2005", "1/2/2005", "1/3/2005", "2005-01-04"])
-        idx5 = DatetimeIndex(arr)
-
-        arr = to_datetime(["1/1/2005", "1/2/2005", "Jan 3, 2005", "2005-01-04"])
-        idx6 = DatetimeIndex(arr)
-
-        idx7 = DatetimeIndex(["12/05/2007", "25/01/2008"], dayfirst=True)
-        idx8 = DatetimeIndex(
+        idx5 = DatetimeIndex(["12/05/2007", "25/01/2008"], dayfirst=True)
+        idx6 = DatetimeIndex(
             ["2007/05/12", "2008/01/25"], dayfirst=False, yearfirst=True
         )
-        tm.assert_index_equal(idx7, idx8)
+        tm.assert_index_equal(idx5, idx6)
 
-        for other in [idx2, idx3, idx4, idx5, idx6]:
+        for other in [idx2, idx3, idx4]:
             assert (idx1.values == other.values).all()
 
         sdate = datetime(1999, 12, 25)
