@@ -897,7 +897,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         None
         """
-        # fast path (GH#####)
+        # fast path (GH50248)
         if com.is_null_slice(key):
             if is_scalar(value) and not pa_version_under6p0:
                 fill_value = pa.scalar(value, type=self._data.type, from_pandas=True)
