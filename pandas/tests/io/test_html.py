@@ -405,8 +405,10 @@ class TestReadHtml:
         assert len(dfs) > 1
 
     @pytest.mark.network
-    @tm.network(url="https://en.wikipedia.org/wiki/2013–14_Premier_League",
-        check_before_test=True)
+    @tm.network(
+        url="https://en.wikipedia.org/wiki/2013–14_Premier_League",
+        check_before_test=True,
+    )
     def test_unicode_url(self):
         url = "https://en.wikipedia.org/wiki/2013–14_Premier_League"
         dfs = self.read_html(url)
