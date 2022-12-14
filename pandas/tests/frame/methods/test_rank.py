@@ -136,12 +136,9 @@ class TestRank:
         float_string_frame["datetime"] = datetime.now()
         float_string_frame["timedelta"] = timedelta(days=1, seconds=1)
 
-        with tm.assert_produces_warning(FutureWarning, match="numeric_only=None"):
-            float_string_frame.rank(numeric_only=None)
-        with tm.assert_produces_warning(FutureWarning, match="Dropping of nuisance"):
-            result = float_string_frame.rank(1)
-        expected = float_string_frame.rank(1, numeric_only=True)
-        tm.assert_frame_equal(result, expected)
+        float_string_frame.rank(numeric_only=False)
+        with pytest.raises(TypeError, match="not supported between instances of"):
+            float_string_frame.rank(axis=1)
 
     @td.skip_if_no_scipy
     def test_rank_na_option(self, float_frame):
@@ -250,7 +247,6 @@ class TestRank:
                     tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
-    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_rank_descending(self, method, dtype):
         if "i" in dtype:
             df = self.df.dropna().astype(dtype)
@@ -486,12 +482,12 @@ class TestRank:
         "data,expected",
         [
             ({"a": [1, 2, "a"], "b": [4, 5, 6]}, DataFrame({"b": [1.0, 2.0, 3.0]})),
-            ({"a": [1, 2, "a"]}, DataFrame(index=range(3))),
+            ({"a": [1, 2, "a"]}, DataFrame(index=range(3), columns=[])),
         ],
     )
     def test_rank_mixed_axis_zero(self, data, expected):
         df = DataFrame(data)
-        msg = "Dropping of nuisance columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.rank()
+        with pytest.raises(TypeError, match="'<' not supported between instances of"):
+            df.rank()
+        result = df.rank(numeric_only=True)
         tm.assert_frame_equal(result, expected)

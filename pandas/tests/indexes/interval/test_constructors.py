@@ -393,7 +393,7 @@ class TestClassConstructors(ConstructorTests):
 
         # scalar
         msg = (
-            r"IntervalIndex\(...\) must be called with a collection of "
+            r"(IntervalIndex|Index)\(...\) must be called with a collection of "
             "some kind, 5 was passed"
         )
         with pytest.raises(TypeError, match=msg):

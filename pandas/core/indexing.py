@@ -934,6 +934,11 @@ class _LocationIndexer(NDFrameIndexerBase):
             #  be handled by the _getitem_lowerdim call above.
             assert retval.ndim == self.ndim
 
+        if retval is self.obj:
+            # if all axes were a null slice (`df.loc[:, :]`), ensure we still
+            # return a new object (https://github.com/pandas-dev/pandas/pull/49469)
+            retval = retval.copy(deep=False)
+
         return retval
 
     @final
@@ -1115,9 +1120,12 @@ class _LocIndexer(_LocationIndexer):
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
         # boolean not in slice and with boolean index
+        ax = self.obj._get_axis(axis)
         if isinstance(key, bool) and not (
-            is_bool_dtype(self.obj._get_axis(axis))
-            or self.obj._get_axis(axis).dtype.name == "boolean"
+            is_bool_dtype(ax)
+            or ax.dtype.name == "boolean"
+            or isinstance(ax, MultiIndex)
+            and is_bool_dtype(ax.get_level_values(0))
         ):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
@@ -1473,7 +1481,12 @@ class _iLocIndexer(_LocationIndexer):
             # so don't treat a tuple as a valid indexer
             raise IndexingError("Too many indexers")
         elif is_list_like_indexer(key):
-            arr = np.array(key)
+            if isinstance(key, ABCSeries):
+                arr = key._values
+            elif is_array_like(key):
+                arr = key
+            else:
+                arr = np.array(key)
             len_axis = len(self.obj._get_axis(axis))
 
             # check that the key has a numeric dtype

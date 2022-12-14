@@ -1,13 +1,11 @@
 from datetime import timedelta
 from decimal import Decimal
-import inspect
 import re
 
 from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
-from pandas._libs import lib
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
@@ -147,7 +145,6 @@ class TestDataFrameAnalytics:
 
     # ---------------------------------------------------------------------
     # Reductions
-    @pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize(
         "opname",
@@ -188,7 +185,6 @@ class TestDataFrameAnalytics:
         if opname != "nunique":
             getattr(float_string_frame, opname)(axis=axis, numeric_only=True)
 
-    @pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize(
         "opname",
@@ -285,9 +281,6 @@ class TestDataFrameAnalytics:
         assert_stat_op_calc("skew", skewness, float_frame_with_na)
         assert_stat_op_calc("kurt", kurt, float_frame_with_na)
 
-    # TODO: Ensure warning isn't emitted in the first place
-    # ignore mean of empty slice and all-NaN
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_median(self, float_frame_with_na, int_frame):
         def wrapper(x):
             if isna(x).any():
@@ -1165,7 +1158,7 @@ class TestDataFrameAnalytics:
         )
 
         result = df.all(bool_only=True)
-        expected = Series(dtype=np.bool_)
+        expected = Series(dtype=np.bool_, index=[])
         tm.assert_series_equal(result, expected)
 
         df = DataFrame(
@@ -1429,16 +1422,16 @@ class TestDataFrameReductions:
         tm.assert_series_equal(result, expected)
 
     def test_reductions_skipna_none_raises(
-        self, request, frame_or_series, reduction_functions
+        self, request, frame_or_series, all_reductions
     ):
-        if reduction_functions == "count":
+        if all_reductions == "count":
             request.node.add_marker(
                 pytest.mark.xfail(reason="Count does not accept skipna")
             )
         obj = frame_or_series([1, 2, 3])
         msg = 'For argument "skipna" expected type bool, received type NoneType.'
         with pytest.raises(ValueError, match=msg):
-            getattr(obj, reduction_functions)(skipna=None)
+            getattr(obj, all_reductions)(skipna=None)
 
 
 class TestNuisanceColumns:
@@ -1491,6 +1484,7 @@ class TestNuisanceColumns:
         # TODO: np.median(df, axis=0) gives np.array([2.0, 2.0]) instead
         #  of expected.values
 
+    @pytest.mark.filterwarnings("ignore:.*will return a scalar.*:FutureWarning")
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_min_max_categorical_dtype_non_ordered_nuisance_column(self, method):
         # GH#28949 DataFrame.min should behave like Series.min
@@ -1623,40 +1617,7 @@ def test_reduction_axis_none_deprecation(method):
     [
         "corr",
         "corrwith",
-        "count",
         "cov",
-        "mode",
-        "quantile",
-    ],
-)
-def test_numeric_only_deprecation(kernel):
-    # GH#46852
-    df = DataFrame({"a": [1, 2, 3], "b": object})
-    args = (df,) if kernel == "corrwith" else ()
-    signature = inspect.signature(getattr(DataFrame, kernel))
-    default = signature.parameters["numeric_only"].default
-    assert default is not True
-
-    if default is None or default is lib.no_default:
-        expected = getattr(df[["a"]], kernel)(*args)
-        warn = FutureWarning
-    else:
-        # default must be False and works on any nuisance columns
-        expected = getattr(df, kernel)(*args)
-        if kernel == "mode":
-            assert "b" in expected.columns
-        else:
-            assert "b" in expected.index
-        warn = None
-    msg = f"The default value of numeric_only in DataFrame.{kernel}"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(df, kernel)(*args)
-    tm.assert_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "kernel",
-    [
         "idxmax",
         "idxmin",
         "kurt",
@@ -1665,6 +1626,7 @@ def test_numeric_only_deprecation(kernel):
         "median",
         "min",
         "prod",
+        "quantile",
         "sem",
         "skew",
         "std",
@@ -1675,6 +1637,7 @@ def test_numeric_only_deprecation(kernel):
 def test_fails_on_non_numeric(kernel):
     # GH#46852
     df = DataFrame({"a": [1, 2, 3], "b": object})
+    args = (df,) if kernel == "corrwith" else ()
     msg = "|".join(
         [
             "not allowed for this dtype",
@@ -1685,4 +1648,4 @@ def test_fails_on_non_numeric(kernel):
         ]
     )
     with pytest.raises(TypeError, match=msg):
-        getattr(df, kernel)()
+        getattr(df, kernel)(*args)

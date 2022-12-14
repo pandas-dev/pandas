@@ -341,19 +341,6 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
 
         if result.ndim != self.ndim:
             if method == "outer":
-                if self.ndim == 2:
-                    # we already deprecated for Series
-                    msg = (
-                        "outer method for ufunc {} is not implemented on "
-                        "pandas objects. Returning an ndarray, but in the "
-                        "future this will raise a 'NotImplementedError'. "
-                        "Consider explicitly converting the DataFrame "
-                        "to an array with '.to_numpy()' first."
-                    )
-                    warnings.warn(
-                        msg.format(ufunc), FutureWarning, stacklevel=find_stack_level()
-                    )
-                    return result
                 raise NotImplementedError
             return result
         if isinstance(result, BlockManager):

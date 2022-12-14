@@ -276,6 +276,38 @@ class Merge:
         merge(self.left, self.right, how="anti_left", sort=sort)
 
 
+class MergeEA:
+
+    params = [
+        "Int64",
+        "Int32",
+        "Int16",
+        "UInt64",
+        "UInt32",
+        "UInt16",
+        "Float64",
+        "Float32",
+    ]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 10_000
+        indices = np.arange(1, N)
+        key = np.tile(indices[:8000], 10)
+        self.left = DataFrame(
+            {"key": Series(key, dtype=dtype), "value": np.random.randn(80000)}
+        )
+        self.right = DataFrame(
+            {
+                "key": Series(indices[2000:], dtype=dtype),
+                "value2": np.random.randn(7999),
+            }
+        )
+
+    def time_merge(self, dtype):
+        merge(self.left, self.right)
+
+
 class I8Merge:
 
     params = ["inner", "outer", "left", "right", "anti_left", "anti_right", "anti_full"]

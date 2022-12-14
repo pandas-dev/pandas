@@ -51,7 +51,7 @@ def adjoin(space: int, *lists: list[str], **kwargs) -> str:
     maxLen = max(map(len, lists))
     for i, lst in enumerate(lists):
         nl = justfunc(lst, lengths[i], mode="left")
-        nl.extend([" " * lengths[i]] * (maxLen - len(lst)))
+        nl = ([" " * lengths[i]] * (maxLen - len(lst))) + nl
         newLists.append(nl)
     toJoin = zip(*newLists)
     for lines in toJoin:
@@ -311,8 +311,6 @@ def format_object_summary(
         If True, inserts a line break for each value of ``obj``.
         If False, only break lines when the a line of values gets wider
         than the display width.
-
-        .. versionadded:: 0.25.0
 
     Returns
     -------
