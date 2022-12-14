@@ -307,43 +307,60 @@ class TestDatetime64SeriesComparison:
 
     def test_dt64arr_timestamp_equality(self, box_with_array):
         # GH#11034
+        box = box_with_array
 
         ser = Series([Timestamp("2000-01-29 01:59:00"), Timestamp("2000-01-30"), NaT])
-        ser = tm.box_expected(ser, box_with_array)
+        ser = tm.box_expected(ser, box)
         xbox = get_upcast_box(ser, ser, True)
 
         result = ser != ser
         expected = tm.box_expected([False, False, True], xbox)
         tm.assert_equal(result, expected)
 
-        warn = FutureWarning if box_with_array is pd.DataFrame else None
-        with tm.assert_produces_warning(warn):
+        if box is pd.DataFrame:
             # alignment for frame vs series comparisons deprecated
-            result = ser != ser[0]
-        expected = tm.box_expected([False, True, True], xbox)
-        tm.assert_equal(result, expected)
+            #  in GH#46795 enforced 2.0
+            with pytest.raises(ValueError, match="not aligned"):
+                ser != ser[0]
 
-        with tm.assert_produces_warning(warn):
+        else:
+            result = ser != ser[0]
+            expected = tm.box_expected([False, True, True], xbox)
+            tm.assert_equal(result, expected)
+
+        if box is pd.DataFrame:
             # alignment for frame vs series comparisons deprecated
+            #  in GH#46795 enforced 2.0
+            with pytest.raises(ValueError, match="not aligned"):
+                ser != ser[2]
+        else:
             result = ser != ser[2]
-        expected = tm.box_expected([True, True, True], xbox)
-        tm.assert_equal(result, expected)
+            expected = tm.box_expected([True, True, True], xbox)
+            tm.assert_equal(result, expected)
 
         result = ser == ser
         expected = tm.box_expected([True, True, False], xbox)
         tm.assert_equal(result, expected)
 
-        with tm.assert_produces_warning(warn):
+        if box is pd.DataFrame:
             # alignment for frame vs series comparisons deprecated
+            #  in GH#46795 enforced 2.0
+            with pytest.raises(ValueError, match="not aligned"):
+                ser == ser[0]
+        else:
             result = ser == ser[0]
-        expected = tm.box_expected([True, False, False], xbox)
-        tm.assert_equal(result, expected)
+            expected = tm.box_expected([True, False, False], xbox)
+            tm.assert_equal(result, expected)
 
-        with tm.assert_produces_warning(warn):
+        if box is pd.DataFrame:
             # alignment for frame vs series comparisons deprecated
+            #  in GH#46795 enforced 2.0
+            with pytest.raises(ValueError, match="not aligned"):
+                ser == ser[2]
+        else:
             result = ser == ser[2]
-        expected = tm.box_expected([False, False, False], xbox)
-        tm.assert_equal(result, expected)
+            expected = tm.box_expected([False, False, False], xbox)
+            tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
         "datetimelike",
@@ -649,7 +666,6 @@ class TestDatetimeIndexComparisons:
     # Raising in __eq__ will fallback to NumPy, which warns, fails,
     # then re-raises the original exception. So we just need to ignore.
     @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
-    @pytest.mark.filterwarnings("ignore:Converting timezone-aware:FutureWarning")
     def test_scalar_comparison_tzawareness(
         self, comparison_op, other, tz_aware_fixture, box_with_array
     ):
@@ -2421,7 +2437,7 @@ def test_dt64arr_addsub_object_dtype_2d():
 
     assert isinstance(result, DatetimeArray)
     assert result.freq is None
-    tm.assert_numpy_array_equal(result._data, expected._data)
+    tm.assert_numpy_array_equal(result._ndarray, expected._ndarray)
 
     with tm.assert_produces_warning(PerformanceWarning):
         # Case where we expect to get a TimedeltaArray back

@@ -8,25 +8,12 @@ import pandas._testing as tm
 
 
 def astype_non_nano(dti_nano, unit):
-    # TODO(2.0): remove once DTI/DTA.astype supports non-nano
-    if unit == "ns":
-        return dti_nano
-
-    dta_nano = dti_nano._data
-    arr_nano = dta_nano._ndarray
-
-    arr = arr_nano.astype(f"M8[{unit}]")
-    if dti_nano.tz is None:
-        dtype = arr.dtype
-    else:
-        dtype = type(dti_nano.dtype)(tz=dti_nano.tz, unit=unit)
-    dta = type(dta_nano)._simple_new(arr, dtype=dtype)
+    # TODO(2.0): remove once DTI supports as_unit
+    dta = dti_nano._data.as_unit(unit)
     dti = DatetimeIndex(dta, name=dti_nano.name)
-    assert dti.dtype == dtype
     return dti
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.parametrize("tz", [None, "Asia/Shanghai", "Europe/Berlin"])
 @pytest.mark.parametrize("name", [None, "my_dti"])
 @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])

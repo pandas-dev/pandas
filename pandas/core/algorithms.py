@@ -73,7 +73,6 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
-    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaArray,
 )
@@ -278,8 +277,8 @@ def _get_hashtable_algo(values: np.ndarray):
     values = _ensure_data(values)
 
     ndtype = _check_object_for_strings(values)
-    htable = _hashtables[ndtype]
-    return htable, values
+    hashtable = _hashtables[ndtype]
+    return hashtable, values
 
 
 def _check_object_for_strings(values: np.ndarray) -> str:
@@ -407,6 +406,29 @@ def unique(values):
     return unique_with_mask(values)
 
 
+def nunique_ints(values: ArrayLike) -> int:
+    """
+    Return the number of unique values for integer array-likes.
+
+    Significantly faster than pandas.unique for long enough sequences.
+    No checks are done to ensure input is integral.
+
+    Parameters
+    ----------
+    values : 1d array-like
+
+    Returns
+    -------
+    int : The number of unique values in ``values``
+    """
+    if len(values) == 0:
+        return 0
+    values = _ensure_data(values)
+    # bincount requires intp
+    result = (np.bincount(values.ravel().astype("intp")) != 0).sum()
+    return result
+
+
 def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
     """See algorithms.unique for docs. Takes a mask for masked arrays."""
     values = _ensure_arraylike(values)
@@ -416,9 +438,9 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
         return values.unique()
 
     original = values
-    htable, values = _get_hashtable_algo(values)
+    hashtable, values = _get_hashtable_algo(values)
 
-    table = htable(len(values))
+    table = hashtable(len(values))
     if mask is None:
         uniques = table.unique(values)
         uniques = _reconstruct_data(uniques, original.dtype, original)
@@ -463,7 +485,11 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
         orig_values = list(values)
         values = _ensure_arraylike(orig_values)
 
-        if is_numeric_dtype(values) and not is_signed_integer_dtype(comps):
+        if (
+            len(values) > 0
+            and is_numeric_dtype(values)
+            and not is_signed_integer_dtype(comps)
+        ):
             # GH#46485 Use object to avoid upcast to float64 later
             # TODO: Share with _find_common_type_compat
             values = construct_1d_object_array_from_listlike(orig_values)
@@ -734,13 +760,11 @@ def factorize(
     # Step 2 is dispatched to extension types (like Categorical). They are
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
-    if isinstance(values, ABCRangeIndex):
-        return values.factorize(sort=sort)
+    if isinstance(values, (ABCIndex, ABCSeries)):
+        return values.factorize(sort=sort, use_na_sentinel=use_na_sentinel)
 
     values = _ensure_arraylike(values)
     original = values
-    if not isinstance(values, ABCMultiIndex):
-        values = extract_array(values, extract_numpy=True)
 
     if (
         isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray))
@@ -749,7 +773,7 @@ def factorize(
         # The presence of 'freq' means we can fast-path sorting and know there
         #  aren't NAs
         codes, uniques = values.factorize(sort=sort)
-        return _re_wrap_factorize(original, uniques, codes)
+        return codes, uniques
 
     elif not isinstance(values.dtype, np.dtype):
         codes, uniques = values.factorize(use_na_sentinel=use_na_sentinel)
@@ -784,21 +808,6 @@ def factorize(
         )
 
     uniques = _reconstruct_data(uniques, original.dtype, original)
-
-    return _re_wrap_factorize(original, uniques, codes)
-
-
-def _re_wrap_factorize(original, uniques, codes: np.ndarray):
-    """
-    Wrap factorize results in Series or Index depending on original type.
-    """
-    if isinstance(original, ABCIndex):
-        uniques = ensure_wrapped_if_datetimelike(uniques)
-        uniques = original._shallow_copy(uniques, name=None)
-    elif isinstance(original, ABCSeries):
-        from pandas import Index
-
-        uniques = Index(uniques)
 
     return codes, uniques
 
@@ -871,13 +880,21 @@ def value_counts(
             result.name = name
             counts = result._values
 
+        elif isinstance(values, ABCMultiIndex):
+            # GH49558
+            levels = list(range(values.nlevels))
+            result = Series(index=values).groupby(level=levels, dropna=dropna).size()
+            # TODO: allow index names to remain (see discussion in GH49497)
+            result.index.names = [None] * values.nlevels
+            counts = result._values
+
         else:
             values = _ensure_arraylike(values)
             keys, counts = value_counts_arraylike(values, dropna)
 
             # For backwards compatibility, we let Index do its normal type
             #  inference, _except_ for if if infers from object to bool.
-            idx = Index._with_infer(keys)
+            idx = Index(keys)
             if idx.dtype == bool and keys.dtype == object:
                 idx = idx.astype(object)
 
@@ -1247,7 +1264,7 @@ class SelectNSeries(SelectN):
             inds = inds[:n]
             findex = nbase
         else:
-            if len(inds) < nbase and len(nan_index) + len(inds) >= nbase:
+            if len(inds) < nbase <= len(nan_index) + len(inds):
                 findex = len(nan_index) + len(inds)
             else:
                 findex = len(inds)
@@ -1482,8 +1499,6 @@ def searchsorted(
     """
     Find indices where elements should be inserted to maintain order.
 
-    .. versionadded:: 0.25.0
-
     Find the indices into a sorted array `arr` (a) such that, if the
     corresponding elements in `value` were inserted before the indices,
     the order of `arr` would be preserved.
@@ -1608,14 +1623,10 @@ def diff(arr, n: int, axis: AxisInt = 0):
                 raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
             return op(arr, arr.shift(n))
         else:
-            warnings.warn(
-                "dtype lost in 'diff()'. In the future this will raise a "
-                "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise TypeError(
+                f"{type(arr).__name__} has no 'diff' method. "
+                "Convert to a suitable dtype prior to calling 'diff'."
             )
-            arr = np.asarray(arr)
-            dtype = arr.dtype
 
     is_timedelta = False
     if needs_i8_conversion(arr.dtype):
@@ -1713,8 +1724,6 @@ def safe_sort(
         Check if codes are out of bound for the values and put out of bound
         codes equal to ``-1``. If ``verify=False``, it is assumed there
         are no out of bound codes. Ignored when ``codes`` is None.
-
-        .. versionadded:: 0.25.0
 
     Returns
     -------

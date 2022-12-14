@@ -140,17 +140,13 @@ def test_transform_bad_dtype(op, frame_or_series, request):
 
     obj = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
     obj = tm.get_obj(obj, frame_or_series)
-    if op == "rank":
-        error = ValueError
-        msg = "Transform function failed"
-    else:
-        error = TypeError
-        msg = "|".join(
-            [
-                "not supported between instances of 'type' and 'type'",
-                "unsupported operand type",
-            ]
-        )
+    error = TypeError
+    msg = "|".join(
+        [
+            "not supported between instances of 'type' and 'type'",
+            "unsupported operand type",
+        ]
+    )
 
     with pytest.raises(error, match=msg):
         obj.transform(op)
@@ -173,17 +169,13 @@ def test_transform_failure_typeerror(request, op):
 
     # Using object makes most transform kernels fail
     df = DataFrame({"A": 3 * [object], "B": [1, 2, 3]})
-    if op == "rank":
-        error = ValueError
-        msg = "Transform function failed"
-    else:
-        error = TypeError
-        msg = "|".join(
-            [
-                "not supported between instances of 'type' and 'type'",
-                "unsupported operand type",
-            ]
-        )
+    error = TypeError
+    msg = "|".join(
+        [
+            "not supported between instances of 'type' and 'type'",
+            "unsupported operand type",
+        ]
+    )
 
     with pytest.raises(error, match=msg):
         df.transform([op])

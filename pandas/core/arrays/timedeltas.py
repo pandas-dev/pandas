@@ -254,8 +254,12 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         return result
 
+    # Signature of "_generate_range" incompatible with supertype
+    # "DatetimeLikeArrayMixin"
     @classmethod
-    def _generate_range(cls, start, end, periods, freq, closed=None):
+    def _generate_range(  # type: ignore[override]
+        cls, start, end, periods, freq, closed=None, *, unit: str | None = None
+    ):
 
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -268,15 +272,26 @@ class TimedeltaArray(dtl.TimelikeOps):
             )
 
         if start is not None:
-            start = Timedelta(start)._as_unit("ns")
+            start = Timedelta(start).as_unit("ns")
 
         if end is not None:
-            end = Timedelta(end)._as_unit("ns")
+            end = Timedelta(end).as_unit("ns")
+
+        if unit is not None:
+            if unit not in ["s", "ms", "us", "ns"]:
+                raise ValueError("'unit' must be one of 's', 'ms', 'us', 'ns'")
+        else:
+            unit = "ns"
+
+        if start is not None and unit is not None:
+            start = start.as_unit(unit, round_ok=False)
+        if end is not None and unit is not None:
+            end = end.as_unit(unit, round_ok=False)
 
         left_closed, right_closed = validate_endpoints(closed)
 
         if freq is not None:
-            index = generate_regular_range(start, end, periods, freq)
+            index = generate_regular_range(start, end, periods, freq, unit=unit)
         else:
             index = np.linspace(start.value, end.value, periods).astype("i8")
 
@@ -285,7 +300,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if not right_closed:
             index = index[:-1]
 
-        td64values = index.view("m8[ns]")
+        td64values = index.view(f"m8[{unit}]")
         return cls._simple_new(td64values, dtype=td64values.dtype, freq=freq)
 
     # ----------------------------------------------------------------
@@ -298,7 +313,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if value is NaT:
             return np.timedelta64(value.value, "ns")
         else:
-            return value._as_unit(self._unit).asm8
+            return value.as_unit(self.unit).asm8
 
     def _scalar_from_string(self, value) -> Timedelta | NaTType:
         return Timedelta(value)
@@ -317,7 +332,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         # DatetimeLikeArrayMixin super call handles other cases
         dtype = pandas_dtype(dtype)
 
-        if dtype.kind == "m":
+        if isinstance(dtype, np.dtype) and dtype.kind == "m":
             if dtype == self.dtype:
                 if copy:
                     return self.copy()
@@ -394,6 +409,23 @@ class TimedeltaArray(dtl.TimelikeOps):
         if axis is None or self.ndim == 1:
             return self._box_func(result)
         return self._from_backing_data(result)
+
+    # ----------------------------------------------------------------
+    # Accumulations
+
+    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs):
+
+        data = self._ndarray.copy()
+
+        if name in {"cumsum", "cumprod"}:
+            # TODO: cumprod should not work here GH#48111
+            func = np.cumsum if name == "cumsum" else np.cumprod
+            result = cast(np.ndarray, nanops.na_accum_func(data, func, skipna=skipna))
+
+            return type(self)._simple_new(result, freq=None, dtype=self.dtype)
+
+        else:
+            return super()._accumulate(name, skipna=skipna, **kwargs)
 
     # ----------------------------------------------------------------
     # Rendering Methods

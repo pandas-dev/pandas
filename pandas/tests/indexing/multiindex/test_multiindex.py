@@ -216,3 +216,15 @@ class TestMultiIndexBasic:
             ],
             Series([1, 1, 2, 2], MultiIndex.from_arrays([["a", "a", "b", "b"]])),
         )
+
+    def test_multiindex_with_na_missing_key(self):
+        # GH46173
+        df = DataFrame.from_dict(
+            {
+                ("foo",): [1, 2, 3],
+                ("bar",): [5, 6, 7],
+                (None,): [8, 9, 0],
+            }
+        )
+        with pytest.raises(KeyError, match="missing_key"):
+            df[[("missing_key",)]]

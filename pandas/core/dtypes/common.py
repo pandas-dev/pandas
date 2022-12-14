@@ -260,7 +260,7 @@ def is_scipy_sparse(arr) -> bool:
     """
     global _is_scipy_sparse
 
-    if _is_scipy_sparse is None:
+    if _is_scipy_sparse is None:  # pylint: disable=used-before-assignment
         try:
             from scipy.sparse import issparse as _is_scipy_sparse
         except ImportError:
@@ -931,7 +931,7 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
         else:
             return False
     return tipo == DT64NS_DTYPE or (
-        isinstance(tipo, DatetimeTZDtype) and tipo._unit == "ns"
+        isinstance(tipo, DatetimeTZDtype) and tipo.unit == "ns"
     )
 
 

@@ -11,7 +11,6 @@ from typing import (
     Literal,
     Sequence,
     TypeVar,
-    Union,
     cast,
     overload,
 )
@@ -511,7 +510,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             result = self.copy() if copy else self
 
         elif is_categorical_dtype(dtype):
-            dtype = cast("Union[str, CategoricalDtype]", dtype)
+            dtype = cast(CategoricalDtype, dtype)
 
             # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
@@ -1019,7 +1018,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
         """
-        if set(self.dtype.categories) != set(new_categories):
+        if (
+            len(self.categories) != len(new_categories)
+            or not self.categories.difference(new_categories).empty
+        ):
             raise ValueError(
                 "items in new_categories are not the same as in old categories"
             )
@@ -1301,8 +1303,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         else:
             return self._validate_scalar(value)
 
-    _validate_searchsorted_value = _validate_setitem_value
-
     def _validate_scalar(self, fill_value):
         """
         Convert a user-facing fill_value to a representation to use with our
@@ -1567,9 +1567,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Return the indices that would sort the Categorical.
 
-        .. versionchanged:: 0.25.0
-
-           Changed to sort missing values at the end.
+        Missing values are sorted at the end.
 
         Parameters
         ----------

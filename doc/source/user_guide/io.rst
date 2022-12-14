@@ -155,15 +155,6 @@ usecols : list-like or callable, default ``None``
   when using the c engine. The Python engine loads the data first before deciding
   which columns to drop.
 
-mangle_dupe_cols : boolean, default ``True``
-  Duplicate columns will be specified as 'X', 'X.1'...'X.N', rather than 'X'...'X'.
-  Passing in ``False`` will cause data to be overwritten if there are duplicate
-  names in the columns.
-
-  .. deprecated:: 1.5.0
-     The argument was never implemented, and a new argument where the
-     renaming pattern can be specified will be added instead.
-
 General parsing configuration
 +++++++++++++++++++++++++++++
 
@@ -302,8 +293,6 @@ cache_dates : boolean, default True
   If True, use a cache of unique, converted dates to apply the datetime
   conversion. May produce significant speed-up when parsing duplicate
   date strings, especially ones with timezone offsets.
-
-  .. versionadded:: 0.25.0
 
 Iteration
 +++++++++
@@ -473,6 +462,17 @@ worth trying.
 
    os.remove("foo.csv")
 
+Setting ``use_nullable_dtypes=True`` will result in nullable dtypes for every column.
+
+.. ipython:: python
+
+   data = """a,b,c,d,e,f,g,h,i,j
+   1,2.5,True,a,,,,,12-31-2019,
+   3,4.5,False,b,6,7.5,True,a,12-31-2019,
+   """
+
+   pd.read_csv(StringIO(data), use_nullable_dtypes=True, parse_dates=["i"])
+
 .. _io.categorical:
 
 Specifying categorical dtype
@@ -587,10 +587,6 @@ If the header is in a row other than the first, pass the row number to
 Duplicate names parsing
 '''''''''''''''''''''''
 
-  .. deprecated:: 1.5.0
-     ``mangle_dupe_cols`` was never implemented, and a new argument where the
-     renaming pattern can be specified will be added instead.
-
 If the file or header contains duplicate names, pandas will by default
 distinguish between them so as to prevent overwriting data:
 
@@ -599,8 +595,7 @@ distinguish between them so as to prevent overwriting data:
    data = "a,b,a\n0,1,2\n3,4,5"
    pd.read_csv(StringIO(data))
 
-There is no more duplicate data because ``mangle_dupe_cols=True`` by default,
-which modifies a series of duplicate columns 'X', ..., 'X' to become
+There is no more duplicate data because duplicate columns 'X', ..., 'X' become
 'X', 'X.1', ..., 'X.N'.
 
 .. _io.usecols:
@@ -973,17 +968,7 @@ To parse the mixed-timezone values as a datetime column, pass a partially-applie
 Inferring datetime format
 +++++++++++++++++++++++++
 
-If you have ``parse_dates`` enabled for some or all of your columns, and your
-datetime strings are all formatted the same way, you may get a large speed
-up by setting ``infer_datetime_format=True``.  If set, pandas will attempt
-to guess the format of your datetime strings, and then use a faster means
-of parsing the strings.  5-10x parsing speeds have been observed.  pandas
-will fallback to the usual parsing if either the format cannot be guessed
-or the format that was guessed cannot properly parse the entire column
-of strings.  So in general, ``infer_datetime_format`` should not have any
-negative consequences if enabled.
-
-Here are some examples of datetime strings that can be guessed (All
+Here are some examples of datetime strings that can be guessed (all
 representing December 30th, 2011 at 00:00:00):
 
 * "20111230"
@@ -993,19 +978,34 @@ representing December 30th, 2011 at 00:00:00):
 * "30/Dec/2011 00:00:00"
 * "30/December/2011 00:00:00"
 
-Note that ``infer_datetime_format`` is sensitive to ``dayfirst``.  With
+Note that format inference is sensitive to ``dayfirst``.  With
 ``dayfirst=True``, it will guess "01/12/2011" to be December 1st. With
 ``dayfirst=False`` (default) it will guess "01/12/2011" to be January 12th.
 
+If you try to parse a column of date strings, pandas will attempt to guess the format
+from the first non-NaN element, and will then parse the rest of the column with that
+format. If pandas fails to guess the format (for example if your first string is
+``'01 December US/Pacific 2000'``), then a warning will be raised and each
+row will be parsed individually by ``dateutil.parser.parse``. The safest
+way to parse dates is to explicitly set ``format=``.
+
 .. ipython:: python
 
-   # Try to infer the format for the index column
    df = pd.read_csv(
        "foo.csv",
        index_col=0,
        parse_dates=True,
-       infer_datetime_format=True,
    )
+   df
+
+In the case that you have mixed datetime formats within the same column, you'll need to
+first read it in as an object dtype and then apply :func:`to_datetime` to each element.
+
+.. ipython:: python
+
+   data = io.StringIO("date\n12 Jan 2000\n2000-01-13\n")
+   df = pd.read_csv(data)
+   df['date'] = df['date'].apply(pd.to_datetime)
    df
 
 .. ipython:: python
@@ -3827,22 +3827,26 @@ format of an Excel worksheet created with the ``to_excel`` method.  Excellent ex
 OpenDocument Spreadsheets
 -------------------------
 
-.. versionadded:: 0.25
-
-The :func:`~pandas.read_excel` method can also read OpenDocument spreadsheets
-using the ``odfpy`` module. The semantics and features for reading
+The io methods for `Excel files`_ also support reading and writing OpenDocument spreadsheets
+using the `odfpy <https://pypi.org/project/odfpy/>`__ module. The semantics and features for reading and writing
 OpenDocument spreadsheets match what can be done for `Excel files`_ using
 ``engine='odf'``.
+
+The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
 
 .. code-block:: python
 
    # Returns a DataFrame
    pd.read_excel("path_to_file.ods", engine="odf")
 
-.. note::
+.. versionadded:: 1.1.0
 
-   Currently pandas only supports *reading* OpenDocument spreadsheets. Writing
-   is not implemented.
+Similarly, the :func:`~pandas.to_excel` method can write OpenDocument spreadsheets
+
+.. code-block:: python
+
+   # Writes DataFrame to a .ods file
+   df.to_excel("path_to_file.ods", engine="odf")
 
 .. _io.xlsb:
 
@@ -6130,8 +6134,6 @@ No official documentation is available for the SAS7BDAT format.
 
 SPSS formats
 ------------
-
-.. versionadded:: 0.25.0
 
 The top-level function :func:`read_spss` can read (but not write) SPSS
 SAV (.sav) and  ZSAV (.zsav) format files.

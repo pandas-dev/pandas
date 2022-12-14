@@ -201,7 +201,7 @@ def radviz(
             ax.text(
                 xy[0] - 0.025, xy[1] - 0.025, name, ha="right", va="top", size="small"
             )
-        elif xy[0] < 0.0 and xy[1] >= 0.0:
+        elif xy[0] < 0.0 <= xy[1]:
             ax.text(
                 xy[0] - 0.025,
                 xy[1] + 0.025,
@@ -210,7 +210,7 @@ def radviz(
                 va="bottom",
                 size="small",
             )
-        elif xy[0] >= 0.0 and xy[1] < 0.0:
+        elif xy[1] < 0.0 <= xy[0]:
             ax.text(
                 xy[0] + 0.025, xy[1] - 0.025, name, ha="left", va="top", size="small"
             )

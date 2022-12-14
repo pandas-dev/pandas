@@ -12,7 +12,8 @@ from typing import (
 )
 import warnings
 
-from pandas._libs import json
+from pandas._libs.json import loads
+from pandas._libs.tslibs import timezones
 from pandas._typing import (
     DtypeObj,
     JSONSerializable,
@@ -41,7 +42,6 @@ if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.indexes.multi import MultiIndex
 
-loads = json.loads
 
 TABLE_SCHEMA_VERSION = "1.4.0"
 
@@ -141,7 +141,11 @@ def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
     elif is_period_dtype(dtype):
         field["freq"] = dtype.freq.freqstr
     elif is_datetime64tz_dtype(dtype):
-        field["tz"] = dtype.tz.zone
+        if timezones.is_utc(dtype.tz):
+            # timezone.utc has no "zone" attr
+            field["tz"] = "UTC"
+        else:
+            field["tz"] = dtype.tz.zone
     elif is_extension_array_dtype(dtype):
         field["extDtype"] = dtype.name
     return field
@@ -245,7 +249,7 @@ def build_table_schema(
 
     Returns
     -------
-    schema : dict
+    dict
 
     Notes
     -----
