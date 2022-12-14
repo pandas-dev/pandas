@@ -17,6 +17,7 @@ from typing import (
     Sequence,
     cast,
 )
+from urllib.parse import quote_plus
 
 from pandas._typing import (
     FilePath,
@@ -1202,7 +1203,6 @@ def read_html(
     io = stringify_path(io)
 
     if is_url(io):
-        from urllib.parse import quote_plus
         io = quote_plus(io, "/:?=&")
 
     return _parse(
