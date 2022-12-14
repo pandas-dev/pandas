@@ -2263,11 +2263,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Check if the Index is a floating type.
 
-        The Index may consist of only floats, NaNs, or a mix of floats,
-        integers, or NaNs.
-
         .. deprecated:: 2.0.0
             Use `pandas.api.types.is_float_dtype` instead
+
+        The Index may consist of only floats, NaNs, or a mix of floats,
+        integers, or NaNs.
 
         Returns
         -------
