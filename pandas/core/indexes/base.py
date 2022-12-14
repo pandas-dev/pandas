@@ -2303,11 +2303,11 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
         warnings.warn(
-             f"{type(self).__name__}.is_floating is deprecated."
-             "Use pandas.api.types.is_float_dtype instead",
-             FutureWarning,
-             stacklevel=find_stack_level(),
-         )
+            f"{type(self).__name__}.is_floating is deprecated."
+            "Use pandas.api.types.is_float_dtype instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.inferred_type in ["floating", "mixed-integer-float", "integer-na"]
 
     @final
