@@ -5537,7 +5537,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Should an integer key be treated as positional?
         """
-        return self.inferred_type not in ["integer", "mixed-integer"]
+        if is_integer_dtype(self):
+            return False
+        elif is_object_dtype(self):
+            inferred_dtype = lib.infer_dtype(self._values, skipna=False)
+            return inferred_dtype not in ["integer", "mixed-integer"]
+        else:
+            return True
 
     _index_shared_docs[
         "get_indexer_non_unique"
