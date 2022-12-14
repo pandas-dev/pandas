@@ -537,7 +537,7 @@ class TestIntervalIndex:
         result = index.isin(other.tolist())
         tm.assert_numpy_array_equal(result, expected)
 
-        for other_closed in {"right", "left", "both", "neither"}:
+        for other_closed in ["right", "left", "both", "neither"]:
             other = self.create_index(closed=other_closed)
             expected = np.repeat(closed == other_closed, len(index))
             result = index.isin(other)
@@ -790,6 +790,13 @@ class TestIntervalIndex:
         index = IntervalIndex.from_tuples(tuples, closed=closed)
         result = index.is_overlapping
         assert result is expected
+
+        # intervals with duplicate left values
+        a = [10, 15, 20, 25, 30, 35, 40, 45, 45, 50, 55, 60, 65, 70, 75, 80, 85]
+        b = [15, 20, 25, 30, 35, 40, 45, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]
+        index = IntervalIndex.from_arrays(a, b, closed="right")
+        result = index.is_overlapping
+        assert result is False
 
     @pytest.mark.parametrize(
         "tuples",

@@ -8,7 +8,7 @@ from pandas import (
     _testing as tm,
     get_option,
 )
-from pandas.core import strings as strings
+from pandas.core import strings
 
 
 def test_api(any_string_dtype):

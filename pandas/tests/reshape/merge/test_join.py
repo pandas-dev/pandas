@@ -569,9 +569,9 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            mn = grouped.mean()
+        with pytest.raises(TypeError, match="Could not convert"):
+            grouped.mean()
+        mn = grouped.mean(numeric_only=True)
         cn = grouped.count()
 
         # it works!
@@ -951,7 +951,7 @@ def test_join_empty(left_empty, how, exp):
         expected = DataFrame({"B": [np.nan], "A": [1], "C": [5]})
         expected = expected.set_index("A")
     elif exp == "empty":
-        expected = DataFrame(index=Index([]), columns=["B", "C"], dtype="int64")
+        expected = DataFrame(columns=["B", "C"], dtype="int64")
         if how != "cross":
             expected = expected.rename_axis("A")
 

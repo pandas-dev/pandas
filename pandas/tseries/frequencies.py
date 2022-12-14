@@ -31,6 +31,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
+    is_numeric_dtype,
     is_period_dtype,
     is_timedelta64_dtype,
 )
@@ -130,10 +131,7 @@ def infer_freq(index) -> str | None:
     """
     from pandas.core.api import (
         DatetimeIndex,
-        Float64Index,
         Index,
-        Int64Index,
-        RangeIndex,
     )
 
     if isinstance(index, ABCSeries):
@@ -164,9 +162,9 @@ def infer_freq(index) -> str | None:
         return inferer.get_freq()
 
     if isinstance(index, Index) and not isinstance(index, DatetimeIndex):
-        if isinstance(index, (Int64Index, Float64Index, RangeIndex)):
+        if is_numeric_dtype(index):
             raise TypeError(
-                f"cannot infer freq from a non-convertible index type {type(index)}"
+                f"cannot infer freq from a non-convertible index of dtype {index.dtype}"
             )
         index = index._values
 

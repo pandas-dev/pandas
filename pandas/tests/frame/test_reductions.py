@@ -145,7 +145,6 @@ class TestDataFrameAnalytics:
 
     # ---------------------------------------------------------------------
     # Reductions
-    @pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize(
         "opname",
@@ -186,7 +185,6 @@ class TestDataFrameAnalytics:
         if opname != "nunique":
             getattr(float_string_frame, opname)(axis=axis, numeric_only=True)
 
-    @pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize(
         "opname",
@@ -283,9 +281,6 @@ class TestDataFrameAnalytics:
         assert_stat_op_calc("skew", skewness, float_frame_with_na)
         assert_stat_op_calc("kurt", kurt, float_frame_with_na)
 
-    # TODO: Ensure warning isn't emitted in the first place
-    # ignore mean of empty slice and all-NaN
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_median(self, float_frame_with_na, int_frame):
         def wrapper(x):
             if isna(x).any():
@@ -1163,7 +1158,7 @@ class TestDataFrameAnalytics:
         )
 
         result = df.all(bool_only=True)
-        expected = Series(dtype=np.bool_)
+        expected = Series(dtype=np.bool_, index=[])
         tm.assert_series_equal(result, expected)
 
         df = DataFrame(
@@ -1427,16 +1422,16 @@ class TestDataFrameReductions:
         tm.assert_series_equal(result, expected)
 
     def test_reductions_skipna_none_raises(
-        self, request, frame_or_series, reduction_functions
+        self, request, frame_or_series, all_reductions
     ):
-        if reduction_functions == "count":
+        if all_reductions == "count":
             request.node.add_marker(
                 pytest.mark.xfail(reason="Count does not accept skipna")
             )
         obj = frame_or_series([1, 2, 3])
         msg = 'For argument "skipna" expected type bool, received type NoneType.'
         with pytest.raises(ValueError, match=msg):
-            getattr(obj, reduction_functions)(skipna=None)
+            getattr(obj, all_reductions)(skipna=None)
 
 
 class TestNuisanceColumns:
@@ -1489,6 +1484,7 @@ class TestNuisanceColumns:
         # TODO: np.median(df, axis=0) gives np.array([2.0, 2.0]) instead
         #  of expected.values
 
+    @pytest.mark.filterwarnings("ignore:.*will return a scalar.*:FutureWarning")
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_min_max_categorical_dtype_non_ordered_nuisance_column(self, method):
         # GH#28949 DataFrame.min should behave like Series.min

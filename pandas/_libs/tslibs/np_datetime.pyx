@@ -52,13 +52,14 @@ cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                                 npy_datetimestruct *out,
                                 NPY_DATETIMEUNIT *out_bestunit,
-                                int *out_local, int *out_tzoffset)
+                                int *out_local, int *out_tzoffset,
+                                const char *format, int format_len, int exact)
 
 
 # ----------------------------------------------------------------------
 # numpy object inspection
 
-cdef inline npy_datetime get_datetime64_value(object obj) nogil:
+cdef npy_datetime get_datetime64_value(object obj) nogil:
     """
     returns the int64 value underlying scalar numpy datetime64 object
 
@@ -68,14 +69,14 @@ cdef inline npy_datetime get_datetime64_value(object obj) nogil:
     return (<PyDatetimeScalarObject*>obj).obval
 
 
-cdef inline npy_timedelta get_timedelta64_value(object obj) nogil:
+cdef npy_timedelta get_timedelta64_value(object obj) nogil:
     """
     returns the int64 value underlying scalar numpy timedelta64 object
     """
     return (<PyTimedeltaScalarObject*>obj).obval
 
 
-cdef inline NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
+cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
     """
     returns the unit part of the dtype for a numpy datetime64 object.
     """
@@ -135,7 +136,7 @@ cdef bint cmp_dtstructs(
         return cmp_res == -1 or cmp_res == 0
 
 
-cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
+cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
     """
     cmp_scalar is a more performant version of PyObject_RichCompare
     typed for int64_t arguments.
@@ -210,10 +211,10 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
         error = True
 
     if error:
-        fmt = (f'{dts.year}-{dts.month:02d}-{dts.day:02d} '
-               f'{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}')
+        fmt = (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+               f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
         # TODO: "nanosecond" in the message assumes NPY_FR_ns
-        raise OutOfBoundsDatetime(f'Out of bounds nanosecond timestamp: {fmt}')
+        raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {fmt}")
 
 
 # ----------------------------------------------------------------------
@@ -228,7 +229,7 @@ def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
     return tds  # <- returned as a dict to python
 
 
-cdef inline void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
+cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
     if PyDateTime_CheckExact(dt):
         dts.year = PyDateTime_GET_YEAR(dt)
     else:
@@ -245,9 +246,9 @@ cdef inline void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
     dts.ps = dts.as = 0
 
 
-cdef inline int64_t pydatetime_to_dt64(datetime val,
-                                       npy_datetimestruct *dts,
-                                       NPY_DATETIMEUNIT reso=NPY_FR_ns):
+cdef int64_t pydatetime_to_dt64(datetime val,
+                                npy_datetimestruct *dts,
+                                NPY_DATETIMEUNIT reso=NPY_FR_ns):
     """
     Note we are assuming that the datetime object is timezone-naive.
     """
@@ -255,7 +256,7 @@ cdef inline int64_t pydatetime_to_dt64(datetime val,
     return npy_datetimestruct_to_datetime(reso, dts)
 
 
-cdef inline void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
+cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
@@ -263,28 +264,39 @@ cdef inline void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
     dts.ps = dts.as = 0
     return
 
-cdef inline int64_t pydate_to_dt64(
+cdef int64_t pydate_to_dt64(
     date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=NPY_FR_ns
 ):
     pydate_to_dtstruct(val, dts)
     return npy_datetimestruct_to_datetime(reso, dts)
 
 
-cdef inline int string_to_dts(
+cdef int string_to_dts(
     str val,
     npy_datetimestruct* dts,
     NPY_DATETIMEUNIT* out_bestunit,
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
+    format: str | None=None,
+    bint exact=True,
 ) except? -1:
     cdef:
         Py_ssize_t length
         const char* buf
+        Py_ssize_t format_length
+        const char* format_buf
 
     buf = get_c_string_buf_and_size(val, &length)
+    if format is None:
+        format_buf = b""
+        format_length = 0
+        exact = False
+    else:
+        format_buf = get_c_string_buf_and_size(format, &format_length)
     return parse_iso_8601_datetime(buf, length, want_exc,
-                                   dts, out_bestunit, out_local, out_tzoffset)
+                                   dts, out_bestunit, out_local, out_tzoffset,
+                                   format_buf, format_length, exact)
 
 
 cpdef ndarray astype_overflowsafe(

@@ -14,10 +14,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-)
 from pandas.core.groupby.grouper import Grouping
 
 # selection
@@ -59,10 +55,12 @@ class TestSelection:
         tm.assert_series_equal(result, expected)
 
         df["mean"] = 1.5
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.groupby("A").mean()
-            expected = df.groupby("A").agg(np.mean)
+        with pytest.raises(TypeError, match="Could not convert"):
+            df.groupby("A").mean()
+        result = df.groupby("A").mean(numeric_only=True)
+        with pytest.raises(TypeError, match="Could not convert"):
+            df.groupby("A").agg(np.mean)
+        expected = df.groupby("A")[["C", "D", "mean"]].agg(np.mean)
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_list_of_columns(self):
@@ -288,30 +286,53 @@ class TestGrouping:
             {"A": np.arange(6), "B": ["one", "one", "two", "two", "one", "one"]},
             index=idx,
         )
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df_multi.groupby(["B", pd.Grouper(level="inner")]).mean()
-            expected = df_multi.reset_index().groupby(["B", "inner"]).mean()
+        result = df_multi.groupby(["B", pd.Grouper(level="inner")]).mean(
+            numeric_only=True
+        )
+        with pytest.raises(TypeError, match="Could not convert"):
+            df_multi.reset_index().groupby(["B", "inner"]).mean()
+        expected = (
+            df_multi.reset_index().groupby(["B", "inner"]).mean(numeric_only=True)
+        )
         tm.assert_frame_equal(result, expected)
 
         # Test the reverse grouping order
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df_multi.groupby([pd.Grouper(level="inner"), "B"]).mean()
-            expected = df_multi.reset_index().groupby(["inner", "B"]).mean()
+        result = df_multi.groupby([pd.Grouper(level="inner"), "B"]).mean(
+            numeric_only=True
+        )
+        with pytest.raises(TypeError, match="Could not convert"):
+            df_multi.reset_index().groupby(["inner", "B"]).mean()
+        expected = (
+            df_multi.reset_index().groupby(["inner", "B"]).mean(numeric_only=True)
+        )
         tm.assert_frame_equal(result, expected)
 
         # Grouping a single-index frame by a column and the index should
         # be equivalent to resetting the index and grouping by two columns
         df_single = df_multi.reset_index("outer")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df_single.groupby(["B", pd.Grouper(level="inner")]).mean()
-            expected = df_single.reset_index().groupby(["B", "inner"]).mean()
+        with pytest.raises(TypeError, match="Could not convert"):
+            df_single.groupby(["B", pd.Grouper(level="inner")]).mean()
+        result = df_single.groupby(["B", pd.Grouper(level="inner")]).mean(
+            numeric_only=True
+        )
+        with pytest.raises(TypeError, match="Could not convert"):
+            df_single.reset_index().groupby(["B", "inner"]).mean()
+        expected = (
+            df_single.reset_index().groupby(["B", "inner"]).mean(numeric_only=True)
+        )
         tm.assert_frame_equal(result, expected)
 
         # Test the reverse grouping order
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df_single.groupby([pd.Grouper(level="inner"), "B"]).mean()
-            expected = df_single.reset_index().groupby(["inner", "B"]).mean()
+        with pytest.raises(TypeError, match="Could not convert"):
+            df_single.groupby([pd.Grouper(level="inner"), "B"]).mean()
+        result = df_single.groupby([pd.Grouper(level="inner"), "B"]).mean(
+            numeric_only=True
+        )
+        with pytest.raises(TypeError, match="Could not convert"):
+            df_single.reset_index().groupby(["inner", "B"]).mean()
+        expected = (
+            df_single.reset_index().groupby(["inner", "B"]).mean(numeric_only=True)
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_levels_and_columns(self):
@@ -385,10 +406,12 @@ class TestGrouping:
     def test_groupby_grouper(self, df):
         grouped = df.groupby("A")
 
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.groupby(grouped.grouper).mean()
-            expected = grouped.mean()
+        with pytest.raises(TypeError, match="Could not convert"):
+            df.groupby(grouped.grouper).mean()
+        result = df.groupby(grouped.grouper).mean(numeric_only=True)
+        with pytest.raises(TypeError, match="Could not convert"):
+            grouped.mean()
+        expected = grouped.mean(numeric_only=True)
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_dict_mapping(self):
@@ -660,15 +683,19 @@ class TestGrouping:
         [
             (
                 "transform",
-                Series(name=2, dtype=np.float64, index=Index([])),
+                Series(name=2, dtype=np.float64),
             ),
             (
                 "agg",
-                Series(name=2, dtype=np.float64, index=Float64Index([], name=1)),
+                Series(
+                    name=2, dtype=np.float64, index=Index([], dtype=np.float64, name=1)
+                ),
             ),
             (
                 "apply",
-                Series(name=2, dtype=np.float64, index=Float64Index([], name=1)),
+                Series(
+                    name=2, dtype=np.float64, index=Index([], dtype=np.float64, name=1)
+                ),
             ),
         ],
     )
@@ -732,7 +759,9 @@ class TestGrouping:
         empty = df[df.value < 0]
         result = empty.groupby("id").sum()
         expected = DataFrame(
-            dtype="float64", columns=["value"], index=Int64Index([], name="id")
+            dtype="float64",
+            columns=["value"],
+            index=Index([], dtype=np.int64, name="id"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -846,7 +875,7 @@ class TestGetGroup:
         df = DataFrame({"a": list("abssbab")})
         tm.assert_frame_equal(df.groupby("a").get_group("a"), df.iloc[[0, 5]])
         # GH 13530
-        exp = DataFrame(index=Index(["a", "b", "s"], name="a"))
+        exp = DataFrame(index=Index(["a", "b", "s"], name="a"), columns=[])
         tm.assert_frame_equal(df.groupby("a").count(), exp)
         tm.assert_frame_equal(df.groupby("a").sum(), exp)
 
@@ -946,6 +975,9 @@ class TestIteration:
         df["k1"] = np.array(["b", "b", "b", "a", "a", "a"])
         df["k2"] = np.array(["1", "1", "1", "2", "2", "2"])
         grouped = df.groupby(["k1", "k2"])
+        # calling `dict` on a DataFrameGroupBy leads to a TypeError,
+        # we need to use a dictionary comprehension here
+        # pylint: disable-next=unnecessary-comprehension
         groups = {key: gp for key, gp in grouped}
         assert len(groups) == 2
 

@@ -18,7 +18,6 @@ from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import (
     NaT,
-    Period,
     iNaT,
 )
 
@@ -565,16 +564,7 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
     if not strict_nan:
         # isna considers NaN and None to be equivalent.
 
-        if left.flags["F_CONTIGUOUS"] and right.flags["F_CONTIGUOUS"]:
-            # we can improve performance by doing a copy-free ravel
-            # e.g. in frame_methods.Equals.time_frame_nonunique_equal
-            #  if we transposed the frames
-            left = left.ravel("K")
-            right = right.ravel("K")
-
-        return lib.array_equivalent_object(
-            ensure_object(left.ravel()), ensure_object(right.ravel())
-        )
+        return lib.array_equivalent_object(ensure_object(left), ensure_object(right))
 
     for left_value, right_value in zip(left, right):
         if left_value is NaT and right_value is not NaT:
@@ -758,10 +748,8 @@ def isna_all(arr: ArrayLike) -> bool:
     if dtype.kind == "f" and isinstance(dtype, np.dtype):
         checker = nan_checker
 
-    elif (
-        (isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"])
-        or isinstance(dtype, DatetimeTZDtype)
-        or dtype.type is Period
+    elif (isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"]) or isinstance(
+        dtype, (DatetimeTZDtype, PeriodDtype)
     ):
         # error: Incompatible types in assignment (expression has type
         # "Callable[[Any], Any]", variable has type "ufunc")

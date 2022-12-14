@@ -11,6 +11,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs.tslibs import (
+    NaT,
     Timedelta,
     Timestamp,
 )
@@ -216,6 +217,8 @@ class BinOp(ops.BinOp):
                 v = stringify(v)
             v = ensure_decoded(v)
             v = Timestamp(v)
+            if v is not NaT:
+                v = v.as_unit("ns")  # pyright: ignore[reportGeneralTypeIssues]
             if v.tz is not None:
                 v = v.tz_convert("UTC")
             return TermValue(v, v.value, kind)
@@ -651,7 +654,7 @@ def maybe_expression(s) -> bool:
     """loose checking if s is a pytables-acceptable expression"""
     if not isinstance(s, str):
         return False
-    ops = PyTablesExprVisitor.binary_ops + PyTablesExprVisitor.unary_ops + ("=",)
+    operations = PyTablesExprVisitor.binary_ops + PyTablesExprVisitor.unary_ops + ("=",)
 
     # make sure we have an op at least
-    return any(op in s for op in ops)
+    return any(op in s for op in operations)

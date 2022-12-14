@@ -27,59 +27,57 @@ import pandas._testing as tm
 from pandas.io.common import get_handle
 from pandas.io.xml import read_xml
 
-"""
-CHECK LIST
+# CHECK LIST
 
-[x] - ValueError: "Values for parser can only be lxml or etree."
+# [x] - ValueError: "Values for parser can only be lxml or etree."
 
-etree
-[X] - ImportError: "lxml not found, please install or use the etree parser."
-[X] - TypeError: "expected str, bytes or os.PathLike object, not NoneType"
-[X] - ValueError: "Either element or attributes can be parsed not both."
-[X] - ValueError: "xpath does not return any nodes..."
-[X] - SyntaxError: "You have used an incorrect or unsupported XPath"
-[X] - ValueError: "names does not match length of child elements in xpath."
-[X] - TypeError: "...is not a valid type for names"
-[X] - ValueError: "To use stylesheet, you need lxml installed..."
-[]  - URLError: (GENERAL ERROR WITH HTTPError AS SUBCLASS)
-[X] - HTTPError: "HTTP Error 404: Not Found"
-[]  - OSError: (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
-[X] - FileNotFoundError: "No such file or directory"
-[]  - ParseError    (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
-[X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
-[X] - UnicodeError: "UTF-16 stream does not start with BOM"
-[X] - BadZipFile: "File is not a zip file"
-[X] - OSError: "Invalid data stream"
-[X] - LZMAError: "Input format not supported by decoder"
-[X] - ValueError: "Unrecognized compression type"
-[X] - PermissionError: "Forbidden"
+# etree
+# [X] - ImportError: "lxml not found, please install or use the etree parser."
+# [X] - TypeError: "expected str, bytes or os.PathLike object, not NoneType"
+# [X] - ValueError: "Either element or attributes can be parsed not both."
+# [X] - ValueError: "xpath does not return any nodes..."
+# [X] - SyntaxError: "You have used an incorrect or unsupported XPath"
+# [X] - ValueError: "names does not match length of child elements in xpath."
+# [X] - TypeError: "...is not a valid type for names"
+# [X] - ValueError: "To use stylesheet, you need lxml installed..."
+# []  - URLError: (GENERAL ERROR WITH HTTPError AS SUBCLASS)
+# [X] - HTTPError: "HTTP Error 404: Not Found"
+# []  - OSError: (GENERAL ERROR WITH FileNotFoundError AS SUBCLASS)
+# [X] - FileNotFoundError: "No such file or directory"
+# []  - ParseError    (FAILSAFE CATCH ALL FOR VERY COMPLEX XML)
+# [X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
+# [X] - UnicodeError: "UTF-16 stream does not start with BOM"
+# [X] - BadZipFile: "File is not a zip file"
+# [X] - OSError: "Invalid data stream"
+# [X] - LZMAError: "Input format not supported by decoder"
+# [X] - ValueError: "Unrecognized compression type"
+# [X] - PermissionError: "Forbidden"
 
-lxml
-[X] - ValueError: "Either element or attributes can be parsed not both."
-[X] - AttributeError: "__enter__"
-[X] - XSLTApplyError: "Cannot resolve URI"
-[X] - XSLTParseError: "document is not a stylesheet"
-[X] - ValueError: "xpath does not return any nodes."
-[X] - XPathEvalError: "Invalid expression"
-[]  - XPathSyntaxError: (OLD VERSION IN lxml FOR XPATH ERRORS)
-[X] - TypeError: "empty namespace prefix is not supported in XPath"
-[X] - ValueError: "names does not match length of child elements in xpath."
-[X] - TypeError: "...is not a valid type for names"
-[X] - LookupError: "unknown encoding"
-[]  - URLError: (USUALLY DUE TO NETWORKING)
-[X  - HTTPError: "HTTP Error 404: Not Found"
-[X] - OSError: "failed to load external entity"
-[X] - XMLSyntaxError: "Start tag expected, '<' not found"
-[]  - ParserError: (FAILSAFE CATCH ALL FOR VERY COMPLEX XML
-[X] - ValueError: "Values for parser can only be lxml or etree."
-[X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
-[X] - UnicodeError: "UTF-16 stream does not start with BOM"
-[X] - BadZipFile: "File is not a zip file"
-[X] - OSError: "Invalid data stream"
-[X] - LZMAError: "Input format not supported by decoder"
-[X] - ValueError: "Unrecognized compression type"
-[X] - PermissionError: "Forbidden"
-"""
+# lxml
+# [X] - ValueError: "Either element or attributes can be parsed not both."
+# [X] - AttributeError: "__enter__"
+# [X] - XSLTApplyError: "Cannot resolve URI"
+# [X] - XSLTParseError: "document is not a stylesheet"
+# [X] - ValueError: "xpath does not return any nodes."
+# [X] - XPathEvalError: "Invalid expression"
+# []  - XPathSyntaxError: (OLD VERSION IN lxml FOR XPATH ERRORS)
+# [X] - TypeError: "empty namespace prefix is not supported in XPath"
+# [X] - ValueError: "names does not match length of child elements in xpath."
+# [X] - TypeError: "...is not a valid type for names"
+# [X] - LookupError: "unknown encoding"
+# []  - URLError: (USUALLY DUE TO NETWORKING)
+# [X  - HTTPError: "HTTP Error 404: Not Found"
+# [X] - OSError: "failed to load external entity"
+# [X] - XMLSyntaxError: "Start tag expected, '<' not found"
+# []  - ParserError: (FAILSAFE CATCH ALL FOR VERY COMPLEX XML
+# [X] - ValueError: "Values for parser can only be lxml or etree."
+# [X] - UnicodeDecodeError: "'utf-8' codec can't decode byte 0xe9..."
+# [X] - UnicodeError: "UTF-16 stream does not start with BOM"
+# [X] - BadZipFile: "File is not a zip file"
+# [X] - OSError: "Invalid data stream"
+# [X] - LZMAError: "Input format not supported by decoder"
+# [X] - ValueError: "Unrecognized compression type"
+# [X] - PermissionError: "Forbidden"
 
 geom_df = DataFrame(
     {
