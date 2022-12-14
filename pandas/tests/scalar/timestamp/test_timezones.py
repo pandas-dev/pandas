@@ -103,7 +103,7 @@ class TestTimestampTZOperations:
         ts_dst = ts.tz_localize("US/Eastern", ambiguous=True)
         ts_no_dst = ts.tz_localize("US/Eastern", ambiguous=False)
 
-        assert (ts_no_dst.value - ts_dst.value) / 1e9 == 3600
+        assert ts_no_dst.value - ts_dst.value == 3600
         msg = re.escape(
             "'ambiguous' parameter must be one of: "
             "True, False, 'NaT', 'raise' (default)"
