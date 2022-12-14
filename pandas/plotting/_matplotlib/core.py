@@ -1137,9 +1137,9 @@ class PlanePlot(MPLPlot, ABC):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + " requires an x and y column")
-        if is_integer(x) and not is_integer_dtype(self.data.columns):
+        if is_integer(x) and self.data.columns._should_fallback_to_positional:
             x = self.data.columns[x]
-        if is_integer(y) and not is_integer_dtype(self.data.columns):
+        if is_integer(y) and self.data.columns._should_fallback_to_positional:
             y = self.data.columns[y]
 
         # Scatter plot allows to plot objects data
@@ -1196,7 +1196,7 @@ class ScatterPlot(PlanePlot):
         elif is_hashable(s) and s in data.columns:
             s = data[s]
         super().__init__(data, x, y, s=s, **kwargs)
-        if is_integer(c) and not is_integer_dtype(self.data.columns):
+        if is_integer(c) and self.data.columns._should_fallback_to_positional:
             c = self.data.columns[c]
         self.c = c
 
@@ -1291,7 +1291,7 @@ class HexBinPlot(PlanePlot):
 
     def __init__(self, data, x, y, C=None, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
-        if is_integer(C) and not is_integer_dtype(self.data.columns):
+        if is_integer(C) and self.data.columns._should_fallback_to_positional:
             C = self.data.columns[C]
         self.C = C
 
