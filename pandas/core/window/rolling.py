@@ -1110,6 +1110,29 @@ class Window(BaseWindow):
     2  2.958621
     3       NaN
     4       NaN
+
+    **on**
+
+    Rolling sum with a window length of 2 days.
+
+    >>> df = pd.DataFrame({
+    ...     'A': [pd.to_datetime('2020-01-01'),
+    ...           pd.to_datetime('2020-01-01'),
+    ...           pd.to_datetime('2020-01-02'),],
+    ...     'B': [1, 2, 3], },
+    ...     index=pd.date_range('2020', periods=3))
+
+    >>> df
+                        A  B
+    2020-01-01 2020-01-01  1
+    2020-01-02 2020-01-01  2
+    2020-01-03 2020-01-02  3
+
+    >>> df.rolling('2D', on='A').sum()
+                        A    B
+    2020-01-01 2020-01-01  1.0
+    2020-01-02 2020-01-01  3.0
+    2020-01-03 2020-01-02  6.0
     """
 
     _attributes = [
