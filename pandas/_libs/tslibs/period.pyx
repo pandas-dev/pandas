@@ -2620,8 +2620,7 @@ class Period(_Period):
                 warnings.warn(
                     "The pandas.Period class does not support timezones. "
                     f"The timezone given in '{value}' will be ignored.",
-                    UserWarning,
-                    stacklevel=2
+                    UserWarning
                 )
             base = freq_to_dtype_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
