@@ -24,6 +24,7 @@ class TestPeriodRange:
         "freq",
         [
             "D",
+            # Parsing week strings is not fully supported. See GH 48000.
             pytest.param("W", marks=pytest.mark.filterwarnings("ignore:.*timezone")),
             "M",
             "Q",
