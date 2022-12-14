@@ -897,6 +897,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         None
         """
+        key = check_array_indexer(self, key)
+        value = self._maybe_convert_setitem_value(value)
+
         # fast path (GH50248)
         if com.is_null_slice(key):
             if is_scalar(value) and not pa_version_under6p0:
@@ -918,9 +921,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                     self._data = pa.chunked_array([arr])
                 return
 
-        key = check_array_indexer(self, key)
         indices = self._indexing_key_to_indices(key)
-        value = self._maybe_convert_setitem_value(value)
 
         argsort = np.argsort(indices)
         indices = indices[argsort]
