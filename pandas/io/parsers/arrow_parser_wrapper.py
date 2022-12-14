@@ -151,7 +151,7 @@ class ArrowParserWrapper(ParserBase):
         )
         if (
             self.kwds["use_nullable_dtypes"]
-            and get_option("io.nullable_backend") == "pyarrow"
+            and get_option("mode.nullable_backend") == "pyarrow"
         ):
             frame = DataFrame(
                 {

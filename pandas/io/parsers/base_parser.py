@@ -713,7 +713,7 @@ class ParserBase:
         use_nullable_dtypes: Literal[True] | Literal[False] = (
             self.use_nullable_dtypes and no_dtype_specified
         )
-        nullable_backend = get_option("io.nullable_backend")
+        nullable_backend = get_option("mode.nullable_backend")
         result: ArrayLike
 
         if try_num_bool and is_object_dtype(values.dtype):
