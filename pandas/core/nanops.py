@@ -1503,7 +1503,7 @@ def _maybe_null_out(
             result_dtype = getattr(result, "dtype", None)
             if is_float_dtype(result_dtype):
                 # Preserve dtype when possible
-                result = getattr(np, f"float{8 * result_dtype.itemsize}")
+                result = getattr(np, f"float{8 * result_dtype.itemsize}")("nan")
             else:
                 result = np.nan
 

@@ -1432,7 +1432,7 @@ def test_apply_datetime_tz_issue():
 def test_mixed_column_raises(df, method):
     # GH 16832
     if method == "sum":
-        msg = r'can only concatenate str \(not "int"\) to str'
+        msg = r'can only concatenate str \(not "float"\) to str'
     else:
         msg = "not supported between instances of 'str' and 'float'"
     with pytest.raises(TypeError, match=msg):
