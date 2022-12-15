@@ -2311,7 +2311,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         with pd.option_context("mode.string_storage", storage):
             iterator = getattr(pd, func)(
-                f"Select * from {table}",
+                table,
                 self.conn,
                 use_nullable_dtypes=True,
                 chunksize=3,
