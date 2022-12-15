@@ -30,6 +30,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     dtstruct_to_dt64,
     npy_datetimestruct,
 )
+from pandas._libs.util cimport (
+    is_float_object,
+    is_integer_object,
+)
 
 
 cdef dict _parse_code_table = {'y': 0,
@@ -133,6 +137,12 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
             if val in nat_strings:
                 iresult[i] = NPY_NAT
                 continue
+        elif (
+                (is_integer_object(val) or is_float_object(val))
+                and (val != val or val == NPY_NAT)
+        ):
+            iresult[i] = NPY_NAT
+            continue
         else:
             if checknull_with_nat_and_na(val):
                 iresult[i] = NPY_NAT
