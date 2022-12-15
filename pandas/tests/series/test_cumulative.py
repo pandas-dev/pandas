@@ -129,3 +129,9 @@ class TestSeriesCumulativeOps:
         ser = pd.Series([False, True, np.nan, False])
         result = getattr(ser, method)()
         tm.assert_series_equal(result, expected)
+
+    def test_cumprod_timedelta(self):
+        # GH#48111
+        ser = pd.Series([pd.Timedelta(days=1), pd.Timedelta(days=3)])
+        with pytest.raises(TypeError, match="cumprod not supported for Timedelta"):
+            ser.cumprod()

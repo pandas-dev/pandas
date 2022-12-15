@@ -417,12 +417,13 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         data = self._ndarray.copy()
 
-        if name in {"cumsum", "cumprod"}:
-            # TODO: cumprod should not work here GH#48111
-            func = np.cumsum if name == "cumsum" else np.cumprod
+        if name == "cumsum":
+            func = np.cumsum
             result = cast(np.ndarray, nanops.na_accum_func(data, func, skipna=skipna))
 
             return type(self)._simple_new(result, freq=None, dtype=self.dtype)
+        elif name == "cumprod":
+            raise TypeError("cumprod not supported for Timedelta.")
 
         else:
             return super()._accumulate(name, skipna=skipna, **kwargs)
