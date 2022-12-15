@@ -1,4 +1,7 @@
 import numpy as np
+import pytest
+
+from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.common import (
     is_complex_dtype,
@@ -163,6 +166,12 @@ class TestSeriesDescribe:
             dtype = "complex128" if is_complex_dtype(any_numeric_dtype) else None
 
         ser = Series([0, 1], dtype=any_numeric_dtype)
+        if dtype == "complex128" and is_numpy_dev:
+            with pytest.raises(
+                TypeError, match=r"^a must be an array of real numbers$"
+            ):
+                ser.describe()
+            return
         result = ser.describe()
         expected = Series(
             [
