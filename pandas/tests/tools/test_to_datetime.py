@@ -2984,10 +2984,17 @@ def test_na_to_datetime(nulls_fixture, klass):
 
 
 @pytest.mark.parametrize("errors", ["raise", "coerce", "ignore"])
-def test_empty_string_datetime(errors):
+@pytest.mark.parametrize(
+    "args, format",
+    [
+        (["03/24/2016", "03/25/2016", ""], "%m/%d/%Y"),
+        (["2016-03-24", "2016-03-25", ""], "%Y-%m-%d"),
+    ],
+    ids=["non-ISO8601", "ISO8601"],
+)
+def test_empty_string_datetime(errors, args, format):
     # GH13044, GH50251
-    td = Series(["03/24/2016", "03/25/2016", ""])
-    format = "%m/%d/%Y"
+    td = Series(args)
 
     # coerce empty string to pd.NaT
     result = to_datetime(td, format=format, errors=errors)
