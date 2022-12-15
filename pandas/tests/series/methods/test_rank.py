@@ -11,6 +11,7 @@ from pandas._libs.algos import (
 import pandas.util._test_decorators as td
 
 from pandas import (
+    NA,
     NaT,
     Series,
     Timestamp,
@@ -35,6 +36,21 @@ def ser():
     ]
 )
 def results(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        "object",
+        "float64",
+        "int64",
+        "Float64",
+        "Int64",
+        "float64[pyarrow]",
+        "int64[pyarrow]",
+    ]
+)
+def dtype(request):
     return request.param
 
 
@@ -238,13 +254,16 @@ class TestSeriesRank:
         [
             ("object", None, Infinity(), NegInfinity()),
             ("float64", np.nan, np.inf, -np.inf),
+            ("Float64", NA, np.inf, -np.inf),
+            ("float64[pyarrow]", NA, np.inf, -np.inf),
         ],
     )
     def test_rank_tie_methods_on_infs_nans(
         self, method, na_option, ascending, dtype, na_value, pos_inf, neg_inf
     ):
-        chunk = 3
+        exp_dtype = dtype if dtype == "float64[pyarrow]" else "float64"
 
+        chunk = 3
         in_arr = [neg_inf] * chunk + [na_value] * chunk + [pos_inf] * chunk
         iseries = Series(in_arr, dtype=dtype)
         exp_ranks = {
@@ -264,7 +283,7 @@ class TestSeriesRank:
         expected = order if ascending else order[::-1]
         expected = list(chain.from_iterable(expected))
         result = iseries.rank(method=method, na_option=na_option, ascending=ascending)
-        tm.assert_series_equal(result, Series(expected, dtype="float64"))
+        tm.assert_series_equal(result, Series(expected, dtype=exp_dtype))
 
     def test_rank_desc_mix_nans_infs(self):
         # GH 19538
@@ -299,7 +318,6 @@ class TestSeriesRank:
         expected = Series(sprank, index=index).astype("float64")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
     @pytest.mark.parametrize(
         "ser, exp",
         [
@@ -319,7 +337,6 @@ class TestSeriesRank:
         expected = Series(exp).astype(result.dtype)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
     def test_rank_descending(self, ser, results, dtype):
         method, _ = results
         if "i" in dtype:
@@ -365,7 +382,6 @@ class TestSeriesRank:
 # GH15630, pct should be on 100% basis when method='dense'
 
 
-@pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
 @pytest.mark.parametrize(
     "ser, exp",
     [
@@ -387,7 +403,6 @@ def test_rank_dense_pct(dtype, ser, exp):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
 @pytest.mark.parametrize(
     "ser, exp",
     [
@@ -409,7 +424,6 @@ def test_rank_min_pct(dtype, ser, exp):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
 @pytest.mark.parametrize(
     "ser, exp",
     [
@@ -431,7 +445,6 @@ def test_rank_max_pct(dtype, ser, exp):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
 @pytest.mark.parametrize(
     "ser, exp",
     [
@@ -453,7 +466,6 @@ def test_rank_average_pct(dtype, ser, exp):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", ["f8", "i8"])
 @pytest.mark.parametrize(
     "ser, exp",
     [

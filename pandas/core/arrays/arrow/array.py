@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     Dtype,
     FillnaOptions,
     Iterator,
@@ -22,6 +23,7 @@ from pandas._typing import (
 from pandas.compat import (
     pa_version_under6p0,
     pa_version_under7p0,
+    pa_version_under9p0,
 )
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -949,7 +951,68 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             indices = np.arange(n)[key]
         return indices
 
-    # TODO: redefine _rank using pc.rank with pyarrow 9.0
+    def _rank(
+        self: ArrowExtensionArrayT,
+        *,
+        axis: AxisInt = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ) -> ArrowExtensionArrayT:
+        """
+        See Series.rank.__doc__.
+        """
+        if axis != 0:
+            raise NotImplementedError
+
+        if (
+            pa_version_under9p0
+            # as of version 10, pyarrow does not support an "average" method
+            or method not in ("min", "max", "first", "dense")
+        ):
+            from pandas.core.algorithms import rank
+
+            ranked = rank(
+                self.to_numpy(),
+                axis=axis,
+                method=method,
+                na_option=na_option,
+                ascending=ascending,
+                pct=pct,
+            )
+            result = pa.array(ranked, type=pa.float64(), from_pandas=True)
+            return type(self)(result)
+
+        sort_keys = "ascending" if ascending else "descending"
+
+        if na_option == "top":
+            null_placement = "at_start"
+        else:
+            null_placement = "at_end"
+
+        result = pc.rank(
+            self._data.combine_chunks(),
+            sort_keys=sort_keys,
+            null_placement=null_placement,
+            tiebreaker=method,
+        )
+        if not pa.types.is_floating(result.type):
+            result = result.cast(pa.float64())
+
+        if na_option == "keep":
+            mask = pc.is_null(self._data)
+            null = pa.scalar(None, type=self._data.type)
+            result = pc.if_else(mask, null, result)
+
+        if pct:
+            if method == "dense":
+                divisor = pc.max(result)
+            else:
+                divisor = pc.count(result)
+            result = pc.divide(result, divisor)
+
+        return type(self)(result)
 
     def _quantile(
         self: ArrowExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
