@@ -42,7 +42,11 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
-from pandas._libs.util cimport is_datetime64_object
+from pandas._libs.util cimport (
+    is_datetime64_object,
+    is_float_object,
+    is_integer_object,
+)
 
 cnp.import_array()
 
@@ -184,6 +188,12 @@ def array_strptime(
             continue
         elif is_datetime64_object(val):
             iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
+            continue
+        elif (
+                (is_integer_object(val) or is_float_object(val))
+                and (val != val or val == NPY_NAT)
+        ):
+            iresult[i] = NPY_NAT
             continue
         else:
             val = str(val)
