@@ -155,8 +155,6 @@ class TestReadHtml:
             }
         )
 
-        string_array: StringArray | ArrowStringArray
-        string_array_na: StringArray | ArrowStringArray
         if storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
