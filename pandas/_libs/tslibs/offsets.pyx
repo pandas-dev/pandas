@@ -1499,11 +1499,11 @@ cdef class BusinessDay(BusinessMixin):
     n : int, default 1
         The number of days represented.
     normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range.
+        Normalize start/end dates to midnight
 
     Examples
     --------
-    You can use the parameter ``n`` to shift the next business day to n days.
+    You can use the parameter ``n`` to represent a shift of n business days.
 
     >>> ts = pd.Timestamp(2022, 12, 9, 15)
     >>> ts.strftime('%a %d %b %Y %H:%M')
