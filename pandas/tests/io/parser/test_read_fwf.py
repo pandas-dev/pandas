@@ -949,7 +949,7 @@ def test_widths_and_usecols():
 
 
 def test_use_nullable_dtypes(string_storage):
-    # GH#36712
+    # GH#50289
 
     data = """a  b    c      d  e     f  g    h  i
 1  2.5  True  a
