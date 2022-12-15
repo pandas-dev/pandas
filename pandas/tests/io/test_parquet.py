@@ -1037,7 +1037,7 @@ class TestParquetPyArrow(Base):
             pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
         )
 
-        with pd.option_context("io.nullable_backend", "pyarrow"):
+        with pd.option_context("mode.nullable_backend", "pyarrow"):
             check_round_trip(
                 df,
                 engine=pa,
