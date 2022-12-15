@@ -532,6 +532,7 @@ Enhancements
   is frequency conversion. See :ref:`the docs<timedeltas.timedeltas_convert>` for the docs.
 
   .. ipython:: python
+     :okexcept:
 
      import datetime
      td = pd.Series(pd.date_range('20130101', periods=4)) - pd.Series(

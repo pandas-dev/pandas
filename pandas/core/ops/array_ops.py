@@ -97,8 +97,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
 
         if len(x) != len(y):
             raise ValueError(x.shape, y.shape)
-        else:
-            ymask = notna(y)
+        ymask = notna(y)
 
         # NB: ravel() is only safe since y is ndarray; for e.g. PeriodIndex
         #  we would get int64 dtype, see GH#19956

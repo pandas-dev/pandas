@@ -104,7 +104,7 @@ class TestNonNano:
     def test_add_datetimelike_scalar(self, tda, tz_naive_fixture):
         ts = pd.Timestamp("2016-01-01", tz=tz_naive_fixture)
 
-        expected = tda._as_unit("ns") + ts
+        expected = tda.as_unit("ns") + ts
         res = tda + ts
         tm.assert_extension_array_equal(res, expected)
         res = ts + tda
@@ -173,8 +173,7 @@ class TestNonNano:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_add_timedeltaarraylike(self, tda):
-        # TODO(2.0): just do `tda_nano = tda.astype("m8[ns]")`
-        tda_nano = TimedeltaArray(tda._ndarray.astype("m8[ns]"))
+        tda_nano = tda.astype("m8[ns]")
 
         expected = tda_nano * 2
         res = tda_nano + tda

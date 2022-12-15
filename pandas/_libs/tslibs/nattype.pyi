@@ -127,3 +127,4 @@ class NaTType:
     __le__: _NatComparison
     __gt__: _NatComparison
     __ge__: _NatComparison
+    def as_unit(self, unit: str, round_ok: bool = ...) -> NaTType: ...

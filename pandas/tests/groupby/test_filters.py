@@ -109,8 +109,7 @@ def test_filter_condition_raises():
     def raise_if_sum_is_zero(x):
         if x.sum() == 0:
             raise ValueError
-        else:
-            return x.sum() > 0
+        return x.sum() > 0
 
     s = Series([-1, 0, 1, 2])
     grouper = s.apply(lambda x: x % 2)

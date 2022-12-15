@@ -290,6 +290,15 @@ def test_is_string_dtype():
     assert com.is_string_dtype(pd.StringDtype())
 
 
+@pytest.mark.parametrize(
+    "data",
+    [[(0, 1), (1, 1)], pd.Categorical([1, 2, 3]), np.array([1, 2], dtype=object)],
+)
+def test_is_string_dtype_arraylike_with_object_elements_not_strings(data):
+    # GH 15585
+    assert not com.is_string_dtype(pd.Series(data))
+
+
 def test_is_string_dtype_nullable(nullable_string_dtype):
     assert com.is_string_dtype(pd.array(["a", "b"], dtype=nullable_string_dtype))
 
@@ -748,7 +757,13 @@ def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
 
     to_type = np.dtype(to_type)
 
-    with pytest.raises(TypeError, match="cannot astype"):
+    msg = "|".join(
+        [
+            "cannot astype a timedelta",
+            "cannot astype a datetimelike",
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
         astype_nansafe(arr, dtype=to_type)
 
 

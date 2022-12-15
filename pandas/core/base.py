@@ -17,7 +17,6 @@ from typing import (
     final,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -38,7 +37,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -63,11 +61,6 @@ from pandas.core import (
     ops,
 )
 from pandas.core.accessor import DirNamesMixin
-from pandas.core.algorithms import (
-    duplicated,
-    unique1d,
-    value_counts,
-)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import (
@@ -86,6 +79,7 @@ if TYPE_CHECKING:
 
     from pandas import (
         Categorical,
+        Index,
         Series,
     )
 
@@ -141,7 +135,7 @@ class PandasObject(DirNamesMixin):
         """
         memory_usage = getattr(self, "memory_usage", None)
         if memory_usage:
-            mem = memory_usage(deep=True)
+            mem = memory_usage(deep=True)  # pylint: disable=not-callable
             return int(mem if is_scalar(mem) else mem.sum())
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
@@ -294,6 +288,7 @@ class IndexOpsMixin(OpsMixin):
         # must be defined here as a property for mypy
         raise AbstractMethodError(self)
 
+    @final
     def transpose(self: _T, *args, **kwargs) -> _T:
         """
         Return the transpose, which is by definition self.
@@ -330,6 +325,7 @@ class IndexOpsMixin(OpsMixin):
         """
         return 1
 
+    @final
     def item(self):
         """
         Return the first element of the underlying data as a Python scalar.
@@ -427,6 +423,7 @@ class IndexOpsMixin(OpsMixin):
         """
         raise AbstractMethodError(self)
 
+    @final
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -542,6 +539,7 @@ class IndexOpsMixin(OpsMixin):
                 result[np.asanyarray(self.isna())] = na_value
         return result
 
+    @final
     @property
     def empty(self) -> bool:
         return not self.size
@@ -902,6 +900,7 @@ class IndexOpsMixin(OpsMixin):
 
         return new_values
 
+    @final
     def value_counts(
         self,
         normalize: bool = False,
@@ -988,7 +987,7 @@ class IndexOpsMixin(OpsMixin):
         NaN    1
         dtype: int64
         """
-        return value_counts(
+        return algorithms.value_counts(
             self,
             sort=sort,
             ascending=ascending,
@@ -1003,9 +1002,10 @@ class IndexOpsMixin(OpsMixin):
             # i.e. ExtensionArray
             result = values.unique()
         else:
-            result = unique1d(values)
+            result = algorithms.unique1d(values)
         return result
 
+    @final
     def nunique(self, dropna: bool = True) -> int:
         """
         Return number of unique elements in the object.
@@ -1057,27 +1057,6 @@ class IndexOpsMixin(OpsMixin):
         return self.nunique(dropna=False) == len(self)
 
     @property
-    def is_monotonic(self) -> bool:
-        """
-        Return boolean if values in the object are monotonically increasing.
-
-        .. deprecated:: 1.5.0
-            is_monotonic is deprecated and will be removed in a future version.
-            Use is_monotonic_increasing instead.
-
-        Returns
-        -------
-        bool
-        """
-        warnings.warn(
-            "is_monotonic is deprecated and will be removed in a future version. "
-            "Use is_monotonic_increasing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self.is_monotonic_increasing
-
-    @property
     def is_monotonic_increasing(self) -> bool:
         """
         Return boolean if values in the object are monotonically increasing.
@@ -1103,6 +1082,7 @@ class IndexOpsMixin(OpsMixin):
 
         return Index(self).is_monotonic_decreasing
 
+    @final
     def _memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of the values.
@@ -1128,9 +1108,9 @@ class IndexOpsMixin(OpsMixin):
         are not components of the array if deep=False or if used on PyPy
         """
         if hasattr(self.array, "memory_usage"):
-            # https://github.com/python/mypy/issues/1424
-            # error: "ExtensionArray" has no attribute "memory_usage"
-            return self.array.memory_usage(deep=deep)  # type: ignore[attr-defined]
+            return self.array.memory_usage(  # pyright: ignore[reportGeneralTypeIssues]
+                deep=deep,
+            )
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
@@ -1154,12 +1134,21 @@ class IndexOpsMixin(OpsMixin):
     def factorize(
         self,
         sort: bool = False,
-        na_sentinel: int | lib.NoDefault = lib.no_default,
-        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
-    ):
-        return algorithms.factorize(
-            self, sort=sort, na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
+        use_na_sentinel: bool = True,
+    ) -> tuple[npt.NDArray[np.intp], Index]:
+
+        codes, uniques = algorithms.factorize(
+            self._values, sort=sort, use_na_sentinel=use_na_sentinel
         )
+
+        if isinstance(self, ABCIndex):
+            # preserve e.g. NumericIndex, preserve MultiIndex
+            uniques = self._constructor(uniques)
+        else:
+            from pandas import Index
+
+            uniques = Index(uniques)
+        return codes, uniques
 
     _shared_docs[
         "searchsorted"
@@ -1313,7 +1302,7 @@ class IndexOpsMixin(OpsMixin):
 
     @final
     def _duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
-        return duplicated(self._values, keep=keep)
+        return algorithms.duplicated(self._values, keep=keep)
 
     def _arith_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)

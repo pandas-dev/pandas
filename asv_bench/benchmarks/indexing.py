@@ -3,8 +3,6 @@ These benchmarks are for Series and DataFrame indexing methods.  For the
 lower-level methods directly on Index and subclasses, see index_object.py,
 indexing_engine.py, and index_cached.py
 """
-import itertools
-import string
 import warnings
 
 import numpy as np
@@ -12,12 +10,10 @@ import numpy as np
 from pandas import (
     CategoricalIndex,
     DataFrame,
-    Float64Index,
-    Int64Index,
+    Index,
     IntervalIndex,
     MultiIndex,
     Series,
-    UInt64Index,
     concat,
     date_range,
     option_context,
@@ -30,17 +26,17 @@ from .pandas_vb_common import tm
 class NumericSeriesIndexing:
 
     params = [
-        (Int64Index, UInt64Index, Float64Index),
+        (np.int64, np.uint64, np.float64),
         ("unique_monotonic_inc", "nonunique_monotonic_inc"),
     ]
-    param_names = ["index_dtype", "index_structure"]
+    param_names = ["dtype", "index_structure"]
 
-    def setup(self, index, index_structure):
+    def setup(self, dtype, index_structure):
         N = 10**6
         indices = {
-            "unique_monotonic_inc": index(range(N)),
-            "nonunique_monotonic_inc": index(
-                list(range(55)) + [54] + list(range(55, N - 1))
+            "unique_monotonic_inc": Index(range(N), dtype=dtype),
+            "nonunique_monotonic_inc": Index(
+                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
             ),
         }
         self.data = Series(np.random.rand(N), index=indices[index_structure])
@@ -143,6 +139,12 @@ class DataFrameStringIndexing:
     def time_loc(self):
         self.df.loc[self.idx_scalar, self.col_scalar]
 
+    def time_at(self):
+        self.df.at[self.idx_scalar, self.col_scalar]
+
+    def time_at_setitem(self):
+        self.df.at[self.idx_scalar, self.col_scalar] = 0.0
+
     def time_getitem_scalar(self):
         self.df[self.col_scalar][self.idx_scalar]
 
@@ -159,17 +161,17 @@ class DataFrameStringIndexing:
 class DataFrameNumericIndexing:
 
     params = [
-        (Int64Index, UInt64Index, Float64Index),
+        (np.int64, np.uint64, np.float64),
         ("unique_monotonic_inc", "nonunique_monotonic_inc"),
     ]
-    param_names = ["index_dtype", "index_structure"]
+    param_names = ["dtype", "index_structure"]
 
-    def setup(self, index, index_structure):
+    def setup(self, dtype, index_structure):
         N = 10**5
         indices = {
-            "unique_monotonic_inc": index(range(N)),
-            "nonunique_monotonic_inc": index(
-                list(range(55)) + [54] + list(range(55, N - 1))
+            "unique_monotonic_inc": Index(range(N), dtype=dtype),
+            "nonunique_monotonic_inc": Index(
+                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
             ),
         }
         self.idx_dupe = np.array(range(30)) * 99
@@ -201,7 +203,7 @@ class Take:
     def setup(self, index):
         N = 100000
         indexes = {
-            "int": Int64Index(np.arange(N)),
+            "int": Index(np.arange(N), dtype=np.int64),
             "datetime": date_range("2011-01-01", freq="S", periods=N),
         }
         index = indexes[index]
@@ -355,15 +357,13 @@ class CategoricalIndexIndexing:
             "non_monotonic": CategoricalIndex(list("abc" * N)),
         }
         self.data = indices[index]
-        self.data_unique = CategoricalIndex(
-            ["".join(perm) for perm in itertools.permutations(string.printable, 3)]
-        )
+        self.data_unique = CategoricalIndex([str(i) for i in range(N * 3)])
 
         self.int_scalar = 10000
         self.int_list = list(range(10000))
 
         self.cat_scalar = "b"
-        self.cat_list = ["a", "c"]
+        self.cat_list = ["1", "3"]
 
     def time_getitem_scalar(self, index):
         self.data[self.int_scalar]

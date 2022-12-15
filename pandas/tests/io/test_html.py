@@ -125,8 +125,8 @@ class TestReadHtml:
                 c_idx_names=False,
                 r_idx_names=False,
             )
-            .applymap("{:.3f}".format)
-            .astype(float)
+            # pylint: disable-next=consider-using-f-string
+            .applymap("{:.3f}".format).astype(float)
         )
         out = df.to_html()
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
@@ -627,7 +627,7 @@ class TestReadHtml:
         ]
         dfnew = df.applymap(try_remove_ws).replace(old, new)
         gtnew = ground_truth.applymap(try_remove_ws)
-        converted = dfnew._convert(datetime=True, numeric=True)
+        converted = dfnew
         date_cols = ["Closing Date", "Updated Date"]
         converted[date_cols] = converted[date_cols].apply(to_datetime)
         tm.assert_frame_equal(converted, gtnew)
@@ -1113,9 +1113,8 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_fallback_success(self, datapath):
         banklist_data = datapath("io", "data", "html", "banklist.html")
-        self.read_html(
-            banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"]
-        )  # pylint: disable=redundant-keyword-arg
+
+        self.read_html(banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"])
 
     def test_to_html_timestamp(self):
         rng = date_range("2000-01-01", periods=10)

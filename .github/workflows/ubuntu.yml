@@ -5,12 +5,10 @@ on:
     branches:
       - main
       - 1.5.x
-      - 1.4.x
   pull_request:
     branches:
       - main
       - 1.5.x
-      - 1.4.x
     paths-ignore:
       - "doc/**"
 
@@ -22,7 +20,7 @@ permissions:
 
 jobs:
   pytest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash -el {0}

@@ -11,11 +11,9 @@ from typing import (
     Literal,
     Sequence,
     TypeVar,
-    Union,
     cast,
     overload,
 )
-from warnings import warn
 
 import numpy as np
 
@@ -40,7 +38,6 @@ from pandas._typing import (
     type_t,
 )
 from pandas.compat.numpy import function as nv
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -384,13 +381,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if not is_list_like(values):
             # GH#38433
-            warn(
-                "Allowing scalars in the Categorical constructor is deprecated "
-                "and will raise in a future version.  Use `[value]` instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            values = [values]
+            raise TypeError("Categorical input must be list-like")
 
         # null_mask indicates missing values we want to exclude from inference.
         # This means: only missing values in list-likes (not arrays/ndframes).
@@ -519,7 +510,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             result = self.copy() if copy else self
 
         elif is_categorical_dtype(dtype):
-            dtype = cast("Union[str, CategoricalDtype]", dtype)
+            dtype = cast(CategoricalDtype, dtype)
 
             # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
@@ -1027,7 +1018,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
         """
-        if set(self.dtype.categories) != set(new_categories):
+        if (
+            len(self.categories) != len(new_categories)
+            or not self.categories.difference(new_categories).empty
+        ):
             raise ValueError(
                 "items in new_categories are not the same as in old categories"
             )
@@ -1309,8 +1303,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         else:
             return self._validate_scalar(value)
 
-    _validate_searchsorted_value = _validate_setitem_value
-
     def _validate_scalar(self, fill_value):
         """
         Convert a user-facing fill_value to a representation to use with our
@@ -1575,9 +1567,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Return the indices that would sort the Categorical.
 
-        .. versionchanged:: 0.25.0
-
-           Changed to sort missing values at the end.
+        Missing values are sorted at the end.
 
         Parameters
         ----------
@@ -1890,7 +1880,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         start = True
         cur_col_len = len(levheader)  # header
         sep_len, sep = (3, " < ") if self.ordered else (2, ", ")
-        linesep = sep.rstrip() + "\n"  # remove whitespace
+        linesep = f"{sep.rstrip()}\n"  # remove whitespace
         for val in category_strs:
             if max_width != 0 and cur_col_len + sep_len + len(val) > max_width:
                 levstring += linesep + (" " * (len(levheader) + 1))
@@ -1901,7 +1891,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             levstring += val
             start = False
         # replace to simple save space by
-        return levheader + "[" + levstring.replace(" < ... < ", " ... ") + "]"
+        return f"{levheader}[{levstring.replace(' < ... < ', ' ... ')}]"
 
     def _repr_footer(self) -> str:
         info = self._repr_categories_info()

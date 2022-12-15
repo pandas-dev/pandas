@@ -414,7 +414,7 @@ class Apply(metaclass=abc.ABCMeta):
 
             axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
             result = concat(
-                {k: results[k] for k in keys_to_use},  # type: ignore[misc]
+                {k: results[k] for k in keys_to_use},
                 axis=axis,
                 keys=keys_to_use,
             )
@@ -464,7 +464,7 @@ class Apply(metaclass=abc.ABCMeta):
                 "axis" not in arg_names or f in ("corrwith", "skew")
             ):
                 raise ValueError(f"Operation {f} does not support axis=1")
-            elif "axis" in arg_names:
+            if "axis" in arg_names:
                 self.kwargs["axis"] = self.axis
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
@@ -663,12 +663,6 @@ class FrameApply(NDFrameApply):
         result = None
         try:
             result = super().agg()
-        except TypeError as err:
-            exc = TypeError(
-                "DataFrame constructor called with "
-                f"incompatible data and dtype: {err}"
-            )
-            raise exc from err
         finally:
             self.obj = obj
             self.axis = axis
@@ -762,7 +756,7 @@ class FrameApply(NDFrameApply):
             # must be a scalar or 1d
             if ares > 1:
                 raise ValueError("too many dims to broadcast")
-            elif ares == 1:
+            if ares == 1:
 
                 # must match return dim
                 if result_compare != len(res):
@@ -835,9 +829,6 @@ class FrameApply(NDFrameApply):
 
 class FrameRowApply(FrameApply):
     axis: AxisInt = 0
-
-    def apply_broadcast(self, target: DataFrame) -> DataFrame:
-        return super().apply_broadcast(target)
 
     @property
     def series_generator(self):
@@ -1179,7 +1170,7 @@ def reconstruct_func(
                 "Function names must be unique if there is no new column names "
                 "assigned"
             )
-        elif func is None:
+        if func is None:
             # nicer error message
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
@@ -1287,9 +1278,7 @@ def _make_unique_kwarg_list(
     [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
     """
     return [
-        (pair[0], "_".join([pair[1], str(seq[:i].count(pair))]))
-        if seq.count(pair) > 1
-        else pair
+        (pair[0], f"{pair[1]}_{seq[:i].count(pair)}") if seq.count(pair) > 1 else pair
         for i, pair in enumerate(seq)
     ]
 

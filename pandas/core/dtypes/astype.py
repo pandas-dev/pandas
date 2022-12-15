@@ -7,17 +7,13 @@ from __future__ import annotations
 import inspect
 from typing import (
     TYPE_CHECKING,
+    cast,
     overload,
 )
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-    is_unitless,
-)
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
     ArrayLike,
@@ -28,7 +24,6 @@ from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
@@ -42,7 +37,11 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import ExtensionArray
+    from pandas.core.arrays import (
+        DatetimeArray,
+        ExtensionArray,
+        TimedeltaArray,
+    )
 
 
 _dtype_obj = np.dtype(object)
@@ -84,9 +83,6 @@ def astype_nansafe(
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
 
-    # We get here with 0-dim from sparse
-    arr = np.atleast_1d(arr)
-
     # dispatch on extension dtype if needed
     if isinstance(dtype, ExtensionDtype):
         return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
@@ -118,7 +114,11 @@ def astype_nansafe(
 
         # allow frequency conversions
         if dtype.kind == "M":
-            return arr.astype(dtype)
+            from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+            dta = ensure_wrapped_if_datetimelike(arr)
+            dta = cast("DatetimeArray", dta)
+            return dta.astype(dtype, copy=copy)._ndarray
 
         raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
 
@@ -129,15 +129,13 @@ def astype_nansafe(
             return arr.view(dtype)
 
         elif dtype.kind == "m":
-            # TODO(2.0): change to use the same logic as TDA.astype, i.e.
-            #  giving the requested dtype for supported units (s, ms, us, ns)
+            # give the requested dtype for supported units (s, ms, us, ns)
             #  and doing the old convert-to-float behavior otherwise.
-            if is_supported_unit(get_unit_from_dtype(arr.dtype)):
-                from pandas.core.construction import ensure_wrapped_if_datetimelike
+            from pandas.core.construction import ensure_wrapped_if_datetimelike
 
-                arr = ensure_wrapped_if_datetimelike(arr)
-                return arr.astype(dtype, copy=copy)
-            return astype_td64_unit_conversion(arr, dtype, copy=copy)
+            tda = ensure_wrapped_if_datetimelike(arr)
+            tda = cast("TimedeltaArray", tda)
+            return tda.astype(dtype, copy=copy)._ndarray
 
         raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 
@@ -147,21 +145,25 @@ def astype_nansafe(
     elif is_object_dtype(arr.dtype):
 
         # if we have a datetime/timedelta array of objects
-        # then coerce to a proper dtype and recall astype_nansafe
+        # then coerce to datetime64[ns] and use DatetimeArray.astype
 
         if is_datetime64_dtype(dtype):
             from pandas import to_datetime
 
-            return astype_nansafe(
-                to_datetime(arr.ravel()).values.reshape(arr.shape),
-                dtype,
-                copy=copy,
-            )
+            dti = to_datetime(arr.ravel())
+            dta = dti._data.reshape(arr.shape)
+            return dta.astype(dtype, copy=False)._ndarray
+
         elif is_timedelta64_dtype(dtype):
+            from pandas.core.construction import ensure_wrapped_if_datetimelike
+
             # bc we know arr.dtype == object, this is equivalent to
             #  `np.asarray(to_timedelta(arr))`, but using a lower-level API that
             #  does not require a circular import.
-            return array_to_timedelta64(arr).view("m8[ns]").astype(dtype, copy=False)
+            tdvals = array_to_timedelta64(arr).view("m8[ns]")
+
+            tda = ensure_wrapped_if_datetimelike(tdvals)
+            return tda.astype(dtype, copy=False)._ndarray
 
     if dtype.name in ("datetime64", "timedelta64"):
         msg = (
@@ -218,15 +220,6 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
         # TODO(2.0) remove special case once deprecation on DTA/TDA is enforced
         msg = rf"cannot astype a datetimelike from [{values.dtype}] to [{dtype}]"
         raise TypeError(msg)
-
-    if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
-        # Series.astype behavior pre-2.0 did
-        #  values.tz_localize("UTC").tz_convert(dtype.tz)
-        #  which did not match the DTA/DTI behavior.
-        raise TypeError(
-            "Cannot use .astype to convert from timezone-naive dtype to "
-            "timezone-aware dtype. Use ser.dt.tz_localize instead."
-        )
 
     if is_dtype_equal(values.dtype, dtype):
         if copy:
@@ -292,20 +285,6 @@ def astype_array_safe(
         # Ensure we don't end up with a PandasArray
         dtype = dtype.numpy_dtype
 
-    if (
-        is_datetime64_dtype(values.dtype)
-        # need to do np.dtype check instead of is_datetime64_dtype
-        #  otherwise pyright complains
-        and isinstance(dtype, np.dtype)
-        and dtype.kind == "M"
-        and not is_unitless(dtype)
-        and not is_dtype_equal(dtype, values.dtype)
-        and not is_supported_unit(get_unit_from_dtype(dtype))
-    ):
-        # Supported units we handle in DatetimeArray.astype; but that raises
-        #  on non-supported units, so we handle that here.
-        return np.asarray(values).astype(dtype)
-
     try:
         new_values = astype_array(values, dtype, copy=copy)
     except (ValueError, TypeError):
@@ -317,36 +296,3 @@ def astype_array_safe(
             raise
 
     return new_values
-
-
-def astype_td64_unit_conversion(
-    values: np.ndarray, dtype: np.dtype, copy: bool
-) -> np.ndarray:
-    """
-    By pandas convention, converting to non-nano timedelta64
-    returns an int64-dtyped array with ints representing multiples
-    of the desired timedelta unit.  This is essentially division.
-
-    Parameters
-    ----------
-    values : np.ndarray[timedelta64[ns]]
-    dtype : np.dtype
-        timedelta64 with unit not-necessarily nano
-    copy : bool
-
-    Returns
-    -------
-    np.ndarray
-    """
-    if is_dtype_equal(values.dtype, dtype):
-        if copy:
-            return values.copy()
-        return values
-
-    # otherwise we are converting to non-nano
-    result = values.astype(dtype, copy=False)  # avoid double-copying
-    result = result.astype(np.float64)
-
-    mask = isna(values)
-    np.putmask(result, mask, np.nan)
-    return result

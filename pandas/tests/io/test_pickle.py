@@ -26,7 +26,6 @@ import tarfile
 import uuid
 from warnings import (
     catch_warnings,
-    filterwarnings,
     simplefilter,
 )
 import zipfile
@@ -56,10 +55,6 @@ from pandas.tseries.offsets import (
     MonthEnd,
 )
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Timestamp.freq is deprecated:FutureWarning"
-)
-
 
 @pytest.fixture(scope="module")
 def current_pickle_data():
@@ -67,10 +62,6 @@ def current_pickle_data():
     from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 
     with catch_warnings():
-        filterwarnings(
-            "ignore", "The 'freq' argument in Timestamp", category=FutureWarning
-        )
-
         return create_pickle_data()
 
 
@@ -89,7 +80,6 @@ def compare_element(result, expected, typ):
             assert result is pd.NaT
         else:
             assert result == expected
-            assert result.freq == expected.freq
     else:
         comparator = getattr(tm, f"assert_{typ}_equal", tm.assert_almost_equal)
         comparator(result, expected)
@@ -215,7 +205,6 @@ def python_unpickler(path):
     ],
 )
 @pytest.mark.parametrize("writer", [pd.to_pickle, python_pickler])
-@pytest.mark.filterwarnings("ignore:The 'freq' argument in Timestamp:FutureWarning")
 def test_round_trip_current(current_pickle_data, pickle_writer, writer):
     data = current_pickle_data
     for typ, dv in data.items():
@@ -294,8 +283,9 @@ class TestCompression:
             raise ValueError(msg)
 
         if compression not in ["zip", "tar"]:
-            with open(src_path, "rb") as fh, f:
-                f.write(fh.read())
+            with open(src_path, "rb") as fh:
+                with f:
+                    f.write(fh.read())
 
     def test_write_explicit(self, compression, get_random_path):
         base = get_random_path
@@ -363,7 +353,6 @@ class TestCompression:
 
             # read compressed file
             df2 = pd.read_pickle(p2, compression=compression)
-
             tm.assert_frame_equal(df, df2)
 
     def test_read_infer(self, compression_ext, get_random_path):
@@ -383,7 +372,6 @@ class TestCompression:
 
             # read compressed file by inferred compression method
             df2 = pd.read_pickle(p2)
-
             tm.assert_frame_equal(df, df2)
 
 
@@ -607,5 +595,5 @@ def test_pickle_frame_v124_unpickle_130():
     with open(path, "rb") as fd:
         df = pickle.load(fd)
 
-    expected = pd.DataFrame()
+    expected = pd.DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)

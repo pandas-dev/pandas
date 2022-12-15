@@ -89,7 +89,6 @@ from pandas.core.construction import (
     extract_array,
 )
 from pandas.core.indexers import check_array_indexer
-from pandas.core.indexes.base import ensure_index
 from pandas.core.ops import (
     invalid_comparison,
     unpack_zerodim_and_defer,
@@ -281,6 +280,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             closed = dtype.closed
 
         closed = closed or "right"
+
+        from pandas.core.indexes.base import ensure_index
+
         left = ensure_index(left, copy=copy)
         right = ensure_index(right, copy=copy)
 
@@ -314,17 +316,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 f"right [{type(right).__name__}] types"
             )
             raise ValueError(msg)
-        elif is_categorical_dtype(left.dtype) or is_string_dtype(left.dtype):
+        if is_categorical_dtype(left.dtype) or is_string_dtype(left.dtype):
             # GH 19016
             msg = (
                 "category, object, and string subtypes are not supported "
                 "for IntervalArray"
             )
             raise TypeError(msg)
-        elif isinstance(left, ABCPeriodIndex):
+        if isinstance(left, ABCPeriodIndex):
             msg = "Period dtypes are not supported, use a PeriodIndex instead"
             raise ValueError(msg)
-        elif isinstance(left, ABCDatetimeIndex) and str(left.tz) != str(right.tz):
+        if isinstance(left, ABCDatetimeIndex) and str(left.tz) != str(right.tz):
             msg = (
                 "left and right must have the same time zone, got "
                 f"'{left.tz}' and '{right.tz}'"
@@ -919,6 +921,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
+            if is_float_dtype(self.dtype.subtype) and needs_i8_conversion(
+                dtype.subtype
+            ):
+                # This is allowed on the Index.astype but we disallow it here
+                msg = (
+                    f"Cannot convert {self.dtype} to {dtype}; subtypes are incompatible"
+                )
+                raise TypeError(msg)
+
             # need to cast to different subtype
             try:
                 # We need to use Index rules for astype to prevent casting
@@ -1321,7 +1332,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def overlaps(self, other):
         if isinstance(other, (IntervalArray, ABCIntervalIndex)):
             raise NotImplementedError
-        elif not isinstance(other, Interval):
+        if not isinstance(other, Interval):
             msg = f"`other` must be Interval-like, got {type(other).__name__}"
             raise TypeError(msg)
 
@@ -1357,7 +1368,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Returns
         -------
-        new_index : %(klass)s
+        %(klass)s
 
         %(examples)s\
         """
@@ -1586,8 +1597,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Return a boolean mask whether the value is contained in the Intervals
         of the %(klass)s.
-
-        .. versionadded:: 0.25.0
 
         Parameters
         ----------

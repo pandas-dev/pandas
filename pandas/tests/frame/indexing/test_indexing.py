@@ -29,6 +29,7 @@ from pandas import (
     date_range,
     isna,
     notna,
+    to_datetime,
 )
 import pandas._testing as tm
 
@@ -1436,6 +1437,66 @@ class TestDataFrameIndexing:
             df.loc[:, "a"] = rhs
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_ea_series_indexer(self):
+        # GH#49521
+        df = DataFrame([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
+        indexer = Series([0, 1], dtype="Int64")
+        row_indexer = Series([1], dtype="Int64")
+        result = df.iloc[row_indexer, indexer]
+        expected = DataFrame([[5, 6]], index=[1])
+        tm.assert_frame_equal(result, expected)
+
+        result = df.iloc[row_indexer.values, indexer.values]
+        tm.assert_frame_equal(result, expected)
+
+    def test_iloc_ea_series_indexer_with_na(self):
+        # GH#49521
+        df = DataFrame([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
+        indexer = Series([0, pd.NA], dtype="Int64")
+        msg = "cannot convert"
+        with pytest.raises(ValueError, match=msg):
+            df.iloc[:, indexer]
+        with pytest.raises(ValueError, match=msg):
+            df.iloc[:, indexer.values]
+
+    @pytest.mark.parametrize("indexer", [True, (True,)])
+    @pytest.mark.parametrize("dtype", [bool, "boolean"])
+    def test_loc_bool_multiindex(self, dtype, indexer):
+        # GH#47687
+        midx = MultiIndex.from_arrays(
+            [
+                Series([True, True, False, False], dtype=dtype),
+                Series([True, False, True, False], dtype=dtype),
+            ],
+            names=["a", "b"],
+        )
+        df = DataFrame({"c": [1, 2, 3, 4]}, index=midx)
+        result = df.loc[indexer]
+        expected = DataFrame(
+            {"c": [1, 2]}, index=Index([True, False], name="b", dtype=dtype)
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("utc", [False, True])
+    @pytest.mark.parametrize("indexer", ["date", ["date"]])
+    def test_loc_datetime_assignment_dtype_does_not_change(self, utc, indexer):
+        # GH#49837
+        df = DataFrame(
+            {
+                "date": to_datetime(
+                    [datetime(2022, 1, 20), datetime(2022, 1, 22)], utc=utc
+                ),
+                "update": [True, False],
+            }
+        )
+        expected = df.copy(deep=True)
+
+        update_df = df[df["update"]]
+
+        df.loc[df["update"], indexer] = update_df["date"]
+
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):
@@ -1711,14 +1772,14 @@ class TestLocILocDataFrameCategorical:
         tm.assert_frame_equal(result, expected)
 
 
-class TestDepreactedIndexers:
+class TestDeprecatedIndexers:
     @pytest.mark.parametrize(
         "key", [{1}, {1: 1}, ({1}, "a"), ({1: 1}, "a"), (1, {"a"}), (1, {"a": "a"})]
     )
     def test_getitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key]
 
     @pytest.mark.parametrize(
@@ -1733,22 +1794,22 @@ class TestDepreactedIndexers:
         ],
     )
     def test_getitem_dict_and_set_deprecated_multiindex(self, key):
-        # GH#42825
+        # GH#42825 enforced in 2.0
         df = DataFrame(
             [[1, 2], [3, 4]],
             columns=["a", "b"],
             index=MultiIndex.from_tuples([(1, 2), (3, 4)]),
         )
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key]
 
     @pytest.mark.parametrize(
         "key", [{1}, {1: 1}, ({1}, "a"), ({1: 1}, "a"), (1, {"a"}), (1, {"a": "a"})]
     )
-    def test_setitem_dict_and_set_deprecated(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed(self, key):
+        # GH#42825 enforced in 2.0
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key] = 1
 
     @pytest.mark.parametrize(
@@ -1762,12 +1823,12 @@ class TestDepreactedIndexers:
             ((1, 2), {"a": "a"}),
         ],
     )
-    def test_setitem_dict_and_set_deprecated_multiindex(self, key):
-        # GH#42825
+    def test_setitem_dict_and_set_disallowed_multiindex(self, key):
+        # GH#42825 enforced in 2.0
         df = DataFrame(
             [[1, 2], [3, 4]],
             columns=["a", "b"],
             index=MultiIndex.from_tuples([(1, 2), (3, 4)]),
         )
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key] = 1

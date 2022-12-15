@@ -350,11 +350,6 @@ class TestResetIndex:
     )
     def test_reset_index_with_datetimeindex_cols(self, name):
         # GH#5818
-        warn = None
-        if isinstance(name, Timestamp) and name.tz is not None:
-            # _deprecate_mismatched_indexing
-            warn = FutureWarning
-
         df = DataFrame(
             [[1, 2], [3, 4]],
             columns=date_range("1/1/2013", "1/2/2013"),
@@ -362,8 +357,7 @@ class TestResetIndex:
         )
         df.index.name = name
 
-        with tm.assert_produces_warning(warn):
-            result = df.reset_index()
+        result = df.reset_index()
 
         item = name if name is not None else "index"
         columns = Index([item, datetime(2013, 1, 1), datetime(2013, 1, 2)])
@@ -458,8 +452,10 @@ class TestResetIndex:
             tm.assert_frame_equal(result, expected)
         else:
             if not flag and allow_duplicates:
-                msg = "Cannot specify 'allow_duplicates=True' when "
-                "'self.flags.allows_duplicate_labels' is False"
+                msg = (
+                    "Cannot specify 'allow_duplicates=True' when "
+                    "'self.flags.allows_duplicate_labels' is False"
+                )
             else:
                 msg = r"cannot insert \('A', ''\), already exists"
             with pytest.raises(ValueError, match=msg):
@@ -479,7 +475,6 @@ class TestResetIndex:
         with pytest.raises(ValueError, match="expected type bool"):
             multiindex_df.reset_index(allow_duplicates=allow_duplicates)
 
-    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_reset_index_datetime(self, tz_naive_fixture):
         # GH#3950
         tz = tz_naive_fixture

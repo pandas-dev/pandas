@@ -69,7 +69,7 @@ cdef class BlockPlacement:
                 or not cnp.PyArray_ISWRITEABLE(val)
                 or (<ndarray>val).descr.type_num != cnp.NPY_INTP
             ):
-                arr = np.require(val, dtype=np.intp, requirements='W')
+                arr = np.require(val, dtype=np.intp, requirements="W")
             else:
                 arr = val
             # Caller is responsible for ensuring arr.ndim == 1
@@ -133,7 +133,7 @@ cdef class BlockPlacement:
     @property
     def as_array(self) -> np.ndarray:
         cdef:
-            Py_ssize_t start, stop, end, _
+            Py_ssize_t start, stop, _
 
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
@@ -259,7 +259,6 @@ cdef class BlockPlacement:
         """
         cdef:
             slice slc = self._ensure_has_slice()
-            slice new_slice
             ndarray[intp_t, ndim=1] new_placement
 
         if slc is not None and slc.step == 1:
@@ -678,7 +677,14 @@ cdef class BlockManager:
         public list refs
         public object parent
 
-    def __cinit__(self, blocks=None, axes=None, refs=None, parent=None, verify_integrity=True):
+    def __cinit__(
+        self,
+        blocks=None,
+        axes=None,
+        refs=None,
+        parent=None,
+        verify_integrity=True,
+    ):
         # None as defaults for unpickling GH#42345
         if blocks is None:
             # This adds 1-2 microseconds to DataFrame(np.array([]))

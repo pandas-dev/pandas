@@ -97,6 +97,20 @@ class TestAstypeAPI:
 
 
 class TestAstype:
+    def test_astype_mixed_object_to_dt64tz(self):
+        # pre-2.0 this raised ValueError bc of tz mismatch
+        # xref GH#32581
+        ts = Timestamp("2016-01-04 05:06:07", tz="US/Pacific")
+        ts2 = ts.tz_convert("Asia/Tokyo")
+
+        ser = Series([ts, ts2], dtype=object)
+        res = ser.astype("datetime64[ns, Europe/Brussels]")
+        expected = Series(
+            [ts.tz_convert("Europe/Brussels"), ts2.tz_convert("Europe/Brussels")],
+            dtype="datetime64[ns, Europe/Brussels]",
+        )
+        tm.assert_series_equal(res, expected)
+
     @pytest.mark.parametrize("dtype", np.typecodes["All"])
     def test_astype_empty_constructor_equality(self, dtype):
         # see GH#15524
@@ -267,7 +281,7 @@ class TestAstype:
             pytest.param(
                 ["x", "y", "z"],
                 "string[pyarrow]",
-                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
+                marks=td.skip_if_no("pyarrow"),
             ),
             (["x", "y", "z"], "category"),
             (3 * [Timestamp("2020-01-01", tz="UTC")], None),

@@ -423,7 +423,7 @@ def test_replace_callable_raises(any_string_dtype, repl):
         with tm.maybe_produces_warning(
             PerformanceWarning, any_string_dtype == "string[pyarrow]"
         ):
-            values.str.replace("a", repl)
+            values.str.replace("a", repl, regex=True)
 
 
 def test_replace_callable_named_groups(any_string_dtype):
@@ -477,7 +477,7 @@ def test_replace_compiled_regex_unicode(any_string_dtype):
     with tm.maybe_produces_warning(
         PerformanceWarning, any_string_dtype == "string[pyarrow]"
     ):
-        result = ser.str.replace(pat, ", ")
+        result = ser.str.replace(pat, ", ", regex=True)
     tm.assert_series_equal(result, expected)
 
 
@@ -490,13 +490,13 @@ def test_replace_compiled_regex_raises(any_string_dtype):
     msg = "case and flags cannot be set when pat is a compiled regex"
 
     with pytest.raises(ValueError, match=msg):
-        ser.str.replace(pat, "", flags=re.IGNORECASE)
+        ser.str.replace(pat, "", flags=re.IGNORECASE, regex=True)
 
     with pytest.raises(ValueError, match=msg):
-        ser.str.replace(pat, "", case=False)
+        ser.str.replace(pat, "", case=False, regex=True)
 
     with pytest.raises(ValueError, match=msg):
-        ser.str.replace(pat, "", case=True)
+        ser.str.replace(pat, "", case=True, regex=True)
 
 
 def test_replace_compiled_regex_callable(any_string_dtype):
@@ -507,7 +507,7 @@ def test_replace_compiled_regex_callable(any_string_dtype):
     with tm.maybe_produces_warning(
         PerformanceWarning, any_string_dtype == "string[pyarrow]"
     ):
-        result = ser.str.replace(pat, repl, n=2)
+        result = ser.str.replace(pat, repl, n=2, regex=True)
     expected = Series(["foObaD__baRbaD", np.nan], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -617,48 +617,25 @@ def test_replace_not_case_sensitive_not_regex(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_replace_regex_default_warning(any_string_dtype):
+def test_replace_regex(any_string_dtype):
     # https://github.com/pandas-dev/pandas/pull/24809
     s = Series(["a", "b", "ac", np.nan, ""], dtype=any_string_dtype)
-    msg = (
-        "The default value of regex will change from True to False in a "
-        "future version\\.$"
-    )
-
-    with tm.assert_produces_warning(
-        FutureWarning,
-        match=msg,
-        raise_on_extra_warnings=any_string_dtype != "string[pyarrow]",
-    ):
-        result = s.str.replace("^.$", "a")
+    result = s.str.replace("^.$", "a", regex=True)
     expected = Series(["a", "a", "ac", np.nan, ""], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("regex", [True, False, None])
+@pytest.mark.parametrize("regex", [True, False])
 def test_replace_regex_single_character(regex, any_string_dtype):
-    # https://github.com/pandas-dev/pandas/pull/24809
-
-    # The current behavior is to treat single character patterns as literal strings,
-    # even when ``regex`` is set to ``True``.
-
+    # https://github.com/pandas-dev/pandas/pull/24809, enforced in 2.0
+    # GH 24804
     s = Series(["a.b", ".", "b", np.nan, ""], dtype=any_string_dtype)
 
-    if regex is None:
-        msg = re.escape(
-            "The default value of regex will change from True to False in a future "
-            "version. In addition, single character regular expressions will *not* "
-            "be treated as literal strings when regex=True."
-        )
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=msg,
-        ):
-            result = s.str.replace(".", "a", regex=regex)
+    result = s.str.replace(".", "a", regex=regex)
+    if regex:
+        expected = Series(["aaa", "a", "a", np.nan, ""], dtype=any_string_dtype)
     else:
-        result = s.str.replace(".", "a", regex=regex)
-
-    expected = Series(["aab", "a", "b", np.nan, ""], dtype=any_string_dtype)
+        expected = Series(["aab", "a", "b", np.nan, ""], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 

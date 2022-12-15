@@ -222,7 +222,7 @@ def _coerce_scalar_to_timedelta_type(
     except ValueError:
         if errors == "raise":
             raise
-        elif errors == "ignore":
+        if errors == "ignore":
             return r
 
         # coerce

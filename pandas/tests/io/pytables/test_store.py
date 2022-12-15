@@ -129,7 +129,7 @@ def test_repr(setup_path):
         df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
         df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
         df.loc[df.index[3:6], ["obj1"]] = np.nan
-        df = df._consolidate()._convert(datetime=True)
+        df = df._consolidate()
 
         with catch_warnings(record=True):
             simplefilter("ignore", pd.errors.PerformanceWarning)
@@ -444,7 +444,7 @@ def test_table_mixed_dtypes(setup_path):
     df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
     df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
     df.loc[df.index[3:6], ["obj1"]] = np.nan
-    df = df._consolidate()._convert(datetime=True)
+    df = df._consolidate()
 
     with ensure_clean_store(setup_path) as store:
         store.append("df1_mixed", df)
@@ -876,13 +876,13 @@ def test_copy():
     with catch_warnings(record=True):
 
         def do_copy(f, new_f=None, keys=None, propindexes=True, **kwargs):
+            if new_f is None:
+                import tempfile
+
+                fd, new_f = tempfile.mkstemp()
+
             try:
                 store = HDFStore(f, "r")
-
-                if new_f is None:
-                    import tempfile
-
-                    fd, new_f = tempfile.mkstemp()
                 tstore = store.copy(new_f, keys=keys, propindexes=propindexes, **kwargs)
 
                 # check keys
@@ -1007,15 +1007,6 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
             df.to_hdf(path, "df", format="table", data_columns=True)
             result = read_hdf(path, "df", where=f"index = [{df.index[0]}]")
             assert len(result)
-
-
-def test_hdfstore_iteritems_deprecated(tmp_path, setup_path):
-    path = tmp_path / setup_path
-    df = DataFrame({"a": [1]})
-    with HDFStore(path, mode="w") as hdf:
-        hdf.put("table", df)
-        with tm.assert_produces_warning(FutureWarning):
-            next(hdf.iteritems())
 
 
 def test_hdfstore_strides(setup_path):

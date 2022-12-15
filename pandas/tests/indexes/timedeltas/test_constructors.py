@@ -23,16 +23,18 @@ class TestTimedeltaIndex:
         nat = np.datetime64("NaT", "ns")
         arr = np.array([nat], dtype=object)
 
-        # TODO: should be TypeError?
         msg = "Invalid type for timedelta scalar"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             TimedeltaIndex(arr)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             TimedeltaArray._from_sequence(arr)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             sequence_to_td64ns(arr)
+
+        with pytest.raises(TypeError, match=msg):
+            to_timedelta(arr)
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
@@ -45,7 +47,7 @@ class TestTimedeltaIndex:
         #  and copy=False
         arr = np.arange(10, dtype=np.int64)
         tdi = TimedeltaIndex(arr, copy=False)
-        assert tdi._data._data.base is arr
+        assert tdi._data._ndarray.base is arr
 
     def test_infer_from_tdi(self):
         # GH#23539
@@ -244,6 +246,7 @@ class TestTimedeltaIndex:
         with pytest.raises(ValueError, match=msg):
             TimedeltaIndex(["2000"], dtype="timedelta64")
 
+        msg = "The 'timedelta64' dtype has no unit. Please pass in"
         with pytest.raises(ValueError, match=msg):
             pd.Index(["2000"], dtype="timedelta64")
 

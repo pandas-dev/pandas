@@ -15,7 +15,7 @@ import weakref
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     algos as libalgos,
@@ -303,7 +303,6 @@ class BaseBlockManager(DataManager):
         self: T,
         f,
         align_keys: list[str] | None = None,
-        ignore_failures: bool = False,
         **kwargs,
     ) -> T:
         """
@@ -314,7 +313,6 @@ class BaseBlockManager(DataManager):
         f : str or callable
             Name of the Block method to apply.
         align_keys: List[str] or None, default None
-        ignore_failures: bool, default False
         **kwargs
             Keywords to pass to `f`
 
@@ -346,19 +344,11 @@ class BaseBlockManager(DataManager):
                         # otherwise we have an ndarray
                         kwargs[k] = obj[b.mgr_locs.indexer]
 
-            try:
-                if callable(f):
-                    applied = b.apply(f, **kwargs)
-                else:
-                    applied = getattr(b, f)(**kwargs)
-            except (TypeError, NotImplementedError):
-                if not ignore_failures:
-                    raise
-                continue
+            if callable(f):
+                applied = b.apply(f, **kwargs)
+            else:
+                applied = getattr(b, f)(**kwargs)
             result_blocks = extend_blocks(applied, result_blocks)
-
-        if ignore_failures:
-            return self._combine(result_blocks)
 
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
@@ -451,19 +441,10 @@ class BaseBlockManager(DataManager):
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
-    def convert(
-        self: T,
-        copy: bool = True,
-        datetime: bool = True,
-        numeric: bool = True,
-        timedelta: bool = True,
-    ) -> T:
+    def convert(self: T, copy: bool) -> T:
         return self.apply(
             "convert",
             copy=copy,
-            datetime=datetime,
-            numeric=numeric,
-            timedelta=timedelta,
         )
 
     def replace(self: T, to_replace, value, inplace: bool) -> T:
@@ -1354,7 +1335,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._clear_reference_block(blkno)
         return
 
-    def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value) -> None:
+    def column_setitem(
+        self, loc: int, idx: int | slice | np.ndarray, value, inplace: bool = False
+    ) -> None:
         """
         Set values ("setitem") into a single column (not setting the full column).
 
@@ -1372,8 +1355,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # this manager is only created temporarily to mutate the values in place
         # so don't track references, otherwise the `setitem` would perform CoW again
         col_mgr = self.iget(loc, track_ref=False)
-        new_mgr = col_mgr.setitem((idx,), value)
-        self.iset(loc, new_mgr._block.values, inplace=True)
+        if inplace:
+            col_mgr.setitem_inplace(idx, value)
+        else:
+            new_mgr = col_mgr.setitem((idx,), value)
+            self.iset(loc, new_mgr._block.values, inplace=True)
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
@@ -1476,44 +1462,29 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     # ----------------------------------------------------------------
     # Block-wise Operation
 
-    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
+    def grouped_reduce(self: T, func: Callable) -> T:
         """
         Apply grouped reduction function blockwise, returning a new BlockManager.
 
         Parameters
         ----------
         func : grouped reduction function
-        ignore_failures : bool, default False
-            Whether to drop blocks where func raises TypeError.
 
         Returns
         -------
         BlockManager
         """
         result_blocks: list[Block] = []
-        dropped_any = False
 
         for blk in self.blocks:
             if blk.is_object:
                 # split on object-dtype blocks bc some columns may raise
                 #  while others do not.
                 for sb in blk._split():
-                    try:
-                        applied = sb.apply(func)
-                    except (TypeError, NotImplementedError):
-                        if not ignore_failures:
-                            raise
-                        dropped_any = True
-                        continue
+                    applied = sb.apply(func)
                     result_blocks = extend_blocks(applied, result_blocks)
             else:
-                try:
-                    applied = blk.apply(func)
-                except (TypeError, NotImplementedError):
-                    if not ignore_failures:
-                        raise
-                    dropped_any = True
-                    continue
+                applied = blk.apply(func)
                 result_blocks = extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
@@ -1521,50 +1492,31 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         else:
             index = Index(range(result_blocks[0].values.shape[-1]))
 
-        if dropped_any:
-            # faster to skip _combine if we haven't dropped any blocks
-            return self._combine(result_blocks, copy=False, index=index)
-
         return type(self).from_blocks(result_blocks, [self.axes[0], index])
 
-    def reduce(
-        self: T, func: Callable, ignore_failures: bool = False
-    ) -> tuple[T, np.ndarray]:
+    def reduce(self: T, func: Callable) -> T:
         """
         Apply reduction function blockwise, returning a single-row BlockManager.
 
         Parameters
         ----------
         func : reduction function
-        ignore_failures : bool, default False
-            Whether to drop blocks where func raises TypeError.
 
         Returns
         -------
         BlockManager
-        np.ndarray
-            Indexer of mgr_locs that are retained.
         """
         # If 2D, we assume that we're operating column-wise
         assert self.ndim == 2
 
         res_blocks: list[Block] = []
         for blk in self.blocks:
-            nbs = blk.reduce(func, ignore_failures)
+            nbs = blk.reduce(func)
             res_blocks.extend(nbs)
 
         index = Index([None])  # placeholder
-        if ignore_failures:
-            if res_blocks:
-                indexer = np.concatenate([blk.mgr_locs.as_array for blk in res_blocks])
-                new_mgr = self._combine(res_blocks, copy=False, index=index)
-            else:
-                indexer = []
-                new_mgr = type(self).from_blocks([], [self.items[:0], index])
-        else:
-            indexer = np.arange(self.shape[0])
-            new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
-        return new_mgr, indexer
+        new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
+        return new_mgr
 
     def operate_blockwise(self, other: BlockManager, array_op) -> BlockManager:
         """
@@ -2402,5 +2354,8 @@ def _preprocess_slice_or_indexer(
         return "fancy", indexer, len(indexer)
 
 
+_mode_options = _global_config["mode"]
+
+
 def _using_copy_on_write():
-    return get_option("mode.copy_on_write")
+    return _mode_options["copy_on_write"]

@@ -206,13 +206,7 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
 
 
 class TestIndex(base.BaseIndexTests):
-
-    # TODO(2.0): should pass once SparseArray is stored directly in Index.
-    @pytest.mark.xfail(reason="Index cannot yet store sparse dtype")
-    def test_index_from_listlike_with_dtype(self, data):
-        msg = "passing a SparseArray to pd.Index"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            super().test_index_from_listlike_with_dtype(data)
+    pass
 
 
 class TestMissing(BaseSparseTests, base.BaseMissingTests):
@@ -488,3 +482,9 @@ class TestParsing(BaseSparseTests, base.BaseParsingTests):
         with pytest.raises(NotImplementedError, match=expected_msg):
             with tm.assert_produces_warning(FutureWarning, match="astype from"):
                 super().test_EA_types(engine, data)
+
+
+class TestNoNumericAccumulations(base.BaseAccumulateTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
+        pass

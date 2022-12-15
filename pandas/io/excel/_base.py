@@ -21,7 +21,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 import zipfile
 
 from pandas._config import config
@@ -44,7 +43,6 @@ from pandas.util._decorators import (
     Appender,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -947,12 +945,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         * odswriter: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
 
         .. versionadded:: 1.3.0
-    **kwargs : dict, optional
-        Keyword arguments to be passed into the engine.
-
-        .. deprecated:: 1.3.0
-
-            Use engine_kwargs instead.
 
     Notes
     -----
@@ -1093,17 +1085,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         storage_options: StorageOptions = None,
         if_sheet_exists: Literal["error", "new", "replace", "overlay"] | None = None,
         engine_kwargs: dict | None = None,
-        **kwargs,
     ) -> ExcelWriter:
-        if kwargs:
-            if engine_kwargs is not None:
-                raise ValueError("Cannot use both engine_kwargs and **kwargs")
-            warnings.warn(
-                "Use of **kwargs is deprecated, use engine_kwargs instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
         # only switch class if generic(ExcelWriter)
         if cls is ExcelWriter:
             if engine is None or (isinstance(engine, str) and engine == "auto"):
@@ -1152,40 +1134,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         This attribute can be used to access engine-specific features.
         """
 
-    @book.setter
-    @abc.abstractmethod
-    def book(self, other) -> None:
-        """
-        Set book instance. Class type will depend on the engine used.
-        """
-
-    def write_cells(
-        self,
-        cells,
-        sheet_name: str | None = None,
-        startrow: int = 0,
-        startcol: int = 0,
-        freeze_panes: tuple[int, int] | None = None,
-    ) -> None:
-        """
-        Write given formatted cells into Excel an excel sheet
-
-        .. deprecated:: 1.5.0
-
-        Parameters
-        ----------
-        cells : generator
-            cell of formatted data to save to Excel sheet
-        sheet_name : str, default None
-            Name of Excel sheet, if None, then use self.cur_sheet
-        startrow : upper left cell row to dump data frame
-        startcol : upper left cell column to dump data frame
-        freeze_panes: int tuple of length 2
-            contains the bottom-most row and right-most column to freeze
-        """
-        self._deprecate("write_cells")
-        return self._write_cells(cells, sheet_name, startrow, startcol, freeze_panes)
-
     @abc.abstractmethod
     def _write_cells(
         self,
@@ -1210,15 +1158,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             contains the bottom-most row and right-most column to freeze
         """
 
-    def save(self) -> None:
-        """
-        Save workbook to disk.
-
-        .. deprecated:: 1.5.0
-        """
-        self._deprecate("save")
-        return self._save()
-
     @abc.abstractmethod
     def _save(self) -> None:
         """
@@ -1235,7 +1174,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
-        **kwargs,
     ) -> None:
         # validate that this engine can handle the extension
         if isinstance(path, str):
@@ -1249,7 +1187,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         # the excel backend first read the existing file and then write any data to it
         mode = mode.replace("a", "r+")
 
-        # cast ExcelWriter to avoid adding 'if self.handles is not None'
+        # cast ExcelWriter to avoid adding 'if self._handles is not None'
         self._handles = IOHandles(
             cast(IO[bytes], path), compression={"compression": None}
         )
@@ -1281,29 +1219,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             if_sheet_exists = "error"
         self._if_sheet_exists = if_sheet_exists
 
-    def _deprecate(self, attr: str) -> None:
-        """
-        Deprecate attribute or method for ExcelWriter.
-        """
-        warnings.warn(
-            f"{attr} is not part of the public API, usage can give unexpected "
-            "results and will be removed in a future version",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-    def _deprecate_set_book(self) -> None:
-        """
-        Deprecate setting the book attribute - GH#48780.
-        """
-        warnings.warn(
-            "Setting the `book` attribute is not part of the public API, "
-            "usage can give unexpected or corrupted results and will be "
-            "removed in a future version",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
     @property
     def date_format(self) -> str:
         """
@@ -1324,36 +1239,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         How to behave when writing to a sheet that already exists in append mode.
         """
         return self._if_sheet_exists
-
-    @property
-    def cur_sheet(self):
-        """
-        Current sheet for writing.
-
-        .. deprecated:: 1.5.0
-        """
-        self._deprecate("cur_sheet")
-        return self._cur_sheet
-
-    @property
-    def handles(self) -> IOHandles[bytes]:
-        """
-        Handles to Excel sheets.
-
-        .. deprecated:: 1.5.0
-        """
-        self._deprecate("handles")
-        return self._handles
-
-    @property
-    def path(self):
-        """
-        Path to Excel file.
-
-        .. deprecated:: 1.5.0
-        """
-        self._deprecate("path")
-        return self._path
 
     def __fspath__(self) -> str:
         return getattr(self._handles.handle, "name", "")
@@ -1409,8 +1294,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             ext = ext[1:]
         if not any(ext in extension for extension in cls._supported_extensions):
             raise ValueError(f"Invalid extension for engine '{cls.engine}': '{ext}'")
-        else:
-            return True
+        return True
 
     # Allow use as a contextmanager
     def __enter__(self) -> ExcelWriter:
@@ -1479,9 +1363,8 @@ def inspect_excel_format(
         buf = stream.read(PEEK_SIZE)
         if buf is None:
             raise ValueError("stream is empty")
-        else:
-            assert isinstance(buf, bytes)
-            peek = buf
+        assert isinstance(buf, bytes)
+        peek = buf
         stream.seek(0)
 
         if any(peek.startswith(sig) for sig in XLS_SIGNATURES):
@@ -1545,8 +1428,6 @@ class ExcelFile:
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
-           - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
-             This case will raise a ``ValueError`` in a future version of pandas.
 
            .. warning::
 

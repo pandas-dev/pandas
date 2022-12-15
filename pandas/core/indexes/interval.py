@@ -59,6 +59,8 @@ from pandas.core.dtypes.common import (
     is_number,
     is_object_dtype,
     is_scalar,
+    is_signed_integer_dtype,
+    is_unsigned_integer_dtype,
 )
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
@@ -521,6 +523,7 @@ class IntervalIndex(ExtensionIndex):
         original = key
         if is_list_like(key):
             key = ensure_index(key)
+            key = self._maybe_convert_numeric_to_64bit(key)
 
         if not self._needs_i8_conversion(key):
             return original
@@ -565,6 +568,20 @@ class IntervalIndex(ExtensionIndex):
             )
 
         return key_i8
+
+    def _maybe_convert_numeric_to_64bit(self, idx: Index) -> Index:
+        # IntervalTree only supports 64 bit numpy array
+        dtype = idx.dtype
+        if np.issubclass_(dtype.type, np.number):
+            return idx
+        elif is_signed_integer_dtype(dtype) and dtype != np.int64:
+            return idx.astype(np.int64)
+        elif is_unsigned_integer_dtype(dtype) and dtype != np.uint64:
+            return idx.astype(np.uint64)
+        elif is_float_dtype(dtype) and dtype != np.float64:
+            return idx.astype(np.float64)
+        else:
+            return idx
 
     def _searchsorted_monotonic(self, label, side: Literal["left", "right"] = "left"):
         if not self.is_non_overlapping_monotonic:
@@ -660,7 +677,7 @@ class IntervalIndex(ExtensionIndex):
         matches = mask.sum()
         if matches == 0:
             raise KeyError(key)
-        elif matches == 1:
+        if matches == 1:
             return mask.argmax()
 
         res = lib.maybe_booleans_to_slice(mask.view("u1"))
@@ -786,7 +803,7 @@ class IntervalIndex(ExtensionIndex):
             msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
             if kind == "loc":
                 raise ValueError(msg)
-            elif kind == "getitem":
+            if kind == "getitem":
                 if not is_valid_positional_slice(key):
                     # i.e. this cannot be interpreted as a positional slice
                     raise ValueError(msg)
@@ -845,7 +862,7 @@ class IntervalIndex(ExtensionIndex):
     def _format_data(self, name=None) -> str:
         # TODO: integrate with categorical and make generic
         # name argument is unused here; just for compat with base / categorical
-        return self._data._format_data() + "," + self._format_space()
+        return f"{self._data._format_data()},{self._format_space()}"
 
     # --------------------------------------------------------------------
     # Set Operations
@@ -1075,7 +1092,7 @@ def interval_range(
 
     if not _is_valid_endpoint(start):
         raise ValueError(f"start must be numeric or datetime-like, got {start}")
-    elif not _is_valid_endpoint(end):
+    if not _is_valid_endpoint(end):
         raise ValueError(f"end must be numeric or datetime-like, got {end}")
 
     if is_float(periods):
