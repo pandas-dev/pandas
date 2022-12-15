@@ -2984,7 +2984,7 @@ def test_na_to_datetime(nulls_fixture, klass):
 
 
 @pytest.mark.parametrize("errors", ["raise", "coerce", "ignore"])
-def test_empty_string_datetime_coerce_format(errors):
+def test_empty_string_datetime(errors):
     # GH13044, GH50251
     td = Series(["03/24/2016", "03/25/2016", ""])
     format = "%m/%d/%Y"
