@@ -538,11 +538,10 @@ func : function, str, list, dict or None
     - string function name
     - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
     - dict of axis labels -> functions, function names or list of such.
-    - None, in which case output is determined from ``**kwargs`` using Named
-      Aggregation. In this scenario the output has one column for each element in
-      ``**kwargs``. The name of the column is a string of the keyword's variable name.
-      The keyword's value determines the aggregation used to compute the values in
-      the column.
+    - None, in which case ``**kwargs`` are used with Named Aggregation. Here the
+      output has one column for each element in ``**kwargs``. The name of the
+      column is keyword, whereas the value determines the aggregation used to compute
+      the values in the column.
 
     Can also accept a Numba JIT function with
     ``engine='numba'`` specified. Only passing a single function is supported
