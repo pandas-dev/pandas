@@ -1348,7 +1348,7 @@ class Index(IndexOpsMixin, PandasObject):
             return formatter.get_result_as_array()
 
         mask = isna(self)
-        if not self.is_object() and not quoting:
+        if not is_object_dtype(self) and not quoting:
             values = np.asarray(self).astype(str)
         else:
             values = np.array(self, dtype=object, copy=True)
