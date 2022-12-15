@@ -75,7 +75,7 @@ def maybe_convert_objects(
     convert_timedelta: Literal[False] = ...,
     convert_period: Literal[False] = ...,
     convert_interval: Literal[False] = ...,
-    convert_to_nullable_integer: Literal[False] = ...,
+    convert_to_nullable_dtype: Literal[False] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> npt.NDArray[np.object_ | np.number]: ...
 @overload  # both convert_datetime and convert_to_nullable_integer False -> np.ndarray
@@ -88,7 +88,7 @@ def maybe_convert_objects(
     convert_timedelta: bool = ...,
     convert_period: Literal[False] = ...,
     convert_interval: Literal[False] = ...,
-    convert_to_nullable_integer: Literal[False] = ...,
+    convert_to_nullable_dtype: Literal[False] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> np.ndarray: ...
 @overload
@@ -101,7 +101,7 @@ def maybe_convert_objects(
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
     convert_interval: bool = ...,
-    convert_to_nullable_integer: Literal[True] = ...,
+    convert_to_nullable_dtype: Literal[True] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
 @overload
@@ -114,7 +114,7 @@ def maybe_convert_objects(
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
     convert_interval: bool = ...,
-    convert_to_nullable_integer: bool = ...,
+    convert_to_nullable_dtype: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
 @overload
@@ -127,7 +127,7 @@ def maybe_convert_objects(
     convert_timedelta: bool = ...,
     convert_period: Literal[True] = ...,
     convert_interval: bool = ...,
-    convert_to_nullable_integer: bool = ...,
+    convert_to_nullable_dtype: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
 @overload
@@ -140,7 +140,7 @@ def maybe_convert_objects(
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
     convert_interval: bool = ...,
-    convert_to_nullable_integer: bool = ...,
+    convert_to_nullable_dtype: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
 @overload

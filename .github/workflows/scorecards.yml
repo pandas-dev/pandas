@@ -13,7 +13,8 @@ permissions: read-all
 jobs:
   analysis:
     name: Scorecards analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    continue-on-error: true
     permissions:
       # Needed to upload the results to code-scanning dashboard.
       security-events: write
