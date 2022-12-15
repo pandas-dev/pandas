@@ -1638,7 +1638,7 @@ cdef class BusinessHour(BusinessMixin):
 
     Examples
     --------
-    You can use the parameter ``n`` to represent the shift to n hours.
+    You can use the parameter ``n`` to represent a shift of n hours.
 
     >>> ts = pd.Timestamp(2022, 12, 9, 8)
     >>> ts + pd.offsets.BusinessHour(n=5)
@@ -1655,11 +1655,26 @@ cdef class BusinessHour(BusinessMixin):
     >>> ts + pd.offsets.BusinessHour(end=dt_time(19, 0))
     Timestamp('2022-08-08 10:00:00')
 
-    The parameter ``normalize`` equal True forces shift to midnight.
+    Passing the parameter ``normalize`` equal True, you shift the start
+    of next business hour to midnight.
 
     >>> ts = pd.Timestamp(2022, 12, 9, 8)
     >>> ts + pd.offsets.BusinessHour(normalize=True)
     Timestamp('2022-12-09 00:00:00')
+
+    You can divide your business day hours into several parts.
+
+    >>> import datetime as dt
+    >>> freq = pd.offsets.CustomBusinessHour(start=["06:00", "10:00", "15:00"],
+    ...                                      end=["08:00", "12:00", "17:00"])
+    >>> pd.date_range(dt.datetime(2022, 12, 9), dt.datetime(2022, 12, 13), freq=freq)
+    DatetimeIndex(['2022-12-09 06:00:00', '2022-12-09 07:00:00',
+                   '2022-12-09 10:00:00', '2022-12-09 11:00:00',
+                   '2022-12-09 15:00:00', '2022-12-09 16:00:00',
+                   '2022-12-12 06:00:00', '2022-12-12 07:00:00',
+                   '2022-12-12 10:00:00', '2022-12-12 11:00:00',
+                   '2022-12-12 15:00:00', '2022-12-12 16:00:00'],
+                   dtype='datetime64[ns]', freq='CBH')
     """
 
     _prefix = "BH"
