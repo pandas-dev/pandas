@@ -539,12 +539,24 @@ string_storage_doc = """
     The default storage for StringDtype.
 """
 
+nullable_backend_doc = """
+: string
+    The nullable dtype implementation to return.
+    Available options: 'pandas', 'pyarrow', the default is 'pandas'.
+"""
+
 with cf.config_prefix("mode"):
     cf.register_option(
         "string_storage",
         "python",
         string_storage_doc,
         validator=is_one_of_factory(["python", "pyarrow"]),
+    )
+    cf.register_option(
+        "nullable_backend",
+        "pandas",
+        nullable_backend_doc,
+        validator=is_one_of_factory(["pandas", "pyarrow"]),
     )
 
 # Set up the io.excel specific reader configuration.
@@ -671,20 +683,6 @@ with cf.config_prefix("io.sql"):
         "auto",
         sql_engine_doc,
         validator=is_one_of_factory(["auto", "sqlalchemy"]),
-    )
-
-io_nullable_backend_doc = """
-: string
-    The nullable dtype implementation to return when ``use_nullable_dtypes=True``.
-    Available options: 'pandas', 'pyarrow', the default is 'pandas'.
-"""
-
-with cf.config_prefix("io.nullable_backend"):
-    cf.register_option(
-        "io_nullable_backend",
-        "pandas",
-        io_nullable_backend_doc,
-        validator=is_one_of_factory(["pandas", "pyarrow"]),
     )
 
 # --------
