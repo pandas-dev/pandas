@@ -1665,8 +1665,8 @@ cdef class BusinessHour(BusinessMixin):
     You can divide your business day hours into several parts.
 
     >>> import datetime as dt
-    >>> freq = pd.offsets.CustomBusinessHour(start=["06:00", "10:00", "15:00"],
-    ...                                      end=["08:00", "12:00", "17:00"])
+    >>> freq = pd.offsets.BusinessHour(start=["06:00", "10:00", "15:00"],
+    ...                                end=["08:00", "12:00", "17:00"])
     >>> pd.date_range(dt.datetime(2022, 12, 9), dt.datetime(2022, 12, 13), freq=freq)
     DatetimeIndex(['2022-12-09 06:00:00', '2022-12-09 07:00:00',
                    '2022-12-09 10:00:00', '2022-12-09 11:00:00',
@@ -1674,7 +1674,7 @@ cdef class BusinessHour(BusinessMixin):
                    '2022-12-12 06:00:00', '2022-12-12 07:00:00',
                    '2022-12-12 10:00:00', '2022-12-12 11:00:00',
                    '2022-12-12 15:00:00', '2022-12-12 16:00:00'],
-                   dtype='datetime64[ns]', freq='CBH')
+                   dtype='datetime64[ns]', freq='BH')
     """
 
     _prefix = "BH"
