@@ -95,9 +95,10 @@ def test_construct_dask_float_array_int_dtype_match_ndarray():
     expected = Series(arr)
     tm.assert_series_equal(res, expected)
 
-    res = Series(darr, dtype="i8")
-    expected = Series(arr, dtype="i8")
-    tm.assert_series_equal(res, expected)
+    # GH#49599 in 2.0 we raise instead of silently ignoring the dtype
+    msg = "Trying to coerce float values to integers"
+    with pytest.raises(ValueError, match=msg):
+        Series(darr, dtype="i8")
 
     msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
     arr[2] = np.nan
