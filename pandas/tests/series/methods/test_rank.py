@@ -46,8 +46,8 @@ def results(request):
         "int64",
         "Float64",
         "Int64",
-        "float64[pyarrow]",
-        "int64[pyarrow]",
+        pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def dtype(request):
@@ -255,7 +255,9 @@ class TestSeriesRank:
             ("object", None, Infinity(), NegInfinity()),
             ("float64", np.nan, np.inf, -np.inf),
             ("Float64", NA, np.inf, -np.inf),
-            ("float64[pyarrow]", NA, np.inf, -np.inf),
+            pytest.param(
+                "float64[pyarrow]", NA, np.inf, -np.inf, marks=td.skip_if_no("pyarrow")
+            ),
         ],
     )
     def test_rank_tie_methods_on_infs_nans(
