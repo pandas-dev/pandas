@@ -84,6 +84,7 @@ from pandas.core.arrays import (
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
+    default_index,
     ensure_index_from_sequences,
 )
 from pandas.core.series import Series
@@ -129,13 +130,11 @@ class ParserBase:
 
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
-        self.infer_datetime_format = kwds.pop("infer_datetime_format", False)
         self.cache_dates = kwds.pop("cache_dates", True)
 
         self._date_conv = _make_date_converter(
             date_parser=self.date_parser,
             dayfirst=self.dayfirst,
-            infer_datetime_format=self.infer_datetime_format,
             cache_dates=self.cache_dates,
         )
 
@@ -714,7 +713,7 @@ class ParserBase:
         use_nullable_dtypes: Literal[True] | Literal[False] = (
             self.use_nullable_dtypes and no_dtype_specified
         )
-        nullable_backend = get_option("io.nullable_backend")
+        nullable_backend = get_option("mode.nullable_backend")
         result: ArrayLike
 
         if try_num_bool and is_object_dtype(values.dtype):
@@ -1093,8 +1092,9 @@ class ParserBase:
         #
         # Both must be non-null to ensure a successful construction. Otherwise,
         # we have to create a generic empty Index.
+        index: Index
         if (index_col is None or index_col is False) or index_names is None:
-            index = Index([])
+            index = default_index(0)
         else:
             data = [Series([], dtype=dtype_dict[name]) for name in index_names]
             index = ensure_index_from_sequences(data, names=index_names)
@@ -1113,7 +1113,6 @@ class ParserBase:
 def _make_date_converter(
     date_parser=None,
     dayfirst: bool = False,
-    infer_datetime_format: bool = False,
     cache_dates: bool = True,
 ):
     def converter(*date_cols):
@@ -1126,7 +1125,6 @@ def _make_date_converter(
                     utc=False,
                     dayfirst=dayfirst,
                     errors="ignore",
-                    infer_datetime_format=infer_datetime_format,
                     cache=cache_dates,
                 ).to_numpy()
 
@@ -1190,7 +1188,6 @@ parser_defaults = {
     "verbose": False,
     "encoding": None,
     "compression": None,
-    "infer_datetime_format": False,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
     "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,

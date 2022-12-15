@@ -18,7 +18,11 @@ import itertools
 from numbers import Number
 import re
 import sys
-from typing import Iterator
+from typing import (
+    Generic,
+    Iterator,
+    TypeVar,
+)
 
 import numpy as np
 import pytest
@@ -227,6 +231,22 @@ def test_is_list_like_iter_is_none():
         __iter__ = None
 
     assert not inference.is_list_like(NotListLike())
+
+
+def test_is_list_like_generic():
+    # GH 49649
+    # is_list_like was yielding false positives for Generic classes in python 3.11
+    T = TypeVar("T")
+
+    class MyDataFrame(DataFrame, Generic[T]):
+        ...
+
+    tstc = MyDataFrame[int]
+    tst = MyDataFrame[int]({"x": [1, 2, 3]})
+
+    assert not inference.is_list_like(tstc)
+    assert isinstance(tst, DataFrame)
+    assert inference.is_list_like(tst)
 
 
 def test_is_sequence():
@@ -859,7 +879,7 @@ class TestInference:
     def test_maybe_convert_objects_nullable_integer(self, exp):
         # GH27335
         arr = np.array([2, np.NaN], dtype=object)
-        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=True)
+        result = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
 
         tm.assert_extension_array_equal(result, exp)
 
@@ -869,7 +889,7 @@ class TestInference:
     def test_maybe_convert_objects_nullable_none(self, dtype, val):
         # GH#50043
         arr = np.array([val, None, 3], dtype="object")
-        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=True)
+        result = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
         expected = IntegerArray(
             np.array([val, 0, 3], dtype=dtype), np.array([False, True, False])
         )
@@ -929,6 +949,28 @@ class TestInference:
         exp = np.array([True, False, np.nan], dtype=object)
         out = lib.maybe_convert_objects(ind.values, safe=1)
         tm.assert_numpy_array_equal(out, exp)
+
+    def test_maybe_convert_objects_nullable_boolean(self):
+        # GH50047
+        arr = np.array([True, False], dtype=object)
+        exp = np.array([True, False])
+        out = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
+        tm.assert_numpy_array_equal(out, exp)
+
+        arr = np.array([True, False, pd.NaT], dtype=object)
+        exp = np.array([True, False, pd.NaT], dtype=object)
+        out = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
+        tm.assert_numpy_array_equal(out, exp)
+
+    @pytest.mark.parametrize("val", [None, np.nan])
+    def test_maybe_convert_objects_nullable_boolean_na(self, val):
+        # GH50047
+        arr = np.array([True, False, val], dtype=object)
+        exp = BooleanArray(
+            np.array([True, False, False]), np.array([False, False, True])
+        )
+        out = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
+        tm.assert_extension_array_equal(out, exp)
 
     @pytest.mark.parametrize(
         "data0",
@@ -1829,7 +1871,6 @@ class TestNumberScalar:
         assert is_timedelta64_ns_dtype(tdi)
         assert is_timedelta64_ns_dtype(tdi.astype("timedelta64[ns]"))
 
-        # Conversion to Int64Index:
         assert not is_timedelta64_ns_dtype(Index([], dtype=np.float64))
         assert not is_timedelta64_ns_dtype(Index([], dtype=np.int64))
 

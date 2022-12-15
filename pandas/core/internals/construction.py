@@ -31,9 +31,11 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
+    is_bool_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_list_like,
     is_named_tuple,
@@ -49,7 +51,13 @@ from pandas.core import (
     algorithms,
     common as com,
 )
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    BooleanArray,
+    ExtensionArray,
+    FloatingArray,
+    IntegerArray,
+)
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -582,7 +590,7 @@ def _extract_index(data) -> Index:
     """
     index: Index
     if len(data) == 0:
-        return Index([])
+        return default_index(0)
 
     raw_lengths = []
     indexes: list[list[Hashable] | Index] = []
@@ -900,7 +908,7 @@ def _finalize_columns_and_data(
         raise ValueError(err) from err
 
     if len(contents) and contents[0].dtype == np.object_:
-        contents = _convert_object_array(contents, dtype=dtype)
+        contents = convert_object_array(contents, dtype=dtype)
 
     return contents, columns
 
@@ -963,8 +971,11 @@ def _validate_or_indexify_columns(
     return columns
 
 
-def _convert_object_array(
-    content: list[npt.NDArray[np.object_]], dtype: DtypeObj | None
+def convert_object_array(
+    content: list[npt.NDArray[np.object_]],
+    dtype: DtypeObj | None,
+    use_nullable_dtypes: bool = False,
+    coerce_float: bool = False,
 ) -> list[ArrayLike]:
     """
     Internal function to convert object array.
@@ -973,20 +984,37 @@ def _convert_object_array(
     ----------
     content: List[np.ndarray]
     dtype: np.dtype or ExtensionDtype
+    use_nullable_dtypes: Controls if nullable dtypes are returned.
+    coerce_float: Cast floats that are integers to int.
 
     Returns
     -------
     List[ArrayLike]
     """
     # provide soft conversion of object dtypes
+
     def convert(arr):
         if dtype != np.dtype("O"):
-            arr = lib.maybe_convert_objects(arr)
+            arr = lib.maybe_convert_objects(
+                arr,
+                try_float=coerce_float,
+                convert_to_nullable_dtype=use_nullable_dtypes,
+            )
 
             if dtype is None:
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
                     arr = maybe_infer_to_datetimelike(arr)
+                    if use_nullable_dtypes and arr.dtype == np.dtype("O"):
+                        arr = StringDtype().construct_array_type()._from_sequence(arr)
+                elif use_nullable_dtypes and isinstance(arr, np.ndarray):
+                    if is_integer_dtype(arr.dtype):
+                        arr = IntegerArray(arr, np.zeros(arr.shape, dtype=np.bool_))
+                    elif is_bool_dtype(arr.dtype):
+                        arr = BooleanArray(arr, np.zeros(arr.shape, dtype=np.bool_))
+                    elif is_float_dtype(arr.dtype):
+                        arr = FloatingArray(arr, np.isnan(arr))
+
             elif isinstance(dtype, ExtensionDtype):
                 # TODO: test(s) that get here
                 # TODO: try to de-duplicate this convert function with

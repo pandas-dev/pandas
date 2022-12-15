@@ -561,7 +561,7 @@ class TestReaders:
         )
         with tm.ensure_clean(read_ext) as file_path:
             df.to_excel(file_path, "test", index=False)
-            with pd.option_context("io.nullable_backend", nullable_backend):
+            with pd.option_context("mode.nullable_backend", nullable_backend):
                 result = pd.read_excel(
                     file_path, sheet_name="test", use_nullable_dtypes=True
                 )
@@ -1646,7 +1646,7 @@ class TestExcelFileRead:
                 pd.to_datetime("03/01/2020").to_pydatetime(),
             ],
         )
-        expected = DataFrame([], columns=expected_column_index)
+        expected = DataFrame([], index=[], columns=expected_column_index)
 
         tm.assert_frame_equal(expected, actual)
 
