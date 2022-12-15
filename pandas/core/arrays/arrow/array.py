@@ -1130,7 +1130,7 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
             raise ValueError(
                 f"Invalid side: {side}. Side must be one of 'left', 'right', 'both'"
             )
-        return type(self)(pa_pad(self._data, fillchar))
+        return type(self)(pa_pad(self._data, width, padding=fillchar))
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
@@ -1214,10 +1214,16 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
         return type(self)(result)
 
     def _str_startswith(self, pat: str, na=None):
-        return type(self)(pc.starts_with(self._data, pat))
+        result = pc.starts_with(self._data, pat)
+        if na is not None:
+            result = result.fill_null(na)
+        return type(self)(result)
 
     def _str_endswith(self, pat: str, na=None):
-        return type(self)(pc.ends_with(self._data, pat))
+        result = pc.ends_with(self._data, pat)
+        if na is not None:
+            result = result.fill_null(na)
+        return type(self)(result)
 
     def _str_replace(
         self,
@@ -1275,26 +1281,35 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
 
     def _str_get(self, i: int):
         lengths = pc.utf8_length(self._data)
-        if i > 0:
-            out_of_bounds = pc.greater_equal(lengths, i)
+        if i >= 0:
+            out_of_bounds = pc.greater_equal(i, lengths)
             start = i
             stop = i + 1
             step = 1
         else:
-            out_of_bounds = pc.greater(lengths, -i)
+            out_of_bounds = pc.greater(-i, lengths)
             start = i
             stop = i - 1
             step = -1
-        selected = pc.utf8_slice_codeunits(self._data, start, stop=stop, step=step)
-        masked_selected = pc.replace_with_mask(selected, out_of_bounds, None)
-        return type(self)(masked_selected)
+        not_out_of_bounds = pc.invert(out_of_bounds.fill_null(True).combine_chunks())
+        selected = pc.utf8_slice_codeunits(self._data, start, stop=stop, step=step).combine_chunks().drop_null()
+        result = pa.array([None] * self._data.length(), type=self._data.type)
+        result = pc.replace_with_mask(result, not_out_of_bounds, selected)
+        return type(self)(result)
 
     def _str_join(self, sep: str):
-        return type(self)(pc.binary_join(self._data, sep))
+        if pa.types.is_list(self.dtype.pyarrow_dtype):
+            return type(self)(pc.binary_join(self._data, sep))
+        else:
+            return super()._str_join(sep)
 
     def _str_slice(
         self, start: int | None = None, stop: int | None = None, step: int | None = None
     ):
+        if start is None:
+            start = 0
+        if step is None:
+            step = 1
         return type(self)(
             pc.utf8_slice_codeunits(self._data, start, stop=stop, step=step)
         )

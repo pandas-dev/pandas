@@ -25,6 +25,8 @@ import pickle
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 from pandas.compat import (
     is_ci_environment,
     is_platform_windows,
@@ -1429,7 +1431,7 @@ def test_astype_from_non_pyarrow(data):
 
 
 @pytest.mark.filterwarnings("ignore:Falling back")
-def test_string_array(nullable_string_dtype, any_string_method):
+def test_string_methods(nullable_string_dtype, any_string_method):
     method_name, args, kwargs = any_string_method
 
     data = ["a", "bb", np.nan, "ccc"]
@@ -1445,25 +1447,33 @@ def test_string_array(nullable_string_dtype, any_string_method):
     result = getattr(b.str, method_name)(*args, **kwargs)
 
     if isinstance(expected, pd.Series):
-        # if expected.dtype == "object" and lib.is_string_array(
-        #     expected.dropna().values,
-        # ):
-        #     assert result.dtype == nullable_string_dtype
-        #     result = result.astype(object)
-        #
-        # elif expected.dtype == "object" and lib.is_bool_array(
-        #     expected.values, skipna=True
-        # ):
-        #     assert result.dtype == "boolean"
-        #     result = result.astype(object)
+        if expected.dtype == "object" and lib.is_string_array(
+            expected.dropna().values,
+        ):
+            assert result.dtype == nullable_string_dtype
+            result = result.astype(object)
 
-        if expected.dtype == "bool":
-            assert result.dtype == "boolean"
+        elif expected.dtype == "object" and lib.is_bool_array(
+            expected.values, skipna=True
+        ):
+            assert result.dtype == ArrowDtype(pa.bool_())
+            result = result.astype(object)
+
+        elif expected.dtype == "bool":
+            assert result.dtype == ArrowDtype(pa.bool_())
             result = result.astype("bool")
 
         elif expected.dtype == "float" and expected.isna().any():
-            assert result.dtype == "Int64"
-            result = result.astype("float")
+            assert isinstance(result.dtype, ArrowDtype)
+            assert pa.types.is_integer(result.dtype.pyarrow_dtype)
+            result = result.astype("Int64")
+            expected = expected.astype("Int64")
+
+        elif pa.types.is_binary(result.dtype.pyarrow_dtype):
+            result = result.astype(object)
+
+        elif pa.types.is_list(result.dtype.pyarrow_dtype):
+            result = result.astype(object)
 
     elif isinstance(expected, pd.DataFrame):
         columns = expected.select_dtypes(include="object").columns
@@ -1473,18 +1483,18 @@ def test_string_array(nullable_string_dtype, any_string_method):
 
 
 @pytest.mark.parametrize(
-    "method,expected",
+    "method,expected,return_type",
     [
-        ("count", [2, None]),
-        ("find", [0, None]),
-        ("index", [0, None]),
-        ("rindex", [2, None]),
+        ("count", [2, None], "int32"),
+        ("find", [0, None], "int32"),
+        ("index", [0, None], "int64"),
+        ("rindex", [2, None], "int64"),
     ],
 )
-def test_string_array_numeric_integer_array(nullable_string_dtype, method, expected):
+def test_string_array_numeric_integer_return(nullable_string_dtype, method, expected, return_type):
     s = pd.Series(["aba", None], dtype=nullable_string_dtype)
     result = getattr(s.str, method)("a")
-    expected = pd.Series(expected, dtype="Int64")
+    expected = pd.Series(expected, dtype=ArrowDtype(getattr(pa, return_type)()))
     tm.assert_series_equal(result, expected)
 
 
@@ -1497,10 +1507,10 @@ def test_string_array_numeric_integer_array(nullable_string_dtype, method, expec
         ("isnumeric", [False, None, True]),
     ],
 )
-def test_string_array_boolean_array(nullable_string_dtype, method, expected):
+def test_string_array_boolean_return(nullable_string_dtype, method, expected):
     s = pd.Series(["a", None, "1"], dtype=nullable_string_dtype)
     result = getattr(s.str, method)()
-    expected = pd.Series(expected, dtype="boolean")
+    expected = pd.Series(expected, dtype=ArrowDtype(pa.bool_()))
     tm.assert_series_equal(result, expected)
 
 
