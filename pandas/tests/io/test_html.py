@@ -141,7 +141,7 @@ class TestReadHtml:
     @pytest.mark.parametrize("nullable_backend", ["pandas", "pyarrow"])
     @pytest.mark.parametrize("storage", ["python", "pyarrow"])
     def test_use_nullable_dtypes(self, storage, nullable_backend):
-        # GH#
+        # GH#50286
         df = DataFrame(
             {
                 "a": Series([1, np.nan, 3], dtype="Int64"),
