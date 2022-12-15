@@ -1207,7 +1207,7 @@ def read_html(
     if is_url(io):
         io = cast(str, io)
         io = quote_plus(io, "/:?=&")
-        io = cast(Union(FilePath, BaseBuffer[str]), io)
+        io = cast(Union(FilePath, ReadBuffer[str]), io)
 
     return _parse(
         flavor=flavor,
