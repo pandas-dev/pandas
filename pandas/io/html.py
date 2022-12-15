@@ -20,7 +20,6 @@ from typing import (
 from urllib.parse import quote_plus
 
 from pandas._typing import (
-    BaseBuffer,
     FilePath,
     ReadBuffer,
     Union,
