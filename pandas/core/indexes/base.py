@@ -5540,8 +5540,7 @@ class Index(IndexOpsMixin, PandasObject):
         if is_integer_dtype(self):
             return False
         elif is_object_dtype(self):
-            inferred_dtype = lib.infer_dtype(self._values, skipna=False)
-            return inferred_dtype not in ["integer", "mixed-integer"]
+            return self.inferred_type not in ["integer", "mixed-integer"]
         else:
             return True
 
