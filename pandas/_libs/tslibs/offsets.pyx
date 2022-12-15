@@ -310,7 +310,6 @@ cdef _determine_offset(kwds):
 
     kwds_no_nanos = {k: v for k, v in kwds.items() if k not in _nanos}
 
-    # TODO perhaps we can do the suggested conversion ourselves?
     if "millisecond" in kwds_no_nanos:
         raise NotImplementedError(
             "Using DateOffset to replace `millisecond` component in "
@@ -336,8 +335,9 @@ cdef _determine_offset(kwds):
         # This also handles "milliseconds" (plur): see GH 49897
         return timedelta(**kwds_no_nanos), False
 
-    # TODO what to do in this case?
-    return timedelta(days=0), False
+    raise ValueError(
+        f"Invalid argument/s or bad combination of arguments: {list(kwds.keys())}"
+    )
 
 # ---------------------------------------------------------------------
 # Mixins & Singletons
