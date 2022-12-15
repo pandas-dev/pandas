@@ -1504,8 +1504,8 @@ def _maybe_null_out(
             if is_float_dtype(result_dtype):
                 # Preserve dtype when possible
                 # mypy doesn't infer result_dtype is not None
-                result = getattr(  # type: ignore[union-attr]
-                    np, f"float{8 * result_dtype.itemsize}"
+                result = getattr(
+                    np, f"float{8 * result_dtype.itemsize}"  # type: ignore[union-attr]
                 )("nan")
             else:
                 result = np.nan
