@@ -135,6 +135,17 @@ class TestTimeConversionFormats:
         result = to_datetime(ser2, format="%Y%m%d", cache=cache)
         tm.assert_series_equal(result, expected)
 
+    def test_to_datetime_format_YYYYMM_with_nat(self, cache):
+        # https://github.com/pandas-dev/pandas/issues/50237
+        ser = Series([198012, 198012] + [198101] * 5)
+        expected = Series(
+            [Timestamp("19801201"), Timestamp("19801201")] + [Timestamp("19810101")] * 5
+        )
+        expected[2] = np.nan
+        ser[2] = np.nan
+        result = to_datetime(ser, format="%Y%m", cache=cache)
+        tm.assert_series_equal(result, expected)
+
     def test_to_datetime_format_YYYYMMDD_ignore(self, cache):
         # coercion
         # GH 7930
