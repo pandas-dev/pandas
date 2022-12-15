@@ -85,7 +85,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
 
     See Also
     --------
-    array
+    `pandas.array`
         The recommended function for creating a ArrowStringArray.
     Series.str
         The string methods are available on Series backed by
