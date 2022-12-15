@@ -311,7 +311,7 @@ def andrews_curves(
         :context: close-figs
 
         >>> df = pd.read_csv(
-        ...     'https://raw.github.com/pandas-dev/'
+        ...     'https://raw.githubusercontent.com/pandas-dev/'
         ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
         >>> pd.plotting.andrews_curves(df, 'Name')
@@ -443,7 +443,7 @@ def parallel_coordinates(
         :context: close-figs
 
         >>> df = pd.read_csv(
-        ...     'https://raw.github.com/pandas-dev/'
+        ...     'https://raw.githubusercontent.com/pandas-dev/'
         ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
         >>> pd.plotting.parallel_coordinates(
