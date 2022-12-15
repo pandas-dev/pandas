@@ -1226,6 +1226,7 @@ def read_fwf(
     colspecs: Sequence[tuple[int, int]] | str | None = "infer",
     widths: Sequence[int] | None = None,
     infer_nrows: int = 100,
+    use_nullable_dtypes: bool = False,
     **kwds,
 ) -> DataFrame | TextFileReader:
     r"""
@@ -1257,6 +1258,13 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
+    use_nullable_dtypes : bool = False
+        Whether or not to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        .. versionadded:: 2.0
+
     **kwds : optional
         Optional keyword arguments can be passed to ``TextFileReader``.
 
@@ -1313,6 +1321,7 @@ def read_fwf(
     kwds["colspecs"] = colspecs
     kwds["infer_nrows"] = infer_nrows
     kwds["engine"] = "python-fwf"
+    kwds["use_nullable_dtypes"] = use_nullable_dtypes
     return _read(filepath_or_buffer, kwds)
 
 
