@@ -337,7 +337,7 @@ class TestDataFrameAnalytics:
             and method in ("min", "max")
             and 0 in df.columns
         ):
-            expected = expected.astype(int)
+            expected = expected.astype("int64")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])
