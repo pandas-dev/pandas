@@ -952,60 +952,63 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         return indices
 
     def _rank(
-        self: ArrowExtensionArrayT,
+        self,
         *,
         axis: AxisInt = 0,
         method: str = "average",
         na_option: str = "keep",
         ascending: bool = True,
         pct: bool = False,
-    ) -> ArrowExtensionArrayT:
+    ):
         """
         See Series.rank.__doc__.
         """
-        if axis != 0:
-            raise NotImplementedError
-
-        if (
-            pa_version_under9p0
-            # as of version 10, pyarrow does not support an "average" method
-            or method not in ("min", "max", "first", "dense")
-        ):
-            from pandas.core.algorithms import rank
-
-            ranked = rank(
-                self.to_numpy(),
+        if pa_version_under9p0:
+            ranked = super().rank(
                 axis=axis,
                 method=method,
                 na_option=na_option,
                 ascending=ascending,
                 pct=pct,
             )
-            if method != "average" and not pct:
-                pa_type = pa.uint64()
-            else:
+            # keep dtypes consistent with the implementation below
+            if method == "average" or pct:
                 pa_type = pa.float64()
+            else:
+                pa_type = pa.uint64()
             result = pa.array(ranked, type=pa_type, from_pandas=True)
             return type(self)(result)
 
-        sort_keys = "ascending" if ascending else "descending"
+        if axis != 0:
+            raise NotImplementedError
 
-        if na_option == "top":
-            null_placement = "at_start"
-        else:
-            null_placement = "at_end"
+        data = self._data.combine_chunks()
+        sort_keys = "ascending" if ascending else "descending"
+        null_placement = "at_start" if na_option == "top" else "at_end"
+        tiebreaker = "min" if method == "average" else method
 
         result = pc.rank(
-            self._data.combine_chunks(),
+            data,
             sort_keys=sort_keys,
             null_placement=null_placement,
-            tiebreaker=method,
+            tiebreaker=tiebreaker,
         )
 
         if na_option == "keep":
             mask = pc.is_null(self._data)
             null = pa.scalar(None, type=result.type)
             result = pc.if_else(mask, null, result)
+
+        if method == "average":
+            result_max = pc.rank(
+                data,
+                sort_keys=sort_keys,
+                null_placement=null_placement,
+                tiebreaker="max",
+            )
+            result_max = result_max.cast(pa.float64())
+            result_min = result.cast(pa.float64())
+            result = pc.divide(pc.add(result_min, result_max), 2)
 
         if pct:
             if not pa.types.is_floating(result.type):
