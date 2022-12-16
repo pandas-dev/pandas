@@ -812,7 +812,11 @@ class Base:
     def test_holds_integer_deprecated(self, simple_index):
         # GH50243
         idx = simple_index
-        with tm.assert_produces_warning(FutureWarning):
+        msg = (
+            f"{type(idx).__name__}.holds_integer is deprecated."
+            "Use pandas.api.types.infer_dtype instead"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             idx.holds_integer()
 
 

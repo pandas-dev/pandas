@@ -98,7 +98,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_hashable,
     is_integer,
-    is_integer_dtype,
     is_interval_dtype,
     is_iterator,
     is_list_like,
@@ -2478,6 +2477,13 @@ class Index(IndexOpsMixin, PandasObject):
         return self.inferred_type in ["interval"]
 
     @final
+    def _holds_integer(self) -> bool:
+        """
+        Whether the type is an integer type.
+        """
+        return self.inferred_type in ["integer", "mixed-integer"]
+
+    @final
     def holds_integer(self) -> bool:
         """
         Whether the type is an integer type.
@@ -2491,7 +2497,7 @@ class Index(IndexOpsMixin, PandasObject):
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        return self.inferred_type in ["integer", "mixed-integer"]
+        return self._holds_integer()
 
     @cache_readonly
     def inferred_type(self) -> str_t:
@@ -5537,12 +5543,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Should an integer key be treated as positional?
         """
-        if is_integer_dtype(self):
-            return False
-        elif is_object_dtype(self):
-            return self.inferred_type not in ["integer", "mixed-integer"]
-        else:
-            return True
+        return not self._holds_integer()
 
     _index_shared_docs[
         "get_indexer_non_unique"
