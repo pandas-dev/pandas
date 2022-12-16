@@ -663,6 +663,11 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
     tm.assert_frame_equal(result, expected)
 
 
+def test_execute_typeerror(sqlite_iris_engine):
+    with pytest.raises(TypeError, match="pandas.io.sql.execute requires a connection"):
+        sql.execute("select * from iris", sqlite_iris_engine)
+
+
 class MixInBase:
     def teardown_method(self):
         # if setup fails, there may not be a connection to close.
@@ -956,7 +961,8 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_execute_sql(self):
         # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
-        iris_results = sql.execute("SELECT * FROM iris", con=self.conn)
+        with sql.pandasSQL_builder(self.conn) as pandas_sql:
+            iris_results = pandas_sql.execute("SELECT * FROM iris")
         row = iris_results.fetchone()
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
@@ -2795,7 +2801,8 @@ def format_query(sql, *args):
 
 def tquery(query, con=None):
     """Replace removed sql.tquery function"""
-    res = sql.execute(query, con=con).fetchall()
+    with sql.pandasSQL_builder(con) as pandas_sql:
+        res = pandas_sql.execute(query).fetchall()
     return None if res is None else list(res)
 
 
@@ -2860,7 +2867,8 @@ class TestXSQLite:
         ins = "INSERT INTO test VALUES (?, ?, ?, ?)"
 
         row = frame.iloc[0]
-        sql.execute(ins, sqlite_buildin, params=tuple(row))
+        with sql.pandasSQL_builder(sqlite_buildin) as pandas_sql:
+            pandas_sql.execute(ins, tuple(row))
         sqlite_buildin.commit()
 
         result = sql.read_sql("select * from test", sqlite_buildin)
@@ -2895,11 +2903,12 @@ class TestXSQLite:
         cur = sqlite_buildin.cursor()
         cur.execute(create_sql)
 
-        sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', sqlite_buildin)
-        sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', sqlite_buildin)
+        with sql.pandasSQL_builder(sqlite_buildin) as pandas_sql:
+            pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)')
+            pandas_sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)')
 
-        with pytest.raises(sql.DatabaseError, match="Execution failed on sql"):
-            sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', sqlite_buildin)
+            with pytest.raises(sql.DatabaseError, match="Execution failed on sql"):
+                pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 7)')
 
     def test_execute_closed_connection(self):
         create_sql = """
@@ -2915,7 +2924,8 @@ class TestXSQLite:
             cur = conn.cursor()
             cur.execute(create_sql)
 
-            sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', conn)
+            with sql.pandasSQL_builder(conn) as pandas_sql:
+                pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)')
 
         msg = "Cannot operate on a closed database."
         with pytest.raises(sqlite3.ProgrammingError, match=msg):
