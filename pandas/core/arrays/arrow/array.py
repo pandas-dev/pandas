@@ -963,7 +963,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         See Series.rank.__doc__.
         """
-        if pa_version_under9p0:
+        if pa_version_under9p0 or axis != 0:
             ranked = super()._rank(
                 axis=axis,
                 method=method,
@@ -978,9 +978,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 pa_type = pa.uint64()
             result = pa.array(ranked, type=pa_type, from_pandas=True)
             return type(self)(result)
-
-        if axis != 0:
-            raise NotImplementedError
 
         data = self._data.combine_chunks()
         sort_keys = "ascending" if ascending else "descending"
