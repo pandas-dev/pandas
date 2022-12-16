@@ -1,3 +1,6 @@
+"""
+datetimelke_accumulations.py is for accumulations of datetimelike extension arrays
+"""
 from __future__ import annotations
 
 from typing import Callable
@@ -7,10 +10,6 @@ import numpy as np
 from pandas._libs import iNaT
 
 from pandas.core.dtypes.missing import isna
-
-"""
-datetimelke_accumulations.py is for accumulations of datetimelike extension arrays
-"""
 
 
 def _cum_func(
