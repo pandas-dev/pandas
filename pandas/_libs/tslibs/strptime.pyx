@@ -157,7 +157,7 @@ def array_strptime(
     for i in range(n):
         val = values[i]
         if isinstance(val, str):
-            if val in nat_strings:
+            if len(val) == 0 or val in nat_strings:
                 iresult[i] = NPY_NAT
                 continue
         elif checknull_with_nat_and_na(val):
