@@ -1325,7 +1325,8 @@ class Block(PandasObject):
             loc = [loc]
 
         if self.ndim == 1:
-            values = np.delete(self.values, loc)
+            values = cast(np.ndarray, self.values)
+            values = np.delete(values, loc)
             mgr_locs = self._mgr_locs.delete(loc)
             return [type(self)(values, placement=mgr_locs, ndim=self.ndim)]
 
@@ -1345,7 +1346,9 @@ class Block(PandasObject):
                 # There is no column between current and last idx
                 pass
             else:
-                values = self.values[previous_loc + 1 : idx, :]
+                # No overload variant of "__getitem__" of "ExtensionArray" matches
+                # argument type "Tuple[slice, slice]"
+                values = self.values[previous_loc + 1 : idx, :]  # type: ignore[call-overload]  # noqa
                 locs = mgr_locs_arr[previous_loc + 1 : idx]
                 nb = type(self)(values, placement=BlockPlacement(locs), ndim=self.ndim)
                 new_blocks.append(nb)
