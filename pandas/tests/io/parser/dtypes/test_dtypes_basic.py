@@ -498,7 +498,7 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
 1,2.5,True,a,,,,,12-31-2019,
 3,4.5,False,b,6,7.5,True,a,12-31-2019,
 """
-    with pd.option_context("io.nullable_backend", "pyarrow"):
+    with pd.option_context("mode.nullable_backend", "pyarrow"):
         if parser.engine != "pyarrow":
             request.node.add_marker(
                 pytest.mark.xfail(

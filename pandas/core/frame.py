@@ -8050,7 +8050,8 @@ Keep all original rows and columns and also all original values
 
         Returns
         -------
-        None : method directly changes calling object
+        None
+            This method directly changes calling object.
 
         Raises
         ------

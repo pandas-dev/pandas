@@ -12,7 +12,6 @@ from pandas._libs import (
 )
 from pandas._typing import (
     Dtype,
-    NpDtype,
     Scalar,
     npt,
 )
@@ -151,31 +150,6 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         """
         return self._dtype
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
-        """Correctly construct numpy arrays when passed to `np.asarray()`."""
-        return self.to_numpy(dtype=dtype)
-
-    def to_numpy(
-        self,
-        dtype: npt.DTypeLike | None = None,
-        copy: bool = False,
-        na_value=lib.no_default,
-    ) -> np.ndarray:
-        """
-        Convert to a NumPy ndarray.
-        """
-        # TODO: copy argument is ignored
-
-        result = np.array(self._data, dtype=dtype)
-        if self._data.null_count > 0:
-            if na_value is lib.no_default:
-                if dtype and np.issubdtype(dtype, np.floating):
-                    return result
-                na_value = self._dtype.na_value
-            mask = self.isna()
-            result[mask] = na_value
-        return result
-
     def insert(self, loc: int, item) -> ArrowStringArray:
         if not isinstance(item, str) and item is not libmissing.NA:
             raise TypeError("Scalar must be NA or str")
@@ -219,10 +193,11 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             if copy:
                 return self.copy()
             return self
-
         elif isinstance(dtype, NumericDtype):
             data = self._data.cast(pa.from_numpy_dtype(dtype.numpy_dtype))
             return dtype.__from_arrow__(data)
+        elif isinstance(dtype, np.dtype) and np.issubdtype(dtype, np.floating):
+            return self.to_numpy(dtype=dtype, na_value=np.nan)
 
         return super().astype(dtype, copy=copy)
 
