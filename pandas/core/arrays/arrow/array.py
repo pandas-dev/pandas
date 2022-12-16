@@ -964,7 +964,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         See Series.rank.__doc__.
         """
         if pa_version_under9p0:
-            ranked = super().rank(
+            ranked = super()._rank(
                 axis=axis,
                 method=method,
                 na_option=na_option,
