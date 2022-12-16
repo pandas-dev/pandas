@@ -128,9 +128,9 @@ cdef class IndexEngine:
         bint need_monotonic_check, need_unique_check
         object _np_type
 
-    def __init__(self, ndarray values, ndarray mask = None):
+    def __init__(self, ndarray values):
         self.values = values
-        self.mask = mask
+        self.mask = None
 
         self.over_size_threshold = len(values) >= _SIZE_CUTOFF
         self.clear_mapping()
@@ -318,9 +318,9 @@ cdef class IndexEngine:
         self.monotonic_inc = 0
         self.monotonic_dec = 0
 
-    def get_indexer(self, ndarray values, ndarray mask = None) -> np.ndarray:
+    def get_indexer(self, ndarray values) -> np.ndarray:
         self._ensure_mapping_populated()
-        return self.mapping.lookup(values, mask)
+        return self.mapping.lookup(values)
 
     def get_indexer_non_unique(self, ndarray targets):
         """
@@ -711,7 +711,7 @@ cdef class BaseMultiIndexCodesEngine:
             level_codes.append(result)
         return self._codes_to_ints(np.array(level_codes, dtype="uint64").T)
 
-    def get_indexer(self, target: np.ndarray, ndarray mask = None) -> np.ndarray:
+    def get_indexer(self, target: np.ndarray) -> np.ndarray:
         """
         Returns an array giving the positions of each value of `target` in
         `self.values`, where -1 represents a value in `target` which does not
@@ -720,14 +720,12 @@ cdef class BaseMultiIndexCodesEngine:
         Parameters
         ----------
         target : np.ndarray
-        mask: Compatibility with IndexEngine
 
         Returns
         -------
         np.ndarray[intp_t, ndim=1] of the indexer of `target` into
         `self.values`
         """
-        assert mask is None  # should never be not None
         return self._base.get_indexer(self, target)
 
     def get_indexer_with_fill(self, ndarray target, ndarray values,
@@ -1140,8 +1138,15 @@ cdef class ExtensionEngine(SharedEngine):
 
 
 cdef class MaskedIndexEngine(IndexEngine):
+    def __init__(self, object values):
+        super().__init__(values._data)
+        self.mask = values._mask
 
-    def get_indexer_non_unique(self, ndarray targets, ndarray target_mask):
+    def get_indexer(self, object values) -> np.ndarray:
+        self._ensure_mapping_populated()
+        return self.mapping.lookup(values._data, values._mask)
+
+    def get_indexer_non_unique(self, object targets):
         """
         Return an indexer suitable for taking from a non unique index
         return the labels in the same order as the target
@@ -1155,7 +1160,7 @@ cdef class MaskedIndexEngine(IndexEngine):
         """
         # TODO: Unify with parent class
         cdef:
-            ndarray values, mask
+            ndarray values, mask, target_vals, target_mask
             ndarray[intp_t] result, missing
             set stargets
             list na_pos
@@ -1164,14 +1169,17 @@ cdef class MaskedIndexEngine(IndexEngine):
             Py_ssize_t count = 0, count_missing = 0
             Py_ssize_t i, j, n, n_t, n_alloc, start, end, na_idx
 
+        target_vals = targets._data
+        target_mask = targets._mask
+
         values = self.values
         assert not values.dtype == object  # go through object path instead
 
         mask = self.mask
-        stargets = set(targets[~target_mask])
+        stargets = set(target_vals[~target_mask])
 
         n = len(values)
-        n_t = len(targets)
+        n_t = len(target_vals)
         if n > 10_000:
             n_alloc = 10_000
         else:
@@ -1190,8 +1198,8 @@ cdef class MaskedIndexEngine(IndexEngine):
             # if there are few enough stargets and the index is monotonically
             # increasing, then use binary search for each starget
             for starget in stargets:
-                start = values.searchsorted(starget, side='left')
-                end = values.searchsorted(starget, side='right')
+                start = values.searchsorted(starget, side="left")
+                end = values.searchsorted(starget, side="right")
                 if start != end:
                     d[starget] = list(range(start, end))
 
@@ -1215,7 +1223,7 @@ cdef class MaskedIndexEngine(IndexEngine):
                         d[val].append(i)
 
         for i in range(n_t):
-            val = targets[i]
+            val = target_vals[i]
 
             if target_mask[i]:
                 if na_pos:

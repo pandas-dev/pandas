@@ -9,6 +9,8 @@ import numpy as np
 
 from pandas._libs import index as libindex
 
+from pandas.core.arrays import BaseMaskedArray
+
 
 def _get_numeric_engines():
     engine_names = [
@@ -119,14 +121,14 @@ class MaskedNumericEngineIndexing:
             else:
                 values = list([1] * N + [2] * N + [3] * N)
                 arr = np.array(values, dtype=dtype.lower())
-            mask = np.zeros(N * 3, dtype="uint8")
+            mask = np.zeros(N * 3, dtype=np.bool_)
         elif index_type == "monotonic_decr":
             if unique:
                 arr = np.arange(N * 3, dtype=dtype.lower())[::-1]
             else:
                 values = list([1] * N + [2] * N + [3] * N)
                 arr = np.array(values, dtype=dtype.lower())[::-1]
-            mask = np.zeros(N * 3, dtype="uint8")
+            mask = np.zeros(N * 3, dtype=np.bool_)
         else:
             assert index_type == "non_monotonic"
             if unique:
@@ -136,10 +138,10 @@ class MaskedNumericEngineIndexing:
 
             else:
                 arr = np.array([1, 2, 3] * N, dtype=dtype.lower())
-            mask = np.zeros(N * 3, dtype="uint8")
+            mask = np.zeros(N * 3, dtype=np.bool_)
             mask[-1] = True
 
-        self.data = engine(arr, mask)
+        self.data = engine(BaseMaskedArray(arr, mask))
         # code belows avoids populating the mapping etc. while timing.
         self.data.get_loc(2)
 

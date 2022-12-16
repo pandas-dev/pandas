@@ -815,10 +815,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(target_values, ExtensionArray):
 
             if isinstance(target_values, BaseMaskedArray):
-                return _masked_engines[target_values.dtype.name](
-                    target_values._data,
-                    target_values._mask,
-                )
+                return _masked_engines[target_values.dtype.name](target_values)
             elif self._engine_type is libindex.ObjectEngine:
                 return libindex.ExtensionEngine(target_values)
 
@@ -3652,14 +3649,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 tgt_values = target._get_engine_target()
 
-            if isinstance(tgt_values, BaseMaskedArray):
-                # Too many arguments for "get_indexer_non_unique" of "IndexEngine"
-                indexer = self._engine.get_indexer(  # type: ignore[call-arg]
-                    tgt_values._data,
-                    tgt_values._mask,
-                )
-            else:
-                indexer = self._engine.get_indexer(tgt_values)
+            indexer = self._engine.get_indexer(tgt_values)
 
         return ensure_platform_int(indexer)
 
@@ -5657,17 +5647,8 @@ class Index(IndexOpsMixin, PandasObject):
             # Item "IndexEngine" of "Union[IndexEngine, ExtensionEngine]" has
             # no attribute "_extract_level_codes"
             tgt_values = engine._extract_level_codes(target)  # type: ignore[union-attr]
-        if is_extension_array_dtype(tgt_values.dtype):
-            if isinstance(tgt_values, BaseMaskedArray):
-                # Too many arguments for "get_indexer_non_unique" of "IndexEngine"
-                indexer, missing = self._engine.get_indexer_non_unique(
-                    tgt_values._data,
-                    tgt_values._mask,  # type: ignore[call-arg]
-                )
-            else:
-                indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
-        else:
-            indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
+
+        indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
