@@ -1499,7 +1499,7 @@ cdef class BusinessDay(BusinessMixin):
     n : int, default 1
         The number of days represented.
     normalize : bool, default False
-        Normalize start/end dates to midnight
+        Normalize start/end dates to midnight.
 
     Examples
     --------
