@@ -1511,8 +1511,8 @@ cdef class BusinessDay(BusinessMixin):
     >>> (ts + pd.offsets.BusinessDay(n=5)).strftime('%a %d %b %Y %H:%M')
     'Fri 16 Dec 2022 15:00'
 
-    Passing the parameter ``normalize`` equal True, you shift the start
-    of next business day to midnight.
+    Passing the parameter ``normalize`` equal to True, you shift the start
+    of the next business day to midnight.
 
     >>> ts = pd.Timestamp(2022, 12, 9, 15)
     >>> ts + pd.offsets.BusinessDay(normalize=True)
@@ -1655,8 +1655,8 @@ cdef class BusinessHour(BusinessMixin):
     >>> ts + pd.offsets.BusinessHour(end=dt_time(19, 0))
     Timestamp('2022-08-08 10:00:00')
 
-    Passing the parameter ``normalize`` equal True, you shift the start
-    of next business hour to midnight.
+    Passing the parameter ``normalize`` equal to True, you shift the start
+    of the next business hour to midnight.
 
     >>> ts = pd.Timestamp(2022, 12, 9, 8)
     >>> ts + pd.offsets.BusinessHour(normalize=True)
