@@ -5046,7 +5046,7 @@ class Index(IndexOpsMixin, PandasObject):
         if (
             self.is_object()
             or is_string_dtype(self.dtype)
-            or is_categorical_dtype(self)
+            or is_categorical_dtype(self.dtype)
         ):
             return name in self
         return False
