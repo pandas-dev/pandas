@@ -96,7 +96,7 @@ class TestUpdate:
                 [None, "b"],
                 ["a", "b"],
                 "string[pyarrow]",
-                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
+                marks=td.skip_if_no("pyarrow"),
             ),
             ([1, None], [None, 2], [1, 2], "Int64"),
             ([True, None], [None, False], [True, False], "boolean"),

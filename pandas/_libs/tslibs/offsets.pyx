@@ -3619,6 +3619,8 @@ cdef class CustomBusinessHour(BusinessHour):
     """
     DateOffset subclass representing possibly n custom business days.
 
+    In CustomBusinessHour we can use custom weekmask, holidays, and calendar.
+
     Parameters
     ----------
     n : int, default 1
@@ -3627,6 +3629,11 @@ cdef class CustomBusinessHour(BusinessHour):
         Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    holidays : list
+        List/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``.
+    calendar : np.busdaycalendar
+        Calendar to integrate.
     start : str, time, or list of str/time, default "09:00"
         Start time of your custom business hour in 24h format.
     end : str, time, or list of str/time, default: "17:00"
@@ -3634,17 +3641,69 @@ cdef class CustomBusinessHour(BusinessHour):
 
     Examples
     --------
-    >>> from datetime import time
+    In the example below the default parameters give the next business hour.
+
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
     >>> ts + pd.offsets.CustomBusinessHour()
     Timestamp('2022-08-08 09:00:00')
+
+    We can also change the start and the end of business hours.
+
+    >>> ts = pd.Timestamp(2022, 8, 5, 16)
     >>> ts + pd.offsets.CustomBusinessHour(start="11:00")
     Timestamp('2022-08-08 11:00:00')
-    >>> ts + pd.offsets.CustomBusinessHour(end=time(19, 0))
+
+    >>> from datetime import time as dt_time
+    >>> ts = pd.Timestamp(2022, 8, 5, 16)
+    >>> ts + pd.offsets.CustomBusinessHour(end=dt_time(19, 0))
     Timestamp('2022-08-05 17:00:00')
-    >>> ts + pd.offsets.CustomBusinessHour(start=[time(9, 0), "20:00"],
-    ...                                    end=["17:00", time(22, 0)])
-    Timestamp('2022-08-05 20:00:00')
+
+    >>> ts = pd.Timestamp(2022, 8, 5, 22)
+    >>> ts + pd.offsets.CustomBusinessHour(end=dt_time(19, 0))
+    Timestamp('2022-08-08 10:00:00')
+
+    In the example below we divide our business day hours into several parts.
+
+    >>> import datetime as dt
+    >>> freq = pd.offsets.CustomBusinessHour(start=["06:00", "10:00", "15:00"],
+    ...                                      end=["08:00", "12:00", "17:00"])
+    >>> pd.date_range(dt.datetime(2022, 12, 9), dt.datetime(2022, 12, 13), freq=freq)
+    DatetimeIndex(['2022-12-09 06:00:00', '2022-12-09 07:00:00',
+                   '2022-12-09 10:00:00', '2022-12-09 11:00:00',
+                   '2022-12-09 15:00:00', '2022-12-09 16:00:00',
+                   '2022-12-12 06:00:00', '2022-12-12 07:00:00',
+                   '2022-12-12 10:00:00', '2022-12-12 11:00:00',
+                   '2022-12-12 15:00:00', '2022-12-12 16:00:00'],
+                   dtype='datetime64[ns]', freq='CBH')
+
+    Business days can be specified by ``weekmask`` parameter. To convert
+    the returned datetime object to its string representation
+    the function strftime() is used in the next example.
+
+    >>> import datetime as dt
+    >>> freq = pd.offsets.CustomBusinessHour(weekmask="Mon Wed Fri",
+    ...                                      start="10:00", end="13:00")
+    >>> pd.date_range(dt.datetime(2022, 12, 10), dt.datetime(2022, 12, 18),
+    ...               freq=freq).strftime('%a %d %b %Y %H:%M')
+    Index(['Mon 12 Dec 2022 10:00', 'Mon 12 Dec 2022 11:00',
+           'Mon 12 Dec 2022 12:00', 'Wed 14 Dec 2022 10:00',
+           'Wed 14 Dec 2022 11:00', 'Wed 14 Dec 2022 12:00',
+           'Fri 16 Dec 2022 10:00', 'Fri 16 Dec 2022 11:00',
+           'Fri 16 Dec 2022 12:00'],
+           dtype='object')
+
+    In the example below we define custom holidays by using NumPy business day calendar.
+
+    >>> import datetime as dt
+    >>> bdc = np.busdaycalendar(holidays=['2022-12-12', '2022-12-14'])
+    >>> freq = pd.offsets.CustomBusinessHour(calendar=bdc, start="10:00", end="13:00")
+    >>> pd.date_range(dt.datetime(2022, 12, 10), dt.datetime(2022, 12, 18), freq=freq)
+    DatetimeIndex(['2022-12-13 10:00:00', '2022-12-13 11:00:00',
+                   '2022-12-13 12:00:00', '2022-12-15 10:00:00',
+                   '2022-12-15 11:00:00', '2022-12-15 12:00:00',
+                   '2022-12-16 10:00:00', '2022-12-16 11:00:00',
+                   '2022-12-16 12:00:00'],
+                   dtype='datetime64[ns]', freq='CBH')
     """
 
     _prefix = "CBH"
@@ -4132,7 +4191,9 @@ def shift_months(
 
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
 
-    if day_opt not in [None, "start", "end", "business_start", "business_end"]:
+    if day_opt is not None and day_opt not in {
+            "start", "end", "business_start", "business_end"
+    }:
         raise ValueError("day must be None, 'start', 'end', "
                          "'business_start', or 'business_end'")
 
