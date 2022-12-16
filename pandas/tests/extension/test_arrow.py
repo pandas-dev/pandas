@@ -1408,7 +1408,7 @@ def test_astype_from_non_pyarrow(data):
     tm.assert_extension_array_equal(result, data)
 
 
-def test_to_numpy_with_defaults(data, request):
+def test_to_numpy_with_defaults(data):
     # GH49973
     result = data.to_numpy()
 
