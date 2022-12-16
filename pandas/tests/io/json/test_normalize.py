@@ -561,6 +561,14 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_top_column_with_leading_underscore(self):
+        # 49861
+        data = {"_id": {"a1": 10, "l2": {"l3": 0}}, "gg": 4}
+        result = json_normalize(data, sep="_")
+        expected = DataFrame([[4, 10, 0]], columns=["gg", "_id_a1", "_id_l2_l3"])
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
@@ -866,7 +874,7 @@ class TestNestedToRecord:
 
     def test_deprecated_import(self):
         with tm.assert_produces_warning(FutureWarning):
-            from pandas.io.json import json_normalize
+            from pandas.io.json import json_normalize  # pylint: disable=reimported
 
             recs = [{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}]
             json_normalize(recs)

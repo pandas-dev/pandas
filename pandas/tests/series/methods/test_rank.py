@@ -44,7 +44,7 @@ class TestSeriesRank:
         from scipy.stats import rankdata
 
         datetime_series[::2] = np.nan
-        datetime_series[:10][::3] = 4.0
+        datetime_series[:10:3] = 4.0
 
         ranks = datetime_series.rank()
         oranks = datetime_series.astype("O").rank()

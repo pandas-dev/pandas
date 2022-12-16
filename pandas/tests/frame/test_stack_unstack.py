@@ -1251,7 +1251,8 @@ def test_stack_timezone_aware_values():
 @pytest.mark.parametrize("dropna", [True, False])
 def test_stack_empty_frame(dropna):
     # GH 36113
-    expected = Series(index=MultiIndex([[], []], [[], []]), dtype=np.float64)
+    levels = [np.array([], dtype=np.int64), np.array([], dtype=np.int64)]
+    expected = Series(dtype=np.float64, index=MultiIndex(levels=levels, codes=[[], []]))
     result = DataFrame(dtype=np.float64).stack(dropna=dropna)
     tm.assert_series_equal(result, expected)
 
@@ -1789,10 +1790,9 @@ Thu,Lunch,Yes,51.51,17"""
         multi = df.set_index(["DATE", "ID"])
         multi.columns.name = "Params"
         unst = multi.unstack("ID")
-        msg = "The default value of numeric_only"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            down = unst.resample("W-THU").mean()
-
+        with pytest.raises(TypeError, match="Could not convert"):
+            unst.resample("W-THU").mean()
+        down = unst.resample("W-THU").mean(numeric_only=True)
         rs = down.stack("ID")
         xp = unst.loc[:, ["VAR1"]].resample("W-THU").mean().stack("ID")
         xp.columns.name = "Params"
@@ -2182,4 +2182,17 @@ Thu,Lunch,Yes,51.51,17"""
         # TODO(EA2D): we get object dtype because DataFrame.values can't
         #  be an EA
         expected = df.astype(object).stack("station")
+        tm.assert_frame_equal(result, expected)
+
+    def test_unstack_mixed_level_names(self):
+        # GH#48763
+        arrays = [["a", "a"], [1, 2], ["red", "blue"]]
+        idx = MultiIndex.from_arrays(arrays, names=("x", 0, "y"))
+        df = DataFrame({"m": [1, 2]}, index=idx)
+        result = df.unstack("x")
+        expected = DataFrame(
+            [[1], [2]],
+            columns=MultiIndex.from_tuples([("m", "a")], names=[None, "x"]),
+            index=MultiIndex.from_tuples([(1, "red"), (2, "blue")], names=[0, "y"]),
+        )
         tm.assert_frame_equal(result, expected)

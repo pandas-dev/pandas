@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from contextlib import suppress
-import inspect
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -688,7 +687,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         if isinstance(key, tuple):
             for x in key:
-                check_deprecated_indexers(x)
+                check_dict_or_set_indexers(x)
 
         if self.axis is not None:
             key = _tupleize_axis_indexer(self.ndim, self.axis, key)
@@ -814,7 +813,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        check_deprecated_indexers(key)
+        check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
@@ -935,6 +934,11 @@ class _LocationIndexer(NDFrameIndexerBase):
             #  be handled by the _getitem_lowerdim call above.
             assert retval.ndim == self.ndim
 
+        if retval is self.obj:
+            # if all axes were a null slice (`df.loc[:, :]`), ensure we still
+            # return a new object (https://github.com/pandas-dev/pandas/pull/49469)
+            retval = retval.copy(deep=False)
+
         return retval
 
     @final
@@ -1005,7 +1009,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         # we should be able to match up the dimensionality here
 
         for key in tup:
-            check_deprecated_indexers(key)
+            check_dict_or_set_indexers(key)
 
         # we have too many indexers for our dim, but have at least 1
         # multi-index dimension, try to see if we have something like
@@ -1063,7 +1067,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __getitem__(self, key):
-        check_deprecated_indexers(key)
+        check_dict_or_set_indexers(key)
         if type(key) is tuple:
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
@@ -1116,9 +1120,12 @@ class _LocIndexer(_LocationIndexer):
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
         # boolean not in slice and with boolean index
+        ax = self.obj._get_axis(axis)
         if isinstance(key, bool) and not (
-            is_bool_dtype(self.obj._get_axis(axis))
-            or self.obj._get_axis(axis).dtype.name == "boolean"
+            is_bool_dtype(ax)
+            or ax.dtype.name == "boolean"
+            or isinstance(ax, MultiIndex)
+            and is_bool_dtype(ax.get_level_values(0))
         ):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
@@ -1474,7 +1481,12 @@ class _iLocIndexer(_LocationIndexer):
             # so don't treat a tuple as a valid indexer
             raise IndexingError("Too many indexers")
         elif is_list_like_indexer(key):
-            arr = np.array(key)
+            if isinstance(key, ABCSeries):
+                arr = key._values
+            elif is_array_like(key):
+                arr = key
+            else:
+                arr = np.array(key)
             len_axis = len(self.obj._get_axis(axis))
 
             # check that the key has a numeric dtype
@@ -1500,12 +1512,9 @@ class _iLocIndexer(_LocationIndexer):
             raise IndexError("iloc cannot enlarge its target object")
 
         if isinstance(indexer, ABCDataFrame):
-            warnings.warn(
-                "DataFrame indexer for .iloc is deprecated and will be removed in "
-                "a future version.\n"
-                "consider using .loc with a DataFrame indexer for automatic alignment.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+            raise TypeError(
+                "DataFrame indexer for .iloc is not supported. "
+                "Consider using .loc with a DataFrame indexer for automatic alignment.",
             )
 
         if not isinstance(indexer, tuple):
@@ -1899,16 +1908,20 @@ class _iLocIndexer(_LocationIndexer):
 
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
-        # GH#7551 Note that this coerces the dtype if we are mixed
-        value = np.array(value, dtype=object)
+        if not is_array_like(value):
+            # cast lists to array
+            value = np.array(value, dtype=object)
         if len(ilocs) != value.shape[1]:
             raise ValueError(
                 "Must have equal len keys and value when setting with an ndarray"
             )
 
         for i, loc in enumerate(ilocs):
-            # setting with a list, re-coerces
-            self._setitem_single_column(loc, value[:, i].tolist(), pi)
+            value_col = value[:, i]
+            if is_object_dtype(value_col.dtype):
+                # casting to list so that we do type inference in setitem_single_column
+                value_col = value_col.tolist()
+            self._setitem_single_column(loc, value_col, pi)
 
     def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
@@ -2032,7 +2045,7 @@ class _iLocIndexer(_LocationIndexer):
                     "`df[df.columns[i]] = newvals` or, if columns are non-unique, "
                     "`df.isetitem(i, newvals)`",
                     FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
+                    stacklevel=find_stack_level(),
                 )
                 # TODO: how to get future behavior?
                 # TODO: what if we got here indirectly via loc?
@@ -2490,40 +2503,6 @@ def _tupleize_axis_indexer(ndim: int, axis: AxisInt, key) -> tuple:
     return tuple(new_key)
 
 
-def convert_to_index_sliceable(obj: DataFrame, key):
-    """
-    If we are index sliceable, then return my slicer, otherwise return None.
-    """
-    idx = obj.index
-    if isinstance(key, slice):
-        return idx._convert_slice_indexer(key, kind="getitem", is_frame=True)
-
-    elif isinstance(key, str):
-
-        # we are an actual column
-        if key in obj.columns:
-            return None
-
-        # We might have a datetimelike string that we can translate to a
-        # slice here via partial string indexing
-        if idx._supports_partial_string_indexing:
-            try:
-                res = idx._get_string_slice(str(key))
-                warnings.warn(
-                    "Indexing a DataFrame with a datetimelike index using a single "
-                    "string to slice the rows, like `frame[string]`, is deprecated "
-                    "and will be removed in a future version. Use `frame.loc[string]` "
-                    "instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
-                )
-                return res
-            except (KeyError, ValueError, NotImplementedError):
-                return None
-
-    return None
-
-
 def check_bool_indexer(index: Index, key) -> np.ndarray:
     """
     Check if key is a valid boolean indexer for an object with such index and
@@ -2658,27 +2637,24 @@ def need_slice(obj: slice) -> bool:
     )
 
 
-def check_deprecated_indexers(key) -> None:
-    """Checks if the key is a deprecated indexer."""
+def check_dict_or_set_indexers(key) -> None:
+    """
+    Check if the indexer is or contains a dict or set, which is no longer allowed.
+    """
     if (
         isinstance(key, set)
         or isinstance(key, tuple)
         and any(isinstance(x, set) for x in key)
     ):
-        warnings.warn(
-            "Passing a set as an indexer is deprecated and will raise in "
-            "a future version. Use a list instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+        raise TypeError(
+            "Passing a set as an indexer is not supported. Use a list instead."
         )
+
     if (
         isinstance(key, dict)
         or isinstance(key, tuple)
         and any(isinstance(x, dict) for x in key)
     ):
-        warnings.warn(
-            "Passing a dict as an indexer is deprecated and will raise in "
-            "a future version. Use a list instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+        raise TypeError(
+            "Passing a dict as an indexer is not supported. Use a list instead."
         )

@@ -1,3 +1,4 @@
+""" Test cases for DataFrame.plot """
 from datetime import (
     date,
     datetime,
@@ -22,6 +23,7 @@ from pandas import (
     Series,
     bdate_range,
     date_range,
+    plotting,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -30,17 +32,11 @@ from pandas.tests.plotting.common import (
 )
 
 from pandas.io.formats.printing import pprint_thing
-import pandas.plotting as plotting
-
-try:
-    from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
-except ImportError:
-    mpl_ge_3_6_0 = lambda: True
 
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
-    @pytest.mark.xfail(mpl_ge_3_6_0(), reason="Api changed")
+    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     @pytest.mark.slow
     def test_plot(self):
         df = tm.makeTimeDataFrame()
@@ -76,8 +72,6 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(df.plot, use_index=True)
         self._check_ticks_props(ax, xrot=0)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            _check_plot_works(df.plot, sort_columns=False)
         _check_plot_works(df.plot, yticks=[1, 5, 10])
         _check_plot_works(df.plot, xticks=[1, 5, 10])
         _check_plot_works(df.plot, ylim=(-100, 100), xlim=(-100, 100))
@@ -659,11 +653,6 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             df.plot.scatter(y="y")
 
-        with pytest.raises(TypeError, match="Specify exactly one of `s` and `size`"):
-            df.plot.scatter(x="x", y="y", s=2, size=2)
-        with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
-            df.plot.scatter(x="a", y="b", c="red", color="green")
-
         # GH 6951
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
@@ -737,7 +726,6 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
     def test_plot_scatter_with_c(self):
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_4_0
 
         df = DataFrame(
             np.random.randint(low=0, high=100, size=(6, 4)),
@@ -750,10 +738,7 @@ class TestDataFramePlots(TestPlotBase):
             # default to Greys
             assert ax.collections[0].cmap.name == "Greys"
 
-            if mpl_ge_3_4_0():
-                assert ax.collections[0].colorbar.ax.get_ylabel() == "z"
-            else:
-                assert ax.collections[0].colorbar._label == "z"
+            assert ax.collections[0].colorbar.ax.get_ylabel() == "z"
 
         cm = "cubehelix"
         ax = df.plot.scatter(x="x", y="y", c="z", colormap=cm)
@@ -1827,15 +1812,15 @@ class TestDataFramePlots(TestPlotBase):
         # force a garbage collection
         gc.collect()
         msg = "weakly-referenced object no longer exists"
-        for key in results:
+        for result_value in results.values():
             # check that every plot was collected
             with pytest.raises(ReferenceError, match=msg):
                 # need to actually access something to get an error
-                results[key].lines
+                result_value.lines
 
     def test_df_gridspec_patterns(self):
         # GH 10819
-        import matplotlib.gridspec as gridspec
+        from matplotlib import gridspec
         import matplotlib.pyplot as plt
 
         ts = Series(np.random.randn(10), index=date_range("1/1/2000", periods=10))
@@ -2231,19 +2216,6 @@ class TestDataFramePlots(TestPlotBase):
                 assert ax.get_ylabel() == "Y"
                 assert ax.get_ylim() == (0, 100)
                 assert ax.get_yticks()[0] == 99
-
-    def test_sort_columns_deprecated(self):
-        # GH 47563
-        df = DataFrame({"a": [1, 2], "b": [3, 4]})
-
-        with tm.assert_produces_warning(FutureWarning):
-            df.plot.box("a", sort_columns=True)
-
-        with tm.assert_produces_warning(FutureWarning):
-            df.plot.box(sort_columns=False)
-
-        with tm.assert_produces_warning(False):
-            df.plot.box("a")
 
 
 def _generate_4_axes_via_gridspec():

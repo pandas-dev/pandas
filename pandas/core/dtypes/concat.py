@@ -3,31 +3,18 @@ Utility functions related to concat.
 """
 from __future__ import annotations
 
-import inspect
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
-import warnings
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-)
-from pandas.util._exceptions import find_stack_level
+from pandas._typing import AxisInt
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
     find_common_type,
 )
-from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    is_sparse,
-)
+from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
@@ -40,34 +27,6 @@ from pandas.core.dtypes.generic import (
 
 if TYPE_CHECKING:
     from pandas.core.arrays import Categorical
-    from pandas.core.arrays.sparse import SparseArray
-
-
-def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
-    """
-    Helper function for `arr.astype(common_dtype)` but handling all special
-    cases.
-    """
-    if is_dtype_equal(arr.dtype, dtype):
-        return arr
-
-    if is_sparse(arr) and not is_sparse(dtype):
-        # TODO(2.0): remove special case once SparseArray.astype deprecation
-        #  is enforced.
-        # problem case: SparseArray.astype(dtype) doesn't follow the specified
-        # dtype exactly, but converts this to Sparse[dtype] -> first manually
-        # convert to dense array
-
-        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
-        # "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any], None, type, _
-        # SupportsDType[dtype[Any]], str, Union[Tuple[Any, int], Tuple[Any,
-        # Union[SupportsIndex, Sequence[SupportsIndex]]], List[Any], _DTypeDict,
-        # Tuple[Any, Any]]]"  [arg-type]
-        arr = cast("SparseArray", arr)
-        return arr.to_dense().astype(dtype, copy=False)  # type: ignore[arg-type]
-
-    # astype_array includes ensure_wrapped_if_datetimelike
-    return astype_array(arr, dtype=dtype, copy=False)
 
 
 def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
@@ -127,7 +86,9 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
         if not single_dtype:
             target_dtype = find_common_type([x.dtype for x in to_concat])
             target_dtype = common_dtype_categorical_compat(to_concat, target_dtype)
-            to_concat = [cast_to_common_type(arr, target_dtype) for arr in to_concat]
+            to_concat = [
+                astype_array(arr, target_dtype, copy=False) for arr in to_concat
+            ]
 
         if isinstance(to_concat[0], ABCExtensionArray):
             # TODO: what about EA-backed Index?
@@ -152,15 +113,8 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
 
     result = np.concatenate(to_concat, axis=axis)
     if "b" in kinds and result.dtype.kind in ["i", "u", "f"]:
-        # GH#39817
-        warnings.warn(
-            "Behavior when concatenating bool-dtype and numeric-dtype arrays is "
-            "deprecated; in a future version these will cast to object dtype "
-            "(instead of coercing bools to numeric values). To retain the old "
-            "behavior, explicitly cast bool-dtype arrays to numeric dtype.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
+        # GH#39817 cast to object instead of casting bools to numeric
+        result = result.astype(object, copy=False)
     return result
 
 
@@ -321,8 +275,7 @@ def union_categoricals(
         if all(c.ordered for c in to_union):
             msg = "to union ordered Categoricals, all categories must be the same"
             raise TypeError(msg)
-        else:
-            raise TypeError("Categorical.ordered must be the same")
+        raise TypeError("Categorical.ordered must be the same")
 
     if ignore_order:
         ordered = False

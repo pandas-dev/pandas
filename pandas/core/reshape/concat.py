@@ -4,7 +4,6 @@ Concat routines.
 from __future__ import annotations
 
 from collections import abc
-import inspect
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -15,7 +14,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -24,11 +22,7 @@ from pandas._typing import (
     AxisInt,
     HashableT,
 )
-from pandas.util._decorators import (
-    cache_readonly,
-    deprecate_nonkeyword_arguments,
-)
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -68,6 +62,7 @@ if TYPE_CHECKING:
 @overload
 def concat(
     objs: Iterable[DataFrame] | Mapping[HashableT, DataFrame],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -84,6 +79,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[Series] | Mapping[HashableT, Series],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -100,6 +96,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -116,6 +113,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Literal[1, "columns"],
     join: str = ...,
     ignore_index: bool = ...,
@@ -132,6 +130,7 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Axis = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -145,9 +144,9 @@ def concat(
     ...
 
 
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
     objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    *,
     axis: Axis = 0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -196,10 +195,7 @@ def concat(
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation.
     sort : bool, default False
-        Sort non-concatenation axis if it is not already aligned when `join`
-        is 'outer'.
-        This has no effect when ``join='inner'``, which already preserves
-        the order of the non-concatenation axis.
+        Sort non-concatenation axis if it is not already aligned.
 
         .. versionchanged:: 1.0.0
 
@@ -550,11 +546,8 @@ class _Concatenator:
         self.levels = levels
 
         if not is_bool(sort):
-            warnings.warn(
-                "Passing non boolean values for sort is deprecated and "
-                "will error in a future version!",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+            raise ValueError(
+                f"The 'sort' keyword only accepts boolean values; {sort} was passed."
             )
         self.sort = sort
 

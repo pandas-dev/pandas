@@ -1112,7 +1112,7 @@ class TestDataFrameEvalWithFrame:
 
 
 class TestDataFrameQueryBacktickQuoting:
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     def df(self):
         """
         Yields a dataframe with strings that may or may not need escaping

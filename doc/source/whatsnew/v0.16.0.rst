@@ -206,7 +206,7 @@ Other enhancements
 - Added ``decimal`` option in ``to_csv`` to provide formatting for non-'.' decimal separators (:issue:`781`)
 - Added ``normalize`` option for ``Timestamp`` to normalized to midnight (:issue:`8794`)
 - Added example for ``DataFrame`` import to R using HDF5 file and ``rhdf5``
-  library. See the :ref:`documentation <io.external_compatibility>` for more
+  library. See the documentation for more
   (:issue:`9636`).
 
 .. _whatsnew_0160.api:

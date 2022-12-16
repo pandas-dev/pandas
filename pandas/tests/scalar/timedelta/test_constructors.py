@@ -45,12 +45,12 @@ def test_from_td64_retain_resolution():
 
     td = Timedelta(obj)
     assert td.value == obj.view("i8")
-    assert td._reso == NpyDatetimeUnit.NPY_FR_ms.value
+    assert td._creso == NpyDatetimeUnit.NPY_FR_ms.value
 
     # Case where we cast to nearest-supported reso
     obj2 = np.timedelta64(1234, "D")
     td2 = Timedelta(obj2)
-    assert td2._reso == NpyDatetimeUnit.NPY_FR_s.value
+    assert td2._creso == NpyDatetimeUnit.NPY_FR_s.value
     assert td2 == obj2
     assert td2.days == 1234
 
@@ -58,7 +58,7 @@ def test_from_td64_retain_resolution():
     obj3 = np.timedelta64(1000000000000000000, "us")
     td3 = Timedelta(obj3)
     assert td3.total_seconds() == 1000000000000
-    assert td3._reso == NpyDatetimeUnit.NPY_FR_us.value
+    assert td3._creso == NpyDatetimeUnit.NPY_FR_us.value
 
 
 def test_from_pytimedelta_us_reso():
@@ -66,31 +66,31 @@ def test_from_pytimedelta_us_reso():
     td = timedelta(days=4, minutes=3)
     result = Timedelta(td)
     assert result.to_pytimedelta() == td
-    assert result._reso == NpyDatetimeUnit.NPY_FR_us.value
+    assert result._creso == NpyDatetimeUnit.NPY_FR_us.value
 
 
 def test_from_tick_reso():
     tick = offsets.Nano()
-    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_ns.value
 
     tick = offsets.Micro()
-    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_us.value
+    assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_us.value
 
     tick = offsets.Milli()
-    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_ms.value
+    assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_ms.value
 
     tick = offsets.Second()
-    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_s.value
+    assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_s.value
 
     # everything above Second gets cast to the closest supported reso: second
     tick = offsets.Minute()
-    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_s.value
+    assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_s.value
 
     tick = offsets.Hour()
-    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_s.value
+    assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_s.value
 
     tick = offsets.Day()
-    assert Timedelta(tick)._reso == NpyDatetimeUnit.NPY_FR_s.value
+    assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_s.value
 
 
 def test_construction():
@@ -282,7 +282,7 @@ def test_overflow_on_construction():
 
     # used to overflow before non-ns support
     td = Timedelta(timedelta(days=13 * 19999))
-    assert td._reso == NpyDatetimeUnit.NPY_FR_us.value
+    assert td._creso == NpyDatetimeUnit.NPY_FR_us.value
     assert td.days == 13 * 19999
 
 
@@ -313,7 +313,7 @@ def test_construction_out_of_bounds_td64ns(val, unit):
     assert td.asm8.dtype == "m8[s]"
     msg = r"Cannot cast 1067\d\d days .* to unit='ns' without overflow"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        td._as_unit("ns")
+        td.as_unit("ns")
 
     # But just back in bounds and we are OK
     assert Timedelta(td64 - 1) == td64 - 1
@@ -324,7 +324,7 @@ def test_construction_out_of_bounds_td64ns(val, unit):
     td2 = Timedelta(td64)
     msg = r"Cannot cast -1067\d\d days .* to unit='ns' without overflow"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        td2._as_unit("ns")
+        td2.as_unit("ns")
 
     # But just back in bounds and we are OK
     assert Timedelta(td64 + 1) == td64 + 1
@@ -503,3 +503,12 @@ def test_timedelta_new_npnat():
     # GH#48898
     nat = np.timedelta64("NaT", "h")
     assert Timedelta(nat) is NaT
+
+
+def test_subclass_respected():
+    # GH#49579
+    class MyCustomTimedelta(Timedelta):
+        pass
+
+    td = MyCustomTimedelta("1 minute")
+    assert isinstance(td, MyCustomTimedelta)

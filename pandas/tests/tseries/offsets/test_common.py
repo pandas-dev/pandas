@@ -104,7 +104,7 @@ def _offset(request):
 
 
 @pytest.fixture
-def d(_offset):
+def dt(_offset):
     if _offset in (CBMonthBegin, CBMonthEnd, BDay):
         return Timestamp(2008, 1, 1)
     elif _offset is (CustomBusinessHour, BusinessHour):
@@ -237,9 +237,9 @@ def test_sub(date, offset_box, offset2):
         [BusinessHour, BusinessHour()],
     ],
 )
-def test_Mult1(offset_box, offset1, d):
-    assert d + 10 * offset1 == d + offset_box(10)
-    assert d + 5 * offset1 == d + offset_box(5)
+def test_Mult1(offset_box, offset1, dt):
+    assert dt + 10 * offset1 == dt + offset_box(10)
+    assert dt + 5 * offset1 == dt + offset_box(5)
 
 
 def test_compare_str(_offset):

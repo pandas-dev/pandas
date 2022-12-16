@@ -138,11 +138,11 @@ class TestDataFrameSubclassing:
         # GH 11808
         class A(DataFrame):
             @property
-            def bar(self):
+            def nonexistence(self):
                 return self.i_dont_exist
 
         with pytest.raises(AttributeError, match=".*i_dont_exist.*"):
-            A().bar
+            A().nonexistence
 
     def test_subclass_align(self):
         # GH 12983
@@ -577,7 +577,6 @@ class TestDataFrameSubclassing:
         assert not isinstance(result, tm.SubclassedDataFrame)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:.*None will no longer:FutureWarning")
     def test_subclassed_reductions(self, all_reductions):
         # GH 25596
 
@@ -610,9 +609,8 @@ class TestDataFrameSubclassing:
                 list(zip(list("WWXX"), list("yzyz"))), names=["www", "yyy"]
             ),
         )
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.count(level=1)
-        assert isinstance(result, tm.SubclassedDataFrame)
+        result = df.count()
+        assert isinstance(result, tm.SubclassedSeries)
 
         df = tm.SubclassedDataFrame()
         result = df.count()

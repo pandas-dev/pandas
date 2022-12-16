@@ -5,8 +5,8 @@ import pandas._config.config as cf
 
 import pandas as pd
 
+from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
-import pandas.io.formats.printing as printing
 
 
 def test_adjoin():

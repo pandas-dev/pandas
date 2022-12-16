@@ -20,8 +20,8 @@ from pandas._typing import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
 )
+from pandas.util._exceptions import rewrite_warning
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -165,7 +165,18 @@ def __internal_pivot_table(
         values = list(values)
 
     grouped = data.groupby(keys, observed=observed, sort=sort)
-    agged = grouped.agg(aggfunc)
+    msg = (
+        "pivot_table dropped a column because it failed to aggregate. This behavior "
+        "is deprecated and will raise in a future version of pandas. Select only the "
+        "columns that can be aggregated."
+    )
+    with rewrite_warning(
+        target_message="The default value of numeric_only",
+        target_category=FutureWarning,
+        new_message=msg,
+    ):
+        agged = grouped.agg(aggfunc)
+
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
         agged = agged.dropna(how="all")
 
@@ -412,7 +423,11 @@ def _generate_marginal_results(
                 table_pieces.append(transformed_piece)
                 margin_keys.append(all_key)
 
-        result = concat(table_pieces, axis=cat_axis)
+        if not table_pieces:
+            # GH 49240
+            return table
+        else:
+            result = concat(table_pieces, axis=cat_axis)
 
         if len(rows) == 0:
             return result
@@ -493,9 +508,9 @@ def _convert_by(by):
 
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["data"])
 def pivot(
     data: DataFrame,
+    *,
     index: IndexLabel | lib.NoDefault = lib.NoDefault,
     columns: IndexLabel | lib.NoDefault = lib.NoDefault,
     values: IndexLabel | lib.NoDefault = lib.NoDefault,

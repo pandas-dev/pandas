@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -1073,19 +1075,16 @@ class TestWideToLong:
         result = wide_to_long(wide_df, stubnames="PA", i=["node_id", "A"], j="time")
         tm.assert_frame_equal(result, expected)
 
-    def test_warn_of_column_name_value(self):
-        # GH34731
-        # raise a warning if the resultant value column name matches
+    def test_raise_of_column_name_value(self):
+        # GH34731, enforced in 2.0
+        # raise a ValueError if the resultant value column name matches
         # a name in the dataframe already (default name is "value")
         df = DataFrame({"col": list("ABC"), "value": range(10, 16, 2)})
-        expected = DataFrame(
-            [["A", "col", "A"], ["B", "col", "B"], ["C", "col", "C"]],
-            columns=["value", "variable", "value"],
-        )
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.melt(id_vars="value")
-            tm.assert_frame_equal(result, expected)
+        with pytest.raises(
+            ValueError, match=re.escape("value_name (value) cannot match")
+        ):
+            df.melt(id_vars="value", value_name="value")
 
     @pytest.mark.parametrize("dtype", ["O", "string"])
     def test_missing_stubname(self, dtype):

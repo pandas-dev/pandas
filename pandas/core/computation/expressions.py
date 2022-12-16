@@ -7,7 +7,6 @@ Offer fast expression evaluation through numexpr
 """
 from __future__ import annotations
 
-import inspect
 import operator
 import warnings
 
@@ -217,7 +216,7 @@ def _bool_arith_fallback(op_str, a, b) -> bool:
                 f"evaluating in Python space because the {repr(op_str)} "
                 "operator is not supported by numexpr for the bool dtype, "
                 f"use {repr(_BOOL_OP_UNSUPPORTED[op_str])} instead.",
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
             return True
     return False
@@ -272,7 +271,6 @@ def set_test_mode(v: bool = True) -> None:
 
 
 def _store_test_result(used_numexpr: bool) -> None:
-    global _TEST_RESULT
     if used_numexpr:
         _TEST_RESULT.append(used_numexpr)
 

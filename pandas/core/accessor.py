@@ -6,7 +6,6 @@ that can be mixed into or pinned onto other pandas classes.
 """
 from __future__ import annotations
 
-import inspect
 import warnings
 
 from pandas.util._decorators import doc
@@ -269,7 +268,7 @@ def _register_accessor(name, cls):
                 f"{repr(name)} for type {repr(cls)} is overriding a preexisting "
                 f"attribute with the same name.",
                 UserWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
+                stacklevel=find_stack_level(),
             )
         setattr(cls, name, CachedAccessor(name, accessor))
         cls._accessors.add(name)

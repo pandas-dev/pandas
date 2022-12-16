@@ -62,7 +62,6 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
     ...
     'EST'
     """
-    import os
     import time
 
     def setTZ(tz) -> None:

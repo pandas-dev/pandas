@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable  # noqa: PDF001
+import functools
 import re
+import sys
 import textwrap
 from typing import (
     TYPE_CHECKING,
@@ -11,7 +13,7 @@ import unicodedata
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 from pandas._typing import (
@@ -380,9 +382,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         dummies = np.empty((len(arr), len(tags2)), dtype=np.int64)
 
+        def _isin(test_elements: str, element: str) -> bool:
+            return element in test_elements
+
         for i, t in enumerate(tags2):
             pat = sep + t + sep
-            dummies[:, i] = lib.map_infer(arr.to_numpy(), lambda x: pat in x)
+            dummies[:, i] = lib.map_infer(
+                arr.to_numpy(), functools.partial(_isin, element=pat)
+            )
         return dummies, tags2
 
     def _str_upper(self):
@@ -456,16 +463,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(removeprefix)
 
     def _str_removesuffix(self, suffix: str) -> Series:
-        # this could be used on Python 3.9+
-        # f = lambda x: x.removesuffix(suffix)
-        # return self._str_map(str.removesuffix)
+        if sys.version_info < (3, 9):
+            # NOTE pyupgrade will remove this when we run it with --py39-plus
+            # so don't remove the unnecessary `else` statement below
+            from pandas.util._str_methods import removesuffix
 
-        def removesuffix(text: str) -> str:
-            if text.endswith(suffix):
-                return text[: -len(suffix)]
-            return text
-
-        return self._str_map(removesuffix)
+            return self._str_map(functools.partial(removesuffix, suffix=suffix))
+        else:
+            return self._str_map(lambda x: x.removesuffix(suffix))
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         regex = re.compile(pat, flags=flags)
