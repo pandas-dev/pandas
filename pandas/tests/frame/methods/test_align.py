@@ -1,6 +1,7 @@
+from datetime import timezone
+
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 from pandas import (
@@ -27,17 +28,17 @@ class TestDataFrameAlign:
         # frame with frame
         df1_central = df1.tz_convert("US/Central")
         new1, new2 = df1.align(df1_central)
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
+        assert new1.index.tz is timezone.utc
+        assert new2.index.tz is timezone.utc
 
         # frame with Series
         new1, new2 = df1.align(df1_central[0], axis=0)
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
+        assert new1.index.tz is timezone.utc
+        assert new2.index.tz is timezone.utc
 
         df1[0].align(df1_central, axis=0)
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
+        assert new1.index.tz is timezone.utc
+        assert new2.index.tz is timezone.utc
 
     def test_align_float(self, float_frame):
         af, bf = float_frame.align(float_frame)

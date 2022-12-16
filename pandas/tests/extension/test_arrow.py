@@ -688,6 +688,13 @@ class TestBaseParsing(base.BaseParsingTests):
                     reason=f"Parameterized types with tz={pa_dtype.tz} not supported.",
                 )
             )
+        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.unit in ("us", "ns"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=ValueError,
+                    reason="https://github.com/pandas-dev/pandas/issues/49767",
+                )
+            )
         elif pa.types.is_binary(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(reason="CSV parsers don't correctly handle binary")
@@ -1414,3 +1421,20 @@ def test_astype_from_non_pyarrow(data):
     assert not isinstance(pd_array.dtype, ArrowDtype)
     assert isinstance(result.dtype, ArrowDtype)
     tm.assert_extension_array_equal(result, data)
+
+
+def test_to_numpy_with_defaults(data):
+    # GH49973
+    result = data.to_numpy()
+
+    pa_type = data._data.type
+    if pa.types.is_duration(pa_type) or pa.types.is_timestamp(pa_type):
+        expected = np.array(list(data))
+    else:
+        expected = np.array(data._data)
+
+    if data._hasna:
+        expected = expected.astype(object)
+        expected[pd.isna(data)] = pd.NA
+
+    tm.assert_numpy_array_equal(result, expected)
