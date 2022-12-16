@@ -2427,6 +2427,7 @@ class Index(IndexOpsMixin, PandasObject):
     def is_object(self) -> bool:
         """
         Check if the Index is of the object dtype.
+
         .. deprecated:: 2.0.0
            Use `pandas.api.types.is_object_dtype` instead.
 
@@ -2463,14 +2464,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_object()
         False
         """
-
         warnings.warn(
             f"{type(self).__name__}.is_object is deprecated."
             "Use pandas.api.types.is_object_dtype instead",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-
         return is_object_dtype(self.dtype)
 
     @final
