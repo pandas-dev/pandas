@@ -414,10 +414,9 @@ class TimedeltaArray(dtl.TimelikeOps):
     # Accumulations
 
     def _accumulate(self, name: str, *, skipna: bool = True, **kwargs):
-
-        data = self._ndarray.copy()
-
         if name == "cumsum":
+            data = self._ndarray.copy()
+
             func = np.cumsum
             result = cast(np.ndarray, nanops.na_accum_func(data, func, skipna=skipna))
 

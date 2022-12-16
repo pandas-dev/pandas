@@ -70,12 +70,12 @@ class TestSeriesCumulativeOps:
             [
                 "cummax",
                 False,
-                ["NaT", "2 days", "2 days", "2 days", "2 days", "3 days"],
+                ["NaT", "NaT", "NaT", "NaT", "NaT", "NaT"],
             ],
             [
                 "cummin",
                 False,
-                ["NaT", "2 days", "2 days", "1 days", "1 days", "1 days"],
+                ["NaT", "NaT", "NaT", "NaT", "NaT", "NaT"],
             ],
         ],
     )
