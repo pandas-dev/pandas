@@ -174,7 +174,6 @@ Run Container::
     # Run a container and bind your local repo to the container
     docker run -it -w /home/pandas --rm -v path-to-local-pandas-repo:/home/pandas pandas-yourname-env
 
-<<<<<<< HEAD
 Then a ``pandas-dev`` virtual environment will be available with all the development dependencies.
 
 .. code-block:: shell
@@ -194,8 +193,6 @@ Then a ``pandas-dev`` virtual environment will be available with all the develop
     You need to rebuild the C extensions anytime the Cython code in ``pandas/_libs`` changes.
     This most frequently occurs when changing or merging branches.
 
-=======
->>>>>>> 70eef55e43 (DOC restructure contributing environment guide (#50145))
 *Even easier, you can integrate Docker with the following IDEs:*
 
 **Visual Studio Code**
