@@ -90,10 +90,10 @@ def read_orc(
         orc_file = orc.ORCFile(handles.handle)
         pa_table = orc_file.read(columns=columns, **kwargs)
     if use_nullable_dtypes:
-        nullable_backend = get_option("mode.dtype_backend")
-        if nullable_backend != "pyarrow":
+        dtype_backend = get_option("mode.dtype_backend")
+        if dtype_backend != "pyarrow":
             raise NotImplementedError(
-                f"mode.dtype_backend set to {nullable_backend} is not implemented."
+                f"mode.dtype_backend set to {dtype_backend} is not implemented."
             )
         df = DataFrame(
             {

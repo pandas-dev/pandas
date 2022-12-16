@@ -44,7 +44,7 @@ class TestConvertDtypes:
         tm.assert_index_equal(result.columns, df.columns)
         assert result.columns.name == "cols"
 
-    def test_pyarrow_nullable_backend(self):
+    def test_pyarrow_dtype_backend(self):
         pa = pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
@@ -90,14 +90,14 @@ class TestConvertDtypes:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_pyarrow_nullable_backend_already_pyarrow(self):
+    def test_pyarrow_dtype_backend_already_pyarrow(self):
         pytest.importorskip("pyarrow")
         expected = pd.DataFrame([1, 2, 3], dtype="int64[pyarrow]")
         with pd.option_context("mode.dtype_backend", "pyarrow"):
             result = expected.convert_dtypes()
         tm.assert_frame_equal(result, expected)
 
-    def test_pyarrow_nullable_backend_from_pandas_nullable(self):
+    def test_pyarrow_dtype_backend_from_pandas_nullable(self):
         pa = pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {

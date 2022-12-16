@@ -222,12 +222,12 @@ class PyArrowImpl(BaseImpl):
     ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
 
-        nullable_backend = get_option("mode.dtype_backend")
+        dtype_backend = get_option("mode.dtype_backend")
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
             import pandas as pd
 
-            if nullable_backend == "pandas":
+            if dtype_backend == "pandas":
                 mapping = {
                     self.api.int8(): pd.Int8Dtype(),
                     self.api.int16(): pd.Int16Dtype(),
@@ -257,9 +257,9 @@ class PyArrowImpl(BaseImpl):
             pa_table = self.api.parquet.read_table(
                 path_or_handle, columns=columns, **kwargs
             )
-            if nullable_backend == "pandas":
+            if dtype_backend == "pandas":
                 result = pa_table.to_pandas(**to_pandas_kwargs)
-            elif nullable_backend == "pyarrow":
+            elif dtype_backend == "pyarrow":
                 result = DataFrame(
                     {
                         col_name: arrays.ArrowExtensionArray(pa_col)

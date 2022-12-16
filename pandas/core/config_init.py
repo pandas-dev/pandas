@@ -539,7 +539,7 @@ string_storage_doc = """
     The default storage for StringDtype.
 """
 
-nullable_backend_doc = """
+dtype_backend_doc = """
 : string
     The nullable dtype implementation to return.
     Available options: 'pandas', 'pyarrow', the default is 'pandas'.
@@ -553,9 +553,9 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory(["python", "pyarrow"]),
     )
     cf.register_option(
-        "nullable_backend",
+        "dtype_backend",
         "pandas",
-        nullable_backend_doc,
+        dtype_backend_doc,
         validator=is_one_of_factory(["pandas", "pyarrow"]),
     )
 
