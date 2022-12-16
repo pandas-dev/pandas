@@ -744,8 +744,14 @@ class TestToDatetime:
             ],
         ],
     )
+<<<<<<< HEAD
     def test_error_iso_week_year(self, msg, s, _format):
         # See GH#16607, #50308
+=======
+    @pytest.mark.parametrize("errors", ["raise", "coerce", "ignore"])
+    def test_error_iso_week_year(self, msg, s, _format, errors):
+        # See GH#16607
+>>>>>>> 22f4dde6e4 (avoid large outer try-except)
         # This test checks for errors thrown when giving the wrong format
         # However, as discussed on PR#25541, overriding the locale
         # causes a different error to be thrown due to the format being
@@ -757,7 +763,7 @@ class TestToDatetime:
             "UTF-8",
         ):
             with pytest.raises(ValueError, match=msg):
-                to_datetime(s, format=_format)
+                to_datetime(s, format=_format, errors=errors)
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_to_datetime_dtarr(self, tz):
