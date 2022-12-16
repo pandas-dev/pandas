@@ -1239,7 +1239,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     # Add first block where old block was and remaining blocks at
                     # the end to avoid updating all block numbers
                     first_nb = nbs[0]
-                    nbs_tup = tuple(nb for nb in nbs[1:])
+                    nbs_tup = tuple(nbs[1:])
                     nr_blocks = len(self.blocks)
                     blocks_tup = (
                         self.blocks[:blkno_l]
