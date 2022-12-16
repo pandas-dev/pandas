@@ -256,7 +256,11 @@ class TestSeriesRank:
             ("float64", np.nan, np.inf, -np.inf),
             ("Float64", NA, np.inf, -np.inf),
             pytest.param(
-                "float64[pyarrow]", NA, np.inf, -np.inf, marks=td.skip_if_no("pyarrow")
+                "float64[pyarrow]",
+                NA,
+                np.inf,
+                -np.inf,
+                marks=td.skip_if_no("pyarrow", min_version="9.0"),
             ),
         ],
     )
