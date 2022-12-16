@@ -27,13 +27,12 @@ def _cum_func(
     func : np.cumsum, np.cumprod, np.maximum.accumulate, np.minimum.accumulate
     values : np.ndarray
         Numpy array with the values (can be of any dtype that support the
-        operation).
+        operation). Values is changed is modified inplace.
     skipna : bool, default True
         Whether to skip NA.
     """
     try:
         fill_value = {
-            np.cumprod: 1,
             np.maximum.accumulate: np.iinfo(np.int64).min,
             np.cumsum: 0,
             np.minimum.accumulate: np.iinfo(np.int64).max,
@@ -56,12 +55,8 @@ def _cum_func(
     return result
 
 
-def cumsum(values: np.ndarray, *, skipna: bool = True):
+def cumsum(values: np.ndarray, *, skipna: bool = True) -> np.ndarray:
     return _cum_func(np.cumsum, values, skipna=skipna)
-
-
-def cumprod(values: np.ndarray, *, skipna: bool = True):
-    return _cum_func(np.cumprod, values, skipna=skipna)
 
 
 def cummin(values: np.ndarray, *, skipna: bool = True):
