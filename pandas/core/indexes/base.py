@@ -387,7 +387,6 @@ class Index(IndexOpsMixin, PandasObject):
     _no_setting_name: bool = False
     _comparables: list[str] = ["name"]
     _attributes: list[str] = ["name"]
-    _is_numeric_dtype: bool = False
     _can_hold_strings: bool = True
 
     # Whether this index is a NumericIndex, but not a Int64Index, Float64Index,
@@ -500,7 +499,7 @@ class Index(IndexOpsMixin, PandasObject):
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
         try:
-            arr = sanitize_array(data, None, dtype=dtype, copy=copy, strict_ints=True)
+            arr = sanitize_array(data, None, dtype=dtype, copy=copy)
         except ValueError as err:
             if "index must be specified when data is not list-like" in str(err):
                 raise cls._raise_scalar_data_error(data) from err
@@ -1116,7 +1115,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        repeated_index : %(klass)s
+        %(klass)s
             Newly created %(klass)s with repeated elements.
 
         See Also
@@ -2755,7 +2754,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        deduplicated : Index
+        Index
 
         See Also
         --------
@@ -2934,7 +2933,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        union : Index
+        Index
 
         Examples
         --------
@@ -3128,7 +3127,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        intersection : Index
+        Index
 
         Examples
         --------
@@ -3275,7 +3274,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        difference : Index
+        Index
 
         Examples
         --------
@@ -3351,7 +3350,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        symmetric_difference : Index
+        Index
 
         Notes
         -----
@@ -3439,7 +3438,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        loc : int if unique index, slice if monotonic index, else mask
+        int if unique index, slice if monotonic index, else mask
 
         Examples
         --------
@@ -3500,7 +3499,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        indexer : np.ndarray[np.intp]
+        np.ndarray[np.intp]
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
@@ -5943,7 +5942,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        applied : Union[Index, MultiIndex], inferred
+        Union[Index, MultiIndex]
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
@@ -6119,7 +6118,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        indexer : slice
+        slice
 
         Raises
         ------
@@ -6301,7 +6300,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        start, end : int
+        tuple[int, int]
 
         See Also
         --------
@@ -6427,7 +6426,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        new_index : Index
+        Index
         """
         item = lib.item_from_zerodim(item)
         if is_valid_na_for_dtype(item, self.dtype) and self.dtype != object:
@@ -6487,7 +6486,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        dropped : Index
+        Index
             Will be same type as self, except for RangeIndex.
 
         Raises

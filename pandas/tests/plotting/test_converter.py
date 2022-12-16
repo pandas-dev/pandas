@@ -161,8 +161,8 @@ class TestDateTimeConverter:
         return converter.DatetimeConverter()
 
     def test_convert_accepts_unicode(self, dtc):
-        r1 = dtc.convert("12:22", None, None)
-        r2 = dtc.convert("12:22", None, None)
+        r1 = dtc.convert("2000-01-01 12:22", None, None)
+        r2 = dtc.convert("2000-01-01 12:22", None, None)
         assert r1 == r2, "DatetimeConverter.convert should accept unicode"
 
     def test_conversion(self, dtc):
