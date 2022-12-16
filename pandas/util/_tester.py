@@ -24,7 +24,8 @@ def test(extra_args: list[str] | None = None) -> None:
     """
     pytest = import_optional_dependency("pytest")
     import_optional_dependency("hypothesis")
-    cmd = ["--skip-slow", "--skip-network", "--skip-db"]
+    # cmd = ["--skip-slow", "--skip-network", "--skip-db"]
+    cmd = ["-m slow"]
     if extra_args:
         if not isinstance(extra_args, list):
             extra_args = [extra_args]
