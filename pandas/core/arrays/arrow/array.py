@@ -981,7 +981,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 ascending=ascending,
                 pct=pct,
             )
-            result = pa.array(ranked, type=pa.float64(), from_pandas=True)
+            if method != "average" and not pct:
+                pa_type = pa.uint64()
+            else:
+                pa_type = pa.float64()
+            result = pa.array(ranked, type=pa_type, from_pandas=True)
             return type(self)(result)
 
         sort_keys = "ascending" if ascending else "descending"

@@ -260,7 +260,7 @@ class TestSeriesRank:
                 NA,
                 np.inf,
                 -np.inf,
-                marks=td.skip_if_no("pyarrow", min_version="9.0"),
+                marks=td.skip_if_no("pyarrow"),
             ),
         ],
     )
