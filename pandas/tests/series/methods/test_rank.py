@@ -263,7 +263,13 @@ class TestSeriesRank:
     def test_rank_tie_methods_on_infs_nans(
         self, method, na_option, ascending, dtype, na_value, pos_inf, neg_inf
     ):
-        exp_dtype = dtype if dtype == "float64[pyarrow]" else "float64"
+        if dtype == "float64[pyarrow]":
+            if method == "average":
+                exp_dtype = "float64[pyarrow]"
+            else:
+                exp_dtype = "uint64[pyarrow]"
+        else:
+            exp_dtype = "float64"
 
         chunk = 3
         in_arr = [neg_inf] * chunk + [na_value] * chunk + [pos_inf] * chunk

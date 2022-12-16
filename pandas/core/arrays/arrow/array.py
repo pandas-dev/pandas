@@ -997,15 +997,15 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             null_placement=null_placement,
             tiebreaker=method,
         )
-        if not pa.types.is_floating(result.type):
-            result = result.cast(pa.float64())
 
         if na_option == "keep":
             mask = pc.is_null(self._data)
-            null = pa.scalar(None, type=self._data.type)
+            null = pa.scalar(None, type=result.type)
             result = pc.if_else(mask, null, result)
 
         if pct:
+            if not pa.types.is_floating(result.type):
+                result = result.cast(pa.float64())
             if method == "dense":
                 divisor = pc.max(result)
             else:
