@@ -222,7 +222,7 @@ class PyArrowImpl(BaseImpl):
     ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
 
-        nullable_backend = get_option("mode.nullable_backend")
+        nullable_backend = get_option("mode.dtype_backend")
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
             import pandas as pd
@@ -509,9 +509,9 @@ def read_parquet(
         .. versionadded:: 1.2.0
 
         The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.nullable_backend", "pandas")`` to use
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
         numpy-backed nullable dtypes or
-        ``pd.set_option("mode.nullable_backend", "pyarrow")`` to use
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
         pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
         .. versionadded:: 2.0.0

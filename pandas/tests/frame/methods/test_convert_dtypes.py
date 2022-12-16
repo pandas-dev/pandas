@@ -56,7 +56,7 @@ class TestConvertDtypes:
                 "f": pd.Series(pd.timedelta_range("1D", periods=3)),
             }
         )
-        with pd.option_context("mode.nullable_backend", "pyarrow"):
+        with pd.option_context("mode.dtype_backend", "pyarrow"):
             result = df.convert_dtypes()
         expected = pd.DataFrame(
             {
@@ -93,7 +93,7 @@ class TestConvertDtypes:
     def test_pyarrow_nullable_backend_already_pyarrow(self):
         pytest.importorskip("pyarrow")
         expected = pd.DataFrame([1, 2, 3], dtype="int64[pyarrow]")
-        with pd.option_context("mode.nullable_backend", "pyarrow"):
+        with pd.option_context("mode.dtype_backend", "pyarrow"):
             result = expected.convert_dtypes()
         tm.assert_frame_equal(result, expected)
 
@@ -107,7 +107,7 @@ class TestConvertDtypes:
                 "d": pd.Series([None, 100.5, 200], dtype="Float64"),
             }
         )
-        with pd.option_context("mode.nullable_backend", "pyarrow"):
+        with pd.option_context("mode.dtype_backend", "pyarrow"):
             result = df.convert_dtypes()
         expected = pd.DataFrame(
             {
