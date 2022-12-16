@@ -4817,6 +4817,10 @@ class Index(IndexOpsMixin, PandasObject):
         Cast the ndarray returned from one of the libjoin.foo_indexer functions
         back to type(self)._data.
         """
+        if is_extension_array_dtype(self.dtype):
+            if is_numeric_dtype(self.dtype):
+                return type(self.values)(result, np.zeros(result.shape, dtype=np.bool_))
+            return type(self.values)._from_sequence(result)
         return result
 
     @doc(IndexOpsMixin._memory_usage)
