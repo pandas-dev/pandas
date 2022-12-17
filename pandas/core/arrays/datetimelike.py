@@ -1388,7 +1388,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result = op(self.copy(), skipna=skipna, **kwargs)
 
         return type(self)._simple_new(
-            result, freq=self.freq, dtype=self.dtype  # type: ignore[call-arg]
+            result, freq=None, dtype=self.dtype  # type: ignore[call-arg]
         )
 
     @unpack_zerodim_and_defer("__add__")
