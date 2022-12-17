@@ -141,9 +141,12 @@ def melt(
 
     mcolumns = id_vars + var_name + [value_name]
 
-    # error: Incompatible types in assignment (expression has type "ndarray",
-    # target has type "Series")
-    mdata[value_name] = frame._values.ravel("F")  # type: ignore[assignment]
+    if frame.shape[1] > 0:
+        mdata[value_name] = concat(
+            [frame.iloc[:, i] for i in range(frame.shape[1])]
+        ).values
+    else:
+        mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
         # asanyarray will keep the columns as an Index
 
