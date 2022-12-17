@@ -1494,11 +1494,29 @@ cdef class BusinessDay(BusinessMixin):
     """
     DateOffset subclass representing possibly n business days.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of days represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight.
+
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 8, 5)
-    >>> ts + pd.offsets.BusinessDay()
-    Timestamp('2022-08-08 00:00:00')
+    You can use the parameter ``n`` to represent a shift of n business days.
+
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts.strftime('%a %d %b %Y %H:%M')
+    'Fri 09 Dec 2022 15:00'
+    >>> (ts + pd.offsets.BusinessDay(n=5)).strftime('%a %d %b %Y %H:%M')
+    'Fri 16 Dec 2022 15:00'
+
+    Passing the parameter ``normalize`` equal to True, you shift the start
+    of the next business day to midnight.
+
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts + pd.offsets.BusinessDay(normalize=True)
+    Timestamp('2022-12-12 00:00:00')
     """
     _period_dtype_code = PeriodDtypeCode.B
     _prefix = "B"
@@ -1610,11 +1628,9 @@ cdef class BusinessHour(BusinessMixin):
     Parameters
     ----------
     n : int, default 1
-        The number of months represented.
+        The number of hours represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    weekmask : str, Default 'Mon Tue Wed Thu Fri'
-        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
     start : str, time, or list of str/time, default "09:00"
         Start time of your custom business hour in 24h format.
     end : str, time, or list of str/time, default: "17:00"
@@ -1622,17 +1638,43 @@ cdef class BusinessHour(BusinessMixin):
 
     Examples
     --------
-    >>> from datetime import time
+    You can use the parameter ``n`` to represent a shift of n hours.
+
+    >>> ts = pd.Timestamp(2022, 12, 9, 8)
+    >>> ts + pd.offsets.BusinessHour(n=5)
+    Timestamp('2022-12-09 14:00:00')
+
+    You can also change the start and the end of business hours.
+
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
-    >>> ts + pd.offsets.BusinessHour()
-    Timestamp('2022-08-08 09:00:00')
     >>> ts + pd.offsets.BusinessHour(start="11:00")
     Timestamp('2022-08-08 11:00:00')
-    >>> ts + pd.offsets.BusinessHour(end=time(19, 0))
-    Timestamp('2022-08-05 17:00:00')
-    >>> ts + pd.offsets.BusinessHour(start=[time(9, 0), "20:00"],
-    ...                              end=["17:00", time(22, 0)])
-    Timestamp('2022-08-05 20:00:00')
+
+    >>> from datetime import time as dt_time
+    >>> ts = pd.Timestamp(2022, 8, 5, 22)
+    >>> ts + pd.offsets.BusinessHour(end=dt_time(19, 0))
+    Timestamp('2022-08-08 10:00:00')
+
+    Passing the parameter ``normalize`` equal to True, you shift the start
+    of the next business hour to midnight.
+
+    >>> ts = pd.Timestamp(2022, 12, 9, 8)
+    >>> ts + pd.offsets.BusinessHour(normalize=True)
+    Timestamp('2022-12-09 00:00:00')
+
+    You can divide your business day hours into several parts.
+
+    >>> import datetime as dt
+    >>> freq = pd.offsets.BusinessHour(start=["06:00", "10:00", "15:00"],
+    ...                                end=["08:00", "12:00", "17:00"])
+    >>> pd.date_range(dt.datetime(2022, 12, 9), dt.datetime(2022, 12, 13), freq=freq)
+    DatetimeIndex(['2022-12-09 06:00:00', '2022-12-09 07:00:00',
+                   '2022-12-09 10:00:00', '2022-12-09 11:00:00',
+                   '2022-12-09 15:00:00', '2022-12-09 16:00:00',
+                   '2022-12-12 06:00:00', '2022-12-12 07:00:00',
+                   '2022-12-12 10:00:00', '2022-12-12 11:00:00',
+                   '2022-12-12 15:00:00', '2022-12-12 16:00:00'],
+                   dtype='datetime64[ns]', freq='BH')
     """
 
     _prefix = "BH"
@@ -3536,6 +3578,7 @@ cdef class CustomBusinessDay(BusinessDay):
     Parameters
     ----------
     n : int, default 1
+        The number of days represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
@@ -3624,7 +3667,7 @@ cdef class CustomBusinessHour(BusinessHour):
     Parameters
     ----------
     n : int, default 1
-        The number of months represented.
+        The number of hours represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
@@ -3662,7 +3705,7 @@ cdef class CustomBusinessHour(BusinessHour):
     >>> ts + pd.offsets.CustomBusinessHour(end=dt_time(19, 0))
     Timestamp('2022-08-08 10:00:00')
 
-    In the example below we divide our business day hours into several parts.
+    You can divide your business day hours into several parts.
 
     >>> import datetime as dt
     >>> freq = pd.offsets.CustomBusinessHour(start=["06:00", "10:00", "15:00"],
@@ -3692,7 +3735,7 @@ cdef class CustomBusinessHour(BusinessHour):
            'Fri 16 Dec 2022 12:00'],
            dtype='object')
 
-    In the example below we define custom holidays by using NumPy business day calendar.
+    Using NumPy business day calendar you can define custom holidays.
 
     >>> import datetime as dt
     >>> bdc = np.busdaycalendar(holidays=['2022-12-12', '2022-12-14'])
