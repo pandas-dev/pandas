@@ -562,6 +562,7 @@ def _read(
     elif (
         kwds.get("use_nullable_dtypes", False)
         and get_option("mode.nullable_backend") == "pyarrow"
+        and kwds.get("engine") == "c"
     ):
         raise NotImplementedError(
             f"use_nullable_dtypes=True and engine={kwds['engine']} with "
