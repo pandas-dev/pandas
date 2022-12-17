@@ -613,7 +613,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 mask = mask | isna(other)
         else:
             mask = self._mask | mask
-        return mask
+        # Incompatible return value type (got "Optional[ndarray[Any, dtype[bool_]]]",
+        # expected "ndarray[Any, dtype[bool_]]")
+        return mask  # type: ignore[return-value]
 
     def _arith_method(self, other, op):
         op_name = op.__name__
