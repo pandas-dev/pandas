@@ -52,7 +52,7 @@ dask
 seaborn
 moto
 flask
-asv
+asv>=0.5.1
 black==22.10.0
 cpplint
 flake8==6.0.0
