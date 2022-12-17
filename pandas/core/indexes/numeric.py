@@ -86,7 +86,6 @@ class NumericIndex(Index):
         is_numeric_dtype,
         "numeric type",
     )
-    _is_numeric_dtype = True
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
 
@@ -220,7 +219,7 @@ class NumericIndex(Index):
         return False
 
     @doc(Index._convert_slice_indexer)
-    def _convert_slice_indexer(self, key: slice, kind: str, is_frame: bool = False):
+    def _convert_slice_indexer(self, key: slice, kind: str):
         # TODO(2.0): once #45324 deprecation is enforced we should be able
         #  to simplify this.
         if is_float_dtype(self.dtype):
@@ -232,7 +231,7 @@ class NumericIndex(Index):
             # translate to locations
             return self.slice_indexer(key.start, key.stop, key.step)
 
-        return super()._convert_slice_indexer(key, kind=kind, is_frame=is_frame)
+        return super()._convert_slice_indexer(key, kind=kind)
 
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str):

@@ -16,7 +16,6 @@ dependencies:
   - pytest-xdist>=1.31
   - psutil
   - pytest-asyncio>=0.17
-  - boto3
   - coverage
 
   # required dependencies
@@ -28,7 +27,6 @@ dependencies:
   - beautifulsoup4
   - blosc
   - brotlipy
-  - botocore
   - bottleneck
   - fastparquet
   - fsspec
@@ -70,7 +68,7 @@ dependencies:
   - flask
 
   # benchmarks
-  - asv
+  - asv>=0.5.1
 
   # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler

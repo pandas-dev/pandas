@@ -9,7 +9,6 @@ pytest-cov
 pytest-xdist>=1.31
 psutil
 pytest-asyncio>=0.17
-boto3
 coverage
 python-dateutil
 numpy
@@ -17,7 +16,6 @@ pytz
 beautifulsoup4
 blosc
 brotlipy
-botocore
 bottleneck
 fastparquet
 fsspec
@@ -53,7 +51,7 @@ dask
 seaborn
 moto
 flask
-asv
+asv>=0.5.1
 black==22.10.0
 cpplint
 flake8==6.0.0
