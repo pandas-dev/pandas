@@ -1016,7 +1016,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
 cdef str _fill_token(token: str, padding: int):
     cdef str token_filled
-    if re.search(r"\d*\.\d+", token) is None:
+    if re.search(r"\d+\.\d+", token) is None:
         # For example: 98
         token_filled = token.zfill(padding)
     else:
