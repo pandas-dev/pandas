@@ -1842,8 +1842,9 @@ class SQLDatabase(PandasSQL):
         if self.has_table(table_name, schema):
             self.meta.reflect(bind=self.con, only=[table_name], schema=schema)
             if schema:
-                schema = schema + "."
-            self.execute(f"DELETE FROM {schema or ''}{table_name}")
+                self.execute(f"TRUNCATE FROM {schema}.{table_name}")
+            else:
+                self.execute(f"DELETE FROM {table_name}")
             self.meta.clear()
 
     def _create_sql_schema(

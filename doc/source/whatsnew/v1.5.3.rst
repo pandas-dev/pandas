@@ -32,7 +32,7 @@ Bug fixes
 
 Other
 ~~~~~
-- Added ``"truncate"`` option to ``if_exists`` argument in :meth:`DataFrame.to_sql` to truncate the existing table (:issue:`37210`)
+- 
 -
 
 .. ---------------------------------------------------------------------------

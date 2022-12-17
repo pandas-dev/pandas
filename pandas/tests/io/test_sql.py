@@ -913,6 +913,20 @@ class _TestSQLApi(PandasSQLTest):
 
         assert num_rows == num_entries
 
+    def test_to_sql_truncate_no_table(self, test_frame1):
+        #  creates new table if table doesn't exist
+        sql.to_sql(test_frame1, "test_frame_new", self.conn, if_exists="truncate")
+        assert sql.has_table("test_frame_new")
+        
+    def test_to_sql_truncate_new_columns(self, test_frame1, test_frame3):
+        sql.to_sql(test_frame3, "test_frame3", self.conn, if_exists='fail')
+        # truncate and attempt to add more columns
+        msg = "table test_frame3 has no column named C"
+        with pytest.raises(Exception, match=msg):
+            sql.to_sql(test_frame1, "test_frame3", self.conn, if_exists='truncate')
+        
+        
+
     def test_to_sql_append(self, test_frame1):
         assert sql.to_sql(test_frame1, "test_frame4", self.conn, if_exists="fail") == 4
 
