@@ -10,6 +10,7 @@ from pandas.errors import IndexingError
 from pandas import (
     NA,
     DataFrame,
+    Index,
     IndexSlice,
     MultiIndex,
     Series,
@@ -364,6 +365,14 @@ def test_loc_setitem_nested_data_enlargement():
     ser.loc["new_label"] = df
     expected = Series({"label": df, "new_label": df})
     tm.assert_series_equal(ser, expected)
+
+
+def test_loc_ea_numeric_index_oob_slice_end():
+    # GH#50161
+    ser = Series(1, index=Index([0, 1, 2], dtype="Int64"))
+    result = ser.loc[2:3]
+    expected = Series(1, index=Index([2], dtype="Int64"))
+    tm.assert_series_equal(result, expected)
 
 
 def test_getitem_bool_int_key():
