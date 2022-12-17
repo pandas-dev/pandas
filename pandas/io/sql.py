@@ -1597,6 +1597,7 @@ class SQLDatabase(PandasSQL):
                         index_col=index_col,
                         coerce_float=coerce_float,
                         parse_dates=parse_dates,
+                        dtype=dtype,
                         use_nullable_dtypes=use_nullable_dtypes,
                     )
                 break
@@ -2162,9 +2163,12 @@ class SQLiteDatabase(PandasSQL):
             if not data:
                 cursor.close()
                 if not has_read_data:
-                    yield DataFrame.from_records(
+                    result = DataFrame.from_records(
                         [], columns=columns, coerce_float=coerce_float
                     )
+                    if dtype:
+                        result = result.astype(dtype)
+                    yield result
                 break
 
             has_read_data = True

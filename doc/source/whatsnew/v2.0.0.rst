@@ -872,6 +872,7 @@ I/O
 - Bug in :func:`read_sas` caused fragmentation of :class:`DataFrame` and raised :class:`.errors.PerformanceWarning` (:issue:`48595`)
 - Improved error message in :func:`read_excel` by including the offending sheet name when an exception is raised while reading a file (:issue:`48706`)
 - Bug when a pickling a subset PyArrow-backed data that would serialize the entire data instead of the subset (:issue:`42600`)
+- Bug in :func:`read_sql_query` ignoring ``dtype`` argument when ``chunksize`` is specified and result is empty (:issue:`50245`)
 - Bug in :func:`read_csv` for a single-line csv with fewer columns than ``names`` raised :class:`.errors.ParserError` with ``engine="c"`` (:issue:`47566`)
 - Bug in displaying ``string`` dtypes not showing storage option (:issue:`50099`)
 - Bug in :func:`DataFrame.to_string` with ``header=False`` that printed the index name on the same line as the first row of the data (:issue:`49230`)
