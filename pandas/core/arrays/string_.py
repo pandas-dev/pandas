@@ -266,8 +266,7 @@ class StringArray(BaseStringArray, PandasArray):
 
     See Also
     --------
-    `array
-    <https://pandas.pydata.org/docs/reference/api/pandas.array.html>`__
+    :func:`pandas.array`
         The recommended function for creating a StringArray.
     Series.str
         The string methods are available on Series backed by
