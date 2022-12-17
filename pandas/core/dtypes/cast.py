@@ -1565,10 +1565,8 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
     """
     assert is_integer_dtype(dtype)
 
-    was_ndarray = isinstance(arr, np.ndarray)
-
     try:
-        if not was_ndarray:
+        if not isinstance(arr, np.ndarray):
             casted = np.array(arr, dtype=dtype, copy=False)
         else:
             casted = arr.astype(dtype, copy=False)
@@ -1578,7 +1576,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
             f"casted to the dtype {dtype}"
         ) from err
 
-    if was_ndarray and arr.dtype == dtype:
+    if isinstance(arr, np.ndarray) and arr.dtype == dtype:
         # avoid expensive array_equal check
         return casted
 
