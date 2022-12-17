@@ -192,9 +192,7 @@ def execute(sql, con, params=None):
     ----------
     sql : string
         SQL query to be executed.
-    con : SQLAlchemy connectable(engine/connection) or sqlite3 connection
-        Using SQLAlchemy makes it possible to use any DB supported by the
-        library.
+    con : SQLAlchemy connection or sqlite3 connection
         If a DBAPI2 object, only sqlite3 is supported.
     params : list or tuple, optional, default: None
         List of parameters to pass to execute method.
@@ -203,6 +201,10 @@ def execute(sql, con, params=None):
     -------
     Results Iterable
     """
+    sqlalchemy = import_optional_dependency("sqlalchemy", errors="ignore")
+
+    if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Engine)):
+        raise TypeError("pandas.io.sql.execute requires a connection")  # GH50185
     with pandasSQL_builder(con, need_transaction=True) as pandas_sql:
         args = _convert_params(sql, params)
         return pandas_sql.execute(*args)
@@ -1595,6 +1597,7 @@ class SQLDatabase(PandasSQL):
                         index_col=index_col,
                         coerce_float=coerce_float,
                         parse_dates=parse_dates,
+                        dtype=dtype,
                         use_nullable_dtypes=use_nullable_dtypes,
                     )
                 break
@@ -2160,9 +2163,12 @@ class SQLiteDatabase(PandasSQL):
             if not data:
                 cursor.close()
                 if not has_read_data:
-                    yield DataFrame.from_records(
+                    result = DataFrame.from_records(
                         [], columns=columns, coerce_float=coerce_float
                     )
+                    if dtype:
+                        result = result.astype(dtype)
+                    yield result
                 break
 
             has_read_data = True
