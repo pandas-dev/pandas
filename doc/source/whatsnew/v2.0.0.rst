@@ -931,7 +931,7 @@ ExtensionArray
 - Bug in :meth:`Series.mean` overflowing unnecessarily with nullable integers (:issue:`48378`)
 - Bug in :meth:`Series.tolist` for nullable dtypes returning numpy scalars instead of python scalars (:issue:`49890`)
 - Bug when concatenating an empty DataFrame with an ExtensionDtype to another DataFrame with the same ExtensionDtype, the resulting dtype turned into object (:issue:`48510`)
--
+- Bug in :meth:`array.PandasArray.to_numpy` raising with ``NA`` value when ``na_value`` is specified (:issue:`40638`)
 
 Styler
 ^^^^^^
