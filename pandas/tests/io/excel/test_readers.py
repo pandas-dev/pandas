@@ -600,15 +600,14 @@ class TestReaders:
         tm.assert_frame_equal(result, df)
 
     @td.skip_if_no("pyarrow")
-    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-    def test_use_nullable_dtypes_string(self, read_ext, storage):
+    def test_use_nullable_dtypes_string(self, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
         import pyarrow as pa
 
-        with pd.option_context("mode.string_storage", storage):
+        with pd.option_context("mode.string_storage", string_storage):
 
             df = DataFrame(
                 {
@@ -622,7 +621,7 @@ class TestReaders:
                     file_path, sheet_name="test", use_nullable_dtypes=True
                 )
 
-            if storage == "python":
+            if string_storage == "python":
                 expected = DataFrame(
                     {
                         "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
