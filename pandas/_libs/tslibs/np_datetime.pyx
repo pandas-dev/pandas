@@ -312,10 +312,10 @@ cpdef ndarray astype_overflowsafe(
     """
     if values.descr.type_num == dtype.type_num == cnp.NPY_DATETIME:
         # i.e. dtype.kind == "M"
-        pass
+        dtype_name = "datetime64"
     elif values.descr.type_num == dtype.type_num == cnp.NPY_TIMEDELTA:
         # i.e. dtype.kind == "m"
-        pass
+        dtype_name = "timedelta64"
     else:
         raise TypeError(
             "astype_overflowsafe values.dtype and dtype must be either "
@@ -326,14 +326,14 @@ cpdef ndarray astype_overflowsafe(
         NPY_DATETIMEUNIT from_unit = get_unit_from_dtype(values.dtype)
         NPY_DATETIMEUNIT to_unit = get_unit_from_dtype(dtype)
 
-    if (
-        from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
-        or to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
-    ):
+    if from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        raise TypeError(f"{dtype_name} values must have a unit specified")
+
+    if to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # without raising explicitly here, we end up with a SystemError
         # built-in function [...] returned a result with an error
         raise ValueError(
-            "datetime64/timedelta64 values and dtype must have a unit specified"
+            f"{dtype_name} dtype must have a unit specified"
         )
 
     if from_unit == to_unit:

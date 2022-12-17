@@ -7,7 +7,6 @@ from __future__ import annotations
 import inspect
 from typing import (
     TYPE_CHECKING,
-    cast,
     overload,
 )
 
@@ -34,34 +33,29 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
 )
-from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import (
-        DatetimeArray,
-        ExtensionArray,
-        TimedeltaArray,
-    )
+    from pandas.core.arrays import ExtensionArray
 
 
 _dtype_obj = np.dtype(object)
 
 
 @overload
-def astype_nansafe(
+def _astype_nansafe(
     arr: np.ndarray, dtype: np.dtype, copy: bool = ..., skipna: bool = ...
 ) -> np.ndarray:
     ...
 
 
 @overload
-def astype_nansafe(
+def _astype_nansafe(
     arr: np.ndarray, dtype: ExtensionDtype, copy: bool = ..., skipna: bool = ...
 ) -> ExtensionArray:
     ...
 
 
-def astype_nansafe(
+def _astype_nansafe(
     arr: np.ndarray, dtype: DtypeObj, copy: bool = True, skipna: bool = False
 ) -> ArrayLike:
     """
@@ -90,13 +84,12 @@ def astype_nansafe(
     elif not isinstance(dtype, np.dtype):  # pragma: no cover
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
-    if arr.dtype.kind in ["m", "M"] and (
-        issubclass(dtype.type, str) or dtype == _dtype_obj
-    ):
+    if arr.dtype.kind in ["m", "M"]:
         from pandas.core.construction import ensure_wrapped_if_datetimelike
 
         arr = ensure_wrapped_if_datetimelike(arr)
-        return arr.astype(dtype, copy=copy)
+        res = arr.astype(dtype, copy=copy)
+        return np.asarray(res)
 
     if issubclass(dtype.type, str):
         shape = arr.shape
@@ -105,39 +98,6 @@ def astype_nansafe(
         return lib.ensure_string_array(
             arr, skipna=skipna, convert_na_value=False
         ).reshape(shape)
-
-    elif is_datetime64_dtype(arr.dtype):
-        if dtype == np.int64:
-            if isna(arr).any():
-                raise ValueError("Cannot convert NaT values to integer")
-            return arr.view(dtype)
-
-        # allow frequency conversions
-        if dtype.kind == "M":
-            from pandas.core.construction import ensure_wrapped_if_datetimelike
-
-            dta = ensure_wrapped_if_datetimelike(arr)
-            dta = cast("DatetimeArray", dta)
-            return dta.astype(dtype, copy=copy)._ndarray
-
-        raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
-
-    elif is_timedelta64_dtype(arr.dtype):
-        if dtype == np.int64:
-            if isna(arr).any():
-                raise ValueError("Cannot convert NaT values to integer")
-            return arr.view(dtype)
-
-        elif dtype.kind == "m":
-            # give the requested dtype for supported units (s, ms, us, ns)
-            #  and doing the old convert-to-float behavior otherwise.
-            from pandas.core.construction import ensure_wrapped_if_datetimelike
-
-            tda = ensure_wrapped_if_datetimelike(arr)
-            tda = cast("TimedeltaArray", tda)
-            return tda.astype(dtype, copy=copy)._ndarray
-
-        raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 
     elif np.issubdtype(arr.dtype, np.floating) and is_integer_dtype(dtype):
         return _astype_float_to_int_nansafe(arr, dtype, copy)
@@ -231,7 +191,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
         values = values.astype(dtype, copy=copy)
 
     else:
-        values = astype_nansafe(values, dtype, copy=copy)
+        values = _astype_nansafe(values, dtype, copy=copy)
 
     # in pandas we don't store numpy str dtypes, so convert to object
     if isinstance(dtype, np.dtype) and issubclass(values.dtype.type, str):
@@ -288,7 +248,7 @@ def astype_array_safe(
     try:
         new_values = astype_array(values, dtype, copy=copy)
     except (ValueError, TypeError):
-        # e.g. astype_nansafe can fail on object-dtype of strings
+        # e.g. _astype_nansafe can fail on object-dtype of strings
         #  trying to convert to float
         if errors == "ignore":
             new_values = values
