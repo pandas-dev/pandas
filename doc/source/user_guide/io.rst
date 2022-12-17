@@ -1254,6 +1254,8 @@ The bad line will be a list of strings that was split by the ``sep``:
 
     .. versionadded:: 1.4.0
 
+Note that the callable function will handle only a line with too many fields.
+Bad lines caused by other errors will be silently skipped.
 
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
