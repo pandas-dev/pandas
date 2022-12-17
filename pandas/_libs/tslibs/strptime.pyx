@@ -129,7 +129,6 @@ def array_strptime(
             "%V" not in fmt
             or not (
                 "%A" in fmt
-                or "%A" in fmt
                 or "%a" in fmt
                 or "%w" in fmt
                 or "%u" in fmt
@@ -138,7 +137,7 @@ def array_strptime(
             raise ValueError("ISO year directive '%G' must be used with "
                              "the ISO week directive '%V' and a weekday "
                              "directive '%A', '%a', '%w', or '%u'.")
-        elif ("%V" in fmt and "%Y" in fmt):
+        elif "%V" in fmt and "%Y" in fmt:
             raise ValueError("ISO week directive '%V' is incompatible with "
                              "the year directive '%Y'. Use the ISO year "
                              "'%G' instead.")
@@ -146,7 +145,6 @@ def array_strptime(
             "%G" not in fmt
             or not (
                 "%A" in fmt
-                or "%A" in fmt
                 or "%a" in fmt
                 or "%w" in fmt
                 or "%u" in fmt
