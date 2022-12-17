@@ -1669,11 +1669,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             #  Should never have length > 2.  Caller is responsible for checking.
             #  Length 1 is reached vis setitem_single_block and setitem_single_column
             #  each of which pass indexer=(pi,)
-            if len(indexer) == 1:
-                # GH50085 1D-only non-ndarray may not expect a tuple (e.g. pyarrow)
-                indexer = indexer[0]
-
-            elif len(indexer) == 2:
+            if len(indexer) == 2:
 
                 if all(isinstance(x, np.ndarray) and x.ndim == 2 for x in indexer):
                     # GH#44703 went through indexing.maybe_convert_ix

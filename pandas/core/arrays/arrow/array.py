@@ -896,10 +896,14 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         None
         """
+        # GH50085: unwrap 1D indexers
+        if isinstance(key, tuple) and len(key) == 1:
+            key = key[0]
+
         key = check_array_indexer(self, key)
-        indices = self._indexing_key_to_indices(key)
         value = self._maybe_convert_setitem_value(value)
 
+        indices = self._indexing_key_to_indices(key)
         argsort = np.argsort(indices)
         indices = indices[argsort]
 
