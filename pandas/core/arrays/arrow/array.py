@@ -875,7 +875,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return self.dtype.na_value
         return result.as_py()
 
-    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
+    def __setitem__(self, key, value) -> None:
         """Set one or more values inplace.
 
         Parameters
