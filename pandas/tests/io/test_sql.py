@@ -2277,52 +2277,50 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # TODO(GH#36893) fill this in when we add more engines
 
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
-    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-    def test_read_sql_nullable_dtypes(self, storage, func):
+    def test_read_sql_nullable_dtypes(self, string_storage, func):
         # GH#50048
         table = "test"
         df = self.nullable_data()
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
-        with pd.option_context("mode.string_storage", storage):
+        with pd.option_context("mode.string_storage", string_storage):
             result = getattr(pd, func)(
                 f"Select * from {table}", self.conn, use_nullable_dtypes=True
             )
-        expected = self.nullable_expected(storage)
+        expected = self.nullable_expected(string_storage)
         tm.assert_frame_equal(result, expected)
 
-        with pd.option_context("mode.string_storage", storage):
+        with pd.option_context("mode.string_storage", string_storage):
             iterator = getattr(pd, func)(
                 f"Select * from {table}",
                 self.conn,
                 use_nullable_dtypes=True,
                 chunksize=3,
             )
-            expected = self.nullable_expected(storage)
+            expected = self.nullable_expected(string_storage)
             for result in iterator:
                 tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
-    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-    def test_read_sql_nullable_dtypes_table(self, storage, func):
+    def test_read_sql_nullable_dtypes_table(self, string_storage, func):
         # GH#50048
         table = "test"
         df = self.nullable_data()
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
-        with pd.option_context("mode.string_storage", storage):
+        with pd.option_context("mode.string_storage", string_storage):
             result = getattr(pd, func)(table, self.conn, use_nullable_dtypes=True)
-        expected = self.nullable_expected(storage)
+        expected = self.nullable_expected(string_storage)
         tm.assert_frame_equal(result, expected)
 
-        with pd.option_context("mode.string_storage", storage):
+        with pd.option_context("mode.string_storage", string_storage):
             iterator = getattr(pd, func)(
                 table,
                 self.conn,
                 use_nullable_dtypes=True,
                 chunksize=3,
             )
-            expected = self.nullable_expected(storage)
+            expected = self.nullable_expected(string_storage)
             for result in iterator:
                 tm.assert_frame_equal(result, expected)
 
@@ -2365,6 +2363,21 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 "h": string_array_na,
             }
         )
+
+    def test_chunksize_empty_dtypes(self):
+        # GH#50245
+        dtypes = {"a": "int64", "b": "object"}
+        df = DataFrame(columns=["a", "b"]).astype(dtypes)
+        expected = df.copy()
+        df.to_sql("test", self.conn, index=False, if_exists="replace")
+
+        for result in read_sql_query(
+            "SELECT * FROM test",
+            self.conn,
+            dtype=dtypes,
+            chunksize=1,
+        ):
+            tm.assert_frame_equal(result, expected)
 
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
@@ -2453,8 +2466,7 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         return super().nullable_expected(storage).astype({"e": "Int64", "f": "Int64"})
 
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
-    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-    def test_read_sql_nullable_dtypes_table(self, storage, func):
+    def test_read_sql_nullable_dtypes_table(self, string_storage, func):
         # GH#50048 Not supported for sqlite
         pass
 

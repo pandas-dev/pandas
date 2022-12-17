@@ -44,7 +44,7 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 Additionally a new global configuration, ``mode.nullable_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
 to select the nullable dtypes implementation.
 
-* :func:`read_csv` (with ``engine="pyarrow"``)
+* :func:`read_csv` (with ``engine="pyarrow"`` or ``engine="python"``)
 * :func:`read_excel`
 * :func:`read_parquet`
 * :func:`read_orc`
@@ -738,6 +738,7 @@ Performance improvements
 - Performance improvement in :meth:`MultiIndex.isin` when ``level=None`` (:issue:`48622`, :issue:`49577`)
 - Performance improvement in :meth:`MultiIndex.putmask` (:issue:`49830`)
 - Performance improvement in :meth:`Index.union` and :meth:`MultiIndex.union` when index contains duplicates (:issue:`48900`)
+- Performance improvement in :meth:`Series.rank` for pyarrow-backed dtypes (:issue:`50264`)
 - Performance improvement in :meth:`Series.fillna` for extension array dtypes (:issue:`49722`, :issue:`50078`)
 - Performance improvement for :meth:`Series.value_counts` with nullable dtype (:issue:`48338`)
 - Performance improvement for :class:`Series` constructor passing integer numpy array with nullable dtype (:issue:`48338`)
@@ -750,6 +751,8 @@ Performance improvements
 - Reduce memory usage of :meth:`DataFrame.to_pickle`/:meth:`Series.to_pickle` when using BZ2 or LZMA (:issue:`49068`)
 - Performance improvement for :class:`~arrays.StringArray` constructor passing a numpy array with type ``np.str_`` (:issue:`49109`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.factorize` (:issue:`49177`)
+- Performance improvement in :meth:`~arrays.ArrowExtensionArray.__setitem__` when key is a null slice (:issue:`50248`)
+- Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`49973`)
 - Performance improvement in :meth:`DataFrame.join` when joining on a subset of a :class:`MultiIndex` (:issue:`48611`)
 - Performance improvement for :meth:`MultiIndex.intersection` (:issue:`48604`)
 - Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
@@ -785,6 +788,7 @@ Datetimelike
 - Bug in ``pandas.tseries.holiday.Holiday`` where a half-open date interval causes inconsistent return types from :meth:`USFederalHolidayCalendar.holidays` (:issue:`49075`)
 - Bug in rendering :class:`DatetimeIndex` and :class:`Series` and :class:`DataFrame` with timezone-aware dtypes with ``dateutil`` or ``zoneinfo`` timezones near daylight-savings transitions (:issue:`49684`)
 - Bug in :func:`to_datetime` was raising ``ValueError`` when parsing :class:`Timestamp`, ``datetime.datetime``, ``datetime.date``, or ``np.datetime64`` objects when non-ISO8601 ``format`` was passed (:issue:`49298`, :issue:`50036`)
+- Bug in :func:`to_datetime` was raising ``ValueError`` when parsing empty string and non-ISO8601 format was passed. Now, empty strings will be parsed as :class:`NaT`, for compatibility with how is done for ISO8601 formats (:issue:`50251`)
 - Bug in :class:`Timestamp` was showing ``UserWarning``, which was not actionable by users, when parsing non-ISO8601 delimited date strings (:issue:`50232`)
 -
 
@@ -831,6 +835,7 @@ Interval
 
 Indexing
 ^^^^^^^^
+- Bug in :meth:`DataFrame.__setitem__` raising when indexer is a :class:`DataFrame` with ``boolean`` dtype (:issue:`47125`)
 - Bug in :meth:`DataFrame.reindex` filling with wrong values when indexing columns and index for ``uint`` dtypes (:issue:`48184`)
 - Bug in :meth:`DataFrame.loc` coercing dtypes when setting values with a list indexer (:issue:`49159`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` with ``bool`` indexer and :class:`MultiIndex` (:issue:`47687`)
@@ -870,6 +875,7 @@ I/O
 - Bug in :func:`read_sas` caused fragmentation of :class:`DataFrame` and raised :class:`.errors.PerformanceWarning` (:issue:`48595`)
 - Improved error message in :func:`read_excel` by including the offending sheet name when an exception is raised while reading a file (:issue:`48706`)
 - Bug when a pickling a subset PyArrow-backed data that would serialize the entire data instead of the subset (:issue:`42600`)
+- Bug in :func:`read_sql_query` ignoring ``dtype`` argument when ``chunksize`` is specified and result is empty (:issue:`50245`)
 - Bug in :func:`read_csv` for a single-line csv with fewer columns than ``names`` raised :class:`.errors.ParserError` with ``engine="c"`` (:issue:`47566`)
 - Bug in displaying ``string`` dtypes not showing storage option (:issue:`50099`)
 - Bug in :func:`DataFrame.to_string` with ``header=False`` that printed the index name on the same line as the first row of the data (:issue:`49230`)
@@ -906,6 +912,7 @@ Reshaping
 ^^^^^^^^^
 - Bug in :meth:`DataFrame.pivot_table` raising ``TypeError`` for nullable dtype and ``margins=True`` (:issue:`48681`)
 - Bug in :meth:`DataFrame.unstack` and :meth:`Series.unstack` unstacking wrong level of :class:`MultiIndex` when :class:`MultiIndex` has mixed names (:issue:`48763`)
+- Bug in :meth:`DataFrame.melt` losing extension array dtype (:issue:`41570`)
 - Bug in :meth:`DataFrame.pivot` not respecting ``None`` as column name (:issue:`48293`)
 - Bug in :func:`join` when ``left_on`` or ``right_on`` is or includes a :class:`CategoricalIndex` incorrectly raising ``AttributeError`` (:issue:`48464`)
 - Bug in :meth:`DataFrame.pivot_table` raising ``ValueError`` with parameter ``margins=True`` when result is an empty :class:`DataFrame` (:issue:`49240`)
