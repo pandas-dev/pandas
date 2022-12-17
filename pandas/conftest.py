@@ -66,11 +66,11 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.strings.accessor import StringMethods
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+from pandas.core.strings.accessor import StringMethods
 
 try:
     import pyarrow as pa
@@ -1950,15 +1950,15 @@ _any_string_method = [
     ("fullmatch", ("a",), {}),
     ("normalize", ("NFC",), {}),
     ("pad", (10,), {}),
-    # ("partition", (" ",), {"expand": False}),
-    # ("partition", (" ",), {"expand": True}),
+    ("partition", (" ",), {"expand": False}),
+    ("partition", (" ",), {"expand": True}),
     ("repeat", (3,), {}),
     ("replace", ("a", "z"), {}),
     ("rfind", ("a",), {}),
     ("rindex", ("",), {}),
     ("rjust", (10,), {}),
-    # ("rpartition", (" ",), {"expand": False}),
-    # ("rpartition", (" ",), {"expand": True}),
+    ("rpartition", (" ",), {"expand": False}),
+    ("rpartition", (" ",), {"expand": True}),
     ("slice", (0, 1), {}),
     ("slice_replace", (0, 1, "z"), {}),
     ("split", (" ",), {"expand": False}),
@@ -1966,8 +1966,8 @@ _any_string_method = [
     ("startswith", ("a",), {}),
     ("startswith", ("a",), {"na": True}),
     ("startswith", ("a",), {"na": False}),
-    # ("removeprefix", ("a",), {}),
-    # ("removesuffix", ("a",), {}),
+    ("removeprefix", ("a",), {}),
+    ("removesuffix", ("a",), {}),
     # translating unicode points of "a" to "d"
     ("translate", ({97: 100},), {}),
     ("wrap", (2,), {}),
@@ -1991,11 +1991,11 @@ _any_string_method = [
             "len",
             "lower",
             "lstrip",
-            # "partition",
-            # "rpartition",
+            "partition",
+            "rpartition",
             "rsplit",
             "rstrip",
-            # "slice",
+            "slice",
             "slice_replace",
             "split",
             "strip",
@@ -2009,12 +2009,10 @@ _any_string_method = [
     )
 )
 ids, _, _ = zip(*_any_string_method)  # use method name as fixture-id
-missing_methods = {
-    f for f in dir(StringMethods) if not f.startswith("_")
-} - set(ids)
+missing_methods = {f for f in dir(StringMethods) if not f.startswith("_")} - set(ids)
 
 # test that the above list captures all methods of StringMethods
-#assert not missing_methods
+assert not missing_methods
 
 
 @pytest.fixture(params=_any_string_method, ids=ids)

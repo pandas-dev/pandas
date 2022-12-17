@@ -175,11 +175,14 @@ class StringMethods(NoNewAttributesMixin):
     # * extractall
 
     def __init__(self, data) -> None:
+        from pandas.core.arrays.arrow.dtype import ArrowDtype
         from pandas.core.arrays.string_ import StringDtype
 
         self._inferred_dtype = self._validate(data)
         self._is_categorical = is_categorical_dtype(data.dtype)
-        self._is_string = isinstance(data.dtype, StringDtype)
+        self._is_string = isinstance(data.dtype, StringDtype) or (
+            isinstance(data.dtype, ArrowDtype) and data.dtype.kind == "U"
+        )
         self._data = data
 
         self._index = self._name = None
@@ -286,7 +289,7 @@ class StringMethods(NoNewAttributesMixin):
                 # propagate nan values to match longest sequence (GH 18450)
                 max_len = max(len(x) for x in result)
                 result = [
-                    x * max_len if len(x) == 0 or x[0] is np.nan else x for x in result
+                    x * max_len if len(x) == 0 or isna(x[0]) else x for x in result
                 ]
 
         if not isinstance(expand, bool):
@@ -3265,8 +3268,8 @@ def _result_dtype(arr):
     # workaround #27953
     # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
     # when the list of values is empty.
-    from pandas.core.arrays.string_ import StringDtype
     from pandas.core.arrays.arrow import ArrowDtype
+    from pandas.core.arrays.string_ import StringDtype
 
     if isinstance(arr.dtype, (ArrowDtype, StringDtype)):
         return arr.dtype

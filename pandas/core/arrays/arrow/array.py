@@ -1342,9 +1342,27 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
         else:
             return super()._str_join(sep)
 
+    def _str_partition(self, sep: str, expand: bool):
+        result = super()._str_partition(sep, expand)
+        if expand:
+            # StringMethods._wrap_result needs numpy-like nested object
+            result = result.to_numpy(dtype=object)
+        return result
+
+    def _str_rpartition(self, sep: str, expand: bool):
+        result = super()._str_rpartition(sep, expand)
+        if expand:
+            # StringMethods._wrap_result needs numpy-like nested object
+            result = result.to_numpy(dtype=object)
+        return result
+
     def _str_slice(
         self, start: int | None = None, stop: int | None = None, step: int | None = None
     ):
+        if stop is None:
+            # TODO: TODO: Should work once https://github.com/apache/arrow/issues/14991
+            #  is fixed
+            return super()._str_slice(start, stop, step)
         if start is None:
             start = 0
         if step is None:
@@ -1356,8 +1374,14 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
     def _str_slice_replace(
         self, start: int | None = None, stop: int | None = None, repl: str | None = None
     ):
+        if stop is None:
+            # Not implemented as of pyarrow=10
+            fallback_performancewarning()
+            return super()._str_slice_replace(start, stop, repl)
         if repl is None:
             repl = ""
+        if start is None:
+            start = 0
         return type(self)(pc.utf8_replace_slice(self._data, start, stop, repl))
 
     def _str_isalnum(self):
@@ -1426,14 +1450,15 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
             result = pc.utf8_rtrim(self._data, characters=to_strip)
         return type(self)(result)
 
-    def _str_removeprefix(self, prefix: str) -> Series:
-        starts_with = pc.starts_with(self._data, prefix)
-        removed = pc.utf8_slice_codeunits(self._data, len(prefix))
-        result = pc.replace_with_mask(self._data, starts_with, removed)
-        return type(self)(result)
+    # TODO: Should work once https://github.com/apache/arrow/issues/14991 is fixed
+    # def _str_removeprefix(self, prefix: str) -> Series:
+    #     starts_with = pc.starts_with(self._data, prefix)
+    #     removed = pc.utf8_slice_codeunits(self._data, len(prefix))
+    #     result = pc.if_else(starts_with, removed, self._data)
+    #     return type(self)(result)
 
     def _str_removesuffix(self, suffix: str) -> Series:
         ends_with = pc.ends_with(self._data, suffix)
         removed = pc.utf8_slice_codeunits(self._data, 0, stop=-len(suffix))
-        result = pc.replace_with_mask(self._data, ends_with, removed)
+        result = pc.if_else(ends_with, removed, self._data)
         return type(self)(result)
