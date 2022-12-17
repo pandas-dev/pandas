@@ -609,6 +609,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if other is libmissing.NA:
                 # GH#45421 don't alter inplace
                 mask = mask | True
+            elif is_list_like(other) and len(other) == len(mask):
+                mask = mask | isna(other)
         else:
             mask = self._mask | mask
         return mask
