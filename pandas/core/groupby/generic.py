@@ -1884,12 +1884,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         numeric_only_default="False",
     )
     def idxmin(
-        self,
-        axis: Axis = 0,
-        skipna: bool = True,
-        numeric_only: bool = False,
+        self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False, **kwargs
     ) -> DataFrame:
-        axis = DataFrame._get_axis_number(axis)
+        axis = kwargs.setdefault("axis", self.axis)
 
         def func(df):
             res = df._reduce(
