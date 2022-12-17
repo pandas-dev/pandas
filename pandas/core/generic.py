@@ -724,7 +724,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        renamed : %(klass)s
+        %(klass)s
             An object of type %(klass)s.
 
         See Also
@@ -763,7 +763,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        y : same as input
+        same as input
         """
         i = self._get_axis_number(axis1)
         j = self._get_axis_number(axis2)
@@ -3712,7 +3712,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        taken : same type as caller
+        same type as caller
             An array-like containing the elements taken from the object.
 
         See Also
@@ -4164,7 +4164,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        value : same type as items contained in object
+        same type as items contained in object
 
         Examples
         --------
@@ -5730,7 +5730,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        object : the return type of ``func``.
+        the return type of ``func``.
 
         See Also
         --------
@@ -6024,7 +6024,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        casted : same type as caller
+        same type as caller
 
         See Also
         --------
@@ -6210,7 +6210,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        copy : Series or DataFrame
+        Series or DataFrame
             Object type matches caller.
 
         Notes
@@ -6333,7 +6333,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        converted : same type as input object
+        same type as input object
 
         See Also
         --------
@@ -6433,6 +6433,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         In the future, as new dtypes are added that support ``pd.NA``, the results
         of this method will change to support those new dtypes.
 
+        .. versionadded:: 2.0
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.nullable_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.nullable_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -6473,12 +6480,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  3  z   <NA>  <NA>    20  200.0
 
         >>> dfn.dtypes
-        a      Int32
-        b     string
-        c    boolean
-        d     string
-        e      Int64
-        f    Float64
+        a             Int32
+        b    string[python]
+        c           boolean
+        d    string[python]
+        e             Int64
+        f           Float64
         dtype: object
 
         Start with a Series of strings and missing data represented by ``np.nan``.
@@ -10630,7 +10637,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        chg : Series or DataFrame
+        Series or DataFrame
             The same type as the calling object.
 
         See Also
@@ -10828,7 +10835,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def block_accum_func(blk_values):
             values = blk_values.T if hasattr(blk_values, "T") else blk_values
 
-            result = nanops.na_accum_func(values, func, skipna=skipna)
+            result: np.ndarray | ExtensionArray
+            if isinstance(values, ExtensionArray):
+                result = values._accumulate(name, skipna=skipna, **kwargs)
+            else:
+                result = nanops.na_accum_func(values, func, skipna=skipna)
 
             result = result.T if hasattr(result, "T") else result
             return result
@@ -11645,7 +11656,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        scalar : type of index
+        type of index
 
         Notes
         -----

@@ -7476,7 +7476,7 @@ class DataFrame(NDFrame, OpsMixin):
         return self._construct_result(new_data)
 
     def _arith_method(self, other, op):
-        if ops.should_reindex_frame_op(self, other, op, 1, 1, None, None):
+        if ops.should_reindex_frame_op(self, other, op, 1, None, None):
             return ops.frame_arith_method_with_reindex(self, other, op)
 
         axis: Literal[1] = 1  # only relevant for Series other case
@@ -8041,7 +8041,8 @@ Keep all original rows and columns and also all original values
 
         Returns
         -------
-        None : method directly changes calling object
+        None
+            This method directly changes calling object.
 
         Raises
         ------

@@ -1123,6 +1123,17 @@ def all_logical_operators(request):
     return request.param
 
 
+_all_numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
+
+
+@pytest.fixture(params=_all_numeric_accumulations)
+def all_numeric_accumulations(request):
+    """
+    Fixture for numeric accumulation names
+    """
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Data sets/files
 # ----------------------------------------------------------------
