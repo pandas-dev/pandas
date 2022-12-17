@@ -29,7 +29,7 @@ jobs:
       matrix:
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
         pattern: ["not single_cpu", "single_cpu"]
-        pyarrow_version: ["7", "8", "9"]
+        pyarrow_version: ["7", "8", "9", "10"]
         include:
           - name: "Downstream Compat"
             env_file: actions-38-downstream_compat.yaml

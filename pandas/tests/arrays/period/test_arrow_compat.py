@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.compat.pyarrow import pa_version_under10p0
+
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
@@ -52,8 +54,12 @@ def test_arrow_array(data, freq):
     with pytest.raises(TypeError, match=msg):
         pa.array(periods, type="float64")
 
-    with pytest.raises(TypeError, match="different 'freq'"):
-        pa.array(periods, type=ArrowPeriodType("T"))
+    if pa_version_under10p0:
+        with pytest.raises(TypeError, match="different 'freq'"):
+            pa.array(periods, type=ArrowPeriodType("T"))
+    else:
+        result = pa.array(periods, type=ArrowPeriodType("T"))
+        assert result.equals(expected)
 
 
 def test_arrow_array_missing():
