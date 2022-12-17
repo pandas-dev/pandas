@@ -16,12 +16,10 @@ from pandas import (
     HDFStore,
     Index,
     MultiIndex,
-    RangeIndex,
     Series,
     _testing as tm,
     concat,
 )
-from pandas.core.api import Int64Index
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
@@ -248,9 +246,7 @@ def test_column_multiindex(setup_path):
         [("A", "a"), ("A", "b"), ("B", "a"), ("B", "b")], names=["first", "second"]
     )
     df = DataFrame(np.arange(12).reshape(3, 4), columns=index)
-    expected = df.copy()
-    if isinstance(expected.index, RangeIndex):
-        expected.index = Int64Index(expected.index)
+    expected = df.set_axis(df.index.to_numpy())
 
     with ensure_clean_store(setup_path) as store:
 
@@ -280,9 +276,7 @@ def test_column_multiindex(setup_path):
 
     # non_index_axes name
     df = DataFrame(np.arange(12).reshape(3, 4), columns=Index(list("ABCD"), name="foo"))
-    expected = df.copy()
-    if isinstance(expected.index, RangeIndex):
-        expected.index = Int64Index(expected.index)
+    expected = df.set_axis(df.index.to_numpy())
 
     with ensure_clean_store(setup_path) as store:
 

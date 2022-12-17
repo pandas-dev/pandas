@@ -15,7 +15,7 @@ import weakref
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     algos as libalgos,
@@ -441,10 +441,10 @@ class BaseBlockManager(DataManager):
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
-    def convert(self: T) -> T:
+    def convert(self: T, copy: bool) -> T:
         return self.apply(
             "convert",
-            copy=True,
+            copy=copy,
         )
 
     def replace(self: T, to_replace, value, inplace: bool) -> T:
@@ -1335,7 +1335,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._clear_reference_block(blkno)
         return
 
-    def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value) -> None:
+    def column_setitem(
+        self, loc: int, idx: int | slice | np.ndarray, value, inplace: bool = False
+    ) -> None:
         """
         Set values ("setitem") into a single column (not setting the full column).
 
@@ -1353,8 +1355,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # this manager is only created temporarily to mutate the values in place
         # so don't track references, otherwise the `setitem` would perform CoW again
         col_mgr = self.iget(loc, track_ref=False)
-        new_mgr = col_mgr.setitem((idx,), value)
-        self.iset(loc, new_mgr._block.values, inplace=True)
+        if inplace:
+            col_mgr.setitem_inplace(idx, value)
+        else:
+            new_mgr = col_mgr.setitem((idx,), value)
+            self.iset(loc, new_mgr._block.values, inplace=True)
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
@@ -2349,5 +2354,8 @@ def _preprocess_slice_or_indexer(
         return "fancy", indexer, len(indexer)
 
 
+_mode_options = _global_config["mode"]
+
+
 def _using_copy_on_write():
-    return get_option("mode.copy_on_write")
+    return _mode_options["copy_on_write"]

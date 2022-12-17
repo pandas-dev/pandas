@@ -132,6 +132,8 @@ time.
 
 .. ipython:: python
 
+   import datetime
+
    pd.Timestamp(datetime.datetime(2012, 5, 1))
    pd.Timestamp("2012-05-01")
    pd.Timestamp(2012, 5, 1)
@@ -196,26 +198,25 @@ is converted to a ``DatetimeIndex``:
 
 .. ipython:: python
 
-    pd.to_datetime(pd.Series(["Jul 31, 2009", "2010-01-10", None]))
+    pd.to_datetime(pd.Series(["Jul 31, 2009", "Jan 10, 2010", None]))
 
-    pd.to_datetime(["2005/11/23", "2010.12.31"])
+    pd.to_datetime(["2005/11/23", "2010/12/31"])
 
 If you use dates which start with the day first (i.e. European style),
 you can pass the ``dayfirst`` flag:
 
 .. ipython:: python
-   :okwarning:
+    :okwarning:
 
     pd.to_datetime(["04-01-2012 10:00"], dayfirst=True)
 
-    pd.to_datetime(["14-01-2012", "01-14-2012"], dayfirst=True)
+    pd.to_datetime(["04-14-2012 10:00"], dayfirst=True)
 
 .. warning::
 
    You see in the above example that ``dayfirst`` isn't strict. If a date
    can't be parsed with the day being first it will be parsed as if
-   ``dayfirst`` were False, and in the case of parsing delimited date strings
-   (e.g. ``31-12-2012``) then a warning will also be raised.
+   ``dayfirst`` were ``False`` and a warning will also be raised.
 
 If you pass a single string to ``to_datetime``, it returns a single ``Timestamp``.
 ``Timestamp`` can also accept string input, but it doesn't accept string parsing

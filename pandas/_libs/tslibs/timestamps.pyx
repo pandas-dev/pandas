@@ -6,8 +6,8 @@ construction requirements, we need to do object instantiation in python
 (see Timestamp class below). This will serve as a C extension type that
 shadows the python class, where we do any heavy lifting.
 """
-import warnings
 
+import warnings
 cimport cython
 
 import numpy as np
@@ -111,7 +111,7 @@ from pandas._libs.tslibs.timezones cimport (
     is_utc,
     maybe_get_tz,
     treat_tz_as_pytz,
-    utc_pytz as UTC,
+    utc_stdlib as UTC,
 )
 from pandas._libs.tslibs.tzconversion cimport (
     tz_convert_from_utc_single,
@@ -126,7 +126,7 @@ _no_input = object()
 # ----------------------------------------------------------------------
 
 
-cdef inline _Timestamp create_timestamp_from_ts(
+cdef _Timestamp create_timestamp_from_ts(
     int64_t value,
     npy_datetimestruct dts,
     tzinfo tz,
@@ -361,7 +361,7 @@ cdef class _Timestamp(ABCTimestamp):
         return self._compare_mismatched_resos(ots, op)
 
     # TODO: copied from Timedelta; try to de-duplicate
-    cdef inline bint _compare_mismatched_resos(self, _Timestamp other, int op):
+    cdef bint _compare_mismatched_resos(self, _Timestamp other, int op):
         # Can't just dispatch to numpy as they silently overflow and get it wrong
         cdef:
             npy_datetimestruct dts_self
@@ -1944,8 +1944,11 @@ default 'raise'
         >>> pd.NaT.tz_localize()
         NaT
         """
-        if ambiguous == "infer":
-            raise ValueError("Cannot infer offset with only one time.")
+        if not isinstance(ambiguous, bool) and ambiguous not in {"NaT", "raise"}:
+            raise ValueError(
+                        "'ambiguous' parameter must be one of: "
+                        "True, False, 'NaT', 'raise' (default)"
+                    )
 
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not PyDelta_Check(nonexistent):
@@ -2224,7 +2227,7 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 
 
 @cython.cdivision(False)
-cdef inline int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) nogil:
+cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) nogil:
     """
     Round the localized nanosecond timestamp down to the previous midnight.
 

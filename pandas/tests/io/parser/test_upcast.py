@@ -89,17 +89,16 @@ def test_maybe_upcaste_all_nan():
 
 
 @td.skip_if_no("pyarrow")
-@pytest.mark.parametrize("storage", ["pyarrow", "python"])
 @pytest.mark.parametrize("val", [na_values[np.object_], "c"])
-def test_maybe_upcast_object(val, storage):
+def test_maybe_upcast_object(val, string_storage):
     # GH#36712
     import pyarrow as pa
 
-    with pd.option_context("mode.string_storage", storage):
+    with pd.option_context("mode.string_storage", string_storage):
         arr = np.array(["a", "b", val], dtype=np.object_)
         result = _maybe_upcast(arr, use_nullable_dtypes=True)
 
-        if storage == "python":
+        if string_storage == "python":
             exp_val = "c" if val == "c" else NA
             expected = StringArray(np.array(["a", "b", exp_val], dtype=np.object_))
         else:

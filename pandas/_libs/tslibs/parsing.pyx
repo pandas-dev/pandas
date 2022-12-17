@@ -12,7 +12,6 @@ from cpython.datetime cimport (
     datetime,
     datetime_new,
     import_datetime,
-    tzinfo,
 )
 from cpython.object cimport PyObject_Str
 from cython cimport Py_ssize_t
@@ -44,7 +43,6 @@ from dateutil.relativedelta import relativedelta
 from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
     tzoffset,
-    tzstr as _dateutil_tzstr,
     tzutc as _dateutil_tzutc,
 )
 
@@ -87,12 +85,6 @@ class DateParseError(ValueError):
 _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
                                               second=0, microsecond=0)
 
-PARSING_WARNING_MSG = (
-    "Parsing dates in {format} format when dayfirst={dayfirst} was specified. "
-    "This may lead to inconsistently parsed dates! Specify a format "
-    "to ensure consistent parsing."
-)
-
 cdef:
     set _not_datelike_strings = {"a", "A", "m", "M", "p", "P", "t", "T"}
 
@@ -102,24 +94,24 @@ cdef:
     int MAX_DAYS_IN_MONTH = 31, MAX_MONTH = 12
 
 
-cdef inline bint _is_delimiter(const char ch):
+cdef bint _is_delimiter(const char ch):
     return strchr(delimiters, ch) != NULL
 
 
-cdef inline int _parse_1digit(const char* s):
+cdef int _parse_1digit(const char* s):
     cdef int result = 0
     result += getdigit_ascii(s[0], -10) * 1
     return result
 
 
-cdef inline int _parse_2digit(const char* s):
+cdef int _parse_2digit(const char* s):
     cdef int result = 0
     result += getdigit_ascii(s[0], -10) * 10
     result += getdigit_ascii(s[1], -100) * 1
     return result
 
 
-cdef inline int _parse_4digit(const char* s):
+cdef int _parse_4digit(const char* s):
     cdef int result = 0
     result += getdigit_ascii(s[0], -10) * 1000
     result += getdigit_ascii(s[1], -100) * 100
@@ -128,7 +120,7 @@ cdef inline int _parse_4digit(const char* s):
     return result
 
 
-cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
+cdef object _parse_delimited_date(str date_string, bint dayfirst):
     """
     Parse special cases of dates: MM/DD/YYYY, DD/MM/YYYY, MM/YYYY.
 
@@ -205,28 +197,10 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
         # date_string can't be converted to date, above format
         return None, None
 
-    swapped_day_and_month = False
     if 1 <= month <= MAX_DAYS_IN_MONTH and 1 <= day <= MAX_DAYS_IN_MONTH \
             and (month <= MAX_MONTH or day <= MAX_MONTH):
         if (month > MAX_MONTH or (day <= MAX_MONTH and dayfirst)) and can_swap:
             day, month = month, day
-            swapped_day_and_month = True
-        if dayfirst and not swapped_day_and_month:
-            warnings.warn(
-                PARSING_WARNING_MSG.format(
-                    format="MM/DD/YYYY",
-                    dayfirst="True",
-                ),
-                stacklevel=find_stack_level(),
-            )
-        elif not dayfirst and swapped_day_and_month:
-            warnings.warn(
-                PARSING_WARNING_MSG.format(
-                    format="DD/MM/YYYY",
-                    dayfirst="False (the default)",
-                ),
-                stacklevel=find_stack_level(),
-            )
         # In Python <= 3.6.0 there is no range checking for invalid dates
         # in C api, thus we call faster C version for 3.6.1 or newer
         return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
@@ -234,7 +208,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
     raise DateParseError(f"Invalid date specified ({month}/{day})")
 
 
-cdef inline bint does_string_look_like_time(str parse_string):
+cdef bint does_string_look_like_time(str parse_string):
     """
     Checks whether given string is a time: it has to start either from
     H:MM or from HH:MM, and hour and minute values must be valid.
@@ -444,7 +418,7 @@ cdef parse_datetime_string_with_reso(
     try:
         parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
                                       dayfirst=dayfirst, yearfirst=yearfirst,
-                                      ignoretz=False, tzinfos=None)
+                                      ignoretz=False)
     except (ValueError, OverflowError) as err:
         # TODO: allow raise of errors within instead
         raise DateParseError(err)
@@ -500,8 +474,8 @@ cpdef bint _does_string_look_like_datetime(str py_string):
     return True
 
 
-cdef inline object _parse_dateabbr_string(object date_string, datetime default,
-                                          str freq=None):
+cdef object _parse_dateabbr_string(object date_string, datetime default,
+                                   str freq=None):
     cdef:
         object ret
         # year initialized to prevent compiler warnings
@@ -636,7 +610,6 @@ cdef dateutil_parse(
     str timestr,
     object default,
     bint ignoretz=False,
-    object tzinfos=None,
     bint dayfirst=False,
     bint yearfirst=False,
 ):
@@ -645,7 +618,7 @@ cdef dateutil_parse(
     cdef:
         str attr
         datetime ret
-        object res, tzdata
+        object res
         object reso = None
         dict repl = {}
 
@@ -674,24 +647,7 @@ cdef dateutil_parse(
     if res.weekday is not None and not res.day:
         ret = ret + relativedelta.relativedelta(weekday=res.weekday)
     if not ignoretz:
-        if callable(tzinfos) or tzinfos and res.tzname in tzinfos:
-            # Note: as of 1.0 this is not reached because
-            #  we never pass tzinfos, see GH#22234
-            if callable(tzinfos):
-                tzdata = tzinfos(res.tzname, res.tzoffset)
-            else:
-                tzdata = tzinfos.get(res.tzname)
-            if isinstance(tzdata, tzinfo):
-                new_tzinfo = tzdata
-            elif isinstance(tzdata, str):
-                new_tzinfo = _dateutil_tzstr(tzdata)
-            elif isinstance(tzdata, int):
-                new_tzinfo = tzoffset(res.tzname, tzdata)
-            else:
-                raise ValueError("offset must be tzinfo subclass, "
-                                 "tz string, or int offset")
-            ret = ret.replace(tzinfo=new_tzinfo)
-        elif res.tzname and res.tzname in time.tzname:
+        if res.tzname and res.tzname in time.tzname:
             ret = ret.replace(tzinfo=_dateutil_tzlocal())
         elif res.tzoffset == 0:
             ret = ret.replace(tzinfo=_dateutil_tzutc())
@@ -1052,6 +1008,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     # rebuild string, capturing any inferred padding
     dt_str = "".join(tokens)
     if parsed_datetime.strftime(guessed_format) == dt_str:
+        _maybe_warn_about_dayfirst(guessed_format, dayfirst)
         return guessed_format
     else:
         return None
@@ -1071,10 +1028,32 @@ cdef str _fill_token(token: str, padding: int):
         token_filled = f"{seconds}.{nanoseconds}"
     return token_filled
 
+cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst):
+    """Warn if guessed datetime format doesn't respect dayfirst argument."""
+    cdef:
+        int day_index = format.find("%d")
+        int month_index = format.find("%m")
+
+    if (day_index != -1) and (month_index != -1):
+        if (day_index > month_index) and dayfirst:
+            warnings.warn(
+                f"Parsing dates in {format} format when dayfirst=True was specified. "
+                "Pass `dayfirst=False` or specify a format to silence this warning.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
+        if (day_index < month_index) and not dayfirst:
+            warnings.warn(
+                f"Parsing dates in {format} format when dayfirst=False was specified. "
+                "Pass `dayfirst=True` or specify a format to silence this warning.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline object convert_to_unicode(object item, bint keep_trivial_numbers):
+cdef object convert_to_unicode(object item, bint keep_trivial_numbers):
     """
     Convert `item` to str.
 
