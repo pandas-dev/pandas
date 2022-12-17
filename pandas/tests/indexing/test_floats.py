@@ -337,8 +337,7 @@ class TestFloatIndexers:
         """
         s = Series(range(2, 6), index=range(2, 6))
 
-        with tm.assert_produces_warning(FutureWarning, match="label-based"):
-            result = s[2:4]
+        result = s[2:4]
         expected = s.iloc[2:4]
         tm.assert_series_equal(result, expected)
 

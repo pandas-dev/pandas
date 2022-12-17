@@ -220,15 +220,9 @@ class TestSetitemSlices:
     def test_setitem_slice_integers(self):
         ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
 
-        msg = r"In a future version, this will be treated as \*label-based\* indexing"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser[:4] = 0
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
-            assert (ser[:4] == 0).all()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert not (ser[4:] == 0).any()
+        ser[:4] = 0
+        assert (ser[:4] == 0).all()
+        assert not (ser[4:] == 0).any()
 
     def test_setitem_slicestep(self):
         # caught this bug when writing tests

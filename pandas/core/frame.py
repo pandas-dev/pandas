@@ -3648,9 +3648,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return self._getitem_multilevel(key)
         # Do we have a slicer (on rows)?
         if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(
-                key, kind="getitem", is_frame=True
-            )
+            indexer = self.index._convert_slice_indexer(key, kind="getitem")
             if isinstance(indexer, np.ndarray):
                 # reachable with DatetimeIndex
                 indexer = lib.maybe_indices_to_slice(
@@ -3829,7 +3827,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # see if we can slice the rows
         if isinstance(key, slice):
-            slc = self.index._convert_slice_indexer(key, kind="getitem", is_frame=True)
+            slc = self.index._convert_slice_indexer(key, kind="getitem")
             return self._setitem_slice(slc, value)
 
         if isinstance(key, DataFrame) or getattr(key, "ndim", None) == 2:

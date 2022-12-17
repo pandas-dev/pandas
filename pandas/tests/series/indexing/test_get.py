@@ -167,8 +167,7 @@ def test_get_with_ea(arr):
     expected = ser.iloc[[2, 3]]
     tm.assert_series_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match="label-based"):
-        result = ser.get(slice(2))
+    result = ser.get(slice(2))
     expected = ser.iloc[[0, 1]]
     tm.assert_series_equal(result, expected)
 
