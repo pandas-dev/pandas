@@ -736,10 +736,16 @@ class TestToDatetime:
                 "1999 50",
                 "%G %j",
             ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "20 Monday",
+                "%V %A",
+            ],
         ],
     )
     def test_error_iso_week_year(self, msg, s, _format):
-        # See GH#16607
+        # See GH#16607, #50308
         # This test checks for errors thrown when giving the wrong format
         # However, as discussed on PR#25541, overriding the locale
         # causes a different error to be thrown due to the format being
