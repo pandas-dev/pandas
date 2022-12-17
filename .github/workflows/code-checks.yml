@@ -183,6 +183,12 @@ jobs:
           cache: 'pip'
           cache-dependency-path: 'requirements-dev.txt'
 
+      - name: Upgrade pip
+        run: |
+          pip --version
+          pip install --upgrade pip wheel
+          pip --version
+
       - name: Install requirements-dev.txt
         run: pip install -r requirements-dev.txt
 
