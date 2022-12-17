@@ -22,6 +22,7 @@ from pandas._typing import (
     Dtype,
     FillnaOptions,
     Iterator,
+    NpDtype,
     PositionalIndexer,
     Scalar,
     SortKind,
@@ -40,6 +41,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_integer,
     is_integer_dtype,
+    is_object_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.missing import isna
@@ -361,6 +363,10 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow ChunkedArray."""
         return self._data
+
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+        """Correctly construct numpy arrays when passed to `np.asarray()`."""
+        return self.to_numpy(dtype=dtype)
 
     def __invert__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
         return type(self)(pc.invert(self._data))
@@ -760,6 +766,33 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
                 indices_array[indices_array < 0] += len(self._data)
             return type(self)(self._data.take(indices_array))
 
+    @doc(ExtensionArray.to_numpy)
+    def to_numpy(
+        self,
+        dtype: npt.DTypeLike | None = None,
+        copy: bool = False,
+        na_value: object = lib.no_default,
+    ) -> np.ndarray:
+        if dtype is None and self._hasna:
+            dtype = object
+        if na_value is lib.no_default:
+            na_value = self.dtype.na_value
+
+        pa_type = self._data.type
+        if (
+            is_object_dtype(dtype)
+            or pa.types.is_timestamp(pa_type)
+            or pa.types.is_duration(pa_type)
+        ):
+            result = np.array(list(self), dtype=dtype)
+        else:
+            result = np.asarray(self._data, dtype=dtype)
+            if copy or self._hasna:
+                result = result.copy()
+        if self._hasna:
+            result[self.isna()] = na_value
+        return result
+
     def unique(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
         """
         Compute the ArrowExtensionArray of unique values.
@@ -1145,7 +1178,9 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
         mask = self.isna()
         arr = np.asarray(self)
 
-        np_result = lib.map_infer_mask(arr, f, mask.view("uint8"), convert=False, na_value=na_value)
+        np_result = lib.map_infer_mask(
+            arr, f, mask.view("uint8"), convert=False, na_value=na_value
+        )
         try:
             return type(self)(pa.array(np_result, mask=mask, from_pandas=True))
         except pa.ArrowInvalid:
@@ -1292,7 +1327,11 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
             stop = i - 1
             step = -1
         not_out_of_bounds = pc.invert(out_of_bounds.fill_null(True).combine_chunks())
-        selected = pc.utf8_slice_codeunits(self._data, start, stop=stop, step=step).combine_chunks().drop_null()
+        selected = (
+            pc.utf8_slice_codeunits(self._data, start, stop=stop, step=step)
+            .combine_chunks()
+            .drop_null()
+        )
         result = pa.array([None] * self._data.length(), type=self._data.type)
         result = pc.replace_with_mask(result, not_out_of_bounds, selected)
         return type(self)(result)
@@ -1314,7 +1353,9 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
             pc.utf8_slice_codeunits(self._data, start, stop=stop, step=step)
         )
 
-    def _str_slice_replace(self, start: int | None = None, stop: int | None = None, repl: str | None = None):
+    def _str_slice_replace(
+        self, start: int | None = None, stop: int | None = None, repl: str | None = None
+    ):
         if repl is None:
             repl = ""
         return type(self)(pc.utf8_replace_slice(self._data, start, stop, repl))

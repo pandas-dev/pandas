@@ -26,7 +26,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-
 from pandas.compat import (
     is_ci_environment,
     is_platform_windows,
@@ -1491,7 +1490,9 @@ def test_string_methods(nullable_string_dtype, any_string_method):
         ("rindex", [2, None], "int64"),
     ],
 )
-def test_string_array_numeric_integer_return(nullable_string_dtype, method, expected, return_type):
+def test_string_array_numeric_integer_return(
+    nullable_string_dtype, method, expected, return_type
+):
     s = pd.Series(["aba", None], dtype=nullable_string_dtype)
     result = getattr(s.str, method)("a")
     expected = pd.Series(expected, dtype=ArrowDtype(getattr(pa, return_type)()))
@@ -1528,3 +1529,20 @@ def test_string_array_extract(nullable_string_dtype):
 
     result = result.astype(object)
     tm.assert_equal(result, expected)
+
+
+def test_to_numpy_with_defaults(data):
+    # GH49973
+    result = data.to_numpy()
+
+    pa_type = data._data.type
+    if pa.types.is_duration(pa_type) or pa.types.is_timestamp(pa_type):
+        expected = np.array(list(data))
+    else:
+        expected = np.array(data._data)
+
+    if data._hasna:
+        expected = expected.astype(object)
+        expected[pd.isna(data)] = pd.NA
+
+    tm.assert_numpy_array_equal(result, expected)
