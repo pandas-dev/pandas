@@ -126,6 +126,9 @@ include-package-data = true
 include = ["pandas", "pandas.*"]
 namespaces = false
 
+[tool.setuptools.package-data]
+pandas = ["../pyproject.toml"]
+
 [tool.setuptools.exclude-package-data]
 "*" = ["*.c", "*.h"]
 
