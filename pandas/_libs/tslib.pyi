@@ -12,7 +12,7 @@ def format_array_from_datetime(
     reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.object_]: ...
 def array_with_unit_to_datetime(
-    values: np.ndarray,
+    values: npt.NDArray[np.object_],
     unit: str,
     errors: str = ...,
 ) -> tuple[np.ndarray, tzinfo | None]: ...

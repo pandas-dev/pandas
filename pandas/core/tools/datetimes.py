@@ -27,11 +27,13 @@ from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     Timedelta,
     Timestamp,
+    astype_overflowsafe,
     iNaT,
     nat_strings,
     parsing,
     timezones as libtimezones,
 )
+from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.parsing import (
     DateParseError,
     format_is_iso,
@@ -557,7 +559,48 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
         tz_parsed = None
     else:
         arg = np.asarray(arg)
-        arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+
+        if arg.dtype.kind in ["i", "u"]:
+            # Note we can't do "f" here because that could induce unwanted
+            #  rounding GH#14156, GH#20445
+            arr = arg.astype(f"datetime64[{unit}]", copy=False)
+            try:
+                arr = astype_overflowsafe(arr, np.dtype("M8[ns]"), copy=False)
+            except OutOfBoundsDatetime:
+                if errors == "raise":
+                    raise
+                arg = arg.astype(object)
+                return _to_datetime_with_unit(arg, unit, name, utc, errors)
+            tz_parsed = None
+
+        elif arg.dtype.kind == "f":
+            mult, _ = precision_from_unit(unit)
+
+            iresult = arg.astype("i8")
+            mask = np.isnan(arg) | (arg == iNaT)
+            iresult[mask] = 0
+
+            fvalues = iresult.astype("f8") * mult
+
+            if (fvalues < Timestamp.min.value).any() or (
+                fvalues > Timestamp.max.value
+            ).any():
+                if errors != "raise":
+                    arg = arg.astype(object)
+                    return _to_datetime_with_unit(arg, unit, name, utc, errors)
+                raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
+
+            # TODO: is fresult meaningfully different from fvalues?
+            fresult = (arg * mult).astype("f8")
+            fresult[mask] = 0
+
+            arr = fresult.astype("M8[ns]", copy=False)
+            arr[mask] = np.datetime64("NaT", "ns")
+
+            tz_parsed = None
+        else:
+            arg = arg.astype(object, copy=False)
+            arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
 
     if errors == "ignore":
         # Index constructor _may_ infer to DatetimeIndex
