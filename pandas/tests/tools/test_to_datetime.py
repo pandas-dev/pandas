@@ -1423,6 +1423,7 @@ class TestToDatetime:
 class TestToDatetimeUnit:
     @pytest.mark.parametrize("unit", ["Y", "M"])
     def test_to_datetime_month_or_year_unit_non_round_float(self, cache, unit):
+        # GH#50301
         # Match Timestamp behavior in disallowing non-round floats with
         #  Y or M unit
         msg = f"Conversion of non-round float with unit={unit} is ambiguous"

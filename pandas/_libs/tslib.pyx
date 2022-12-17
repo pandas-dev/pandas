@@ -349,7 +349,7 @@ def array_with_unit_to_datetime(
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
                 else:
-                    if is_ym and is_float_object(val) and val != int(val):
+                    if is_ym and is_float_object(val) and not val.is_integer():
                         # Analogous to GH#47266 for Timestamp
                         if is_raise:
                             raise ValueError(
@@ -390,7 +390,7 @@ def array_with_unit_to_datetime(
                         iresult[i] = NPY_NAT
                         continue
 
-                    if is_ym and fval != int(fval):
+                    if is_ym and not fval.is_integer():
                         # Analogous to GH#47266 for Timestamp
                         if is_raise:
                             raise ValueError(
