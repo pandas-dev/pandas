@@ -1428,3 +1428,14 @@ def test_setitem_null_slice(data):
     result[:] = data.tolist()
     expected = data
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_setitem_invalid_dtype(data):
+    # GH50248
+    pa_type = data._data.type
+    if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
+        fill_value = 123
+    else:
+        fill_value = "foo"
+    with pytest.raises(pa.ArrowInvalid, match="Could not convert"):
+        data[:] = fill_value
