@@ -1887,6 +1887,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False, **kwargs
     ) -> DataFrame:
         axis = kwargs.setdefault("axis", self.axis)
+        axis = DataFrame._get_axis_number(axis)
 
         def func(df):
             res = df._reduce(
