@@ -786,6 +786,7 @@ Datetimelike
 - Bug in :func:`to_datetime` was raising ``ValueError`` when parsing :class:`Timestamp`, ``datetime.datetime``, ``datetime.date``, or ``np.datetime64`` objects when non-ISO8601 ``format`` was passed (:issue:`49298`, :issue:`50036`)
 - Bug in :func:`to_datetime` was raising ``ValueError`` when parsing empty string and non-ISO8601 format was passed. Now, empty strings will be parsed as :class:`NaT`, for compatibility with how is done for ISO8601 formats (:issue:`50251`)
 - Bug in :class:`Timestamp` was showing ``UserWarning``, which was not actionable by users, when parsing non-ISO8601 delimited date strings (:issue:`50232`)
+- Bug in :func:`to_datetime` was showing misleading ``ValueError`` when parsing dates with format containing ISO week directive and ISO weekday directive (:issue:`50308`)
 -
 
 Timedelta

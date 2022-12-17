@@ -629,8 +629,8 @@ class TestToDatetime:
         "msg, s, _format",
         [
             [
-                "ISO week directive '%V' must be used with the ISO year directive "
-                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "ISO week directive '%V' is incompatible with the year directive "
+                "'%Y'. Use the ISO year '%G' instead.",
                 "1999 50",
                 "%Y %V",
             ],
@@ -705,6 +705,36 @@ class TestToDatetime:
                 "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
                 "20",
                 "%V",
+            ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "1999 51 Sunday",
+                "%V %A",
+            ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "1999 51 Sun",
+                "%V %a",
+            ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "1999 51 1",
+                "%V %w",
+            ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "1999 51 1",
+                "%V %u",
+            ],
+            [
+                "Day of the year directive '%j' is not compatible with ISO year "
+                "directive '%G'. Use '%Y' instead.",
+                "1999 50",
+                "%G %j",
             ],
         ],
     )
