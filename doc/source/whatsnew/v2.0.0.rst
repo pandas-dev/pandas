@@ -749,6 +749,7 @@ Performance improvements
 - Reduce memory usage of :meth:`DataFrame.to_pickle`/:meth:`Series.to_pickle` when using BZ2 or LZMA (:issue:`49068`)
 - Performance improvement for :class:`~arrays.StringArray` constructor passing a numpy array with type ``np.str_`` (:issue:`49109`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.factorize` (:issue:`49177`)
+- Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`49973`)
 - Performance improvement in :meth:`DataFrame.join` when joining on a subset of a :class:`MultiIndex` (:issue:`48611`)
 - Performance improvement for :meth:`MultiIndex.intersection` (:issue:`48604`)
 - Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
@@ -784,6 +785,7 @@ Datetimelike
 - Bug in ``pandas.tseries.holiday.Holiday`` where a half-open date interval causes inconsistent return types from :meth:`USFederalHolidayCalendar.holidays` (:issue:`49075`)
 - Bug in rendering :class:`DatetimeIndex` and :class:`Series` and :class:`DataFrame` with timezone-aware dtypes with ``dateutil`` or ``zoneinfo`` timezones near daylight-savings transitions (:issue:`49684`)
 - Bug in :func:`to_datetime` was raising ``ValueError`` when parsing :class:`Timestamp`, ``datetime.datetime``, ``datetime.date``, or ``np.datetime64`` objects when non-ISO8601 ``format`` was passed (:issue:`49298`, :issue:`50036`)
+- Bug in :func:`to_datetime` was raising ``ValueError`` when parsing empty string and non-ISO8601 format was passed. Now, empty strings will be parsed as :class:`NaT`, for compatibility with how is done for ISO8601 formats (:issue:`50251`)
 - Bug in :class:`Timestamp` was showing ``UserWarning``, which was not actionable by users, when parsing non-ISO8601 delimited date strings (:issue:`50232`)
 -
 
