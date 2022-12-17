@@ -172,11 +172,6 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
     inferred_type = None
     if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
         inferred_type = lib.infer_dtype(values, skipna=True)
-        if inferred_type == "empty":
-            pass
-        elif inferred_type == "boolean":
-            name = dtype_cls.__name__.strip("_")
-            raise TypeError(f"{values.dtype} cannot be converted to {name}")
 
     elif is_bool_dtype(values) and checker(dtype):
         values = np.array(values, dtype=default_dtype, copy=copy)
