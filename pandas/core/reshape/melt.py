@@ -33,6 +33,8 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
+    from pandas._typing import AnyArrayLike
+
     from pandas import DataFrame
 
 
@@ -124,7 +126,7 @@ def melt(
     N, K = frame.shape
     K -= len(id_vars)
 
-    mdata = {}
+    mdata: dict[Hashable, AnyArrayLike] = {}
     for col in id_vars:
         id_data = frame.pop(col)
         if is_extension_array_dtype(id_data):
@@ -141,17 +143,15 @@ def melt(
 
     mcolumns = id_vars + var_name + [value_name]
 
-    # error: Incompatible types in assignment (expression has type "ndarray",
-    # target has type "Series")
-    mdata[value_name] = frame._values.ravel("F")  # type: ignore[assignment]
+    if frame.shape[1] > 0:
+        mdata[value_name] = concat(
+            [frame.iloc[:, i] for i in range(frame.shape[1])]
+        ).values
+    else:
+        mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
         # asanyarray will keep the columns as an Index
-
-        # error: Incompatible types in assignment (expression has type "ndarray", target
-        # has type "Series")
-        mdata[col] = np.asanyarray(  # type: ignore[assignment]
-            frame.columns._get_level_values(i)
-        ).repeat(N)
+        mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
 
     result = frame._constructor(mdata, columns=mcolumns)
 

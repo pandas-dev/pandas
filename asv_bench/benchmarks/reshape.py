@@ -15,12 +15,17 @@ from pandas.api.types import CategoricalDtype
 
 
 class Melt:
-    def setup(self):
-        self.df = DataFrame(np.random.randn(10000, 3), columns=["A", "B", "C"])
-        self.df["id1"] = np.random.randint(0, 10, 10000)
-        self.df["id2"] = np.random.randint(100, 1000, 10000)
+    params = ["float64", "Float64"]
+    param_names = ["dtype"]
 
-    def time_melt_dataframe(self):
+    def setup(self, dtype):
+        self.df = DataFrame(
+            np.random.randn(100_000, 3), columns=["A", "B", "C"], dtype=dtype
+        )
+        self.df["id1"] = pd.Series(np.random.randint(0, 10, 10000))
+        self.df["id2"] = pd.Series(np.random.randint(100, 1000, 10000))
+
+    def time_melt_dataframe(self, dtype):
         melt(self.df, id_vars=["id1", "id2"])
 
 
