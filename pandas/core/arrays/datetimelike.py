@@ -407,7 +407,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # error: Argument 1 of "__setitem__" is incompatible with supertype
     # "ExtensionArray"; supertype defines the argument type as "Union[int,
     # ndarray]"
-    def __setitem__(  # type: ignore[override]
+    def __setitem__(
         self,
         key: int | Sequence[int] | Sequence[bool] | slice,
         value: NaTType | Any | Sequence[Any],
