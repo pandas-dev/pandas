@@ -332,9 +332,18 @@ static char *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *Py_UNUSED(tc),
     return PyBytes_AS_STRING(obj);
 }
 
-static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *Py_UNUSED(tc),
+static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc,
                              size_t *_outLen) {
-    return (char *)PyUnicode_AsUTF8AndSize(_obj, (Py_ssize_t *)_outLen);
+    char *encoded = (char *)PyUnicode_AsUTF8AndSize(_obj,
+                                                    (Py_ssize_t *)_outLen);
+    if (encoded == NULL) {
+        /* Something went wrong.
+          Set errorMsg(to tell encoder to stop),
+          and let Python exception propagate. */
+        JSONObjectEncoder *enc = (JSONObjectEncoder *)tc->encoder;
+        enc->errorMsg = "Encoding failed.";
+    }
+    return encoded;
 }
 
 /* JSON callback. returns a char* and mutates the pointer to *len */
