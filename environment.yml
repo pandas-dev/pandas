@@ -60,7 +60,6 @@ dependencies:
   - zstandard
 
   # downstream packages
-  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
   - dask-core
   - seaborn-base
 
@@ -69,7 +68,7 @@ dependencies:
   - flask
 
   # benchmarks
-  - asv
+  - asv>=0.5.1
 
   # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler

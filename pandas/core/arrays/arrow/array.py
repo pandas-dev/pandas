@@ -12,6 +12,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     Dtype,
     FillnaOptions,
     Iterator,
@@ -24,6 +25,7 @@ from pandas._typing import (
 from pandas.compat import (
     pa_version_under6p0,
     pa_version_under7p0,
+    pa_version_under9p0,
 )
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -40,6 +42,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
+import pandas.core.common as com
 from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
@@ -937,6 +940,27 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         key = check_array_indexer(self, key)
         value = self._maybe_convert_setitem_value(value)
 
+        # fast path (GH50248)
+        if com.is_null_slice(key):
+            if is_scalar(value):
+                fill_value = pa.scalar(value, type=self._data.type, from_pandas=True)
+                try:
+                    self._data = pc.if_else(True, fill_value, self._data)
+                    return
+                except pa.ArrowNotImplementedError:
+                    # ArrowNotImplementedError: Function 'if_else' has no kernel
+                    #   matching input types (bool, duration[ns], duration[ns])
+                    # TODO: remove try/except wrapper if/when pyarrow implements
+                    #   a kernel for duration types.
+                    pass
+            elif len(value) == len(self):
+                if isinstance(value, type(self)) and value.dtype == self.dtype:
+                    self._data = value._data
+                else:
+                    arr = pa.array(value, type=self._data.type, from_pandas=True)
+                    self._data = pa.chunked_array([arr])
+                return
+
         indices = self._indexing_key_to_indices(key)
         argsort = np.argsort(indices)
         indices = indices[argsort]
@@ -987,7 +1011,72 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             indices = np.arange(n)[key]
         return indices
 
-    # TODO: redefine _rank using pc.rank with pyarrow 9.0
+    def _rank(
+        self,
+        *,
+        axis: AxisInt = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ):
+        """
+        See Series.rank.__doc__.
+        """
+        if pa_version_under9p0 or axis != 0:
+            ranked = super()._rank(
+                axis=axis,
+                method=method,
+                na_option=na_option,
+                ascending=ascending,
+                pct=pct,
+            )
+            # keep dtypes consistent with the implementation below
+            if method == "average" or pct:
+                pa_type = pa.float64()
+            else:
+                pa_type = pa.uint64()
+            result = pa.array(ranked, type=pa_type, from_pandas=True)
+            return type(self)(result)
+
+        data = self._data.combine_chunks()
+        sort_keys = "ascending" if ascending else "descending"
+        null_placement = "at_start" if na_option == "top" else "at_end"
+        tiebreaker = "min" if method == "average" else method
+
+        result = pc.rank(
+            data,
+            sort_keys=sort_keys,
+            null_placement=null_placement,
+            tiebreaker=tiebreaker,
+        )
+
+        if na_option == "keep":
+            mask = pc.is_null(self._data)
+            null = pa.scalar(None, type=result.type)
+            result = pc.if_else(mask, null, result)
+
+        if method == "average":
+            result_max = pc.rank(
+                data,
+                sort_keys=sort_keys,
+                null_placement=null_placement,
+                tiebreaker="max",
+            )
+            result_max = result_max.cast(pa.float64())
+            result_min = result.cast(pa.float64())
+            result = pc.divide(pc.add(result_min, result_max), 2)
+
+        if pct:
+            if not pa.types.is_floating(result.type):
+                result = result.cast(pa.float64())
+            if method == "dense":
+                divisor = pc.max(result)
+            else:
+                divisor = pc.count(result)
+            result = pc.divide(result, divisor)
+
+        return type(self)(result)
 
     def _quantile(
         self: ArrowExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
