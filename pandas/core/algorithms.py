@@ -878,7 +878,8 @@ def value_counts(
         if is_extension_array_dtype(values):
 
             # handle Categorical and sparse,
-            result = Series(values)._values.value_counts(dropna=dropna).rename(name)
+            result = Series(values)._values.value_counts(dropna=dropna)
+            result.name = name
             result.index.name = index_name
             counts = result._values
 

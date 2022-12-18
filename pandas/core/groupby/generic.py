@@ -2087,7 +2087,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 observed=self.observed,
                 dropna=self.dropna,
             )
-            result_series = cast(Series, gb.size()).rename(name)
+            result_series = cast(Series, gb.size())
+            result_series.name = name
 
             # GH-46357 Include non-observed categories
             # of non-grouping columns regardless of `observed`
