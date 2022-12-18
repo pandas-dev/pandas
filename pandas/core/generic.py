@@ -1403,8 +1403,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
         other = cast(NDFrame, other)
-
-        # TODO: make this work with ArrayManager
+        
         return self._mgr.equals(other._mgr)
 
     # -------------------------------------------------------------------------

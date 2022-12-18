@@ -694,14 +694,7 @@ class BaseArrayManager(DataManager):
         Used in .equals defined in base class. Only check the column values
         assuming shape and indexes have already been checked.
         """
-        from pandas.core.internals.construction import mgr_to_mgr
 
-        # If not ArrayManager, implies that `other` is of type BlockManager
-        if not isinstance(other, ArrayManager):
-            # Because BlockManager exposes it's array in a list of multi-column NDArray
-            # but ArrayManager exposes arrays as a list of single-column NDArray.
-            # Therefore, we have to flatten BlockManager's array list
-            other = mgr_to_mgr(other, "array", copy=False)
 
         for left, right in zip(self.arrays, other.arrays):
             if not array_equals(left, right):
@@ -1051,9 +1044,9 @@ class ArrayManager(BaseArrayManager):
         """
         Apply array_op blockwise with another (aligned) BlockManager.
         """
-        from pandas.core.internals.construction import mgr_to_mgr
 
         if not isinstance(other, ArrayManager):
+            from pandas.core.internals.construction import mgr_to_mgr
             other = mgr_to_mgr(other, "array")
 
         result_arrays = [

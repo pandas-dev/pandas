@@ -119,13 +119,6 @@ class DataManager(PandasObject):
         """
         Implementation for DataFrame.equals
         """
-        # prevent circular import
-        from pandas.core.internals import (
-            ArrayManager,
-            BlockManager,
-        )
-        from pandas.core.internals.construction import mgr_to_mgr
-
         if not isinstance(other, DataManager):
             return False
 
@@ -135,8 +128,17 @@ class DataManager(PandasObject):
         if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
             return False
 
-        if isinstance(self, BlockManager) and isinstance(other, ArrayManager):
-            other = mgr_to_mgr(other, "block", copy=False)
+        if type(self) is not type(other):
+            from pandas.core.internals import (
+                ArrayManager,
+                BlockManager,
+            )
+            from pandas.core.internals.construction import mgr_to_mgr
+            if isinstance(self, BlockManager) and isinstance(other, ArrayManager):
+                other = mgr_to_mgr(other, "block", copy=False)
+            else:
+                # Here, we know self is ArrayManager so we convert other to array too
+                other = mgr_to_mgr(other, "array", copy=False)
         return self._equal_values(other)
 
     def apply(
