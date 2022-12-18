@@ -372,7 +372,7 @@ kwargs : dict, optional
 
 Returns
 -------
-object : the return type of `func`.
+the return type of `func`.
 
 See Also
 --------
@@ -402,14 +402,21 @@ Parameters
 f : function, str
     Function to apply to each group. See the Notes section below for requirements.
 
-    Can also accept a Numba JIT function with
-    ``engine='numba'`` specified.
+    Accepted inputs are:
 
+    - String
+    - Python function
+    - Numba JIT function with ``engine='numba'`` specified.
+
+    Only passing a single function is supported with this engine.
     If the ``'numba'`` engine is chosen, the function must be
     a user defined function with ``values`` and ``index`` as the
     first and second arguments respectively in the function signature.
     Each group's index will be passed to the user defined function
     and optionally available for use.
+
+    If a string is chosen, then it needs to be the name
+    of the groupby method you want to use.
 
     .. versionchanged:: 1.1.0
 *args
@@ -480,55 +487,14 @@ user defined function, and no alternative execution attempts will be tried.
 
 Examples
 --------
-
->>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-...                           'foo', 'bar'],
-...                    'B' : ['one', 'one', 'two', 'three',
-...                           'two', 'two'],
-...                    'C' : [1, 5, 5, 2, 5, 5],
-...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
->>> grouped = df.groupby('A')[['C', 'D']]
->>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-          C         D
-0 -1.154701 -0.577350
-1  0.577350  0.000000
-2  0.577350  1.154701
-3 -1.154701 -1.000000
-4  0.577350 -0.577350
-5  0.577350  1.000000
-
-Broadcast result of the transformation
-
->>> grouped.transform(lambda x: x.max() - x.min())
-     C    D
-0  4.0  6.0
-1  3.0  8.0
-2  4.0  6.0
-3  3.0  8.0
-4  4.0  6.0
-5  3.0  8.0
-
-.. versionchanged:: 1.3.0
-
-    The resulting dtype will reflect the return value of the passed ``func``,
-    for example:
-
->>> grouped.transform(lambda x: x.astype(int).max())
-   C  D
-0  5  8
-1  5  9
-2  5  8
-3  5  9
-4  5  8
-5  5  9
-"""
+%(example)s"""
 
 _agg_template = """
 Aggregate using one or more operations over the specified axis.
 
 Parameters
 ----------
-func : function, str, list or dict
+func : function, str, list, dict or None
     Function to use for aggregating the data. If a function, must either
     work when passed a {klass} or when passed to {klass}.apply.
 
@@ -538,6 +504,10 @@ func : function, str, list or dict
     - string function name
     - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
     - dict of axis labels -> functions, function names or list of such.
+    - None, in which case ``**kwargs`` are used with Named Aggregation. Here the
+      output has one column for each element in ``**kwargs``. The name of the
+      column is keyword, whereas the value determines the aggregation used to compute
+      the values in the column.
 
     Can also accept a Numba JIT function with
     ``engine='numba'`` specified. Only passing a single function is supported
@@ -568,7 +538,9 @@ engine_kwargs : dict, default None
 
     .. versionadded:: 1.1.0
 **kwargs
-    Keyword arguments to be passed into func.
+    * If ``func`` is None, ``**kwargs`` are used to define the output names and
+      aggregations via Named Aggregation. See ``func`` entry.
+    * Otherwise, keyword arguments to be passed into func.
 
 Returns
 -------
@@ -578,10 +550,10 @@ See Also
 --------
 {klass}.groupby.apply : Apply function func group-wise
     and combine the results together.
-{klass}.groupby.transform : Aggregate using one or more
-    operations over the specified axis.
-{klass}.aggregate : Transforms the Series on each group
+{klass}.groupby.transform : Transforms the Series on each group
     based on the given function.
+{klass}.aggregate : Aggregate using one or more
+    operations over the specified axis.
 
 Notes
 -----
@@ -808,7 +780,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         Returns
         -------
-        group : same type as obj
+        same type as obj
         """
         if obj is None:
             obj = self._selected_obj

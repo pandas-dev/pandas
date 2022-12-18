@@ -4,6 +4,7 @@ import calendar
 from datetime import (
     datetime,
     timedelta,
+    timezone,
 )
 import locale
 import unicodedata
@@ -12,10 +13,7 @@ from dateutil.tz import tzutc
 import numpy as np
 import pytest
 import pytz
-from pytz import (
-    timezone,
-    utc,
-)
+from pytz import utc
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
@@ -213,6 +211,11 @@ class TestTimestampProperties:
 
 
 class TestTimestamp:
+    def test_default_to_stdlib_utc(self):
+        assert Timestamp.utcnow().tz is timezone.utc
+        assert Timestamp.now("UTC").tz is timezone.utc
+        assert Timestamp("2016-01-01", tz="UTC").tz is timezone.utc
+
     def test_tz(self):
         tstr = "2014-02-01 09:00"
         ts = Timestamp(tstr)
@@ -233,7 +236,7 @@ class TestTimestamp:
         assert conv.hour == 19
 
     def test_utc_z_designator(self):
-        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is utc
+        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is timezone.utc
 
     def test_asm8(self):
         np.random.seed(7_960_929)
@@ -251,7 +254,7 @@ class TestTimestamp:
             assert int((Timestamp(x).value - Timestamp(y).value) / 1e9) == 0
 
         compare(Timestamp.now(), datetime.now())
-        compare(Timestamp.now("UTC"), datetime.now(timezone("UTC")))
+        compare(Timestamp.now("UTC"), datetime.now(pytz.timezone("UTC")))
         compare(Timestamp.utcnow(), datetime.utcnow())
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
@@ -1079,3 +1082,11 @@ class TestAsUnit:
             == res.nanosecond
             == 0
         )
+
+
+def test_delimited_date():
+    # https://github.com/pandas-dev/pandas/issues/50231
+    with tm.assert_produces_warning(None):
+        result = Timestamp("13-01-2000")
+    expected = Timestamp(2000, 1, 13)
+    assert result == expected
