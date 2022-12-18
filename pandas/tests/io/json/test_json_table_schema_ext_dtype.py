@@ -278,7 +278,7 @@ class TestTableOrient:
 
         assert result == expected
 
-    def test_json_ext_dtype_reading(self):
+    def test_json_ext_dtype_reading_roundtrip(self):
         # GH#40255
         df = DataFrame(
             {
@@ -291,4 +291,29 @@ class TestTableOrient:
         expected = df.copy()
         data_json = df.to_json(orient="table", indent=4)
         result = read_json(data_json, orient="table")
+        tm.assert_frame_equal(result, expected)
+
+    def test_json_ext_dtype_reading(self):
+        # GH#40255
+        data_json = """{
+            "schema":{
+                "fields":[
+                    {
+                        "name":"a",
+                        "type":"integer",
+                        "extDtype":"Int64"
+                    }
+                ],
+            },
+            "data":[
+                {
+                    "a":2
+                },
+                {
+                    "a":null
+                }
+            ]
+        }"""
+        result = read_json(data_json, orient="table")
+        expected = DataFrame({"a": Series([2, NA], dtype="Int64")})
         tm.assert_frame_equal(result, expected)

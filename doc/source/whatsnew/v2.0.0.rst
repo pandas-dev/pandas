@@ -876,7 +876,7 @@ I/O
 - Bug when a pickling a subset PyArrow-backed data that would serialize the entire data instead of the subset (:issue:`42600`)
 - Bug in :func:`read_sql_query` ignoring ``dtype`` argument when ``chunksize`` is specified and result is empty (:issue:`50245`)
 - Bug in :func:`read_csv` for a single-line csv with fewer columns than ``names`` raised :class:`.errors.ParserError` with ``engine="c"`` (:issue:`47566`)
-- Bug in :func:`read_json` raising with ``orient="table"`` with ``NA`` value (:issue:`40255`)
+- Bug in :func:`read_json` raising with ``orient="table"`` and ``NA`` value (:issue:`40255`)
 - Bug in displaying ``string`` dtypes not showing storage option (:issue:`50099`)
 - Bug in :func:`DataFrame.to_string` with ``header=False`` that printed the index name on the same line as the first row of the data (:issue:`49230`)
 - Fixed memory leak which stemmed from the initialization of the internal JSON module (:issue:`49222`)
