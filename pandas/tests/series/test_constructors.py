@@ -1997,6 +1997,8 @@ class TestSeriesConstructors:
         expected = Series([1, 0, 1], dtype="Int64")
         tm.assert_series_equal(result, expected)
 
+    def test_series_constructor_ea_int_from_string_bool(self):
+        # GH#42137
         with pytest.raises(ValueError, match="invalid literal"):
             Series(["True", "False", "True", pd.NA], dtype="Int64")
 
