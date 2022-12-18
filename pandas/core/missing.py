@@ -170,7 +170,9 @@ def clean_interp_method(method: str, index: Index, **kwargs) -> str:
     return method
 
 
-def find_valid_index(values, *, how: str, is_valid: np.ndarray) -> int | None:
+def find_valid_index(
+    values, *, how: str, is_valid: npt.NDArray[np.bool_]
+) -> int | None:
     """
     Retrieves the index of the first valid value.
 
@@ -204,7 +206,9 @@ def find_valid_index(values, *, how: str, is_valid: np.ndarray) -> int | None:
 
     if not chk_notna:
         return None
-    return idxpos
+    # Incompatible return value type (got "signedinteger[Any]",
+    # expected "Optional[int]")
+    return idxpos  # type: ignore[return-value]
 
 
 def interpolate_array_2d(
