@@ -34,12 +34,14 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
     NPY_FR_ns,
     check_dts_bounds,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pydate_to_dt64,
     pydatetime_to_dt64,
+    string_to_dts,
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -48,9 +50,28 @@ from pandas._libs.util cimport (
     is_float_object,
     is_integer_object,
 )
+from pandas._libs.tslibs.timestamps import Timestamp
 
 cnp.import_array()
 
+cdef bint parse_today_now(str val, int64_t* iresult, bint utc):
+    # We delay this check for as long as possible
+    # because it catches relatively rare cases
+
+    # Multiply by 1000 to convert to nanos, since these methods naturally have
+    #  microsecond resolution
+    if val == "now":
+        if utc:
+            iresult[0] = Timestamp.utcnow().value * 1000
+        else:
+            # GH#18705 make sure to_datetime("now") matches Timestamp("now")
+            # Note using Timestamp.now() is faster than Timestamp("now")
+            iresult[0] = Timestamp.now().value * 1000
+        return True
+    elif val == "today":
+        iresult[0] = Timestamp.today().value * 1000
+        return True
+    return False
 
 cdef dict _parse_code_table = {"y": 0,
                                "Y": 1,
@@ -94,6 +115,7 @@ def array_strptime(
     exact : matches must be exact if True, search if False
     errors : string specifying error handling, {'raise', 'ignore', 'coerce'}
     """
+    from pandas._libs.tslibs.parsing import format_is_iso
 
     cdef:
         Py_ssize_t i, n = len(values)
@@ -111,6 +133,9 @@ def array_strptime(
         bint found_naive = False
         bint found_tz = False
         tzinfo tz_out = None
+        bint iso_format = fmt is not None and format_is_iso(fmt)
+        NPY_DATETIMEUNIT out_bestunit
+        int out_local = 0, out_tzoffset = 0
 
     assert is_raise or is_ignore or is_coerce
 
@@ -232,17 +257,57 @@ def array_strptime(
             else:
                 val = str(val)
 
-            # exact matching
-            if exact:
-                found = format_regex.match(val)
-                if not found:
-                    raise ValueError(f"time data \"{val}\" at position {i} doesn't "
-                                     f"match format \"{fmt}\"")
-                if len(val) != found.end():
-                    raise ValueError(
-                        f"unconverted data remains at position {i}: "
-                        f'"{val[found.end():]}"'
-                    )
+        if iso_format:
+            string_to_dts_failed = string_to_dts(
+                val, &dts, &out_bestunit, &out_local,
+                &out_tzoffset, False, fmt, exact
+            )
+            if not string_to_dts_failed:
+                # No error reported by string_to_dts, pick back up
+                # where we left off
+                value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
+                if out_local == 1:
+                    # Store the out_tzoffset in seconds
+                    # since we store the total_seconds of
+                    # dateutil.tz.tzoffset objects
+                    tz = timezone(timedelta(minutes=out_tzoffset))
+                    result_timezone[i] = tz
+                    out_local = 0
+                    out_tzoffset = 0
+                iresult[i] = value
+                try:
+                    check_dts_bounds(&dts)
+                except ValueError:
+                    if is_coerce:
+                        iresult[i] = NPY_NAT
+                        continue
+                    raise
+                continue
+
+        if parse_today_now(val, &iresult[i], utc):
+            continue
+
+        # Some ISO formats can't be parsed by string_to_dts
+        # For example, 6-digit YYYYMD. So, if there's an error,
+        # try the string-matching code below.
+
+        # exact matching
+        if exact:
+            found = format_regex.match(val)
+            if not found:
+                if is_coerce:
+                    iresult[i] = NPY_NAT
+                    continue
+                raise ValueError(f"time data \"{val}\" at position {i} doesn't "
+                                 f"match format \"{fmt}\"")
+            if len(val) != found.end():
+                if is_coerce:
+                    iresult[i] = NPY_NAT
+                    continue
+                raise ValueError(
+                    f"unconverted data remains at position {i}: "
+                    f'"{val[found.end():]}"'
+                )
 
             # search
             else:

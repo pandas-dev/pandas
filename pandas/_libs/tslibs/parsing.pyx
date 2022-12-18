@@ -825,7 +825,7 @@ def format_is_iso(f: str) -> bint:
     but must be consistent.  Leading 0s in dates and times are optional.
     """
     iso_template = "%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S{micro_or_tz}".format
-    excluded_formats = ["%Y%m%d", "%Y%m", "%Y"]
+    excluded_formats = ["%Y%m"]
 
     for date_sep in [" ", "/", "\\", "-", ".", ""]:
         for time_sep in [" ", "T"]:
