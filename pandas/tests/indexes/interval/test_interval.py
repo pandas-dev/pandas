@@ -18,7 +18,10 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Float64Index
+from pandas.core.api import (
+    Float64Index,
+    NumericIndex,
+)
 import pandas.core.common as com
 
 
@@ -435,9 +438,12 @@ class TestIntervalIndex:
         index = IntervalIndex.from_breaks(breaks)
         key = make_key(breaks)
 
-        # no conversion occurs for numeric
         result = index._maybe_convert_i8(key)
-        assert result is key
+        if not isinstance(result, NumericIndex):
+            assert result is key
+        else:
+            expected = NumericIndex(key)
+            tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "breaks1, breaks2",
