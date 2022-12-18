@@ -1438,3 +1438,48 @@ def test_to_numpy_with_defaults(data):
         expected[pd.isna(data)] = pd.NA
 
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_setitem_null_slice(data):
+    # GH50248
+    orig = data.copy()
+
+    result = orig.copy()
+    result[:] = data[0]
+    expected = ArrowExtensionArray(
+        pa.array([data[0]] * len(data), type=data._data.type)
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+    result = orig.copy()
+    result[:] = data[::-1]
+    expected = data[::-1]
+    tm.assert_extension_array_equal(result, expected)
+
+    result = orig.copy()
+    result[:] = data.tolist()
+    expected = data
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_setitem_invalid_dtype(data):
+    # GH50248
+    pa_type = data._data.type
+    if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
+        fill_value = 123
+        err = pa.ArrowTypeError
+        msg = "Expected bytes"
+    elif (
+        pa.types.is_integer(pa_type)
+        or pa.types.is_floating(pa_type)
+        or pa.types.is_boolean(pa_type)
+    ):
+        fill_value = "foo"
+        err = pa.ArrowInvalid
+        msg = "Could not convert"
+    else:
+        fill_value = "foo"
+        err = pa.ArrowTypeError
+        msg = "cannot be converted"
+    with pytest.raises(err, match=msg):
+        data[:] = fill_value
