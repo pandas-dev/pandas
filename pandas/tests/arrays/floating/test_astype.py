@@ -65,7 +65,7 @@ def test_astype_to_integer_array():
 
 def test_astype_str():
     a = pd.array([0.1, 0.2, None], dtype="Float64")
-    expected = np.array(["0.1", "0.2", "<NA>"], dtype=object)
+    expected = np.array(["0.1", "0.2", "<NA>"], dtype="U32")
 
     tm.assert_numpy_array_equal(a.astype(str), expected)
     tm.assert_numpy_array_equal(a.astype("str"), expected)

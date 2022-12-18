@@ -3,6 +3,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    MultiIndex,
     Series,
 )
 import pandas._testing as tm
@@ -249,4 +250,109 @@ def test_set_index(using_copy_on_write):
     # mutating df2 triggers a copy-on-write for that column / block
     df2.iloc[0, 1] = 0
     assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_add_prefix(using_copy_on_write):
+    # GH 49473
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.add_prefix("CoW_")
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "CoW_a"), get_array(df, "a"))
+    df2.iloc[0, 0] = 0
+
+    assert not np.shares_memory(get_array(df2, "CoW_a"), get_array(df, "a"))
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "CoW_c"), get_array(df, "c"))
+    expected = DataFrame(
+        {"CoW_a": [0, 2, 3], "CoW_b": [4, 5, 6], "CoW_c": [0.1, 0.2, 0.3]}
+    )
+    tm.assert_frame_equal(df2, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_add_suffix(using_copy_on_write):
+    # GH 49473
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.add_suffix("_CoW")
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a_CoW"), get_array(df, "a"))
+    df2.iloc[0, 0] = 0
+    assert not np.shares_memory(get_array(df2, "a_CoW"), get_array(df, "a"))
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "c_CoW"), get_array(df, "c"))
+    expected = DataFrame(
+        {"a_CoW": [0, 2, 3], "b_CoW": [4, 5, 6], "c_CoW": [0.1, 0.2, 0.3]}
+    )
+    tm.assert_frame_equal(df2, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda df: df.head(),
+        lambda df: df.head(2),
+        lambda df: df.tail(),
+        lambda df: df.tail(3),
+    ],
+)
+def test_head_tail(method, using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = method(df)
+    df2._mgr._verify_integrity()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
+    # modify df2 to trigger CoW for that block
+    df2.iloc[0, 0] = 0
+    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        # without CoW enabled, head and tail return views. Mutating df2 also mutates df.
+        df2.iloc[0, 0] = 1
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_assign(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    df2 = df.assign()
+    df2._mgr._verify_integrity()
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_reorder_levels(using_copy_on_write):
+    index = MultiIndex.from_tuples(
+        [(1, 1), (1, 2), (2, 1), (2, 2)], names=["one", "two"]
+    )
+    df = DataFrame({"a": [1, 2, 3, 4]}, index=index)
+    df_orig = df.copy()
+    df2 = df.reorder_levels(order=["two", "one"])
+
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
