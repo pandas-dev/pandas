@@ -48,7 +48,7 @@ classifiers = [
 
 [project.urls]
 homepage = 'https://pandas.pydata.org'
-documentation = 'https://pandas.pydata.org/pandas-docs/stable'
+documentation = 'https://pandas.pydata.org/docs/'
 repository = 'https://github.com/pandas-dev/pandas'
 
 [project.entry-points."pandas_plotting_backends"]

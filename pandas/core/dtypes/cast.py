@@ -9,6 +9,7 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     Sized,
     TypeVar,
     cast,
@@ -70,10 +71,12 @@ from pandas.core.dtypes.common import (
     pandas_dtype as pandas_dtype_func,
 )
 from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
+    PandasExtensionDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -958,6 +961,7 @@ def convert_dtypes(
     convert_boolean: bool = True,
     convert_floating: bool = True,
     infer_objects: bool = False,
+    nullable_backend: Literal["pandas", "pyarrow"] = "pandas",
 ) -> DtypeObj:
     """
     Convert objects to best possible type, and optionally,
@@ -979,6 +983,11 @@ def convert_dtypes(
     infer_objects : bool, defaults False
         Whether to also infer objects to float/int if possible. Is only hit if the
         object array contains pd.NA.
+    nullable_backend : str, default "pandas"
+        Nullable dtype implementation to use.
+
+        * "pandas" returns numpy-backed nullable types
+        * "pyarrow" returns pyarrow-backed nullable types using ``ArrowDtype``
 
     Returns
     -------
@@ -997,9 +1006,9 @@ def convert_dtypes(
 
         if is_string_dtype(inferred_dtype):
             if not convert_string or inferred_dtype == "bytes":
-                return input_array.dtype
+                inferred_dtype = input_array.dtype
             else:
-                return pandas_dtype_func("string")
+                inferred_dtype = pandas_dtype_func("string")
 
         if convert_integer:
             target_int_dtype = pandas_dtype_func("Int64")
@@ -1020,7 +1029,7 @@ def convert_dtypes(
             elif (
                 infer_objects
                 and is_object_dtype(input_array.dtype)
-                and inferred_dtype == "integer"
+                and (isinstance(inferred_dtype, str) and inferred_dtype == "integer")
             ):
                 inferred_dtype = target_int_dtype
 
@@ -1047,7 +1056,10 @@ def convert_dtypes(
             elif (
                 infer_objects
                 and is_object_dtype(input_array.dtype)
-                and inferred_dtype == "mixed-integer-float"
+                and (
+                    isinstance(inferred_dtype, str)
+                    and inferred_dtype == "mixed-integer-float"
+                )
             ):
                 inferred_dtype = pandas_dtype_func("Float64")
 
@@ -1062,7 +1074,27 @@ def convert_dtypes(
             inferred_dtype = input_array.dtype
 
     else:
-        return input_array.dtype
+        inferred_dtype = input_array.dtype
+
+    if nullable_backend == "pyarrow":
+        from pandas.core.arrays.arrow.array import to_pyarrow_type
+        from pandas.core.arrays.arrow.dtype import ArrowDtype
+        from pandas.core.arrays.string_ import StringDtype
+
+        if isinstance(inferred_dtype, PandasExtensionDtype):
+            base_dtype = inferred_dtype.base
+        elif isinstance(inferred_dtype, (BaseMaskedDtype, ArrowDtype)):
+            base_dtype = inferred_dtype.numpy_dtype
+        elif isinstance(inferred_dtype, StringDtype):
+            base_dtype = np.dtype(str)
+        else:
+            # error: Incompatible types in assignment (expression has type
+            # "Union[str, Any, dtype[Any], ExtensionDtype]",
+            # variable has type "Union[dtype[Any], ExtensionDtype, None]")
+            base_dtype = inferred_dtype  # type: ignore[assignment]
+        pa_type = to_pyarrow_type(base_dtype)
+        if pa_type is not None:
+            inferred_dtype = ArrowDtype(pa_type)
 
     # error: Incompatible return value type (got "Union[str, Union[dtype[Any],
     # ExtensionDtype]]", expected "Union[dtype[Any], ExtensionDtype]")
@@ -1137,9 +1169,7 @@ def maybe_cast_to_datetime(
 
     # TODO: _from_sequence would raise ValueError in cases where
     #  _ensure_nanosecond_dtype raises TypeError
-    # Incompatible types in assignment (expression has type "Union[dtype[Any],
-    # ExtensionDtype]", variable has type "Optional[dtype[Any]]")
-    dtype = _ensure_nanosecond_dtype(dtype)  # type: ignore[assignment]
+    _ensure_nanosecond_dtype(dtype)
 
     if is_timedelta64_dtype(dtype):
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
@@ -1177,12 +1207,11 @@ def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarra
     return values
 
 
-def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
+def _ensure_nanosecond_dtype(dtype: DtypeObj) -> None:
     """
     Convert dtypes with granularity less than nanosecond to nanosecond
 
     >>> _ensure_nanosecond_dtype(np.dtype("M8[us]"))
-    dtype('<M8[us]')
 
     >>> _ensure_nanosecond_dtype(np.dtype("M8[D]"))
     Traceback (most recent call last):
@@ -1219,7 +1248,6 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
                 f"dtype={dtype} is not supported. Supported resolutions are 's', "
                 "'ms', 'us', and 'ns'"
             )
-    return dtype
 
 
 # TODO: other value-dependent functions to standardize here include
@@ -1497,9 +1525,7 @@ def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
     return result
 
 
-def maybe_cast_to_integer_array(
-    arr: list | np.ndarray, dtype: np.dtype, copy: bool = False
-) -> np.ndarray:
+def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.ndarray:
     """
     Takes any dtype and returns the casted version, raising for when data is
     incompatible with integer/unsigned integer dtypes.
@@ -1510,8 +1536,6 @@ def maybe_cast_to_integer_array(
         The array to cast.
     dtype : np.dtype
         The integer dtype to cast the array to.
-    copy: bool, default False
-        Whether to make a copy of the array before returning.
 
     Returns
     -------
@@ -1543,14 +1567,18 @@ def maybe_cast_to_integer_array(
 
     try:
         if not isinstance(arr, np.ndarray):
-            casted = np.array(arr, dtype=dtype, copy=copy)
+            casted = np.array(arr, dtype=dtype, copy=False)
         else:
-            casted = arr.astype(dtype, copy=copy)
+            casted = arr.astype(dtype, copy=False)
     except OverflowError as err:
         raise OverflowError(
             "The elements provided in the data cannot all be "
             f"casted to the dtype {dtype}"
         ) from err
+
+    if isinstance(arr, np.ndarray) and arr.dtype == dtype:
+        # avoid expensive array_equal check
+        return casted
 
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
