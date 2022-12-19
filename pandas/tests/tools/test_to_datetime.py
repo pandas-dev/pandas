@@ -746,7 +746,7 @@ class TestToDatetime:
     )
     @pytest.mark.parametrize("errors", ["raise", "coerce", "ignore"])
     def test_error_iso_week_year(self, msg, s, _format, errors):
-        # See GH#16607
+        # See GH#16607, GH#50308
         # This test checks for errors thrown when giving the wrong format
         # However, as discussed on PR#25541, overriding the locale
         # causes a different error to be thrown due to the format being
