@@ -2304,8 +2304,8 @@ class Styler(StylerRenderer):
                             "selector": f"thead tr:nth-child({obj.nlevels+1}) th",
                             "props": props
                             + (
-                                f"top:{(i+1) * pixel_size}px; height:{pixel_size}px; "
-                                "z-index:2;"
+                                f"top:{(len(levels_)) * pixel_size}px; "
+                                f"height:{pixel_size}px; z-index:2;"
                             ),
                         }
                     )

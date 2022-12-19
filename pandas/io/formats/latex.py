@@ -160,8 +160,7 @@ class RowStringConverter(ABC):
             def pad_empties(x):
                 for pad in reversed(x):
                     if pad:
-                        break
-                return [x[0]] + [i if i else " " * len(pad) for i in x[1:]]
+                        return [x[0]] + [i if i else " " * len(pad) for i in x[1:]]
 
             gen = (pad_empties(i) for i in out)
 
