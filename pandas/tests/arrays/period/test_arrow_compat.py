@@ -28,6 +28,7 @@ def test_arrow_extension_type():
     assert hash(p1) != hash(p3)
 
 
+@pytest.mark.xfail(not pa_version_under10p0, reason="Wrong behavior with pyarrow 10")
 @pytest.mark.parametrize(
     "data, freq",
     [
@@ -54,12 +55,8 @@ def test_arrow_array(data, freq):
     with pytest.raises(TypeError, match=msg):
         pa.array(periods, type="float64")
 
-    if pa_version_under10p0:
-        with pytest.raises(TypeError, match="different 'freq'"):
-            pa.array(periods, type=ArrowPeriodType("T"))
-    else:
-        result = pa.array(periods, type=ArrowPeriodType("T"))
-        assert result.equals(expected)
+    with pytest.raises(TypeError, match="different 'freq'"):
+        pa.array(periods, type=ArrowPeriodType("T"))
 
 
 def test_arrow_array_missing():
