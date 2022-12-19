@@ -10540,7 +10540,7 @@ Parrot 2  Parrot       24.0
         out = df._constructor(res).iloc[0]
         if out_dtype is not None:
             out = out.astype(out_dtype)
-        if len(self) == 0 and name in ["sum", "prod"]:
+        if len(self) == 0 and name in ("mean", "std", "var", "median", "sum", "prod"):
             # Even if we are object dtype, follow numpy and return
             #  float64, see test_apply_funcs_over_empty
             out = out.astype(np.float64)

@@ -728,20 +728,10 @@ class TestDataFrameAnalytics:
             "any": "bool",
             "all": "bool",
             "count": "intp",
-            "sum": "float",
-            "prod": "float",
-            "skew": "float",
-            "kurt": "float",
-            "sem": "float",
-        }.get(all_reductions, "object")
-        if using_array_manager and all_reductions in (
-            "max",
-            "min",
-            "mean",
-            "std",
-            "var",
-            "median",
-        ):
+            "max": "object",
+            "min": "object",
+        }.get(all_reductions, "float")
+        if using_array_manager and all_reductions in ("max", "min"):
             expected_dtype = "float"
         expected = Series([], index=index, dtype=expected_dtype)
         tm.assert_series_equal(result, expected)
