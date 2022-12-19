@@ -414,13 +414,18 @@ class TestIntervalIndex:
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 
-    def test_maybe_convert_i8_numeric(self, any_real_numpy_dtype):
+    @pytest.mark.parametrize(
+        "make_key", [lambda breaks: breaks, list],
+        ids=["lambda", "list"],
+    )
+    def test_maybe_convert_i8_numeric(self, make_key, any_real_numpy_dtype):
         # GH 20636
         breaks = np.arange(5, dtype=any_real_numpy_dtype)
         index = IntervalIndex.from_breaks(breaks)
+        key = make_key(breaks)
 
-        result = index._maybe_convert_i8(breaks)
-        expected = Index(breaks)
+        result = index._maybe_convert_i8(key)
+        expected = Index(key)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
