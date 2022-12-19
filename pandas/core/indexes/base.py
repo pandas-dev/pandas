@@ -4783,18 +4783,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _get_join_target(self) -> ArrayLike:
         """
-        Get the ndarray that we can pass to the join functions.
-        """
-        vals = self._values
-        if isinstance(vals, StringArray):
-            # GH#45652 much more performant than ExtensionEngine
-            return vals._ndarray
-        if type(self) is Index and isinstance(self._values, ExtensionArray):
-            return self._values.astype(object)
-        return vals
-
-    def _get_join_target(self) -> ArrayLike:
-        """
         Get the ndarray or ExtensionArray that we can pass to the join
         functions.
         """
