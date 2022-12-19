@@ -220,6 +220,7 @@ disable = [
   "too-many-public-methods",
   "too-many-return-statements",
   "too-many-statements",
+  "undefined-loop-variable",
   "unexpected-keyword-arg",
   "ungrouped-imports",
   "unsubscriptable-object",
@@ -279,7 +280,6 @@ disable = [
   "signature-differs",
   "super-init-not-called",
   "try-except-raise",
-  "undefined-loop-variable",
   "unnecessary-lambda",
   "unspecified-encoding",
   "unused-argument",
@@ -290,7 +290,7 @@ disable = [
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
 minversion =  "6.0"
-addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
+addopts = "--strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
 testpaths = "pandas"

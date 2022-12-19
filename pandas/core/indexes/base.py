@@ -73,7 +73,7 @@ from pandas.util._exceptions import (
     rewrite_exception,
 )
 
-from pandas.core.dtypes.astype import astype_nansafe
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
@@ -992,8 +992,8 @@ class Index(IndexOpsMixin, PandasObject):
                 # GH#38607 see test_astype_str_from_bytes
                 new_values = values.astype(dtype, copy=copy)
             else:
-                # GH#13149 specifically use astype_nansafe instead of astype
-                new_values = astype_nansafe(values, dtype=dtype, copy=copy)
+                # GH#13149 specifically use astype_array instead of astype
+                new_values = astype_array(values, dtype=dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the astype above
         if self._is_backward_compat_public_numeric_index:
@@ -6158,6 +6158,11 @@ class Index(IndexOpsMixin, PandasObject):
         # We are a plain index here (sub-class override this method if they
         # wish to have special treatment for floats/ints, e.g. Float64Index and
         # datetimelike Indexes
+        # Special case numeric EA Indexes, since they are not handled by NumericIndex
+
+        if is_extension_array_dtype(self.dtype) and is_numeric_dtype(self.dtype):
+            return self._maybe_cast_indexer(label)
+
         # reject them, if index does not contain label
         if (is_float(label) or is_integer(label)) and label not in self:
             self._raise_invalid_indexer("slice", label)
