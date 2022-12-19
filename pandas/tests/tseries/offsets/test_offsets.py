@@ -742,10 +742,13 @@ class TestDateOffset:
     @pytest.mark.parametrize(
         "offset_kwargs, expected_arg",
         [
+            ({"seconds": 1, "milliseconds": 1}, "2022-01-01 00:00:01.001"),
             ({"minutes": 1, "milliseconds": 1}, "2022-01-01 00:01:00.001"),
             ({"hours": 1, "milliseconds": 1}, "2022-01-01 01:00:00.001"),
             ({"days": 1, "milliseconds": 1}, "2022-01-02 00:00:00.001"),
             ({"weeks": 1, "milliseconds": 1}, "2022-01-08 00:00:00.001"),
+            ({"months": 1, "milliseconds": 1}, "2022-02-01 00:00:00.001"),
+            ({"years": 1, "milliseconds": 1}, "2023-01-01 00:00:00.001"),
         ],
     )
     def test_milliseconds_combination(self, offset_kwargs, expected_arg):

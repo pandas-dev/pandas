@@ -336,6 +336,11 @@ cdef _determine_offset(kwds):
         # This also handles "milliseconds" (plur): see GH 49897
         return timedelta(**kwds_no_nanos), False
 
+    # convert milliseconds to microseconds, so relativedelta can parse it
+    if "milliseconds" in kwds_no_nanos:
+        micro = kwds_no_nanos.pop("milliseconds") * 1000
+        kwds_no_nanos["microseconds"] = kwds_no_nanos.get("microseconds", 0) + micro
+
     if all(k in kwds_use_relativedelta for k in kwds_no_nanos):
         return relativedelta(**kwds_no_nanos), True
 
