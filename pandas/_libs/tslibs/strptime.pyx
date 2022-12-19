@@ -121,6 +121,38 @@ def array_strptime(
                 raise ValueError("Cannot use '%W' or '%U' without day and year")
         elif "%Z" in fmt and "%z" in fmt:
             raise ValueError("Cannot parse both %Z and %z")
+        elif "%j" in fmt and "%G" in fmt:
+            raise ValueError("Day of the year directive '%j' is not "
+                             "compatible with ISO year directive '%G'. "
+                             "Use '%Y' instead.")
+        elif "%G" in fmt and (
+            "%V" not in fmt
+            or not (
+                "%A" in fmt
+                or "%a" in fmt
+                or "%w" in fmt
+                or "%u" in fmt
+            )
+        ):
+            raise ValueError("ISO year directive '%G' must be used with "
+                             "the ISO week directive '%V' and a weekday "
+                             "directive '%A', '%a', '%w', or '%u'.")
+        elif "%V" in fmt and "%Y" in fmt:
+            raise ValueError("ISO week directive '%V' is incompatible with "
+                             "the year directive '%Y'. Use the ISO year "
+                             "'%G' instead.")
+        elif "%V" in fmt and (
+            "%G" not in fmt
+            or not (
+                "%A" in fmt
+                or "%a" in fmt
+                or "%w" in fmt
+                or "%u" in fmt
+            )
+        ):
+            raise ValueError("ISO week directive '%V' must be used with "
+                             "the ISO year directive '%G' and a weekday "
+                             "directive '%A', '%a', '%w', or '%u'.")
 
     global _TimeRE_cache, _regex_cache
     with _cache_lock:
@@ -157,7 +189,7 @@ def array_strptime(
     for i in range(n):
         val = values[i]
         if isinstance(val, str):
-            if val in nat_strings:
+            if len(val) == 0 or val in nat_strings:
                 iresult[i] = NPY_NAT
                 continue
         elif checknull_with_nat_and_na(val):
@@ -327,26 +359,6 @@ def array_strptime(
             elif parse_code == 22:
                 weekday = int(found_dict["u"])
                 weekday -= 1
-
-        # don't assume default values for ISO week/year
-        if iso_year != -1:
-            if iso_week == -1 or weekday == -1:
-                raise ValueError("ISO year directive '%G' must be used with "
-                                 "the ISO week directive '%V' and a weekday "
-                                 "directive '%A', '%a', '%w', or '%u'.")
-            if julian != -1:
-                raise ValueError("Day of the year directive '%j' is not "
-                                 "compatible with ISO year directive '%G'. "
-                                 "Use '%Y' instead.")
-        elif year != -1 and week_of_year == -1 and iso_week != -1:
-            if weekday == -1:
-                raise ValueError("ISO week directive '%V' must be used with "
-                                 "the ISO year directive '%G' and a weekday "
-                                 "directive '%A', '%a', '%w', or '%u'.")
-            else:
-                raise ValueError("ISO week directive '%V' is incompatible with "
-                                 "the year directive '%Y'. Use the ISO year "
-                                 "'%G' instead.")
 
         # If we know the wk of the year and what day of that wk, we can figure
         # out the Julian day of the year.

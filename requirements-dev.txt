@@ -9,7 +9,6 @@ pytest-cov
 pytest-xdist>=1.31
 psutil
 pytest-asyncio>=0.17
-boto3
 coverage
 python-dateutil
 numpy
@@ -17,7 +16,6 @@ pytz
 beautifulsoup4
 blosc
 brotlipy
-botocore
 bottleneck
 fastparquet
 fsspec
@@ -49,18 +47,17 @@ xarray
 xlrd
 xlsxwriter
 zstandard
-aiobotocore<2.0.0
 dask
 seaborn
 moto
 flask
-asv
+asv>=0.5.1
 black==22.10.0
 cpplint
 flake8==6.0.0
 flake8-bugbear==22.7.1
 isort>=5.2.1
-mypy==0.990
+mypy==0.991
 pre-commit>=2.15.0
 pycodestyle
 pyupgrade
