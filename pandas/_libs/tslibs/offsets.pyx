@@ -302,13 +302,13 @@ cdef _determine_offset(kwds):
         # GH 45643/45890: (historically) defaults to 1 day
         return timedelta(days=1), False
 
-    _nanos = {"nanosecond", "nanoseconds"}
+    nanos = {"nanosecond", "nanoseconds"}
 
     # nanos are handled by apply_wraps
-    if all(k in _nanos for k in kwds):
+    if all(k in nanos for k in kwds):
         return timedelta(days=0), False
 
-    kwds_no_nanos = {k: v for k, v in kwds.items() if k not in _nanos}
+    kwds_no_nanos = {k: v for k, v in kwds.items() if k not in nanos}
 
     if "millisecond" in kwds_no_nanos:
         raise NotImplementedError(
@@ -321,19 +321,23 @@ cdef _determine_offset(kwds):
     kwds_use_relativedelta = {
         "year", "month", "day", "hour", "minute",
         "second", "microsecond", "weekday", "years", "months", "weeks", "days",
-        "hours", "seconds", "microseconds"
+        "hours", "minutes", "seconds", "microseconds"
     }
+
+    # "weeks" and "days" are left out despite being valid args for timedelta,
+    # because (historically) timedelta is used only for sub-daily.
     kwds_use_timedelta = {
-        "days", "seconds", "microseconds", "milliseconds", "minutes", "hours", "weeks"
+        "seconds", "microseconds", "milliseconds", "minutes", "hours",
     }
+
+    # check timedelta before relativedelta: maintain compatibility with old tests
+    if all(k in kwds_use_timedelta for k in kwds_no_nanos):
+        # Sub-daily offset - use timedelta (tz-aware)
+        # This also handles "milliseconds" (plur): see GH 49897
+        return timedelta(**kwds_no_nanos), False
 
     if all(k in kwds_use_relativedelta for k in kwds_no_nanos):
         return relativedelta(**kwds_no_nanos), True
-
-    if all(k in kwds_use_timedelta for k in kwds_no_nanos):
-        # Sub-daily offset - use timedelta (tz-aware).
-        # This also handles "milliseconds" (plur): see GH 49897
-        return timedelta(**kwds_no_nanos), False
 
     raise ValueError(
         f"Invalid argument/s or bad combination of arguments: {list(kwds.keys())}"

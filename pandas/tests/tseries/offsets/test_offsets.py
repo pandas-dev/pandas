@@ -742,31 +742,20 @@ class TestDateOffset:
     @pytest.mark.parametrize(
         "offset_kwargs, expected_arg",
         [
-            ({"days": 1, "milliseconds": 1}, "2022-01-02 00:0:00.001"),
+            ({"minutes": 1, "milliseconds": 1}, "2022-01-01 00:01:00.001"),
             ({"hours": 1, "milliseconds": 1}, "2022-01-01 01:00:00.001"),
+            ({"days": 1, "milliseconds": 1}, "2022-01-02 00:00:00.001"),
+            ({"weeks": 1, "milliseconds": 1}, "2022-01-08 00:00:00.001"),
         ],
     )
     def test_milliseconds_combination(self, offset_kwargs, expected_arg):
-        # GH 10525
+        # GH 49897
         offset = DateOffset(**offset_kwargs)
         ts = Timestamp("2022-01-01")
         result = ts + offset
         expected = Timestamp(expected_arg)
 
         assert result == expected
-
-    @pytest.mark.parametrize(
-        "offset_kwargs",
-        [
-            ({"months": 1, "milliseconds": 1}),
-            ({"months": 1, "minutes": 1}),
-        ],
-    )
-    def test_milliseconds_bad_combination(self, offset_kwargs):
-        # GH 10525
-        msg_re = "^Invalid argument/s or bad combination of arguments:"
-        with pytest.raises(ValueError, match=msg_re):
-            DateOffset(**offset_kwargs)
 
 
 class TestOffsetNames:
