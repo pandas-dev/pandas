@@ -812,7 +812,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in constructing :class:`Series` with ``int64`` dtype from a string list raising instead of casting (:issue:`44923`)
-- Bug in constructing :class:´Series` with masked dtype and boolean values with ``NA`` raising (:issue:`42137`)
+- Bug in constructing :class:`Series` with masked dtype and boolean values with ``NA`` raising (:issue:`42137`)
 - Bug in :meth:`DataFrame.eval` incorrectly raising an ``AttributeError`` when there are negative values in function call (:issue:`46471`)
 - Bug in :meth:`Series.convert_dtypes` not converting dtype to nullable dtype when :class:`Series` contains ``NA`` and has dtype ``object`` (:issue:`48791`)
 - Bug where any :class:`ExtensionDtype` subclass with ``kind="M"`` would be interpreted as a timezone type (:issue:`34986`)
