@@ -18,10 +18,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    NumericIndex,
-)
+from pandas.core.api import Float64Index
 import pandas.core.common as com
 
 
@@ -417,33 +414,33 @@ class TestIntervalIndex:
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "breaks",
-        [np.arange(5, dtype="int64"), np.arange(5, dtype="float64")],
-        ids=lambda x: str(x.dtype),
-    )
+    def test_maybe_convert_i8_numeric(self, any_real_numpy_dtype):
+        # GH 20636
+        breaks = np.arange(5, dtype=any_real_numpy_dtype)
+        index = IntervalIndex.from_breaks(breaks)
+
+        result = index._maybe_convert_i8(breaks)
+        expected = Index(breaks)
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "make_key",
         [
             IntervalIndex.from_breaks,
             lambda breaks: Interval(breaks[0], breaks[1]),
-            lambda breaks: breaks,
             lambda breaks: breaks[0],
-            list,
         ],
-        ids=["IntervalIndex", "Interval", "Index", "scalar", "list"],
+        ids=["IntervalIndex", "Interval", "scalar"],
     )
-    def test_maybe_convert_i8_numeric(self, breaks, make_key):
+    def test_maybe_convert_i8_numeric_identical(self, make_key, any_real_numpy_dtype):
         # GH 20636
+        breaks = np.arange(5, dtype=any_real_numpy_dtype)
         index = IntervalIndex.from_breaks(breaks)
         key = make_key(breaks)
 
+        # test if _maybe_convert_i8 won't change key if an Interval or IntervalIndex
         result = index._maybe_convert_i8(key)
-        if not isinstance(result, NumericIndex):
-            assert result is key
-        else:
-            expected = NumericIndex(key)
-            tm.assert_index_equal(result, expected)
+        assert result is key
 
     @pytest.mark.parametrize(
         "breaks1, breaks2",
