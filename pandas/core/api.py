@@ -42,6 +42,7 @@ from pandas.core.arrays.integer import (
     UInt64Dtype,
 )
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.case_when import case_when
 from pandas.core.construction import array
 from pandas.core.flags import Flags
 from pandas.core.groupby import (
@@ -80,11 +81,13 @@ from pandas.tseries.offsets import DateOffset
 # DataFrame needs to be imported after NamedAgg to avoid a circular import
 from pandas.core.frame import DataFrame  # isort:skip
 
+
 __all__ = [
     "array",
     "ArrowDtype",
     "bdate_range",
     "BooleanDtype",
+    "case_when",
     "Categorical",
     "CategoricalDtype",
     "CategoricalIndex",
