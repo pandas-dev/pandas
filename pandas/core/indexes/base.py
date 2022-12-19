@@ -5612,7 +5612,6 @@ class Index(IndexOpsMixin, PandasObject):
             tgt_values = engine._extract_level_codes(target)  # type: ignore[union-attr]
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
-
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @final
