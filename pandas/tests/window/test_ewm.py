@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import UnsupportedFunctionCall
-
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -10,7 +8,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.window import ExponentialMovingWindow
 
 
 def test_doc_string():
@@ -62,23 +59,6 @@ def test_constructor(frame_or_series):
     for alpha in (-0.5, 1.5):
         with pytest.raises(ValueError, match=msg):
             c(alpha=alpha)
-
-
-@pytest.mark.parametrize("method", ["std", "mean", "var"])
-def test_numpy_compat(method):
-    # see gh-12811
-    e = ExponentialMovingWindow(Series([2, 4, 6]), alpha=0.5)
-
-    error_msg = "numpy operations are not valid with window objects"
-
-    warn_msg = f"Passing additional args to ExponentialMovingWindow.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(e, method)(1, 2, 3)
-    warn_msg = f"Passing additional kwargs to ExponentialMovingWindow.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(e, method)(dtype=np.float64)
 
 
 def test_ewma_times_not_datetime_type():

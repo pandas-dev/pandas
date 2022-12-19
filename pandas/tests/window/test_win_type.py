@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import UnsupportedFunctionCall
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -72,23 +71,6 @@ def test_constructor_with_win_type(frame_or_series, win_types):
     # GH 12669
     c = frame_or_series(range(5)).rolling
     c(win_type=win_types, window=2)
-
-
-@pytest.mark.parametrize("method", ["sum", "mean"])
-def test_numpy_compat(method):
-    # see gh-12811
-    w = Series([2, 4, 6]).rolling(window=2)
-
-    error_msg = "numpy operations are not valid with window objects"
-
-    warn_msg = f"Passing additional args to Rolling.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(w, method)(1, 2, 3)
-    warn_msg = f"Passing additional kwargs to Rolling.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(w, method)(dtype=np.float64)
 
 
 @td.skip_if_no_scipy

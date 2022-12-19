@@ -40,24 +40,6 @@ kwargs_numeric_only = dedent(
     """
 ).replace("\n", "", 1)
 
-args_compat = dedent(
-    """
-    *args
-        For NumPy compatibility and will not have an effect on the result.
-
-        .. deprecated:: 1.5.0\n
-    """
-).replace("\n", "", 1)
-
-kwargs_compat = dedent(
-    """
-    **kwargs
-        For NumPy compatibility and will not have an effect on the result.
-
-        .. deprecated:: 1.5.0\n
-    """
-).replace("\n", "", 1)
-
 kwargs_scipy = dedent(
     """
     **kwargs
