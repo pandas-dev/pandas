@@ -1958,147 +1958,9 @@ class DataFrame(NDFrame, OpsMixin):
         [defaultdict(<class 'list'>, {'col1': 1, 'col2': 0.5}),
          defaultdict(<class 'list'>, {'col1': 2, 'col2': 0.75})]
         """
-        if not self.columns.is_unique:
-            warnings.warn(
-                "DataFrame columns are not unique, some columns will be omitted.",
-                UserWarning,
-                stacklevel=find_stack_level(),
-            )
-        # GH16122
-        into_c = com.standardize_mapping(into)
+        from pandas.core.methods.to_dict import to_dict
 
-        #  error: Incompatible types in assignment (expression has type "str",
-        # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',
-        # 'records', 'index']")
-        orient = orient.lower()  # type: ignore[assignment]
-
-        if not index and orient not in ["split", "tight"]:
-            raise ValueError(
-                "'index=False' is only valid when 'orient' is 'split' or 'tight'"
-            )
-
-        if orient == "series":
-            # GH46470 Return quickly if orient series to avoid creating dtype objects
-            return into_c((k, v) for k, v in self.items())
-
-        object_dtype_indices = [
-            i
-            for i, col_dtype in enumerate(self.dtypes.values)
-            if is_object_dtype(col_dtype)
-        ]
-        are_all_object_dtype_cols = len(object_dtype_indices) == len(self.dtypes)
-
-        if orient == "dict":
-            return into_c((k, v.to_dict(into)) for k, v in self.items())
-
-        elif orient == "list":
-            object_dtype_indices_as_set = set(object_dtype_indices)
-            return into_c(
-                (
-                    k,
-                    list(map(maybe_box_native, v.tolist()))
-                    if i in object_dtype_indices_as_set
-                    else v.tolist(),
-                )
-                for i, (k, v) in enumerate(self.items())
-            )
-
-        elif orient == "split":
-            data = self._create_data_for_split_and_tight_to_dict(
-                are_all_object_dtype_cols, object_dtype_indices
-            )
-
-            return into_c(
-                ((("index", self.index.tolist()),) if index else ())
-                + (
-                    ("columns", self.columns.tolist()),
-                    ("data", data),
-                )
-            )
-
-        elif orient == "tight":
-            data = self._create_data_for_split_and_tight_to_dict(
-                are_all_object_dtype_cols, object_dtype_indices
-            )
-
-            return into_c(
-                ((("index", self.index.tolist()),) if index else ())
-                + (
-                    ("columns", self.columns.tolist()),
-                    (
-                        "data",
-                        [
-                            list(map(maybe_box_native, t))
-                            for t in self.itertuples(index=False, name=None)
-                        ],
-                    ),
-                )
-                + ((("index_names", list(self.index.names)),) if index else ())
-                + (("column_names", list(self.columns.names)),)
-            )
-
-        elif orient == "records":
-            columns = self.columns.tolist()
-            if are_all_object_dtype_cols:
-                rows = (
-                    dict(zip(columns, row))
-                    for row in self.itertuples(index=False, name=None)
-                )
-                return [
-                    into_c((k, maybe_box_native(v)) for k, v in row.items())
-                    for row in rows
-                ]
-            else:
-                data = [
-                    into_c(zip(columns, t))
-                    for t in self.itertuples(index=False, name=None)
-                ]
-                if object_dtype_indices:
-                    object_dtype_indices_as_set = set(object_dtype_indices)
-                    object_dtype_cols = {
-                        col
-                        for i, col in enumerate(self.columns)
-                        if i in object_dtype_indices_as_set
-                    }
-                    for row in data:
-                        for col in object_dtype_cols:
-                            row[col] = maybe_box_native(row[col])
-                return data
-
-        elif orient == "index":
-            if not self.index.is_unique:
-                raise ValueError("DataFrame index must be unique for orient='index'.")
-            columns = self.columns.tolist()
-            if are_all_object_dtype_cols:
-                return into_c(
-                    (t[0], dict(zip(self.columns, map(maybe_box_native, t[1:]))))
-                    for t in self.itertuples(name=None)
-                )
-            elif object_dtype_indices:
-                object_dtype_indices_as_set = set(object_dtype_indices)
-                is_object_dtype_by_index = [
-                    i in object_dtype_indices_as_set for i in range(len(self.columns))
-                ]
-                return into_c(
-                    (
-                        t[0],
-                        {
-                            columns[i]: maybe_box_native(v)
-                            if is_object_dtype_by_index[i]
-                            else v
-                            for i, v in enumerate(t[1:])
-                        },
-                    )
-                    for t in self.itertuples(name=None)
-                )
-            else:
-                return into_c(
-                    (t[0], dict(zip(self.columns, t[1:])))
-                    for t in self.itertuples(name=None)
-                )
-
-        else:
-            raise ValueError(f"orient '{orient}' not understood")
+        return to_dict(self, orient, into, index)
 
     def to_gbq(
         self,
@@ -3786,9 +3648,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return self._getitem_multilevel(key)
         # Do we have a slicer (on rows)?
         if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(
-                key, kind="getitem", is_frame=True
-            )
+            indexer = self.index._convert_slice_indexer(key, kind="getitem")
             if isinstance(indexer, np.ndarray):
                 # reachable with DatetimeIndex
                 indexer = lib.maybe_indices_to_slice(
@@ -3967,7 +3827,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # see if we can slice the rows
         if isinstance(key, slice):
-            slc = self.index._convert_slice_indexer(key, kind="getitem", is_frame=True)
+            slc = self.index._convert_slice_indexer(key, kind="getitem")
             return self._setitem_slice(slc, value)
 
         if isinstance(key, DataFrame) or getattr(key, "ndim", None) == 2:
@@ -4087,7 +3947,7 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("Array conditional must be same shape as self")
             key = self._constructor(key, **self._construct_axes_dict())
 
-        if key.size and not is_bool_dtype(key.values):
+        if key.size and not all(is_bool_dtype(dtype) for dtype in key.dtypes):
             raise TypeError(
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )

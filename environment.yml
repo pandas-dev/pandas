@@ -16,7 +16,6 @@ dependencies:
   - pytest-xdist>=1.31
   - psutil
   - pytest-asyncio>=0.17
-  - boto3
   - coverage
 
   # required dependencies
@@ -28,7 +27,6 @@ dependencies:
   - beautifulsoup4
   - blosc
   - brotlipy
-  - botocore
   - bottleneck
   - fastparquet
   - fsspec
@@ -62,7 +60,6 @@ dependencies:
   - zstandard
 
   # downstream packages
-  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
   - dask-core
   - seaborn-base
 
@@ -71,7 +68,7 @@ dependencies:
   - flask
 
   # benchmarks
-  - asv
+  - asv>=0.5.1
 
   # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler
@@ -83,7 +80,7 @@ dependencies:
   - flake8=6.0.0
   - flake8-bugbear=22.7.1 # used by flake8, find likely bugs
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.990
+  - mypy=0.991
   - pre-commit>=2.15.0
   - pycodestyle  # used by flake8
   - pyupgrade
