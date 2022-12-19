@@ -1263,8 +1263,6 @@ def test_groupby_mixed_type_columns():
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: Ensure warning isn't emitted in the first place
-@pytest.mark.filterwarnings("ignore:Mean of:RuntimeWarning")
 def test_cython_grouper_series_bug_noncontig():
     arr = np.empty((100, 100))
     arr.fill(np.nan)
@@ -1879,9 +1877,6 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
-@pytest.mark.filterwarnings("ignore:The default value of numeric_only:FutureWarning")
-@pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
-@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_empty_groupby(columns, keys, values, method, op, request, using_array_manager):
     # GH8093 & GH26411
     override_dtype = None
@@ -2743,18 +2738,10 @@ def test_groupby_none_column_name():
 
 def test_single_element_list_grouping():
     # GH 42795
-    df = DataFrame(
-        {"a": [np.nan, 1], "b": [np.nan, 5], "c": [np.nan, 2]}, index=["x", "y"]
-    )
-    msg = (
-        "In a future version of pandas, a length 1 "
-        "tuple will be returned when iterating over "
-        "a groupby with a grouper equal to a list of "
-        "length 1. Don't supply a list with a single grouper "
-        "to avoid this warning."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        values, _ = next(iter(df.groupby(["a"])))
+    df = DataFrame({"a": [1, 2], "b": [np.nan, 5], "c": [np.nan, 2]}, index=["x", "y"])
+    result = [key for key, _ in df.groupby(["a"])]
+    expected = [(1,), (2,)]
+    assert result == expected
 
 
 @pytest.mark.parametrize("func", ["sum", "cumsum", "cumprod", "prod"])

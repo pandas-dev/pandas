@@ -9,6 +9,7 @@ from typing import (
 import warnings
 
 import numpy as np
+import pytz
 
 from pandas._libs import (
     NaT,
@@ -555,7 +556,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         except TypeError as err:
             raise KeyError(key) from err
 
-    def get_loc(self, key, method=None, tolerance=None):
+    def get_loc(self, key):
         """
         Get integer location for requested label
 
@@ -578,7 +579,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
             try:
                 parsed, reso = self._parse_with_reso(key)
-            except ValueError as err:
+            except (ValueError, pytz.NonExistentTimeError) as err:
                 raise KeyError(key) from err
             self._disallow_mismatched_indexing(parsed)
 
@@ -586,8 +587,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 try:
                     return self._partial_date_slice(reso, parsed)
                 except KeyError as err:
-                    if method is None:
-                        raise KeyError(key) from err
+                    raise KeyError(key) from err
 
             key = parsed
 
@@ -598,10 +598,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             )
 
         elif isinstance(key, dt.time):
-            if method is not None:
-                raise NotImplementedError(
-                    "cannot yet lookup inexact labels when key is a time object"
-                )
             return self.indexer_at_time(key)
 
         else:
@@ -609,7 +605,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             raise KeyError(key)
 
         try:
-            return Index.get_loc(self, key, method, tolerance)
+            return Index.get_loc(self, key)
         except KeyError as err:
             raise KeyError(orig_key) from err
 
@@ -842,7 +838,7 @@ def date_range(
 
     Returns
     -------
-    rng : DatetimeIndex
+    DatetimeIndex
 
     See Also
     --------

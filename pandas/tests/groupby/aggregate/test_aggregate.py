@@ -468,6 +468,16 @@ def test_groupby_agg_coercing_bools():
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_agg_dict_with_getitem():
+    # issue 25471
+    dat = DataFrame({"A": ["A", "A", "B", "B", "B"], "B": [1, 2, 1, 1, 2]})
+    result = dat.groupby("A")[["B"]].agg({"B": "sum"})
+
+    expected = DataFrame({"B": [3, 4]}, index=["A", "B"]).rename_axis("A", axis=0)
+
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "op",
     [
@@ -674,7 +684,7 @@ class TestNamedAggregationSeries:
 
         # but we do allow this
         result = gr.agg([])
-        expected = DataFrame()
+        expected = DataFrame(columns=[])
         tm.assert_frame_equal(result, expected)
 
     def test_series_named_agg_duplicates_no_raises(self):
@@ -1075,7 +1085,6 @@ class TestLambdaMangling:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="GH-26611. kwargs for multi-agg.")
-    @pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
     def test_with_kwargs(self):
         f1 = lambda x, y, b=1: x.sum() + y + b
         f2 = lambda x, y, b=2: x.sum() + y * b

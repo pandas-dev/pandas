@@ -472,7 +472,6 @@ class Grouping:
 
         ilevel = self._ilevel
         if ilevel is not None:
-            mapper = self.grouping_vector
             # In extant tests, the new self.grouping_vector matches
             #  `index.get_level_values(ilevel)` whenever
             #  mapper is None and isinstance(index, MultiIndex)
@@ -480,11 +479,12 @@ class Grouping:
                 index_level = index.get_level_values(ilevel)
             else:
                 index_level = index
-            (
-                self.grouping_vector,  # Index
-                self._codes,
-                self._group_index,
-            ) = index_level._get_grouper_for_level(mapper, dropna=dropna)
+
+            if self.grouping_vector is None:
+                self.grouping_vector = index_level
+            else:
+                mapper = self.grouping_vector
+                self.grouping_vector = index_level.map(mapper)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -600,10 +600,6 @@ class Grouping:
 
     @property
     def codes(self) -> npt.NDArray[np.signedinteger]:
-        if self._codes is not None:
-            # _codes is set in __init__ for MultiIndex cases
-            return self._codes
-
         return self._codes_and_uniques[0]
 
     @cache_readonly
@@ -612,13 +608,12 @@ class Grouping:
         Analogous to result_index, but holding an ArrayLike to ensure
         we can retain ExtensionDtypes.
         """
-        if self._group_index is not None:
-            # _group_index is set in __init__ for MultiIndex cases
-            return self._group_index._values
-
-        elif self._all_grouper is not None:
+        if self._all_grouper is not None:
             # retain dtype for categories, including unobserved ones
             return self.result_index._values
+
+        elif self._passed_categorical:
+            return self.group_index._values
 
         return self._codes_and_uniques[1]
 
@@ -629,18 +624,31 @@ class Grouping:
         if self._all_grouper is not None:
             group_idx = self.group_index
             assert isinstance(group_idx, CategoricalIndex)
-            categories = self._all_grouper.categories
+            cats = self._orig_cats
             # set_categories is dynamically added
-            return group_idx.set_categories(categories)  # type: ignore[attr-defined]
+            return group_idx.set_categories(cats)  # type: ignore[attr-defined]
         return self.group_index
 
     @cache_readonly
     def group_index(self) -> Index:
-        if self._group_index is not None:
-            # _group_index is set in __init__ for MultiIndex cases
-            return self._group_index
-
-        uniques = self._codes_and_uniques[1]
+        codes, uniques = self._codes_and_uniques
+        if not self._dropna and self._passed_categorical:
+            assert isinstance(uniques, Categorical)
+            if self._sort and (codes == len(uniques)).any():
+                # Add NA value on the end when sorting
+                uniques = Categorical.from_codes(
+                    np.append(uniques.codes, [-1]), uniques.categories
+                )
+            else:
+                # Need to determine proper placement of NA value when not sorting
+                cat = self.grouping_vector
+                na_idx = (cat.codes < 0).argmax()
+                if cat.codes[na_idx] < 0:
+                    # count number of unique codes that comes before the nan value
+                    na_unique_idx = algorithms.nunique_ints(cat.codes[:na_idx])
+                    uniques = Categorical.from_codes(
+                        np.insert(uniques.codes, na_unique_idx, -1), uniques.categories
+                    )
         return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
@@ -663,9 +671,28 @@ class Grouping:
             uniques = Categorical.from_codes(
                 codes=ucodes, categories=categories, ordered=cat.ordered
             )
+
+            codes = cat.codes
+            if not self._dropna:
+                na_mask = codes < 0
+                if np.any(na_mask):
+                    if self._sort:
+                        # Replace NA codes with `largest code + 1`
+                        na_code = len(categories)
+                        codes = np.where(na_mask, na_code, codes)
+                    else:
+                        # Insert NA code into the codes based on first appearance
+                        # A negative code must exist, no need to check codes[na_idx] < 0
+                        na_idx = na_mask.argmax()
+                        # count number of unique codes that comes before the nan value
+                        na_code = algorithms.nunique_ints(codes[:na_idx])
+                        codes = np.where(codes >= na_code, codes + 1, codes)
+                        codes = np.where(na_mask, na_code, codes)
+
             if not self._observed:
                 uniques = uniques.reorder_categories(self._orig_cats)
-            return cat.codes, uniques
+
+            return codes, uniques
 
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers

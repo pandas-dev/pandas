@@ -385,10 +385,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if index is not None:
             index = ensure_index(index)
 
-        if data is None:
-            data = {}
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
+
+        if data is None:
+            index = index if index is not None else default_index(0)
+            if len(index) or dtype is not None:
+                data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+            else:
+                data = []
 
         if isinstance(data, MultiIndex):
             raise NotImplementedError(
@@ -1818,7 +1823,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             # Not an object dtype => all types will be the same so let the default
             # indexer return native python type
-            return into_c((k, v) for k, v in self.items())
+            return into_c(self.items())
 
     def to_frame(self, name: Hashable = lib.no_default) -> DataFrame:
         """
@@ -2995,9 +3000,10 @@ Name: Max Speed, dtype: float64
             assert isinstance(res2, Series)
             return (res1, res2)
 
-        # We do not pass dtype to ensure that the Series constructor
-        #  does inference in the case where `result` has object-dtype.
-        out = self._constructor(result, index=self.index)
+        # TODO: result should always be ArrayLike, but this fails for some
+        #  JSONArray tests
+        dtype = getattr(result, "dtype", None)
+        out = self._constructor(result, index=self.index, dtype=dtype)
         out = out.__finalize__(self)
 
         # Set the result's name after __finalize__ is called because __finalize__
@@ -4116,8 +4122,6 @@ Keep all original rows and also all original values
     def explode(self, ignore_index: bool = False) -> Series:
         """
         Transform each element of a list-like to a row.
-
-        .. versionadded:: 0.25.0
 
         Parameters
         ----------
@@ -5406,6 +5410,7 @@ Keep all original rows and also all original values
                 input_series = input_series.copy()
 
         if convert_string or convert_integer or convert_boolean or convert_floating:
+            nullable_backend = get_option("mode.nullable_backend")
             inferred_dtype = convert_dtypes(
                 input_series._values,
                 convert_string,
@@ -5413,6 +5418,7 @@ Keep all original rows and also all original values
                 convert_boolean,
                 convert_floating,
                 infer_objects,
+                nullable_backend,
             )
             result = input_series.astype(inferred_dtype)
         else:

@@ -33,7 +33,7 @@ dependencies:
   - gcsfs
   - jinja2
   - lxml
-  - matplotlib
+  - matplotlib>=3.6.1
   - numba
   - numexpr
   - openpyxl
@@ -42,7 +42,7 @@ dependencies:
   - psycopg2
   - pymysql
   - pytables
-  - pyarrow
+  - pyarrow<10
   - pyreadstat
   - python-snappy
   - pyxlsb

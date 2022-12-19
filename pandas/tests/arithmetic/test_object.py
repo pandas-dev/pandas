@@ -73,6 +73,18 @@ class TestObjectComparisons:
 
 
 class TestArithmetic:
+    def test_add_period_to_array_of_offset(self):
+        # GH#50162
+        per = pd.Period("2012-1-1", freq="D")
+        pi = pd.period_range("2012-1-1", periods=10, freq="D")
+        idx = per - pi
+
+        expected = pd.Index([x + per for x in idx], dtype=object)
+        result = idx + per
+        tm.assert_index_equal(result, expected)
+
+        result = per + idx
+        tm.assert_index_equal(result, expected)
 
     # TODO: parametrize
     def test_pow_ops_object(self):
@@ -187,7 +199,8 @@ class TestArithmetic:
             dtype=dtype,
         )
         expected = Series(
-            [pd.Timedelta("4 days"), pd.Timedelta("5 days"), pd.Timedelta("6 days")]
+            [pd.Timedelta("4 days"), pd.Timedelta("5 days"), pd.Timedelta("6 days")],
+            dtype=dtype,
         )
 
         result = pd.Timedelta("3 days") + ser
@@ -227,7 +240,9 @@ class TestArithmetic:
             name="xxx",
         )
         assert ser2.dtype == object
-        exp = Series([pd.Timedelta("2 days"), pd.Timedelta("4 days")], name="xxx")
+        exp = Series(
+            [pd.Timedelta("2 days"), pd.Timedelta("4 days")], name="xxx", dtype=object
+        )
         tm.assert_series_equal(ser2 - ser, exp)
         tm.assert_series_equal(ser - ser2, -exp)
 
@@ -238,7 +253,11 @@ class TestArithmetic:
         )
         assert ser.dtype == object
 
-        exp = Series([pd.Timedelta("01:30:00"), pd.Timedelta("02:30:00")], name="xxx")
+        exp = Series(
+            [pd.Timedelta("01:30:00"), pd.Timedelta("02:30:00")],
+            name="xxx",
+            dtype=object,
+        )
         tm.assert_series_equal(ser + pd.Timedelta("00:30:00"), exp)
         tm.assert_series_equal(pd.Timedelta("00:30:00") + ser, exp)
 
