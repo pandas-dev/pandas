@@ -663,7 +663,7 @@ Removal of prior version deprecations/changes
 - Enforced disallowing using :func:`merge` or :func:`join` on a different number of levels (:issue:`34862`)
 - Enforced disallowing ``value_name`` argument in :func:`DataFrame.melt` to match an element in the :class:`DataFrame` columns (:issue:`35003`)
 - Enforced disallowing passing ``showindex`` into ``**kwargs`` in :func:`DataFrame.to_markdown` and :func:`Series.to_markdown` in favor of ``index`` (:issue:`33091`)
-- Removed setting Categorical._codes directly (:issue:`41429`)
+- Removed setting Categorical._codes directly (:issue:`49258`)
 - Removed setting Categorical.categories directly (:issue:`47834`)
 - Removed argument ``inplace`` from :meth:`Categorical.add_categories`, :meth:`Categorical.remove_categories`, :meth:`Categorical.set_categories`, :meth:`Categorical.rename_categories`, :meth:`Categorical.reorder_categories`, :meth:`Categorical.set_ordered`, :meth:`Categorical.as_ordered`, :meth:`Categorical.as_unordered` (:issue:`37981`, :issue:`41118`, :issue:`41133`, :issue:`47834`)
 - Enforced :meth:`Rolling.count` with ``min_periods=None`` to default to the size of the window (:issue:`31302`)
