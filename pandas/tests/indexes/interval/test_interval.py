@@ -415,7 +415,8 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "make_key", [lambda breaks: breaks, list],
+        "make_key",
+        [lambda breaks: breaks, list],
         ids=["lambda", "list"],
     )
     def test_maybe_convert_i8_numeric(self, make_key, any_real_numpy_dtype):
