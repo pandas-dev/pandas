@@ -73,6 +73,18 @@ class TestObjectComparisons:
 
 
 class TestArithmetic:
+    def test_add_period_to_array_of_offset(self):
+        # GH#50162
+        per = pd.Period("2012-1-1", freq="D")
+        pi = pd.period_range("2012-1-1", periods=10, freq="D")
+        idx = per - pi
+
+        expected = pd.Index([x + per for x in idx], dtype=object)
+        result = idx + per
+        tm.assert_index_equal(result, expected)
+
+        result = per + idx
+        tm.assert_index_equal(result, expected)
 
     # TODO: parametrize
     def test_pow_ops_object(self):
