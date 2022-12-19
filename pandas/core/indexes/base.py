@@ -73,7 +73,7 @@ from pandas.util._exceptions import (
     rewrite_exception,
 )
 
-from pandas.core.dtypes.astype import astype_nansafe
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
@@ -123,7 +123,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
-    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -1011,8 +1010,8 @@ class Index(IndexOpsMixin, PandasObject):
                 # GH#38607 see test_astype_str_from_bytes
                 new_values = values.astype(dtype, copy=copy)
             else:
-                # GH#13149 specifically use astype_nansafe instead of astype
-                new_values = astype_nansafe(values, dtype=dtype, copy=copy)
+                # GH#13149 specifically use astype_array instead of astype
+                new_values = astype_array(values, dtype=dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the astype above
         if self._is_backward_compat_public_numeric_index:
@@ -3864,7 +3863,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._validate_indexer("positional", key.stop, "iloc")
         self._validate_indexer("positional", key.step, "iloc")
 
-    def _convert_slice_indexer(self, key: slice, kind: str_t, is_frame: bool = False):
+    def _convert_slice_indexer(self, key: slice, kind: str_t):
         """
         Convert a slice indexer.
 
@@ -3875,9 +3874,6 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         key : label of the slice bound
         kind : {'loc', 'getitem'}
-        is_frame : bool, default False
-            Whether this is a slice called on DataFrame.__getitem__
-            as opposed to Series.__getitem__
         """
         assert kind in ["loc", "getitem"], kind
 
@@ -3900,42 +3896,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         if kind == "getitem":
             # called from the getitem slicers, validate that we are in fact integers
-            if self.is_integer():
-                if is_frame:
-                    # unambiguously positional, no deprecation
-                    pass
-                elif start is None and stop is None:
-                    # label-based vs positional is irrelevant
-                    pass
-                elif isinstance(self, ABCRangeIndex) and self._range == range(
-                    len(self)
-                ):
-                    # In this case there is no difference between label-based
-                    #  and positional, so nothing will change.
-                    pass
-                elif (
-                    self.dtype.kind in ["i", "u"]
-                    and self._is_strictly_monotonic_increasing
-                    and len(self) > 0
-                    and self[0] == 0
-                    and self[-1] == len(self) - 1
-                ):
-                    # We are range-like, e.g. created with Index(np.arange(N))
-                    pass
-                elif not is_index_slice:
-                    # we're going to raise, so don't bother warning, e.g.
-                    #  test_integer_positional_indexing
-                    pass
-                else:
-                    warnings.warn(
-                        "The behavior of `series[i:j]` with an integer-dtype index "
-                        "is deprecated. In a future version, this will be treated "
-                        "as *label-based* indexing, consistent with e.g. `series[i]` "
-                        "lookups. To retain the old behavior, use `series.iloc[i:j]`. "
-                        "To get the future behavior, use `series.loc[i:j]`.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
             if self.is_integer() or is_index_slice:
                 # Note: these checks are redundant if we know is_index_slice
                 self._validate_indexer("slice", key.start, "getitem")
@@ -4738,8 +4698,11 @@ class Index(IndexOpsMixin, PandasObject):
         Whether we can use the fastpaths implement in _libs.join
         """
         if type(self) is Index:
-            # excludes EAs
-            return isinstance(self.dtype, np.dtype)
+            # excludes EAs, but include masks, we get here with monotonic
+            # values only, meaning no NA
+            return isinstance(self.dtype, np.dtype) or isinstance(
+                self.values, BaseMaskedArray
+            )
         return not is_interval_dtype(self.dtype)
 
     # --------------------------------------------------------------------
@@ -4830,11 +4793,23 @@ class Index(IndexOpsMixin, PandasObject):
             return self._values.astype(object)
         return vals
 
+    def _get_join_target(self) -> ArrayLike:
+        """
+        Get the ndarray or ExtensionArray that we can pass to the join
+        functions.
+        """
+        if isinstance(self._values, BaseMaskedArray):
+            # This is only used if our array is monotonic, so no NAs present
+            return self._values._data
+        return self._get_engine_target()
+
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """
         Cast the ndarray returned from one of the libjoin.foo_indexer functions
         back to type(self)._data.
         """
+        if isinstance(self.values, BaseMaskedArray):
+            return type(self.values)(result, np.zeros(result.shape, dtype=np.bool_))
         return result
 
     @doc(IndexOpsMixin._memory_usage)
@@ -6230,6 +6205,11 @@ class Index(IndexOpsMixin, PandasObject):
         # We are a plain index here (sub-class override this method if they
         # wish to have special treatment for floats/ints, e.g. Float64Index and
         # datetimelike Indexes
+        # Special case numeric EA Indexes, since they are not handled by NumericIndex
+
+        if is_extension_array_dtype(self.dtype) and is_numeric_dtype(self.dtype):
+            return self._maybe_cast_indexer(label)
+
         # reject them, if index does not contain label
         if (is_float(label) or is_integer(label)) and label not in self:
             self._raise_invalid_indexer("slice", label)

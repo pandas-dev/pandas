@@ -446,12 +446,11 @@ def test_use_nullabla_dtypes_and_dtype(all_parsers):
 
 
 @pytest.mark.usefixtures("pyarrow_xfail")
-@pytest.mark.parametrize("storage", ["pyarrow", "python"])
-def test_use_nullable_dtypes_string(all_parsers, storage):
+def test_use_nullable_dtypes_string(all_parsers, string_storage):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
 
-    with pd.option_context("mode.string_storage", storage):
+    with pd.option_context("mode.string_storage", string_storage):
 
         parser = all_parsers
 
@@ -461,7 +460,7 @@ b,
 """
         result = parser.read_csv(StringIO(data), use_nullable_dtypes=True)
 
-        if storage == "python":
+        if string_storage == "python":
             expected = DataFrame(
                 {
                     "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
@@ -493,13 +492,14 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
     parser = all_parsers
+    engine = parser.engine
 
     data = """a,b,c,d,e,f,g,h,i,j
 1,2.5,True,a,,,,,12-31-2019,
 3,4.5,False,b,6,7.5,True,a,12-31-2019,
 """
     with pd.option_context("mode.nullable_backend", "pyarrow"):
-        if parser.engine != "pyarrow":
+        if engine == "c":
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,
@@ -518,7 +518,10 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
                 "e": pd.Series([pd.NA, 6], dtype="int64[pyarrow]"),
                 "f": pd.Series([pd.NA, 7.5], dtype="float64[pyarrow]"),
                 "g": pd.Series([pd.NA, True], dtype="bool[pyarrow]"),
-                "h": pd.Series(["", "a"], dtype=pd.ArrowDtype(pa.string())),
+                "h": pd.Series(
+                    [pd.NA if engine == "python" else "", "a"],
+                    dtype=pd.ArrowDtype(pa.string()),
+                ),
                 "i": pd.Series([Timestamp("2019-12-31")] * 2),
                 "j": pd.Series([pd.NA, pd.NA], dtype="null[pyarrow]"),
             }
