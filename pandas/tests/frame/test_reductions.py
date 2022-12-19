@@ -1396,11 +1396,13 @@ class TestDataFrameReductions:
         res = df.min(axis=1, skipna=False)
         expected = Series([df.loc[0, "a"], pd.NaT])
         assert expected.dtype == df["a"].dtype
+
         tm.assert_series_equal(res, expected)
 
         res = df.max(axis=1, skipna=False)
         expected = Series([df.loc[0, "b"], pd.NaT])
         assert expected.dtype == df["a"].dtype
+
         tm.assert_series_equal(res, expected)
 
     def test_min_max_dt64_api_consistency_with_NaT(self):
