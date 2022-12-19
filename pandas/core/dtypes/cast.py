@@ -53,7 +53,6 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
     ensure_str,
-    is_array_like,
     is_bool,
     is_bool_dtype,
     is_complex,
@@ -427,9 +426,6 @@ def maybe_upcast_numeric_to_64bit(arr: NumpyIndexT) -> NumpyIndexT:
     -------
     ndarray or ExtensionArray
     """
-
-    if not is_array_like(arr):
-        return arr
     dtype = arr.dtype
     if not np.issubclass_(dtype.type, np.number):
         return arr

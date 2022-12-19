@@ -46,10 +46,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import IntCastingNaNError
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import (
-    LossySetitemError,
-    maybe_upcast_numeric_to_64bit,
-)
+from pandas.core.dtypes.cast import LossySetitemError
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
@@ -1791,5 +1788,6 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
 
     if not hasattr(values, "dtype"):
         values = np.asarray(values)
-        values = maybe_upcast_numeric_to_64bit(values)
+        if is_integer_dtype(values) and values.dtype != np.int64:
+            values = values.astype(np.int64)
     return values
