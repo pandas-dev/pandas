@@ -31,7 +31,6 @@ from pandas._typing import (
     DtypeObj,
     IntervalClosedType,
     npt,
-    NumpyIndexT,
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
@@ -45,10 +44,10 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     maybe_box_datetimelike,
     maybe_downcast_numeric,
+    maybe_upcast_numeric_to_64bit,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_array_like,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
@@ -61,8 +60,6 @@ from pandas.core.dtypes.common import (
     is_number,
     is_object_dtype,
     is_scalar,
-    is_signed_integer_dtype,
-    is_unsigned_integer_dtype,
 )
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
@@ -146,24 +143,6 @@ def _new_IntervalIndex(cls, d):
     arguments and breaks __new__.
     """
     return cls.from_arrays(**d)
-
-
-def maybe_convert_numeric_to_64bit(arr: NumpyIndexT) -> NumpyIndexT:
-    # IntervalTree only supports 64 bit numpy array
-
-    if not is_array_like(arr):
-        return arr
-    dtype = arr.dtype
-    if not np.issubclass_(dtype.type, np.number):
-        return arr
-    elif is_signed_integer_dtype(dtype) and dtype != np.int64:
-        return arr.astype(np.int64)
-    elif is_unsigned_integer_dtype(dtype) and dtype != np.uint64:
-        return arr.astype(np.uint64)
-    elif is_float_dtype(dtype) and dtype != np.float64:
-        return arr.astype(np.float64)
-    else:
-        return arr
 
 
 @Appender(
@@ -362,10 +341,11 @@ class IntervalIndex(ExtensionIndex):
     # "Union[IndexEngine, ExtensionEngine]" in supertype "Index"
     @cache_readonly
     def _engine(self) -> IntervalTree:  # type: ignore[override]
+        # IntervalTree does not supports numpy array unless they are 64 bit
         left = self._maybe_convert_i8(self.left)
-        left = maybe_convert_numeric_to_64bit(left)
+        left = maybe_upcast_numeric_to_64bit(left)
         right = self._maybe_convert_i8(self.right)
-        right = maybe_convert_numeric_to_64bit(right)
+        right = maybe_upcast_numeric_to_64bit(right)
         return IntervalTree(left, right, closed=self.closed)
 
     def __contains__(self, key: Any) -> bool:
@@ -544,7 +524,7 @@ class IntervalIndex(ExtensionIndex):
         """
         if is_list_like(key):
             key = ensure_index(key)
-            key = maybe_convert_numeric_to_64bit(key)
+            key = maybe_upcast_numeric_to_64bit(key)
 
         if not self._needs_i8_conversion(key):
             return key
