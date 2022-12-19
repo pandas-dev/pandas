@@ -680,6 +680,7 @@ def assert_extension_array_equal(
     check_exact: bool = False,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
+    obj: str = "ExtensionArray",
 ) -> None:
     """
     Check that left and right ExtensionArrays are equal.
@@ -702,6 +703,11 @@ def assert_extension_array_equal(
         Absolute tolerance. Only used when check_exact is False.
 
         .. versionadded:: 1.1.0
+    obj : str, default 'ExtensionArray'
+        Specify object name being compared, internally used to show appropriate
+        assertion message.
+
+        .. versionadded:: 2.0.0
 
     Notes
     -----
@@ -719,7 +725,7 @@ def assert_extension_array_equal(
     assert isinstance(left, ExtensionArray), "left is not an ExtensionArray"
     assert isinstance(right, ExtensionArray), "right is not an ExtensionArray"
     if check_dtype:
-        assert_attr_equal("dtype", left, right, obj="ExtensionArray")
+        assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
 
     if (
         isinstance(left, DatetimeLikeArrayMixin)
@@ -729,21 +735,24 @@ def assert_extension_array_equal(
         # Avoid slow object-dtype comparisons
         # np.asarray for case where we have a np.MaskedArray
         assert_numpy_array_equal(
-            np.asarray(left.asi8), np.asarray(right.asi8), index_values=index_values
+            np.asarray(left.asi8),
+            np.asarray(right.asi8),
+            index_values=index_values,
+            obj=obj,
         )
         return
 
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
     assert_numpy_array_equal(
-        left_na, right_na, obj="ExtensionArray NA mask", index_values=index_values
+        left_na, right_na, obj=f"{obj} NA mask", index_values=index_values
     )
 
     left_valid = left[~left_na].to_numpy(dtype=object)
     right_valid = right[~right_na].to_numpy(dtype=object)
     if check_exact:
         assert_numpy_array_equal(
-            left_valid, right_valid, obj="ExtensionArray", index_values=index_values
+            left_valid, right_valid, obj=obj, index_values=index_values
         )
     else:
         _testing.assert_almost_equal(
@@ -752,7 +761,7 @@ def assert_extension_array_equal(
             check_dtype=bool(check_dtype),
             rtol=rtol,
             atol=atol,
-            obj="ExtensionArray",
+            obj=obj,
             index_values=index_values,
         )
 
@@ -909,6 +918,7 @@ def assert_series_equal(
                 right_values,
                 check_dtype=check_dtype,
                 index_values=np.asarray(left.index),
+                obj=str(obj),
             )
         else:
             assert_numpy_array_equal(
@@ -955,6 +965,7 @@ def assert_series_equal(
             atol=atol,
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
+            obj=str(obj),
         )
     elif is_extension_array_dtype_and_needs_i8_conversion(
         left.dtype, right.dtype
@@ -964,6 +975,7 @@ def assert_series_equal(
             right._values,
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
+            obj=str(obj),
         )
     elif needs_i8_conversion(left.dtype) and needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
@@ -972,6 +984,7 @@ def assert_series_equal(
             right._values,
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
+            obj=str(obj),
         )
     else:
         _testing.assert_almost_equal(
