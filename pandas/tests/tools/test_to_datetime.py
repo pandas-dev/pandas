@@ -946,7 +946,7 @@ class TestToDatetime:
         expected = DatetimeIndex(
             [expected_ds, getattr(Timestamp, attribute)()], dtype="datetime64[ns, UTC]"
         )
-        assert (expected - result).max().total_seconds() < 1e-2
+        assert (expected - result).max().total_seconds() < 1
 
     @pytest.mark.parametrize(
         "dt", [np.datetime64("2000-01-01"), np.datetime64("2000-01-02")]
