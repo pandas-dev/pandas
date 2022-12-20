@@ -629,8 +629,8 @@ class TestToDatetime:
         "msg, s, _format",
         [
             [
-                "ISO week directive '%V' must be used with the ISO year directive "
-                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "ISO week directive '%V' is incompatible with the year directive "
+                "'%Y'. Use the ISO year '%G' instead.",
                 "1999 50",
                 "%Y %V",
             ],
@@ -706,10 +706,46 @@ class TestToDatetime:
                 "20",
                 "%V",
             ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "1999 51 Sunday",
+                "%V %A",
+            ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "1999 51 Sun",
+                "%V %a",
+            ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "1999 51 1",
+                "%V %w",
+            ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "1999 51 1",
+                "%V %u",
+            ],
+            [
+                "Day of the year directive '%j' is not compatible with ISO year "
+                "directive '%G'. Use '%Y' instead.",
+                "1999 50",
+                "%G %j",
+            ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "20 Monday",
+                "%V %A",
+            ],
         ],
     )
     def test_error_iso_week_year(self, msg, s, _format):
-        # See GH#16607
+        # See GH#16607, #50308
         # This test checks for errors thrown when giving the wrong format
         # However, as discussed on PR#25541, overriding the locale
         # causes a different error to be thrown due to the format being
@@ -2030,17 +2066,13 @@ class TestToDatetimeMisc:
         assert result == expected
 
     @td.skip_if_not_us_locale
-    def test_to_datetime_with_apply_with_empty_str(self, cache):
+    @pytest.mark.parametrize("errors", ["raise", "coerce", "ignore"])
+    def test_to_datetime_with_apply_with_empty_str(self, cache, errors):
         # this is only locale tested with US/None locales
-        # GH 5195
+        # GH 5195, GH50251
         # with a format and coerce a single item to_datetime fails
         td = Series(["May 04", "Jun 02", ""], index=[1, 2, 3])
-        msg = r"time data '' does not match format '%b %y' \(match\)"
-        with pytest.raises(ValueError, match=msg):
-            to_datetime(td, format="%b %y", errors="raise", cache=cache)
-        with pytest.raises(ValueError, match=msg):
-            td.apply(to_datetime, format="%b %y", errors="raise", cache=cache)
-        expected = to_datetime(td, format="%b %y", errors="coerce", cache=cache)
+        expected = to_datetime(td, format="%b %y", errors=errors, cache=cache)
 
         result = td.apply(
             lambda x: to_datetime(x, format="%b %y", errors="coerce", cache=cache)
@@ -2987,23 +3019,23 @@ def test_na_to_datetime(nulls_fixture, klass):
         assert result[0] is NaT
 
 
-def test_empty_string_datetime_coerce_format():
-    # GH13044
-    td = Series(["03/24/2016", "03/25/2016", ""])
-    format = "%m/%d/%Y"
+@pytest.mark.parametrize("errors", ["raise", "coerce", "ignore"])
+@pytest.mark.parametrize(
+    "args, format",
+    [
+        (["03/24/2016", "03/25/2016", ""], "%m/%d/%Y"),
+        (["2016-03-24", "2016-03-25", ""], "%Y-%m-%d"),
+    ],
+    ids=["non-ISO8601", "ISO8601"],
+)
+def test_empty_string_datetime(errors, args, format):
+    # GH13044, GH50251
+    td = Series(args)
 
     # coerce empty string to pd.NaT
-    result = to_datetime(td, format=format, errors="coerce")
+    result = to_datetime(td, format=format, errors=errors)
     expected = Series(["2016-03-24", "2016-03-25", NaT], dtype="datetime64[ns]")
     tm.assert_series_equal(expected, result)
-
-    # raise an exception in case a format is given
-    with pytest.raises(ValueError, match="does not match format"):
-        to_datetime(td, format=format, errors="raise")
-
-    # still raise an exception in case no format is given
-    with pytest.raises(ValueError, match="does not match format"):
-        to_datetime(td, errors="raise")
 
 
 def test_empty_string_datetime_coerce__unit():
