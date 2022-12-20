@@ -54,7 +54,7 @@ from pandas._libs.tslibs.timestamps import Timestamp
 
 cnp.import_array()
 
-cpdef bint format_is_iso(f: str):
+cdef bint format_is_iso(f: str):
     """
     Does format match the iso8601 set that can be handled by the C parser?
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
@@ -72,6 +72,11 @@ cpdef bint format_is_iso(f: str):
                                  ).startswith(f) and f not in excluded_formats):
                     return True
     return False
+
+
+def _test_format_is_iso(f: str) -> bool:
+    """Only used in testing."""
+    return format_is_iso(f)
 
 
 cdef bint parse_today_now(str val, int64_t* iresult, bint utc):

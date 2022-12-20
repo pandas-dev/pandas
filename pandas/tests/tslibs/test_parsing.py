@@ -315,7 +315,7 @@ def test_parse_time_string_check_instance_type_raise_exception():
 )
 def test_is_iso_format(fmt, expected):
     # see gh-41047
-    result = strptime.format_is_iso(fmt)
+    result = strptime._test_format_is_iso(fmt)
     assert result == expected
 
 
