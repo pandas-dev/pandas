@@ -875,6 +875,12 @@ class PythonParser(ParserBase):
                     or search not in x
                     or (self._no_thousands_columns and i in self._no_thousands_columns)
                     or not self.num.search(x.strip())
+                    or (
+                        self.columns
+                        and self.dtype
+                        and self.columns[i] in self.dtype
+                        and self.dtype[self.columns[i]] is str
+                    )
                 ):
                     rl.append(x)
                 else:
