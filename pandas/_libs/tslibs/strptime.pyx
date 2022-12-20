@@ -396,7 +396,8 @@ def array_strptime(
 
             result_timezone[i] = tz
 
-        except (ValueError, OutOfBoundsDatetime):
+        except (ValueError, OutOfBoundsDatetime) as ex:
+            ex.args = (str(ex) + f" at position {i}", )
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue

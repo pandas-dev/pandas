@@ -1093,7 +1093,10 @@ class TestToDatetime:
             to_datetime([False, datetime.today()], cache=cache)
         with pytest.raises(
             ValueError,
-            match=r"^time data 'True' does not match format '%Y%m%d' \(match\)$",
+            match=(
+                r"^time data 'True' does not match format '%Y%m%d' "
+                r"\(match\) at position 1$"
+            ),
         ):
             to_datetime(["20130101", True], cache=cache)
         tm.assert_index_equal(
@@ -2072,7 +2075,9 @@ class TestToDatetimeMisc:
     def test_to_datetime_with_space_in_series(self, cache):
         # GH 6428
         ser = Series(["10/18/2006", "10/18/2008", " "])
-        msg = r"^time data ' ' does not match format '%m/%d/%Y' \(match\)$"
+        msg = (
+            r"^time data ' ' does not match format '%m/%d/%Y' \(match\) at position 2$"
+        )
         with pytest.raises(ValueError, match=msg):
             to_datetime(ser, errors="raise", cache=cache)
         result_coerce = to_datetime(ser, errors="coerce", cache=cache)
@@ -2342,7 +2347,10 @@ class TestToDatetimeMisc:
 
         with pytest.raises(
             ValueError,
-            match=r"time data '03/30/2011' does not match format '%d/%m/%Y' \(match\)$",
+            match=(
+                r"time data '03/30/2011' does not match format '%d/%m/%Y' "
+                r"\(match\) at position 1$"
+            ),
         ):
             to_datetime(arr, dayfirst=True)
 
@@ -2923,17 +2931,22 @@ class TestOrigin:
                 to_datetime(["today", "yesterday"])
 
     @pytest.mark.parametrize(
-        "format, warning", [(None, UserWarning), ("%Y-%m-%d %H:%M:%S", None)]
+        "format, warning",
+        [
+            (None, UserWarning),
+            ("%Y-%m-%d %H:%M:%S", None),
+            ("%Y-%d-%m %H:%M:%S", None),
+        ],
     )
     def test_to_datetime_out_of_bounds_with_format_arg(self, format, warning):
         # see gh-23830
         msg = (
-            "Out of bounds nanosecond timestamp: 2417-10-27 00:00:00 "
-            "present at position 0"
+            r"Out of bounds nanosecond timestamp: 2417-10-10 00:00:00"
+            r".* at position 0"
         )
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             with tm.assert_produces_warning(warning, match="Could not infer format"):
-                to_datetime("2417-10-27 00:00:00", format=format)
+                to_datetime("2417-10-10 00:00:00", format=format)
 
     @pytest.mark.parametrize(
         "arg, origin, expected_str",
