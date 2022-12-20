@@ -134,7 +134,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
-    is_object_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
