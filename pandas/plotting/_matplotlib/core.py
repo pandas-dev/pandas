@@ -600,9 +600,9 @@ class MPLPlot(ABC):
             self.subplots = True
             data = reconstruct_data_with_by(self.data, by=self.by, cols=self.columns)
 
-        # GH16953, _convert is needed as fallback, for ``Series``
+        # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
-        data = data._convert(datetime=True, timedelta=True)
+        data = data.infer_objects()
         include_type = [np.number, "datetime", "datetimetz", "timedelta"]
 
         # GH23719, allow plotting boolean

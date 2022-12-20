@@ -32,6 +32,7 @@ vscode:
     - yzhang.markdown-all-in-one
     - eamodio.gitlens
     - lextudio.restructuredtext
+    - ritwickdey.liveserver
     # add or remove what you think is generally useful to most contributors
     # avoid adding too many. they each open a pop-up window
 

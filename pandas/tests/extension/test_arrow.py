@@ -443,15 +443,12 @@ class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
         if not pa.types.is_boolean(pa_dtype):
             request.node.add_marker(xfail_mark)
         op_name = all_boolean_reductions
-        s = pd.Series(data)
-        result = getattr(s, op_name)(skipna=skipna)
+        ser = pd.Series(data)
+        result = getattr(ser, op_name)(skipna=skipna)
         assert result is (op_name == "any")
 
 
 class TestBaseGroupby(base.BaseGroupbyTests):
-    def test_groupby_agg_extension(self, data_for_grouping, request):
-        super().test_groupby_agg_extension(data_for_grouping)
-
     def test_groupby_extension_no_sort(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
         if pa.types.is_boolean(pa_dtype):
@@ -515,9 +512,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
             )
         super().test_in_numeric_groupby(data_for_grouping)
 
-    @pytest.mark.filterwarnings(
-        "ignore:The default value of numeric_only:FutureWarning"
-    )
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
@@ -638,15 +632,17 @@ class TestBaseIndex(base.BaseIndexTests):
 
 
 class TestBaseInterface(base.BaseInterfaceTests):
-    @pytest.mark.xfail(reason="pyarrow.ChunkedArray does not support views.")
+    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views.")
     def test_view(self, data):
         super().test_view(data)
 
 
 class TestBaseMissing(base.BaseMissingTests):
-    @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     def test_dropna_array(self, data_missing):
-        super().test_dropna_array(data_missing)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under6p0, check_stacklevel=False
+        ):
+            super().test_dropna_array(data_missing)
 
     def test_fillna_no_op_returns_copy(self, data):
         with tm.maybe_produces_warning(
@@ -690,6 +686,13 @@ class TestBaseParsing(base.BaseParsingTests):
                 pytest.mark.xfail(
                     raises=NotImplementedError,
                     reason=f"Parameterized types with tz={pa_dtype.tz} not supported.",
+                )
+            )
+        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.unit in ("us", "ns"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=ValueError,
+                    reason="https://github.com/pandas-dev/pandas/issues/49767",
                 )
             )
         elif pa.types.is_binary(pa_dtype):
@@ -949,14 +952,26 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     def test_combine_add(self, data_repeated, request):
         pa_dtype = next(data_repeated(1)).dtype.pyarrow_dtype
-        if pa.types.is_temporal(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason=f"{pa_dtype} cannot be added to {pa_dtype}",
-                )
+        if pa.types.is_duration(pa_dtype):
+            # TODO: this fails on the scalar addition constructing 'expected'
+            #  but not in the actual 'combine' call, so may be salvage-able
+            mark = pytest.mark.xfail(
+                raises=TypeError,
+                reason=f"{pa_dtype} cannot be added to {pa_dtype}",
             )
-        super().test_combine_add(data_repeated)
+            request.node.add_marker(mark)
+            super().test_combine_add(data_repeated)
+
+        elif pa.types.is_temporal(pa_dtype):
+            # analogous to datetime64, these cannot be added
+            orig_data1, orig_data2 = data_repeated(2)
+            s1 = pd.Series(orig_data1)
+            s2 = pd.Series(orig_data2)
+            with pytest.raises(TypeError):
+                s1.combine(s2, lambda x1, x2: x1 + x2)
+
+        else:
+            super().test_combine_add(data_repeated)
 
     def test_searchsorted(self, data_for_sorting, as_series, request):
         pa_dtype = data_for_sorting.dtype.pyarrow_dtype
@@ -1406,3 +1421,65 @@ def test_astype_from_non_pyarrow(data):
     assert not isinstance(pd_array.dtype, ArrowDtype)
     assert isinstance(result.dtype, ArrowDtype)
     tm.assert_extension_array_equal(result, data)
+
+
+def test_to_numpy_with_defaults(data):
+    # GH49973
+    result = data.to_numpy()
+
+    pa_type = data._data.type
+    if pa.types.is_duration(pa_type) or pa.types.is_timestamp(pa_type):
+        expected = np.array(list(data))
+    else:
+        expected = np.array(data._data)
+
+    if data._hasna:
+        expected = expected.astype(object)
+        expected[pd.isna(data)] = pd.NA
+
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_setitem_null_slice(data):
+    # GH50248
+    orig = data.copy()
+
+    result = orig.copy()
+    result[:] = data[0]
+    expected = ArrowExtensionArray(
+        pa.array([data[0]] * len(data), type=data._data.type)
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+    result = orig.copy()
+    result[:] = data[::-1]
+    expected = data[::-1]
+    tm.assert_extension_array_equal(result, expected)
+
+    result = orig.copy()
+    result[:] = data.tolist()
+    expected = data
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_setitem_invalid_dtype(data):
+    # GH50248
+    pa_type = data._data.type
+    if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
+        fill_value = 123
+        err = pa.ArrowTypeError
+        msg = "Expected bytes"
+    elif (
+        pa.types.is_integer(pa_type)
+        or pa.types.is_floating(pa_type)
+        or pa.types.is_boolean(pa_type)
+    ):
+        fill_value = "foo"
+        err = pa.ArrowInvalid
+        msg = "Could not convert"
+    else:
+        fill_value = "foo"
+        err = pa.ArrowTypeError
+        msg = "cannot be converted"
+    with pytest.raises(err, match=msg):
+        data[:] = fill_value

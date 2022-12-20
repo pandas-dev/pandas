@@ -294,8 +294,6 @@ cache_dates : boolean, default True
   conversion. May produce significant speed-up when parsing duplicate
   date strings, especially ones with timezone offsets.
 
-  .. versionadded:: 0.25.0
-
 Iteration
 +++++++++
 
@@ -473,7 +471,9 @@ Setting ``use_nullable_dtypes=True`` will result in nullable dtypes for every co
    3,4.5,False,b,6,7.5,True,a,12-31-2019,
    """
 
-   pd.read_csv(StringIO(data), use_nullable_dtypes=True, parse_dates=["i"])
+   df = pd.read_csv(StringIO(data), use_nullable_dtypes=True, parse_dates=["i"])
+   df
+   df.dtypes
 
 .. _io.categorical:
 
@@ -970,17 +970,7 @@ To parse the mixed-timezone values as a datetime column, pass a partially-applie
 Inferring datetime format
 +++++++++++++++++++++++++
 
-If you have ``parse_dates`` enabled for some or all of your columns, and your
-datetime strings are all formatted the same way, you may get a large speed
-up by setting ``infer_datetime_format=True``.  If set, pandas will attempt
-to guess the format of your datetime strings, and then use a faster means
-of parsing the strings.  5-10x parsing speeds have been observed.  pandas
-will fallback to the usual parsing if either the format cannot be guessed
-or the format that was guessed cannot properly parse the entire column
-of strings.  So in general, ``infer_datetime_format`` should not have any
-negative consequences if enabled.
-
-Here are some examples of datetime strings that can be guessed (All
+Here are some examples of datetime strings that can be guessed (all
 representing December 30th, 2011 at 00:00:00):
 
 * "20111230"
@@ -990,19 +980,34 @@ representing December 30th, 2011 at 00:00:00):
 * "30/Dec/2011 00:00:00"
 * "30/December/2011 00:00:00"
 
-Note that ``infer_datetime_format`` is sensitive to ``dayfirst``.  With
+Note that format inference is sensitive to ``dayfirst``.  With
 ``dayfirst=True``, it will guess "01/12/2011" to be December 1st. With
 ``dayfirst=False`` (default) it will guess "01/12/2011" to be January 12th.
 
+If you try to parse a column of date strings, pandas will attempt to guess the format
+from the first non-NaN element, and will then parse the rest of the column with that
+format. If pandas fails to guess the format (for example if your first string is
+``'01 December US/Pacific 2000'``), then a warning will be raised and each
+row will be parsed individually by ``dateutil.parser.parse``. The safest
+way to parse dates is to explicitly set ``format=``.
+
 .. ipython:: python
 
-   # Try to infer the format for the index column
    df = pd.read_csv(
        "foo.csv",
        index_col=0,
        parse_dates=True,
-       infer_datetime_format=True,
    )
+   df
+
+In the case that you have mixed datetime formats within the same column, you'll need to
+first read it in as an object dtype and then apply :func:`to_datetime` to each element.
+
+.. ipython:: python
+
+   data = io.StringIO("date\n12 Jan 2000\n2000-01-13\n")
+   df = pd.read_csv(data)
+   df['date'] = df['date'].apply(pd.to_datetime)
    df
 
 .. ipython:: python
@@ -3829,8 +3834,6 @@ using the `odfpy <https://pypi.org/project/odfpy/>`__ module. The semantics and 
 OpenDocument spreadsheets match what can be done for `Excel files`_ using
 ``engine='odf'``.
 
-.. versionadded:: 0.25
-
 The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
 
 .. code-block:: python
@@ -5789,21 +5792,6 @@ Specifying this will return an iterator through chunks of the query result:
     for chunk in pd.read_sql_query("SELECT * FROM data_chunks", engine, chunksize=5):
         print(chunk)
 
-You can also run a plain query without creating a ``DataFrame`` with
-:func:`~pandas.io.sql.execute`. This is useful for queries that don't return values,
-such as INSERT. This is functionally equivalent to calling ``execute`` on the
-SQLAlchemy engine or db connection object. Again, you must use the SQL syntax
-variant appropriate for your database.
-
-.. code-block:: python
-
-   from pandas.io import sql
-
-   sql.execute("SELECT * FROM table_name", engine)
-   sql.execute(
-       "INSERT INTO table_name VALUES(?, ?, ?)", engine, params=[("id", 1, 12.2, True)]
-   )
-
 
 Engine connection examples
 ''''''''''''''''''''''''''
@@ -6133,8 +6121,6 @@ No official documentation is available for the SAS7BDAT format.
 
 SPSS formats
 ------------
-
-.. versionadded:: 0.25.0
 
 The top-level function :func:`read_spss` can read (but not write) SPSS
 SAV (.sav) and  ZSAV (.zsav) format files.
