@@ -196,11 +196,11 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     if typ == "string":
         return "object"
     elif typ == "integer":
-        return "int64"
+        return field.get("extDtype", "int64")
     elif typ == "number":
-        return "float64"
+        return field.get("extDtype", "float64")
     elif typ == "boolean":
-        return "bool"
+        return field.get("extDtype", "bool")
     elif typ == "duration":
         return "timedelta64"
     elif typ == "datetime":
