@@ -276,20 +276,36 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             return super()._str_contains(pat, case, flags, na, regex)
 
         if regex:
-            if case is False:
-                fallback_performancewarning()
-                return super()._str_contains(pat, case, flags, na, regex)
-            else:
-                result = pc.match_substring_regex(self._data, pat)
+            result = pc.match_substring_regex(self._data, pat, ignore_case=not case)
         else:
-            if case:
-                result = pc.match_substring(self._data, pat)
-            else:
-                result = pc.match_substring(pc.utf8_upper(self._data), pat.upper())
+            result = pc.match_substring(self._data, pat, ignore_case=not case)
         result = BooleanDtype().__from_arrow__(result)
         if not isna(na):
             result[isna(result)] = bool(na)
         return result
+
+    def _str_count(self, pat: str, flags: int = 0):
+        if flags:
+            fallback_performancewarning()
+            return super()._str_count(pat, flags)
+        result = pc.count_substring_regex(self._data, pat)
+        type_mapping = {pa.int32(): Int64Dtype(), pa.int64(): Int64Dtype()}
+        return result.to_pandas(types_mapper=type_mapping.get)
+
+    def _str_find(self, sub: str, start: int = 0, end: int | None = None):
+        if start != 0 and end is not None:
+            slices = pc.utf8_slice_codeunits(self._data, start, stop=end)
+            result = pc.find_substring(slices, sub)
+            not_found = pc.equal(result, -1)
+            offset_result = pc.add(result, end - start)
+            result = pc.if_else(not_found, result, offset_result)
+        elif start == 0 and end is None:
+            slices = self._data
+            result = pc.find_substring(slices, sub)
+        else:
+            return super()._str_find(sub, start, end)
+        type_mapping = {pa.int32(): Int64Dtype(), pa.int64(): Int64Dtype()}
+        return result.to_pandas(types_mapper=type_mapping.get)
 
     def _str_startswith(self, pat: str, na=None):
         pat = f"^{re.escape(pat)}"

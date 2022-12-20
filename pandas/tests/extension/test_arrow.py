@@ -38,7 +38,10 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_bool_dtype
+from pandas.api.types import (
+    is_bool_dtype,
+    is_string_dtype,
+)
 from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow", minversion="1.0.1")
@@ -510,7 +513,11 @@ class TestBaseGroupby(base.BaseGroupbyTests):
 
     def test_in_numeric_groupby(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+        if (
+            pa.types.is_integer(pa_dtype)
+            or pa.types.is_floating(pa_dtype)
+            or pa.types.is_string(pa_dtype)
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="ArrowExtensionArray doesn't support .sum() yet.",
@@ -619,7 +626,6 @@ class TestBaseDtype(base.BaseDtypeTests):
                 and (pa_dtype.unit != "ns" or pa_dtype.tz is not None)
             )
             or (pa.types.is_duration(pa_dtype) and pa_dtype.unit != "ns")
-            or pa.types.is_string(pa_dtype)
             or pa.types.is_binary(pa_dtype)
         ):
             request.node.add_marker(
@@ -631,6 +637,13 @@ class TestBaseDtype(base.BaseDtypeTests):
                 )
             )
         super().test_get_common_dtype(dtype)
+
+    def test_is_not_string_type(self, dtype):
+        pa_dtype = dtype.pyarrow_dtype
+        if pa.types.is_string(pa_dtype):
+            assert is_string_dtype(dtype)
+        else:
+            super().test_is_not_string_type(dtype)
 
 
 class TestBaseIndex(base.BaseIndexTests):

@@ -1248,7 +1248,9 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
         elif side == "right":
             pa_pad = pc.utf8_rpad
         elif side == "both":
-            pa_pad = pc.utf8_center
+            # https://github.com/apache/arrow/issues/15053
+            # pa_pad = pc.utf8_center
+            return super()._str_pad(width, side, fillchar)
         else:
             raise ValueError(
                 f"Invalid side: {side}. Side must be one of 'left', 'right', 'both'"
@@ -1341,18 +1343,20 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
 
-    def _str_encode(self, encoding: str, errors: str = "strict"):
-        if errors != "strict" or encoding.lower() != "utf-8":
-            fallback_performancewarning()
-            return super()._str_encode(encoding, errors)
-        return type(self)(self._data.cast(pa.binary()))
-
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if start != 0 or end is not None:
+        if start != 0 and end is not None:
             slices = pc.utf8_slice_codeunits(self._data, start, stop=end)
-        else:
+            result = pc.find_substring(slices, sub)
+            not_found = pc.equal(result, -1)
+            offset_result = pc.add(result, end - start)
+            result = pc.if_else(not_found, result, offset_result)
+        elif start == 0 and end is None:
             slices = self._data
-        return type(self)(pc.find_substring(slices, sub))
+            result = pc.find_substring(slices, sub)
+        else:
+            fallback_performancewarning()
+            return super()._str_find(sub, start, end)
+        return type(self)(result)
 
     def _str_get(self, i: int):
         lengths = pc.utf8_length(self._data)
@@ -1366,32 +1370,31 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
             start = i
             stop = i - 1
             step = -1
-        not_out_of_bounds = pc.invert(out_of_bounds.fill_null(True).combine_chunks())
-        selected = (
-            pc.utf8_slice_codeunits(self._data, start, stop=stop, step=step)
-            .combine_chunks()
-            .drop_null()
-        )
+        not_out_of_bounds = pc.invert(out_of_bounds.fill_null(True))
+        selected = pc.utf8_slice_codeunits(self._data, start, stop=stop, step=step)
         result = pa.array([None] * self._data.length(), type=self._data.type)
-        result = pc.replace_with_mask(result, not_out_of_bounds, selected)
+        result = pc.if_else(not_out_of_bounds, selected, result)
         return type(self)(result)
 
     def _str_join(self, sep: str):
-        if pa.types.is_list(self.dtype.pyarrow_dtype):
+        if isinstance(self._dtype, ArrowDtype) and pa.types.is_list(
+            self.dtype.pyarrow_dtype
+        ):
+            # Check ArrowDtype as ArrowString inherits and uses StringDtype
             return type(self)(pc.binary_join(self._data, sep))
         else:
             return super()._str_join(sep)
 
     def _str_partition(self, sep: str, expand: bool):
         result = super()._str_partition(sep, expand)
-        if expand:
+        if expand and isinstance(result, type(self)):
             # StringMethods._wrap_result needs numpy-like nested object
             result = result.to_numpy(dtype=object)
         return result
 
     def _str_rpartition(self, sep: str, expand: bool):
         result = super()._str_rpartition(sep, expand)
-        if expand:
+        if expand and isinstance(result, type(self)):
             # StringMethods._wrap_result needs numpy-like nested object
             result = result.to_numpy(dtype=object)
         return result

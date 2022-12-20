@@ -72,6 +72,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -385,7 +386,9 @@ class WrappedCythonOp:
             # All of the functions implemented here are ordinal, so we can
             #  operate on the tz-naive equivalents
             npvalues = values._ndarray.view("M8[ns]")
-        elif isinstance(values.dtype, StringDtype):
+        elif isinstance(values.dtype, StringDtype) or (
+            isinstance(values.dtype, ArrowDtype) and values.dtype.kind == "U"
+        ):
             # StringArray
             npvalues = values.to_numpy(object, na_value=np.nan)
         else:
@@ -401,9 +404,11 @@ class WrappedCythonOp:
         """
         Construct an ExtensionArray result from an ndarray result.
         """
-        dtype: BaseMaskedDtype | StringDtype
+        dtype: BaseMaskedDtype | StringDtype | ArrowDtype
 
-        if isinstance(values.dtype, StringDtype):
+        if isinstance(values.dtype, StringDtype) or (
+            isinstance(values.dtype, ArrowDtype) and values.dtype.kind == "U"
+        ):
             dtype = values.dtype
             string_array_cls = dtype.construct_array_type()
             return string_array_cls._from_sequence(res_values, dtype=dtype)
