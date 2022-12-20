@@ -50,3 +50,12 @@ else:
                 "-n=2",
             ]
         )
+        pd.test(
+            extra_args=[
+                "-m not clipboard and single_cpu",
+                "--skip-slow",
+                "--skip-network",
+                "--skip-db",
+                "--no-strict-data-files",
+            ]
+        )

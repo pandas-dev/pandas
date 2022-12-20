@@ -1,6 +1,6 @@
 set test_command=import pandas as pd; print(pd.__version__); ^
-pd.test(extra_args=['-m not clipboard and not single_cpu', '--skip-slow', '--skip-network', '--skip-db', '-n=2']); ^
-pd.test(extra_args=['-m not clipboard and single_cpu', '--skip-slow', '--skip-network', '--skip-db'])
+pd.test(extra_args=['-m not clipboard and not single_cpu', '--skip-slow', '--skip-network', '--skip-db', '--no-strict-data-files', '-n=2']); ^
+pd.test(extra_args=['-m not clipboard and single_cpu', '--skip-slow', '--skip-network', '--skip-db', '--no-strict-data-files'])
 
 python --version
 pip install pytz six numpy python-dateutil
