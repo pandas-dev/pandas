@@ -413,3 +413,11 @@ def test_array_not_registered(registry_without_decimal):
     result = pd.array(data, dtype=DecimalDtype)
     expected = DecimalArray._from_sequence(data)
     tm.assert_equal(result, expected)
+
+
+def test_array_to_numpy_na():
+    # GH#40638
+    arr = pd.array([pd.NA, 1], dtype="string")
+    result = arr.to_numpy(na_value=True, dtype=bool)
+    expected = np.array([True, True])
+    tm.assert_numpy_array_equal(result, expected)

@@ -428,7 +428,7 @@ def merge_asof(
 
     Returns
     -------
-    merged : DataFrame
+    DataFrame
 
     See Also
     --------
@@ -1933,7 +1933,7 @@ class _AsOfMerge(_OrderedMerge):
                 lo_dtype = left_on_0.dtype
             else:
                 lo_dtype = (
-                    self.left[left_on_0].dtype
+                    self.left._get_label_or_level_values(left_on_0).dtype
                     if left_on_0 in self.left.columns
                     else self.left.index.get_level_values(left_on_0)
                 )
@@ -1946,7 +1946,7 @@ class _AsOfMerge(_OrderedMerge):
                 ro_dtype = right_on_0.dtype
             else:
                 ro_dtype = (
-                    self.right[right_on_0].dtype
+                    self.right._get_label_or_level_values(right_on_0).dtype
                     if right_on_0 in self.right.columns
                     else self.right.index.get_level_values(right_on_0)
                 )
