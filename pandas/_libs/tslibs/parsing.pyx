@@ -818,26 +818,6 @@ class _timelex:
 _DATEUTIL_LEXER_SPLIT = _timelex.split
 
 
-def format_is_iso(f: str) -> bint:
-    """
-    Does format match the iso8601 set that can be handled by the C parser?
-    Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
-    but must be consistent.  Leading 0s in dates and times are optional.
-    """
-    iso_template = "%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S{micro_or_tz}".format
-    excluded_formats = ["%Y%m"]
-
-    for date_sep in [" ", "/", "\\", "-", ".", ""]:
-        for time_sep in [" ", "T"]:
-            for micro_or_tz in ["", "%z", ".%f", ".%f%z"]:
-                if (iso_template(date_sep=date_sep,
-                                 time_sep=time_sep,
-                                 micro_or_tz=micro_or_tz,
-                                 ).startswith(f) and f not in excluded_formats):
-                    return True
-    return False
-
-
 def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     """
     Guess the datetime format of a given datetime string.

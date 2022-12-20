@@ -8,7 +8,10 @@ from dateutil.parser import parse as du_parse
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import parsing
+from pandas._libs.tslibs import (
+    parsing,
+    strptime,
+)
 from pandas._libs.tslibs.parsing import parse_time_string
 import pandas.util._test_decorators as td
 
@@ -312,7 +315,7 @@ def test_parse_time_string_check_instance_type_raise_exception():
 )
 def test_is_iso_format(fmt, expected):
     # see gh-41047
-    result = parsing.format_is_iso(fmt)
+    result = strptime.format_is_iso(fmt)
     assert result == expected
 
 
