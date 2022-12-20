@@ -238,19 +238,30 @@ def test_guess_datetime_format_wrong_type_inputs(invalid_type_dt):
 
 
 @pytest.mark.parametrize(
-    "string,fmt",
+    "string,fmt,dayfirst,warning",
     [
-        ("2011-1-1", "%Y-%m-%d"),
-        ("1/1/2011", "%m/%d/%Y"),
-        ("30-1-2011", "%d-%m-%Y"),
-        ("2011-1-1 0:0:0", "%Y-%m-%d %H:%M:%S"),
-        ("2011-1-3T00:00:0", "%Y-%m-%dT%H:%M:%S"),
-        ("2011-1-1 00:00:00", "%Y-%m-%d %H:%M:%S"),
+        ("2011-1-1", "%Y-%m-%d", False, None),
+        ("2011-1-1", "%Y-%d-%m", True, None),
+        ("1/1/2011", "%m/%d/%Y", False, None),
+        ("1/1/2011", "%d/%m/%Y", True, None),
+        ("30-1-2011", "%d-%m-%Y", False, UserWarning),
+        ("30-1-2011", "%d-%m-%Y", True, None),
+        ("2011-1-1 0:0:0", "%Y-%m-%d %H:%M:%S", False, None),
+        ("2011-1-1 0:0:0", "%Y-%d-%m %H:%M:%S", True, None),
+        ("2011-1-3T00:00:0", "%Y-%m-%dT%H:%M:%S", False, None),
+        ("2011-1-3T00:00:0", "%Y-%d-%mT%H:%M:%S", True, None),
+        ("2011-1-1 00:00:00", "%Y-%m-%d %H:%M:%S", False, None),
+        ("2011-1-1 00:00:00", "%Y-%d-%m %H:%M:%S", True, None),
     ],
 )
-def test_guess_datetime_format_no_padding(string, fmt):
+def test_guess_datetime_format_no_padding(string, fmt, dayfirst, warning):
     # see gh-11142
-    result = parsing.guess_datetime_format(string)
+    msg = (
+        f"Parsing dates in {fmt} format when dayfirst=False was specified. "
+        "Pass `dayfirst=True` or specify a format to silence this warning."
+    )
+    with tm.assert_produces_warning(warning, match=msg):
+        result = parsing.guess_datetime_format(string, dayfirst=dayfirst)
     assert result == fmt
 
 
