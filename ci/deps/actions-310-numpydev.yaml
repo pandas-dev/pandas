@@ -22,5 +22,5 @@ dependencies:
     - "cython"
     - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
     - "--pre"
-    - "numpy"
+    - "numpy<1.24"
     - "scipy"
