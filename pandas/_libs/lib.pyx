@@ -1331,7 +1331,7 @@ cdef object _try_infer_map(object dtype):
     cdef:
         object val
         str attr
-    for attr in ["name", "kind", "base", "type"]:
+    for attr in ["kind", "name", "base", "type"]:
         val = getattr(dtype, attr, None)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]

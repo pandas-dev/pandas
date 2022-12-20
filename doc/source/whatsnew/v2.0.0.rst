@@ -768,6 +768,7 @@ Performance improvements
 - Performance improvement in :func:`merge` when not merging on the index - the new index will now be :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`49478`)
 - Performance improvement in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` when using any non-object dtypes (:issue:`46470`)
 - Performance improvement in :func:`read_html` when there are multiple tables (:issue:`49929`)
+- Performance improvement in :func:`pandas.api.types.infer_dtype` when inferring numpy dtypes (:issue:`xxxxx`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
