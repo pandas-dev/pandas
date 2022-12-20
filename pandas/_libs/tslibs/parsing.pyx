@@ -421,10 +421,10 @@ cdef parse_datetime_string_with_reso(
             parsed = datetime(
                 dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us
             )
-            if out_bestunit == NPY_DATETIMEUNIT.NPY_FR_ns:
-                # No picoseconds, so no nanoseconds.
-                # Have to have seen microseconds, in order to have "seen" nanoseconds
-                out_bestunit = NPY_DATETIMEUNIT.NPY_FR_us
+            # if out_bestunit == NPY_DATETIMEUNIT.NPY_FR_ns:
+            #     # No picoseconds, so no nanoseconds.
+            #     # Have to have seen microseconds, in order to have "seen" nanoseconds
+            #     out_bestunit = NPY_DATETIMEUNIT.NPY_FR_us
         reso = {
             NPY_DATETIMEUNIT.NPY_FR_Y: "year",
             NPY_DATETIMEUNIT.NPY_FR_M: "month",
