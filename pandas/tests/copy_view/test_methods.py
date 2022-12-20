@@ -280,3 +280,20 @@ def test_head_tail(method, using_copy_on_write):
         # without CoW enabled, head and tail return views. Mutating df2 also mutates df.
         df2.iloc[0, 0] = 1
     tm.assert_frame_equal(df, df_orig)
+
+def test_droplevel(using_copy_on_write):
+    # GH 49473
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}).set_index(["a","b"])   
+    df_orig = df.copy()
+    df2 = df.droplevel(0) 
+    
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    else:
+        assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+
+    # mutating df2 triggers a copy-on-write for that column / block
+    df2.loc["b","c"] = 1
+    
+    assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    tm.assert_frame_equal(df, df_orig)

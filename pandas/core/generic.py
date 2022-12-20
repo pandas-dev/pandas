@@ -740,7 +740,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             # With copy=False, we create a new object but don't copy the
             #  underlying data.
-            obj = self.copy(deep=copy)
+            if copy:
+                obj = self.copy(deep=None)
             setattr(obj, obj._get_axis_name(axis), labels)
             return obj
 
