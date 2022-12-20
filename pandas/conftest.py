@@ -1162,7 +1162,7 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
     Raises
     ------
     ValueError
-        If the path doesn't exist and the --strict-data-files option is set.
+        If the path doesn't exist and the --no-strict-data-files option is set.
     """
     BASE_PATH = os.path.join(os.path.dirname(__file__), "tests")
 
