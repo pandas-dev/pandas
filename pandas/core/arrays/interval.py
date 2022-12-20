@@ -257,14 +257,20 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             closed = closed or infer_closed
 
             left, right, dtype = cls._ensure_simple_new_inputs(
-                left, right, closed=closed, copy=copy, dtype=dtype
+                left,
+                right,
+                closed=closed,
+                copy=copy,
+                dtype=dtype,
             )
+
+        if verify_integrity:
+            cls._validate(left, right, dtype=dtype)
 
         return cls._simple_new(
             left,
             right,
             dtype=dtype,
-            verify_integrity=verify_integrity,
         )
 
     @classmethod
@@ -273,15 +279,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         left,
         right,
         dtype: IntervalDtype,
-        verify_integrity: bool = True,
     ) -> IntervalArrayT:
         result = IntervalMixin.__new__(cls)
         result._left = left
         result._right = right
         result._dtype = dtype
-
-        if verify_integrity:
-            result._validate()
 
         return result
 
@@ -527,10 +529,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right = _maybe_convert_platform_interval(right)
 
         left, right, dtype = cls._ensure_simple_new_inputs(
-            left, right, closed=closed, copy=copy, dtype=dtype
+            left,
+            right,
+            closed=closed,
+            copy=copy,
+            dtype=dtype,
         )
+        cls._validate(left, right, dtype=dtype)
 
-        return cls._simple_new(left, right, dtype=dtype, verify_integrity=True)
+        return cls._simple_new(left, right, dtype=dtype)
 
     _interval_shared_docs["from_tuples"] = textwrap.dedent(
         """
@@ -615,32 +622,33 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return cls.from_arrays(left, right, closed, copy=False, dtype=dtype)
 
-    def _validate(self):
+    @classmethod
+    def _validate(cls, left, right, dtype: IntervalDtype) -> None:
         """
         Verify that the IntervalArray is valid.
 
         Checks that
 
-        * closed is valid
+        * dtype is correct
         * left and right match lengths
         * left and right have the same missing values
         * left is always below right
         """
-        if self.closed not in VALID_CLOSED:
-            msg = f"invalid option for 'closed': {self.closed}"
+        if not isinstance(dtype, IntervalDtype):
+            msg = f"invalid dtype: {dtype}"
             raise ValueError(msg)
-        if len(self._left) != len(self._right):
+        if len(left) != len(right):
             msg = "left and right must have the same length"
             raise ValueError(msg)
-        left_mask = notna(self._left)
-        right_mask = notna(self._right)
+        left_mask = notna(left)
+        right_mask = notna(right)
         if not (left_mask == right_mask).all():
             msg = (
                 "missing values must be missing in the same "
                 "location both left and right sides"
             )
             raise ValueError(msg)
-        if not (self._left[left_mask] <= self._right[left_mask]).all():
+        if not (left[left_mask] <= right[left_mask]).all():
             msg = "left side of interval must be <= right side"
             raise ValueError(msg)
 
@@ -657,7 +665,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         dtype = IntervalDtype(left.dtype, closed=self.closed)
         left, right, dtype = self._ensure_simple_new_inputs(left, right, dtype=dtype)
-        return self._simple_new(left, right, dtype=dtype, verify_integrity=False)
+        self._validate(left, right, dtype=dtype)
+
+        return self._simple_new(left, right, dtype=dtype)
 
     # ---------------------------------------------------------------------
     # Descriptive
@@ -1019,9 +1029,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         left = self._left.copy()
         right = self._right.copy()
-        closed = self.closed
-        # TODO: Could skip verify_integrity here.
-        return type(self).from_arrays(left, right, closed=closed)
+        dtype = self.dtype
+        return self._simple_new(left, right, dtype=dtype)
 
     def isna(self) -> np.ndarray:
         return isna(self._left)
@@ -1423,7 +1432,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         left, right = self._left, self._right
         dtype = IntervalDtype(left.dtype, closed=closed)
-        return self._simple_new(left, right, dtype=dtype, verify_integrity=False)
+        return self._simple_new(left, right, dtype=dtype)
 
     _interval_shared_docs[
         "is_non_overlapping_monotonic"
