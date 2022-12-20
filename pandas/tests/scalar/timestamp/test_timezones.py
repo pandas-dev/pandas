@@ -5,7 +5,9 @@ from datetime import (
     date,
     datetime,
     timedelta,
+    timezone,
 )
+import re
 
 import dateutil
 from dateutil.tz import (
@@ -102,7 +104,10 @@ class TestTimestampTZOperations:
         ts_no_dst = ts.tz_localize("US/Eastern", ambiguous=False)
 
         assert (ts_no_dst.value - ts_dst.value) / 1e9 == 3600
-        msg = "Cannot infer offset with only one time"
+        msg = re.escape(
+            "'ambiguous' parameter must be one of: "
+            "True, False, 'NaT', 'raise' (default)"
+        )
         with pytest.raises(ValueError, match=msg):
             ts.tz_localize("US/Eastern", ambiguous="infer")
 
@@ -141,9 +146,9 @@ class TestTimestampTZOperations:
         with pytest.raises(AmbiguousTimeError, match=msg):
             ts.tz_localize("US/Pacific", ambiguous="raise")
 
-    def test_tz_localize_nonexistent_invalid_arg(self):
+    def test_tz_localize_nonexistent_invalid_arg(self, warsaw):
         # GH 22644
-        tz = "Europe/Warsaw"
+        tz = warsaw
         ts = Timestamp("2015-03-29 02:00:00")
         msg = (
             "The nonexistent argument must be one of 'raise', 'NaT', "
@@ -182,8 +187,8 @@ class TestTimestampTZOperations:
 
         pytz_zone = "Europe/London"
         dateutil_zone = "dateutil/Europe/London"
-        result_pytz = naive.tz_localize(pytz_zone, ambiguous=0)
-        result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=0)
+        result_pytz = naive.tz_localize(pytz_zone, ambiguous=False)
+        result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=False)
         assert result_pytz.value == result_dateutil.value
         assert result_pytz.value == 1382835600000000000
 
@@ -194,8 +199,8 @@ class TestTimestampTZOperations:
         assert str(result_pytz) == str(result_dateutil)
 
         # 1 hour difference
-        result_pytz = naive.tz_localize(pytz_zone, ambiguous=1)
-        result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=1)
+        result_pytz = naive.tz_localize(pytz_zone, ambiguous=True)
+        result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=True)
         assert result_pytz.value == result_dateutil.value
         assert result_pytz.value == 1382832000000000000
 
@@ -291,27 +296,26 @@ class TestTimestampTZOperations:
         assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     @pytest.mark.parametrize("offset", [-1, 1])
-    @pytest.mark.parametrize("tz_type", ["", "dateutil/"])
-    def test_timestamp_tz_localize_nonexistent_shift_invalid(self, offset, tz_type):
+    def test_timestamp_tz_localize_nonexistent_shift_invalid(self, offset, warsaw):
         # GH 8917, 24466
-        tz = tz_type + "Europe/Warsaw"
+        tz = warsaw
         ts = Timestamp("2015-03-29 02:20:00")
         msg = "The provided timedelta will relocalize on a nonexistent time"
         with pytest.raises(ValueError, match=msg):
             ts.tz_localize(tz, nonexistent=timedelta(seconds=offset))
 
-    @pytest.mark.parametrize("tz", ["Europe/Warsaw", "dateutil/Europe/Warsaw"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
-    def test_timestamp_tz_localize_nonexistent_NaT(self, tz, unit):
+    def test_timestamp_tz_localize_nonexistent_NaT(self, warsaw, unit):
         # GH 8917
+        tz = warsaw
         ts = Timestamp("2015-03-29 02:20:00").as_unit(unit)
         result = ts.tz_localize(tz, nonexistent="NaT")
         assert result is NaT
 
-    @pytest.mark.parametrize("tz", ["Europe/Warsaw", "dateutil/Europe/Warsaw"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
-    def test_timestamp_tz_localize_nonexistent_raise(self, tz, unit):
+    def test_timestamp_tz_localize_nonexistent_raise(self, warsaw, unit):
         # GH 8917
+        tz = warsaw
         ts = Timestamp("2015-03-29 02:20:00").as_unit(unit)
         msg = "2015-03-29 02:20:00"
         with pytest.raises(pytz.NonExistentTimeError, match=msg):
@@ -358,7 +362,6 @@ class TestTimestampTZOperations:
 
     @td.skip_if_windows
     def test_tz_convert_utc_with_system_utc(self):
-
         # from system utc to real utc
         ts = Timestamp("2001-01-05 11:56", tz=timezones.maybe_get_tz("dateutil/UTC"))
         # check that the time hasn't changed.
@@ -374,7 +377,7 @@ class TestTimestampTZOperations:
 
     def test_timestamp_constructor_tz_utc(self):
         utc_stamp = Timestamp("3/11/2012 05:00", tz="utc")
-        assert utc_stamp.tzinfo is pytz.utc
+        assert utc_stamp.tzinfo is timezone.utc
         assert utc_stamp.hour == 5
 
         utc_stamp = Timestamp("3/11/2012 05:00").tz_localize("utc")

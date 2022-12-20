@@ -88,7 +88,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
-    _is_numeric_dtype = False
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
     freq: BaseOffset | None
@@ -446,7 +445,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             new_freq = self.freq
         elif isinstance(res_i8, RangeIndex):
             new_freq = to_offset(Timedelta(res_i8.step))
-            res_i8 = res_i8
 
         # TODO(GH#41493): we cannot just do
         #  type(self._data)(res_i8.values, dtype=self.dtype, freq=new_freq)
@@ -626,9 +624,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             freq = self.freq
         return freq
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(
+        self, joined, other, lidx: npt.NDArray[np.intp], ridx: npt.NDArray[np.intp]
+    ):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        result = super()._wrap_joined_index(joined, other)
+        result = super()._wrap_joined_index(joined, other, lidx, ridx)
         result._data._freq = self._get_join_freq(other)
         return result
 

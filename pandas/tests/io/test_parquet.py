@@ -899,7 +899,7 @@ class TestParquetPyArrow(Base):
 
     def test_empty_dataframe(self, pa):
         # GH #27339
-        df = pd.DataFrame()
+        df = pd.DataFrame(index=[], columns=[])
         check_round_trip(df, pa)
 
     def test_write_with_schema(self, pa):
@@ -926,14 +926,14 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
         check_round_trip(df, pa)
 
-    @td.skip_if_no("pyarrow", min_version="1.0.0")
+    @td.skip_if_no("pyarrow")
     def test_pyarrow_backed_string_array(self, pa, string_storage):
         # test ArrowStringArray supported through the __arrow_array__ protocol
         df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="string[pyarrow]")})
         with pd.option_context("string_storage", string_storage):
             check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
-    @td.skip_if_no("pyarrow", min_version="2.0.0")
+    @td.skip_if_no("pyarrow")
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
@@ -985,7 +985,7 @@ class TestParquetPyArrow(Base):
         # this use-case sets the resolution to 1 minute
         check_round_trip(df, pa, check_dtype=False)
 
-    @td.skip_if_no("pyarrow", min_version="1.0.0")
+    @td.skip_if_no("pyarrow")
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
         df = pd.DataFrame({"a": list(range(0, 3))})
@@ -1037,7 +1037,7 @@ class TestParquetPyArrow(Base):
             pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
         )
 
-        with pd.option_context("io.nullable_backend", "pyarrow"):
+        with pd.option_context("mode.nullable_backend", "pyarrow"):
             check_round_trip(
                 df,
                 engine=pa,
@@ -1174,7 +1174,7 @@ class TestParquetFastParquet(Base):
 
     def test_empty_dataframe(self, fp):
         # GH #27339
-        df = pd.DataFrame()
+        df = pd.DataFrame(index=[], columns=[])
         expected = df.copy()
         expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)

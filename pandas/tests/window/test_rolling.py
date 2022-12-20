@@ -10,7 +10,6 @@ from pandas.compat import (
     is_platform_arm,
     is_platform_mac,
 )
-from pandas.errors import UnsupportedFunctionCall
 
 from pandas import (
     DataFrame,
@@ -27,7 +26,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
 from pandas.core.indexers.objects import VariableOffsetWindowIndexer
-from pandas.core.window import Rolling
 
 from pandas.tseries.offsets import BusinessDay
 
@@ -151,23 +149,6 @@ def test_constructor_timedelta_window_and_minperiods(window, raw):
     result_roll_generic = df.rolling(window=window, min_periods=2).apply(sum, raw=raw)
     tm.assert_frame_equal(result_roll_sum, expected)
     tm.assert_frame_equal(result_roll_generic, expected)
-
-
-@pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
-def test_numpy_compat(method):
-    # see gh-12811
-    r = Rolling(Series([2, 4, 6]), window=2)
-
-    error_msg = "numpy operations are not valid with window objects"
-
-    warn_msg = f"Passing additional args to Rolling.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(r, method)(1, 2, 3)
-    warn_msg = f"Passing additional kwargs to Rolling.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(r, method)(dtype=np.float64)
 
 
 def test_closed_fixed(closed, arithmetic_win_operators):

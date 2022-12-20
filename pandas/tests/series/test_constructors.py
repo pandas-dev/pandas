@@ -53,6 +53,12 @@ from pandas.core.internals.blocks import NumericBlock
 
 
 class TestSeriesConstructors:
+    def test_from_na_value_and_interval_of_datetime_dtype(self):
+        # GH#41805
+        ser = Series([None], dtype="interval[datetime64[ns]]")
+        assert ser.isna().all()
+        assert ser.dtype == "interval[datetime64[ns], right]"
+
     def test_infer_with_date_and_datetime(self):
         # GH#49341 pre-2.0 we inferred datetime-and-date to datetime64, which
         #  was inconsistent with Index behavior
@@ -86,15 +92,15 @@ class TestSeriesConstructors:
             # passed.
             (lambda idx: Series(index=idx), True),
             (lambda idx: Series(None, index=idx), True),
-            (lambda idx: Series({}, index=idx), True),
-            (lambda idx: Series((), index=idx), False),  # creates a RangeIndex
-            (lambda idx: Series([], index=idx), False),  # creates a RangeIndex
-            (lambda idx: Series((_ for _ in []), index=idx), False),  # RangeIndex
+            (lambda idx: Series({}, index=idx), False),  # creates an Index[object]
+            (lambda idx: Series((), index=idx), True),
+            (lambda idx: Series([], index=idx), True),
+            (lambda idx: Series((_ for _ in []), index=idx), True),
             (lambda idx: Series(data=None, index=idx), True),
-            (lambda idx: Series(data={}, index=idx), True),
-            (lambda idx: Series(data=(), index=idx), False),  # creates a RangeIndex
-            (lambda idx: Series(data=[], index=idx), False),  # creates a RangeIndex
-            (lambda idx: Series(data=(_ for _ in []), index=idx), False),  # RangeIndex
+            (lambda idx: Series(data={}, index=idx), False),  # creates an Index[object]
+            (lambda idx: Series(data=(), index=idx), True),
+            (lambda idx: Series(data=[], index=idx), True),
+            (lambda idx: Series(data=(_ for _ in []), index=idx), True),
         ],
     )
     @pytest.mark.parametrize("empty_index", [None, []])
@@ -795,11 +801,13 @@ class TestSeriesConstructors:
         #  not clear if this is what we want long-term
         expected = frame_or_series(arr)
 
-        res = frame_or_series(arr, dtype="i8")
-        tm.assert_equal(res, expected)
+        # GH#49599 as of 2.0 we raise instead of silently retaining float dtype
+        msg = "Trying to coerce float values to integer"
+        with pytest.raises(ValueError, match=msg):
+            frame_or_series(arr, dtype="i8")
 
-        res = frame_or_series(list(arr), dtype="i8")
-        tm.assert_equal(res, expected)
+        with pytest.raises(ValueError, match=msg):
+            frame_or_series(list(arr), dtype="i8")
 
         # pre-2.0, when we had NaNs, we silently ignored the integer dtype
         arr[0] = np.nan
@@ -809,7 +817,12 @@ class TestSeriesConstructors:
         with pytest.raises(IntCastingNaNError, match=msg):
             frame_or_series(arr, dtype="i8")
 
-        with pytest.raises(IntCastingNaNError, match=msg):
+        exc = IntCastingNaNError
+        if frame_or_series is Series:
+            # TODO: try to align these
+            exc = ValueError
+            msg = "cannot convert float NaN to integer"
+        with pytest.raises(exc, match=msg):
             # same behavior if we pass list instead of the ndarray
             frame_or_series(list(arr), dtype="i8")
 
@@ -827,13 +840,14 @@ class TestSeriesConstructors:
         # see gh-15832
         # Updated: make sure we treat this list the same as we would treat
         #  the equivalent ndarray
+        # GH#49599 pre-2.0 we silently retained float dtype, in 2.0 we raise
         vals = [1, 2, 3.5]
 
-        res = Series(vals, dtype=any_int_numpy_dtype)
-        expected = Series(np.array(vals), dtype=any_int_numpy_dtype)
-        tm.assert_series_equal(res, expected)
-        alt = Series(np.array(vals))  # i.e. we ignore the dtype kwd
-        tm.assert_series_equal(alt, expected)
+        msg = "Trying to coerce float values to integer"
+        with pytest.raises(ValueError, match=msg):
+            Series(vals, dtype=any_int_numpy_dtype)
+        with pytest.raises(ValueError, match=msg):
+            Series(np.array(vals), dtype=any_int_numpy_dtype)
 
     def test_constructor_coerce_float_valid(self, float_numpy_dtype):
         s = Series([1, 2, 3.5], dtype=float_numpy_dtype)
@@ -847,9 +861,10 @@ class TestSeriesConstructors:
         vals = [1, 2, np.nan]
         # pre-2.0 this would return with a float dtype, in 2.0 we raise
 
-        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
-        with pytest.raises(IntCastingNaNError, match=msg):
+        msg = "cannot convert float NaN to integer"
+        with pytest.raises(ValueError, match=msg):
             Series(vals, dtype=any_int_numpy_dtype)
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
         with pytest.raises(IntCastingNaNError, match=msg):
             Series(np.array(vals), dtype=any_int_numpy_dtype)
 
@@ -1971,6 +1986,21 @@ class TestSeriesConstructors:
         for null in tm.NP_NAT_OBJECTS + [NaT]:
             with pytest.raises(TypeError, match=msg):
                 func([null, 1.0, 3.0], dtype=any_numeric_ea_dtype)
+
+    def test_series_constructor_ea_int_from_bool(self):
+        # GH#42137
+        result = Series([True, False, True, pd.NA], dtype="Int64")
+        expected = Series([1, 0, 1, pd.NA], dtype="Int64")
+        tm.assert_series_equal(result, expected)
+
+        result = Series([True, False, True], dtype="Int64")
+        expected = Series([1, 0, 1], dtype="Int64")
+        tm.assert_series_equal(result, expected)
+
+    def test_series_constructor_ea_int_from_string_bool(self):
+        # GH#42137
+        with pytest.raises(ValueError, match="invalid literal"):
+            Series(["True", "False", "True", pd.NA], dtype="Int64")
 
 
 class TestSeriesConstructorIndexCoercion:

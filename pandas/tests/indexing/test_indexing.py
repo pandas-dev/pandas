@@ -557,14 +557,6 @@ class TestFancy:
         )
         tm.assert_frame_equal(df, expected)
 
-        df = df_orig.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.iloc[:, 0:2] = df.iloc[:, 0:2]._convert(datetime=True, numeric=True)
-        expected = DataFrame(
-            [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
-        )
-        tm.assert_frame_equal(df, expected)
-
         # GH5702 (loc)
         df = df_orig.copy()
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -883,7 +875,7 @@ class TestDatetimelikeCoercion:
         if tz is None:
             # TODO(EA2D): we can make this no-copy in tz-naive case too
             assert ser.dtype == dti.dtype
-            assert ser._values._data is values._data
+            assert ser._values._ndarray is values._ndarray
         else:
             assert ser._values is values
 
@@ -911,7 +903,7 @@ class TestDatetimelikeCoercion:
         if tz is None:
             # TODO(EA2D): we can make this no-copy in tz-naive case too
             assert ser.dtype == dti.dtype
-            assert ser._values._data is values._data
+            assert ser._values._ndarray is values._ndarray
         else:
             assert ser._values is values
 
@@ -925,7 +917,7 @@ class TestDatetimelikeCoercion:
         values._validate_setitem_value(scalar)
 
         indexer_sli(ser)[0] = scalar
-        assert ser._values._data is values._data
+        assert ser._values._ndarray is values._ndarray
 
     @pytest.mark.parametrize("box", [list, np.array, pd.array, pd.Categorical, Index])
     @pytest.mark.parametrize(
@@ -945,7 +937,7 @@ class TestDatetimelikeCoercion:
         values._validate_setitem_value(newvals)
 
         indexer_sli(ser)[key] = newvals
-        assert ser._values._data is values._data
+        assert ser._values._ndarray is values._ndarray
 
 
 def test_extension_array_cross_section():
