@@ -276,13 +276,8 @@ infer_datetime_format : boolean, default ``False``
   If ``True`` and parse_dates is enabled for a column, attempt to infer the
   datetime format to speed up the processing.
 
-  .. deprecated:: 1.5.2
-   ``infer_datetime_format`` be deprecated (as a strict version of it will become the default);
-    an easy workaround for non-strict parsing be clearly documented.
-
-   Currently, the only way to ensure consistent parsing is by explicitly passing
-   ``format=``. The argument ``infer_datetime_format``
-   isn't strict, can be called together with ``format``, and can still break users' expectations:
+  .. deprecated:: 2.0.0
+   A strict version of this argument is now the default, passing it has no effect.
 keep_date_col : boolean, default ``False``
   If ``True`` and parse_dates specifies combining multiple columns then keep the
   original columns.
