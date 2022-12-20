@@ -210,10 +210,7 @@ class NumericIndex(Index):
         dtype = pandas_dtype(dtype)
         if not isinstance(dtype, np.dtype):
             raise TypeError(f"{dtype} not a numpy type")
-        if dtype == np.float16:
-            # float16 not supported (no indexing engine)
-            dtype = np.dtype(np.float32)
-        if dtype == "float16":
+        elif dtype == np.float16:
             # float16 not supported (no indexing engine)
             raise NotImplementedError("float16 indexes are not supported")
 
