@@ -663,6 +663,11 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
     tm.assert_frame_equal(result, expected)
 
 
+def test_execute_typeerror(sqlite_iris_engine):
+    with pytest.raises(TypeError, match="pandas.io.sql.execute requires a connection"):
+        sql.execute("select * from iris", sqlite_iris_engine)
+
+
 class MixInBase:
     def teardown_method(self):
         # if setup fails, there may not be a connection to close.
@@ -956,7 +961,8 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_execute_sql(self):
         # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
-        iris_results = sql.execute("SELECT * FROM iris", con=self.conn)
+        with sql.pandasSQL_builder(self.conn) as pandas_sql:
+            iris_results = pandas_sql.execute("SELECT * FROM iris")
         row = iris_results.fetchone()
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
@@ -2270,51 +2276,51 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pass
         # TODO(GH#36893) fill this in when we add more engines
 
-    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-    def test_read_sql_nullable_dtypes(self, storage):
+    @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
+    def test_read_sql_nullable_dtypes(self, string_storage, func):
         # GH#50048
         table = "test"
         df = self.nullable_data()
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
-        with pd.option_context("mode.string_storage", storage):
-            result = pd.read_sql(
+        with pd.option_context("mode.string_storage", string_storage):
+            result = getattr(pd, func)(
                 f"Select * from {table}", self.conn, use_nullable_dtypes=True
             )
-        expected = self.nullable_expected(storage)
+        expected = self.nullable_expected(string_storage)
         tm.assert_frame_equal(result, expected)
 
-        with pd.option_context("mode.string_storage", storage):
-            iterator = pd.read_sql(
+        with pd.option_context("mode.string_storage", string_storage):
+            iterator = getattr(pd, func)(
                 f"Select * from {table}",
                 self.conn,
                 use_nullable_dtypes=True,
                 chunksize=3,
             )
-            expected = self.nullable_expected(storage)
+            expected = self.nullable_expected(string_storage)
             for result in iterator:
                 tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-    def test_read_sql_nullable_dtypes_table(self, storage):
+    @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
+    def test_read_sql_nullable_dtypes_table(self, string_storage, func):
         # GH#50048
         table = "test"
         df = self.nullable_data()
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
-        with pd.option_context("mode.string_storage", storage):
-            result = pd.read_sql(table, self.conn, use_nullable_dtypes=True)
-        expected = self.nullable_expected(storage)
+        with pd.option_context("mode.string_storage", string_storage):
+            result = getattr(pd, func)(table, self.conn, use_nullable_dtypes=True)
+        expected = self.nullable_expected(string_storage)
         tm.assert_frame_equal(result, expected)
 
-        with pd.option_context("mode.string_storage", storage):
-            iterator = pd.read_sql(
-                f"Select * from {table}",
+        with pd.option_context("mode.string_storage", string_storage):
+            iterator = getattr(pd, func)(
+                table,
                 self.conn,
                 use_nullable_dtypes=True,
                 chunksize=3,
             )
-            expected = self.nullable_expected(storage)
+            expected = self.nullable_expected(string_storage)
             for result in iterator:
                 tm.assert_frame_equal(result, expected)
 
@@ -2357,6 +2363,21 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 "h": string_array_na,
             }
         )
+
+    def test_chunksize_empty_dtypes(self):
+        # GH#50245
+        dtypes = {"a": "int64", "b": "object"}
+        df = DataFrame(columns=["a", "b"]).astype(dtypes)
+        expected = df.copy()
+        df.to_sql("test", self.conn, index=False, if_exists="replace")
+
+        for result in read_sql_query(
+            "SELECT * FROM test",
+            self.conn,
+            dtype=dtypes,
+            chunksize=1,
+        ):
+            tm.assert_frame_equal(result, expected)
 
 
 class TestSQLiteAlchemy(_TestSQLAlchemy):
@@ -2444,8 +2465,8 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
     def nullable_expected(self, storage) -> DataFrame:
         return super().nullable_expected(storage).astype({"e": "Int64", "f": "Int64"})
 
-    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-    def test_read_sql_nullable_dtypes_table(self, storage):
+    @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
+    def test_read_sql_nullable_dtypes_table(self, string_storage, func):
         # GH#50048 Not supported for sqlite
         pass
 
@@ -2795,7 +2816,8 @@ def format_query(sql, *args):
 
 def tquery(query, con=None):
     """Replace removed sql.tquery function"""
-    res = sql.execute(query, con=con).fetchall()
+    with sql.pandasSQL_builder(con) as pandas_sql:
+        res = pandas_sql.execute(query).fetchall()
     return None if res is None else list(res)
 
 
@@ -2860,7 +2882,8 @@ class TestXSQLite:
         ins = "INSERT INTO test VALUES (?, ?, ?, ?)"
 
         row = frame.iloc[0]
-        sql.execute(ins, sqlite_buildin, params=tuple(row))
+        with sql.pandasSQL_builder(sqlite_buildin) as pandas_sql:
+            pandas_sql.execute(ins, tuple(row))
         sqlite_buildin.commit()
 
         result = sql.read_sql("select * from test", sqlite_buildin)
@@ -2895,11 +2918,12 @@ class TestXSQLite:
         cur = sqlite_buildin.cursor()
         cur.execute(create_sql)
 
-        sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', sqlite_buildin)
-        sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', sqlite_buildin)
+        with sql.pandasSQL_builder(sqlite_buildin) as pandas_sql:
+            pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)')
+            pandas_sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)')
 
-        with pytest.raises(sql.DatabaseError, match="Execution failed on sql"):
-            sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', sqlite_buildin)
+            with pytest.raises(sql.DatabaseError, match="Execution failed on sql"):
+                pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 7)')
 
     def test_execute_closed_connection(self):
         create_sql = """
@@ -2915,7 +2939,8 @@ class TestXSQLite:
             cur = conn.cursor()
             cur.execute(create_sql)
 
-            sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', conn)
+            with sql.pandasSQL_builder(conn) as pandas_sql:
+                pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)')
 
         msg = "Cannot operate on a closed database."
         with pytest.raises(sqlite3.ProgrammingError, match=msg):

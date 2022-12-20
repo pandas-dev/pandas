@@ -48,7 +48,7 @@ classifiers = [
 
 [project.urls]
 homepage = 'https://pandas.pydata.org'
-documentation = 'https://pandas.pydata.org/pandas-docs/stable'
+documentation = 'https://pandas.pydata.org/docs/'
 repository = 'https://github.com/pandas-dev/pandas'
 
 [project.entry-points."pandas_plotting_backends"]
@@ -217,6 +217,7 @@ disable = [
   "too-many-public-methods",
   "too-many-return-statements",
   "too-many-statements",
+  "undefined-loop-variable",
   "unexpected-keyword-arg",
   "ungrouped-imports",
   "unsubscriptable-object",
@@ -276,7 +277,6 @@ disable = [
   "signature-differs",
   "super-init-not-called",
   "try-except-raise",
-  "undefined-loop-variable",
   "unnecessary-lambda",
   "unspecified-encoding",
   "unused-argument",
