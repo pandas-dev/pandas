@@ -2065,7 +2065,10 @@ class TestToDatetimeMisc:
         # `format` is longer than the string, so this fails regardless of `exact`
         with pytest.raises(
             ValueError,
-            match=rf"time data '{input}' does not match format '{format}'",
+            match=(
+                rf"time data '{input}' does not match format "
+                rf"\'{format}\' \((match|search)\) at position 0"
+            ),
         ):
             to_datetime(input, format=format, exact=exact)
 
@@ -2084,7 +2087,7 @@ class TestToDatetimeMisc:
         # `format` is shorter than the date string, so only fails with `exact=True`
         with pytest.raises(
             ValueError,
-            match="unconverted data remains: |does not match format",
+            match="(unconverted data remains: |does not match format).* at position 0",
         ):
             to_datetime(input, format=format)
 
@@ -2120,7 +2123,10 @@ class TestToDatetimeMisc:
         # https://github.com/pandas-dev/pandas/issues/12649
         with pytest.raises(
             ValueError,
-            match=rf"time data \'{input}\' does not match format '{format}'",
+            match=(
+                rf"time data '{input}' does not match format "
+                rf"'{format}' \(match\) at position 0"
+            ),
         ):
             to_datetime(input, format=format)
 
@@ -2677,7 +2683,7 @@ class TestDaysInMonth:
 
     @pytest.mark.parametrize("arg", ["2015-02-29", "2015-02-32", "2015-04-31"])
     def test_day_not_in_month_raise_value(self, cache, arg):
-        msg = "day is out of range for month|unconverted data remains"
+        msg = "(day is out of range for month|unconverted data remains).* at position 0"
         with pytest.raises(ValueError, match=msg):
             to_datetime(arg, errors="raise", format="%Y-%m-%d", cache=cache)
 
