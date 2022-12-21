@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 
@@ -23,14 +21,10 @@ def test_format_integer_names():
 
 
 def test_format_sparse_config(idx):
-    warn_filters = warnings.filters
-    warnings.filterwarnings("ignore", category=FutureWarning, module=".*format")
     # GH1538
     with pd.option_context("display.multi_sparse", False):
         result = idx.format()
     assert result[1] == "foo  two"
-
-    warnings.filters = warn_filters
 
 
 def test_format_sparse_display():

@@ -158,10 +158,6 @@ def test_oo_optimized_datetime_index_unpickle():
     # patsy needs to update their imports
     "ignore:Using or importing the ABCs from 'collections:DeprecationWarning"
 )
-@pytest.mark.filterwarnings(
-    # numpy 1.22
-    "ignore:`np.MachAr` is deprecated.*:DeprecationWarning"
-)
 def test_statsmodels():
 
     statsmodels = import_module("statsmodels")  # noqa:F841

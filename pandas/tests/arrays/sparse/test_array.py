@@ -1,5 +1,4 @@
 import re
-import warnings
 
 import numpy as np
 import pytest
@@ -138,12 +137,9 @@ class TestSparseArray:
 
     def test_generator_warnings(self):
         sp_arr = SparseArray([1, 2, 3])
-        with warnings.catch_warnings(record=True) as w:
-            warnings.filterwarnings(action="always", category=DeprecationWarning)
-            warnings.filterwarnings(action="always", category=PendingDeprecationWarning)
+        with tm.assert_produces_warning(None):
             for _ in sp_arr:
                 pass
-            assert len(w) == 0
 
     def test_where_retain_fill_value(self):
         # GH#45691 don't lose fill_value on _where
