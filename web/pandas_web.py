@@ -42,6 +42,12 @@ import markdown
 import requests
 import yaml
 
+retries = requests.adapters.Retry(total=5, backoff_factor=0.25, status_forcelist=[403])
+session = requests.Session()
+session.mount(
+    "https://api.github.com/", requests.adapters.HTTPAdapter(max_retries=retries)
+)
+
 
 class Preprocessors:
     """
@@ -166,7 +172,7 @@ class Preprocessors:
         for kind in ("active", "inactive"):
             context["maintainers"][f"{kind}_with_github_info"] = []
             for user in context["maintainers"][kind]:
-                resp = requests.get(f"https://api.github.com/users/{user}")
+                resp = session.get(f"https://api.github.com/users/{user}")
                 if context["ignore_io_errors"] and resp.status_code == 403:
                     return context
                 resp.raise_for_status()
@@ -178,7 +184,7 @@ class Preprocessors:
         context["releases"] = []
 
         github_repo_url = context["main"]["github_repo_url"]
-        resp = requests.get(f"https://api.github.com/repos/{github_repo_url}/releases")
+        resp = session.get(f"https://api.github.com/repos/{github_repo_url}/releases")
         if context["ignore_io_errors"] and resp.status_code == 403:
             return context
         resp.raise_for_status()
@@ -243,7 +249,7 @@ class Preprocessors:
 
         # under discussion
         github_repo_url = context["main"]["github_repo_url"]
-        resp = requests.get(
+        resp = session.get(
             "https://api.github.com/search/issues?"
             f"q=is:pr is:open label:PDEP repo:{github_repo_url}"
         )
