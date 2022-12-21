@@ -380,6 +380,9 @@ def standardize_mapping(into):
     DataFrame.to_dict
     Series.to_dict
     """
+    import warnings
+
+    warnings.warn("Should raise", UserWarning)
     if not inspect.isclass(into):
         if isinstance(into, defaultdict):
             return partial(defaultdict, into.default_factory)
