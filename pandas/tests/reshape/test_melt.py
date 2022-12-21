@@ -658,9 +658,6 @@ class TestLreshape:
         exp = DataFrame(exp_data, columns=result.columns)
         tm.assert_frame_equal(result, exp)
 
-        with tm.assert_produces_warning(FutureWarning):
-            lreshape(df, spec, dropna=False, label="foo")
-
         spec = {
             "visitdt": [f"visitdt{i:d}" for i in range(1, 3)],
             "wt": [f"wt{i:d}" for i in range(1, 4)],
