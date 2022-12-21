@@ -758,7 +758,7 @@ Performance improvements
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`49973`)
 - Performance improvement in :meth:`DataFrame.join` when joining on a subset of a :class:`MultiIndex` (:issue:`48611`)
 - Performance improvement for :meth:`MultiIndex.intersection` (:issue:`48604`)
-- Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
+- Performance improvement in ``var`` and ``std`` for nullable dtypes (:issue:`48379`).
 - Performance improvement when iterating over pyarrow and nullable dtypes (:issue:`49825`, :issue:`49851`)
 - Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47405`, :issue:`47656`, :issue:`48502`)
 - Memory improvement in :meth:`RangeIndex.sort_values` (:issue:`48801`)
