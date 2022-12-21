@@ -727,12 +727,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             mask = np.ones(self._data.shape, dtype="bool")
         else:
             with warnings.catch_warnings():
-                # numpy may show a FutureWarning:
+                # numpy may show a FutureWarning or DeprecationWarning:
                 #     elementwise comparison failed; returning scalar instead,
                 #     but in the future will perform elementwise comparison
                 # before returning NotImplemented. We fall back to the correct
                 # behavior today, so that should be fine to ignore.
                 warnings.filterwarnings("ignore", "elementwise", FutureWarning)
+                warnings.filterwarnings("ignore", "elementwise", DeprecationWarning)
                 with np.errstate(all="ignore"):
                     method = getattr(self._data, f"__{op.__name__}__")
                     result = method(other)
