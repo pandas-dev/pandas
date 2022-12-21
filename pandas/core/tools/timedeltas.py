@@ -97,9 +97,9 @@ def to_timedelta(
     arg : str, timedelta, list-like or Series
         The data to be converted to timedelta.
 
-        .. deprecated:: 1.2
+        .. versionchanged:: 2.0
             Strings with units 'M', 'Y' and 'y' do not represent
-            unambiguous timedelta values and will be removed in a future version
+            unambiguous timedelta values and will raise an exception.
 
     unit : str, optional
         Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
