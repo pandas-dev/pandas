@@ -238,20 +238,9 @@ class TestExpressions:
         testit()
 
     @pytest.mark.parametrize(
-        "opname,op_str",
-        [
-            ("gt", ">"),
-            ("lt", "<"),
-            ("ge", ">="),
-            ("le", "<="),
-            ("eq", "=="),
-            ("ne", "!="),
-        ],
-    )
-    @pytest.mark.parametrize(
         "left_fix,right_fix", [("_array", "_array2"), ("_array_mixed", "_array_mixed2")]
     )
-    def test_comparison_ops(self, request, opname, op_str, left_fix, right_fix):
+    def test_comparison_ops(self, request, comparison_op, left_fix, right_fix):
         left = request.getfixturevalue(left_fix)
         right = request.getfixturevalue(right_fix)
 
@@ -259,13 +248,13 @@ class TestExpressions:
             f12 = left + 1
             f22 = right + 1
 
-            op = getattr(operator, opname)
+            op = comparison_op
 
             result = expr.evaluate(op, left, f12, use_numexpr=True)
             expected = expr.evaluate(op, left, f12, use_numexpr=False)
             tm.assert_numpy_array_equal(result, expected)
 
-            result = expr._can_use_numexpr(op, op_str, right, f22, "evaluate")
+            result = expr._can_use_numexpr(op, op, right, f22, "evaluate")
             assert not result
 
         with option_context("compute.use_numexpr", False):
