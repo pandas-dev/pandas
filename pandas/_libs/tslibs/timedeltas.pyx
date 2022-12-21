@@ -1,4 +1,5 @@
 import collections
+import warnings
 
 cimport cython
 from cpython.object cimport (
@@ -1947,9 +1948,13 @@ class Timedelta(_Timedelta):
 
             if other.dtype.kind == "m":
                 # also timedelta-like
-                # TODO: could suppress
-                #  RuntimeWarning: invalid value encountered in floor_divide
-                result = self.asm8 // other
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "invalid value encountered in floor_divide",
+                        RuntimeWarning
+                    )
+                    result = self.asm8 // other
                 mask = other.view("i8") == NPY_NAT
                 if mask.any():
                     # We differ from numpy here
@@ -1987,9 +1992,13 @@ class Timedelta(_Timedelta):
 
             if other.dtype.kind == "m":
                 # also timedelta-like
-                # TODO: could suppress
-                #  RuntimeWarning: invalid value encountered in floor_divide
-                result = other // self.asm8
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "invalid value encountered in floor_divide",
+                        RuntimeWarning
+                    )
+                    result = other // self.asm8
                 mask = other.view("i8") == NPY_NAT
                 if mask.any():
                     # We differ from numpy here
