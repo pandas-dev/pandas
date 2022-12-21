@@ -275,6 +275,9 @@ parse_dates : boolean or list of ints or names or list of lists or dict, default
 infer_datetime_format : boolean, default ``False``
   If ``True`` and parse_dates is enabled for a column, attempt to infer the
   datetime format to speed up the processing.
+
+  .. deprecated:: 2.0.0
+   A strict version of this argument is now the default, passing it has no effect.
 keep_date_col : boolean, default ``False``
   If ``True`` and parse_dates specifies combining multiple columns then keep the
   original columns.
@@ -916,12 +919,10 @@ an exception is raised, the next one is tried:
 
 Note that performance-wise, you should try these methods of parsing dates in order:
 
-1. Try to infer the format using ``infer_datetime_format=True`` (see section below).
-
-2. If you know the format, use ``pd.to_datetime()``:
+1. If you know the format, use ``pd.to_datetime()``:
    ``date_parser=lambda x: pd.to_datetime(x, format=...)``.
 
-3. If you have a really non-standard format, use a custom ``date_parser`` function.
+2. If you have a really non-standard format, use a custom ``date_parser`` function.
    For optimal performance, this should be vectorized, i.e., it should accept arrays
    as arguments.
 
