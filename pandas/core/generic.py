@@ -1758,9 +1758,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if `key` matches neither a label nor a level
         ValueError
             if `key` matches multiple labels
-        FutureWarning
-            if `key` is ambiguous. This will become an ambiguity error in a
-            future version
         """
         axis = self._get_axis_number(axis)
         other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
@@ -6035,11 +6032,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Notes
         -----
-        .. deprecated:: 1.3.0
+        .. versionchanged:: 2.0.0
 
             Using ``astype`` to convert from timezone-naive dtype to
-            timezone-aware dtype is deprecated and will raise in a
-            future version.  Use :meth:`Series.dt.tz_localize` instead.
+            timezone-aware dtype will raise an exception.
+            Use :meth:`Series.dt.tz_localize` instead.
 
         Examples
         --------

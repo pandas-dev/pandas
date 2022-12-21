@@ -612,19 +612,13 @@ class IntervalIndex(ExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def get_loc(
-        self, key, method: str | None = None, tolerance=None
-    ) -> int | slice | np.ndarray:
+    def get_loc(self, key) -> int | slice | np.ndarray:
         """
         Get integer location, slice or boolean mask for requested label.
 
         Parameters
         ----------
         key : label
-        method : {None}, optional
-            * default: matches where the label is within an interval only.
-
-            .. deprecated:: 1.4
 
         Returns
         -------
@@ -655,7 +649,6 @@ class IntervalIndex(ExtensionIndex):
         >>> index.get_loc(pd.Interval(0, 1))
         0
         """
-        self._check_indexing_method(method)
         self._check_indexing_error(key)
 
         if isinstance(key, Interval):
