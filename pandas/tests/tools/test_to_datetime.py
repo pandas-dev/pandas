@@ -480,8 +480,8 @@ class TestTimeConversionFormats:
         date = "2010-01-01 12:00:00 " + offset
 
         msg = (
-            r'time data ".*" at position 0 doesn\'t match format ".*" \(match\)|'
-            r'unconverted data remains at position 0: ".*"'
+            r'^(time data ".*" at position 0 doesn\'t match format ".*" \(match\)|'
+            r'unconverted data remains at position 0: ".*")$'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime([date], format=fmt)
@@ -1139,8 +1139,10 @@ class TestToDatetime:
         assert res is NaT
 
         msg = (
-            r'^time data "a" at position 0 doesn\'t match format "%H:%M:%S" \(match\)$|'
-            r'^Given date string "a" not likely a datetime$|'
+            r'^(time data "a" at position 0 doesn\'t match format "%H:%M:%S" \(match\)|'
+            r'Given date string "a" not likely a datetime present at position 0|'
+            r'unconverted data remains at position 0: "9"|'
+            r"second must be in 0..59: 00:01:99 present at position 0)$"
         )
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(warning, match="Could not infer format"):
@@ -2949,8 +2951,8 @@ class TestOrigin:
     def test_to_datetime_out_of_bounds_with_format_arg(self, format, warning):
         # see gh-23830
         msg = (
-            r"Out of bounds nanosecond timestamp: 2417-10-10 00:00:00"
-            r".* at position 0"
+            r"^Out of bounds nanosecond timestamp: 2417-10-10 00:00:00"
+            r".* at position 0$"
         )
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             with tm.assert_produces_warning(warning, match="Could not infer format"):
