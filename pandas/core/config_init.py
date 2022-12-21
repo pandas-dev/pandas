@@ -541,8 +541,9 @@ string_storage_doc = """
 
 dtype_backend_doc = """
 : string
-    The nullable dtype implementation to return.
-    Available options: 'pandas', 'pyarrow', the default is 'pandas'.
+    The nullable dtype implementation to return. Only applicable to certain
+    operations where documented. Available options: 'pandas', 'pyarrow',
+    the default is 'pandas'.
 """
 
 with cf.config_prefix("mode"):
