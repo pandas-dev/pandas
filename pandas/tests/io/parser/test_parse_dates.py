@@ -1718,8 +1718,8 @@ def test_parse_multiple_delimited_dates_with_swap_warnings():
     with pytest.raises(
         ValueError,
         match=(
-            r"^time data '31/05/2000' does not match format '%m/%d/%Y' \(match\) "
-            "at position 1$"
+            r'^time data "31/05/2000" at position 1 doesn\'t match format "%m/%d/%Y" '
+            r"\(match\)$"
         ),
     ):
         pd.to_datetime(["01/01/2000", "31/05/2000", "31/05/2001", "01/02/2000"])
