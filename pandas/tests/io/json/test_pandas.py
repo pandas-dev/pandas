@@ -1,6 +1,5 @@
 import datetime
 from datetime import timedelta
-from decimal import Decimal
 from io import StringIO
 import json
 import os
@@ -1744,14 +1743,15 @@ class TestPandasContainer:
             timeout -= 0.1
             assert timeout > 0, "Timed out waiting for file to appear on moto"
 
-    def test_json_pandas_nulls(self, nulls_fixture, request):
+    def test_json_pandas_nulls(self, nulls_fixture):
         # GH 31615
-        if isinstance(nulls_fixture, Decimal):
-            mark = pytest.mark.xfail(reason="not implemented")
-            request.node.add_marker(mark)
-
         result = DataFrame([[nulls_fixture]]).to_json()
         assert result == '{"0":{"0":null}}'
+
+    def test_json_pandas_index_nulls(self, nulls_fixture):
+        # GH 31801
+        result = Series([1], index=[nulls_fixture]).to_json()
+        assert result == '{"null":1}'
 
     def test_readjson_bool_series(self):
         # GH31464

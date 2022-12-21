@@ -1283,6 +1283,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
     type_num = PyArray_TYPE(labels);
 
     for (i = 0; i < num; i++) {
+        int is_null = 0;  // Whether current val is a null
         item = PyArray_GETITEM(labels, dataptr);
         if (!item) {
             NpyArr_freeLabels(ret, num);
@@ -1320,9 +1321,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 
         if (is_datetimelike) {
             if (nanosecVal == get_nat()) {
-                len = 4;
-                cLabel = PyObject_Malloc(len + 1);
-                strncpy(cLabel, "null", len + 1);
+                is_null = 1;
             } else {
                 if (enc->datetimeIso) {
                     if ((type_num == NPY_TIMEDELTA) || (PyDelta_Check(item))) {
@@ -1348,17 +1347,38 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                     len = strlen(cLabel);
                 }
             }
-        } else {  // Fallback to string representation
-            // Replace item with the string to keep it alive.
-            Py_SETREF(item, PyObject_Str(item));
-            if (item == NULL) {
-                NpyArr_freeLabels(ret, num);
-                ret = 0;
-                break;
-            }
+        } else {
+            // NA values need special handling
+            if (PyFloat_Check(item)) {
+                double fval = PyFloat_AS_DOUBLE(item);
+                is_null = npy_isnan(fval);
+            } else if (item == Py_None || object_is_na_type(item)) {
+                is_null = 1;
+            } else if (object_is_decimal_type(item)) {
+                PyObject *is_null_obj = PyObject_CallMethod(item,
+                                                            "is_nan",
+                                                            NULL);
+                is_null = (is_null_obj == Py_True);
+                Py_DECREF(is_null_obj);
+            } else {
+                // Otherwise, fallback to string representation
+                // Replace item with the string to keep it alive.
+                Py_SETREF(item, PyObject_Str(item));
+                if (item == NULL) {
+                    NpyArr_freeLabels(ret, num);
+                    ret = 0;
+                    break;
+                }
 
-            cLabel = (char *)PyUnicode_AsUTF8(item);
-            len = strlen(cLabel);
+                cLabel = (char *)PyUnicode_AsUTF8(item);
+                len = strlen(cLabel);
+            }
+        }
+
+        if (is_null) {
+            len = 4;
+            cLabel = PyObject_Malloc(len + 1);
+            strncpy(cLabel, "null", len + 1);
         }
 
         // Add 1 to include NULL terminator
@@ -1366,7 +1386,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         memcpy(ret[i], cLabel, len + 1);
         Py_DECREF(item);
 
-        if (is_datetimelike) {
+        if (is_datetimelike || is_null) {
             PyObject_Free(cLabel);
         }
 
@@ -1512,8 +1532,17 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         tc->type = JT_UTF8;
         return;
     } else if (object_is_decimal_type(obj)) {
-        GET_TC(tc)->doubleValue = PyFloat_AsDouble(obj);
-        tc->type = JT_DOUBLE;
+        /* Check for null, since null can't go thru double path */
+        PyObject *is_null_obj = PyObject_CallMethod(obj,
+                                                    "is_nan",
+                                                    NULL);
+        if (is_null_obj == Py_False) {
+            GET_TC(tc)->doubleValue = PyFloat_AsDouble(obj);
+            tc->type = JT_DOUBLE;
+        } else {
+            tc->type = JT_NULL;
+        }
+        Py_DECREF(is_null_obj);
         return;
     } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
         if (object_is_nat_type(obj)) {
