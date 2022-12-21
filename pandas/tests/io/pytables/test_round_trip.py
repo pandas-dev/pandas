@@ -259,6 +259,7 @@ def test_table_values_dtypes_roundtrip(setup_path):
         tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_series(setup_path):
 
     s = tm.makeStringSeries()

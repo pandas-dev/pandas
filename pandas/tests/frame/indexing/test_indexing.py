@@ -11,6 +11,7 @@ import pytest
 from pandas._libs import iNaT
 from pandas.errors import (
     InvalidIndexError,
+    PerformanceWarning,
     SettingWithCopyError,
 )
 import pandas.util._test_decorators as td
@@ -1471,7 +1472,8 @@ class TestDataFrameIndexing:
             names=["a", "b"],
         )
         df = DataFrame({"c": [1, 2, 3, 4]}, index=midx)
-        result = df.loc[indexer]
+        with tm.maybe_produces_warning(PerformanceWarning, isinstance(indexer, tuple)):
+            result = df.loc[indexer]
         expected = DataFrame(
             {"c": [1, 2]}, index=Index([True, False], name="b", dtype=dtype)
         )

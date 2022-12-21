@@ -1453,6 +1453,8 @@ def test_parse_date_time(all_parsers, data, kwargs, expected):
 
 
 @xfail_pyarrow
+# From date_parser fallback behavior
+@pytest.mark.filterwarnings("ignore:elementwise comparison:FutureWarning")
 def test_parse_date_fields(all_parsers):
     parser = all_parsers
     data = "year,month,day,a\n2001,01,10,10.\n2001,02,1,11."

@@ -32,7 +32,7 @@ class TestDatetimeIndex:
         )
         tm.assert_index_equal(result, expected)
 
-        result = idx.astype(int)
+        result = idx.astype(np.int64)
         expected = Int64Index(
             [1463356800000000000] + [-9223372036854775808] * 3,
             dtype=np.int64,
