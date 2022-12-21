@@ -1255,7 +1255,7 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
             raise ValueError(
                 f"Invalid side: {side}. Side must be one of 'left', 'right', 'both'"
             )
-        return type(self)(pa_pad(self._data, width, padding=fillchar))
+        return type(self)(pa_pad(self._data, width=width, padding=fillchar))
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
@@ -1291,13 +1291,13 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
         return type(self)(result)
 
     def _str_startswith(self, pat: str, na=None):
-        result = pc.starts_with(self._data, pat)
+        result = pc.starts_with(self._data, pattern=pat)
         if na is not None:
             result = result.fill_null(na)
         return type(self)(result)
 
     def _str_endswith(self, pat: str, na=None):
-        result = pc.ends_with(self._data, pat)
+        result = pc.ends_with(self._data, pattern=pat)
         if na is not None:
             result = result.fill_null(na)
         return type(self)(result)
@@ -1371,7 +1371,9 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
             stop = i - 1
             step = -1
         not_out_of_bounds = pc.invert(out_of_bounds.fill_null(True))
-        selected = pc.utf8_slice_codeunits(self._data, start, stop=stop, step=step)
+        selected = pc.utf8_slice_codeunits(
+            self._data, start=start, stop=stop, step=step
+        )
         result = pa.array([None] * self._data.length(), type=self._data.type)
         result = pc.if_else(not_out_of_bounds, selected, result)
         return type(self)(result)
@@ -1411,7 +1413,7 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
         if step is None:
             step = 1
         return type(self)(
-            pc.utf8_slice_codeunits(self._data, start, stop=stop, step=step)
+            pc.utf8_slice_codeunits(self._data, start=start, stop=stop, step=step)
         )
 
     def _str_slice_replace(
@@ -1495,13 +1497,13 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
 
     # TODO: Should work once https://github.com/apache/arrow/issues/14991 is fixed
     # def _str_removeprefix(self, prefix: str) -> Series:
-    #     starts_with = pc.starts_with(self._data, prefix)
+    #     starts_with = pc.starts_with(self._data, pattern=prefix)
     #     removed = pc.utf8_slice_codeunits(self._data, len(prefix))
     #     result = pc.if_else(starts_with, removed, self._data)
     #     return type(self)(result)
 
     def _str_removesuffix(self, suffix: str) -> Series:
-        ends_with = pc.ends_with(self._data, suffix)
+        ends_with = pc.ends_with(self._data, pattern=suffix)
         removed = pc.utf8_slice_codeunits(self._data, 0, stop=-len(suffix))
         result = pc.if_else(ends_with, removed, self._data)
         return type(self)(result)

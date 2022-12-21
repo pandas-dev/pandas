@@ -15,7 +15,10 @@ from pandas._typing import (
     Scalar,
     npt,
 )
-from pandas.compat import pa_version_under6p0
+from pandas.compat import (
+    pa_version_under6p0,
+    pa_version_under8p0,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -290,7 +293,11 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             return super()._str_count(pat, flags)
         result = pc.count_substring_regex(self._data, pat)
         type_mapping = {pa.int32(): Int64Dtype(), pa.int64(): Int64Dtype()}
-        return result.to_pandas(types_mapper=type_mapping.get)
+        pd_result = result.to_pandas(types_mapper=type_mapping.get)
+        if pa_version_under8p0:
+            # Bug in pyarrow not respecting type_mapper
+            pd_result = pd_result.astype(Int64Dtype())
+        return pd_result
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
         if start != 0 and end is not None:
@@ -305,7 +312,11 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         else:
             return super()._str_find(sub, start, end)
         type_mapping = {pa.int32(): Int64Dtype(), pa.int64(): Int64Dtype()}
-        return result.to_pandas(types_mapper=type_mapping.get)
+        pd_result = result.to_pandas(types_mapper=type_mapping.get)
+        if pa_version_under8p0:
+            # Bug in pyarrow not respecting type_mapper
+            pd_result = pd_result.astype(Int64Dtype())
+        return pd_result
 
     def _str_startswith(self, pat: str, na=None):
         pat = f"^{re.escape(pat)}"
