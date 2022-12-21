@@ -110,6 +110,7 @@ class TestUltraJSONTests:
         assert decoded == 1.0
 
     @pytest.mark.parametrize("ensure_ascii", [True, False])
+    @pytest.mark.skipif(not IS64, reason="not compliant on 32-bit, xref #15865")
     def test_encode_string_conversion(self, ensure_ascii):
         string_input = "A string \\ / \b \f \n \r \t </script> &"
         not_html_encoded = '"A string \\\\ \\/ \\b \\f \\n \\r \\t <\\/script> &"'
