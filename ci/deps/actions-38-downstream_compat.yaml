@@ -19,7 +19,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil
-  - numpy
+  - numpy<1.24
   - pytz
 
   # optional dependencies
