@@ -82,7 +82,7 @@ class TestDataFrameDiff:
         expected = Series(ex_index).to_frame()
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("tz", [pytest.param(None, marks=pytest.mark.xfail), "UTC"])
+    @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_diff_datetime_with_nat_zero_periods(self, tz):
         # diff on NaT values should give NaT, not timedelta64(0)
         dti = date_range("2016-01-01", periods=4, tz=tz)
@@ -91,8 +91,7 @@ class TestDataFrameDiff:
 
         df[1] = ser.copy()
 
-        with tm.assert_produces_warning(None):
-            df.iloc[:, 0] = pd.NaT
+        df.iloc[:, 0] = pd.NaT
 
         expected = df - df
         assert expected[0].isna().all()

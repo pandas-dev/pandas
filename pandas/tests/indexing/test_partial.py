@@ -308,12 +308,12 @@ class TestPartialSetting:
         tm.assert_frame_equal(df, expected)
 
         # mixed dtype frame, overwrite
-        expected = DataFrame(dict({"A": [0, 2, 4], "B": Series([0, 2, 4])}))
+        expected = DataFrame(dict({"A": [0, 2, 4], "B": Series([0.0, 2.0, 4.0])}))
         df = df_orig.copy()
         df["B"] = df["B"].astype(np.float64)
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, "B"] = df.loc[:, "A"]
+        # as of 2.0, df.loc[:, "B"] = ... attempts (and here succeeds) at
+        #  setting inplace
+        df.loc[:, "B"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # single dtype frame, partial setting

@@ -1336,7 +1336,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         return
 
     def column_setitem(
-        self, loc: int, idx: int | slice | np.ndarray, value, inplace: bool = False
+        self, loc: int, idx: int | slice | np.ndarray, value, inplace_only: bool = False
     ) -> None:
         """
         Set values ("setitem") into a single column (not setting the full column).
@@ -1355,7 +1355,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # this manager is only created temporarily to mutate the values in place
         # so don't track references, otherwise the `setitem` would perform CoW again
         col_mgr = self.iget(loc, track_ref=False)
-        if inplace:
+        if inplace_only:
             col_mgr.setitem_inplace(idx, value)
         else:
             new_mgr = col_mgr.setitem((idx,), value)
