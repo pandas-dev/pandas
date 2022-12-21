@@ -44,8 +44,7 @@ jobs:
           python -m pip install --no-build-isolation --no-use-pep517 -e . && \
           python -m pip list && \
           export PANDAS_CI=1 && \
-          pytest pandas/tests/io/json/test_ujson.py::TestNumpyJSONTests \
-              pandas/tests/io/json/test_ujson.py::TestPandasJSONTests "
+          pytest pandas/tests/io/json/test_ujson.py::TestUltraJSONTests::test_encode_decimal"
 
       - name: Publish test results for Python 3.8-32 bit full Linux
         uses: actions/upload-artifact@v3
