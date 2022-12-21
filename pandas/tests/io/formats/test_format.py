@@ -171,7 +171,6 @@ def has_expanded_repr(df):
     return False
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning:.*format")
 class TestDataFrameFormatting:
     def test_eng_float_formatter(self, float_frame):
         df = float_frame

@@ -6580,6 +6580,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def fillna(
         self: NDFrameT,
         value: Hashable | Mapping | Series | DataFrame = None,
+        *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool_t = False,
@@ -11643,7 +11644,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         idx_first_valid : type of index
         """
-        idxpos = find_valid_index(self._values, how=how)
+        idxpos = find_valid_index(self._values, how=how, is_valid=~isna(self._values))
         if idxpos is None:
             return None
         return self.index[idxpos]
