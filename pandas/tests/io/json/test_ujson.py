@@ -52,8 +52,8 @@ def orient(request):
     return request.param
 
 
+@pytest.mark.skipif(not IS64, reason="not compliant on 32-bit, xref #15865")
 class TestUltraJSONTests:
-    @pytest.mark.skipif(not IS64, reason="not compliant on 32-bit, xref #15865")
     def test_encode_decimal(self):
         sut = decimal.Decimal("1337.1337")
         encoded = ujson.encode(sut, double_precision=15)
@@ -110,7 +110,6 @@ class TestUltraJSONTests:
         assert decoded == 1.0
 
     @pytest.mark.parametrize("ensure_ascii", [True, False])
-    @pytest.mark.skipif(not IS64, reason="not compliant on 32-bit, xref #15865")
     def test_encode_string_conversion(self, ensure_ascii):
         string_input = "A string \\ / \b \f \n \r \t </script> &"
         not_html_encoded = '"A string \\\\ \\/ \\b \\f \\n \\r \\t <\\/script> &"'
@@ -696,6 +695,7 @@ class TestUltraJSONTests:
         assert ujson.decode(ujson.encode(test_object)) == {"a": 1, "b": 2, "d": 4}
 
 
+@pytest.mark.skipif(not IS64, reason="not compliant on 32-bit, xref #15865")
 class TestNumpyJSONTests:
     @pytest.mark.parametrize("bool_input", [True, False])
     def test_bool(self, bool_input):
@@ -808,6 +808,7 @@ class TestNumpyJSONTests:
             ujson.encode(np.array(1))
 
 
+@pytest.mark.skipif(not IS64, reason="not compliant on 32-bit, xref #15865")
 class TestPandasJSONTests:
     def test_dataframe(self, orient):
 
