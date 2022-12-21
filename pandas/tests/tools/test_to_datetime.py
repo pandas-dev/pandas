@@ -629,8 +629,8 @@ class TestToDatetime:
         "msg, s, _format",
         [
             [
-                "ISO week directive '%V' must be used with the ISO year directive "
-                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "ISO week directive '%V' is incompatible with the year directive "
+                "'%Y'. Use the ISO year '%G' instead.",
                 "1999 50",
                 "%Y %V",
             ],
@@ -706,10 +706,47 @@ class TestToDatetime:
                 "20",
                 "%V",
             ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "1999 51 Sunday",
+                "%V %A",
+            ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "1999 51 Sun",
+                "%V %a",
+            ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "1999 51 1",
+                "%V %w",
+            ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "1999 51 1",
+                "%V %u",
+            ],
+            [
+                "Day of the year directive '%j' is not compatible with ISO year "
+                "directive '%G'. Use '%Y' instead.",
+                "1999 50",
+                "%G %j",
+            ],
+            [
+                "ISO week directive '%V' must be used with the ISO year directive "
+                "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.",
+                "20 Monday",
+                "%V %A",
+            ],
         ],
     )
-    def test_error_iso_week_year(self, msg, s, _format):
-        # See GH#16607
+    @pytest.mark.parametrize("errors", ["raise", "coerce", "ignore"])
+    def test_error_iso_week_year(self, msg, s, _format, errors):
+        # See GH#16607, GH#50308
         # This test checks for errors thrown when giving the wrong format
         # However, as discussed on PR#25541, overriding the locale
         # causes a different error to be thrown due to the format being
@@ -721,7 +758,7 @@ class TestToDatetime:
             "UTF-8",
         ):
             with pytest.raises(ValueError, match=msg):
-                to_datetime(s, format=_format)
+                to_datetime(s, format=_format, errors=errors)
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_to_datetime_dtarr(self, tz):
@@ -1073,9 +1110,17 @@ class TestToDatetime:
         with pytest.raises(TypeError, match=msg):
             to_datetime(arg)
 
+    @pytest.mark.parametrize("errors", ["coerce", "raise", "ignore"])
+    def test_invalid_format_raises(self, errors):
+        # https://github.com/pandas-dev/pandas/issues/50255
+        with pytest.raises(
+            ValueError, match="':' is a bad directive in format 'H%:M%:S%"
+        ):
+            to_datetime(["00:00:00"], format="H%:M%:S%", errors=errors)
+
     @pytest.mark.parametrize("value", ["a", "00:01:99"])
     @pytest.mark.parametrize(
-        "format,warning", [(None, UserWarning), ("H%:M%:S%", None)]
+        "format,warning", [(None, UserWarning), ("%H:%M:%S", None)]
     )
     def test_datetime_invalid_scalar(self, value, format, warning):
         # GH24763
@@ -1088,7 +1133,8 @@ class TestToDatetime:
         assert res is NaT
 
         msg = (
-            "is a bad directive in format|"
+            "does not match format|"
+            "unconverted data remains:|"
             "second must be in 0..59|"
             f"Given date string {value} not likely a datetime"
         )
@@ -1098,7 +1144,7 @@ class TestToDatetime:
 
     @pytest.mark.parametrize("value", ["3000/12/11 00:00:00"])
     @pytest.mark.parametrize(
-        "format,warning", [(None, UserWarning), ("H%:M%:S%", None)]
+        "format,warning", [(None, UserWarning), ("%H:%M:%S", None)]
     )
     def test_datetime_outofbounds_scalar(self, value, format, warning):
         # GH24763
@@ -1111,7 +1157,7 @@ class TestToDatetime:
         assert res is NaT
 
         if format is not None:
-            msg = "is a bad directive in format|Out of bounds .* present at position 0"
+            msg = "does not match format|Out of bounds .* present at position 0"
             with pytest.raises(ValueError, match=msg):
                 to_datetime(value, errors="raise", format=format)
         else:
@@ -1123,7 +1169,7 @@ class TestToDatetime:
 
     @pytest.mark.parametrize("values", [["a"], ["00:01:99"], ["a", "b", "99:00:00"]])
     @pytest.mark.parametrize(
-        "format,warning", [(None, UserWarning), ("H%:M%:S%", None)]
+        "format,warning", [(None, UserWarning), ("%H:%M:%S", None)]
     )
     def test_datetime_invalid_index(self, values, format, warning):
         # GH24763
@@ -1136,7 +1182,8 @@ class TestToDatetime:
         tm.assert_index_equal(res, DatetimeIndex([NaT] * len(values)))
 
         msg = (
-            "is a bad directive in format|"
+            "does not match format|"
+            "unconverted data remains:|"
             f"Given date string {values[0]} not likely a datetime|"
             "second must be in 0..59"
         )
@@ -1274,6 +1321,27 @@ class TestToDatetime:
                 NaT,
             ]
         )
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "string_arg, format",
+        [("March 1, 2018", "%B %d, %Y"), ("2018-03-01", "%Y-%m-%d")],
+    )
+    @pytest.mark.parametrize(
+        "outofbounds",
+        [
+            datetime(9999, 1, 1),
+            date(9999, 1, 1),
+            np.datetime64("9999-01-01"),
+            "January 1, 9999",
+            "9999-01-01",
+        ],
+    )
+    def test_to_datetime_coerce_oob(self, string_arg, format, outofbounds):
+        # https://github.com/pandas-dev/pandas/issues/50255
+        ts_strings = [string_arg, outofbounds]
+        result = to_datetime(ts_strings, errors="coerce", format=format)
+        expected = DatetimeIndex([datetime(2018, 3, 1), NaT])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
