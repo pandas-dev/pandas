@@ -96,7 +96,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -4189,8 +4188,7 @@ class DataFrame(NDFrame, OpsMixin):
     def query(self, expr: str, *, inplace: bool = ..., **kwargs) -> DataFrame | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
-    def query(self, expr: str, inplace: bool = False, **kwargs) -> DataFrame | None:
+    def query(self, expr: str, *, inplace: bool = False, **kwargs) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -4334,7 +4332,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
-        kwargs["level"] = kwargs.pop("level", 0) + 2
+        kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
         res = self.eval(expr, **kwargs)
 
@@ -4359,8 +4357,7 @@ class DataFrame(NDFrame, OpsMixin):
     def eval(self, expr: str, *, inplace: Literal[True], **kwargs) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
-    def eval(self, expr: str, inplace: bool = False, **kwargs) -> Any | None:
+    def eval(self, expr: str, *, inplace: bool = False, **kwargs) -> Any | None:
         """
         Evaluate a string describing operations on DataFrame columns.
 
@@ -4466,7 +4463,7 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.computation.eval import eval as _eval
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        kwargs["level"] = kwargs.pop("level", 0) + 2
+        kwargs["level"] = kwargs.pop("level", 0) + 1
         index_resolvers = self._get_index_resolvers()
         column_resolvers = self._get_cleaned_column_resolvers()
         resolvers = column_resolvers, index_resolvers
