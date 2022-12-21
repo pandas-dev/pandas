@@ -6,6 +6,7 @@ from abc import (
     abstractmethod,
 )
 import codecs
+from collections import defaultdict
 import dataclasses
 import functools
 import gzip
@@ -26,7 +27,9 @@ from typing import (
     IO,
     Any,
     AnyStr,
+    DefaultDict,
     Generic,
+    Hashable,
     Literal,
     Mapping,
     Sequence,
@@ -67,6 +70,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
+from pandas.core.indexes.api import MultiIndex
 from pandas.core.shared_docs import _shared_docs
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
@@ -1181,3 +1185,69 @@ def _get_binary_io_classes() -> tuple[type, ...]:
             binary_classes += (type(reader),)
 
     return binary_classes
+
+
+def is_potential_multi_index(
+    columns: Sequence[Hashable] | MultiIndex,
+    index_col: bool | Sequence[int] | None = None,
+) -> bool:
+    """
+    Check whether or not the `columns` parameter
+    could be converted into a MultiIndex.
+
+    Parameters
+    ----------
+    columns : array-like
+        Object which may or may not be convertible into a MultiIndex
+    index_col : None, bool or list, optional
+        Column or columns to use as the (possibly hierarchical) index
+
+    Returns
+    -------
+    bool : Whether or not columns could become a MultiIndex
+    """
+    if index_col is None or isinstance(index_col, bool):
+        index_col = []
+
+    return bool(
+        len(columns)
+        and not isinstance(columns, MultiIndex)
+        and all(isinstance(c, tuple) for c in columns if c not in list(index_col))
+    )
+
+
+def dedup_names(
+    names: Sequence[Hashable], is_potential_multi_index: bool
+) -> Sequence[Hashable]:
+    """
+    Rename column names if duplicates exist.
+
+    Currently the renaming is done by appending a period and an autonumeric,
+    but a custom pattern may be supported in the future.
+
+    Examples
+    --------
+    >>> dedup_names(["x", "y", "x", "x"])
+    ['x', 'y', 'x.1', 'x.2']
+    """
+    names = list(names)  # so we can index
+    counts: DefaultDict[Hashable, int] = defaultdict(int)
+
+    for i, col in enumerate(names):
+        cur_count = counts[col]
+
+        while cur_count > 0:
+            counts[col] = cur_count + 1
+
+            if is_potential_multi_index:
+                # for mypy
+                assert isinstance(col, tuple)
+                col = col[:-1] + (f"{col[-1]}.{cur_count}",)
+            else:
+                col = f"{col}.{cur_count}"
+            cur_count = counts[col]
+
+        names[i] = col
+        counts[col] = cur_count + 1
+
+    return names

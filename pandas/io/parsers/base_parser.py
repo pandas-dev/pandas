@@ -10,7 +10,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    DefaultDict,
     Hashable,
     Iterable,
     List,
@@ -88,6 +87,8 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
+
+from pandas.io.common import is_potential_multi_index
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -334,38 +335,13 @@ class ParserBase:
         return names, index_names, col_names, passed_names
 
     @final
-    def _dedup_names(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
-        names = list(names)  # so we can index
-        counts: DefaultDict[Hashable, int] = defaultdict(int)
-        is_potential_mi = _is_potential_multi_index(names, self.index_col)
-
-        for i, col in enumerate(names):
-            cur_count = counts[col]
-
-            while cur_count > 0:
-                counts[col] = cur_count + 1
-
-                if is_potential_mi:
-                    # for mypy
-                    assert isinstance(col, tuple)
-                    col = col[:-1] + (f"{col[-1]}.{cur_count}",)
-                else:
-                    col = f"{col}.{cur_count}"
-                cur_count = counts[col]
-
-            names[i] = col
-            counts[col] = cur_count + 1
-
-        return names
-
-    @final
     def _maybe_make_multi_index_columns(
         self,
         columns: Sequence[Hashable],
         col_names: Sequence[Hashable] | None = None,
     ) -> Sequence[Hashable] | MultiIndex:
         # possibly create a column mi here
-        if _is_potential_multi_index(columns):
+        if is_potential_multi_index(columns):
             list_columns = cast(List[Tuple], columns)
             return MultiIndex.from_tuples(list_columns, names=col_names)
         return columns
@@ -1330,35 +1306,6 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
             return set(), set()
     else:
         return na_values, na_fvalues
-
-
-def _is_potential_multi_index(
-    columns: Sequence[Hashable] | MultiIndex,
-    index_col: bool | Sequence[int] | None = None,
-) -> bool:
-    """
-    Check whether or not the `columns` parameter
-    could be converted into a MultiIndex.
-
-    Parameters
-    ----------
-    columns : array-like
-        Object which may or may not be convertible into a MultiIndex
-    index_col : None, bool or list, optional
-        Column or columns to use as the (possibly hierarchical) index
-
-    Returns
-    -------
-    bool : Whether or not columns could become a MultiIndex
-    """
-    if index_col is None or isinstance(index_col, bool):
-        index_col = []
-
-    return bool(
-        len(columns)
-        and not isinstance(columns, MultiIndex)
-        and all(isinstance(c, tuple) for c in columns if c not in list(index_col))
-    )
 
 
 def _validate_parse_dates_arg(parse_dates):

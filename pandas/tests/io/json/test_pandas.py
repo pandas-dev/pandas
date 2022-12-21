@@ -117,6 +117,7 @@ class TestPandasContainer:
                 expected.iloc[:, 0] = expected.iloc[:, 0].view(np.int64) // 1000000
         elif orient == "split":
             expected = df
+            expected.columns = ["x", "x.1"]
 
         tm.assert_frame_equal(result, expected)
 

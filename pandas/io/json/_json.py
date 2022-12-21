@@ -58,6 +58,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import (
     IOHandles,
     _extension_to_compression,
+    dedup_names,
     file_exists,
     get_handle,
     is_fsspec_url,
@@ -1245,6 +1246,9 @@ class FrameParser(Parser):
                 str(k): v
                 for k, v in loads(json, precise_float=self.precise_float).items()
             }
+            decoded["columns"] = dedup_names(
+                names=decoded["columns"], is_potential_multi_index=False
+            )
             self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
