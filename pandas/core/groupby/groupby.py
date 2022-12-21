@@ -2083,7 +2083,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
                 )
 
-            def _post(vals, inference, nullable=False, mask=None) -> ArrayLike:
+            def _postprocessing(
+                vals, inference, nullable=False, mask=None
+            ) -> ArrayLike:
                 if nullable:
                     if mask.ndim == 2:
                         mask = mask[:, 0]
@@ -2095,7 +2097,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 cython_dtype=np.dtype(np.float64),
                 numeric_only=numeric_only,
                 needs_counts=True,
-                post_processing=_post,
+                post_processing=_postprocessing,
                 ddof=ddof,
                 how="std",
             )
