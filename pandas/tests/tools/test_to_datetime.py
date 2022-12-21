@@ -2951,8 +2951,8 @@ class TestOrigin:
     def test_to_datetime_out_of_bounds_with_format_arg(self, format, warning):
         # see gh-23830
         msg = (
-            r"^Out of bounds nanosecond timestamp: 2417-10-10 00:00:00"
-            r".* at position 0$"
+            r"^Out of bounds nanosecond timestamp: 2417-10-10 00:00:00 "
+            r"present at position 0$"
         )
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             with tm.assert_produces_warning(warning, match="Could not infer format"):
