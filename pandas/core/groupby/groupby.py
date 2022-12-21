@@ -2084,7 +2084,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
 
             def _postprocessing(
-                vals, inference, nullable=False, mask=None
+                vals, inference, nullable: bool = False, mask=None
             ) -> ArrayLike:
                 if nullable:
                     if mask.ndim == 2:
