@@ -24,6 +24,7 @@ permissions:
 
 jobs:
   pytest:
+    if: false
     defaults:
       run:
         shell: bash -el {0}

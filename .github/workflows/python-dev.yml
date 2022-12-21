@@ -44,6 +44,7 @@ permissions:
 
 jobs:
   build:
+    if: false
     # if: false # Uncomment this to freeze the workflow, comment it to unfreeze
     runs-on: ${{ matrix.os }}
     strategy:

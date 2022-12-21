@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   pytest:
+    if: false
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
