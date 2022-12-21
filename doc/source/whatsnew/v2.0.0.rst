@@ -796,6 +796,7 @@ Datetimelike
 - Bug in :class:`Timestamp` was showing ``UserWarning``, which was not actionable by users, when parsing non-ISO8601 delimited date strings (:issue:`50232`)
 - Bug in :func:`to_datetime` was showing misleading ``ValueError`` when parsing dates with format containing ISO week directive and ISO weekday directive (:issue:`50308`)
 - Bug in :meth:`Timestamp.round` when the ``freq`` argument has zero-duration (e.g. "0ns") returning incorrect results instead of raising (:issue:`49737`)
+- Bug in :func:`to_datetime` was not raising ``ValueError`` when invalid format was passed and ``errors`` was ``'ignore'`` or ``'coerce'`` (:issue:`50266`)
 -
 
 Timedelta

@@ -337,7 +337,6 @@ def test_multiple_agg_funcs(func, window_size, expected_vals):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:min_periods:FutureWarning")
 def test_dont_modify_attributes_after_methods(
     arithmetic_win_operators, closed, center, min_periods, step
 ):

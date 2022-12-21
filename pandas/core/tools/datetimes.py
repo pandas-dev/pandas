@@ -483,31 +483,9 @@ def _array_strptime_with_fallback(
     """
     Call array_strptime, with fallback behavior depending on 'errors'.
     """
-    try:
-        result, timezones = array_strptime(
-            arg, fmt, exact=exact, errors=errors, utc=utc
-        )
-    except OutOfBoundsDatetime:
-        if errors == "raise":
-            raise
-        if errors == "coerce":
-            result = np.empty(arg.shape, dtype="M8[ns]")
-            iresult = result.view("i8")
-            iresult.fill(iNaT)
-        else:
-            result = arg
-    except ValueError:
-        if errors == "raise":
-            raise
-        if errors == "coerce":
-            result = np.empty(arg.shape, dtype="M8[ns]")
-            iresult = result.view("i8")
-            iresult.fill(iNaT)
-        else:
-            result = arg
-    else:
-        if any(tz is not None for tz in timezones):
-            return _return_parsed_timezone_results(result, timezones, utc, name)
+    result, timezones = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+    if any(tz is not None for tz in timezones):
+        return _return_parsed_timezone_results(result, timezones, utc, name)
 
     return _box_as_indexlike(result, utc=utc, name=name)
 
