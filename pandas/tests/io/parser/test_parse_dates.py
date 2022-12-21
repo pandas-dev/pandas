@@ -10,7 +10,6 @@ from datetime import (
     timezone,
 )
 from io import StringIO
-import warnings
 
 from dateutil.parser import parse as du_parse
 from hypothesis import given
@@ -1751,11 +1750,9 @@ def test_hypothesis_delimited_date(
         )
     date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=UserWarning)
-        except_out_dateutil, result = _helper_hypothesis_delimited_date(
-            parse_datetime_string, date_string, dayfirst=dayfirst
-        )
+    except_out_dateutil, result = _helper_hypothesis_delimited_date(
+        parse_datetime_string, date_string, dayfirst=dayfirst
+    )
     except_in_dateutil, expected = _helper_hypothesis_delimited_date(
         du_parse,
         date_string,
