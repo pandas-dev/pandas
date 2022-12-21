@@ -22,7 +22,6 @@ from pandas._libs.tslibs import (
     iNaT,
     parsing,
 )
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -854,22 +853,31 @@ class TestToDatetime:
         "dt", [np.datetime64("1000-01-01"), np.datetime64("5000-01-02")]
     )
     def test_to_datetime_dt64s_out_of_bounds(self, cache, dt):
-        msg = "Out of bounds .* present at position 0"
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            to_datetime(dt, errors="raise")
-
-        # TODO(2.0): The Timestamp and to_datetime behaviors should match;
-        #  as of 2022-09-28, the Timestamp constructor has been updated
-        #  to cast to M8[s] but to_datetime has not
-        ts = Timestamp(dt)
-        assert ts._creso == NpyDatetimeUnit.NPY_FR_s.value
+        # We cast to the nearest supported reso, i.e. "s"
+        ts = to_datetime(dt, errors="raise", cache=cache)
+        assert isinstance(ts, Timestamp)
+        assert ts.unit == "s"
         assert ts.asm8 == dt
+
+        ts = to_datetime(dt, errors="coerce", cache=cache)
+        assert isinstance(ts, Timestamp)
+        assert ts.unit == "s"
+        assert ts.asm8 == dt
+
+        ts = Timestamp(dt)
+        assert ts.unit == "s"
+        assert ts.asm8 == dt
+
+    def test_to_datetime_dt64d_out_of_bounds(self, cache):
+        dt64 = np.datetime64(np.iinfo(np.int64).max, "D")
 
         msg = "Out of bounds nanosecond timestamp"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            Timestamp(np.datetime64(np.iinfo(np.int64).max, "D"))
+            Timestamp(dt64)
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(dt64, errors="raise", cache=cache)
 
-        assert to_datetime(dt, errors="coerce", cache=cache) is NaT
+        assert to_datetime(dt64, errors="coerce", cache=cache) is NaT
 
     @pytest.mark.parametrize("unit", ["s", "D"])
     def test_to_datetime_array_of_dt64s(self, cache, unit):
@@ -2264,23 +2272,16 @@ class TestToDatetimeMisc:
         assert dresult.name == "foo"
 
     @pytest.mark.parametrize(
-        "dtype",
-        [
-            "datetime64[h]",
-            "datetime64[m]",
-            "datetime64[s]",
-            "datetime64[ms]",
-            "datetime64[us]",
-            "datetime64[ns]",
-        ],
+        "unit",
+        ["h", "m", "s", "ms", "us", "ns"],
     )
-    def test_dti_constructor_numpy_timeunits(self, cache, dtype):
+    def test_dti_constructor_numpy_timeunits(self, cache, unit):
         # GH 9114
+        dtype = np.dtype(f"M8[{unit}]")
         base = to_datetime(["2000-01-01T00:00", "2000-01-02T00:00", "NaT"], cache=cache)
 
         values = base.values.astype(dtype)
 
-        unit = dtype.split("[")[-1][:-1]
         if unit in ["h", "m"]:
             # we cast to closest supported unit
             unit = "s"
@@ -2289,7 +2290,7 @@ class TestToDatetimeMisc:
         assert expected.dtype == exp_dtype
 
         tm.assert_index_equal(DatetimeIndex(values), expected)
-        tm.assert_index_equal(to_datetime(values, cache=cache), base)
+        tm.assert_index_equal(to_datetime(values, cache=cache), expected)
 
     def test_dayfirst(self, cache):
         # GH 5917
