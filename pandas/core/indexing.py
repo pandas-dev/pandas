@@ -2044,7 +2044,6 @@ class _iLocIndexer(_LocationIndexer):
                     # e.g. test_loc_setitem_empty_append_expands_rows
                     loc = item_labels.get_loc(col)
                     # Go through _setitem_single_column to get
-                    #  FutureWarning if relevant.
                     self._setitem_single_column(loc, value, indexer[0])
                     return
 
