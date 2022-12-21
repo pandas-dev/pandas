@@ -44,7 +44,7 @@ jobs:
           python -m pip install --no-build-isolation --no-use-pep517 -e . && \
           python -m pip list && \
           export PANDAS_CI=1 && \
-          pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml"
+          pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas/tests/io/json/ --junitxml=test-data.xml"
 
       - name: Publish test results for Python 3.8-32 bit full Linux
         uses: actions/upload-artifact@v3
