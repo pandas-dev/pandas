@@ -70,6 +70,7 @@ from pandas.core.dtypes.missing import notna
 from pandas.arrays import (
     DatetimeArray,
     IntegerArray,
+    PandasArray,
 )
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
@@ -386,6 +387,8 @@ def _convert_listlike_datetimes(
     """
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype="O")
+    elif isinstance(arg, PandasArray):
+        arg = np.array(arg)
 
     arg_dtype = getattr(arg, "dtype", None)
     # these are shortcutable
