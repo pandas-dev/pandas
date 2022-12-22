@@ -479,9 +479,11 @@ class TestTimeConversionFormats:
         fmt = "%Y-%m-%d %H:%M:%S %z"
         date = "2010-01-01 12:00:00 " + offset
 
-        msg = (
-            r'^(time data ".*" at position 0 doesn\'t match format ".*" \(match\)|'
-            r'unconverted data remains at position 0: ".*")$'
+        msg = "|".join(
+            [
+                r'^time data ".*" at position 0 doesn\'t match format ".*"$',
+                r'^unconverted data remains at position 0: ".*"$',
+            ]
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime([date], format=fmt)
@@ -1096,10 +1098,7 @@ class TestToDatetime:
             to_datetime([False, datetime.today()], cache=cache)
         with pytest.raises(
             ValueError,
-            match=(
-                r'^time data "True" at position 1 doesn\'t match format "%Y%m%d" '
-                r"\(match\)$"
-            ),
+            match=r'^time data "True" at position 1 doesn\'t match format "%Y%m%d"$',
         ):
             to_datetime(["20130101", True], cache=cache)
         tm.assert_index_equal(
@@ -1138,11 +1137,13 @@ class TestToDatetime:
             res = to_datetime(value, errors="coerce", format=format)
         assert res is NaT
 
-        msg = (
-            r'^(time data "a" at position 0 doesn\'t match format "%H:%M:%S" \(match\)|'
-            r'Given date string "a" not likely a datetime present at position 0|'
-            r'unconverted data remains at position 0: "9"|'
-            r"second must be in 0..59: 00:01:99 present at position 0)$"
+        msg = "|".join(
+            [
+                r'^time data "a" at position 0 doesn\'t match format "%H:%M:%S"$',
+                r'^Given date string "a" not likely a datetime present at position 0$',
+                r'^unconverted data remains at position 0: "9"$',
+                r"^second must be in 0..59: 00:01:99 present at position 0$",
+            ]
         )
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(warning, match="Could not infer format"):
@@ -1163,7 +1164,7 @@ class TestToDatetime:
         assert res is NaT
 
         if format is not None:
-            msg = r'^time data ".*" at position 0 doesn\'t match format ".*" \(match\)$'
+            msg = r'^time data ".*" at position 0 doesn\'t match format ".*"$'
             with pytest.raises(ValueError, match=msg):
                 to_datetime(value, errors="raise", format=format)
         else:
@@ -1187,11 +1188,13 @@ class TestToDatetime:
             res = to_datetime(values, errors="coerce", format=format)
         tm.assert_index_equal(res, DatetimeIndex([NaT] * len(values)))
 
-        msg = (
-            r'^(Given date string "a" not likely a datetime present at position 0|'
-            r'time data "a" at position 0 doesn\'t match format "%H:%M:%S" \(match\)|'
-            r'unconverted data remains at position 0: "9"|'
-            r"second must be in 0..59: 00:01:99 present at position 0)$"
+        msg = "|".join(
+            [
+                r'^Given date string "a" not likely a datetime present at position 0$',
+                r'^time data "a" at position 0 doesn\'t match format "%H:%M:%S"$',
+                r'^unconverted data remains at position 0: "9"$',
+                r"^second must be in 0..59: 00:01:99 present at position 0$",
+            ]
         )
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(warning, match="Could not infer format"):
@@ -1812,7 +1815,7 @@ class TestToDatetimeDataFrame:
 
         msg = (
             r'^cannot assemble the datetimes: time data ".+" at position 1 doesn\'t '
-            r'match format "%Y%m%d" \(match\)$'
+            r'match format "%Y%m%d"$'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df2, cache=cache)
@@ -2081,9 +2084,7 @@ class TestToDatetimeMisc:
     def test_to_datetime_with_space_in_series(self, cache):
         # GH 6428
         ser = Series(["10/18/2006", "10/18/2008", " "])
-        msg = (
-            r'^time data " " at position 2 doesn\'t match format "%m/%d/%Y" \(match\)$'
-        )
+        msg = r'^time data " " at position 2 doesn\'t match format "%m/%d/%Y"$'
         with pytest.raises(ValueError, match=msg):
             to_datetime(ser, errors="raise", cache=cache)
         result_coerce = to_datetime(ser, errors="coerce", cache=cache)
@@ -2355,7 +2356,7 @@ class TestToDatetimeMisc:
             ValueError,
             match=(
                 r'^time data "03/30/2011" at position 1 doesn\'t match format '
-                r'"%d/%m/%Y" \(match\)$'
+                r'"%d/%m/%Y"$'
             ),
         ):
             to_datetime(arr, dayfirst=True)
@@ -2426,7 +2427,7 @@ class TestToDatetimeInferFormat:
         ser = Series(np.array(data))
         msg = (
             r'^time data "01-02-2011 00:00:00" at position 1 doesn\'t match format '
-            r'"%m/%d/%Y %H:%M:%S" \(match\)$'
+            r'"%m/%d/%Y %H:%M:%S"$'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(ser, cache=cache)

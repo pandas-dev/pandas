@@ -515,10 +515,9 @@ cpdef array_to_datetime(
                             iresult[i] = NPY_NAT
                             continue
                         elif is_raise:
-                            match_msg = "match" if exact else "search"
                             raise ValueError(
                                 f"time data \"{val}\" at position {i} doesn't "
-                                f"match format \"{format}\" ({match_msg})"
+                                f"match format \"{format}\""
                             )
                         return values, tz_out
                     # these must be ns unit by-definition
@@ -565,10 +564,9 @@ cpdef array_to_datetime(
                                 iresult[i] = NPY_NAT
                                 continue
                             elif is_raise:
-                                match_msg = "match" if exact else "search"
                                 raise ValueError(
                                     f"time data \"{val}\" at position {i} doesn't "
-                                    f"match format \"{format}\" ({match_msg})"
+                                    f"match format \"{format}\""
                                 )
                             return values, tz_out
 

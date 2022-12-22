@@ -237,7 +237,7 @@ def array_strptime(
                 found = format_regex.match(val)
                 if not found:
                     raise ValueError(f"time data \"{val}\" at position {i} doesn't "
-                                     f"match format \"{fmt}\" (match)")
+                                     f"match format \"{fmt}\"")
                 if len(val) != found.end():
                     raise ValueError(
                         f"unconverted data remains at position {i}: "
@@ -250,7 +250,7 @@ def array_strptime(
                 if not found:
                     raise ValueError(
                         f"time data \"{val}\" at position {i} doesn't match "
-                        f"format \"{fmt}\" (search)"
+                        f"format \"{fmt}\""
                     )
 
             iso_year = -1
