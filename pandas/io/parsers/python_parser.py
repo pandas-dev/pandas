@@ -34,9 +34,10 @@ from pandas.errors import (
     ParserError,
 )
 
-from pandas.api.types import is_numeric_dtype
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
+
+from pandas.api.types import is_numeric_dtype
 
 from pandas.io.parsers.base_parser import (
     ParserBase,
