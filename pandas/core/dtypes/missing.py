@@ -584,6 +584,8 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
                 if "boolean value of NA is ambiguous" in str(err):
                     return False
                 raise
+            except ValueError:
+                return False
     return True
 
 
