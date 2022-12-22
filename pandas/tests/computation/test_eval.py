@@ -353,6 +353,16 @@ class TestEval:
             expected = _eval_single_bin(middle, "**", rhs, engine)
             tm.assert_almost_equal(result, expected)
 
+    def test_check_single_invert_op(self, lhs, engine, parser):
+        # simple
+        try:
+            elb = lhs.astype(bool)
+        except AttributeError:
+            elb = np.array([bool(lhs)])
+        expected = ~elb
+        result = pd.eval("~elb", engine=engine, parser=parser)
+        tm.assert_almost_equal(expected, result)
+
     def test_frame_invert(self, engine, parser):
         expr = "~lhs"
 
