@@ -1841,7 +1841,7 @@ class SQLDatabase(PandasSQL):
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
             self.meta.reflect(bind=self.con, only=[table_name], schema=schema)
-            self.execute(f"TRUNCATE FROM {schema}.{table_name}")
+            self.execute(f"TRUNCATE TABLE {schema}.{table_name}")
             self.meta.clear()
 
     def _create_sql_schema(
