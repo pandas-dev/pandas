@@ -489,7 +489,7 @@ Other API changes
   new DataFrame (shallow copy) instead of the original DataFrame, consistent with other
   methods to get a full slice (for example ``df.loc[:]`` or ``df[:]``) (:issue:`49469`)
 - Disallow computing ``cumprod`` for :class:`Timedelta` object; previously this returned incorrect values (:issue:`50246`)
-- :func:`to_datetime` with ``unit`` of either "Y" or "M" will now raise if a sequence contains a non-round ``float`` value, matching the ``Timestamp`` behavior (:issue:`??`)
+- :func:`to_datetime` with ``unit`` of either "Y" or "M" will now raise if a sequence contains a non-round ``float`` value, matching the ``Timestamp`` behavior (:issue:`50301`)
 -
 
 .. ---------------------------------------------------------------------------
