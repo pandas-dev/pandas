@@ -2266,8 +2266,7 @@ class SQLiteDatabase(PandasSQL):
         self.execute(drop_sql)
 
     def trunc_table(self, name: str, schema: str | None = None) -> None:
-        trunc_sql = f"DELETE FROM {_get_valid_sqlite_name(name)}"
-        self.execute(trunc_sql)
+        raise NotImplementedError("TRUNCATE not implemented on database")
 
     def _create_sql_schema(
         self,

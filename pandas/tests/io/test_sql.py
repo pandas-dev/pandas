@@ -917,15 +917,20 @@ class _TestSQLApi(PandasSQLTest):
         #  creates new table if table doesn't exist
         sql.to_sql(test_frame1, "test_frame_new", self.conn, if_exists="truncate")
         assert sql.has_table("test_frame_new")
-        
+
     def test_to_sql_truncate_new_columns(self, test_frame1, test_frame3):
-        sql.to_sql(test_frame3, "test_frame3", self.conn, if_exists='fail')
+        sql.to_sql(test_frame3, "test_frame3", self.conn, if_exists="fail")
         # truncate and attempt to add more columns
         msg = "table test_frame3 has no column named C"
         with pytest.raises(Exception, match=msg):
-            sql.to_sql(test_frame1, "test_frame3", self.conn, if_exists='truncate')
-        
-        
+            sql.to_sql(test_frame1, "test_frame3", self.conn, if_exists="truncate")
+
+    def test_sqlite_truncate_raises(self, test_frame1):
+        msg = "TRUNCATE not implemented on database"
+        with pytest.raises(NotImplementedError, match=msg):
+            sql.to_sql(
+                test_frame1, "test_frame3", self.conn, if_exists="truncate"
+            )
 
     def test_to_sql_append(self, test_frame1):
         assert sql.to_sql(test_frame1, "test_frame4", self.conn, if_exists="fail") == 4
