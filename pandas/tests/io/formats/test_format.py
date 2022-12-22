@@ -11,7 +11,6 @@ from io import StringIO
 import itertools
 import locale
 from operator import methodcaller
-import os
 from pathlib import Path
 import re
 from shutil import get_terminal_size
@@ -104,11 +103,6 @@ def assert_filepath_or_buffer_equals(
         assert result == expected
 
     return _assert_filepath_or_buffer_equals
-
-
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
 
 
 def has_info_repr(df):
