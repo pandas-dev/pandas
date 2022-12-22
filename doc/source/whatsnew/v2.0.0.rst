@@ -892,6 +892,8 @@ I/O
 - Fixed memory leak which stemmed from the initialization of the internal JSON module (:issue:`49222`)
 - Fixed issue where :func:`json_normalize` would incorrectly remove leading characters from column names that matched the ``sep`` argument (:issue:`49861`)
 - Bug in :meth:`DataFrame.to_json` where it would segfault when failing to encode a string (:issue:`50307`)
+- Bug in :meth:`DataFrame.to_json` where it would incorrectly use the string representations of NA-values instead of null when serializing an index (:issue:`31801`)
+- Bug in :meth:`DataFrame.to_json` where it would error when serializing ``Decimal("NaN")`` (:issue:`50399`)
 
 Period
 ^^^^^^
