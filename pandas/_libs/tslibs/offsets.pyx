@@ -302,6 +302,14 @@ cdef _determine_offset(kwds):
         # GH 45643/45890: (historically) defaults to 1 day
         return timedelta(days=1), False
 
+    if "millisecond" in kwds:
+        raise NotImplementedError(
+            "Using DateOffset to replace `millisecond` component in "
+            "datetime object is not supported. Use "
+            "`microsecond=timestamp.microsecond % 1000 + ms * 1000` "
+            "instead."
+        )
+
     nanos = {"nanosecond", "nanoseconds"}
 
     # nanos are handled by apply_wraps
@@ -309,14 +317,6 @@ cdef _determine_offset(kwds):
         return timedelta(days=0), False
 
     kwds_no_nanos = {k: v for k, v in kwds.items() if k not in nanos}
-
-    if "millisecond" in kwds_no_nanos:
-        raise NotImplementedError(
-            "Using DateOffset to replace `millisecond` component in "
-            "datetime object is not supported. Use "
-            "`microsecond=timestamp.microsecond % 1000 + ms * 1000` "
-            "instead."
-        )
 
     kwds_use_relativedelta = {
         "year", "month", "day", "hour", "minute",
