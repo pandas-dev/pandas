@@ -105,12 +105,6 @@ def assert_filepath_or_buffer_equals(
 
     return _assert_filepath_or_buffer_equals
 
-
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
-
-
 def has_info_repr(df):
     r = repr(df)
     c1 = r.split("\n")[0].startswith("<class")
