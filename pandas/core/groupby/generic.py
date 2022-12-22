@@ -1879,14 +1879,82 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         return result
 
-    @doc(
-        _shared_docs["idxmin"],
-        numeric_only_default="False",
-    )
     def idxmin(
-        self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False, **kwargs
+        self,
+        axis: Axis = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
     ) -> DataFrame:
-        axis = kwargs.setdefault("axis", self.axis)
+        """
+        Return index of first occurrence of minimum over requested axis.
+
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+            The axis argument is ignored, instead we use the grouper's axis.
+
+            .. versionchanged:: 1.5.3
+
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series
+            Indexes of minima along the specified axis.
+
+        Raises
+        ------
+        ValueError
+            * If the row/column is empty
+
+        See Also
+        --------
+        Series.idxmin : Return index of the minimum element.
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmin``.
+
+        Examples
+        --------
+        Consider a dataset containing food consumption in Argentina.
+
+        >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
+        ...                    'co2_emissions': [37.2, 19.66, 1712]}},
+        ...                    index=['Pork', 'Wheat Products', 'Beef'])
+
+        >>> df
+                        consumption  co2_emissions
+        Pork                  10.51         37.20
+        Wheat Products       103.11         19.66
+        Beef                  55.48       1712.00
+
+        By default, it returns the index for the minimum value in each column.
+
+        >>> df.idxmin()
+        consumption                Pork
+        co2_emissions    Wheat Products
+        dtype: object
+
+        To return the index for the minimum value in each row, use ``axis="columns"``.
+
+        >>> df.idxmin(axis="columns")
+        Pork                consumption
+        Wheat Products    co2_emissions
+        Beef                consumption
+        dtype: object
+        """
+
+        axis = self.axis
         axis = DataFrame._get_axis_number(axis)
 
         def func(df):
