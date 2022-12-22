@@ -1,0 +1,140 @@
+# PDEP-6: Ban upcasting in setitem-like operations
+
+- Created: 23 December 2022
+- Status: Draft
+- Discussion: [#50402](https://github.com/pandas-dev/pandas/pull/50402)
+- Author: [Marco Gorelli](https://github.com/MarcoGorelli) ([original issue](https://github.com/pandas-dev/pandas/issues/39584) by [Joris Van den Bossche](https://github.com/jorisvandenbossche))
+- Revision: 1
+
+## Abstract
+
+The suggestion is that setitem-like operations would
+not change a ``Series``' dtype.
+
+Current behaviour:
+```python
+In [1]: ser = pd.Series([1, 2, 3], dtype='int64')
+
+In [2]: ser[2] = 'potage'
+
+In [3]: ser  # dtype changed to 'object'!
+Out[3]:
+0         1
+1         2
+2    potage
+dtype: object
+```
+
+Suggested behaviour:
+
+```python
+In [1]: ser = pd.Series([1, 2, 3])
+
+In [2]: ser[2] = 'potage'  # raises!
+---------------------------------------------------------------------------
+TypeError: Invalid value 'potage' for dtype int64
+```
+
+## Motivation and Scope
+
+Currently, pandas is extremely flexible in handling different dtypes.
+However, this can potentially hide bugs, break user expectations, and unnecessarily copy data.
+
+An example of it hiding a bug is:
+```python
+In [9]: ser = pd.Series(pd.date_range('2000', periods=3))
+
+In [10]: ser[2] = '2000-01-04'  # works, is converted to datetime64
+
+In [11]: ser[2] = '2000-01-04x'  # almost certainly a typo - but pandas doesn't error, it upcasts to object
+```
+
+The scope of this PDEP is limited to setitem-like operations which would operate inplace, such as:
+- ``ser[0] == 2``;
+- ``ser.fillna(0, inplace=True)``;
+- ``ser.where(ser.isna(), 0, inplace=True)``
+
+There may be more. What is explicitly excluded from this PDEP is any operation would have no change
+of operating inplace to begin with, such as:
+- ``ser.diff()``;
+- ``pd.concat([ser, other])``;
+- ``ser.mean()``.
+
+These would keep being allowed to change Series' dtypes.
+
+## Detailed description
+
+Concretely, the suggestion is:
+- if a ``Series`` is of a given dtype, then a ``setitem``-like operation should not change its dtype;
+- if a ``setitem``-like operation would previously have changed a ``Series``' dtype, it would now raise.
+
+For a start, this would involve:
+
+1. changing ``Block.setitem`` such that it doesn't have an ``except`` block in
+
+  ```python
+  value = extract_array(value, extract_numpy=True)
+  try:
+      casted = np_can_hold_element(values.dtype, value)
+  except LossySetitemError:
+      # current dtype cannot store value, coerce to common dtype
+      nb = self.coerce_to_target_dtype(value)
+      return nb.setitem(indexer, value)
+  else:
+  ```
+
+2. making a similar change in ``Block.where``, ``EABlock.setitem``, ``EABlock.where``, and probably more places.
+
+The above would already require several hundreds of tests to be adjusted.
+
+### Ban upcasting altogether, or just upcasting to ``object``?
+
+The trickiest part of this proposal concerns what to do when setting a float in an integer column:
+
+```python
+In [1]: ser = pd.Series([1, 2, 3])
+
+In [2]: ser[0] = 1.5
+```
+
+Possibly options could be:
+1. just raise;
+2. convert the float value to ``int``, preserve the Series' dtype;
+3. upcast to ``float``, even if upcasting in setitem-like is banned for other conversions.
+
+Let us compare with what other libraries do:
+- ``numpy``: option 2
+- ``cudf``: option 2
+- ``polars``: option 2
+- ``R data.frame``: option 3
+- ``pandas`` (nullable dtype): option 1
+
+If the objective of this PDEP is to prevent bugs, then option 2 is also not desirable:
+someone might set ``1.5`` and later be surprised to learn that they actually set ``1``.
+
+Option ``3`` would be inconsistent with the nullable dtypes' behaviour, would add complexity
+to the codebase and to tests, and would be confusing to teach.
+
+Option ``1`` is the maximally safe one in terms of protecting users from bugs, and would
+also be consistent with the current behaviour of nullable dtypes. It would also be simple to teach:
+"if you try to set an element of a ``Series`` to a new value, then that value must be compatible
+with the Series' dtype, otherwise it will raise" is easy to understand. If we make an exception for
+``int`` to ``float`` (and presumably also for ``interval[int]``, ``interval[float]``), then the rule
+starts to become confusing.
+
+## Usage and Impact
+
+This would make pandas stricter, so there should not be any risk of introducing bugs. If anything, this would help prevent bugs.
+
+Unfortunately, it would also risk annoy users who might have been intentionally upcasting.
+
+Given that users can get around this as simply as with an ``.astype({'my_column': float})`` call,
+I think it would be more beneficial to the community at large to err on the side of strictness.
+
+## Timeline
+
+Deprecate sometime in the 2.x releases (after 2.0.0 has already been released), and enforce in 3.0.0.
+
+### PDEP History
+
+- 23 December 2022: Initial draft
