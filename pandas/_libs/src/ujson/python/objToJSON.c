@@ -341,7 +341,6 @@ static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc,
           Set errorMsg(to tell encoder to stop),
           and let Python exception propagate. */
         JSONObjectEncoder *enc = (JSONObjectEncoder *)tc->encoder;
-        *_outLen = 0;
         enc->errorMsg = "Encoding failed.";
     }
     return encoded;
