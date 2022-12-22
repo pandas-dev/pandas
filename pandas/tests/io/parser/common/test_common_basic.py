@@ -128,6 +128,25 @@ def test_1000_sep(all_parsers):
 
 
 @xfail_pyarrow
+def test__search_replace_num_columns(all_parsers):
+    parser = all_parsers
+    data = """A;B;C
+155.75;3.001;43.06.4
+16.2;0;23.0
+"""
+    expected = DataFrame(
+        {
+            "A": ["155.75", "16.2"],
+            "B": [3001, 0],
+            "C": [43064, 230],
+        }
+    )
+
+    result = parser.read_csv(StringIO(data), sep=";", dtype={"A": str}, thousands=".")
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow
 def test_unnamed_columns(all_parsers):
     data = """A,B,C,,
 1,2,3,4,5
