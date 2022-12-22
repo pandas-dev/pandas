@@ -337,10 +337,8 @@ def test_subset_set_column_with_loc(using_copy_on_write, using_array_manager, dt
         subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
     else:
         with pd.option_context("chained_assignment", "warn"):
-            # The (i)loc[:, col] inplace deprecation gets triggered here, ignore those
-            # warnings and only assert the SettingWithCopyWarning
             with tm.assert_produces_warning(
-                SettingWithCopyWarning,
+                None,
                 raise_on_extra_warnings=not using_array_manager,
             ):
                 subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
@@ -351,7 +349,7 @@ def test_subset_set_column_with_loc(using_copy_on_write, using_array_manager, dt
         index=range(1, 3),
     )
     tm.assert_frame_equal(subset, expected)
-    if using_copy_on_write or using_array_manager:
+    if using_copy_on_write:
         # original parent dataframe is not modified (CoW)
         tm.assert_frame_equal(df, df_orig)
     else:
@@ -373,10 +371,8 @@ def test_subset_set_column_with_loc2(using_copy_on_write, using_array_manager):
         subset.loc[:, "a"] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            # The (i)loc[:, col] inplace deprecation gets triggered here, ignore those
-            # warnings and only assert the SettingWithCopyWarning
             with tm.assert_produces_warning(
-                SettingWithCopyWarning,
+                None,
                 raise_on_extra_warnings=not using_array_manager,
             ):
                 subset.loc[:, "a"] = 0
@@ -384,7 +380,7 @@ def test_subset_set_column_with_loc2(using_copy_on_write, using_array_manager):
     subset._mgr._verify_integrity()
     expected = DataFrame({"a": [0, 0]}, index=range(1, 3))
     tm.assert_frame_equal(subset, expected)
-    if using_copy_on_write or using_array_manager:
+    if using_copy_on_write:
         # original parent dataframe is not modified (CoW)
         tm.assert_frame_equal(df, df_orig)
     else:
@@ -439,24 +435,20 @@ def test_subset_set_with_column_indexer(
         subset.loc[:, indexer] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            # The (i)loc[:, col] inplace deprecation gets triggered here, ignore those
-            # warnings and only assert the SettingWithCopyWarning
-            with tm.assert_produces_warning(
-                SettingWithCopyWarning, raise_on_extra_warnings=False
-            ):
-                subset.loc[:, indexer] = 0
+            # As of 2.0, this setitem attempts (successfully) to set values
+            #  inplace, so the assignment is not chained.
+            subset.loc[:, indexer] = 0
 
     subset._mgr._verify_integrity()
     expected = DataFrame({"a": [0, 0], "b": [0.0, 0.0], "c": [5, 6]}, index=range(1, 3))
-    # TODO full row slice .loc[:, idx] update inplace instead of overwrite?
-    expected["b"] = expected["b"].astype("int64")
     tm.assert_frame_equal(subset, expected)
-    if using_copy_on_write or using_array_manager:
+    if using_copy_on_write:
         tm.assert_frame_equal(df, df_orig)
     else:
-        # In the mixed case with BlockManager, only one of the two columns is
-        # mutated in the parent frame ..
-        df_orig.loc[1:2, ["a"]] = 0
+        # pre-2.0, in the mixed case with BlockManager, only column "a"
+        #  would be mutated in the parent frame. this changed with the
+        #  enforcement of GH#45333
+        df_orig.loc[1:2, ["a", "b"]] = 0
         tm.assert_frame_equal(df, df_orig)
 
 
