@@ -73,7 +73,10 @@ from pandas.core.algorithms import (
     isin,
     take,
 )
-from pandas.core.array_algos import masked_reductions
+from pandas.core.array_algos import (
+    masked_accumulations,
+    masked_reductions,
+)
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -606,9 +609,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if other is libmissing.NA:
                 # GH#45421 don't alter inplace
                 mask = mask | True
+            elif is_list_like(other) and len(other) == len(mask):
+                mask = mask | isna(other)
         else:
             mask = self._mask | mask
-        return mask
+        # Incompatible return value type (got "Optional[ndarray[Any, dtype[bool_]]]",
+        # expected "ndarray[Any, dtype[bool_]]")
+        return mask  # type: ignore[return-value]
 
     def _arith_method(self, other, op):
         op_name = op.__name__
@@ -720,12 +727,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             mask = np.ones(self._data.shape, dtype="bool")
         else:
             with warnings.catch_warnings():
-                # numpy may show a FutureWarning:
+                # numpy may show a FutureWarning or DeprecationWarning:
                 #     elementwise comparison failed; returning scalar instead,
                 #     but in the future will perform elementwise comparison
                 # before returning NotImplemented. We fall back to the correct
                 # behavior today, so that should be fine to ignore.
                 warnings.filterwarnings("ignore", "elementwise", FutureWarning)
+                warnings.filterwarnings("ignore", "elementwise", DeprecationWarning)
                 with np.errstate(all="ignore"):
                     method = getattr(self._data, f"__{op.__name__}__")
                     result = method(other)
@@ -1328,3 +1336,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return result
             else:
                 return self.dtype.na_value
+
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> BaseMaskedArray:
+        data = self._data
+        mask = self._mask
+
+        op = getattr(masked_accumulations, name)
+        data, mask = op(data, mask, skipna=skipna, **kwargs)
+
+        return type(self)(data, mask, copy=False)

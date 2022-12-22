@@ -2544,8 +2544,7 @@ class TestDataFrameConstructors:
 
         # FIXME(GH#35417): until GH#35417, iloc.setitem into EA values does not preserve
         #  view, so we have to check in the other direction
-        with tm.assert_produces_warning(FutureWarning, match="will attempt to set"):
-            df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
+        df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
         assert df.dtypes.iloc[2] == c.dtype
         if not copy and not using_copy_on_write:
             check_views(True)
@@ -2706,11 +2705,12 @@ class TestDataFrameConstructorWithDtypeCoercion:
 
         arr = np.random.randn(10, 5)
 
-        # as of 2.0, we match Series behavior by retaining float dtype instead
-        #  of doing a lossy conversion here. Below we _do_ do the conversion
-        #  since it is lossless.
-        df = DataFrame(arr, dtype="i8")
-        assert (df.dtypes == "f8").all()
+        # GH#49599 in 2.0 we raise instead of either
+        #  a) silently ignoring dtype and returningfloat (the old Series behavior) or
+        #  b) rounding (the old DataFrame behavior)
+        msg = "Trying to coerce float values to integers"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(arr, dtype="i8")
 
         df = DataFrame(arr.round(), dtype="i8")
         assert (df.dtypes == "i8").all()

@@ -2437,7 +2437,7 @@ def test_dt64arr_addsub_object_dtype_2d():
 
     assert isinstance(result, DatetimeArray)
     assert result.freq is None
-    tm.assert_numpy_array_equal(result._data, expected._data)
+    tm.assert_numpy_array_equal(result._ndarray, expected._ndarray)
 
     with tm.assert_produces_warning(PerformanceWarning):
         # Case where we expect to get a TimedeltaArray back

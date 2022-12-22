@@ -13,7 +13,7 @@ from pandas.io.common import get_handle
 
 class TestSeriesToCSV:
     def read_csv(self, path, **kwargs):
-        params = {"index_col": 0, "header": None, "parse_dates": True}
+        params = {"index_col": 0, "header": None}
         params.update(**kwargs)
 
         header = params.get("header")
@@ -30,7 +30,7 @@ class TestSeriesToCSV:
 
         with tm.ensure_clean() as path:
             datetime_series.to_csv(path, header=False)
-            ts = self.read_csv(path)
+            ts = self.read_csv(path, parse_dates=True)
             tm.assert_series_equal(datetime_series, ts, check_names=False)
 
             assert ts.name is None
@@ -55,7 +55,7 @@ class TestSeriesToCSV:
             with open(path, "w") as outfile:
                 outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
 
-            series = self.read_csv(path, sep="|")
+            series = self.read_csv(path, sep="|", parse_dates=True)
             check_series = Series(
                 {datetime(1998, 1, 1): 1.0, datetime(1999, 1, 1): 2.0}
             )

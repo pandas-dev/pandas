@@ -1127,7 +1127,6 @@ class Block(PandasObject):
 
         return [self.make_block(result)]
 
-    @final
     def fillna(
         self, value, limit: int | None = None, inplace: bool = False, downcast=None
     ) -> list[Block]:
@@ -1591,6 +1590,18 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
     is_extension = True
 
     values: ExtensionArray
+
+    def fillna(
+        self, value, limit: int | None = None, inplace: bool = False, downcast=None
+    ) -> list[Block]:
+        if is_interval_dtype(self.dtype):
+            # Block.fillna handles coercion (test_fillna_interval)
+            return super().fillna(
+                value=value, limit=limit, inplace=inplace, downcast=downcast
+            )
+        new_values = self.values.fillna(value=value, method=None, limit=limit)
+        nb = self.make_block_same_class(new_values)
+        return nb._maybe_downcast([nb], downcast)
 
     @cache_readonly
     def shape(self) -> Shape:
@@ -2287,6 +2298,6 @@ def external_values(values: ArrayLike) -> ArrayLike:
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
         # Avoid raising in .astype in casting from dt64tz to dt64
-        return values._data
+        return values._ndarray
     else:
         return values
