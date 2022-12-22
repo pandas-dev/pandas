@@ -799,7 +799,7 @@ Datetimelike
 - Bug in :class:`Timestamp` was showing ``UserWarning``, which was not actionable by users, when parsing non-ISO8601 delimited date strings (:issue:`50232`)
 - Bug in :func:`to_datetime` was showing misleading ``ValueError`` when parsing dates with format containing ISO week directive and ISO weekday directive (:issue:`50308`)
 - Bug in :func:`to_datetime` was not raising ``ValueError`` when invalid format was passed and ``errors`` was ``'ignore'`` or ``'coerce'`` (:issue:`50266`)
-- Bug in :class:`DateOffset` when constructing with milliseconds and another super-daily argument. A ``TypeError`` was raised due to misuse of underlying :class:`datetime.timedelta` and :class:`dateutil.relativedelta.relativedelta` (:issue:`49897`)
+- Bug in :class:`DateOffset` was throwing ``TypeError`` when constructing with milliseconds and another super-daily argument (:issue:`49897`)
 -
 
 Timedelta
