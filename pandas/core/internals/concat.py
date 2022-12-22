@@ -207,7 +207,7 @@ def concatenate_managers(
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
     ]
-    concat_plan = _combine_concat_plans(concat_plans, concat_axis)
+    concat_plan = _combine_concat_plans(concat_plans)
     blocks = []
 
     for placement, join_units in concat_plan:
@@ -238,7 +238,7 @@ def concatenate_managers(
 
             fastpath = blk.values.dtype == values.dtype
         else:
-            values = _concatenate_join_units(join_units, concat_axis, copy=copy)
+            values = _concatenate_join_units(join_units, copy=copy)
             fastpath = False
 
         if fastpath:
@@ -330,7 +330,9 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
     plan : list of (BlockPlacement, JoinUnit) tuples
 
     """
-    # Calculate post-reindex shape , save for item axis which will be separate
+    assert len(indexers) == 0
+
+    # Calculate post-reindex shape, save for item axis which will be separate
     # for each block anyway.
     mgr_shape_list = list(mgr.shape)
     for ax, indexer in indexers.items():
@@ -565,16 +567,10 @@ class JoinUnit:
         return values
 
 
-def _concatenate_join_units(
-    join_units: list[JoinUnit], concat_axis: AxisInt, copy: bool
-) -> ArrayLike:
+def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike:
     """
-    Concatenate values from several join units along selected axis.
+    Concatenate values from several join units along axis=1.
     """
-    if concat_axis == 0 and len(join_units) > 1:
-        # Concatenating join units along ax0 is handled in _merge_blocks.
-        raise AssertionError("Concatenating join units along axis0")
-
     empty_dtype = _get_empty_dtype(join_units)
 
     has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
@@ -615,7 +611,7 @@ def _concatenate_join_units(
         concat_values = ensure_block_shape(concat_values, 2)
 
     else:
-        concat_values = concat_compat(to_concat, axis=concat_axis)
+        concat_values = concat_compat(to_concat, axis=1)
 
     return concat_values
 
@@ -743,27 +739,17 @@ def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
     return JoinUnit(block=extra_block, indexers=extra_indexers, shape=extra_shape)
 
 
-def _combine_concat_plans(plans, concat_axis: AxisInt):
+def _combine_concat_plans(plans):
     """
     Combine multiple concatenation plans into one.
 
     existing_plan is updated in-place.
+
+    We only get here with concat_axis == 1.
     """
     if len(plans) == 1:
         for p in plans[0]:
             yield p[0], [p[1]]
-
-    elif concat_axis == 0:
-        offset = 0
-        for plan in plans:
-            last_plc = None
-
-            for plc, unit in plan:
-                yield plc.add(offset), [unit]
-                last_plc = plc
-
-            if last_plc is not None:
-                offset += last_plc.as_slice.stop
 
     else:
         # singleton list so we can modify it as a side-effect within _next_or_none
