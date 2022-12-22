@@ -28,10 +28,10 @@ The available extras, found in the :ref:`installation guide<install.dependencies
 ``[all, performance, computation, timezone, fss, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql,
 sql-other, html, xml, plot, output_formatting, clipboard, compression, test]`` (:issue:`39164`).
 
-.. _whatsnew_200.enhancements.io_use_nullable_dtypes_and_nullable_backend:
+.. _whatsnew_200.enhancements.io_use_nullable_dtypes_and_dtype_backend:
 
-Configuration option, ``mode.nullable_backend``, to return pyarrow-backed dtypes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Configuration option, ``mode.dtype_backend``, to return pyarrow-backed dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``use_nullable_dtypes`` keyword argument has been expanded to the following functions to enable automatic conversion to nullable dtypes (:issue:`36712`)
 
@@ -41,7 +41,7 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 * :func:`read_sql_query`
 * :func:`read_sql_table`
 
-Additionally a new global configuration, ``mode.nullable_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
+Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
 to select the nullable dtypes implementation.
 
 * :func:`read_csv` (with ``engine="pyarrow"`` or ``engine="python"``)
@@ -50,12 +50,12 @@ to select the nullable dtypes implementation.
 * :func:`read_orc`
 
 
-And the following methods will also utilize the ``mode.nullable_backend`` option.
+And the following methods will also utilize the ``mode.dtype_backend`` option.
 
 * :meth:`DataFrame.convert_dtypes`
 * :meth:`Series.convert_dtypes`
 
-By default, ``mode.nullable_backend`` is set to ``"pandas"`` to return existing, numpy-backed nullable dtypes, but it can also
+By default, ``mode.dtype_backend`` is set to ``"pandas"`` to return existing, numpy-backed nullable dtypes, but it can also
 be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (:issue:`48957`, :issue:`49997`).
 
 .. ipython:: python
@@ -65,12 +65,12 @@ be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (
         1,2.5,True,a,,,,,
         3,4.5,False,b,6,7.5,True,a,
     """)
-    with pd.option_context("mode.nullable_backend", "pandas"):
+    with pd.option_context("mode.dtype_backend", "pandas"):
         df = pd.read_csv(data, use_nullable_dtypes=True)
     df.dtypes
 
     data.seek(0)
-    with pd.option_context("mode.nullable_backend", "pyarrow"):
+    with pd.option_context("mode.dtype_backend", "pyarrow"):
         df_pyarrow = pd.read_csv(data, use_nullable_dtypes=True, engine="pyarrow")
     df_pyarrow.dtypes
 
@@ -799,6 +799,7 @@ Datetimelike
 - Bug in :class:`Timestamp` was showing ``UserWarning``, which was not actionable by users, when parsing non-ISO8601 delimited date strings (:issue:`50232`)
 - Bug in :func:`to_datetime` was showing misleading ``ValueError`` when parsing dates with format containing ISO week directive and ISO weekday directive (:issue:`50308`)
 - Bug in :func:`to_datetime` was not raising ``ValueError`` when invalid format was passed and ``errors`` was ``'ignore'`` or ``'coerce'`` (:issue:`50266`)
+- Bug in :class:`DateOffset` was throwing ``TypeError`` when constructing with milliseconds and another super-daily argument (:issue:`49897`)
 -
 
 Timedelta
