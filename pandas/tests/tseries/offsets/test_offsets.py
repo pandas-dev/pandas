@@ -761,6 +761,11 @@ class TestDateOffset:
 
         assert result == expected
 
+    def test_offset_invalid_arguments(self):
+        msg = "^Invalid argument/s or bad combination of arguments"
+        with pytest.raises(ValueError, match=msg):
+            DateOffset(picoseconds=1)
+
 
 class TestOffsetNames:
     def test_get_offset_name(self):
