@@ -2147,12 +2147,12 @@ class MultiIndex(Index):
         errors: IgnoreRaise = "raise",
     ) -> MultiIndex:
         """
-        Make new MultiIndex with passed list of codes deleted
+        Make new MultiIndex with passed list of codes deleted.
 
         Parameters
         ----------
         codes : array-like
-            Must be a list of tuples when level is not specified
+            Must be a list of tuples when level is not specified.
         level : int or level name, default None
         errors : str, default 'raise'
 
