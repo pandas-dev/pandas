@@ -193,6 +193,15 @@ def concatenate_managers(
     if isinstance(mgrs_indexers[0][0], ArrayManager):
         return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
+    # Assertions disabled for performance
+    # for tup in mgrs_indexers:
+    #    # caller is responsible for ensuring this
+    #    indexers = tup[1]
+    #    assert concat_axis not in indexers
+
+    if concat_axis == 0:
+        return _concat_managers_axis0(mgrs_indexers, axes, copy)
+
     mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
 
     concat_plans = [
@@ -242,6 +251,42 @@ def concatenate_managers(
     return BlockManager(tuple(blocks), axes)
 
 
+def _concat_managers_axis0(
+    mgrs_indexers, axes: list[Index], copy: bool
+) -> BlockManager:
+    """
+    concat_managers specialized to concat_axis=0, with reindexing already
+    having been done in _maybe_reindex_columns_na_proxy.
+    """
+    had_reindexers = {
+        i: len(mgrs_indexers[i][1]) > 0 for i in range(len(mgrs_indexers))
+    }
+    mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
+
+    mgrs = [x[0] for x in mgrs_indexers]
+
+    offset = 0
+    blocks = []
+    for i, mgr in enumerate(mgrs):
+        # If we already reindexed, then we definitely don't need another copy
+        made_copy = had_reindexers[i]
+
+        for blk in mgr.blocks:
+            if made_copy:
+                nb = blk.copy(deep=False)
+            elif copy:
+                nb = blk.copy()
+            else:
+                # by slicing instead of copy(deep=False), we get a new array
+                #  object, see test_concat_copy
+                nb = blk.getitem_block(slice(None))
+            nb._mgr_locs = nb._mgr_locs.add(offset)
+            blocks.append(nb)
+
+        offset += len(mgr.items)
+    return BlockManager(tuple(blocks), axes)
+
+
 def _maybe_reindex_columns_na_proxy(
     axes: list[Index], mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]]
 ) -> list[tuple[BlockManager, dict[int, np.ndarray]]]:
@@ -252,25 +297,22 @@ def _maybe_reindex_columns_na_proxy(
     Columns added in this reindexing have dtype=np.void, indicating they
     should be ignored when choosing a column's final dtype.
     """
-    new_mgrs_indexers = []
-    for mgr, indexers in mgrs_indexers:
-        # We only reindex for axis=0 (i.e. columns), as this can be done cheaply
-        if 0 in indexers:
-            new_mgr = mgr.reindex_indexer(
-                axes[0],
-                indexers[0],
-                axis=0,
-                copy=False,
-                only_slice=True,
-                allow_dups=True,
-                use_na_proxy=True,
-            )
-            new_indexers = indexers.copy()
-            del new_indexers[0]
-            new_mgrs_indexers.append((new_mgr, new_indexers))
-        else:
-            new_mgrs_indexers.append((mgr, indexers))
+    new_mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]] = []
 
+    for mgr, indexers in mgrs_indexers:
+        # For axis=0 (i.e. columns) we use_na_proxy and only_slice, so this
+        #  is a cheap reindexing.
+        for i, indexer in indexers.items():
+            mgr = mgr.reindex_indexer(
+                axes[i],
+                indexers[i],
+                axis=i,
+                copy=False,
+                only_slice=True,  # only relevant for i==0
+                allow_dups=True,
+                use_na_proxy=True,  # only relevant for i==0
+            )
+        new_mgrs_indexers.append((mgr, {}))
     return new_mgrs_indexers
 
 
