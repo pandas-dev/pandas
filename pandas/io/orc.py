@@ -59,16 +59,16 @@ def read_orc(
         for the resulting DataFrame.
 
         The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.nullable_backend", "pandas")`` to use
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
         numpy-backed nullable dtypes or
-        ``pd.set_option("mode.nullable_backend", "pyarrow")`` to use
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
         pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
         .. versionadded:: 2.0.0
 
         .. note
 
-            Currently only ``mode.nullable_backend`` set to ``"pyarrow"`` is supported.
+            Currently only ``mode.dtype_backend`` set to ``"pyarrow"`` is supported.
 
     **kwargs
         Any additional kwargs are passed to pyarrow.
@@ -90,10 +90,10 @@ def read_orc(
         orc_file = orc.ORCFile(handles.handle)
         pa_table = orc_file.read(columns=columns, **kwargs)
     if use_nullable_dtypes:
-        nullable_backend = get_option("mode.nullable_backend")
-        if nullable_backend != "pyarrow":
+        dtype_backend = get_option("mode.dtype_backend")
+        if dtype_backend != "pyarrow":
             raise NotImplementedError(
-                f"mode.nullable_backend set to {nullable_backend} is not implemented."
+                f"mode.dtype_backend set to {dtype_backend} is not implemented."
             )
         df = DataFrame(
             {

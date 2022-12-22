@@ -6432,9 +6432,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         .. versionadded:: 2.0
             The nullable dtype implementation can be configured by calling
-            ``pd.set_option("mode.nullable_backend", "pandas")`` to use
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
             numpy-backed nullable dtypes or
-            ``pd.set_option("mode.nullable_backend", "pyarrow")`` to use
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
             pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
         Examples

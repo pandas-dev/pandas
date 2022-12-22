@@ -712,7 +712,7 @@ class ParserBase:
         use_nullable_dtypes: Literal[True] | Literal[False] = (
             self.use_nullable_dtypes and no_dtype_specified
         )
-        nullable_backend = get_option("mode.nullable_backend")
+        dtype_backend = get_option("mode.dtype_backend")
         result: ArrayLike
 
         if try_num_bool and is_object_dtype(values.dtype):
@@ -770,7 +770,7 @@ class ParserBase:
                 if inferred_type != "datetime":
                     result = StringDtype().construct_array_type()._from_sequence(values)
 
-        if use_nullable_dtypes and nullable_backend == "pyarrow":
+        if use_nullable_dtypes and dtype_backend == "pyarrow":
             pa = import_optional_dependency("pyarrow")
             if isinstance(result, np.ndarray):
                 result = ArrowExtensionArray(pa.array(result, from_pandas=True))
