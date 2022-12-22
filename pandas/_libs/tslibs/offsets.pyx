@@ -330,7 +330,6 @@ cdef _determine_offset(kwds):
         "seconds", "microseconds", "milliseconds", "minutes", "hours",
     }
 
-    # check timedelta before relativedelta: maintain compatibility with old tests
     if all(k in kwds_use_timedelta for k in kwds_no_nanos):
         # Sub-daily offset - use timedelta (tz-aware)
         # This also handles "milliseconds" (plur): see GH 49897
