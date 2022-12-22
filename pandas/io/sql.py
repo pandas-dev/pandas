@@ -1841,10 +1841,7 @@ class SQLDatabase(PandasSQL):
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
             self.meta.reflect(bind=self.con, only=[table_name], schema=schema)
-            if schema:
-                self.execute(f"TRUNCATE FROM {schema}.{table_name}")
-            else:
-                self.execute(f"DELETE FROM {table_name}")
+            self.execute(f"TRUNCATE FROM {schema}.{table_name}")
             self.meta.clear()
 
     def _create_sql_schema(
@@ -2269,7 +2266,7 @@ class SQLiteDatabase(PandasSQL):
         self.execute(drop_sql)
 
     def trunc_table(self, name: str, schema: str | None = None) -> None:
-        trunc_sql = f"TRUNCATE TABLE {_get_valid_sqlite_name(name)}"
+        trunc_sql = f"DELETE FROM {_get_valid_sqlite_name(name)}"
         self.execute(trunc_sql)
 
     def _create_sql_schema(
