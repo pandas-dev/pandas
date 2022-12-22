@@ -51,6 +51,7 @@ def _assert_not_frame_equal(a, b, **kwargs):
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(a, b, **kwargs)
 
+
 @pytest.mark.parametrize("check_like", [True, False])
 def test_frame_equal_row_order_mismatch(check_like, obj_fixture):
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "c"])

@@ -14,6 +14,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
+
 class TestDataFrameDataTypes:
     def test_empty_frame_dtypes(self):
         empty_df = DataFrame()
