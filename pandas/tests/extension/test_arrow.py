@@ -355,8 +355,10 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
     ):
         pa_type = data.dtype.pyarrow_dtype
         if (
-            pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type)
-        ) and all_numeric_accumulations == "cumsum":
+            (pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type))
+            and all_numeric_accumulations == "cumsum"
+            and not pa_version_under9p0
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} implemented for {pa_type}"
@@ -371,7 +373,7 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series(self, data, all_numeric_accumulations, skipna, request):
         pa_type = data.dtype.pyarrow_dtype
-        if all_numeric_accumulations != "cumsum":
+        if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} not implemented",

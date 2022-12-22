@@ -853,9 +853,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         arr = pa.chunked_array(chunks)
         return cls(arr)
 
-    def _accumulate(
+    def _accumulate(  # type: ignore[override]
         self, name: str, *, skipna: bool = True, **kwargs
-    ) -> ArrowExtensionArrayT:
+    ) -> ArrowExtensionArray:
         """
         Return an ExtensionArray performing an accumulation operation.
 
