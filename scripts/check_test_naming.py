@@ -8,16 +8,22 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 NOTE: if this finds a false positive, you can add the comment `# not a test` to the
 class or function definition. Though hopefully that shouldn't be necessary.
 """
+from __future__ import annotations
+
 import argparse
 import ast
 import os
 from pathlib import Path
 import sys
+from typing import (
+    Iterator,
+    Sequence,
+)
 
 PRAGMA = "# not a test"
 
 
-def _find_names(node):
+def _find_names(node: ast.Module) -> Iterator[str]:
     for _node in ast.walk(node):
         if isinstance(_node, ast.Name):
             yield _node.id
@@ -25,7 +31,7 @@ def _find_names(node):
             yield _node.attr
 
 
-def _is_fixture(node):
+def _is_fixture(node: ast.expr) -> bool:
     if isinstance(node, ast.Call):
         node = node.func
     return (
@@ -40,7 +46,9 @@ def _is_register_dtype(node):
     return isinstance(node, ast.Name) and node.id == "register_extension_dtype"
 
 
-def visit_func(node: ast.FunctionDef, names, line):
+def is_misnamed_test_func(
+    node: ast.expr | ast.stmt, names: Sequence[str], line: str
+) -> bool:
     return (
         isinstance(node, ast.FunctionDef)
         and not node.name.startswith("test")
@@ -53,7 +61,9 @@ def visit_func(node: ast.FunctionDef, names, line):
     )
 
 
-def visit_class(node, names, line):
+def is_misnamed_test_class(
+    node: ast.expr | ast.stmt, names: Sequence[str], line: str
+) -> bool:
     return (
         isinstance(node, ast.ClassDef)
         and not node.name.startswith("Test")
@@ -63,19 +73,19 @@ def visit_class(node, names, line):
     )
 
 
-def main(content, file):
+def main(content: str, file: str) -> int:
     lines = content.splitlines()
     tree = ast.parse(content)
     names = list(_find_names(tree))
     ret = 0
     for node in tree.body:
-        if visit_func(node, names, lines[node.lineno - 1]):
+        if is_misnamed_test_func(node, names, lines[node.lineno - 1]):
             print(
                 f"{file}:{node.lineno}:{node.col_offset} "
                 "found test function which does not start with 'test'"
             )
             ret = 1
-        elif visit_class(node, names, lines[node.lineno - 1]):
+        elif is_misnamed_test_class(node, names, lines[node.lineno - 1]):
             print(
                 f"{file}:{node.lineno}:{node.col_offset} "
                 "found test class which does not start with 'Test'"
@@ -90,7 +100,7 @@ def main(content, file):
             and PRAGMA not in lines[node.lineno - 1]
         ):
             for _node in node.body:
-                if visit_func(_node, names, lines[_node.lineno - 1]):
+                if is_misnamed_test_func(_node, names, lines[_node.lineno - 1]):
                     # It could be that this function is used somewhere by the
                     # parent class. For example, there might be a base class
                     # with
@@ -106,6 +116,7 @@ def main(content, file):
                     # Note some false negatives might get through, but that's OK.
                     # This is good enough that has helped identify several examples
                     # of tests not being run.
+                    assert isinstance(_node, ast.FunctionDef)  # help mypy
                     should_continue = False
                     for _file in (Path("pandas") / "tests").rglob("*.py"):
                         with open(os.path.join(_file)) as fd:
