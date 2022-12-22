@@ -3,7 +3,6 @@ from datetime import (
     timedelta,
 )
 from io import StringIO
-import warnings
 
 import numpy as np
 import pytest
@@ -206,9 +205,6 @@ NaT   4"""
     def test_repr_unsortable(self, float_frame):
         # columns are not sortable
 
-        warn_filters = warnings.filters
-        warnings.filterwarnings("ignore", category=FutureWarning, module=".*format")
-
         unsortable = DataFrame(
             {
                 "foo": [1] * 50,
@@ -230,8 +226,6 @@ NaT   4"""
         repr(float_frame)
 
         tm.reset_display_options()
-
-        warnings.filters = warn_filters
 
     def test_repr_unicode(self):
         uval = "\u03c3\u03c3\u03c3\u03c3"
