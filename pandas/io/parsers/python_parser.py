@@ -34,6 +34,7 @@ from pandas.errors import (
     ParserError,
 )
 
+from pandas.api.types import is_numeric_dtype
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
 
@@ -879,7 +880,7 @@ class PythonParser(ParserBase):
                         self.columns
                         and self.dtype
                         and self.columns[i] in self.dtype
-                        and self.dtype[self.columns[i]] is str
+                        and not is_numeric_dtype(self.dtype.get(self.columns[i]))
                     )
                 ):
                     rl.append(x)
