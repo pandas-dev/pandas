@@ -1207,7 +1207,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axes, kwargs = self._construct_axes_from_arguments(
             (), kwargs, sentinel=lib.no_default
         )
-        copy = kwargs.pop("copy", True)
+        using_copy_on_write = config.get_option("mode.copy_on_write")
+        if using_copy_on_write and "copy" not in kwargs:
+            copy = None
+        else:
+            copy = kwargs.pop("copy", True)
+
         inplace = kwargs.pop("inplace", False)
         axis = kwargs.pop("axis", 0)
         if axis is not None:
@@ -1227,7 +1232,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 is_list_like(mapper) and not is_dict_like(mapper)
             )
             if non_mapper:
-                return self._set_axis_name(mapper, axis=axis, inplace=inplace)
+                return self._set_axis_name(
+                    mapper, axis=axis, inplace=inplace, copy=copy
+                )
             else:
                 raise ValueError("Use `.rename` to alter labels with a mapper.")
         else:
@@ -1246,13 +1253,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     f = common.get_rename_function(v)
                     curnames = self._get_axis(axis).names
                     newnames = [f(name) for name in curnames]
-                result._set_axis_name(newnames, axis=axis, inplace=True)
+                result._set_axis_name(newnames, axis=axis, inplace=True, copy=copy)
             if not inplace:
                 return result
             return None
 
     @final
-    def _set_axis_name(self, name, axis: Axis = 0, inplace: bool_t = False):
+    def _set_axis_name(
+        self, name, axis: Axis = 0, inplace: bool_t = False, copy: bool_t = True
+    ):
         """
         Set the name(s) of the axis.
 
@@ -1265,6 +1274,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and the value 1 or 'columns' specifies columns.
         inplace : bool, default False
             If `True`, do operation inplace and return None.
+        copy:
+            Whether to make a copy of the result.
 
         Returns
         -------
@@ -1306,7 +1317,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         idx = self._get_axis(axis).set_names(name)
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        renamed = self if inplace else self.copy()
+        renamed = self if inplace else self.copy(deep=copy)
         if axis == 0:
             renamed.index = idx
         else:
