@@ -147,10 +147,10 @@ is_nan : bool
 */
 int is_nan(PyObject *obj) {
   if (is_float_object(obj)) {
-    return PyObject_RichCompareBool(obj, obj, Py_EQ);
+    return PyObject_RichCompareBool(obj, obj, Py_NE);
   }
 
-  return is_complex_object(obj) && PyObject_RichCompareBool(obj, obj, Py_EQ);
+  return is_complex_object(obj) && PyObject_RichCompareBool(obj, obj, Py_NE);
 }
 
 #ifdef __cplusplus
