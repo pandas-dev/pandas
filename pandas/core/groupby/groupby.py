@@ -1020,7 +1020,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
             return
 
-        groupers = [g.name for g in grp.groupings if g.level is None and g.in_axis]
+        groupers = self.exclusions
 
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
