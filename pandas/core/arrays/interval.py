@@ -213,8 +213,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return 1
 
     # To make mypy recognize the fields
-    _left: ArrayLike
-    _right: ArrayLike
+    _left: np.ndarray
+    _right: np.ndarray
     _dtype: IntervalDtype
 
     # ---------------------------------------------------------------------
@@ -714,7 +714,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_scalar(left) and isna(left):
                 return self._fill_value
             return Interval(left, right, self.closed)
-        if np.ndim(left) > 1:  # type: ignore[arg-type]
+        if np.ndim(left) > 1:
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
         return self._shallow_copy(left, right)
@@ -1456,15 +1456,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # at a point when both sides of intervals are included
         if self.closed == "both":
             return bool(
-                (self._right[:-1] < self._left[1:]).all()  # type: ignore[operator]
-                or (self._left[:-1] > self._right[1:]).all()  # type: ignore[operator]
+                (self._right[:-1] < self._left[1:]).all()
+                or (self._left[:-1] > self._right[1:]).all()
             )
 
         # non-strict inequality when closed != 'both'; at least one side is
         # not included in the intervals, so equality does not imply overlapping
         return bool(
-            (self._right[:-1] <= self._left[1:]).all()  # type: ignore[operator]
-            or (self._left[:-1] >= self._right[1:]).all()  # type: ignore[operator]
+            (self._right[:-1] <= self._left[1:]).all()
+            or (self._left[:-1] >= self._right[1:]).all()
         )
 
     # ---------------------------------------------------------------------
@@ -1574,11 +1574,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         if isinstance(self._left, np.ndarray):
             np.putmask(self._left, mask, value_left)
-            assert isinstance(self._right, np.ndarray)
             np.putmask(self._right, mask, value_right)
         else:
             self._left._putmask(mask, value_left)
-            assert isinstance(self._right, ExtensionArray)
             self._right._putmask(mask, value_right)
 
     def insert(self: IntervalArrayT, loc: int, item: Interval) -> IntervalArrayT:
@@ -1605,12 +1603,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     def delete(self: IntervalArrayT, loc) -> IntervalArrayT:
         if isinstance(self._left, np.ndarray):
-            new_left: ArrayLike = np.delete(self._left, loc)
-            assert isinstance(self._right, np.ndarray)
-            new_right: ArrayLike = np.delete(self._right, loc)
+            new_left = np.delete(self._left, loc)
+            new_right = np.delete(self._right, loc)
         else:
             new_left = self._left.delete(loc)
-            assert isinstance(self._right, ExtensionArray)
             new_right = self._right.delete(loc)
         return self._shallow_copy(left=new_left, right=new_right)
 
@@ -1728,13 +1724,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         dtype = self._left.dtype
         if needs_i8_conversion(dtype):
-            assert isinstance(self._left, ExtensionArray)
-            new_left = type(self._left)._from_sequence(nc[:, 0], dtype=dtype)
-            assert isinstance(self._right, ExtensionArray)
-            new_right = type(self._right)._from_sequence(nc[:, 1], dtype=dtype)
+            # error: "Type[ndarray[Any, Any]]" has no attribute "_from_sequence"
+            new_left = type(self._left)._from_sequence(  # type: ignore[attr-defined]
+                nc[:, 0], dtype=dtype
+            )
+            # error: "Type[ndarray[Any, Any]]" has no attribute "_from_sequence"
+            new_right = type(self._right)._from_sequence(  # type: ignore[attr-defined]
+                nc[:, 1], dtype=dtype
+            )
         else:
-            new_left = nc[:, 0].view(dtype)  # type: ignore[arg-type]
-            new_right = nc[:, 1].view(dtype)  # type: ignore[arg-type]
+            new_left = nc[:, 0].view(dtype)
+            new_right = nc[:, 1].view(dtype)
         return self._shallow_copy(left=new_left, right=new_right)
 
     def unique(self) -> IntervalArray:
