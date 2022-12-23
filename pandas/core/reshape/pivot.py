@@ -21,7 +21,6 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
-from pandas.util._exceptions import rewrite_warning
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -165,17 +164,7 @@ def __internal_pivot_table(
         values = list(values)
 
     grouped = data.groupby(keys, observed=observed, sort=sort)
-    msg = (
-        "pivot_table dropped a column because it failed to aggregate. This behavior "
-        "is deprecated and will raise in a future version of pandas. Select only the "
-        "columns that can be aggregated."
-    )
-    with rewrite_warning(
-        target_message="The default value of numeric_only",
-        target_category=FutureWarning,
-        new_message=msg,
-    ):
-        agged = grouped.agg(aggfunc)
+    agged = grouped.agg(aggfunc)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
         agged = agged.dropna(how="all")
