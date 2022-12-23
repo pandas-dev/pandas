@@ -585,6 +585,7 @@ for name, data in ext_data.items():
     sources.extend(data.get("sources", []))
 
     include = data.get("include", [])
+    include.append("pandas/_libs")
     include.append(numpy.get_include())
 
     undef_macros = []
