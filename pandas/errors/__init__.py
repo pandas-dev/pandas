@@ -555,6 +555,14 @@ class InvalidComparison(Exception):
     """
 
 
+class NotObjectError(ValueError):
+    """
+    Exception is raised by check_result_array to indicate not object dtype.
+
+    Instead of raising a ValueError("Must produce aggregated value").
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
@@ -577,6 +585,7 @@ __all__ = [
     "LossySetitemError",
     "MergeError",
     "NoBufferPresent",
+    "NotObjectError",
     "NullFrequencyError",
     "NumbaUtilError",
     "NumExprClobberingError",

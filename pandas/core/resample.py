@@ -42,6 +42,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     DataError,
+    NotObjectError,
 )
 from pandas.util._decorators import (
     Appender,
@@ -459,18 +460,14 @@ class Resampler(BaseGroupBy, PandasObject):
             #  on Series, raising AttributeError or KeyError
             #  (depending on whether the column lookup uses getattr/__getitem__)
             result = grouped.apply(how, *args, **kwargs)
+        except NotObjectError:
+            # we have a non-reducing function; try to evaluate
 
-        except ValueError as err:
-            if "Must produce aggregated value" in str(err):
-                # raised in _aggregate_named
-                # see test_apply_without_aggregation, test_apply_with_mutated_index
-                pass
-            else:
-                raise
-
-            # we have a non-reducing function
-            # try to evaluate
+            # raised in _aggregate_named
+            # see test_apply_without_aggregation, test_apply_with_mutated_index
             result = grouped.apply(how, *args, **kwargs)
+        except ValueError:
+            raise
 
         return self._wrap_result(result)
 

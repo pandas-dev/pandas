@@ -6,6 +6,8 @@ cnp.import_array()
 
 from pandas._libs.util cimport is_array
 
+from pandas.errors import NotObjectError
+
 
 cdef cnp.dtype _dtype_obj = np.dtype("object")
 
@@ -18,8 +20,7 @@ cpdef check_result_array(object obj, object dtype):
         if dtype != _dtype_obj:
             # If it is object dtype, the function can be a reduction/aggregation
             #  and still return an ndarray e.g. test_agg_over_numpy_arrays
-            raise ValueError("Must produce aggregated value")
-
+            raise NotObjectError("Must produce aggregated value")
 
 cpdef inline extract_result(object res):
     """ extract the result object, it might be a 0-dim ndarray
