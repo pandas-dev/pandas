@@ -30,6 +30,13 @@ if [[ "$PATTERN" ]]; then
   PYTEST_CMD="$PYTEST_CMD -m \"$PATTERN\""
 fi
 
+if [[ "$ERROR_ON_WARNINGS" == "true" ]]; then
+  for pth in $(find pandas -name '*.py' -not -path "pandas/tests/*");
+    do
+        PYTEST_CMD="$PYTEST_CMD -W error:::$pth"
+    done
+fi
+
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
 
