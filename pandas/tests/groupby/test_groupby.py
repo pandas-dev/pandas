@@ -433,19 +433,12 @@ def test_frame_groupby_columns(tsframe):
 def test_frame_set_name_single(df):
     grouped = df.groupby("A")
 
-    msg = "The default value of numeric_only"
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.mean()
     result = grouped.mean(numeric_only=True)
     assert result.index.name == "A"
 
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby("A", as_index=False).mean()
     result = df.groupby("A", as_index=False).mean(numeric_only=True)
     assert result.index.name != "A"
 
-    with pytest.raises(TypeError, match="Could not convert"):
-        grouped.agg(np.mean)
     result = grouped[["C", "D"]].agg(np.mean)
     assert result.index.name == "A"
 
