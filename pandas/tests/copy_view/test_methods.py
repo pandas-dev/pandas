@@ -366,7 +366,7 @@ def test_rename_axis(using_copy_on_write, kwargs, copy_kwargs):
     df_orig = df.copy()
     df2 = df.rename_axis(**kwargs, **copy_kwargs)
 
-    if using_copy_on_write and copy_kwargs:
+    if using_copy_on_write and not copy_kwargs:
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))

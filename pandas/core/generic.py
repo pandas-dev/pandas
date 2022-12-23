@@ -1208,6 +1208,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             (), kwargs, sentinel=lib.no_default
         )
         using_copy_on_write = config.get_option("mode.copy_on_write")
+
+        copy: bool_t | None
         if using_copy_on_write and "copy" not in kwargs:
             copy = None
         else:
@@ -1260,7 +1262,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _set_axis_name(
-        self, name, axis: Axis = 0, inplace: bool_t = False, copy: bool_t = True
+        self, name, axis: Axis = 0, inplace: bool_t = False, copy: bool_t | None = True
     ):
         """
         Set the name(s) of the axis.
