@@ -138,9 +138,9 @@ class TestReadHtml:
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
-    @pytest.mark.parametrize("nullable_backend", ["pandas", "pyarrow"])
+    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     @pytest.mark.parametrize("storage", ["python", "pyarrow"])
-    def test_use_nullable_dtypes(self, storage, nullable_backend):
+    def test_use_nullable_dtypes(self, storage, dtype_backend):
         # GH#50286
         df = DataFrame(
             {
@@ -166,7 +166,7 @@ class TestReadHtml:
 
         out = df.to_html(index=False)
         with pd.option_context("mode.string_storage", storage):
-            with pd.option_context("mode.nullable_backend", nullable_backend):
+            with pd.option_context("mode.dtype_backend", dtype_backend):
                 result = self.read_html(out, use_nullable_dtypes=True)[0]
 
         expected = DataFrame(
@@ -182,7 +182,7 @@ class TestReadHtml:
             }
         )
 
-        if nullable_backend == "pyarrow":
+        if dtype_backend == "pyarrow":
             import pyarrow as pa
 
             from pandas.arrays import ArrowExtensionArray
