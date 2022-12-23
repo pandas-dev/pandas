@@ -309,9 +309,9 @@ def test_orc_use_nullable_dtypes_pandas_backend_not_supported(dirpath):
     input_file = os.path.join(dirpath, "TestOrcFile.emptyFile.orc")
     with pytest.raises(
         NotImplementedError,
-        match="mode.nullable_backend set to pandas is not implemented.",
+        match="mode.dtype_backend set to pandas is not implemented.",
     ):
-        with pd.option_context("mode.nullable_backend", "pandas"):
+        with pd.option_context("mode.dtype_backend", "pandas"):
             read_orc(input_file, use_nullable_dtypes=True)
 
 
@@ -337,7 +337,7 @@ def test_orc_use_nullable_dtypes_pyarrow_backend():
         }
     )
     bytes_data = df.copy().to_orc()
-    with pd.option_context("mode.nullable_backend", "pyarrow"):
+    with pd.option_context("mode.dtype_backend", "pyarrow"):
         result = read_orc(BytesIO(bytes_data), use_nullable_dtypes=True)
     expected = pd.DataFrame(
         {

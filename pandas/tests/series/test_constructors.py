@@ -1987,6 +1987,21 @@ class TestSeriesConstructors:
             with pytest.raises(TypeError, match=msg):
                 func([null, 1.0, 3.0], dtype=any_numeric_ea_dtype)
 
+    def test_series_constructor_ea_int_from_bool(self):
+        # GH#42137
+        result = Series([True, False, True, pd.NA], dtype="Int64")
+        expected = Series([1, 0, 1, pd.NA], dtype="Int64")
+        tm.assert_series_equal(result, expected)
+
+        result = Series([True, False, True], dtype="Int64")
+        expected = Series([1, 0, 1], dtype="Int64")
+        tm.assert_series_equal(result, expected)
+
+    def test_series_constructor_ea_int_from_string_bool(self):
+        # GH#42137
+        with pytest.raises(ValueError, match="invalid literal"):
+            Series(["True", "False", "True", pd.NA], dtype="Int64")
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
