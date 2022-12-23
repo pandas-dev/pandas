@@ -395,6 +395,12 @@ cdef parse_datetime_string_with_reso(
             parsed = datetime(
                 dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us
             )
+        # Match Timestamp and drop picoseconds, femtoseconds, attoseconds
+        # The new resolution will just be nano
+        if out_bestunit in {NPY_DATETIMEUNIT.NPY_FR_ps,
+                            NPY_DATETIMEUNIT.NPY_FR_fs,
+                            NPY_DATETIMEUNIT.NPY_FR_as}:
+            out_bestunit = NPY_DATETIMEUNIT.NPY_FR_ns
         reso = {
             NPY_DATETIMEUNIT.NPY_FR_Y: "year",
             NPY_DATETIMEUNIT.NPY_FR_M: "month",
