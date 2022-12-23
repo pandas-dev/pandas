@@ -19,7 +19,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil
-  - numpy
+  - numpy<1.24
   - pytz
 
   # optional dependencies
@@ -34,12 +34,11 @@ dependencies:
   - gcsfs
   - jinja2
   - lxml
-  - matplotlib
+  - matplotlib>=3.6.1
   - numba
   - numexpr
   - openpyxl
   - odfpy
-  - pandas-gbq
   - psycopg2
   - pyarrow<10
   - pymysql
@@ -57,7 +56,6 @@ dependencies:
   - zstandard
 
   # downstream packages
-  - aiobotocore
   - botocore
   - cftime
   - dask
@@ -68,6 +66,7 @@ dependencies:
   - statsmodels
   - coverage
   - pandas-datareader
+  - pandas-gbq
   - pyyaml
   - py
   - pip:

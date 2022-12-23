@@ -332,8 +332,7 @@ class TestSeriesGetitemSlices:
     def test_getitem_slice_integers(self):
         ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
 
-        with tm.assert_produces_warning(FutureWarning, match="label-based"):
-            result = ser[:4]
+        result = ser[:4]
         expected = Series(ser.values[:4], index=[2, 4, 6, 8])
         tm.assert_series_equal(result, expected)
 
@@ -471,7 +470,7 @@ class TestGetitemBooleanMask:
         ser = Series(dti._data)
 
         res = ser[key]
-        assert res._values._data.base is None
+        assert res._values._ndarray.base is None
 
         # compare with numeric case for reference
         ser2 = Series(range(4))

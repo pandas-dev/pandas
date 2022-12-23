@@ -96,7 +96,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -109,6 +108,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    LossySetitemError,
     can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
@@ -632,8 +632,6 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool | None = None,
     ) -> None:
 
-        if data is None:
-            data = {}
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
@@ -670,6 +668,12 @@ class DataFrame(NDFrame, OpsMixin):
                 copy = True
             else:
                 copy = False
+
+        if data is None:
+            index = index if index is not None else default_index(0)
+            columns = columns if columns is not None else default_index(0)
+            dtype = dtype if dtype is not None else pandas_dtype(object)
+            data = []
 
         if isinstance(data, (BlockManager, ArrayManager)):
             mgr = self._init_mgr(
@@ -777,7 +781,7 @@ class DataFrame(NDFrame, OpsMixin):
                 mgr = dict_to_mgr(
                     {},
                     index,
-                    columns,
+                    columns if columns is not None else default_index(0),
                     dtype=dtype,
                     typ=manager,
                 )
@@ -1953,147 +1957,9 @@ class DataFrame(NDFrame, OpsMixin):
         [defaultdict(<class 'list'>, {'col1': 1, 'col2': 0.5}),
          defaultdict(<class 'list'>, {'col1': 2, 'col2': 0.75})]
         """
-        if not self.columns.is_unique:
-            warnings.warn(
-                "DataFrame columns are not unique, some columns will be omitted.",
-                UserWarning,
-                stacklevel=find_stack_level(),
-            )
-        # GH16122
-        into_c = com.standardize_mapping(into)
+        from pandas.core.methods.to_dict import to_dict
 
-        #  error: Incompatible types in assignment (expression has type "str",
-        # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',
-        # 'records', 'index']")
-        orient = orient.lower()  # type: ignore[assignment]
-
-        if not index and orient not in ["split", "tight"]:
-            raise ValueError(
-                "'index=False' is only valid when 'orient' is 'split' or 'tight'"
-            )
-
-        if orient == "series":
-            # GH46470 Return quickly if orient series to avoid creating dtype objects
-            return into_c((k, v) for k, v in self.items())
-
-        object_dtype_indices = [
-            i
-            for i, col_dtype in enumerate(self.dtypes.values)
-            if is_object_dtype(col_dtype)
-        ]
-        are_all_object_dtype_cols = len(object_dtype_indices) == len(self.dtypes)
-
-        if orient == "dict":
-            return into_c((k, v.to_dict(into)) for k, v in self.items())
-
-        elif orient == "list":
-            object_dtype_indices_as_set = set(object_dtype_indices)
-            return into_c(
-                (
-                    k,
-                    list(map(maybe_box_native, v.tolist()))
-                    if i in object_dtype_indices_as_set
-                    else v.tolist(),
-                )
-                for i, (k, v) in enumerate(self.items())
-            )
-
-        elif orient == "split":
-            data = self._create_data_for_split_and_tight_to_dict(
-                are_all_object_dtype_cols, object_dtype_indices
-            )
-
-            return into_c(
-                ((("index", self.index.tolist()),) if index else ())
-                + (
-                    ("columns", self.columns.tolist()),
-                    ("data", data),
-                )
-            )
-
-        elif orient == "tight":
-            data = self._create_data_for_split_and_tight_to_dict(
-                are_all_object_dtype_cols, object_dtype_indices
-            )
-
-            return into_c(
-                ((("index", self.index.tolist()),) if index else ())
-                + (
-                    ("columns", self.columns.tolist()),
-                    (
-                        "data",
-                        [
-                            list(map(maybe_box_native, t))
-                            for t in self.itertuples(index=False, name=None)
-                        ],
-                    ),
-                )
-                + ((("index_names", list(self.index.names)),) if index else ())
-                + (("column_names", list(self.columns.names)),)
-            )
-
-        elif orient == "records":
-            columns = self.columns.tolist()
-            if are_all_object_dtype_cols:
-                rows = (
-                    dict(zip(columns, row))
-                    for row in self.itertuples(index=False, name=None)
-                )
-                return [
-                    into_c((k, maybe_box_native(v)) for k, v in row.items())
-                    for row in rows
-                ]
-            else:
-                data = [
-                    into_c(zip(columns, t))
-                    for t in self.itertuples(index=False, name=None)
-                ]
-                if object_dtype_indices:
-                    object_dtype_indices_as_set = set(object_dtype_indices)
-                    object_dtype_cols = {
-                        col
-                        for i, col in enumerate(self.columns)
-                        if i in object_dtype_indices_as_set
-                    }
-                    for row in data:
-                        for col in object_dtype_cols:
-                            row[col] = maybe_box_native(row[col])
-                return data
-
-        elif orient == "index":
-            if not self.index.is_unique:
-                raise ValueError("DataFrame index must be unique for orient='index'.")
-            columns = self.columns.tolist()
-            if are_all_object_dtype_cols:
-                return into_c(
-                    (t[0], dict(zip(self.columns, map(maybe_box_native, t[1:]))))
-                    for t in self.itertuples(name=None)
-                )
-            elif object_dtype_indices:
-                object_dtype_indices_as_set = set(object_dtype_indices)
-                is_object_dtype_by_index = [
-                    i in object_dtype_indices_as_set for i in range(len(self.columns))
-                ]
-                return into_c(
-                    (
-                        t[0],
-                        {
-                            columns[i]: maybe_box_native(v)
-                            if is_object_dtype_by_index[i]
-                            else v
-                            for i, v in enumerate(t[1:])
-                        },
-                    )
-                    for t in self.itertuples(name=None)
-                )
-            else:
-                return into_c(
-                    (t[0], dict(zip(self.columns, t[1:])))
-                    for t in self.itertuples(name=None)
-                )
-
-        else:
-            raise ValueError(f"orient '{orient}' not understood")
+        return to_dict(self, orient, into, index)
 
     def to_gbq(
         self,
@@ -2309,8 +2175,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             result_index = None
             if len(arrays) == 0 and index is None and length == 0:
-                # for backward compat use an object Index instead of RangeIndex
-                result_index = Index([])
+                result_index = default_index(0)
 
             arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns, length)
             return arrays, arr_columns, result_index
@@ -3558,6 +3423,7 @@ class DataFrame(NDFrame, OpsMixin):
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
             index=self.columns,
+            dtype=np.intp,
         )
         if index:
             index_memory_usage = self._constructor_sliced(
@@ -3781,9 +3647,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return self._getitem_multilevel(key)
         # Do we have a slicer (on rows)?
         if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(
-                key, kind="getitem", is_frame=True
-            )
+            indexer = self.index._convert_slice_indexer(key, kind="getitem")
             if isinstance(indexer, np.ndarray):
                 # reachable with DatetimeIndex
                 indexer = lib.maybe_indices_to_slice(
@@ -3962,7 +3826,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # see if we can slice the rows
         if isinstance(key, slice):
-            slc = self.index._convert_slice_indexer(key, kind="getitem", is_frame=True)
+            slc = self.index._convert_slice_indexer(key, kind="getitem")
             return self._setitem_slice(slc, value)
 
         if isinstance(key, DataFrame) or getattr(key, "ndim", None) == 2:
@@ -4082,7 +3946,7 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("Array conditional must be same shape as self")
             key = self._constructor(key, **self._construct_axes_dict())
 
-        if key.size and not is_bool_dtype(key.values):
+        if key.size and not all(is_bool_dtype(dtype) for dtype in key.dtypes):
             raise TypeError(
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
@@ -4212,13 +4076,14 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)
-            self._mgr.column_setitem(icol, iindex, value)
+            self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
             self._clear_item_cache()
 
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError, LossySetitemError):
             # get_loc might raise a KeyError for missing labels (falling back
             #  to (i)loc will do expansion of the index)
-            # column_setitem will do validation that may raise TypeError or ValueError
+            # column_setitem will do validation that may raise TypeError,
+            #  ValueError, or LossySetitemError
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
@@ -4323,8 +4188,7 @@ class DataFrame(NDFrame, OpsMixin):
     def query(self, expr: str, *, inplace: bool = ..., **kwargs) -> DataFrame | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
-    def query(self, expr: str, inplace: bool = False, **kwargs) -> DataFrame | None:
+    def query(self, expr: str, *, inplace: bool = False, **kwargs) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -4468,7 +4332,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
-        kwargs["level"] = kwargs.pop("level", 0) + 2
+        kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
         res = self.eval(expr, **kwargs)
 
@@ -4493,8 +4357,7 @@ class DataFrame(NDFrame, OpsMixin):
     def eval(self, expr: str, *, inplace: Literal[True], **kwargs) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
-    def eval(self, expr: str, inplace: bool = False, **kwargs) -> Any | None:
+    def eval(self, expr: str, *, inplace: bool = False, **kwargs) -> Any | None:
         """
         Evaluate a string describing operations on DataFrame columns.
 
@@ -4600,7 +4463,7 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.computation.eval import eval as _eval
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        kwargs["level"] = kwargs.pop("level", 0) + 2
+        kwargs["level"] = kwargs.pop("level", 0) + 1
         index_resolvers = self._get_index_resolvers()
         column_resolvers = self._get_cleaned_column_resolvers()
         resolvers = column_resolvers, index_resolvers
@@ -7470,7 +7333,7 @@ class DataFrame(NDFrame, OpsMixin):
         return self._construct_result(new_data)
 
     def _arith_method(self, other, op):
-        if ops.should_reindex_frame_op(self, other, op, 1, 1, None, None):
+        if ops.should_reindex_frame_op(self, other, op, 1, None, None):
             return ops.frame_arith_method_with_reindex(self, other, op)
 
         axis: Literal[1] = 1  # only relevant for Series other case
@@ -8035,7 +7898,8 @@ Keep all original rows and columns and also all original values
 
         Returns
         -------
-        None : method directly changes calling object
+        None
+            This method directly changes calling object.
 
         Raises
         ------
@@ -8105,10 +7969,10 @@ Keep all original rows and columns and also all original values
         >>> new_df = pd.DataFrame({'B': [4, np.nan, 6]})
         >>> df.update(new_df)
         >>> df
-           A      B
-        0  1    4.0
-        1  2  500.0
-        2  3    6.0
+           A    B
+        0  1    4
+        1  2  500
+        2  3    6
         """
         from pandas.core.computation import expressions
 
@@ -8146,9 +8010,7 @@ Keep all original rows and columns and also all original values
             if mask.all():
                 continue
 
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", "In a future version, `df.iloc")
-                self.loc[:, col] = expressions.where(mask, this, that)
+            self.loc[:, col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping

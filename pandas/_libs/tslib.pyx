@@ -1,9 +1,13 @@
 cimport cython
+
+from datetime import timezone
+
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
     datetime,
     import_datetime,
+    timedelta,
     tzinfo,
 )
 from cpython.object cimport PyObject
@@ -14,7 +18,6 @@ import_datetime()
 
 cimport numpy as cnp
 from numpy cimport (
-    float64_t,
     int64_t,
     ndarray,
 )
@@ -22,8 +25,6 @@ from numpy cimport (
 import numpy as np
 
 cnp.import_array()
-
-import pytz
 
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -95,7 +96,7 @@ def _test_parse_iso8601(ts: str):
     obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:
-        obj.tzinfo = pytz.FixedOffset(out_tzoffset)
+        obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))
         obj.value = tz_localize_to_utc_single(obj.value, obj.tzinfo)
         return Timestamp(obj.value, tz=obj.tzinfo)
     else:
@@ -229,7 +230,7 @@ def format_array_from_datetime(
 
 
 def array_with_unit_to_datetime(
-    ndarray values,
+    ndarray[object] values,
     str unit,
     str errors="coerce"
 ):
@@ -264,65 +265,23 @@ def array_with_unit_to_datetime(
     cdef:
         Py_ssize_t i, n=len(values)
         int64_t mult
-        int prec = 0
-        ndarray[float64_t] fvalues
         bint is_ignore = errors=="ignore"
         bint is_coerce = errors=="coerce"
         bint is_raise = errors=="raise"
-        bint need_to_iterate = True
         ndarray[int64_t] iresult
         ndarray[object] oresult
-        ndarray mask
         object tz = None
 
     assert is_ignore or is_coerce or is_raise
 
     if unit == "ns":
-        if issubclass(values.dtype.type, (np.integer, np.float_)):
-            result = values.astype("M8[ns]", copy=False)
-        else:
-            result, tz = array_to_datetime(
-                values.astype(object, copy=False),
-                errors=errors,
-            )
+        result, tz = array_to_datetime(
+            values.astype(object, copy=False),
+            errors=errors,
+        )
         return result, tz
 
     mult, _ = precision_from_unit(unit)
-
-    if is_raise:
-        # try a quick conversion to i8/f8
-        # if we have nulls that are not type-compat
-        # then need to iterate
-
-        if values.dtype.kind in ["i", "f", "u"]:
-            iresult = values.astype("i8", copy=False)
-            # fill missing values by comparing to NPY_NAT
-            mask = iresult == NPY_NAT
-            iresult[mask] = 0
-            fvalues = iresult.astype("f8") * mult
-            need_to_iterate = False
-
-        if not need_to_iterate:
-            # check the bounds
-            if (fvalues < Timestamp.min.value).any() or (
-                (fvalues > Timestamp.max.value).any()
-            ):
-                raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
-
-            if values.dtype.kind in ["i", "u"]:
-                result = (iresult * mult).astype("M8[ns]")
-
-            elif values.dtype.kind == "f":
-                fresult = (values * mult).astype("f8")
-                fresult[mask] = 0
-                if prec:
-                    fresult = round(fresult, prec)
-                result = fresult.astype("M8[ns]", copy=False)
-
-            iresult = result.view("i8")
-            iresult[mask] = NPY_NAT
-
-            return result, tz
 
     result = np.empty(n, dtype="M8[ns]")
     iresult = result.view("i8")
@@ -434,7 +393,7 @@ def first_non_null(values: ndarray) -> int:
         if (
             isinstance(val, str)
             and
-            (len(val) == 0 or val in ("now", "today", *nat_strings))
+            (len(val) == 0 or val in nat_strings or val in ("now", "today"))
         ):
             continue
         return i
@@ -460,7 +419,7 @@ cpdef array_to_datetime(
         2) datetime.datetime objects, if OutOfBoundsDatetime or TypeError
            is encountered
 
-    Also returns a pytz.FixedOffset if an array of strings with the same
+    Also returns a fixed-offset tzinfo object if an array of strings with the same
     timezone offset is passed and utc=True is not passed. Otherwise, None
     is returned
 
@@ -650,7 +609,7 @@ cpdef array_to_datetime(
                             # since we store the total_seconds of
                             # dateutil.tz.tzoffset objects
                             out_tzoffset_vals.add(out_tzoffset * 60.)
-                            tz = pytz.FixedOffset(out_tzoffset)
+                            tz = timezone(timedelta(minutes=out_tzoffset))
                             value = tz_localize_to_utc_single(value, tz)
                             out_local = 0
                             out_tzoffset = 0
@@ -718,7 +677,7 @@ cpdef array_to_datetime(
             return _array_to_datetime_object(values, errors, dayfirst, yearfirst)
         else:
             tz_offset = out_tzoffset_vals.pop()
-            tz_out = pytz.FixedOffset(tz_offset / 60.)
+            tz_out = timezone(timedelta(seconds=tz_offset))
     return result, tz_out
 
 

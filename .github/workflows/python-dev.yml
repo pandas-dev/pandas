@@ -49,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macOS-latest, windows-latest]
+        os: [ubuntu-22.04, macOS-latest, windows-latest]
 
     name: actions-311-dev
     timeout-minutes: 120
