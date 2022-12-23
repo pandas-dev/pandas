@@ -386,7 +386,7 @@ cdef parse_datetime_string_with_reso(
         &out_tzoffset, False
     )
     if not string_to_dts_failed:
-        if dts.ps != 0 or out_local:
+        if out_bestunit == NPY_DATETIMEUNIT.NPY_FR_ns or out_local:
             # TODO: the not-out_local case we could do without Timestamp;
             #  avoid circular import
             from pandas import Timestamp

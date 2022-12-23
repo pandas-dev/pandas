@@ -545,6 +545,7 @@ class TestPeriodConstruction:
             (".000000999", 999),
             (".123456789", 789),
             (".999999999", 999),
+            (".999999000", 0),
         ],
     )
     def test_period_constructor_nanosecond(self, day, hour, sec_float, expected):
