@@ -5410,7 +5410,7 @@ Keep all original rows and also all original values
                 input_series = input_series.copy()
 
         if convert_string or convert_integer or convert_boolean or convert_floating:
-            nullable_backend = get_option("mode.nullable_backend")
+            dtype_backend = get_option("mode.dtype_backend")
             inferred_dtype = convert_dtypes(
                 input_series._values,
                 convert_string,
@@ -5418,7 +5418,7 @@ Keep all original rows and also all original values
                 convert_boolean,
                 convert_floating,
                 infer_objects,
-                nullable_backend,
+                dtype_backend,
             )
             result = input_series.astype(inferred_dtype)
         else:
