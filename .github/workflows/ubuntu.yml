@@ -38,6 +38,7 @@ jobs:
           - name: "Minimum Versions"
             env_file: actions-38-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
+            test_args: ""
           - name: "Locale: it_IT"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -62,10 +63,12 @@ jobs:
             env_file: actions-310.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "1"
+            test_args: ""
           - name: "Data Manager"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_data_manager: "array"
+            test_args: ""
           - name: "Pypy"
             env_file: actions-pypy-38.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -93,7 +96,7 @@ jobs:
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
-      TEST_ARGS: ${{ matrix.test_args || '' }}
+      TEST_ARGS: ${{ matrix.test_args || '-W error:::pandas' }}
       PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
       IS_PYPY: ${{ contains(matrix.env_file, 'pypy') }}
