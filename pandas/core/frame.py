@@ -205,7 +205,6 @@ from pandas.core.internals.construction import (
     to_arrays,
     treat_as_nested,
 )
-from pandas.core.internals.managers import _using_copy_on_write
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
@@ -3720,7 +3719,7 @@ class DataFrame(NDFrame, OpsMixin):
         # be reindexed to match DataFrame rows
         key = check_bool_indexer(self.index, key)
 
-        if _using_copy_on_write() and key.all():
+        if key.all():
             return self.copy(deep=None)
 
         indexer = key.nonzero()[0]
