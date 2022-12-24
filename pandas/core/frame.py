@@ -96,7 +96,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -4077,7 +4076,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)
-            self._mgr.column_setitem(icol, iindex, value, inplace=True)
+            self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
             self._clear_item_cache()
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
@@ -4189,8 +4188,7 @@ class DataFrame(NDFrame, OpsMixin):
     def query(self, expr: str, *, inplace: bool = ..., **kwargs) -> DataFrame | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
-    def query(self, expr: str, inplace: bool = False, **kwargs) -> DataFrame | None:
+    def query(self, expr: str, *, inplace: bool = False, **kwargs) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -4334,7 +4332,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
-        kwargs["level"] = kwargs.pop("level", 0) + 2
+        kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
         res = self.eval(expr, **kwargs)
 
@@ -4359,8 +4357,7 @@ class DataFrame(NDFrame, OpsMixin):
     def eval(self, expr: str, *, inplace: Literal[True], **kwargs) -> None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
-    def eval(self, expr: str, inplace: bool = False, **kwargs) -> Any | None:
+    def eval(self, expr: str, *, inplace: bool = False, **kwargs) -> Any | None:
         """
         Evaluate a string describing operations on DataFrame columns.
 
@@ -4466,7 +4463,7 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.computation.eval import eval as _eval
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        kwargs["level"] = kwargs.pop("level", 0) + 2
+        kwargs["level"] = kwargs.pop("level", 0) + 1
         index_resolvers = self._get_index_resolvers()
         column_resolvers = self._get_cleaned_column_resolvers()
         resolvers = column_resolvers, index_resolvers
@@ -7972,10 +7969,10 @@ Keep all original rows and columns and also all original values
         >>> new_df = pd.DataFrame({'B': [4, np.nan, 6]})
         >>> df.update(new_df)
         >>> df
-           A      B
-        0  1    4.0
-        1  2  500.0
-        2  3    6.0
+           A    B
+        0  1    4
+        1  2  500
+        2  3    6
         """
         from pandas.core.computation import expressions
 
@@ -8013,9 +8010,7 @@ Keep all original rows and columns and also all original values
             if mask.all():
                 continue
 
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", "In a future version, `df.iloc")
-                self.loc[:, col] = expressions.where(mask, this, that)
+            self.loc[:, col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping

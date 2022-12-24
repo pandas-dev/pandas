@@ -1741,6 +1741,11 @@ cdef class _Period(PeriodMixin):
             raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
                             f"and '{oname}'")
 
+        elif util.is_array(other):
+            if other.dtype == object:
+                # GH#50162
+                return np.array([self + x for x in other], dtype=object)
+
         return NotImplemented
 
     def __radd__(self, other):
@@ -1767,11 +1772,22 @@ cdef class _Period(PeriodMixin):
         elif other is NaT:
             return NaT
 
+        elif util.is_array(other):
+            if other.dtype == object:
+                # GH#50162
+                return np.array([self - x for x in other], dtype=object)
+
         return NotImplemented
 
     def __rsub__(self, other):
         if other is NaT:
             return NaT
+
+        elif util.is_array(other):
+            if other.dtype == object:
+                # GH#50162
+                return np.array([x - self for x in other], dtype=object)
+
         return NotImplemented
 
     def asfreq(self, freq, how="E") -> "Period":
