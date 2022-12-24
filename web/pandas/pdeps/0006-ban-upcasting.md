@@ -119,11 +119,14 @@ Option ``2`` would be a breaking behaviour change in pandas. Further,
 if the objective of this PDEP is to prevent bugs, then this is also not desirable:
 someone might set ``1.5`` and later be surprised to learn that they actually set ``1``.
 
-Option ``3`` would be inconsistent with the nullable dtypes' behaviour. It would also add
-complexity to the codebase and to tests. It would be hard to teach, as instead of
-being able to teach a simple rule, there would be a rule with exceptions. Finally, it opens
-the door to other exceptions, such as not upcasting to ``'int16'`` when trying to set an
-element of a ``'int8'`` ``Series`` to ``128``.
+There are several downsides to option ``3``:
+- it would be inconsistent with the nullable dtypes' behaviour;
+- it would also add complexity to the codebase and to tests;
+- it would be hard to teach, as instead of being able to teach a simple rule,
+  there would be a rule with exceptions;
+- there would be a risk of loss of precision;
+- it opens the door to other exceptions, such as not upcasting to ``'int16'``
+  when trying to set an element of a ``'int8'`` ``Series`` to ``128``.
 
 Option ``1`` is the maximally safe one in terms of protecting users from bugs, being
 consistent with the current behaviour of nullable dtypes, and in being simple to teach.
