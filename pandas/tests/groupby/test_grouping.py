@@ -55,11 +55,7 @@ class TestSelection:
         tm.assert_series_equal(result, expected)
 
         df["mean"] = 1.5
-        with pytest.raises(TypeError, match="Could not convert"):
-            df.groupby("A").mean()
         result = df.groupby("A").mean(numeric_only=True)
-        with pytest.raises(TypeError, match="Could not convert"):
-            df.groupby("A").agg(np.mean)
         expected = df.groupby("A")[["C", "D", "mean"]].agg(np.mean)
         tm.assert_frame_equal(result, expected)
 
@@ -289,8 +285,6 @@ class TestGrouping:
         result = df_multi.groupby(["B", pd.Grouper(level="inner")]).mean(
             numeric_only=True
         )
-        with pytest.raises(TypeError, match="Could not convert"):
-            df_multi.reset_index().groupby(["B", "inner"]).mean()
         expected = (
             df_multi.reset_index().groupby(["B", "inner"]).mean(numeric_only=True)
         )
@@ -300,8 +294,6 @@ class TestGrouping:
         result = df_multi.groupby([pd.Grouper(level="inner"), "B"]).mean(
             numeric_only=True
         )
-        with pytest.raises(TypeError, match="Could not convert"):
-            df_multi.reset_index().groupby(["inner", "B"]).mean()
         expected = (
             df_multi.reset_index().groupby(["inner", "B"]).mean(numeric_only=True)
         )
@@ -310,26 +302,18 @@ class TestGrouping:
         # Grouping a single-index frame by a column and the index should
         # be equivalent to resetting the index and grouping by two columns
         df_single = df_multi.reset_index("outer")
-        with pytest.raises(TypeError, match="Could not convert"):
-            df_single.groupby(["B", pd.Grouper(level="inner")]).mean()
         result = df_single.groupby(["B", pd.Grouper(level="inner")]).mean(
             numeric_only=True
         )
-        with pytest.raises(TypeError, match="Could not convert"):
-            df_single.reset_index().groupby(["B", "inner"]).mean()
         expected = (
             df_single.reset_index().groupby(["B", "inner"]).mean(numeric_only=True)
         )
         tm.assert_frame_equal(result, expected)
 
         # Test the reverse grouping order
-        with pytest.raises(TypeError, match="Could not convert"):
-            df_single.groupby([pd.Grouper(level="inner"), "B"]).mean()
         result = df_single.groupby([pd.Grouper(level="inner"), "B"]).mean(
             numeric_only=True
         )
-        with pytest.raises(TypeError, match="Could not convert"):
-            df_single.reset_index().groupby(["inner", "B"]).mean()
         expected = (
             df_single.reset_index().groupby(["inner", "B"]).mean(numeric_only=True)
         )
@@ -406,11 +390,7 @@ class TestGrouping:
     def test_groupby_grouper(self, df):
         grouped = df.groupby("A")
 
-        with pytest.raises(TypeError, match="Could not convert"):
-            df.groupby(grouped.grouper).mean()
         result = df.groupby(grouped.grouper).mean(numeric_only=True)
-        with pytest.raises(TypeError, match="Could not convert"):
-            grouped.mean()
         expected = grouped.mean(numeric_only=True)
         tm.assert_frame_equal(result, expected)
 
