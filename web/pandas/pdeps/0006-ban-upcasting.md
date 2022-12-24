@@ -113,6 +113,7 @@ Let us compare with what other libraries do:
 - ``R data.frame``: just upcasts (like pandas does now for non-nullable dtypes);
 - ``pandas`` (nullable dtypes): option 1
 - ``datatable``: option 1
+- ``DataFrames.jl``: option 1
 
 Option ``2`` would be a breaking behaviour change in pandas. Further,
 if the objective of this PDEP is to prevent bugs, then this is also not desirable:
