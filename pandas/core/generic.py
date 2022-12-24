@@ -6313,7 +6313,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self.copy(deep=True)
 
     @final
-    def infer_objects(self: NDFrameT, copy: bool_t = True) -> NDFrameT:
+    def infer_objects(self: NDFrameT, copy: bool_t | None = None) -> NDFrameT:
         """
         Attempt to infer better dtypes for object columns.
 
