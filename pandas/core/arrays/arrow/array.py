@@ -214,7 +214,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             try:
                 scalars = pa.array(scalars, type=pa_dtype, from_pandas=True)
             except pa.ArrowInvalid:
-                # GH#####: let pyarrow infer type, then cast
+                # GH50430: let pyarrow infer type, then cast
                 scalars = pa.array(scalars, from_pandas=True)
         if pa_dtype:
             scalars = scalars.cast(pa_dtype)
