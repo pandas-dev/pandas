@@ -390,16 +390,16 @@ class TestLocBaseIndependent:
         # GH31340
         df = DataFrame({"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]})
         cols = ["a", "b", "c"]
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, cols] = df.loc[:, cols].astype("float32")
+        df.loc[:, cols] = df.loc[:, cols].astype("float32")
 
+        # pre-2.0 this setting would swap in new arrays, in 2.0 it is correctly
+        #  in-place, consistent with non-split-path
         expected = DataFrame(
             {
                 "id": ["A"],
-                "a": np.array([1.2], dtype="float32"),
-                "b": np.array([0.0], dtype="float32"),
-                "c": np.array([-2.5], dtype="float32"),
+                "a": np.array([1.2], dtype="float64"),
+                "b": np.array([0.0], dtype="float64"),
+                "c": np.array([-2.5], dtype="float64"),
             }
         )  # id is inferred as object
 
@@ -619,15 +619,18 @@ class TestLocBaseIndependent:
 
     def test_loc_setitem_consistency_empty(self):
         # empty (essentially noops)
+        # before the enforcement of #45333 in 2.0, the loc.setitem here would
+        #  change the dtype of df.x to int64
         expected = DataFrame(columns=["x", "y"])
-        expected["x"] = expected["x"].astype(np.int64)
         df = DataFrame(columns=["x", "y"])
         with tm.assert_produces_warning(None):
             df.loc[:, "x"] = 1
         tm.assert_frame_equal(df, expected)
 
+        # setting with setitem swaps in a new array, so changes the dtype
         df = DataFrame(columns=["x", "y"])
         df["x"] = 1
+        expected["x"] = expected["x"].astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_consistency_slice_column_len(self):
@@ -654,28 +657,25 @@ class TestLocBaseIndependent:
         ]
         df = DataFrame(values, index=mi, columns=cols)
 
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, ("Respondent", "StartDate")] = to_datetime(
-                df.loc[:, ("Respondent", "StartDate")]
-            )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, ("Respondent", "EndDate")] = to_datetime(
-                df.loc[:, ("Respondent", "EndDate")]
-            )
-        with tm.assert_produces_warning(None, match=msg):
-            # Adding a new key -> no warning
-            df.loc[:, ("Respondent", "Duration")] = (
-                df.loc[:, ("Respondent", "EndDate")]
-                - df.loc[:, ("Respondent", "StartDate")]
-            )
+        df.loc[:, ("Respondent", "StartDate")] = to_datetime(
+            df.loc[:, ("Respondent", "StartDate")]
+        )
+        df.loc[:, ("Respondent", "EndDate")] = to_datetime(
+            df.loc[:, ("Respondent", "EndDate")]
+        )
+        df = df.infer_objects(copy=False)
 
-        with tm.assert_produces_warning(None, match=msg):
-            # timedelta64[m] -> float, so this cannot be done inplace, so
-            #  no warning
-            df.loc[:, ("Respondent", "Duration")] = df.loc[
-                :, ("Respondent", "Duration")
-            ] / Timedelta(60_000_000_000)
+        # Adding a new key
+        df.loc[:, ("Respondent", "Duration")] = (
+            df.loc[:, ("Respondent", "EndDate")]
+            - df.loc[:, ("Respondent", "StartDate")]
+        )
+
+        # timedelta64[m] -> float, so this cannot be done inplace, so
+        #  no warning
+        df.loc[:, ("Respondent", "Duration")] = df.loc[
+            :, ("Respondent", "Duration")
+        ] / Timedelta(60_000_000_000)
 
         expected = Series(
             [23.0, 12.0, 14.0, 36.0], index=df.index, name=("Respondent", "Duration")
@@ -741,11 +741,11 @@ class TestLocBaseIndependent:
         # GH#40480
         df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
         df["B"] = "string"
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
+        df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
         ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
-        expected = DataFrame({"A": ser})
+        # pre-2.0 this setting swapped in a new array, now it is inplace
+        #  consistent with non-split-path
+        expected = DataFrame({"A": ser.astype(float)})
         expected["B"] = "string"
         tm.assert_frame_equal(df, expected)
 
@@ -753,10 +753,10 @@ class TestLocBaseIndependent:
         # GH#40480
         df = DataFrame(index=[1, 2, 3], columns=["A", "B"], dtype=float)
         df["B"] = "string"
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")
-        expected = DataFrame({"A": [3, 2, 1], "B": "string"}, index=[1, 2, 3])
+        df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")
+        # pre-2.0 this setting swapped in a new array, now it is inplace
+        #  consistent with non-split-path
+        expected = DataFrame({"A": [3.0, 2.0, 1.0], "B": "string"}, index=[1, 2, 3])
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_empty_frame(self):
@@ -929,13 +929,7 @@ class TestLocBaseIndependent:
         # GH 29334
         df = DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
 
-        warn = None
-        if isinstance(index[0], slice) and index[0] == slice(None):
-            warn = FutureWarning
-
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(warn, match=msg):
-            df.loc[index] = box
+        df.loc[index] = box
         tm.assert_frame_equal(df, expected)
 
     def test_loc_coercion(self):
@@ -1083,15 +1077,8 @@ class TestLocBaseIndependent:
             df.loc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(
-        self, using_array_manager, request, using_copy_on_write
-    ):
+    def test_identity_slice_returns_new_object(self, using_copy_on_write):
         # GH13873
-        if using_array_manager:
-            mark = pytest.mark.xfail(
-                reason="setting with .loc[:, 'a'] does not alter inplace"
-            )
-            request.node.add_marker(mark)
 
         original_df = DataFrame({"a": [1, 2, 3]})
         sliced_df = original_df.loc[:]
@@ -1173,8 +1160,6 @@ class TestLocBaseIndependent:
             # don't wrap around
             ser.loc[[-1]]
 
-    # FIXME: warning issued here is false-positive
-    @pytest.mark.filterwarnings("ignore:.*will attempt to set.*:FutureWarning")
     def test_loc_setitem_empty_append_expands_rows(self):
         # GH6173, various appends to an empty dataframe
 
@@ -1186,8 +1171,6 @@ class TestLocBaseIndependent:
         df.loc[:, "x"] = data
         tm.assert_frame_equal(df, expected)
 
-    # FIXME: warning issued here is false-positive
-    @pytest.mark.filterwarnings("ignore:.*will attempt to set.*:FutureWarning")
     def test_loc_setitem_empty_append_expands_rows_mixed_dtype(self):
         # GH#37932 same as test_loc_setitem_empty_append_expands_rows
         #  but with mixed dtype so we go through take_split_path
@@ -1438,13 +1421,17 @@ class TestLocBaseIndependent:
         df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
         categories = Categorical(df["Alpha"], categories=["a", "b", "c"])
 
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, "Alpha"] = categories
+        # pre-2.0 this swapped in a new array, in 2.0 it operates inplace,
+        #  consistent with non-split-path
+        df.loc[:, "Alpha"] = categories
 
         result = df["Alpha"]
-        expected = Series(categories, index=df.index, name="Alpha")
+        expected = Series(categories, index=df.index, name="Alpha").astype(object)
         tm.assert_series_equal(result, expected)
+
+        # double-check that the non-loc setting retains categoricalness
+        df["Alpha"] = categories
+        tm.assert_series_equal(df["Alpha"], Series(categories, name="Alpha"))
 
     def test_loc_setitem_datetime_coercion(self):
         # GH#1048
