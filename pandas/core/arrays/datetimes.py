@@ -2382,7 +2382,9 @@ def _validate_tz_from_dtype(
             # We also need to check for the case where the user passed a
             #  tz-naive dtype (i.e. datetime64[ns])
             if tz is not None and not timezones.tz_compare(tz, dtz):
-                raise SupplyTzDetypeError
+                raise SupplyTzDetypeError(
+                    "cannot supply both a tz and a timezone-naive dtype"
+                )
 
     return tz
 

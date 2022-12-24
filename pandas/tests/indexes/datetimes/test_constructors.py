@@ -714,7 +714,8 @@ class TestDatetimeIndex:
             ["2013-01-01", "2013-01-02"], dtype="datetime64[ns, US/Eastern]"
         )
 
-        with pytest.raises(SupplyTzDetypeError, match=None):
+        msg = "cannot supply both a tz and a timezone-naive dtype"
+        with pytest.raises(SupplyTzDetypeError, match=msg):
             DatetimeIndex(idx, dtype="datetime64[ns]")
 
         # this is effectively trying to convert tz's
