@@ -9,6 +9,7 @@ The full license is in the LICENSE file, distributed with this software.
 
 #ifndef PANDAS__LIBS_PANDAS_TYPE_H_
 #define PANDAS__LIBS_PANDAS_TYPE_H_
+#include "pyerrors.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -147,10 +148,22 @@ is_nan : bool
 */
 int is_nan(PyObject *obj) {
   if (is_float_object(obj)) {
-    return PyObject_RichCompareBool(obj, obj, Py_NE);
+    double fobj = PyFloat_AsDouble(obj);
+    if (fobj == -1.0 && PyErr_Occurred()) {
+      // TODO(wayd): handle this error!
+    }
+
+    return fobj != fobj;
   }
 
-  return is_complex_object(obj) && PyObject_RichCompareBool(obj, obj, Py_NE);
+  if (is_complex_object(obj)) {
+    int ret = PyObject_RichCompareBool(obj, obj, Py_NE) == 1;
+    if (ret == -1) {
+      // TODO(wayd): handle this error!
+    }
+  }
+
+  return 0;
 }
 
 #ifdef __cplusplus
