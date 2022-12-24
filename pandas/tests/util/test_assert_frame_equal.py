@@ -34,24 +34,6 @@ def _assert_frame_equal_both(a, b, **kwargs):
     tm.assert_frame_equal(b, a, **kwargs)
 
 
-def _assert_not_frame_equal(a, b, **kwargs):
-    """
-    Check that two DataFrame are not equal.
-
-    Parameters
-    ----------
-    a : DataFrame
-        The first DataFrame to compare.
-    b : DataFrame
-        The second DataFrame to compare.
-    kwargs : dict
-        The arguments passed to `tm.assert_frame_equal`.
-    """
-    msg = "The two DataFrames were equal when they shouldn't have been"
-    with pytest.raises(AssertionError, match=msg):
-        tm.assert_frame_equal(a, b, **kwargs)
-
-
 @pytest.mark.parametrize("check_like", [True, False])
 def test_frame_equal_row_order_mismatch(check_like, obj_fixture):
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "c"])

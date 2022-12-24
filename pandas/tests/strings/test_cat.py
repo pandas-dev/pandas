@@ -11,7 +11,13 @@ from pandas import (
     _testing as tm,
     concat,
 )
-from pandas.tests.strings.test_strings import assert_series_or_index_equal
+
+
+def assert_series_or_index_equal(left, right):
+    if isinstance(left, Series):
+        tm.assert_series_equal(left, right)
+    else:  # Index
+        tm.assert_index_equal(left, right)
 
 
 @pytest.mark.parametrize("other", [None, Series, Index])
