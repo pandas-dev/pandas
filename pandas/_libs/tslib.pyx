@@ -38,11 +38,12 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
     string_to_dts,
 )
-from pandas._libs.util cimport (
-    is_datetime64_object,
-    is_float_object,
-    is_integer_object,
-)
+
+
+cdef extern from "pandas/type.h":
+    bint is_datetime64_object(object obj)
+    bint is_float_object(object obj)
+    bint is_integer_object(object obj)
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import parse_datetime_string

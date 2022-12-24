@@ -38,6 +38,12 @@ from numpy cimport (
 cnp.import_array()
 
 cimport pandas._libs.util as util
+
+
+cdef extern from "pandas/type.h":
+    bint is_integer_object(object obj)
+    bint is_array(object obj)
+
 from pandas._libs.dtypes cimport (
     numeric_object_t,
     numeric_t,
@@ -513,7 +519,7 @@ def validate_limit(nobs: int | None, limit=None) -> int:
     if limit is None:
         lim = nobs
     else:
-        if not util.is_integer_object(limit):
+        if not is_integer_object(limit):
             raise ValueError("Limit must be an integer")
         if limit < 1:
             raise ValueError("Limit must be greater than 0")

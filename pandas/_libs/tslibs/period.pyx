@@ -39,7 +39,15 @@ from libc.time cimport (
 # import datetime C API
 import_datetime()
 
-cimport pandas._libs.tslibs.util as util
+cimport pandas._libs.util as util
+
+
+cdef extern from "pandas/type.h":
+    bint is_datetime64_object(object obj)
+    bint is_timedelta64_object(object obj)
+    bint is_integer_object(object obj)
+    bint is_array(object obj)
+
 from pandas._libs.missing cimport C_NA
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -1474,7 +1482,7 @@ cdef int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
 
     if checknull_with_nat(item) or item is C_NA:
         ordinal = NPY_NAT
-    elif util.is_integer_object(item):
+    elif is_integer_object(item):
         if item == NPY_NAT:
             ordinal = NPY_NAT
         else:
@@ -1667,7 +1675,7 @@ cdef class _Period(PeriodMixin):
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return op == Py_NE
-        elif util.is_array(other):
+        elif is_array(other):
             # GH#44285
             if cnp.PyArray_IsZeroDim(other):
                 return PyObject_RichCompare(self, other.item(), op)
@@ -1688,7 +1696,7 @@ cdef class _Period(PeriodMixin):
                                         f"Period(freq={self.freqstr})")
 
         if (
-            util.is_timedelta64_object(other) and
+            is_timedelta64_object(other) and
             get_timedelta64_value(other) == NPY_NAT
         ):
             # i.e. np.timedelta64("nat")
@@ -1727,7 +1735,7 @@ cdef class _Period(PeriodMixin):
             return self._add_offset(other)
         elif other is NaT:
             return NaT
-        elif util.is_integer_object(other):
+        elif is_integer_object(other):
             ordinal = self.ordinal + other * self.freq.n
             return Period(ordinal=ordinal, freq=self.freq)
 
@@ -1741,7 +1749,7 @@ cdef class _Period(PeriodMixin):
             raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
                             f"and '{oname}'")
 
-        elif util.is_array(other):
+        elif is_array(other):
             if other.dtype == object:
                 # GH#50162
                 return np.array([self + x for x in other], dtype=object)
@@ -1762,7 +1770,7 @@ cdef class _Period(PeriodMixin):
         elif (
             is_any_td_scalar(other)
             or is_offset_object(other)
-            or util.is_integer_object(other)
+            or is_integer_object(other)
         ):
             return self + (-other)
         elif is_period_object(other):
@@ -1772,7 +1780,7 @@ cdef class _Period(PeriodMixin):
         elif other is NaT:
             return NaT
 
-        elif util.is_array(other):
+        elif is_array(other):
             if other.dtype == object:
                 # GH#50162
                 return np.array([self - x for x in other], dtype=object)
@@ -1783,7 +1791,7 @@ cdef class _Period(PeriodMixin):
         if other is NaT:
             return NaT
 
-        elif util.is_array(other):
+        elif is_array(other):
             if other.dtype == object:
                 # GH#50162
                 return np.array([x - self for x in other], dtype=object)
@@ -2543,7 +2551,7 @@ class Period(_Period):
             raise ValueError("Only value or ordinal but not both should be "
                              "given but not both")
         elif ordinal is not None:
-            if not util.is_integer_object(ordinal):
+            if not is_integer_object(ordinal):
                 raise ValueError("Ordinal must be an integer")
             if freq is None:
                 raise ValueError("Must supply freq for ordinal value")
@@ -2582,8 +2590,8 @@ class Period(_Period):
             #  if we have a non-hashable value.
             ordinal = NPY_NAT
 
-        elif isinstance(value, str) or util.is_integer_object(value):
-            if util.is_integer_object(value):
+        elif isinstance(value, str) or is_integer_object(value):
+            if is_integer_object(value):
                 if value == NPY_NAT:
                     value = "NaT"
 
@@ -2615,7 +2623,7 @@ class Period(_Period):
                 raise ValueError("Must supply freq for datetime value")
             if isinstance(dt, Timestamp):
                 nanosecond = dt.nanosecond
-        elif util.is_datetime64_object(value):
+        elif is_datetime64_object(value):
             dt = Timestamp(value)
             if freq is None:
                 raise ValueError("Must supply freq for datetime value")

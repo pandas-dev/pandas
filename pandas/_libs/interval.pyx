@@ -31,7 +31,6 @@ from numpy cimport (
 cnp.import_array()
 
 
-from pandas._libs cimport util
 from pandas._libs.hashtable cimport Int64Vector
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -41,6 +40,12 @@ from pandas._libs.tslibs.util cimport (
     is_integer_object,
     is_timedelta64_object,
 )
+
+
+cdef extern from "pandas/type.h":
+    bint is_array(object obj)
+    bint is_nan(object obj)
+
 
 VALID_CLOSED = frozenset(["left", "right", "both", "neither"])
 
@@ -360,7 +365,7 @@ cdef class Interval(IntervalMixin):
             self_tuple = (self.left, self.right, self.closed)
             other_tuple = (other.left, other.right, other.closed)
             return PyObject_RichCompare(self_tuple, other_tuple, op)
-        elif util.is_array(other):
+        elif is_array(other):
             return np.array(
                 [PyObject_RichCompare(self, x, op) for x in other],
                 dtype=bool,
@@ -551,7 +556,7 @@ def intervals_to_interval_bounds(ndarray intervals, bint validate_closed=True):
 
     for i in range(n):
         interval = intervals[i]
-        if interval is None or util.is_nan(interval):
+        if interval is None or is_nan(interval):
             left[i] = np.nan
             right[i] = np.nan
             continue

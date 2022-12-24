@@ -62,7 +62,9 @@ from numpy cimport (
 
 cnp.import_array()
 
-from pandas._libs cimport util
+cdef extern from "pandas/type.h":
+    bint is_integer_object(object obj)
+
 from pandas._libs.util cimport (
     INT64_MAX,
     INT64_MIN,
@@ -594,7 +596,7 @@ cdef class TextReader:
             self.parser.quotechar = <char>ord(quote_char)
 
     cdef _make_skiprow_set(self):
-        if util.is_integer_object(self.skiprows):
+        if is_integer_object(self.skiprows):
             parser_set_skipfirstnrows(self.parser, self.skiprows)
         elif not callable(self.skiprows):
             for i in self.skiprows:

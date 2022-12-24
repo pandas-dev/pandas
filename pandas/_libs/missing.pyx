@@ -4,6 +4,7 @@ from sys import maxsize
 
 cimport cython
 from cython cimport Py_ssize_t
+
 import numpy as np
 
 cimport numpy as cnp
@@ -17,6 +18,16 @@ from numpy cimport (
 cnp.import_array()
 
 from pandas._libs cimport util
+
+
+cdef extern from "pandas/type.h":
+    bint is_timedelta64_object(object obj)
+    bint is_float_object(object obj)
+    bint is_complex_object(object obj)
+    bint is_datetime64_object(object obj)
+    bint is_array(object obj)
+    bint is_nan(object obj)
+
 from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     checknull_with_nat,
@@ -89,38 +100,38 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
     bool
     """
     if left is None:
-        if nan_matches_none and util.is_nan(right):
+        if nan_matches_none and is_nan(right):
             return True
         return right is None
     elif left is C_NA:
         return right is C_NA
     elif left is NaT:
         return right is NaT
-    elif util.is_float_object(left):
-        if nan_matches_none and right is None and util.is_nan(left):
+    elif is_float_object(left):
+        if nan_matches_none and right is None and is_nan(left):
             return True
         return (
-            util.is_nan(left)
-            and util.is_float_object(right)
-            and util.is_nan(right)
+            is_nan(left)
+            and is_float_object(right)
+            and is_nan(right)
         )
-    elif util.is_complex_object(left):
+    elif is_complex_object(left):
         return (
-            util.is_nan(left)
-            and util.is_complex_object(right)
-            and util.is_nan(right)
+            is_nan(left)
+            and is_complex_object(right)
+            and is_nan(right)
         )
-    elif util.is_datetime64_object(left):
+    elif is_datetime64_object(left):
         return (
             get_datetime64_value(left) == NPY_NAT
-            and util.is_datetime64_object(right)
+            and is_datetime64_object(right)
             and get_datetime64_value(right) == NPY_NAT
             and get_datetime64_unit(left) == get_datetime64_unit(right)
         )
-    elif util.is_timedelta64_object(left):
+    elif is_timedelta64_object(left):
         return (
             get_timedelta64_value(left) == NPY_NAT
-            and util.is_timedelta64_object(right)
+            and is_timedelta64_object(right)
             and get_timedelta64_value(right) == NPY_NAT
             and get_datetime64_unit(left) == get_datetime64_unit(right)
         )
@@ -153,15 +164,15 @@ cpdef bint checknull(object val, bint inf_as_na=False):
     """
     if val is None or val is NaT or val is C_NA:
         return True
-    elif util.is_float_object(val) or util.is_complex_object(val):
+    elif is_float_object(val) or is_complex_object(val):
         if val != val:
             return True
         elif inf_as_na:
             return val == INF or val == NEGINF
         return False
-    elif util.is_timedelta64_object(val):
+    elif is_timedelta64_object(val):
         return get_timedelta64_value(val) == NPY_NAT
-    elif util.is_datetime64_object(val):
+    elif is_datetime64_object(val):
         return get_datetime64_value(val) == NPY_NAT
     else:
         return is_decimal_na(val)
@@ -251,11 +262,11 @@ def isnaobj2d(arr: ndarray, inf_as_na: bool = False) -> ndarray:
 
 
 def isposinf_scalar(val: object) -> bool:
-    return util.is_float_object(val) and val == INF
+    return is_float_object(val) and val == INF
 
 
 def isneginf_scalar(val: object) -> bool:
-    return util.is_float_object(val) and val == NEGINF
+    return is_float_object(val) and val == NEGINF
 
 
 cdef bint is_null_datetime64(v):
@@ -299,7 +310,7 @@ def is_float_nan(values: ndarray) -> ndarray:
 
     for i in range(N):
         val = values[i]
-        if util.is_nan(val):
+        if is_nan(val):
             result[i] = True
     return result.view(bool)
 
@@ -327,7 +338,7 @@ def is_numeric_na(values: ndarray) -> ndarray:
     for i in range(N):
         val = values[i]
         if checknull(val):
-            if val is None or val is C_NA or util.is_nan(val) or is_decimal_na(val):
+            if val is None or val is C_NA or is_nan(val) or is_decimal_na(val):
                 result[i] = True
             else:
                 raise TypeError(f"'values' contains non-numeric NA {val}")
@@ -343,7 +354,7 @@ def _create_binary_propagating_op(name, is_divmod=False):
     def method(self, other):
         if (other is C_NA or isinstance(other, (str, bytes))
                 or isinstance(other, (numbers.Number, np.bool_))
-                or util.is_array(other) and not other.shape):
+                or is_array(other) and not other.shape):
             # Need the other.shape clause to handle NumPy scalars,
             # since we do a setitem on `out` below, which
             # won't work for NumPy scalars.
@@ -352,7 +363,7 @@ def _create_binary_propagating_op(name, is_divmod=False):
             else:
                 return NA
 
-        elif util.is_array(other):
+        elif is_array(other):
             out = np.empty(other.shape, dtype=object)
             out[:] = NA
 
@@ -464,7 +475,7 @@ class NAType(C_NAType):
                 return type(other)(1)
             else:
                 return NA
-        elif util.is_array(other):
+        elif is_array(other):
             return np.where(other == 0, other.dtype.type(1), NA)
 
         return NotImplemented
@@ -477,7 +488,7 @@ class NAType(C_NAType):
                 return other
             else:
                 return NA
-        elif util.is_array(other):
+        elif is_array(other):
             return np.where(other == 1, other, NA)
         return NotImplemented
 

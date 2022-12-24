@@ -55,11 +55,12 @@ from pandas._libs.tslibs.timezones cimport (
     is_utc,
     maybe_get_tz,
 )
-from pandas._libs.tslibs.util cimport (
-    is_datetime64_object,
-    is_float_object,
-    is_integer_object,
-)
+
+
+cdef extern from "pandas/type.h":
+    bint is_datetime64_object(object obj)
+    bint is_float_object(object obj)
+    bint is_integer_object(object obj)
 
 from pandas._libs.tslibs.parsing import parse_datetime_string
 

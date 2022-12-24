@@ -14,7 +14,13 @@ from numpy cimport (
 cnp.import_array()
 
 
-from pandas._libs cimport util
+cdef extern from "pandas/type.h":
+    bint is_integer_object(object obj)
+    bint is_float_object(object obj)
+    bint is_bool_object(object obj)
+    bint is_complex_object(object obj)
+    bint is_nan(object obj)
+
 from pandas._libs.hashtable cimport HashTable
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
@@ -74,7 +80,7 @@ cdef ndarray _get_bool_indexer(ndarray values, object val):
                 indexer[i] = is_matching_na(item, val)
 
     else:
-        if util.is_nan(val):
+        if is_nan(val):
             indexer = np.isnan(values)
         else:
             indexer = values == val
@@ -836,7 +842,7 @@ include "index_class_helper.pxi"
 
 cdef class BoolEngine(UInt8Engine):
     cdef _check_type(self, object val):
-        if not util.is_bool_object(val):
+        if not is_bool_object(val):
             raise KeyError(val)
         return <uint8_t>val
 
@@ -994,7 +1000,7 @@ cdef class SharedEngine:
             except KeyError:
                 loc = -1
             else:
-                assert util.is_integer_object(loc), (loc, val)
+                assert is_integer_object(loc), (loc, val)
             res[i] = loc
 
         return res
@@ -1032,7 +1038,7 @@ cdef class SharedEngine:
                 if isinstance(locs, slice):
                     # Only needed for get_indexer_non_unique
                     locs = np.arange(locs.start, locs.stop, locs.step, dtype=np.intp)
-                elif util.is_integer_object(locs):
+                elif is_integer_object(locs):
                     locs = np.array([locs], dtype=np.intp)
                 else:
                     assert locs.dtype.kind == "b"

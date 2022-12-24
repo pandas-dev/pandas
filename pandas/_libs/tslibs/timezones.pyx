@@ -37,10 +37,11 @@ from numpy cimport int64_t
 cnp.import_array()
 
 # ----------------------------------------------------------------------
-from pandas._libs.tslibs.util cimport (
-    get_nat,
-    is_integer_object,
-)
+from pandas._libs.tslibs.util cimport get_nat
+
+
+cdef extern from "pandas/type.h":
+    bint is_integer_object(object obj)
 
 
 cdef int64_t NPY_NAT = get_nat()

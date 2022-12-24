@@ -18,7 +18,10 @@ from numpy cimport (
 
 import_array()
 
-from pandas._libs.util cimport is_nan
+cdef extern from "pandas/type.h":
+    bint is_nan(object obj)
+    bint is_datetime64_object(object obj)
+    bint is_integer_object(object obj)
 
 
 @cython.boundscheck(False)

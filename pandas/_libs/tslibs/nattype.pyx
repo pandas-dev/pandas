@@ -22,6 +22,16 @@ from numpy cimport int64_t
 cnp.import_array()
 
 cimport pandas._libs.tslibs.util as util
+
+
+cdef extern from "pandas/type.h":
+    bint is_timedelta64_object(object obj)
+    bint is_integer_object(object obj)
+    bint is_float_object(object obj)
+    bint is_datetime64_object(object obj)
+    bint is_array(object obj)
+    bint is_nan(object obj)
+
 from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_value,
     get_timedelta64_value,
@@ -68,9 +78,9 @@ def _make_error_func(func_name: str, cls):
 
 
 cdef _nat_divide_op(self, other):
-    if PyDelta_Check(other) or util.is_timedelta64_object(other) or other is c_NaT:
+    if PyDelta_Check(other) or is_timedelta64_object(other) or other is c_NaT:
         return np.nan
-    if util.is_integer_object(other) or util.is_float_object(other):
+    if is_integer_object(other) or is_float_object(other):
         return c_NaT
     return NotImplemented
 
@@ -96,15 +106,15 @@ cdef class _NaT(datetime):
     __array_priority__ = 100
 
     def __richcmp__(_NaT self, object other, int op):
-        if util.is_datetime64_object(other) or PyDateTime_Check(other):
+        if is_datetime64_object(other) or PyDateTime_Check(other):
             # We treat NaT as datetime-like for this comparison
             return op == Py_NE
 
-        elif util.is_timedelta64_object(other) or PyDelta_Check(other):
+        elif is_timedelta64_object(other) or PyDelta_Check(other):
             # We treat NaT as timedelta-like for this comparison
             return op == Py_NE
 
-        elif util.is_array(other):
+        elif is_array(other):
             if other.dtype.kind in "mM":
                 result = np.empty(other.shape, dtype=np.bool_)
                 result.fill(op == Py_NE)
@@ -138,14 +148,14 @@ cdef class _NaT(datetime):
             return c_NaT
         elif PyDelta_Check(other):
             return c_NaT
-        elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
+        elif is_datetime64_object(other) or is_timedelta64_object(other):
             return c_NaT
 
-        elif util.is_integer_object(other):
+        elif is_integer_object(other):
             # For Period compat
             return c_NaT
 
-        elif util.is_array(other):
+        elif is_array(other):
             if other.dtype.kind in "mM":
                 # If we are adding to datetime64, we treat NaT as timedelta
                 #  Either way, result dtype is datetime64
@@ -176,14 +186,14 @@ cdef class _NaT(datetime):
             return c_NaT
         elif PyDelta_Check(other):
             return c_NaT
-        elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
+        elif is_datetime64_object(other) or is_timedelta64_object(other):
             return c_NaT
 
-        elif util.is_integer_object(other):
+        elif is_integer_object(other):
             # For Period compat
             return c_NaT
 
-        elif util.is_array(other):
+        elif is_array(other):
             if other.dtype.kind == "m":
                 if not is_rsub:
                     # NaT - timedelta64 we treat NaT as datetime64, so result
@@ -216,7 +226,7 @@ cdef class _NaT(datetime):
         return NotImplemented
 
     def __rsub__(self, other):
-        if util.is_array(other):
+        if is_array(other):
             if other.dtype.kind == "m":
                 # timedelta64 - NaT we have to treat NaT as timedelta64
                 #  for this to be meaningful, and the result is timedelta64
@@ -247,7 +257,7 @@ cdef class _NaT(datetime):
         return _nat_divide_op(self, other)
 
     def __mul__(self, other):
-        if util.is_integer_object(other) or util.is_float_object(other):
+        if is_integer_object(other) or is_float_object(other):
             return NaT
         return NotImplemented
 
@@ -377,7 +387,7 @@ class NaTType(_NaT):
         return _nat_rdivide_op(self, other)
 
     def __rmul__(self, other):
-        if util.is_integer_object(other) or util.is_float_object(other):
+        if is_integer_object(other) or is_float_object(other):
             return c_NaT
         return NotImplemented
 
@@ -1220,14 +1230,14 @@ cdef bint checknull_with_nat(object val):
     """
     Utility to check if a value is a nat or not.
     """
-    return val is None or util.is_nan(val) or val is c_NaT
+    return val is None or is_nan(val) or val is c_NaT
 
 
 cdef bint is_dt64nat(object val):
     """
     Is this a np.datetime64 object np.datetime64("NaT").
     """
-    if util.is_datetime64_object(val):
+    if is_datetime64_object(val):
         return get_datetime64_value(val) == NPY_NAT
     return False
 
@@ -1236,6 +1246,6 @@ cdef bint is_td64nat(object val):
     """
     Is this a np.timedelta64 object np.timedelta64("NaT").
     """
-    if util.is_timedelta64_object(val):
+    if is_timedelta64_object(val):
         return get_timedelta64_value(val) == NPY_NAT
     return False

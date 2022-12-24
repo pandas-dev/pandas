@@ -28,8 +28,14 @@ from cpython.datetime cimport (
 
 import_datetime()
 
+cdef extern from "pandas/type.h":
+    bint is_array(object obj)
+    bint is_nan(object obj)
+    bint is_datetime64_object(object obj)
+    bint is_timedelta64_object(object obj)
+    bint is_float_object(object obj)
+    bint is_integer_object(object obj)
 
-cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
@@ -66,13 +72,6 @@ from pandas._libs.tslibs.np_datetime import (
 )
 
 from pandas._libs.tslibs.offsets cimport is_tick_object
-from pandas._libs.tslibs.util cimport (
-    is_array,
-    is_datetime64_object,
-    is_float_object,
-    is_integer_object,
-    is_timedelta64_object,
-)
 
 from pandas._libs.tslibs.fields import (
     RoundTo,
@@ -1129,7 +1128,7 @@ cdef class _Timedelta(timedelta):
         elif other is NaT:
             return op == Py_NE
 
-        elif util.is_array(other):
+        elif is_array(other):
             if other.dtype.kind == "m":
                 return PyObject_RichCompare(self.asm8, other, op)
             elif other.dtype.kind == "O":
@@ -1849,7 +1848,7 @@ class Timedelta(_Timedelta):
 
     def __mul__(self, other):
         if is_integer_object(other) or is_float_object(other):
-            if util.is_nan(other):
+            if is_nan(other):
                 # np.nan * timedelta -> np.timedelta64("NaT"), in this case NaT
                 return NaT
 
@@ -1882,7 +1881,7 @@ class Timedelta(_Timedelta):
 
         elif is_integer_object(other) or is_float_object(other):
             # integers or floats
-            if util.is_nan(other):
+            if is_nan(other):
                 return NaT
             return Timedelta._from_value_and_reso(
                 <int64_t>(self.value / other), self._creso
@@ -1936,7 +1935,7 @@ class Timedelta(_Timedelta):
             return self.value // other.value
 
         elif is_integer_object(other) or is_float_object(other):
-            if util.is_nan(other):
+            if is_nan(other):
                 return NaT
             return type(self)._from_value_and_reso(self.value // other, self._creso)
 

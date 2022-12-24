@@ -92,6 +92,17 @@ cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
 from pandas._libs cimport util
+
+
+cdef extern from "pandas/type.h":
+    bint is_integer_object(object obj)
+    bint is_float_object(object obj)
+    bint is_bool_object(object obj)
+    bint is_datetime64_object(object obj)
+    bint is_timedelta64_object(object obj)
+    bint is_array(object obj)
+
+
 from pandas._libs.util cimport (
     INT64_MAX,
     INT64_MIN,
