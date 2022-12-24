@@ -5254,7 +5254,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         reindexers,
         fill_value=None,
-        copy: bool_t = False,
+        copy: bool_t | None = False,
         allow_dups: bool_t = False,
     ) -> NDFrameT:
         """allow_dups indicates an internal call here"""
@@ -5283,8 +5283,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # If we've made a copy once, no need to make another one
             copy = False
 
-        if copy and new_data is self._mgr:
-            new_data = new_data.copy()
+        if (copy or copy is None) and new_data is self._mgr:
+            new_data = new_data.copy(deep=copy)
 
         return self._constructor(new_data).__finalize__(self)
 
