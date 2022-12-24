@@ -18,7 +18,7 @@ runs:
     - name: Set Arrow version in ${{ inputs.environment-file }} to ${{ inputs.pyarrow-version }}
       run: |
         grep -q '  - pyarrow' ${{ inputs.environment-file }}
-        sed -i"" -e "s/  - pyarrow<10/  - pyarrow=${{ inputs.pyarrow-version }}/" ${{ inputs.environment-file }}
+        sed -i"" -e "s/  - pyarrow/  - pyarrow=${{ inputs.pyarrow-version }}/" ${{ inputs.environment-file }}
         cat ${{ inputs.environment-file }}
       shell: bash
       if: ${{ inputs.pyarrow-version }}
