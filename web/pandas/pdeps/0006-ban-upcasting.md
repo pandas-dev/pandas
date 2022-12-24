@@ -38,7 +38,8 @@ TypeError: Invalid value 'potage' for dtype int64
 ## Motivation and Scope
 
 Currently, pandas is extremely flexible in handling different dtypes.
-However, this can potentially hide bugs, break user expectations, and unnecessarily copy data.
+However, this can potentially hide bugs, break user expectations, and copy data
+in what looks like it should be an inplace operation.
 
 An example of it hiding a bug is:
 ```python
@@ -97,30 +98,34 @@ In [1]: ser = pd.Series([1, 2, 3])
 In [2]: ser[0] = 1.5
 ```
 
+This isn't necessarily a sign of a bug, because the user might just be thinking of their ``Series`` as being
+numeric (without much regard for ``int`` vs ``float``) - ``'int64'`` is just what pandas happened to infer.
+
 Possibly options could be:
-1. just raise;
-2. convert the float value to ``int``, preserve the Series' dtype;
-3. upcast to ``float``, even if upcasting in setitem-like is banned for other conversions.
+1. just raise, forcing users to be explicit;
+2. convert the float value to ``int`` before setting it;
+3. limit "banning upcasting" to when the upcasted dtype is ``object``.
 
 Let us compare with what other libraries do:
 - ``numpy``: option 2
 - ``cudf``: option 2
 - ``polars``: option 2
-- ``R data.frame``: option 3
-- ``pandas`` (nullable dtype): option 1
+- ``R data.frame``: just upcasts (like pandas does now for non-nullable dtypes);
+- ``pandas`` (nullable dtypes): option 1
+- ``datatable``: option 1
 
-If the objective of this PDEP is to prevent bugs, then option 2 is also not desirable:
+Option ``2`` would be a breaking behaviour change in pandas. Further,
+if the objective of this PDEP is to prevent bugs, then this is also not desirable:
 someone might set ``1.5`` and later be surprised to learn that they actually set ``1``.
 
-Option ``3`` would be inconsistent with the nullable dtypes' behaviour, would add complexity
-to the codebase and to tests, and would be confusing to teach.
+Option ``3`` would be inconsistent with the nullable dtypes' behaviour. It would also add
+complexity to the codebase and to tests. It would be hard to teach, as instead of
+being able to teach a simple rule, there would be a rule with exceptions. Finally, it opens
+the door to other exceptions, such as not upcasting to ``'int16'`` when trying to set an
+element of a ``'int8'`` ``Series`` to ``128``.
 
-Option ``1`` is the maximally safe one in terms of protecting users from bugs, and would
-also be consistent with the current behaviour of nullable dtypes. It would also be simple to teach:
-"if you try to set an element of a ``Series`` to a new value, then that value must be compatible
-with the Series' dtype, otherwise it will raise" is easy to understand. If we make an exception for
-``int`` to ``float`` (and presumably also for ``interval[int]``, ``interval[float]``), then the rule
-starts to become confusing.
+Option ``1`` is the maximally safe one in terms of protecting users from bugs, being
+consistent with the current behaviour of nullable dtypes, and in being simple to teach.
 
 ## Usage and Impact
 
@@ -128,7 +133,7 @@ This would make pandas stricter, so there should not be any risk of introducing 
 
 Unfortunately, it would also risk annoy users who might have been intentionally upcasting.
 
-Given that users can get around this as simply as with an ``.astype({'my_column': float})`` call,
+Given that users can get around this as simply as with a ``.astype({'my_column': float})`` call,
 I think it would be more beneficial to the community at large to err on the side of strictness.
 
 ## Timeline
