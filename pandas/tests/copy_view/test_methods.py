@@ -322,10 +322,11 @@ def test_head_tail(method, using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
-def test_assign(using_copy_on_write):
+@pytest.mark.parametrize("method", ["assign", "drop_duplicates"])
+def test_assign_drop_duplicates(using_copy_on_write, method):
     df = DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
-    df2 = df.assign()
+    df2 = getattr(df, method)()
     df2._mgr._verify_integrity()
 
     if using_copy_on_write:

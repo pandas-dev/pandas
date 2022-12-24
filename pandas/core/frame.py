@@ -205,6 +205,7 @@ from pandas.core.internals.construction import (
     to_arrays,
     treat_as_nested,
 )
+from pandas.core.internals.managers import _using_copy_on_write
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
@@ -3718,6 +3719,10 @@ class DataFrame(NDFrame, OpsMixin):
         # check_bool_indexer will throw exception if Series key cannot
         # be reindexed to match DataFrame rows
         key = check_bool_indexer(self.index, key)
+
+        if _using_copy_on_write() and key.all():
+            return self.copy(deep=None)
+
         indexer = key.nonzero()[0]
         return self._take_with_is_copy(indexer, axis=0)
 
@@ -6418,7 +6423,7 @@ class DataFrame(NDFrame, OpsMixin):
         4  Indomie  pack     5.0
         """
         if self.empty:
-            return self.copy()
+            return self.copy(deep=None)
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
