@@ -364,7 +364,6 @@ def test_indexing_over_size_cutoff_period_index(monkeypatch):
 
 def test_indexing_unordered():
     # GH 2437
-    pd.options.mode.copy_on_write = True
     rng = date_range(start="2011-01-01", end="2011-01-15")
     ts = Series(np.random.rand(len(rng)), index=rng)
     ts2 = pd.concat([ts[0:4], ts[-4:], ts[4:-4]])
