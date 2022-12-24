@@ -1207,10 +1207,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axes, kwargs = self._construct_axes_from_arguments(
             (), kwargs, sentinel=lib.no_default
         )
-        using_copy_on_write = config.get_option("mode.copy_on_write")
 
         copy: bool_t | None
-        if using_copy_on_write and "copy" not in kwargs:
+        if "copy" not in kwargs:
             copy = None
         else:
             copy = kwargs.pop("copy", True)
