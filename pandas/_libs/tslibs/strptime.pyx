@@ -401,15 +401,9 @@ def array_strptime(
 
             result_timezone[i] = tz
 
-        except OutOfBoundsDatetime as ex:
-            ex.args = (f"{str(ex)} present at position {i}",)
-            if is_coerce:
-                iresult[i] = NPY_NAT
-                continue
-            elif is_raise:
-                raise
-            return values, []
-        except ValueError:
+        except (ValueError, OutOfBoundsDatetime) as ex:
+            if isinstance(ex, OutOfBoundsDatetime):
+                ex.args = (f"{str(ex)} present at position {i}",)
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
