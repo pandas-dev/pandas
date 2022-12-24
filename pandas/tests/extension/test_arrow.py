@@ -1471,6 +1471,14 @@ def test_astype_from_non_pyarrow(data):
     tm.assert_extension_array_equal(result, data)
 
 
+def test_astype_float_from_non_pyarrow_str():
+    # GH#####
+    ser = pd.Series(["1.0"])
+    result = ser.astype("float64[pyarrow]")
+    expected = pd.Series([1.0], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 def test_to_numpy_with_defaults(data):
     # GH49973
     result = data.to_numpy()
