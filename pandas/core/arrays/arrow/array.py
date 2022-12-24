@@ -208,9 +208,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         pa_dtype = to_pyarrow_type(dtype)
         if isinstance(scalars, cls):
             scalars = scalars._data
-        elif isinstance(scalars, (pa.Array, pa.ChunkedArray)):
-            pass
-        else:
+        elif not isinstance(scalars, (pa.Array, pa.ChunkedArray)):
             try:
                 scalars = pa.array(scalars, type=pa_dtype, from_pandas=True)
             except pa.ArrowInvalid:
