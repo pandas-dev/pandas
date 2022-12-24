@@ -16,6 +16,7 @@ from pandas._libs.tslibs import (
     astype_overflowsafe,
 )
 from pandas.compat import PY39
+from pandas.errors import SupplyTzDetypeError
 
 import pandas as pd
 from pandas import (
@@ -713,11 +714,7 @@ class TestDatetimeIndex:
             ["2013-01-01", "2013-01-02"], dtype="datetime64[ns, US/Eastern]"
         )
 
-        msg = (
-            "cannot supply both a tz and a timezone-naive dtype "
-            r"\(i\.e\. datetime64\[ns\]\)"
-        )
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(SupplyTzDetypeError, match=None):
             DatetimeIndex(idx, dtype="datetime64[ns]")
 
         # this is effectively trying to convert tz's

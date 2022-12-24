@@ -563,6 +563,15 @@ class NotObjectError(ValueError):
     """
 
 
+class SupplyTzDetypeError(ValueError):
+    """
+    Exception is raised by _validate_tz_from_dtype.
+
+    Instead of ValueError("cannot supply both a tz and a timezone-naive dtype
+                            (i.e. datetime64[ns])").
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
@@ -602,6 +611,7 @@ __all__ = [
     "SettingWithCopyError",
     "SettingWithCopyWarning",
     "SpecificationError",
+    "SupplyTzDetypeError",
     "UndefinedVariableError",
     "UnsortedIndexError",
     "UnsupportedFunctionCall",

@@ -41,6 +41,7 @@ from pandas._typing import (
 from pandas.errors import (
     IntCastingNaNError,
     LossySetitemError,
+    SupplyTzDetypeError,
 )
 
 from pandas.core.dtypes.common import (
@@ -1177,14 +1178,15 @@ def maybe_cast_to_datetime(
     else:
         try:
             dta = DatetimeArray._from_sequence(value, dtype=dtype)
-        except ValueError as err:
-            # We can give a Series-specific exception message.
-            if "cannot supply both a tz and a timezone-naive dtype" in str(err):
-                raise ValueError(
-                    "Cannot convert timezone-aware data to "
-                    "timezone-naive dtype. Use "
-                    "pd.Series(values).dt.tz_localize(None) instead."
-                ) from err
+
+        except SupplyTzDetypeError as err:
+            raise ValueError(
+                "Cannot convert timezone-aware data to "
+                "timezone-naive dtype. Use "
+                "pd.Series(values).dt.tz_localize(None) instead."
+            ) from err
+
+        except ValueError:
             raise
 
         return dta

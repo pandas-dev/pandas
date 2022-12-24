@@ -62,6 +62,7 @@ Exceptions and warnings
    errors.SettingWithCopyError
    errors.SettingWithCopyWarning
    errors.SpecificationError
+   errors.SupplyTzDetypeError
    errors.UndefinedVariableError
    errors.UnsortedIndexError
    errors.UnsupportedFunctionCall
