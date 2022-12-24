@@ -206,17 +206,17 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         Construct a new ExtensionArray from a sequence of scalars.
         """
         pa_dtype = to_pyarrow_type(dtype)
-        is_cls = isinstance(scalars, cls)
-        if is_cls or isinstance(scalars, (pa.Array, pa.ChunkedArray)):
-            if is_cls:
-                scalars = scalars._data
-            if pa_dtype:
-                scalars = scalars.cast(pa_dtype)
-            return cls(scalars)
-        else:
-            return cls(
-                pa.chunked_array(pa.array(scalars, type=pa_dtype, from_pandas=True))
-            )
+        if isinstance(scalars, cls):
+            scalars = scalars._data
+        elif not isinstance(scalars, (pa.Array, pa.ChunkedArray)):
+            try:
+                scalars = pa.array(scalars, type=pa_dtype, from_pandas=True)
+            except pa.ArrowInvalid:
+                # GH50430: let pyarrow infer type, then cast
+                scalars = pa.array(scalars, from_pandas=True)
+        if pa_dtype:
+            scalars = scalars.cast(pa_dtype)
+        return cls(scalars)
 
     @classmethod
     def _from_sequence_of_strings(
