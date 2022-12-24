@@ -5562,7 +5562,7 @@ Keep all original rows and also all original values
                 return result
         else:
             if not inplace:
-                return self.copy()
+                return self.copy(deep=None)
         return None
 
     # ----------------------------------------------------------------------

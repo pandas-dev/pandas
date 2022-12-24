@@ -309,6 +309,23 @@ def test_dropna(using_copy_on_write, axis, val):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.parametrize("val", [5, 5.5])
+def test_dropna_series(using_copy_on_write, val):
+    ser = Series([1, val, 4])
+    ser_orig = ser.copy()
+    ser2 = ser.dropna()
+
+    if using_copy_on_write:
+        assert np.shares_memory(ser2.values, ser.values)
+    else:
+        assert not np.shares_memory(ser2.values, ser.values)
+
+    ser2.iloc[0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(ser2.values, ser.values)
+    tm.assert_series_equal(ser, ser_orig)
+
+
 @pytest.mark.parametrize(
     "method",
     [
