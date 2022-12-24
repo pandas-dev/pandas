@@ -4218,7 +4218,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         other,
         method: Literal["backfill", "bfill", "pad", "ffill", "nearest"] | None = None,
-        copy: bool_t = True,
+        copy: bool_t | None = None,
         limit=None,
         tolerance=None,
     ) -> NDFrameT:
