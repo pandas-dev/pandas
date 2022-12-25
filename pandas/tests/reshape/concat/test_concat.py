@@ -14,6 +14,7 @@ import pytest
 
 from pandas.errors import (
     InvalidIndexError,
+    NoObjectConcatenateError,
     PerformanceWarning,
 )
 import pandas.util._test_decorators as td
@@ -364,7 +365,7 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected[:10])
 
     def test_concat_no_items_raises(self):
-        with pytest.raises(ValueError, match="No objects to concatenate"):
+        with pytest.raises(NoObjectConcatenateError, match="No objects to concatenate"):
             concat([])
 
     def test_concat_exclude_none(self):

@@ -46,6 +46,7 @@ Exceptions and warnings
    errors.MergeError
    errors.NATypeError
    errors.NoBufferPresent
+   errors.NoObjectConcatenateError
    errors.NotObjectError
    errors.NullFrequencyError
    errors.NumbaUtilError

@@ -44,7 +44,10 @@ from pandas._typing import (
     SingleManager,
     TakeIndexer,
 )
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    NoObjectConcatenateError,
+    SpecificationError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -1178,12 +1181,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 gba = GroupByApply(self, [func], args=(), kwargs={})
                 try:
                     result = gba.agg()
-
-                except ValueError as err:
-                    if "No objects to concatenate" not in str(err):
-                        raise
+                except NoObjectConcatenateError:
                     result = self._aggregate_frame(func)
-
+                except ValueError:
+                    raise
                 else:
                     sobj = self._selected_obj
 

@@ -580,6 +580,14 @@ class NATypeError(TypeError):
     """
 
 
+class NoObjectConcatenateError(ValueError):
+    """
+    Exception is raised by _Concatenator.__init__().
+
+    Instead of ValueError("No objects to concatenate").
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
@@ -603,6 +611,7 @@ __all__ = [
     "MergeError",
     "NATypeError",
     "NoBufferPresent",
+    "NoObjectConcatenateError",
     "NotObjectError",
     "NullFrequencyError",
     "NumbaUtilError",

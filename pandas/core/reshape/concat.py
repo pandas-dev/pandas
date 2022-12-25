@@ -22,6 +22,7 @@ from pandas._typing import (
     AxisInt,
     HashableT,
 )
+from pandas.errors import NoObjectConcatenateError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
@@ -420,7 +421,7 @@ class _Concatenator:
             objs = list(objs)
 
         if len(objs) == 0:
-            raise ValueError("No objects to concatenate")
+            raise NoObjectConcatenateError("No objects to concatenate")
 
         if keys is None:
             objs = list(com.not_none(*objs))
