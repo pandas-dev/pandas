@@ -21,6 +21,7 @@ from pandas._typing import (
     Manager,
     npt,
 )
+from pandas.errors import DiffArrayLengthError
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -623,7 +624,7 @@ def _extract_index(data) -> Index:
     if have_raw_arrays:
         lengths = list(set(raw_lengths))
         if len(lengths) > 1:
-            raise ValueError("All arrays must be of the same length")
+            raise DiffArrayLengthError("All arrays must be of the same length")
 
         if have_dicts:
             raise ValueError(

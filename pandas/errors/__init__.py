@@ -590,11 +590,18 @@ class NoObjectConcatenateError(ValueError):
 
 class DotMismatchShapeError(ValueError):
     """
-        Exception is raised by dot().
+    Exception is raised by dot().
 
-        Instead of ValueError(f"Dot product shape mismatch,
-                                {lvals.shape} vs {rvals.shape}")
-    .
+    Instead of ValueError(f"Dot product shape mismatch,
+                            {lvals.shape} vs {rvals.shape}").
+    """
+
+
+class DiffArrayLengthError(ValueError):
+    """
+    Exception is raised by _extract_index().
+
+    Instead of ValueError("All arrays must be of the same length").
     """
 
 
@@ -607,6 +614,7 @@ __all__ = [
     "CSSWarning",
     "DatabaseError",
     "DataError",
+    "DiffArrayLengthError",
     "DotMismatchShapeError",
     "DtypeWarning",
     "DuplicateLabelError",

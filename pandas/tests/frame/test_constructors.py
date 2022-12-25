@@ -18,7 +18,10 @@ from numpy.ma import mrecords
 import pytest
 import pytz
 
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    DiffArrayLengthError,
+    IntCastingNaNError,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -1482,7 +1485,9 @@ class TestDataFrameConstructors:
 
     def test_constructor_ragged(self):
         data = {"A": np.random.randn(10), "B": np.random.randn(8)}
-        with pytest.raises(ValueError, match="All arrays must be of the same length"):
+        with pytest.raises(
+            DiffArrayLengthError, match="All arrays must be of the same length"
+        ):
             DataFrame(data)
 
     def test_constructor_scalar(self):

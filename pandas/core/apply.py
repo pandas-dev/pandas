@@ -33,7 +33,10 @@ from pandas._typing import (
     NDFrameT,
     npt,
 )
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    DiffArrayLengthError,
+    SpecificationError,
+)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import is_nested_object
@@ -864,15 +867,14 @@ class FrameRowApply(FrameApply):
 
         try:
             result = self.obj._constructor(data=results)
-        except ValueError as err:
-            if "All arrays must be of the same length" in str(err):
-                # e.g. result = [[2, 3], [1.5], ['foo', 'bar']]
-                #  see test_agg_listlike_result GH#29587
-                res = self.obj._constructor_sliced(results)
-                res.index = res_index
-                return res
-            else:
-                raise
+        except DiffArrayLengthError:
+            # e.g. result = [[2, 3], [1.5], ['foo', 'bar']]
+            #  see test_agg_listlike_result GH#29587
+            res = self.obj._constructor_sliced(results)
+            res.index = res_index
+            return res
+        except ValueError:
+            raise
 
         if not isinstance(results[0], ABCSeries):
             if len(result.index) == len(self.res_columns):
