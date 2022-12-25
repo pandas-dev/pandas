@@ -53,7 +53,7 @@ cdef extern from "src/datetime/np_datetime_strings.h":
                                 npy_datetimestruct *out,
                                 NPY_DATETIMEUNIT *out_bestunit,
                                 int *out_local, int *out_tzoffset,
-                                const char *format, int format_len, int exact)
+                                const char *format, int format_len, Exact exact)
 
 
 # ----------------------------------------------------------------------
@@ -279,7 +279,7 @@ cdef int string_to_dts(
     int* out_tzoffset,
     bint want_exc,
     format: str | None=None,
-    bint exact=True,
+    Exact exact=EXACT_MATCH,
 ) except? -1:
     cdef:
         Py_ssize_t length
@@ -291,7 +291,7 @@ cdef int string_to_dts(
     if format is None:
         format_buf = b""
         format_length = 0
-        exact = False
+        exact = NO_MATCH
     else:
         format_buf = get_c_string_buf_and_size(format, &format_length)
     return parse_iso_8601_datetime(buf, length, want_exc,

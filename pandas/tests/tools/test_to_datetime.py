@@ -354,6 +354,37 @@ class TestTimeConversionFormats:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "format, expected",
+        [
+            ("%Y-%m-%d", Timestamp(2000, 1, 3)),
+            ("%Y-%d-%m", Timestamp(2000, 3, 1)),
+            ("%Y-%m-%d %H", Timestamp(2000, 1, 3, 12)),
+            ("%Y-%d-%m %H", Timestamp(2000, 3, 1, 12)),
+            ("%Y-%m-%d %H:%M", Timestamp(2000, 1, 3, 12, 34)),
+            ("%Y-%d-%m %H:%M", Timestamp(2000, 3, 1, 12, 34)),
+            ("%Y-%m-%d %H:%M:%S", Timestamp(2000, 1, 3, 12, 34, 56)),
+            ("%Y-%d-%m %H:%M:%S", Timestamp(2000, 3, 1, 12, 34, 56)),
+            ("%Y-%m-%d %H:%M:%S.%f", Timestamp(2000, 1, 3, 12, 34, 56, 123456)),
+            ("%Y-%d-%m %H:%M:%S.%f", Timestamp(2000, 3, 1, 12, 34, 56, 123456)),
+            (
+                "%Y-%m-%d %H:%M:%S.%f%z",
+                Timestamp(2000, 1, 3, 12, 34, 56, 123456, tz="UTC+01:00"),
+            ),
+            (
+                "%Y-%d-%m %H:%M:%S.%f%z",
+                Timestamp(2000, 3, 1, 12, 34, 56, 123456, tz="UTC+01:00"),
+            ),
+        ],
+    )
+    def test_non_exact_doesnt_parse_whole_string(self, cache, format, expected):
+        # https://github.com/pandas-dev/pandas/issues/50412
+        # the formats alternate between ISO8601 and non-ISO8601 to check both paths
+        result = to_datetime(
+            "2000-01-03 12:34:56.123456+01:00", format=format, exact=False
+        )
+        assert result == expected
+
+    @pytest.mark.parametrize(
         "arg",
         [
             "2012-01-01 09:00:00.000000001",

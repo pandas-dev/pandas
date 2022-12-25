@@ -26,6 +26,22 @@ This file implements string parsing and creation for NumPy datetime.
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif  // NPY_NO_DEPRECATED_API
 
+/* 'exact' can be one of three values:
+ *      * PARTIAL_MATCH : Only require a partial match with 'format'.
+ *           For example, if the string is '2020-01-01 05:00:00' and
+ *           'format' is '%Y-%m-%d', then parse '2020-01-01';
+ *      * EXACT_MATCH : require an exact match with 'format'. If the
+ *           string is '2020-01-01', then the only format which will
+ *           be able to parse it without error is '%Y-%m-%d';
+ *      * NO_MATCH: don't require any match - parse without comparing
+ *                  with 'format'.
+ */
+enum Exact {
+    PARTIAL_MATCH,
+    EXACT_MATCH,
+    NO_MATCH
+};
+
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
  *
@@ -61,7 +77,7 @@ parse_iso_8601_datetime(const char *str, int len, int want_exc,
                         int *out_tzoffset,
                         const char* format,
                         int format_len,
-                        int exact);
+                        enum Exact exact);
 
 /*
  * Provides a string length to use for converting datetime
