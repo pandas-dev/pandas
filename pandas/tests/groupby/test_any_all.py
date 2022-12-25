@@ -3,6 +3,8 @@ import builtins
 import numpy as np
 import pytest
 
+from pandas.errors import NATypeError
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -175,7 +177,7 @@ def test_object_type_missing_vals(bool_agg_func, data, expected_res, frame_or_se
 def test_object_NA_raises_with_skipna_false(bool_agg_func):
     # GH#37501
     ser = Series([pd.NA], dtype=object)
-    with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):
+    with pytest.raises(NATypeError, match="boolean value of NA is ambiguous"):
         ser.groupby([1]).agg(bool_agg_func, skipna=False)
 
 

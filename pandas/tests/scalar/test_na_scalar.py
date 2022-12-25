@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.missing import NA
+from pandas.errors import NATypeError
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -36,10 +37,10 @@ def test_format():
 def test_truthiness():
     msg = "boolean value of NA is ambiguous"
 
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(NATypeError, match=msg):
         bool(NA)
 
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(NATypeError, match=msg):
         not NA
 
 

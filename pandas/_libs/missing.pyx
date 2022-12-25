@@ -4,6 +4,7 @@ from sys import maxsize
 
 cimport cython
 from cython cimport Py_ssize_t
+
 import numpy as np
 
 cimport numpy as cnp
@@ -30,6 +31,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
+from pandas.errors import NATypeError
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -410,7 +412,7 @@ class NAType(C_NAType):
             return self.__repr__()
 
     def __bool__(self):
-        raise TypeError("boolean value of NA is ambiguous")
+        raise NATypeError("boolean value of NA is ambiguous")
 
     def __hash__(self):
         # GH 30013: Ensure hash is large enough to avoid hash collisions with integers

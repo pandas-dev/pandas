@@ -20,6 +20,7 @@ from pandas._libs.tslibs import (
     NaT,
     iNaT,
 )
+from pandas.errors import NATypeError
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -580,9 +581,9 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
             try:
                 if np.any(np.asarray(left_value != right_value)):
                     return False
-            except TypeError as err:
-                if "boolean value of NA is ambiguous" in str(err):
-                    return False
+            except NATypeError:
+                return False
+            except TypeError:
                 raise
     return True
 

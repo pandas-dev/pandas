@@ -44,6 +44,7 @@ Exceptions and warnings
    errors.IntCastingNaNError
    errors.LossySetitemError
    errors.MergeError
+   errors.NATypeError
    errors.NoBufferPresent
    errors.NotObjectError
    errors.NullFrequencyError

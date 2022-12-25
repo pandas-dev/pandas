@@ -572,6 +572,14 @@ class SupplyTzDetypeError(ValueError):
     """
 
 
+class NATypeError(TypeError):
+    """
+    Exception is raised by NAType.__bool__().
+
+    Instead of TypeError("boolean value of NA is ambiguous").
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
@@ -593,6 +601,7 @@ __all__ = [
     "IndexingError",
     "LossySetitemError",
     "MergeError",
+    "NATypeError",
     "NoBufferPresent",
     "NotObjectError",
     "NullFrequencyError",
