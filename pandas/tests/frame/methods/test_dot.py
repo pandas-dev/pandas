@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import DotMismatchShapeError
+
 from pandas import (
     DataFrame,
     Series,
@@ -70,8 +72,8 @@ class DotSharedTests:
 
     def test_dot_shape_mismatch(self, obj):
         msg = "Dot product shape mismatch"
-        # exception raised is of type Exception
-        with pytest.raises(Exception, match=msg):
+        # exception raised is of DotMismatchShapeError
+        with pytest.raises(DotMismatchShapeError, match=msg):
             obj.dot(obj.values[:3])
 
     def test_dot_misaligned(self, obj, other):

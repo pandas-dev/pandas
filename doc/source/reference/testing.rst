@@ -32,6 +32,7 @@ Exceptions and warnings
    errors.CSSWarning
    errors.DatabaseError
    errors.DataError
+   errors.DotMismatchShapeError
    errors.DtypeWarning
    errors.DuplicateLabelError
    errors.EmptyDataError

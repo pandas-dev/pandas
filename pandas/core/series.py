@@ -62,7 +62,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    DotMismatchShapeError,
+    InvalidIndexError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -2881,7 +2884,7 @@ Name: Max Speed, dtype: float64
             lvals = self.values
             rvals = np.asarray(other)
             if lvals.shape[0] != rvals.shape[0]:
-                raise Exception(
+                raise DotMismatchShapeError(
                     f"Dot product shape mismatch, {lvals.shape} vs {rvals.shape}"
                 )
 

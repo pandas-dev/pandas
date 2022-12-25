@@ -3,6 +3,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.errors import DotMismatchShapeError
+
 from pandas import (
     DataFrame,
     Series,
@@ -70,8 +72,8 @@ class TestMatmul:
         tm.assert_series_equal(result, expected)
 
         msg = r"Dot product shape mismatch, \(4,\) vs \(3,\)"
-        # exception raised is of type Exception
-        with pytest.raises(Exception, match=msg):
+        # exception raised is of DotMismatchShapeError
+        with pytest.raises(DotMismatchShapeError, match=msg):
             a.dot(a.values[:3])
         msg = "matrices are not aligned"
         with pytest.raises(ValueError, match=msg):

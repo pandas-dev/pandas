@@ -588,6 +588,16 @@ class NoObjectConcatenateError(ValueError):
     """
 
 
+class DotMismatchShapeError(ValueError):
+    """
+        Exception is raised by dot().
+
+        Instead of ValueError(f"Dot product shape mismatch,
+                                {lvals.shape} vs {rvals.shape}")
+    .
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
@@ -597,6 +607,7 @@ __all__ = [
     "CSSWarning",
     "DatabaseError",
     "DataError",
+    "DotMismatchShapeError",
     "DtypeWarning",
     "DuplicateLabelError",
     "EmptyDataError",

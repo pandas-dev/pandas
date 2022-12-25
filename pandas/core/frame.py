@@ -92,7 +92,10 @@ from pandas.compat.numpy import (
     function as nv,
     np_percentile_argname,
 )
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    DotMismatchShapeError,
+    InvalidIndexError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -1570,7 +1573,7 @@ class DataFrame(NDFrame, OpsMixin):
             lvals = self.values
             rvals = np.asarray(other)
             if lvals.shape[1] != rvals.shape[0]:
-                raise ValueError(
+                raise DotMismatchShapeError(
                     f"Dot product shape mismatch, {lvals.shape} vs {rvals.shape}"
                 )
 
@@ -1609,12 +1612,12 @@ class DataFrame(NDFrame, OpsMixin):
         """
         try:
             return self.T.dot(np.transpose(other)).T
-        except ValueError as err:
-            if "shape mismatch" not in str(err):
-                raise
+        except DotMismatchShapeError as err:
             # GH#21581 give exception message for original shapes
             msg = f"shapes {np.shape(other)} and {self.shape} not aligned"
             raise ValueError(msg) from err
+        except ValueError:
+            raise
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)
