@@ -27,6 +27,10 @@ from pandas._typing import (
     DtypeObj,
     T,
 )
+from pandas.errors import (
+    DataOneDimensionalError,
+    IndexSpecifiedError,
+)
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -540,7 +544,9 @@ def sanitize_array(
 
     if not is_list_like(data):
         if index is None:
-            raise ValueError("index must be specified when data is not list-like")
+            raise IndexSpecifiedError(
+                "index must be specified when data is not list-like"
+            )
         data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
         return data
 
@@ -666,7 +672,7 @@ def _sanitize_ndim(
         if isinstance(data, np.ndarray):
             if allow_2d:
                 return result
-            raise ValueError("Data must be 1-dimensional")
+            raise DataOneDimensionalError("Data must be 1-dimensional")
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
 

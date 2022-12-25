@@ -8,7 +8,10 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.errors import IndexingError
+from pandas.errors import (
+    DataOneDimensionalError,
+    IndexingError,
+)
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -110,7 +113,12 @@ class TestFancy:
 
         msg = "|".join(msgs)
 
-        potential_errors = (IndexError, ValueError, NotImplementedError)
+        potential_errors = (
+            IndexError,
+            ValueError,
+            NotImplementedError,
+            DataOneDimensionalError,
+        )
         with pytest.raises(potential_errors, match=msg):
             idxr[nd3]
 
@@ -124,7 +132,7 @@ class TestFancy:
             err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
         else:
-            err = ValueError
+            err = (ValueError, DataOneDimensionalError)
             msg = "|".join(
                 [
                     r"Buffer has wrong number of dimensions \(expected 1, got 3\)",

@@ -605,6 +605,22 @@ class DiffArrayLengthError(ValueError):
     """
 
 
+class IndexSpecifiedError(ValueError):
+    """
+    Exception is raised by sanitize_array().
+
+    Instead of ValueError("Index must be specified when using an array as input").
+    """
+
+
+class DataOneDimensionalError(ValueError):
+    """
+    Exception is raised by _sanitize_ndim().
+
+    Instead of ValueError("Data must be 1-dimensional").
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
@@ -614,12 +630,14 @@ __all__ = [
     "CSSWarning",
     "DatabaseError",
     "DataError",
+    "DataOneDimensionalError",
     "DiffArrayLengthError",
     "DotMismatchShapeError",
     "DtypeWarning",
     "DuplicateLabelError",
     "EmptyDataError",
     "IncompatibilityWarning",
+    "IndexSpecifiedError",
     "IntCastingNaNError",
     "InvalidColumnName",
     "InvalidComparison",

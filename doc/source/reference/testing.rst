@@ -32,6 +32,7 @@ Exceptions and warnings
    errors.CSSWarning
    errors.DatabaseError
    errors.DataError
+   errors.DataOneDimensionalError
    errors.DiffArrayLengthError
    errors.DotMismatchShapeError
    errors.DtypeWarning
@@ -39,6 +40,7 @@ Exceptions and warnings
    errors.EmptyDataError
    errors.IncompatibilityWarning
    errors.IndexingError
+   errors.IndexSpecifiedError
    errors.InvalidColumnName
    errors.InvalidComparison
    errors.InvalidIndexError

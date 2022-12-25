@@ -60,7 +60,9 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
+    DataOneDimensionalError,
     DuplicateLabelError,
+    IndexSpecifiedError,
     InvalidIndexError,
 )
 from pandas.util._decorators import (
@@ -500,11 +502,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         try:
             arr = sanitize_array(data, None, dtype=dtype, copy=copy)
-        except ValueError as err:
-            if "index must be specified when data is not list-like" in str(err):
-                raise cls._raise_scalar_data_error(data) from err
-            if "Data must be 1-dimensional" in str(err):
-                raise ValueError("Index data must be 1-dimensional") from err
+        except IndexSpecifiedError as err:
+            raise cls._raise_scalar_data_error(data) from err
+        except DataOneDimensionalError as err:
+            raise ValueError("Index data must be 1-dimensional") from err
+        except ValueError:
             raise
         arr = ensure_wrapped_if_datetimelike(arr)
 

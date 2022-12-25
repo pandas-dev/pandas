@@ -15,7 +15,10 @@ from pandas._libs import (
     lib,
 )
 from pandas.compat import is_numpy_dev
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    DataOneDimensionalError,
+    IntCastingNaNError,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -172,7 +175,7 @@ class TestSeriesConstructors:
         assert not Series().index._is_all_dates
 
         # exception raised is of type ValueError GH35744
-        with pytest.raises(ValueError, match="Data must be 1-dimensional"):
+        with pytest.raises(DataOneDimensionalError, match="Data must be 1-dimensional"):
             Series(np.random.randn(3, 3), index=np.arange(3))
 
         mixed.name = "Series"
