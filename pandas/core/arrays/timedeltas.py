@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+import operator
 from typing import (
     TYPE_CHECKING,
     Iterator,
@@ -63,6 +64,7 @@ from pandas.core import nanops
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
+from pandas.core.ops import roperator
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
@@ -489,10 +491,11 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     __rmul__ = __mul__
 
-    @unpack_zerodim_and_defer("__truediv__")
-    def __truediv__(self, other):
-        # timedelta / X is well-defined for timedelta-like or numeric X
-
+    def _scalar_divlike_op(self, other, op):
+        """
+        Shared logic for __truediv__, __rtruediv__, __floordiv__, __rfloordiv__
+        with scalar 'other'.
+        """
         if isinstance(other, self._recognized_scalars):
             other = Timedelta(other)
             # mypy assumes that __new__ returns an instance of the class
@@ -504,28 +507,72 @@ class TimedeltaArray(dtl.TimelikeOps):
                 return result
 
             # otherwise, dispatch to Timedelta implementation
-            return self._ndarray / other
+            return op(self._ndarray, other)
 
-        elif lib.is_scalar(other):
-            # assume it is numeric
-            result = self._ndarray / other
+        else:
+            # caller is responsible for checking lib.is_scalar(other)
+            # assume other is numeric, otherwise numpy will raise
+
+            if op in [roperator.rtruediv, roperator.rfloordiv]:
+                raise TypeError(
+                    f"Cannot divide {type(other).__name__} by {type(self).__name__}"
+                )
+
+            result = op(self._ndarray, other)
             freq = None
+
             if self.freq is not None:
-                # Tick division is not implemented, so operate on Timedelta
-                freq = self.freq.delta / other
-                freq = to_offset(freq)
+                # Note: freq gets division, not floor-division, even if op
+                #  is floordiv.
+                freq = self.freq / other
+
+                # TODO: 2022-12-24 test_ufunc_coercions, test_tdi_ops_attributes
+                #  get here for truediv, no tests for floordiv
+
+                if op is operator.floordiv:
+                    if freq.nanos == 0 and self.freq.nanos != 0:
+                        # e.g. if self.freq is Nano(1) then dividing by 2
+                        #  rounds down to zero
+                        # TODO: 2022-12-24 should implement the same check
+                        #  for truediv case
+                        freq = None
+
             return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 
+    def _cast_divlike_op(self, other):
         if not hasattr(other, "dtype"):
             # e.g. list, tuple
             other = np.array(other)
 
         if len(other) != len(self):
             raise ValueError("Cannot divide vectors with unequal lengths")
+        return other
 
+    def _vector_divlike_op(self, other, op) -> np.ndarray:
+        """
+        Shared logic for __truediv__, __floordiv__, and their reversed versions
+        with timedelta64-dtype ndarray other.
+        """
+        # Let numpy handle it
+        result = op(self._ndarray, np.asarray(other))
+
+        if op in [operator.floordiv, roperator.rfloordiv]:
+            mask = self.isna() | isna(other)
+            if mask.any():
+                result = result.astype(np.float64)
+                np.putmask(result, mask, np.nan)
+        return result
+
+    @unpack_zerodim_and_defer("__truediv__")
+    def __truediv__(self, other):
+        # timedelta / X is well-defined for timedelta-like or numeric X
+        op = operator.truediv
+        if is_scalar(other):
+            return self._scalar_divlike_op(other, op)
+
+        other = self._cast_divlike_op(other)
         if is_timedelta64_dtype(other.dtype):
-            # let numpy handle it
-            return self._ndarray / other
+            return self._vector_divlike_op(other, op)
 
         elif is_object_dtype(other.dtype):
             # We operate on raveled arrays to avoid problems in inference
@@ -562,34 +609,13 @@ class TimedeltaArray(dtl.TimelikeOps):
     @unpack_zerodim_and_defer("__rtruediv__")
     def __rtruediv__(self, other):
         # X / timedelta is defined only for timedelta-like X
-        if isinstance(other, self._recognized_scalars):
-            other = Timedelta(other)
-            # mypy assumes that __new__ returns an instance of the class
-            # github.com/python/mypy/issues/1020
-            if cast("Timedelta | NaTType", other) is NaT:
-                # specifically timedelta64-NaT
-                result = np.empty(self.shape, dtype=np.float64)
-                result.fill(np.nan)
-                return result
+        op = roperator.rtruediv
+        if is_scalar(other):
+            return self._scalar_divlike_op(other, op)
 
-            # otherwise, dispatch to Timedelta implementation
-            return other / self._ndarray
-
-        elif lib.is_scalar(other):
-            raise TypeError(
-                f"Cannot divide {type(other).__name__} by {type(self).__name__}"
-            )
-
-        if not hasattr(other, "dtype"):
-            # e.g. list, tuple
-            other = np.array(other)
-
-        if len(other) != len(self):
-            raise ValueError("Cannot divide vectors with unequal lengths")
-
+        other = self._cast_divlike_op(other)
         if is_timedelta64_dtype(other.dtype):
-            # let numpy handle it
-            return other / self._ndarray
+            return self._vector_divlike_op(other, op)
 
         elif is_object_dtype(other.dtype):
             # Note: unlike in __truediv__, we do not _need_ to do type
@@ -605,51 +631,13 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
-
+        op = operator.floordiv
         if is_scalar(other):
-            if isinstance(other, self._recognized_scalars):
-                other = Timedelta(other)
-                # mypy assumes that __new__ returns an instance of the class
-                # github.com/python/mypy/issues/1020
-                if cast("Timedelta | NaTType", other) is NaT:
-                    # treat this specifically as timedelta-NaT
-                    result = np.empty(self.shape, dtype=np.float64)
-                    result.fill(np.nan)
-                    return result
+            return self._scalar_divlike_op(other, op)
 
-                # dispatch to Timedelta implementation
-                return other.__rfloordiv__(self._ndarray)
-
-            # at this point we should only have numeric scalars; anything
-            #  else will raise
-            result = self._ndarray // other
-            freq = None
-            if self.freq is not None:
-                # Note: freq gets division, not floor-division
-                freq = self.freq / other
-                if freq.nanos == 0 and self.freq.nanos != 0:
-                    # e.g. if self.freq is Nano(1) then dividing by 2
-                    #  rounds down to zero
-                    freq = None
-            return type(self)(result, freq=freq)
-
-        if not hasattr(other, "dtype"):
-            # list, tuple
-            other = np.array(other)
-        if len(other) != len(self):
-            raise ValueError("Cannot divide with unequal lengths")
-
+        other = self._cast_divlike_op(other)
         if is_timedelta64_dtype(other.dtype):
-            other = type(self)(other)
-
-            # numpy timedelta64 does not natively support floordiv, so operate
-            #  on the i8 values
-            result = self.asi8 // other.asi8
-            mask = self._isnan | other._isnan
-            if mask.any():
-                result = result.astype(np.float64)
-                np.putmask(result, mask, np.nan)
-            return result
+            return self._vector_divlike_op(other, op)
 
         elif is_object_dtype(other.dtype):
             # error: Incompatible types in assignment (expression has type
@@ -682,42 +670,13 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @unpack_zerodim_and_defer("__rfloordiv__")
     def __rfloordiv__(self, other):
-
+        op = roperator.rfloordiv
         if is_scalar(other):
-            if isinstance(other, self._recognized_scalars):
-                other = Timedelta(other)
-                # mypy assumes that __new__ returns an instance of the class
-                # github.com/python/mypy/issues/1020
-                if cast("Timedelta | NaTType", other) is NaT:
-                    # treat this specifically as timedelta-NaT
-                    result = np.empty(self.shape, dtype=np.float64)
-                    result.fill(np.nan)
-                    return result
+            return self._scalar_divlike_op(other, op)
 
-                # dispatch to Timedelta implementation
-                return other.__floordiv__(self._ndarray)
-
-            raise TypeError(
-                f"Cannot divide {type(other).__name__} by {type(self).__name__}"
-            )
-
-        if not hasattr(other, "dtype"):
-            # list, tuple
-            other = np.array(other)
-
-        if len(other) != len(self):
-            raise ValueError("Cannot divide with unequal lengths")
-
+        other = self._cast_divlike_op(other)
         if is_timedelta64_dtype(other.dtype):
-            other = type(self)(other)
-            # numpy timedelta64 does not natively support floordiv, so operate
-            #  on the i8 values
-            result = other.asi8 // self.asi8
-            mask = self._isnan | other._isnan
-            if mask.any():
-                result = result.astype(np.float64)
-                np.putmask(result, mask, np.nan)
-            return result
+            return self._vector_divlike_op(other, op)
 
         elif is_object_dtype(other.dtype):
             result_list = [other[n] // self[n] for n in range(len(self))]
