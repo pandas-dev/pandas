@@ -79,7 +79,7 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     common_dtype_categorical_compat,
     ensure_dtype_can_hold_na,
-    find_common_type,
+    find_result_type,
     infer_dtype_from,
     maybe_cast_pointwise_result,
     np_can_hold_element,
@@ -124,6 +124,7 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
+    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -5844,7 +5845,7 @@ class Index(IndexOpsMixin, PandasObject):
             ):
                 return _dtype_obj
 
-        dtype = find_common_type([self.dtype, target_dtype])
+        dtype = find_result_type(self._values, target)
         dtype = common_dtype_categorical_compat([self, target], dtype)
         return dtype
 

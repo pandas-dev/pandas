@@ -18,7 +18,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.api.types import is_unsigned_integer_dtype
 from pandas.core.api import NumericIndex
 from pandas.core.arrays import IntervalArray
 import pandas.core.common as com
@@ -321,12 +320,6 @@ class TuplesClassConstructorTests(ConstructorTests):
 class TestFromTuples(TuplesClassConstructorTests):
     """Tests specific to IntervalIndex.from_tuples"""
 
-    def _skip_test_constructor(self, dtype):
-        if is_unsigned_integer_dtype(dtype):
-            return True, "tuples don't have a dtype"
-        else:
-            return False, ""
-
     @pytest.fixture
     def constructor(self):
         return IntervalIndex.from_tuples
@@ -373,14 +366,6 @@ class TestFromTuples(TuplesClassConstructorTests):
 
 class TestClassConstructors(TuplesClassConstructorTests):
     """Tests specific to the IntervalIndex/Index constructors"""
-
-    def _skip_test_constructor(self, dtype):
-        # get_kwargs_from_breaks in TestFromTuples and TestClassconstructors just return
-        # tuples of ints, so IntervalIndex can't know the original dtype
-        if is_unsigned_integer_dtype(dtype):
-            return True, "tuples don't have a dtype"
-        else:
-            return False, ""
 
     @pytest.fixture(
         params=[IntervalIndex, partial(Index, dtype="interval")],
