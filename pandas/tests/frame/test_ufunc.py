@@ -4,7 +4,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gte1p22
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -263,12 +262,6 @@ def test_alignment_deprecation_many_inputs(request):
         float64,
         vectorize,
     )
-
-    if np_version_gte1p22:
-        mark = pytest.mark.filterwarnings(
-            "ignore:`np.MachAr` is deprecated.*:DeprecationWarning"
-        )
-        request.node.add_marker(mark)
 
     @vectorize([float64(float64, float64, float64)])
     def my_ufunc(x, y, z):
