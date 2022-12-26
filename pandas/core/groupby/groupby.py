@@ -32,6 +32,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -2198,8 +2199,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             counts = self.count()
             result_ilocs = result.columns.get_indexer_for(cols)
             count_ilocs = counts.columns.get_indexer_for(cols)
-
-            result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
+            with warnings.catch_warnings():
+                # TODO(2.0): once iloc[:, foo] = bar depecation is enforced,
+                #  this catching will be unnecessary
+                warnings.filterwarnings(
+                    "ignore", ".*will attempt to set the values inplace.*"
+                )
+                result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
         return result
 
     @final

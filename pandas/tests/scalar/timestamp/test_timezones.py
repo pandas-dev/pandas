@@ -22,6 +22,7 @@ from pytz.exceptions import (
 )
 
 from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -91,11 +92,11 @@ class TestTimestampTZOperations:
 
         result = ts.tz_localize("US/Central", ambiguous=True)
         assert result == expected0
-        assert result.unit == unit
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
         result = ts.tz_localize("US/Central", ambiguous=False)
         assert result == expected1
-        assert result.unit == unit
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     def test_tz_localize_ambiguous(self):
         ts = Timestamp("2014-11-02 01:00")
@@ -292,7 +293,7 @@ class TestTimestampTZOperations:
             assert result == expected.replace(microsecond=0, nanosecond=0)
         else:
             assert result == expected
-        assert result.unit == unit
+        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     @pytest.mark.parametrize("offset", [-1, 1])
     def test_timestamp_tz_localize_nonexistent_shift_invalid(self, offset, warsaw):

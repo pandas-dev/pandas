@@ -22,6 +22,7 @@ from pandas._libs.tslibs import (
     iNaT,
     parsing,
 )
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -861,7 +862,7 @@ class TestToDatetime:
         #  as of 2022-09-28, the Timestamp constructor has been updated
         #  to cast to M8[s] but to_datetime has not
         ts = Timestamp(dt)
-        assert ts.unit == "s"
+        assert ts._creso == NpyDatetimeUnit.NPY_FR_s.value
         assert ts.asm8 == dt
 
         msg = "Out of bounds nanosecond timestamp"

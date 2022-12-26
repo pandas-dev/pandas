@@ -745,7 +745,7 @@ def test_concat_retain_attrs(data):
 @td.skip_array_manager_invalid_test
 @pytest.mark.parametrize("df_dtype", ["float64", "int64", "datetime64[ns]"])
 @pytest.mark.parametrize("empty_dtype", [None, "float64", "object"])
-def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
+def test_concat_ignore_emtpy_object_float(empty_dtype, df_dtype):
     # https://github.com/pandas-dev/pandas/issues/45637
     df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
     empty = DataFrame(columns=["foo", "bar"], dtype=empty_dtype)
