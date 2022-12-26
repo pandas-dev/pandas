@@ -79,12 +79,12 @@ from pandas.core.algorithms import (
     unique,
     value_counts,
 )
-from pandas.core.arrays.datetimes import DatetimeArray
-from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.arrays.base import (
     ExtensionArray,
     _extension_array_shared_docs,
 )
+from pandas.core.arrays.datetimes import DatetimeArray
+from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
