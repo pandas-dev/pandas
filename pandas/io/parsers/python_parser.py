@@ -300,7 +300,7 @@ class PythonParser(ParserBase):
         self,
         alldata: list[np.ndarray],
     ) -> tuple[Mapping[Hashable, np.ndarray], Sequence[Hashable]]:
-        names = self._dedup_names(
+        names = dedup_names(
             self.orig_names, is_potential_multi_index(self.orig_names, self.index_col)
         )
 

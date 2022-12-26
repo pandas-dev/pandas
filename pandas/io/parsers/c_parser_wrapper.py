@@ -288,7 +288,7 @@ class CParserWrapper(ParserBase):
             if self.usecols is not None:
                 names = self._filter_usecols(names)
 
-            names = self._dedup_names(
+            names = dedup_names(
                 names, is_potential_multi_index(names, self.index_col)
             )
 
@@ -312,7 +312,7 @@ class CParserWrapper(ParserBase):
             # assert for mypy, orig_names is List or None, None would error in list(...)
             assert self.orig_names is not None
             names = list(self.orig_names)
-            names = self._dedup_names(
+            names = dedup_names(
                 names, is_potential_multi_index(names, self.index_col)
             )
 

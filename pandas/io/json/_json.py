@@ -1246,10 +1246,10 @@ class FrameParser(Parser):
                 str(k): v
                 for k, v in loads(json, precise_float=self.precise_float).items()
             }
+            self.check_keys_split(decoded)
             decoded["columns"] = dedup_names(
                 names=decoded["columns"], is_potential_multi_index=False
             )
-            self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
             self.obj = DataFrame.from_dict(
