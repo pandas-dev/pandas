@@ -515,3 +515,15 @@ def test_resample_empty_Dataframe(keys):
         expected.index.name = keys[0]
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["D", "M", "Q", "A"])
+def test_groupby_resample_size_all_index_same(freq):
+    # GH 46826
+    df = DataFrame(
+        {"A": [1] * 3 + [2] * 3 + [1] * 3 + [2] * 3, "B": np.arange(12)},
+        index=date_range("31/12/2000 18:00", freq="H", periods=12),
+    )
+    result = df.groupby("A").resample(freq).size()
+    expected = df.groupby(["A", pd.Grouper(freq=freq)]).size()
+    tm.assert_series_equal(result, expected)
