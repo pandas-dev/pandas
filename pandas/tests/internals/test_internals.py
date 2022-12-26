@@ -1323,10 +1323,6 @@ class TestCanHoldElement:
         elem = element(dti)
         self.check_series_setitem(elem, pi, False)
 
-    def check_setting(self, elem, index: Index, inplace: bool):
-        self.check_series_setitem(elem, index, inplace)
-        self.check_frame_setitem(elem, index, inplace)
-
     def check_can_hold_element(self, obj, elem, inplace: bool):
         blk = obj._mgr.blocks[0]
         if inplace:
@@ -1349,23 +1345,6 @@ class TestCanHoldElement:
             assert ser.array is arr  # i.e. setting was done inplace
         else:
             assert ser.dtype == object
-
-    def check_frame_setitem(self, elem, index: Index, inplace: bool):
-        arr = index._data.copy()
-        df = DataFrame(arr)
-
-        self.check_can_hold_element(df, elem, inplace)
-
-        if is_scalar(elem):
-            df.iloc[0, 0] = elem
-        else:
-            df.iloc[: len(elem), 0] = elem
-
-        if inplace:
-            # assertion here implies setting was done inplace
-            assert df._mgr.arrays[0] is arr
-        else:
-            assert df.dtypes[0] == object
 
 
 class TestShouldStore:
