@@ -234,3 +234,28 @@ def test_isin_filtering_with_mixed_object_types(data, is_in):
     expected = Series([True, False])
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data,is_in,expected",
+    [
+        (
+            [1, 2, 3],
+            [1, 2],
+            [True, True, False],
+        ),
+        (
+            [1.0, 2.0, 3.0],
+            [1, 2],
+            [True, True, False],
+        ),
+    ],
+)
+def test_isin_filtering_on_iterable(data, is_in, expected):
+    # GH 50234
+
+    ser = Series(data)
+    result = ser.isin(i for i in is_in)
+    expected_result = Series(expected)
+
+    tm.assert_series_equal(result, expected_result)
