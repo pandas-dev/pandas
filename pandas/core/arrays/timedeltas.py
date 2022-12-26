@@ -548,7 +548,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             raise ValueError("Cannot divide vectors with unequal lengths")
         return other
 
-    def _vector_divlike_op(self, other, op) -> np.ndarray:
+    def _vector_divlike_op(self, other, op) -> np.ndarray | TimedeltaArray:
         """
         Shared logic for __truediv__, __floordiv__, and their reversed versions
         with timedelta64-dtype ndarray other.
@@ -556,11 +556,18 @@ class TimedeltaArray(dtl.TimelikeOps):
         # Let numpy handle it
         result = op(self._ndarray, np.asarray(other))
 
+        if (is_integer_dtype(other.dtype) or is_float_dtype(other.dtype)) and op in [
+            operator.truediv,
+            operator.floordiv,
+        ]:
+            return type(self)._simple_new(result, dtype=result.dtype)
+
         if op in [operator.floordiv, roperator.rfloordiv]:
             mask = self.isna() | isna(other)
             if mask.any():
                 result = result.astype(np.float64)
                 np.putmask(result, mask, np.nan)
+
         return result
 
     @unpack_zerodim_and_defer("__truediv__")
@@ -571,7 +578,11 @@ class TimedeltaArray(dtl.TimelikeOps):
             return self._scalar_divlike_op(other, op)
 
         other = self._cast_divlike_op(other)
-        if is_timedelta64_dtype(other.dtype):
+        if (
+            is_timedelta64_dtype(other.dtype)
+            or is_integer_dtype(other.dtype)
+            or is_float_dtype(other.dtype)
+        ):
             return self._vector_divlike_op(other, op)
 
         elif is_object_dtype(other.dtype):
@@ -603,8 +614,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             return result
 
         else:
-            result = self._ndarray / other
-            return type(self)._simple_new(result, dtype=result.dtype)
+            return NotImplemented
 
     @unpack_zerodim_and_defer("__rtruediv__")
     def __rtruediv__(self, other):
@@ -625,9 +635,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             return np.array(result_list)
 
         else:
-            raise TypeError(
-                f"Cannot divide {other.dtype} data by {type(self).__name__}"
-            )
+            return NotImplemented
 
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
@@ -636,7 +644,11 @@ class TimedeltaArray(dtl.TimelikeOps):
             return self._scalar_divlike_op(other, op)
 
         other = self._cast_divlike_op(other)
-        if is_timedelta64_dtype(other.dtype):
+        if (
+            is_timedelta64_dtype(other.dtype)
+            or is_integer_dtype(other.dtype)
+            or is_float_dtype(other.dtype)
+        ):
             return self._vector_divlike_op(other, op)
 
         elif is_object_dtype(other.dtype):
@@ -660,13 +672,8 @@ class TimedeltaArray(dtl.TimelikeOps):
                 return self * np.nan
             return result
 
-        elif is_integer_dtype(other.dtype) or is_float_dtype(other.dtype):
-            result = self._ndarray // other
-            return type(self)(result)
-
         else:
-            dtype = getattr(other, "dtype", type(other).__name__)
-            raise TypeError(f"Cannot divide {dtype} by {type(self).__name__}")
+            return NotImplemented
 
     @unpack_zerodim_and_defer("__rfloordiv__")
     def __rfloordiv__(self, other):
@@ -684,8 +691,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             return result
 
         else:
-            dtype = getattr(other, "dtype", type(other).__name__)
-            raise TypeError(f"Cannot divide {dtype} by {type(self).__name__}")
+            return NotImplemented
 
     @unpack_zerodim_and_defer("__mod__")
     def __mod__(self, other):

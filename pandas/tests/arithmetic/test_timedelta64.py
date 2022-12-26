@@ -1984,6 +1984,7 @@ class TestTimedeltaArraylikeMulDivOps:
                 "cannot perform __truediv__",
                 "unsupported operand",
                 "Cannot divide",
+                "ufunc 'divide' cannot use operands with types",
             ]
         )
         with pytest.raises(TypeError, match=pattern):
