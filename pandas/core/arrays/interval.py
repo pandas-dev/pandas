@@ -39,6 +39,7 @@ from pandas._typing import (
     ScalarIndexer,
     SequenceIndexer,
     SortKind,
+    TimeArrayLike,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -78,6 +79,8 @@ from pandas.core.algorithms import (
     unique,
     value_counts,
 )
+from pandas.core.arrays.datetimes import DatetimeArray
+from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.arrays.base import (
     ExtensionArray,
     _extension_array_shared_docs,
@@ -102,6 +105,7 @@ if TYPE_CHECKING:
 
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
+IntervalSideT = Union[TimeArrayLike, np.ndarray]
 IntervalOrNA = Union[Interval, float]
 
 _interval_shared_docs: dict[str, str] = {}
@@ -123,8 +127,8 @@ _interval_shared_docs[
 Parameters
 ----------
 data : array-like (1-dimensional)
-    Array-like containing Interval objects from which to build the
-    %(klass)s.
+    Array-like (ndarray, :class:`DateTimeArray`, :class:`TimeDeltaArray`) containing
+    Interval objects from which to build the %(klass)s.
 closed : {'left', 'right', 'both', 'neither'}, default 'right'
     Whether the intervals are closed on the left-side, right-side, both or
     neither.
@@ -213,8 +217,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return 1
 
     # To make mypy recognize the fields
-    _left: np.ndarray
-    _right: np.ndarray
+    _left: IntervalSideT
+    _right: IntervalSideT
     _dtype: IntervalDtype
 
     # ---------------------------------------------------------------------
@@ -232,8 +236,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         data = extract_array(data, extract_numpy=True)
 
         if isinstance(data, cls):
-            left: ArrayLike = data._left
-            right: ArrayLike = data._right
+            left: IntervalSideT = data._left
+            right: IntervalSideT = data._right
             closed = closed or data.closed
             dtype = IntervalDtype(left.dtype, closed=closed)
         else:
@@ -276,8 +280,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @classmethod
     def _simple_new(
         cls: type[IntervalArrayT],
-        left,
-        right,
+        left: IntervalSideT,
+        right: IntervalSideT,
         dtype: IntervalDtype,
     ) -> IntervalArrayT:
         result = IntervalMixin.__new__(cls)
@@ -295,7 +299,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         closed: IntervalClosedType | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
-    ) -> tuple[ArrayLike, ArrayLike, IntervalDtype]:
+    ) -> tuple[IntervalSideT, IntervalSideT, IntervalDtype]:
         """Ensure correctness of input parameters for cls._simple_new."""
         from pandas.core.indexes.base import ensure_index
 
@@ -1574,9 +1578,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         if isinstance(self._left, np.ndarray):
             np.putmask(self._left, mask, value_left)
+            assert isinstance(self._right, np.ndarray)
             np.putmask(self._right, mask, value_right)
         else:
             self._left._putmask(mask, value_left)
+            assert not isinstance(self._right, np.ndarray)
             self._right._putmask(mask, value_right)
 
     def insert(self: IntervalArrayT, loc: int, item: Interval) -> IntervalArrayT:
@@ -1604,9 +1610,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def delete(self: IntervalArrayT, loc) -> IntervalArrayT:
         if isinstance(self._left, np.ndarray):
             new_left = np.delete(self._left, loc)
+            assert isinstance(self._right, np.ndarray)
             new_right = np.delete(self._right, loc)
         else:
             new_left = self._left.delete(loc)
+            assert not isinstance(self._right, np.ndarray)
             new_right = self._right.delete(loc)
         return self._shallow_copy(left=new_left, right=new_right)
 
@@ -1707,7 +1715,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return isin(self.astype(object), values.astype(object))
 
     @property
-    def _combined(self) -> ArrayLike:
+    def _combined(self) -> IntervalSideT:
         left = self.left._values.reshape(-1, 1)
         right = self.right._values.reshape(-1, 1)
         if needs_i8_conversion(left.dtype):
@@ -1724,15 +1732,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         dtype = self._left.dtype
         if needs_i8_conversion(dtype):
-            # error: "Type[ndarray[Any, Any]]" has no attribute "_from_sequence"
-            new_left = type(self._left)._from_sequence(  # type: ignore[attr-defined]
-                nc[:, 0], dtype=dtype
-            )
-            # error: "Type[ndarray[Any, Any]]" has no attribute "_from_sequence"
-            new_right = type(self._right)._from_sequence(  # type: ignore[attr-defined]
-                nc[:, 1], dtype=dtype
-            )
+            assert isinstance(self._left, (DatetimeArray, TimedeltaArray))
+            new_left = type(self._left)._from_sequence(nc[:, 0], dtype=dtype)
+            assert isinstance(self._right, (DatetimeArray, TimedeltaArray))
+            new_right = type(self._right)._from_sequence(nc[:, 1], dtype=dtype)
         else:
+            assert isinstance(dtype, np.dtype)
             new_left = nc[:, 0].view(dtype)
             new_right = nc[:, 1].view(dtype)
         return self._shallow_copy(left=new_left, right=new_right)
