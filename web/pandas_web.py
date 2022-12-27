@@ -42,11 +42,11 @@ import markdown
 import requests
 import yaml
 
-retries = requests.adapters.Retry(total=5, backoff_factor=0.25, status_forcelist=[403])
-session = requests.Session()
-session.mount(
-    "https://api.github.com/", requests.adapters.HTTPAdapter(max_retries=retries)
-)
+api_token = os.environ.get("GITHUB_TOKEN")
+if api_token is not None:
+    GITHUB_API_HEADERS = {"Authorization": f"Bearer {api_token}"}
+else:
+    GITHUB_API_HEADERS = {}
 
 
 class Preprocessors:
@@ -172,7 +172,9 @@ class Preprocessors:
         for kind in ("active", "inactive"):
             context["maintainers"][f"{kind}_with_github_info"] = []
             for user in context["maintainers"][kind]:
-                resp = session.get(f"https://api.github.com/users/{user}")
+                resp = requests.get(
+                    f"https://api.github.com/users/{user}", headers=GITHUB_API_HEADERS
+                )
                 if context["ignore_io_errors"] and resp.status_code == 403:
                     return context
                 resp.raise_for_status()
@@ -184,7 +186,10 @@ class Preprocessors:
         context["releases"] = []
 
         github_repo_url = context["main"]["github_repo_url"]
-        resp = session.get(f"https://api.github.com/repos/{github_repo_url}/releases")
+        resp = requests.get(
+            f"https://api.github.com/repos/{github_repo_url}/releases",
+            headers=GITHUB_API_HEADERS,
+        )
         if context["ignore_io_errors"] and resp.status_code == 403:
             return context
         resp.raise_for_status()
@@ -249,9 +254,10 @@ class Preprocessors:
 
         # under discussion
         github_repo_url = context["main"]["github_repo_url"]
-        resp = session.get(
+        resp = requests.get(
             "https://api.github.com/search/issues?"
-            f"q=is:pr is:open label:PDEP repo:{github_repo_url}"
+            f"q=is:pr is:open label:PDEP repo:{github_repo_url}",
+            headers=GITHUB_API_HEADERS,
         )
         if context["ignore_io_errors"] and resp.status_code == 403:
             return context
