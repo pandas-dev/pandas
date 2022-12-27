@@ -55,7 +55,7 @@ def test_tzlocal_offset():
     ts = Timestamp("2011-01-01", tz=dateutil.tz.tzlocal())
 
     offset = dateutil.tz.tzlocal().utcoffset(datetime(2011, 1, 1))
-    offset = offset.total_seconds() * 1000000000
+    offset = offset.total_seconds()
 
     assert ts.value + offset == Timestamp("2011-01-01").value
 
