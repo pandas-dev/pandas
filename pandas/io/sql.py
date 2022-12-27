@@ -147,16 +147,27 @@ def _convert_arrays_to_dataframe(
     use_nullable_dtypes: bool = False,
 ) -> DataFrame:
     content = lib.to_object_array_tuples(data)
-    arrays = convert_object_array(
+    if arrays := convert_object_array(
         list(content.T),
         dtype=None,
         coerce_float=coerce_float,
         use_nullable_dtypes=use_nullable_dtypes,
-    )
-    if arrays:
-        return DataFrame(dict(zip(columns, arrays)))
+    ):
+        return DataFrame(
+            np.array(arrays).T, columns=_suffix_on_duplicated(list(columns))
+        )
     else:
         return DataFrame(columns=columns)
+
+
+def _suffix_on_duplicated(lst: list[Any]) -> list[Any]:
+    """
+    Add suffix on items that are duplicated
+    """
+    return [
+        f"{value}_{lst[:index].count(value)}" if lst.count(value) > 1 else value
+        for index, value in enumerate(lst, 1)
+    ]
 
 
 def _wrap_result(
