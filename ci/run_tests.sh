@@ -31,7 +31,7 @@ if [[ "$PATTERN" ]]; then
 fi
 
 if [[ "$ERROR_ON_WARNINGS" == "true" ]]; then
-  for pth in $(find pandas -name '*.py' -not -path "pandas/tests/*");
+  for pth in $(find pandas -name '*.py' -not -path "pandas/tests/*" | sed -e 's/\.py//g' -e 's/\/__init__//g' -e 's/\//./g');
     do
         PYTEST_CMD="$PYTEST_CMD -W error:::$pth"
     done
