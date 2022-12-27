@@ -44,6 +44,7 @@ from pandas._libs import (
 )
 from pandas._libs.algos import rank_1d
 import pandas._libs.groupby as libgroupby
+from pandas._libs.missing import NA
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -2935,9 +2936,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             axis = self.grouper.axis
             grouper = self.grouper.codes_info[axis.isin(dropped.index)]
             if self.grouper.has_dropped_na:
-                # Null groups need to be encoded as -1 when passed to groupby
-                grouper = grouper.astype(object)
-                grouper[grouper == -1] = None
+                # Null groups need to still be encoded as -1 when passed to groupby
+                nulls = grouper == -1
+                # error: No overload variant of "where" matches argument types
+                #        "Any", "NAType", "Any"
+                values = np.where(nulls, NA, grouper)  # type: ignore[call-overload]
+                grouper = Index(values, dtype="Int64")
 
         else:
 
