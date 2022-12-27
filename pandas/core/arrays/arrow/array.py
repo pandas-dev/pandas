@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     TypeVar,
     cast,
 )
@@ -40,6 +41,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
@@ -116,6 +118,11 @@ if not pa_version_under6p0:
     }
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
     from pandas import Series
 
 ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
@@ -660,6 +667,23 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             f"{type(self)} does not support reshape "
             f"as backed by a 1D pyarrow.ChunkedArray."
         )
+
+    @doc(ExtensionArray.searchsorted)
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        if self._hasna:
+            raise ValueError(
+                "searchsorted requires array to be sorted, which is impossible "
+                "with NAs present."
+            )
+        if isinstance(value, ExtensionArray):
+            value = value.astype(object)
+        # Base class searchsorted would cast to object, which is *much* slower.
+        return algos.searchsorted(self.to_numpy(), value, side=side, sorter=sorter)
 
     def take(
         self,
