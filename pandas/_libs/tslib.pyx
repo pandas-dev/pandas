@@ -87,11 +87,6 @@ def _test_parse_iso8601(ts: str):
 
     obj = _TSObject()
 
-    if ts == "now":
-        return Timestamp.utcnow()
-    elif ts == "today":
-        return Timestamp.now().normalize()
-
     string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True)
     obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
     check_dts_bounds(&obj.dts)
@@ -109,7 +104,7 @@ def format_array_from_datetime(
     ndarray values,
     tzinfo tz=None,
     str format=None,
-    object na_rep=None,
+    na_rep: str | float = "NaT",
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ) -> np.ndarray:
     """
@@ -144,9 +139,6 @@ def format_array_from_datetime(
         ndarray result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
         object[::1] res_flat = result.ravel()     # should NOT be a copy
         cnp.flatiter it = cnp.PyArray_IterNew(values)
-
-    if na_rep is None:
-        na_rep = "NaT"
 
     if tz is None:
         # if we don't have a format nor tz, then choose
