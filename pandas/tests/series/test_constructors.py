@@ -47,7 +47,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 from pandas.core.arrays import (
     IntervalArray,
     period_array,
@@ -712,7 +711,7 @@ class TestSeriesConstructors:
             timedelta_range("1 day", periods=3),
             period_range("2012Q1", periods=3, freq="Q"),
             Index(list("abc")),
-            Int64Index([1, 2, 3]),
+            Index([1, 2, 3]),
             RangeIndex(0, 3),
         ],
         ids=lambda x: type(x).__name__,

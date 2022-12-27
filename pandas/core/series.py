@@ -132,7 +132,6 @@ from pandas.core.indexers import (
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     DatetimeIndex,
-    Float64Index,
     Index,
     MultiIndex,
     PeriodIndex,
@@ -2569,7 +2568,8 @@ Name: Max Speed, dtype: float64
 
         if is_list_like(q):
             result.name = self.name
-            return self._constructor(result, index=Float64Index(q), name=self.name)
+            idx = Index(q, dtype=np.float64)
+            return self._constructor(result, index=idx, name=self.name)
         else:
             # scalar
             return result.iloc[0]
