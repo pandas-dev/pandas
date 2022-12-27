@@ -1043,6 +1043,7 @@ def read_html(
     keep_default_na: bool = True,
     displayed_only: bool = True,
     extract_links: Literal[None, "header", "footer", "body", "all"] = None,
+    use_nullable_dtypes: bool = False,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1143,6 +1144,19 @@ def read_html(
 
         .. versionadded:: 1.5.0
 
+    use_nullable_dtypes : bool = False
+        Whether to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        The nullable dtype implementation can be configured by calling
+        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+        numpy-backed nullable dtypes or
+        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0
+
     Returns
     -------
     dfs
@@ -1218,4 +1232,5 @@ def read_html(
         keep_default_na=keep_default_na,
         displayed_only=displayed_only,
         extract_links=extract_links,
+        use_nullable_dtypes=use_nullable_dtypes,
     )
