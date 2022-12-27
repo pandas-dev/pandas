@@ -79,13 +79,17 @@ jobs:
             test_args: "-W error::DeprecationWarning:numpy -W error::FutureWarning:numpy"
         exclude:
           - env_file: actions-39.yaml
-            pyarrow_version: "6"
+            pyarrow_version: "7"
           - env_file: actions-39.yaml
+            pyarrow_version: "8"
+          - env_file: actions-39.yaml
+            pyarrow_version: "9"
+          - env_file: actions-310.yaml
             pyarrow_version: "7"
           - env_file: actions-310.yaml
-            pyarrow_version: "6"
+            pyarrow_version: "8"
           - env_file: actions-310.yaml
-            pyarrow_version: "7"
+            pyarrow_version: "9"
       fail-fast: false
     name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:
