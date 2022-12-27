@@ -77,7 +77,10 @@ def test_numpy_ufuncs_basic(index, func):
         # coerces to float (e.g. np.sin)
         with np.errstate(all="ignore"):
             result = func(index)
-            exp = Index(func(index.values), name=index.name)
+            arr_result = func(index.values)
+            if arr_result.dtype == np.float16:
+                arr_result = arr_result.astype(np.float32)
+            exp = Index(arr_result, name=index.name)
 
         tm.assert_index_equal(result, exp)
         if type(index) is not Index or index.dtype == bool:
