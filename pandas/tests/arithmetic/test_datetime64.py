@@ -1699,7 +1699,7 @@ class TestDatetime64OverflowHandling:
         dtimax = pd.to_datetime(["2021-12-28 17:19", Timestamp.max])
         dtimin = pd.to_datetime(["2021-12-28 17:19", Timestamp.min])
 
-        tsneg = Timestamp("1950-01-01")
+        tsneg = Timestamp("1950-01-01").as_unit("ns")
         ts_neg_variants = [
             tsneg,
             tsneg.to_pydatetime(),
@@ -1707,7 +1707,7 @@ class TestDatetime64OverflowHandling:
             tsneg.to_datetime64().astype("datetime64[D]"),
         ]
 
-        tspos = Timestamp("1980-01-01")
+        tspos = Timestamp("1980-01-01").as_unit("ns")
         ts_pos_variants = [
             tspos,
             tspos.to_pydatetime(),
