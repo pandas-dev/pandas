@@ -313,7 +313,8 @@ def align_method_FRAME(
                 left, right = left.align(right, join="outer", level=level, copy=False)
             else:
                 raise ValueError(
-                    "Can only compare identically-labeled DataFrame objects"
+                    "Can only compare identically-labeled (both index and columns) "
+                    "DataFrame objects"
                 )
     elif isinstance(right, ABCSeries):
         # axis=1 is default for DataFrame-with-Series op
