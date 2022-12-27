@@ -405,7 +405,10 @@ def _convert_listlike_datetimes(
         if not is_supported_unit(get_unit_from_dtype(arg_dtype)):
             # We go to closest supported reso, i.e. "s"
             arg = astype_overflowsafe(
-                np.asarray(arg), np.dtype("M8[s]"), coerce=errors == "coerce"
+                # TODO: looks like we incorrectly raise with errors=="ignore"
+                np.asarray(arg),
+                np.dtype("M8[s]"),
+                coerce=errors == "coerce",
             )
 
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
