@@ -342,4 +342,3 @@ repos:
         exclude: |
             (?x)
             ^pandas/tests/generic/test_generic.py  # GH50380
-            |^pandas/tests/io/json/test_readlines.py  # GH50378

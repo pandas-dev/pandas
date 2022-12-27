@@ -162,7 +162,11 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result = (<_Timestamp>Timestamp(result))._as_creso(other._creso)
+        result2 = Timestamp(result).as_unit(other.unit)
+        if result == result2:
+            # i.e. the conversion is non-lossy, not the case for e.g.
+            #  test_milliseconds_combination
+            result = result2
 
         if self._adjust_dst:
             result = result.tz_localize(tz)
