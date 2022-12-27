@@ -2933,7 +2933,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # (e.g. we have selected out
             # a column that is not in the current object)
             axis = self.grouper.axis
-            grouper = axis[axis.isin(dropped.index)]
+            grouper = self.grouper.codes_info[axis.isin(dropped.index)]
+            if self.grouper.has_dropped_na:
+                # Null groups need to be encoded as -1 when passed to groupby
+                grouper = grouper.astype(object)
+                grouper[grouper == -1] = None
 
         else:
 
