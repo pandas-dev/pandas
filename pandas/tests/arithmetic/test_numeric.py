@@ -183,7 +183,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = right // left
         tm.assert_equal(result, expected)
 
-        msg = "ufunc 'divide' cannot use operands with types"
+        # (true_) needed for min-versions build 2022-12-26
+        msg = "ufunc '(true_)?divide' cannot use operands with types"
         with pytest.raises(TypeError, match=msg):
             left / right
 
