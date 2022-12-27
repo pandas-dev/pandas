@@ -839,7 +839,7 @@ class TestPeriodIndexArithmetic:
                 pd.offsets.QuarterEnd(n=-2, startingMonth=12),
             ]
         )
-        expected = PeriodIndex([Period("2015Q2"), Period("2015Q4")])
+        expected = PeriodIndex([Period("2015Q2"), Period("2015Q4")]).astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = pi + offs
@@ -872,6 +872,7 @@ class TestPeriodIndexArithmetic:
         )
 
         expected = PeriodIndex([pi[n] - other[n] for n in range(len(pi))])
+        expected = expected.astype(object)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = pi - other
@@ -1301,13 +1302,13 @@ class TestPeriodIndexArithmetic:
 
         expected = PeriodIndex(
             ["2001-01-01", "2001-01-03", "2001-01-05"], freq="D"
-        ).array
+        )._data.astype(object)
         tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(PerformanceWarning):
             result = parr - other
 
-        expected = PeriodIndex(["2000-12-30"] * 3, freq="D").array
+        expected = PeriodIndex(["2000-12-30"] * 3, freq="D")._data.astype(object)
         tm.assert_equal(result, expected)
 
 

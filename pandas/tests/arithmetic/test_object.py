@@ -194,6 +194,7 @@ class TestArithmetic:
     @pytest.mark.parametrize("dtype", [None, object])
     def test_series_with_dtype_radd_timedelta(self, dtype):
         # note this test is _not_ aimed at timedelta64-dtyped Series
+        # as of 2.0 we retain object dtype when ser.dtype == object
         ser = Series(
             [pd.Timedelta("1 days"), pd.Timedelta("2 days"), pd.Timedelta("3 days")],
             dtype=dtype,
