@@ -15,7 +15,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 class TestDatetimeIndex:
@@ -30,7 +29,7 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(np.int64)
-        expected = Int64Index(
+        expected = Index(
             [1463356800000000000] + [-9223372036854775808] * 3,
             dtype=np.int64,
             name="idx",
@@ -44,6 +43,11 @@ class TestDatetimeIndex:
 
     def test_astype_uint(self):
         arr = date_range("2000", periods=2, name="idx")
+        expected = Index(
+            np.array([946684800000000000, 946771200000000000], dtype="uint64"),
+            name="idx",
+        )
+        tm.assert_index_equal(arr.astype("uint64"), expected)
 
         with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
             arr.astype("uint64")
