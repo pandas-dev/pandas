@@ -387,15 +387,14 @@ def test_to_json_append_output_different_columns():
     df3 = DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
     df4 = DataFrame({"col4": [True, False]})
 
-    # Booleans here converted to integers to agree with data created by "to_json"
     expected = DataFrame(
         {
             "col1": [1, 2, 3, 4, None, None, None, None],
             "col2": ["a", "b", "c", "d", "e", "f", None, None],
             "col3": [None, None, None, None, "!", "#", None, None],
-            "col4": [None, None, None, None, None, None, int(True), int(False)],
+            "col4": [None, None, None, None, None, None, True, False],
         }
-    )
+    ).astype({"col4": "float"})
     with tm.ensure_clean("test.json") as path:
         # Save dataframes to the same file
         df1.to_json(path, mode="a", lines=True, orient="records")
@@ -418,15 +417,14 @@ def test_to_json_append_output_different_columns_reordered():
     df4 = DataFrame({"col4": [True, False]})
 
     # df4, df3, df2, df1 (in that order)
-    # Booleans here converted to integers to agree with data created by "to_json"
     expected = DataFrame(
         {
-            "col4": [int(True), int(False), None, None, None, None, None, None],
+            "col4": [True, False, None, None, None, None, None, None],
             "col2": [None, None, "e", "f", "c", "d", "a", "b"],
             "col3": [None, None, "!", "#", None, None, None, None],
             "col1": [None, None, None, None, 3, 4, 1, 2],
         }
-    )
+    ).astype({"col4": "float"})
     with tm.ensure_clean("test.json") as path:
         # Save dataframes to the same file
         df4.to_json(path, mode="a", lines=True, orient="records")
