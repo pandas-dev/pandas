@@ -1762,7 +1762,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = result.T
 
         # Note: we really only care about inferring numeric dtypes here
-        return self._reindex_output(result).infer_objects(copy=False)
+        return self._reindex_output(result).infer_objects()
 
     def _iterate_column_groupbys(self, obj: DataFrame | Series):
         for i, colname in enumerate(obj.columns):

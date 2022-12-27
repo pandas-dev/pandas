@@ -9423,9 +9423,7 @@ Parrot 2  Parrot       24.0
             row_df = other.to_frame().T
             # infer_objects is needed for
             #  test_append_empty_frame_to_series_with_dateutil_tz
-            other = row_df.infer_objects(copy=False).rename_axis(
-                index.names, copy=False
-            )
+            other = row_df.infer_objects().rename_axis(index.names, copy=False)
         elif isinstance(other, list):
             if not other:
                 pass

@@ -955,7 +955,7 @@ class FrameColumnApply(FrameApply):
         result.index = res_index
 
         # infer dtypes
-        result = result.infer_objects(copy=False)
+        result = result.infer_objects()
 
         return result
 
