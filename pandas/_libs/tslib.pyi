@@ -8,7 +8,7 @@ def format_array_from_datetime(
     values: npt.NDArray[np.int64],
     tz: tzinfo | None = ...,
     format: str | None = ...,
-    na_rep: object = ...,
+    na_rep: str | float = ...,
     reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.object_]: ...
 def array_with_unit_to_datetime(

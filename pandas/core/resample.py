@@ -2085,7 +2085,7 @@ def _adjust_dates_anchored(
     elif origin == "start":
         origin_nanos = first.value
     elif isinstance(origin, Timestamp):
-        origin_nanos = origin.value
+        origin_nanos = origin.as_unit("ns").value
     elif origin in ["end", "end_day"]:
         origin_last = last if origin == "end" else last.ceil("D")
         sub_freq_times = (origin_last.value - first.value) // freq.nanos
