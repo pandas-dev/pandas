@@ -36,7 +36,9 @@ Configuration option, ``mode.dtype_backend``, to return pyarrow-backed dtypes
 The ``use_nullable_dtypes`` keyword argument has been expanded to the following functions to enable automatic conversion to nullable dtypes (:issue:`36712`)
 
 * :func:`read_csv`
+* :func:`read_fwf`
 * :func:`read_excel`
+* :func:`read_html`
 * :func:`read_sql`
 * :func:`read_sql_query`
 * :func:`read_sql_table`
@@ -46,6 +48,7 @@ to select the nullable dtypes implementation.
 
 * :func:`read_csv` (with ``engine="pyarrow"`` or ``engine="python"``)
 * :func:`read_excel`
+* :func:`read_html`
 * :func:`read_parquet`
 * :func:`read_orc`
 
@@ -98,6 +101,7 @@ Other enhancements
 - Added :meth:`Index.infer_objects` analogous to :meth:`Series.infer_objects` (:issue:`50034`)
 - Added ``copy`` parameter to :meth:`Series.infer_objects` and :meth:`DataFrame.infer_objects`, passing ``False`` will avoid making copies for series or columns that are already non-object or where no better dtype can be inferred (:issue:`50096`)
 - :meth:`DataFrame.plot.hist` now recognizes ``xlabel`` and ``ylabel`` arguments (:issue:`49793`)
+- Improved error message when trying to align :class:`DataFrame` objects (for example, in :func:`DataFrame.compare`) to clarify that "identically labelled" refers to both index and columns (:issue:`50083`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -481,6 +485,7 @@ Other API changes
 - Changed behavior of :class:`Index`, :class:`Series`, and :class:`DataFrame` arithmetic methods when working with object-dtypes, the results no longer do type inference on the result of the array operations, use ``result.infer_objects(copy=False)`` to do type inference on the result (:issue:`49999`, :issue:`49714`)
 - Changed behavior of :class:`Index` constructor with an object-dtype ``numpy.ndarray`` containing all-``bool`` values or all-complex values, this will now retain object dtype, consistent with the :class:`Series` behavior (:issue:`49594`)
 - Changed behavior of :meth:`Index.astype` from object-dtype containing ``bytes`` objects to string dtypes; this now does ``str(val)"`` on bytes objects instead of ``val.decode()``, matching :meth:`Series.astype` behavior (:issue:`45326`)
+- Added ``"None"`` to default ``na_values`` in :func:`read_csv` (:issue:`50286`)
 - Changed behavior of :class:`Series` and :class:`DataFrame` constructors when given an integer dtype and floating-point data that is not round numbers, this now raises ``ValueError`` instead of silently retaining the float dtype; do ``Series(data)`` or ``DataFrame(data)`` to get the old behavior, and ``Series(data).astype(dtype)`` or ``DataFrame(data).astype(dtype)`` to get the specified dtype (:issue:`49599`)
 - Changed behavior of :meth:`DataFrame.shift` with ``axis=1``, an integer ``fill_value``, and homogeneous datetime-like dtype, this now fills new columns with integer dtypes instead of casting to datetimelike (:issue:`49842`)
 - Files are now closed when encountering an exception in :func:`read_json` (:issue:`49921`)
@@ -764,7 +769,7 @@ Performance improvements
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`49973`)
 - Performance improvement in :meth:`DataFrame.join` when joining on a subset of a :class:`MultiIndex` (:issue:`48611`)
 - Performance improvement for :meth:`MultiIndex.intersection` (:issue:`48604`)
-- Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
+- Performance improvement in ``var`` and ``std`` for nullable dtypes (:issue:`48379`).
 - Performance improvement when iterating over pyarrow and nullable dtypes (:issue:`49825`, :issue:`49851`)
 - Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47405`, :issue:`47656`, :issue:`48502`)
 - Memory improvement in :meth:`RangeIndex.sort_values` (:issue:`48801`)
@@ -927,6 +932,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.SeriesGroupBy.describe` with ``as_index=False`` would have the incorrect shape (:issue:`49256`)
 - Bug in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` with ``dropna=False`` would drop NA values when the grouper was categorical (:issue:`36327`)
 - Bug in :meth:`.SeriesGroupBy.nunique` would incorrectly raise when the grouper was an empty categorical and ``observed=True`` (:issue:`21334`)
+- Bug in :meth:`.SeriesGroupBy.nth` would raise when grouper contained NA values after subsetting from a :class:`DataFrameGroupBy` (:issue:`26454`)
 
 Reshaping
 ^^^^^^^^^
@@ -951,6 +957,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :meth:`Series.mean` overflowing unnecessarily with nullable integers (:issue:`48378`)
 - Bug in :meth:`Series.tolist` for nullable dtypes returning numpy scalars instead of python scalars (:issue:`49890`)
+- Bug in :meth:`Series.round` for pyarrow-backed dtypes raising ``AttributeError`` (:issue:`50437`)
 - Bug when concatenating an empty DataFrame with an ExtensionDtype to another DataFrame with the same ExtensionDtype, the resulting dtype turned into object (:issue:`48510`)
 - Bug in :meth:`array.PandasArray.to_numpy` raising with ``NA`` value when ``na_value`` is specified (:issue:`40638`)
 
