@@ -320,6 +320,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
                 r"operand type\(s\) all returned NotImplemented from __array_ufunc__",
                 "can only perform ops with numeric values",
                 "cannot subtract DatetimeArray from ndarray",
+                # pd.Timedelta(1) + Index([0, 1, 2])
+                "Cannot add or subtract Timedelta from integers",
             ]
         )
         assert_invalid_addsub_type(left, other, msg)
