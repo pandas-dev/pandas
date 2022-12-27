@@ -33,7 +33,7 @@ class TestAsUnit:
 
         res = td.as_unit("us")
         assert res.value == td.value // 1000
-        assert res._creso == NpyDatetimeUnit.NPY_FR_us.value
+        assert res.unit == "us"
 
         rt = res.as_unit("ns")
         assert rt.value == td.value
@@ -41,7 +41,7 @@ class TestAsUnit:
 
         res = td.as_unit("ms")
         assert res.value == td.value // 1_000_000
-        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
+        assert res.unit == "ms"
 
         rt = res.as_unit("ns")
         assert rt.value == td.value
@@ -49,7 +49,7 @@ class TestAsUnit:
 
         res = td.as_unit("s")
         assert res.value == td.value // 1_000_000_000
-        assert res._creso == NpyDatetimeUnit.NPY_FR_s.value
+        assert res.unit == "s"
 
         rt = res.as_unit("ns")
         assert rt.value == td.value
@@ -66,7 +66,7 @@ class TestAsUnit:
 
         res = td.as_unit("ms")
         assert res.value == us // 1000
-        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
+        assert res.unit == "ms"
 
     def test_as_unit_rounding(self):
         td = Timedelta(microseconds=1500)
@@ -75,7 +75,7 @@ class TestAsUnit:
         expected = Timedelta(milliseconds=1)
         assert res == expected
 
-        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
+        assert res.unit == "ms"
         assert res.value == 1
 
         with pytest.raises(ValueError, match="Cannot losslessly convert units"):
@@ -311,13 +311,13 @@ def test_timedelta_class_min_max_resolution():
     # when accessed on the class (as opposed to an instance), we default
     #  to nanoseconds
     assert Timedelta.min == Timedelta(NaT.value + 1)
-    assert Timedelta.min._creso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert Timedelta.min.unit == "ns"
 
     assert Timedelta.max == Timedelta(np.iinfo(np.int64).max)
-    assert Timedelta.max._creso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert Timedelta.max.unit == "ns"
 
     assert Timedelta.resolution == Timedelta(1)
-    assert Timedelta.resolution._creso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert Timedelta.resolution.unit == "ns"
 
 
 class TestTimedeltaUnaryOps:

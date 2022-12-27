@@ -874,10 +874,10 @@ class TestNonNano:
         #  this construction ensures we get cases with other._creso < ts._creso
         #  and cases with other._creso > ts._creso
         unit = {
-            NpyDatetimeUnit.NPY_FR_us.value: "ms",
-            NpyDatetimeUnit.NPY_FR_ms.value: "s",
-            NpyDatetimeUnit.NPY_FR_s.value: "us",
-        }[ts._creso]
+            "us": "ms",
+            "ms": "s",
+            "s": "us",
+        }[ts.unit]
         other = ts.as_unit(unit)
         assert other._creso != ts._creso
 
@@ -922,10 +922,10 @@ class TestNonNano:
         #  this construction ensures we get cases with other._creso < ts._creso
         #  and cases with other._creso > ts._creso
         unit = {
-            NpyDatetimeUnit.NPY_FR_us.value: "ms",
-            NpyDatetimeUnit.NPY_FR_ms.value: "s",
-            NpyDatetimeUnit.NPY_FR_s.value: "us",
-        }[ts._creso]
+            "us": "ms",
+            "ms": "s",
+            "s": "us",
+        }[ts.unit]
         other = Timedelta(0).as_unit(unit)
         assert other._creso != ts._creso
 
@@ -973,7 +973,7 @@ class TestNonNano:
         res = ts + np.timedelta64(1, "ns")
         exp = ts.as_unit("ns") + np.timedelta64(1, "ns")
         assert exp == res
-        assert exp._creso == NpyDatetimeUnit.NPY_FR_ns.value
+        assert exp.unit == "ns"
 
     def test_min(self, ts):
         assert ts.min <= ts
@@ -996,13 +996,13 @@ def test_timestamp_class_min_max_resolution():
     # when accessed on the class (as opposed to an instance), we default
     #  to nanoseconds
     assert Timestamp.min == Timestamp(NaT.value + 1)
-    assert Timestamp.min._creso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert Timestamp.min.unit == "ns"
 
     assert Timestamp.max == Timestamp(np.iinfo(np.int64).max)
-    assert Timestamp.max._creso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert Timestamp.max.unit == "ns"
 
     assert Timestamp.resolution == Timedelta(1)
-    assert Timestamp.resolution._creso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert Timestamp.resolution.unit == "ns"
 
 
 class TestAsUnit:
@@ -1013,7 +1013,7 @@ class TestAsUnit:
 
         res = ts.as_unit("us")
         assert res.value == ts.value // 1000
-        assert res._creso == NpyDatetimeUnit.NPY_FR_us.value
+        assert res.unit == "us"
 
         rt = res.as_unit("ns")
         assert rt.value == ts.value
@@ -1021,7 +1021,7 @@ class TestAsUnit:
 
         res = ts.as_unit("ms")
         assert res.value == ts.value // 1_000_000
-        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
+        assert res.unit == "ms"
 
         rt = res.as_unit("ns")
         assert rt.value == ts.value
@@ -1029,7 +1029,7 @@ class TestAsUnit:
 
         res = ts.as_unit("s")
         assert res.value == ts.value // 1_000_000_000
-        assert res._creso == NpyDatetimeUnit.NPY_FR_s.value
+        assert res.unit == "s"
 
         rt = res.as_unit("ns")
         assert rt.value == ts.value
@@ -1046,7 +1046,7 @@ class TestAsUnit:
 
         res = ts.as_unit("ms")
         assert res.value == us // 1000
-        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
+        assert res.unit == "ms"
 
     def test_as_unit_rounding(self):
         ts = Timestamp(1_500_000)  # i.e. 1500 microseconds
@@ -1055,7 +1055,7 @@ class TestAsUnit:
         expected = Timestamp(1_000_000)  # i.e. 1 millisecond
         assert res == expected
 
-        assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
+        assert res.unit == "ms"
         assert res.value == 1
 
         with pytest.raises(ValueError, match="Cannot losslessly convert units"):

@@ -176,14 +176,14 @@ class TestTimestampUnaryOps:
         #
         result = getattr(ts, method)("H", ambiguous=True)
         assert result == ts
-        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result.unit == unit
 
         result = getattr(ts, method)("H", ambiguous=False)
         expected = Timestamp("2017-10-29 01:00:00", tz="UTC").tz_convert(
             "Europe/Madrid"
         )
         assert result == expected
-        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result.unit == unit
 
         result = getattr(ts, method)("H", ambiguous="NaT")
         assert result is NaT
@@ -210,7 +210,7 @@ class TestTimestampUnaryOps:
         result = getattr(ts, method)(freq, nonexistent="shift_forward")
         expected = Timestamp("2018-03-11 03:00:00", tz="America/Chicago")
         assert result == expected
-        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result.unit == unit
 
         result = getattr(ts, method)(freq, nonexistent="NaT")
         assert result is NaT
@@ -490,7 +490,7 @@ class TestTimestampUnaryOps:
         result = t.replace(hour=3)
         expected = Timestamp("2013-11-3 03:00:00", tz="America/Chicago")
         assert result == expected
-        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result.unit == unit
 
     @pytest.mark.parametrize("fold", [0, 1])
     @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
@@ -504,7 +504,7 @@ class TestTimestampUnaryOps:
             tz, ambiguous=not fold
         )
         assert result == expected
-        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result.unit == unit
 
     # --------------------------------------------------------------
     # Timestamp.normalize
@@ -517,7 +517,7 @@ class TestTimestampUnaryOps:
         result = ts.normalize()
         expected = Timestamp("2013-11-30", tz=tz)
         assert result == expected
-        assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
+        assert result.unit == unit
 
     def test_normalize_pre_epoch_dates(self):
         # GH: 36294
