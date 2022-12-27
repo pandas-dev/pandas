@@ -11,6 +11,7 @@ import pytest
 from pandas._libs import iNaT
 from pandas.errors import (
     InvalidIndexError,
+    PerformanceWarning,
     SettingWithCopyError,
 )
 import pandas.util._test_decorators as td
@@ -556,14 +557,14 @@ class TestDataFrameIndexing:
 
         assert np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
 
-        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        sliced.loc[:, "C"] = 4.0
         if not using_copy_on_write:
-            with pytest.raises(SettingWithCopyError, match=msg):
-                sliced.loc[:, "C"] = 4.0
 
             assert (float_frame["C"] == 4).all()
+
+            # with the enforcement of GH#45333 in 2.0, this remains a view
+            np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
         else:
-            sliced.loc[:, "C"] = 4.0
             tm.assert_frame_equal(float_frame, original)
 
     def test_getitem_setitem_non_ix_labels(self):
@@ -786,10 +787,7 @@ class TestDataFrameIndexing:
         assert len(result) == 5
 
         cp = df.copy()
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-        with tm.assert_produces_warning(warn, match=msg):
-            cp.loc[1.0:5.0] = 0
+        cp.loc[1.0:5.0] = 0
         result = cp.loc[1.0:5.0]
         assert (result == 0).values.all()
 
@@ -1007,7 +1005,8 @@ class TestDataFrameIndexing:
         expected = df.reindex(df.index[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_row_slice_view(self, using_array_manager, using_copy_on_write):
+    def test_iloc_row_slice_view(self, using_copy_on_write, request):
+
         df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
         original = df.copy()
 
@@ -1018,16 +1017,13 @@ class TestDataFrameIndexing:
         assert np.shares_memory(df[2], subset[2])
 
         exp_col = original[2].copy()
-        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        if using_copy_on_write:
+        subset.loc[:, 2] = 0.0
+        if not using_copy_on_write:
             subset.loc[:, 2] = 0.0
-        else:
-            with pytest.raises(SettingWithCopyError, match=msg):
-                subset.loc[:, 2] = 0.0
+            exp_col._values[4:8] = 0.0
 
-            # TODO(ArrayManager) verify it is expected that the original didn't change
-            if not using_array_manager:
-                exp_col._values[4:8] = 0.0
+            # With the enforcement of GH#45333 in 2.0, this remains a view
+            assert np.shares_memory(df[2], subset[2])
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
@@ -1061,12 +1057,12 @@ class TestDataFrameIndexing:
             # verify slice is view
             assert np.shares_memory(df[8]._values, subset[8]._values)
 
-            # and that we are setting a copy
-            msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-            with pytest.raises(SettingWithCopyError, match=msg):
-                subset.loc[:, 8] = 0.0
+            subset.loc[:, 8] = 0.0
 
             assert (df[8] == 0).all()
+
+            # with the enforcement of GH#45333 in 2.0, this remains a view
+            assert np.shares_memory(df[8]._values, subset[8]._values)
         else:
             if using_copy_on_write:
                 # verify slice is view
@@ -1471,7 +1467,8 @@ class TestDataFrameIndexing:
             names=["a", "b"],
         )
         df = DataFrame({"c": [1, 2, 3, 4]}, index=midx)
-        result = df.loc[indexer]
+        with tm.maybe_produces_warning(PerformanceWarning, isinstance(indexer, tuple)):
+            result = df.loc[indexer]
         expected = DataFrame(
             {"c": [1, 2]}, index=Index([True, False], name="b", dtype=dtype)
         )

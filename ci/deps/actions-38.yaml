@@ -18,7 +18,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil
-  - numpy
+  - numpy<1.24
   - pytz
 
   # optional dependencies
@@ -40,7 +40,7 @@ dependencies:
   - odfpy
   - pandas-gbq
   - psycopg2
-  - pyarrow<10
+  - pyarrow
   - pymysql
   - pyreadstat
   - pytables

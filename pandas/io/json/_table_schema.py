@@ -1,7 +1,7 @@
 """
 Table Schema builders
 
-https://specs.frictionlessdata.io/json-table-schema/
+https://specs.frictionlessdata.io/table-schema/
 """
 from __future__ import annotations
 
