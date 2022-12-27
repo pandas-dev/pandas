@@ -195,12 +195,12 @@ class Dim2CompatTests(BaseExtensionTests):
         arr2d = data.reshape(1, -1)
 
         kwargs = {}
-        if method == "std":
+        if method in ["std", "var"]:
             # pass ddof=0 so we get all-zero std instead of all-NA std
             kwargs["ddof"] = 0
 
         try:
-            if method in ["mean", "var"] and hasattr(data, "_mask"):
+            if method in ["mean", "var", "std"] and hasattr(data, "_mask"):
                 # Empty slices produced by the mask cause RuntimeWarnings by numpy
                 with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
                     result = getattr(arr2d, method)(axis=0, **kwargs)
@@ -241,13 +241,13 @@ class Dim2CompatTests(BaseExtensionTests):
                 assert dtype == expected.dtype
 
             self.assert_extension_array_equal(result, expected)
-        elif method == "std":
-            self.assert_extension_array_equal(result, data - data)
-        elif method == "mean":
+        elif method in ["mean", "std", "var"]:
             if is_integer_dtype(data) or is_bool_dtype(data):
                 data = data.astype("Float64")
-            self.assert_extension_array_equal(result, data)
-        # punt on method == "var"
+            if method == "mean":
+                self.assert_extension_array_equal(result, data)
+            else:
+                self.assert_extension_array_equal(result, data - data)
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
     def test_reductions_2d_axis1(self, data, method):

@@ -80,6 +80,8 @@ def test_ufunc_reduce_raises(values):
     [
         ("var", {"ddof": 0}),
         ("var", {"ddof": 1}),
+        ("std", {"ddof": 0}),
+        ("std", {"ddof": 1}),
         ("kurtosis", {}),
         ("skew", {}),
         ("sem", {}),
