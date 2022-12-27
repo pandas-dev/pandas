@@ -201,7 +201,10 @@ class TestDataFrameNonuniqueIndexes:
         df2 = DataFrame([[0, 1], [2, 4], [2, np.nan], [4, 5]], columns=["A", "A"])
 
         # not-comparing like-labelled
-        msg = "Can only compare identically-labeled DataFrame objects"
+        msg = (
+            r"Can only compare identically-labeled \(both index and columns\) "
+            "DataFrame objects"
+        )
         with pytest.raises(ValueError, match=msg):
             df1 == df2
 
