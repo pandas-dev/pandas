@@ -89,7 +89,7 @@ class TestNonNano:
     # TODO: 2022-07-11 this is the only test that gets to DTA.tz_convert
     #  or tz_localize with non-nano; implement tests specific to that.
     def test_add_datetimelike_scalar(self, tda, tz_naive_fixture):
-        ts = pd.Timestamp("2016-01-01", tz=tz_naive_fixture)
+        ts = pd.Timestamp("2016-01-01", tz=tz_naive_fixture).as_unit("ns")
 
         expected = tda.as_unit("ns") + ts
         res = tda + ts
