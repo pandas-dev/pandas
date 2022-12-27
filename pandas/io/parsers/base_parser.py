@@ -1121,19 +1121,13 @@ def _make_date_converter(
         if date_parser is None:
             strs = parsing.concat_date_cols(date_cols)
 
-            try:
-                return tools.to_datetime(
-                    ensure_object(strs),
-                    utc=False,
-                    dayfirst=dayfirst,
-                    errors="ignore",
-                    cache=cache_dates,
-                ).to_numpy()
-
-            except ValueError:
-                return tools.to_datetime(
-                    parsing.try_parse_dates(strs, dayfirst=dayfirst), cache=cache_dates
-                )
+            return tools.to_datetime(
+                ensure_object(strs),
+                utc=False,
+                dayfirst=dayfirst,
+                errors="ignore",
+                cache=cache_dates,
+            ).to_numpy()
         else:
             try:
                 result = tools.to_datetime(

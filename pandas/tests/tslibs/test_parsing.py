@@ -4,7 +4,7 @@ Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 from datetime import datetime
 import re
 
-from dateutil.parser import parse
+from dateutil.parser import parse as du_parse
 import numpy as np
 import pytest
 
@@ -271,9 +271,11 @@ def test_guess_datetime_format_no_padding(string, fmt, dayfirst, warning):
 
 def test_try_parse_dates():
     arr = np.array(["5/1/2000", "6/1/2000", "7/1/2000"], dtype=object)
-    result = parsing.try_parse_dates(arr, dayfirst=True)
+    result = parsing.try_parse_dates(
+        arr, dayfirst=True, parser=lambda x: du_parse(x, dayfirst=True)
+    )
 
-    expected = np.array([parse(d, dayfirst=True) for d in arr])
+    expected = np.array([du_parse(d, dayfirst=True) for d in arr])
     tm.assert_numpy_array_equal(result, expected)
 
 
