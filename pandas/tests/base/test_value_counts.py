@@ -28,7 +28,13 @@ def test_value_counts(index_or_series_obj):
 
     counter = collections.Counter(obj)
     expected = Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
-    expected.index = expected.index.astype(obj.dtype)
+
+    if obj.dtype != np.float16:
+        expected.index = expected.index.astype(obj.dtype)
+    else:
+        with pytest.raises(NotImplementedError, match="float16 indexes are not "):
+            expected.index.astype(obj.dtype)
+        return
 
     if not isinstance(result.dtype, np.dtype):
         # i.e IntegerDtype
@@ -73,7 +79,13 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     # np.nan would be duplicated, whereas None wouldn't
     counter = collections.Counter(obj.dropna())
     expected = Series(dict(counter.most_common()), dtype=np.int64)
-    expected.index = expected.index.astype(obj.dtype)
+
+    if obj.dtype != np.float16:
+        expected.index = expected.index.astype(obj.dtype)
+    else:
+        with pytest.raises(NotImplementedError, match="float16 indexes are not "):
+            expected.index.astype(obj.dtype)
+        return
 
     result = obj.value_counts()
     if obj.duplicated().any():

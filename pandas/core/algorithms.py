@@ -891,6 +891,8 @@ def value_counts(
         else:
             values = _ensure_arraylike(values)
             keys, counts = value_counts_arraylike(values, dropna)
+            if keys.dtype == np.float16:
+                keys = keys.astype(np.float32)
 
             # For backwards compatibility, we let Index do its normal type
             #  inference, _except_ for if if infers from object to bool.

@@ -881,6 +881,9 @@ class Index(IndexOpsMixin, PandasObject):
             # i.e. np.divmod, np.modf, np.frexp
             return tuple(self.__array_wrap__(x) for x in result)
 
+        if result.dtype == np.float16:
+            result = result.astype(np.float32)
+
         return self.__array_wrap__(result)
 
     def __array_wrap__(self, result, context=None):

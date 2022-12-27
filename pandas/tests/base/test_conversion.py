@@ -62,6 +62,10 @@ class TestToIterable:
         # gh-13258
         # coerce iteration to underlying python / pandas types
         typ = index_or_series
+        if dtype == "float16" and issubclass(typ, pd.Index):
+            with pytest.raises(NotImplementedError, match="float16 indexes are not "):
+                typ([1], dtype=dtype)
+            return
         s = typ([1], dtype=dtype)
         result = method(s)[0]
         assert isinstance(result, rdtype)
@@ -115,6 +119,10 @@ class TestToIterable:
         # gh-13236
         # coerce iteration to underlying python / pandas types
         typ = index_or_series
+        if dtype == "float16" and issubclass(typ, pd.Index):
+            with pytest.raises(NotImplementedError, match="float16 indexes are not "):
+                typ([1], dtype=dtype)
+            return
         s = typ([1], dtype=dtype)
         result = s.map(type)[0]
         if not isinstance(rdtype, tuple):
