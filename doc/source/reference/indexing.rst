@@ -298,6 +298,7 @@ MultiIndex components
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
+   MultiIndex.drop
 
 MultiIndex selecting
 ~~~~~~~~~~~~~~~~~~~~
