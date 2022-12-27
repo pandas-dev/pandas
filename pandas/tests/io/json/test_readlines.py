@@ -336,7 +336,7 @@ def test_to_json_append_mode(mode_):
         df.to_json(mode=mode_, lines=False, orient="records")
 
 
-def to_json_append_output_consistent_columns():
+def test_to_json_append_output_consistent_columns():
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing same columns, new rows
@@ -354,7 +354,7 @@ def to_json_append_output_consistent_columns():
         tm.assert_frame_equal(result, expected)
 
 
-def to_json_append_output_inconsistent_columns():
+def test_to_json_append_output_inconsistent_columns():
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing one new column, one old column, new rows
@@ -378,7 +378,7 @@ def to_json_append_output_inconsistent_columns():
         tm.assert_frame_equal(result, expected)
 
 
-def to_json_append_output_different_columns():
+def test_to_json_append_output_different_columns():
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing same, differing and new columns
@@ -387,12 +387,13 @@ def to_json_append_output_different_columns():
     df3 = DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
     df4 = DataFrame({"col4": [True, False]})
 
+    # Booleans here converted to integers to agree with other data created by "to_json" as JSON converts booleans to integers
     expected = DataFrame(
         {
             "col1": [1, 2, 3, 4, None, None, None, None],
             "col2": ["a", "b", "c", "d", "e", "f", None, None],
             "col3": [None, None, None, None, "!", "#", None, None],
-            "col4": [None, None, None, None, None, None, True, False],
+            "col4": [None, None, None, None, None, None, int(True), int(False)],
         }
     )
     with tm.ensure_clean("test.json") as path:
@@ -407,7 +408,7 @@ def to_json_append_output_different_columns():
         tm.assert_frame_equal(result, expected)
 
 
-def to_json_append_output_different_columns_reordered():
+def test_to_json_append_output_different_columns_reordered():
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing specific result column order.
@@ -417,9 +418,10 @@ def to_json_append_output_different_columns_reordered():
     df4 = DataFrame({"col4": [True, False]})
 
     # df4, df3, df2, df1 (in that order)
+    # Booleans here converted to integers to agree with other data created by "to_json" as JSON converts booleans to integers
     expected = DataFrame(
         {
-            "col4": [True, False, None, None, None, None, None, None],
+            "col4": [int(True), int(False), None, None, None, None, None, None],
             "col2": [None, None, "e", "f", "c", "d", "a", "b"],
             "col3": [None, None, "!", "#", None, None, None, None],
             "col1": [None, None, None, None, 3, 4, 1, 2],
