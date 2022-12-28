@@ -77,6 +77,34 @@ be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (
         df_pyarrow = pd.read_csv(data, use_nullable_dtypes=True, engine="pyarrow")
     df_pyarrow.dtypes
 
+Copy on write improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A new lazy copy mechanism that defers the copy until the object in question is modified
+was added to the following methods:
+
+- :meth:`DataFrame.reset_index` / :meth:`Series.reset_index`
+- :meth:`DataFrame.set_index` / :meth:`Series.set_index`
+- :meth:`DataFrame.set_axis` / :meth:`Series.set_axis`
+- :meth:`DataFrame.rename_axis` / :meth:`Series.rename_axis`
+- :meth:`DataFrame.rename_columns`
+- :meth:`DataFrame.reindex` / :meth:`Series.reindex`
+- :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
+- :meth:`DataFrame.assign`
+- :meth:`DataFrame.drop`
+- :meth:`DataFrame.dropna` / :meth:`Series.dropna`
+- :meth:`DataFrame.select_dtypes`
+- :meth:`DataFrame.align` / :meth:`Series.align`
+- ::meth:`Series.to_frame`
+- :meth:`DataFrame.rename` / :meth:`Series.rename`
+- :meth:`DataFrame.add_prefix` / :meth:`Series.add_prefix`
+- :meth:`DataFrame.add_suffix` / :meth:`Series.add_suffix`
+- :meth:`DataFrame.drop_duplicates` / :meth:`Series.drop_duplicates`
+- :meth:`DataFrame.reorder_levels` / :meth:`Series.reorder_levels`
+
+These methods return views when copy on write is enabled, which provides a significant
+performance improvement compared to the regular execution.
+
 .. _whatsnew_200.enhancements.other:
 
 Other enhancements
