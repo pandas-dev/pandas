@@ -1196,7 +1196,7 @@ class ScatterPlot(PlanePlot):
         elif is_hashable(s) and s in data.columns:
             s = data[s]
         super().__init__(data, x, y, s=s, **kwargs)
-        if is_integer(c) and self.data.columns._should_fallback_to_positional:
+        if is_integer(c) and self.data.columns._holds_integer():
             c = self.data.columns[c]
         self.c = c
 
@@ -1291,7 +1291,7 @@ class HexBinPlot(PlanePlot):
 
     def __init__(self, data, x, y, C=None, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
-        if is_integer(C) and self.data.columns._should_fallback_to_positional:
+        if is_integer(C) and self.data.columns._holds_integer():
             C = self.data.columns[C]
         self.C = C
 
