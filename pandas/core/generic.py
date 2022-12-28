@@ -1209,12 +1209,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axes, kwargs = self._construct_axes_from_arguments(
             (), kwargs, sentinel=lib.no_default
         )
-
-        copy: bool_t | None
-        if "copy" not in kwargs:
-            copy = None
-        else:
-            copy = kwargs.pop("copy", True)
+        copy: bool_t | None = kwargs.pop("copy", None)
 
         inplace = kwargs.pop("inplace", False)
         axis = kwargs.pop("axis", 0)
