@@ -549,44 +549,47 @@ class TestFancy:
         )
 
         df = df_orig.copy()
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
+
+        # with the enforcement of GH#45333 in 2.0, this setting is attempted inplace,
+        #  so object dtype is retained
+        df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
         expected = DataFrame(
             [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
+        expected["A"] = expected["A"].astype(object)
+        expected["B"] = expected["B"].astype(object)
         tm.assert_frame_equal(df, expected)
 
         # GH5702 (loc)
         df = df_orig.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
+        df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
         expected = DataFrame(
             [[1, "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
+        expected["A"] = expected["A"].astype(object)
         tm.assert_frame_equal(df, expected)
 
         df = df_orig.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
+        df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
         expected = DataFrame(
             [["1", 2, 3, ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
+        expected["B"] = expected["B"].astype(object)
+        expected["C"] = expected["C"].astype(object)
         tm.assert_frame_equal(df, expected)
 
     def test_astype_assignment_full_replacements(self):
         # full replacements / no nans
         df = DataFrame({"A": [1.0, 2.0, 3.0, 4.0]})
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.iloc[:, 0] = df["A"].astype(np.int64)
-        expected = DataFrame({"A": [1, 2, 3, 4]})
+
+        # With the enforcement of GH#45333 in 2.0, this assignment occurs inplace,
+        #  so float64 is retained
+        df.iloc[:, 0] = df["A"].astype(np.int64)
+        expected = DataFrame({"A": [1.0, 2.0, 3.0, 4.0]})
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame({"A": [1.0, 2.0, 3.0, 4.0]})
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, "A"] = df["A"].astype(np.int64)
-        expected = DataFrame({"A": [1, 2, 3, 4]})
+        df.loc[:, "A"] = df["A"].astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("indexer", [tm.getitem, tm.loc])

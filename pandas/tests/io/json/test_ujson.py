@@ -291,6 +291,15 @@ class TestUltraJSONTests:
         assert enc == json.dumps(four_bytes_input)
         assert dec == json.loads(enc)
 
+    def test_encode_unicode_error(self):
+        string = "'\udac0'"
+        msg = (
+            r"'utf-8' codec can't encode character '\\udac0' "
+            r"in position 1: surrogates not allowed"
+        )
+        with pytest.raises(UnicodeEncodeError, match=msg):
+            ujson.dumps([string])
+
     def test_encode_array_in_array(self):
         arr_in_arr_input = [[[[]]]]
         output = ujson.encode(arr_in_arr_input)

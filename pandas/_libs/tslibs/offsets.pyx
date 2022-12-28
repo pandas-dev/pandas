@@ -162,7 +162,11 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result = (<_Timestamp>Timestamp(result))._as_creso(other._creso)
+        result2 = Timestamp(result).as_unit(other.unit)
+        if result == result2:
+            # i.e. the conversion is non-lossy, not the case for e.g.
+            #  test_milliseconds_combination
+            result = result2
 
         if self._adjust_dst:
             result = result.tz_localize(tz)
@@ -298,43 +302,54 @@ _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
 
 
 cdef _determine_offset(kwds):
-    # timedelta is used for sub-daily plural offsets and all singular
-    # offsets, relativedelta is used for plural offsets of daily length or
-    # more, nanosecond(s) are handled by apply_wraps
-    kwds_no_nanos = dict(
-        (k, v) for k, v in kwds.items()
-        if k not in ("nanosecond", "nanoseconds")
+    if not kwds:
+        # GH 45643/45890: (historically) defaults to 1 day
+        return timedelta(days=1), False
+
+    if "millisecond" in kwds:
+        raise NotImplementedError(
+            "Using DateOffset to replace `millisecond` component in "
+            "datetime object is not supported. Use "
+            "`microsecond=timestamp.microsecond % 1000 + ms * 1000` "
+            "instead."
+        )
+
+    nanos = {"nanosecond", "nanoseconds"}
+
+    # nanos are handled by apply_wraps
+    if all(k in nanos for k in kwds):
+        return timedelta(days=0), False
+
+    kwds_no_nanos = {k: v for k, v in kwds.items() if k not in nanos}
+
+    kwds_use_relativedelta = {
+        "year", "month", "day", "hour", "minute",
+        "second", "microsecond", "weekday", "years", "months", "weeks", "days",
+        "hours", "minutes", "seconds", "microseconds"
+    }
+
+    # "weeks" and "days" are left out despite being valid args for timedelta,
+    # because (historically) timedelta is used only for sub-daily.
+    kwds_use_timedelta = {
+        "seconds", "microseconds", "milliseconds", "minutes", "hours",
+    }
+
+    if all(k in kwds_use_timedelta for k in kwds_no_nanos):
+        # Sub-daily offset - use timedelta (tz-aware)
+        # This also handles "milliseconds" (plur): see GH 49897
+        return timedelta(**kwds_no_nanos), False
+
+    # convert milliseconds to microseconds, so relativedelta can parse it
+    if "milliseconds" in kwds_no_nanos:
+        micro = kwds_no_nanos.pop("milliseconds") * 1000
+        kwds_no_nanos["microseconds"] = kwds_no_nanos.get("microseconds", 0) + micro
+
+    if all(k in kwds_use_relativedelta for k in kwds_no_nanos):
+        return relativedelta(**kwds_no_nanos), True
+
+    raise ValueError(
+        f"Invalid argument/s or bad combination of arguments: {list(kwds.keys())}"
     )
-    # TODO: Are nanosecond and nanoseconds allowed somewhere?
-
-    _kwds_use_relativedelta = ("years", "months", "weeks", "days",
-                               "year", "month", "week", "day", "weekday",
-                               "hour", "minute", "second", "microsecond",
-                               "millisecond")
-
-    use_relativedelta = False
-    if len(kwds_no_nanos) > 0:
-        if any(k in _kwds_use_relativedelta for k in kwds_no_nanos):
-            if "millisecond" in kwds_no_nanos:
-                raise NotImplementedError(
-                    "Using DateOffset to replace `millisecond` component in "
-                    "datetime object is not supported. Use "
-                    "`microsecond=timestamp.microsecond % 1000 + ms * 1000` "
-                    "instead."
-                )
-            offset = relativedelta(**kwds_no_nanos)
-            use_relativedelta = True
-        else:
-            # sub-daily offset - use timedelta (tz-aware)
-            offset = timedelta(**kwds_no_nanos)
-    elif any(nano in kwds for nano in ("nanosecond", "nanoseconds")):
-        offset = timedelta(days=0)
-    else:
-        # GH 45643/45890: (historically) defaults to 1 day for non-nano
-        # since datetime.timedelta doesn't handle nanoseconds
-        offset = timedelta(days=1)
-    return offset, use_relativedelta
-
 
 # ---------------------------------------------------------------------
 # Mixins & Singletons
@@ -1163,7 +1178,6 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
     def __init__(self, n=1, normalize=False, **kwds):
         BaseOffset.__init__(self, n, normalize)
-
         off, use_rd = _determine_offset(kwds)
         object.__setattr__(self, "_offset", off)
         object.__setattr__(self, "_use_relativedelta", use_rd)
@@ -1494,11 +1508,29 @@ cdef class BusinessDay(BusinessMixin):
     """
     DateOffset subclass representing possibly n business days.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of days represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight.
+
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 8, 5)
-    >>> ts + pd.offsets.BusinessDay()
-    Timestamp('2022-08-08 00:00:00')
+    You can use the parameter ``n`` to represent a shift of n business days.
+
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts.strftime('%a %d %b %Y %H:%M')
+    'Fri 09 Dec 2022 15:00'
+    >>> (ts + pd.offsets.BusinessDay(n=5)).strftime('%a %d %b %Y %H:%M')
+    'Fri 16 Dec 2022 15:00'
+
+    Passing the parameter ``normalize`` equal to True, you shift the start
+    of the next business day to midnight.
+
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts + pd.offsets.BusinessDay(normalize=True)
+    Timestamp('2022-12-12 00:00:00')
     """
     _period_dtype_code = PeriodDtypeCode.B
     _prefix = "B"
@@ -1610,11 +1642,9 @@ cdef class BusinessHour(BusinessMixin):
     Parameters
     ----------
     n : int, default 1
-        The number of months represented.
+        The number of hours represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    weekmask : str, Default 'Mon Tue Wed Thu Fri'
-        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
     start : str, time, or list of str/time, default "09:00"
         Start time of your custom business hour in 24h format.
     end : str, time, or list of str/time, default: "17:00"
@@ -1622,17 +1652,43 @@ cdef class BusinessHour(BusinessMixin):
 
     Examples
     --------
-    >>> from datetime import time
+    You can use the parameter ``n`` to represent a shift of n hours.
+
+    >>> ts = pd.Timestamp(2022, 12, 9, 8)
+    >>> ts + pd.offsets.BusinessHour(n=5)
+    Timestamp('2022-12-09 14:00:00')
+
+    You can also change the start and the end of business hours.
+
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
-    >>> ts + pd.offsets.BusinessHour()
-    Timestamp('2022-08-08 09:00:00')
     >>> ts + pd.offsets.BusinessHour(start="11:00")
     Timestamp('2022-08-08 11:00:00')
-    >>> ts + pd.offsets.BusinessHour(end=time(19, 0))
-    Timestamp('2022-08-05 17:00:00')
-    >>> ts + pd.offsets.BusinessHour(start=[time(9, 0), "20:00"],
-    ...                              end=["17:00", time(22, 0)])
-    Timestamp('2022-08-05 20:00:00')
+
+    >>> from datetime import time as dt_time
+    >>> ts = pd.Timestamp(2022, 8, 5, 22)
+    >>> ts + pd.offsets.BusinessHour(end=dt_time(19, 0))
+    Timestamp('2022-08-08 10:00:00')
+
+    Passing the parameter ``normalize`` equal to True, you shift the start
+    of the next business hour to midnight.
+
+    >>> ts = pd.Timestamp(2022, 12, 9, 8)
+    >>> ts + pd.offsets.BusinessHour(normalize=True)
+    Timestamp('2022-12-09 00:00:00')
+
+    You can divide your business day hours into several parts.
+
+    >>> import datetime as dt
+    >>> freq = pd.offsets.BusinessHour(start=["06:00", "10:00", "15:00"],
+    ...                                end=["08:00", "12:00", "17:00"])
+    >>> pd.date_range(dt.datetime(2022, 12, 9), dt.datetime(2022, 12, 13), freq=freq)
+    DatetimeIndex(['2022-12-09 06:00:00', '2022-12-09 07:00:00',
+                   '2022-12-09 10:00:00', '2022-12-09 11:00:00',
+                   '2022-12-09 15:00:00', '2022-12-09 16:00:00',
+                   '2022-12-12 06:00:00', '2022-12-12 07:00:00',
+                   '2022-12-12 10:00:00', '2022-12-12 11:00:00',
+                   '2022-12-12 15:00:00', '2022-12-12 16:00:00'],
+                   dtype='datetime64[ns]', freq='BH')
     """
 
     _prefix = "BH"
@@ -3536,6 +3592,7 @@ cdef class CustomBusinessDay(BusinessDay):
     Parameters
     ----------
     n : int, default 1
+        The number of days represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
@@ -3624,7 +3681,7 @@ cdef class CustomBusinessHour(BusinessHour):
     Parameters
     ----------
     n : int, default 1
-        The number of months represented.
+        The number of hours represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
@@ -3662,7 +3719,7 @@ cdef class CustomBusinessHour(BusinessHour):
     >>> ts + pd.offsets.CustomBusinessHour(end=dt_time(19, 0))
     Timestamp('2022-08-08 10:00:00')
 
-    In the example below we divide our business day hours into several parts.
+    You can divide your business day hours into several parts.
 
     >>> import datetime as dt
     >>> freq = pd.offsets.CustomBusinessHour(start=["06:00", "10:00", "15:00"],
@@ -3692,7 +3749,7 @@ cdef class CustomBusinessHour(BusinessHour):
            'Fri 16 Dec 2022 12:00'],
            dtype='object')
 
-    In the example below we define custom holidays by using NumPy business day calendar.
+    Using NumPy business day calendar you can define custom holidays.
 
     >>> import datetime as dt
     >>> bdc = np.busdaycalendar(holidays=['2022-12-12', '2022-12-14'])
