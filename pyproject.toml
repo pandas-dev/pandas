@@ -428,6 +428,7 @@ reportUnboundVariable = false
 
 [tool.coverage.run]
 branch = true
+dynamic_context = "test_function"
 omit = ["pandas/_typing.py", "pandas/_version.py"]
 plugins = ["Cython.Coverage"]
 source = ["pandas"]

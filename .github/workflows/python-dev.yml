@@ -89,10 +89,6 @@ jobs:
       run: |
         python -c "import pandas; pandas.show_versions();"
 
-    - name: Set dynamic context
-      run: |
-        sed -i 's/branch = true/branch = true\ndynamic_context = "test_function"/g' pyproject.toml
-
     - name: Test
       uses: ./.github/actions/run-tests
 
