@@ -132,7 +132,7 @@ class TestTimeConversionFormats:
         ser2 = ser.apply(str)
         ser2[2] = "nat"
         with pytest.raises(
-            ValueError, match='unconverted data remains at position 0: ".0'
+            ValueError, match='unconverted data remains: ".0", at position 0'
         ):
             # https://github.com/pandas-dev/pandas/issues/50051
             to_datetime(ser2, format="%Y%m%d", cache=cache)
@@ -2118,12 +2118,15 @@ class TestToDatetimeMisc:
     def test_to_datetime_iso8601_exact_fails(self, input, format):
         # https://github.com/pandas-dev/pandas/issues/12649
         # `format` is shorter than the date string, so only fails with `exact=True`
+        msg = "|".join(
+            [
+                '^unconverted data remains: ".*", at position 0$',
+                'time data ".*" doesn\'t match format ".*", at position 0',
+            ]
+        )
         with pytest.raises(
             ValueError,
-            match=(
-                rf"time data \"{input}\" doesn't match format "
-                rf"\"{format}\", at position 0"
-            ),
+            match=(msg),
         ):
             to_datetime(input, format=format)
 
@@ -2723,8 +2726,7 @@ class TestDaysInMonth:
             (
                 "2015-02-29",
                 "%Y-%m-%d",
-                '^time data "2015-02-29" doesn\'t match format "%Y-%m-%d", '
-                "at position 0$",
+                "^day is out of range for month, at position 0$",
             ),
             (
                 "2015-29-02",
@@ -2734,8 +2736,7 @@ class TestDaysInMonth:
             (
                 "2015-02-32",
                 "%Y-%m-%d",
-                '^time data "2015-02-32" doesn\'t match format "%Y-%m-%d", '
-                "at position 0$",
+                '^unconverted data remains: "2", at position 0$',
             ),
             (
                 "2015-32-02",
@@ -2746,8 +2747,7 @@ class TestDaysInMonth:
             (
                 "2015-04-31",
                 "%Y-%m-%d",
-                '^time data "2015-04-31" doesn\'t match format "%Y-%m-%d", '
-                "at position 0$",
+                "^day is out of range for month, at position 0$",
             ),
             (
                 "2015-31-04",
