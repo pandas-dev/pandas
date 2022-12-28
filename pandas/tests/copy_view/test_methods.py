@@ -424,6 +424,24 @@ def test_reorder_levels(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.parametrize("obj", [Series([1, 2, 3]), DataFrame({"a": [1, 2, 3]})])
+def test_swaplevel(using_copy_on_write, obj):
+    index = MultiIndex.from_tuples([(1, 1), (1, 2), (2, 1)], names=["one", "two"])
+    obj.index = index
+    obj_orig = obj.copy()
+    obj2 = obj.swaplevel()
+
+    if using_copy_on_write:
+        assert np.shares_memory(obj2.values, obj.values)
+    else:
+        assert not np.shares_memory(obj2.values, obj.values)
+
+    obj2.iloc[0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(obj2.values, obj.values)
+    tm.assert_equal(obj, obj_orig)
+
+
 def test_frame_set_axis(using_copy_on_write):
     # GH 49473
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
