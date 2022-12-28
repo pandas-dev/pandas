@@ -4,7 +4,7 @@ Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 from datetime import datetime
 import re
 
-from dateutil.parser import parse
+from dateutil.parser import parse as du_parse
 import numpy as np
 import pytest
 
@@ -179,6 +179,7 @@ def test_parsers_month_freq(date_str, expected):
         ("2011-12-30 00:00:00.000000", "%Y-%m-%d %H:%M:%S.%f"),
         ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %H:%M:%S %p"),
         ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %H:%M:%S %p"),
+        ("27.03.2003 14:55:00.000", "%d.%m.%Y %H:%M:%S.%f"),  # GH50317
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
@@ -270,9 +271,11 @@ def test_guess_datetime_format_no_padding(string, fmt, dayfirst, warning):
 
 def test_try_parse_dates():
     arr = np.array(["5/1/2000", "6/1/2000", "7/1/2000"], dtype=object)
-    result = parsing.try_parse_dates(arr, dayfirst=True)
+    result = parsing.try_parse_dates(
+        arr, dayfirst=True, parser=lambda x: du_parse(x, dayfirst=True)
+    )
 
-    expected = np.array([parse(d, dayfirst=True) for d in arr])
+    expected = np.array([du_parse(d, dayfirst=True) for d in arr])
     tm.assert_numpy_array_equal(result, expected)
 
 

@@ -353,7 +353,7 @@ class TestEval:
             expected = _eval_single_bin(middle, "**", rhs, engine)
             tm.assert_almost_equal(result, expected)
 
-    def check_single_invert_op(self, lhs, engine, parser):
+    def test_check_single_invert_op(self, lhs, engine, parser):
         # simple
         try:
             elb = lhs.astype(bool)
@@ -1860,7 +1860,6 @@ def test_eval_no_support_column_name(request, column):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented
 def test_set_inplace(using_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual

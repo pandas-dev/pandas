@@ -166,8 +166,6 @@ class TestNumericOnly:
             ],
         )
 
-        with pytest.raises(TypeError, match="[Cc]ould not convert"):
-            getattr(gb, method)()
         result = getattr(gb, method)(numeric_only=True)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
@@ -316,21 +314,6 @@ class TestGroupByNonCythonPaths:
     def gni(self, df):
         gni = df.groupby("A", as_index=False)
         return gni
-
-    # TODO: non-unique columns, as_index=False
-    def test_idxmax_nuisance_raises(self, gb):
-        # GH#5610, GH#41480
-        expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
-        expected.index.name = "A"
-        with pytest.raises(TypeError, match="not allowed for this dtype"):
-            gb.idxmax()
-
-    def test_idxmin_nuisance_raises(self, gb):
-        # GH#5610, GH#41480
-        expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
-        expected.index.name = "A"
-        with pytest.raises(TypeError, match="not allowed for this dtype"):
-            gb.idxmin()
 
     def test_describe(self, df, gb, gni):
         # describe
