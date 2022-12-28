@@ -353,7 +353,7 @@ class TestEval:
             expected = _eval_single_bin(middle, "**", rhs, engine)
             tm.assert_almost_equal(result, expected)
 
-    def check_single_invert_op(self, lhs, engine, parser):
+    def test_check_single_invert_op(self, lhs, engine, parser):
         # simple
         try:
             elb = lhs.astype(bool)
@@ -1362,7 +1362,6 @@ class TestOperations:
         tm.assert_dict_equal(df, expected)
 
     @pytest.mark.parametrize("invalid_target", [1, "cat", [1, 2], np.array([]), (1, 3)])
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_cannot_item_assign(self, invalid_target):
         msg = "Cannot assign expression output to target"
         expression = "a = 1 + 2"
@@ -1861,7 +1860,6 @@ def test_eval_no_support_column_name(request, column):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented
 def test_set_inplace(using_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual

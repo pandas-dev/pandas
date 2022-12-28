@@ -37,6 +37,7 @@ Bug fixes
 
 Other
 ~~~~~
+- Reverted deprecation (:issue:`45324`) of behavior of :meth:`Series.__getitem__` and :meth:`Series.__setitem__` slicing with an integer :class:`Index`; this will remain positional (:issue:`49612`)
 -
 
 .. ---------------------------------------------------------------------------
