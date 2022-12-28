@@ -1227,7 +1227,7 @@ def dedup_names(
 
     Examples
     --------
-    >>> dedup_names(["x", "y", "x", "x"])
+    >>> dedup_names(["x", "y", "x", "x"], is_potential_multiindex=False)
     ['x', 'y', 'x.1', 'x.2']
     """
     names = list(names)  # so we can index
