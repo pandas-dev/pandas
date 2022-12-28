@@ -957,7 +957,7 @@ class PlotAccessor(PandasObject):
                 # check if we have y as int or list of ints
                 int_ylist = is_list_like(y) and all(is_integer(c) for c in y)
                 int_y_arg = is_integer(y) or int_ylist
-                if int_y_arg and data.columns._should_fallback_to_positional:
+                if int_y_arg and not data.columns._holds_integer():
                     y = data_cols[y]
 
                 label_kw = kwargs["label"] if "label" in kwargs else False
