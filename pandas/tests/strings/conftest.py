@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas import Series
-
 # subset of the full set from pandas/conftest.py
 _any_allowed_skipna_inferred_dtype = [
     ("string", ["a", np.nan, "c"]),

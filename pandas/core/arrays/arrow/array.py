@@ -208,7 +208,7 @@ class ArrowExtensionArray(OpsMixin, ObjectStringArrayMixin, ExtensionArray):
                 f"Unsupported type '{type(values)}' for ArrowExtensionArray"
             )
         self._dtype = ArrowDtype(self._data.type)
-        assert self._dtype.na_value is self._str_na_value
+        assert self._dtype.na_value is self._str_na_value  # type: ignore[has-type]
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
