@@ -4879,7 +4879,7 @@ class DataFrame(NDFrame, OpsMixin):
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
-        copy: bool = True,
+        copy: bool | None = None,
         fill_value=None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
