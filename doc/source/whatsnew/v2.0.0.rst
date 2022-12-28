@@ -527,6 +527,7 @@ Removal of prior version deprecations/changes
 - Removed deprecated :func:`pandas.api.types.is_categorical`; use :func:`pandas.api.types.is_categorical_dtype` instead  (:issue:`33385`)
 - Removed deprecated :meth:`Index.asi8` (:issue:`37877`)
 - Enforced deprecation changing behavior when passing ``datetime64[ns]`` dtype data and timezone-aware dtype to :class:`Series`, interpreting the values as wall-times instead of UTC times, matching :class:`DatetimeIndex` behavior (:issue:`41662`)
+- Enforced deprecation changing behavior when applying a numpy ufunc on multiple non-aligned (on the index or columns) :class:`DataFrame` that will now align the inputs first (:issue:`39239`)
 - Removed deprecated :meth:`DataFrame._AXIS_NUMBERS`, :meth:`DataFrame._AXIS_NAMES`, :meth:`Series._AXIS_NUMBERS`, :meth:`Series._AXIS_NAMES` (:issue:`33637`)
 - Removed deprecated :meth:`Index.to_native_types`, use ``obj.astype(str)`` instead (:issue:`36418`)
 - Removed deprecated :meth:`Series.iteritems`, :meth:`DataFrame.iteritems`, use ``obj.items`` instead (:issue:`45321`)
