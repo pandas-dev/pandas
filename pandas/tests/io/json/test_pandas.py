@@ -258,6 +258,27 @@ class TestPandasContainer:
 
         assert_json_roundtrip_equal(result, expected, orient)
 
+    @pytest.mark.xfail(
+        reason="#50456 Column multiindex is stored and loaded differently"
+    )
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            [["2022", "2022"], ["JAN", "FEB"]],
+            [["2022", "2023"], ["JAN", "JAN"]],
+            [["2022", "2022"], ["JAN", "JAN"]],
+        ],
+    )
+    def test_roundtrip_multiindex(self, columns):
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=pd.MultiIndex.from_arrays(columns),
+        )
+
+        result = read_json(df.to_json(orient="split"), orient="split")
+
+        tm.assert_frame_equal(result, df)
+
     @pytest.mark.parametrize(
         "data,msg,orient",
         [

@@ -1217,7 +1217,7 @@ def is_potential_multi_index(
 
 
 def dedup_names(
-    names: Sequence[Hashable], is_potential_multi_index: bool
+    names: Sequence[Hashable], is_potential_multiindex: bool
 ) -> Sequence[Hashable]:
     """
     Rename column names if duplicates exist.
@@ -1239,7 +1239,7 @@ def dedup_names(
         while cur_count > 0:
             counts[col] = cur_count + 1
 
-            if is_potential_multi_index:
+            if is_potential_multiindex:
                 # for mypy
                 assert isinstance(col, tuple)
                 col = col[:-1] + (f"{col[-1]}.{cur_count}",)

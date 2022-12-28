@@ -263,9 +263,13 @@ class PythonParser(ParserBase):
         columns: Sequence[Hashable] = list(self.orig_names)
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
+            # error: Cannot determine type of 'index_col'
             names = dedup_names(
                 self.orig_names,
-                is_potential_multi_index(self.orig_names, self.index_col),
+                is_potential_multi_index(
+                    self.orig_names,
+                    self.index_col,  # type: ignore[has-type]
+                ),
             )
             # error: Cannot determine type of 'index_col'
             index, columns, col_dict = self._get_empty_meta(
@@ -300,8 +304,13 @@ class PythonParser(ParserBase):
         self,
         alldata: list[np.ndarray],
     ) -> tuple[Mapping[Hashable, np.ndarray], Sequence[Hashable]]:
+        # error: Cannot determine type of 'index_col'
         names = dedup_names(
-            self.orig_names, is_potential_multi_index(self.orig_names, self.index_col)
+            self.orig_names,
+            is_potential_multi_index(
+                self.orig_names,
+                self.index_col,  # type: ignore[has-type]
+            ),
         )
 
         offset = 0

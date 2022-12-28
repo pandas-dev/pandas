@@ -59,6 +59,7 @@ from pandas.io.common import (
     IOHandles,
     _extension_to_compression,
     dedup_names,
+    is_potential_multi_index,
     file_exists,
     get_handle,
     is_fsspec_url,
@@ -1247,9 +1248,14 @@ class FrameParser(Parser):
                 for k, v in loads(json, precise_float=self.precise_float).items()
             }
             self.check_keys_split(decoded)
+            """
+            orig_names = [(tuple(col) if isinstance(col, list) else col)
+                           for col in decoded["columns"]]
             decoded["columns"] = dedup_names(
-                names=decoded["columns"], is_potential_multi_index=False
+                orig_names,
+                is_potential_multi_index(orig_names, None),
             )
+            """
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
             self.obj = DataFrame.from_dict(
