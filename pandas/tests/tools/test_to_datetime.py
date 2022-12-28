@@ -132,7 +132,9 @@ class TestTimeConversionFormats:
         # string with NaT
         ser2 = ser.apply(str)
         ser2[2] = "nat"
-        with pytest.raises(ValueError, match="unconverted data remains: .0"):
+        with pytest.raises(
+            ValueError, match='unconverted data remains at position 0: ".0'
+        ):
             # https://github.com/pandas-dev/pandas/issues/50051
             to_datetime(ser2, format="%Y%m%d", cache=cache)
 
@@ -2066,8 +2068,8 @@ class TestToDatetimeMisc:
         with pytest.raises(
             ValueError,
             match=(
-                rf"time data '{input}' does not match format "
-                rf"\'{format}\' \((match|search)\) at position 0"
+                rf"time data \"{input}\" at position 0 doesn't match format "
+                rf"\"{format}\""
             ),
         ):
             to_datetime(input, format=format, exact=exact)
@@ -2085,10 +2087,13 @@ class TestToDatetimeMisc:
     def test_to_datetime_iso8601_exact_fails(self, input, format):
         # https://github.com/pandas-dev/pandas/issues/12649
         # `format` is shorter than the date string, so only fails with `exact=True`
-        with pytest.raises(
-            ValueError,
-            match="(unconverted data remains: |does not match format).* at position 0",
-        ):
+        msg = "|".join(
+            [
+                '^unconverted data remains at position 0: ".*"$',
+                '^time data "0" at position 0 doesn\'t match format ".*"$',
+            ]
+        )
+        with pytest.raises(ValueError, match=msg):
             to_datetime(input, format=format)
 
     @pytest.mark.parametrize(
@@ -2124,8 +2129,8 @@ class TestToDatetimeMisc:
         with pytest.raises(
             ValueError,
             match=(
-                rf"time data '{input}' does not match format "
-                rf"'{format}' \(match\) at position 0"
+                rf"time data \"{input}\" at position 0 doesn\'t match format "
+                rf"\"{format}\""
             ),
         ):
             to_datetime(input, format=format)
@@ -2683,7 +2688,12 @@ class TestDaysInMonth:
 
     @pytest.mark.parametrize("arg", ["2015-02-29", "2015-02-32", "2015-04-31"])
     def test_day_not_in_month_raise_value(self, cache, arg):
-        msg = "(day is out of range for month|unconverted data remains).* at position 0"
+        msg = "|".join(
+            [
+                "^day is out of range for month$",
+                '^unconverted data remains at position 0: "2"$',
+            ]
+        )
         with pytest.raises(ValueError, match=msg):
             to_datetime(arg, errors="raise", format="%Y-%m-%d", cache=cache)
 

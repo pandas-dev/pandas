@@ -137,6 +137,7 @@ def array_strptime(
     exact : matches must be exact if True, search if False
     errors : string specifying error handling, {'raise', 'ignore', 'coerce'}
     """
+
     cdef:
         Py_ssize_t i, n = len(values)
         npy_datetimestruct dts
@@ -277,57 +278,45 @@ def array_strptime(
             else:
                 val = str(val)
 
-        if iso_format:
-            string_to_dts_failed = string_to_dts(
-                val, &dts, &out_bestunit, &out_local,
-                &out_tzoffset, False, fmt, exact
-            )
-            if not string_to_dts_failed:
-                # No error reported by string_to_dts, pick back up
-                # where we left off
-                value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
-                if out_local == 1:
-                    # Store the out_tzoffset in seconds
-                    # since we store the total_seconds of
-                    # dateutil.tz.tzoffset objects
-                    tz = timezone(timedelta(minutes=out_tzoffset))
-                    result_timezone[i] = tz
-                    out_local = 0
-                    out_tzoffset = 0
-                iresult[i] = value
-                try:
+            if iso_format:
+                string_to_dts_failed = string_to_dts(
+                    val, &dts, &out_bestunit, &out_local,
+                    &out_tzoffset, False, fmt, exact
+                )
+                if not string_to_dts_failed:
+                    # No error reported by string_to_dts, pick back up
+                    # where we left off
+                    value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
+                    if out_local == 1:
+                        # Store the out_tzoffset in seconds
+                        # since we store the total_seconds of
+                        # dateutil.tz.tzoffset objects
+                        tz = timezone(timedelta(minutes=out_tzoffset))
+                        result_timezone[i] = tz
+                        out_local = 0
+                        out_tzoffset = 0
+                    iresult[i] = value
                     check_dts_bounds(&dts)
-                except ValueError:
-                    if is_coerce:
-                        iresult[i] = NPY_NAT
-                        continue
-                    raise
+                    continue
+
+            if parse_today_now(val, &iresult[i], utc):
                 continue
 
-        if parse_today_now(val, &iresult[i], utc):
-            continue
+            # Some ISO formats can't be parsed by string_to_dts
+            # For example, 6-digit YYYYMD. So, if there's an error,
+            # try the string-matching code below.
 
-        # Some ISO formats can't be parsed by string_to_dts
-        # For example, 6-digit YYYYMD. So, if there's an error,
-        # try the string-matching code below.
-
-        # exact matching
-        if exact:
-            found = format_regex.match(val)
-            if not found:
-                if is_coerce:
-                    iresult[i] = NPY_NAT
-                    continue
-                raise ValueError(f"time data \"{val}\" at position {i} doesn't "
-                                 f"match format \"{fmt}\"")
-            if len(val) != found.end():
-                if is_coerce:
-                    iresult[i] = NPY_NAT
-                    continue
-                raise ValueError(
-                    f"unconverted data remains at position {i}: "
-                    f'"{val[found.end():]}"'
-                )
+            # exact matching
+            if exact:
+                found = format_regex.match(val)
+                if not found:
+                    raise ValueError(f"time data \"{val}\" at position {i} doesn't "
+                                     f"match format \"{fmt}\"")
+                if len(val) != found.end():
+                    raise ValueError(
+                        f"unconverted data remains at position {i}: "
+                        f'"{val[found.end():]}"'
+                    )
 
             # search
             else:
