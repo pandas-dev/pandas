@@ -1,3 +1,6 @@
+from pandas.core.arrays import BaseMaskedArray
+
+
 def get_array(df, col):
     """
     Helper method to get array for a DataFrame column.
@@ -8,4 +11,7 @@ def get_array(df, col):
     """
     icol = df.columns.get_loc(col)
     assert isinstance(icol, int)
-    return df._get_column_array(icol)
+    arr = df._get_column_array(icol)
+    if isinstance(arr, BaseMaskedArray):
+        return arr._data
+    return arr
