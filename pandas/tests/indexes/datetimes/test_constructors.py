@@ -547,7 +547,7 @@ class TestDatetimeIndex:
         # coerces to object
         tm.assert_index_equal(Index(dates), exp)
 
-        msg = "Out of bounds .* present at position 0"
+        msg = "^Out of bounds nanosecond timestamp: 3000-01-01 00:00:00, at position 0$"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
@@ -804,7 +804,7 @@ class TestDatetimeIndex:
     )
     def test_constructor_with_int_tz(self, klass, box, tz, dtype):
         # GH 20997, 20964
-        ts = Timestamp("2018-01-01", tz=tz)
+        ts = Timestamp("2018-01-01", tz=tz).as_unit("ns")
         result = klass(box([ts.value]), dtype=dtype)
         expected = klass([ts])
         assert result == expected
