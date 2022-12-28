@@ -303,7 +303,7 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period(month=1)
 
-        msg = "Given date string -2000 not likely a datetime"
+        msg = '^Given date string "-2000" not likely a datetime$'
         with pytest.raises(ValueError, match=msg):
             Period("-2000", "A")
         msg = "day is out of range for month"
