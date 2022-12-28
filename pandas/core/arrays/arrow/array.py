@@ -41,7 +41,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
@@ -683,7 +682,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         if isinstance(value, ExtensionArray):
             value = value.astype(object)
         # Base class searchsorted would cast to object, which is *much* slower.
-        return algos.searchsorted(self.to_numpy(), value, side=side, sorter=sorter)
+        return self.to_numpy().searchsorted(value, side=side, sorter=sorter)
 
     def take(
         self,
