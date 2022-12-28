@@ -612,19 +612,13 @@ class IntervalIndex(ExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def get_loc(
-        self, key, method: str | None = None, tolerance=None
-    ) -> int | slice | np.ndarray:
+    def get_loc(self, key) -> int | slice | np.ndarray:
         """
         Get integer location, slice or boolean mask for requested label.
 
         Parameters
         ----------
         key : label
-        method : {None}, optional
-            * default: matches where the label is within an interval only.
-
-            .. deprecated:: 1.4
 
         Returns
         -------
@@ -655,7 +649,6 @@ class IntervalIndex(ExtensionIndex):
         >>> index.get_loc(pd.Interval(0, 1))
         0
         """
-        self._check_indexing_method(method)
         self._check_indexing_error(key)
 
         if isinstance(key, Interval):
@@ -796,7 +789,7 @@ class IntervalIndex(ExtensionIndex):
         "cannot handle overlapping indices; use IntervalIndex.get_indexer_non_unique"
     )
 
-    def _convert_slice_indexer(self, key: slice, kind: str, is_frame: bool = False):
+    def _convert_slice_indexer(self, key: slice, kind: str):
         if not (key.step is None or key.step == 1):
             # GH#31658 if label-based, we require step == 1,
             #  if positional, we disallow float start/stop
@@ -808,7 +801,7 @@ class IntervalIndex(ExtensionIndex):
                     # i.e. this cannot be interpreted as a positional slice
                     raise ValueError(msg)
 
-        return super()._convert_slice_indexer(key, kind, is_frame=is_frame)
+        return super()._convert_slice_indexer(key, kind)
 
     @cache_readonly
     def _should_fallback_to_positional(self) -> bool:

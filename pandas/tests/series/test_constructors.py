@@ -76,7 +76,7 @@ class TestSeriesConstructors:
     def test_unparseable_strings_with_dt64_dtype(self):
         # pre-2.0 these would be silently ignored and come back with object dtype
         vals = ["aa"]
-        msg = "Unknown string format: aa present at position 0"
+        msg = "^Unknown string format: aa, at position 0$"
         with pytest.raises(ValueError, match=msg):
             Series(vals, dtype="datetime64[ns]")
 
@@ -1986,6 +1986,21 @@ class TestSeriesConstructors:
         for null in tm.NP_NAT_OBJECTS + [NaT]:
             with pytest.raises(TypeError, match=msg):
                 func([null, 1.0, 3.0], dtype=any_numeric_ea_dtype)
+
+    def test_series_constructor_ea_int_from_bool(self):
+        # GH#42137
+        result = Series([True, False, True, pd.NA], dtype="Int64")
+        expected = Series([1, 0, 1, pd.NA], dtype="Int64")
+        tm.assert_series_equal(result, expected)
+
+        result = Series([True, False, True], dtype="Int64")
+        expected = Series([1, 0, 1], dtype="Int64")
+        tm.assert_series_equal(result, expected)
+
+    def test_series_constructor_ea_int_from_string_bool(self):
+        # GH#42137
+        with pytest.raises(ValueError, match="invalid literal"):
+            Series(["True", "False", "True", pd.NA], dtype="Int64")
 
 
 class TestSeriesConstructorIndexCoercion:

@@ -62,7 +62,6 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
-from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -1135,7 +1134,6 @@ class DataFrameRenderer:
         string = string_formatter.to_string()
         return save_to_buffer(string, buf=buf, encoding=encoding)
 
-    @deprecate_kwarg(old_arg_name="line_terminator", new_arg_name="lineterminator")
     def to_csv(
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -1259,6 +1257,7 @@ def format_array(
     decimal: str = ".",
     leading_space: bool | None = True,
     quoting: int | None = None,
+    fallback_formatter: Callable | None = None,
 ) -> list[str]:
     """
     Format an array for printing.
@@ -1281,6 +1280,7 @@ def format_array(
         When formatting an Index subclass
         (e.g. IntervalIndex._format_native_types), we don't want the
         leading space since it should be left-aligned.
+    fallback_formatter
 
     Returns
     -------
@@ -1322,6 +1322,7 @@ def format_array(
         decimal=decimal,
         leading_space=leading_space,
         quoting=quoting,
+        fallback_formatter=fallback_formatter,
     )
 
     return fmt_obj.get_result()
@@ -1341,6 +1342,7 @@ class GenericArrayFormatter:
         quoting: int | None = None,
         fixed_width: bool = True,
         leading_space: bool | None = True,
+        fallback_formatter: Callable | None = None,
     ) -> None:
         self.values = values
         self.digits = digits
@@ -1353,6 +1355,7 @@ class GenericArrayFormatter:
         self.quoting = quoting
         self.fixed_width = fixed_width
         self.leading_space = leading_space
+        self.fallback_formatter = fallback_formatter
 
     def get_result(self) -> list[str]:
         fmt_values = self._format_strings()
@@ -1371,6 +1374,8 @@ class GenericArrayFormatter:
 
         if self.formatter is not None:
             formatter = self.formatter
+        elif self.fallback_formatter is not None:
+            formatter = self.fallback_formatter
         else:
             quote_strings = self.quoting is not None and self.quoting != QUOTE_NONE
             formatter = partial(
@@ -1419,7 +1424,7 @@ class GenericArrayFormatter:
 
         fmt_values = []
         for i, v in enumerate(vals):
-            if not is_float_type[i] and leading_space:
+            if not is_float_type[i] and leading_space or self.formatter is not None:
                 fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
@@ -1651,8 +1656,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
         values = extract_array(self.values, extract_numpy=True)
 
         formatter = self.formatter
+        fallback_formatter = None
         if formatter is None:
-            formatter = values._formatter(boxed=True)
+            fallback_formatter = values._formatter(boxed=True)
 
         if isinstance(values, Categorical):
             # Categorical is special for now, so that we can preserve tzinfo
@@ -1671,6 +1677,7 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
             decimal=self.decimal,
             leading_space=self.leading_space,
             quoting=self.quoting,
+            fallback_formatter=fallback_formatter,
         )
         return fmt_values
 

@@ -44,6 +44,7 @@ from pandas._libs import (
 )
 from pandas._libs.algos import rank_1d
 import pandas._libs.groupby as libgroupby
+from pandas._libs.missing import NA
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -494,7 +495,7 @@ Aggregate using one or more operations over the specified axis.
 
 Parameters
 ----------
-func : function, str, list or dict
+func : function, str, list, dict or None
     Function to use for aggregating the data. If a function, must either
     work when passed a {klass} or when passed to {klass}.apply.
 
@@ -504,6 +505,10 @@ func : function, str, list or dict
     - string function name
     - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
     - dict of axis labels -> functions, function names or list of such.
+    - None, in which case ``**kwargs`` are used with Named Aggregation. Here the
+      output has one column for each element in ``**kwargs``. The name of the
+      column is keyword, whereas the value determines the aggregation used to compute
+      the values in the column.
 
     Can also accept a Numba JIT function with
     ``engine='numba'`` specified. Only passing a single function is supported
@@ -534,7 +539,9 @@ engine_kwargs : dict, default None
 
     .. versionadded:: 1.1.0
 **kwargs
-    Keyword arguments to be passed into func.
+    * If ``func`` is None, ``**kwargs`` are used to define the output names and
+      aggregations via Named Aggregation. See ``func`` entry.
+    * Otherwise, keyword arguments to be passed into func.
 
 Returns
 -------
@@ -544,10 +551,10 @@ See Also
 --------
 {klass}.groupby.apply : Apply function func group-wise
     and combine the results together.
-{klass}.groupby.transform : Aggregate using one or more
-    operations over the specified axis.
-{klass}.aggregate : Transforms the Series on each group
+{klass}.groupby.transform : Transforms the Series on each group
     based on the given function.
+{klass}.aggregate : Aggregate using one or more
+    operations over the specified axis.
 
 Notes
 -----
@@ -1007,14 +1014,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         # This is a no-op for SeriesGroupBy
         grp = self.grouper
-        if not (
-            grp.groupings is not None
-            and self.obj.ndim > 1
-            and self._group_selection is None
+        if (
+            grp.groupings is None
+            or self.obj.ndim == 1
+            or self._group_selection is not None
         ):
             return
 
-        groupers = [g.name for g in grp.groupings if g.level is None and g.in_axis]
+        groupers = self.exclusions
 
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
@@ -2927,7 +2934,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # (e.g. we have selected out
             # a column that is not in the current object)
             axis = self.grouper.axis
-            grouper = axis[axis.isin(dropped.index)]
+            grouper = self.grouper.codes_info[axis.isin(dropped.index)]
+            if self.grouper.has_dropped_na:
+                # Null groups need to still be encoded as -1 when passed to groupby
+                nulls = grouper == -1
+                # error: No overload variant of "where" matches argument types
+                #        "Any", "NAType", "Any"
+                values = np.where(nulls, NA, grouper)  # type: ignore[call-overload]
+                grouper = Index(values, dtype="Int64")
 
         else:
 

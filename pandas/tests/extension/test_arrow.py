@@ -343,6 +343,54 @@ class TestGetitemTests(base.BaseGetitemTests):
         super().test_getitem_scalar(data)
 
 
+class TestBaseAccumulateTests(base.BaseAccumulateTests):
+    def check_accumulate(self, s, op_name, skipna):
+        result = getattr(s, op_name)(skipna=skipna).astype("Float64")
+        expected = getattr(s.astype("Float64"), op_name)(skipna=skipna)
+        self.assert_series_equal(result, expected, check_dtype=False)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_accumulate_series_raises(
+        self, data, all_numeric_accumulations, skipna, request
+    ):
+        pa_type = data.dtype.pyarrow_dtype
+        if (
+            (pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type))
+            and all_numeric_accumulations == "cumsum"
+            and not pa_version_under9p0
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{all_numeric_accumulations} implemented for {pa_type}"
+                )
+            )
+        op_name = all_numeric_accumulations
+        ser = pd.Series(data)
+
+        with pytest.raises(NotImplementedError):
+            getattr(ser, op_name)(skipna=skipna)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_accumulate_series(self, data, all_numeric_accumulations, skipna, request):
+        pa_type = data.dtype.pyarrow_dtype
+        if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{all_numeric_accumulations} not implemented",
+                    raises=NotImplementedError,
+                )
+            )
+        elif not (pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type)):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{all_numeric_accumulations} not implemented for {pa_type}"
+                )
+            )
+        op_name = all_numeric_accumulations
+        ser = pd.Series(data)
+        self.check_accumulate(ser, op_name, skipna)
+
+
 class TestBaseNumericReduce(base.BaseNumericReduceTests):
     def check_reduce(self, ser, op_name, skipna):
         pa_dtype = ser.dtype.pyarrow_dtype
@@ -1423,6 +1471,14 @@ def test_astype_from_non_pyarrow(data):
     tm.assert_extension_array_equal(result, data)
 
 
+def test_astype_float_from_non_pyarrow_str():
+    # GH50430
+    ser = pd.Series(["1.0"])
+    result = ser.astype("float64[pyarrow]")
+    expected = pd.Series([1.0], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 def test_to_numpy_with_defaults(data):
     # GH49973
     result = data.to_numpy()
@@ -1438,3 +1494,62 @@ def test_to_numpy_with_defaults(data):
         expected[pd.isna(data)] = pd.NA
 
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_setitem_null_slice(data):
+    # GH50248
+    orig = data.copy()
+
+    result = orig.copy()
+    result[:] = data[0]
+    expected = ArrowExtensionArray(
+        pa.array([data[0]] * len(data), type=data._data.type)
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+    result = orig.copy()
+    result[:] = data[::-1]
+    expected = data[::-1]
+    tm.assert_extension_array_equal(result, expected)
+
+    result = orig.copy()
+    result[:] = data.tolist()
+    expected = data
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_setitem_invalid_dtype(data):
+    # GH50248
+    pa_type = data._data.type
+    if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
+        fill_value = 123
+        err = pa.ArrowTypeError
+        msg = "Expected bytes"
+    elif (
+        pa.types.is_integer(pa_type)
+        or pa.types.is_floating(pa_type)
+        or pa.types.is_boolean(pa_type)
+    ):
+        fill_value = "foo"
+        err = pa.ArrowInvalid
+        msg = "Could not convert"
+    else:
+        fill_value = "foo"
+        err = pa.ArrowTypeError
+        msg = "cannot be converted"
+    with pytest.raises(err, match=msg):
+        data[:] = fill_value
+
+
+def test_round():
+    dtype = "float64[pyarrow]"
+
+    ser = pd.Series([0.0, 1.23, 2.56, pd.NA], dtype=dtype)
+    result = ser.round(1)
+    expected = pd.Series([0.0, 1.2, 2.6, pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser = pd.Series([123.4, pd.NA, 56.78], dtype=dtype)
+    result = ser.round(-1)
+    expected = pd.Series([120.0, pd.NA, 60.0], dtype=dtype)
+    tm.assert_series_equal(result, expected)

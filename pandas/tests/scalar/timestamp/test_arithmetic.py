@@ -38,7 +38,7 @@ class TestTimestampArithmetic:
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         # ends up multiplying really large numbers which overflow
 
-        stamp = Timestamp("2017-01-13 00:00:00")
+        stamp = Timestamp("2017-01-13 00:00:00").as_unit("ns")
         offset_overflow = 20169940 * offsets.Day(1)
         msg = (
             "the add operation between "
@@ -59,7 +59,7 @@ class TestTimestampArithmetic:
         # xref https://github.com/pandas-dev/pandas/issues/14080
         # used to crash, so check for proper overflow exception
 
-        stamp = Timestamp("2000/1/1")
+        stamp = Timestamp("2000/1/1").as_unit("ns")
         offset_overflow = to_offset("D") * 100**5
 
         lmsg3 = (
@@ -77,8 +77,8 @@ class TestTimestampArithmetic:
     def test_overflow_timestamp_raises(self):
         # https://github.com/pandas-dev/pandas/issues/31774
         msg = "Result is too large"
-        a = Timestamp("2101-01-01 00:00:00")
-        b = Timestamp("1688-01-01 00:00:00")
+        a = Timestamp("2101-01-01 00:00:00").as_unit("ns")
+        b = Timestamp("1688-01-01 00:00:00").as_unit("ns")
 
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             a - b
@@ -239,7 +239,7 @@ class TestTimestampArithmetic:
     @pytest.mark.parametrize("shape", [(6,), (2, 3)])
     def test_addsub_m8ndarray(self, shape):
         # GH#33296
-        ts = Timestamp("2020-04-04 15:45")
+        ts = Timestamp("2020-04-04 15:45").as_unit("ns")
         other = np.arange(6).astype("m8[h]").reshape(shape)
 
         result = ts + other
