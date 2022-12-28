@@ -1455,7 +1455,6 @@ class TestDataFrameIndexing:
         with pytest.raises(ValueError, match=msg):
             df.iloc[:, indexer.values]
 
-    @pytest.mark.filterwarnings("ignore:indexing past lexsort.*:PerformanceWarning")
     @pytest.mark.parametrize("indexer", [True, (True,)])
     @pytest.mark.parametrize("dtype", [bool, "boolean"])
     def test_loc_bool_multiindex(self, dtype, indexer):
