@@ -1140,6 +1140,8 @@ class IndexOpsMixin(OpsMixin):
         codes, uniques = algorithms.factorize(
             self._values, sort=sort, use_na_sentinel=use_na_sentinel
         )
+        if uniques.dtype == np.float16:
+            uniques = uniques.astype(np.float32)
 
         if isinstance(self, ABCIndex):
             # preserve e.g. NumericIndex, preserve MultiIndex

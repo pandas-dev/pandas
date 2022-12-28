@@ -47,16 +47,12 @@ def test_max_min_object_multiple_columns(using_array_manager):
 
     gb = df.groupby("A")
 
-    with pytest.raises(TypeError, match="not supported between instances"):
-        gb.max(numeric_only=False)
     result = gb[["C"]].max()
     # "max" is valid for column "C" but not for "B"
     ei = Index([1, 2, 3], name="A")
     expected = DataFrame({"C": ["b", "d", "e"]}, index=ei)
     tm.assert_frame_equal(result, expected)
 
-    with pytest.raises(TypeError, match="not supported between instances"):
-        gb.max(numeric_only=False)
     result = gb[["C"]].min()
     # "min" is valid for column "C" but not for "B"
     ei = Index([1, 2, 3], name="A")
