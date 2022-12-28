@@ -3533,6 +3533,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             second argument, i.e. the signature should be
             (ndarray, Type). If `needs_nullable=True`, a third argument should be
             `nullable`, to allow for processing specific to nullable values.
+        how : str, default any_all
+            Determines if any/all cython interface or std interface is used.
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
