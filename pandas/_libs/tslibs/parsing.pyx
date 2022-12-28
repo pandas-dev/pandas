@@ -824,24 +824,20 @@ def format_is_iso(f: str) -> bint:
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
     but must be consistent.  Leading 0s in dates and times are optional.
     """
-    iso_regex = \
-        r"^\d{4}(-\d{2}(-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(([+-]\d{2}:\d{2})|Z)?)?)?)?$"
-
-    # ^ -> matches the start of the string
-    # \d{4} -> matches the four digit(0-9) which represent the year
-    # -\d{2} -> matches the dash followed by 2 digits
-    # T\d{2}:\d{2}:\d{2} \
-    #    -> "T" followed by three groups seperated by colon: represent H:M:S
-    # (\.\d+)? -> represents the fractions of seconds
-    # (([+-]\d{2}:\d{2})|Z)? -> optional part match the time zone info
-    # ? -> The ? at the end makes the part of regex optional
-    # $ -> matches with the end
-
+    iso_regex = re.compile(
+        r"""
+        ^                       # start of string
+        \d{4}                   # match a 4-digit year
+        (-\d{2})?               # optionally match a 2-digit month
+        (-\d{2})?               # optionally match a 2-digit day
+        (T\d{2}:\d{2}:\d{2}     # match time in the format "THH:MM:SS"
+        (\.\d+)?                # optionally match a decimal and fractional seconds
+        ([+-]\d{2}:\d{2}|Z)?)?  # optional match timezone in the format "+HH:MM" or "Z"
+        $                       # end of string
+        """,
+        re.VERBOSE,
+    )
     excluded_formats = ["%Y%m%d", "%Y%m", "%Y"]
-
-    # uses the 're' module to check if the string matches the regular
-    # expression and not in the list of 'excluded_formats' then it will return true
-
     if re.match(iso_regex, f) and f not in excluded_formats:
         return True
     return False
