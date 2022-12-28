@@ -8,7 +8,6 @@ from pandas._libs.sparse import IntIndex
 import pandas as pd
 from pandas import isna
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 from pandas.core.arrays.sparse import (
     SparseArray,
     SparseDtype,
@@ -469,7 +468,7 @@ def test_dropna(fill_value):
     tm.assert_sp_array_equal(arr.dropna(), exp)
 
     df = pd.DataFrame({"a": [0, 1], "b": arr})
-    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=Int64Index([1]))
+    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=pd.Index([1]))
     tm.assert_equal(df.dropna(), expected_df)
 
 
