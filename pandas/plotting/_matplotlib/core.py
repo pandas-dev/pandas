@@ -602,7 +602,7 @@ class MPLPlot(ABC):
 
         # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
-        data = data.infer_objects(copy=False)
+        data = data.infer_objects()
         include_type = [np.number, "datetime", "datetimetz", "timedelta"]
 
         # GH23719, allow plotting boolean
