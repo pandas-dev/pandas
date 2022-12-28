@@ -310,11 +310,11 @@ def array_strptime(
             if exact:
                 found = format_regex.match(val)
                 if not found:
-                    raise ValueError(f"time data \"{val}\" at position {i} doesn't "
+                    raise ValueError(f"time data \"{val}\" doesn't "
                                      f"match format \"{fmt}\"")
                 if len(val) != found.end():
                     raise ValueError(
-                        f"unconverted data remains at position {i}: "
+                        f"unconverted data remains: "
                         f'"{val[found.end():]}"'
                     )
 
@@ -323,7 +323,7 @@ def array_strptime(
                 found = format_regex.search(val)
                 if not found:
                     raise ValueError(
-                        f"time data \"{val}\" at position {i} doesn't match "
+                        f"time data \"{val}\" doesn't match "
                         f"format \"{fmt}\""
                     )
 
@@ -476,8 +476,7 @@ def array_strptime(
             result_timezone[i] = tz
 
         except (ValueError, OutOfBoundsDatetime) as ex:
-            if isinstance(ex, OutOfBoundsDatetime):
-                ex.args = (f"{str(ex)} present at position {i}",)
+            ex.args = (f"{str(ex)}, at position {i}",)
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue

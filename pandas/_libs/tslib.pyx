@@ -264,8 +264,12 @@ def array_with_unit_to_datetime(
         ndarray[int64_t] iresult
         ndarray[object] oresult
         object tz = None
+        bint is_ym
+        float fval
 
     assert is_ignore or is_coerce or is_raise
+
+    is_ym = unit in "YM"
 
     if unit == "ns":
         result, tz = array_to_datetime(
@@ -291,6 +295,18 @@ def array_with_unit_to_datetime(
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
                 else:
+                    if is_ym and is_float_object(val) and not val.is_integer():
+                        # Analogous to GH#47266 for Timestamp
+                        if is_raise:
+                            raise ValueError(
+                                f"Conversion of non-round float with unit={unit} "
+                                "is ambiguous"
+                            )
+                        elif is_ignore:
+                            raise AssertionError
+                        iresult[i] = NPY_NAT
+                        continue
+
                     try:
                         iresult[i] = cast_from_unit(val, unit)
                     except OverflowError:
@@ -307,8 +323,33 @@ def array_with_unit_to_datetime(
                     iresult[i] = NPY_NAT
 
                 else:
+
                     try:
-                        iresult[i] = cast_from_unit(float(val), unit)
+                        fval = float(val)
+                    except ValueError:
+                        if is_raise:
+                            raise ValueError(
+                                f"non convertible value {val} with the unit '{unit}'"
+                            )
+                        elif is_ignore:
+                            raise AssertionError
+                        iresult[i] = NPY_NAT
+                        continue
+
+                    if is_ym and not fval.is_integer():
+                        # Analogous to GH#47266 for Timestamp
+                        if is_raise:
+                            raise ValueError(
+                                f"Conversion of non-round float with unit={unit} "
+                                "is ambiguous"
+                            )
+                        elif is_ignore:
+                            raise AssertionError
+                        iresult[i] = NPY_NAT
+                        continue
+
+                    try:
+                        iresult[i] = cast_from_unit(fval, unit)
                     except ValueError:
                         if is_raise:
                             raise ValueError(
@@ -346,6 +387,7 @@ def array_with_unit_to_datetime(
     # and are in ignore mode
     # redo as object
 
+    # TODO: fix subtle differences between this and no-unit code
     oresult = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
     for i in range(n):
         val = values[i]
@@ -358,7 +400,7 @@ def array_with_unit_to_datetime(
                 oresult[i] = <object>NaT
             else:
                 try:
-                    oresult[i] = Timestamp(cast_from_unit(val, unit))
+                    oresult[i] = Timestamp(val, unit=unit)
                 except OverflowError:
                     oresult[i] = val
 
@@ -549,8 +591,8 @@ cpdef array_to_datetime(
                                 iresult[i] = NPY_NAT
                                 continue
                             raise TypeError(
-                                f"invalid string coercion to datetime for \"{val}\" "
-                                f"at position {i}"
+                                f"invalid string coercion to datetime "
+                                f"for \"{val}\", at position {i}"
                             )
 
                         if tz is not None:
@@ -593,7 +635,7 @@ cpdef array_to_datetime(
                         raise TypeError(f"{type(val)} is not convertible to datetime")
 
             except OutOfBoundsDatetime as ex:
-                ex.args = (str(ex) + f" present at position {i}", )
+                ex.args = (f"{ex}, at position {i}",)
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
@@ -741,7 +783,7 @@ cdef _array_to_datetime_object(
                 pydatetime_to_dt64(oresult[i], &dts)
                 check_dts_bounds(&dts)
             except (ValueError, OverflowError) as ex:
-                ex.args = (f"{ex} present at position {i}", )
+                ex.args = (f"{ex}, at position {i}", )
                 if is_coerce:
                     oresult[i] = <object>NaT
                     continue
