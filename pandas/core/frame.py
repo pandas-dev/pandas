@@ -4942,7 +4942,7 @@ class DataFrame(NDFrame, OpsMixin):
         labels,
         *,
         axis: Axis = 0,
-        copy: bool = True,
+        copy: bool | None = None,
     ) -> DataFrame:
         return super().set_axis(labels, axis=axis, copy=copy)
 
