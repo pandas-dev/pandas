@@ -336,7 +336,7 @@ def test_to_json_append_mode(mode_):
         df.to_json(mode=mode_, lines=False, orient="records")
 
 
-def to_json_append_output_consistent_columns():
+def test_to_json_append_output_consistent_columns():
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing same columns, new rows
@@ -354,7 +354,7 @@ def to_json_append_output_consistent_columns():
         tm.assert_frame_equal(result, expected)
 
 
-def to_json_append_output_inconsistent_columns():
+def test_to_json_append_output_inconsistent_columns():
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing one new column, one old column, new rows
@@ -378,7 +378,7 @@ def to_json_append_output_inconsistent_columns():
         tm.assert_frame_equal(result, expected)
 
 
-def to_json_append_output_different_columns():
+def test_to_json_append_output_different_columns():
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing same, differing and new columns
@@ -394,7 +394,7 @@ def to_json_append_output_different_columns():
             "col3": [None, None, None, None, "!", "#", None, None],
             "col4": [None, None, None, None, None, None, True, False],
         }
-    )
+    ).astype({"col4": "float"})
     with tm.ensure_clean("test.json") as path:
         # Save dataframes to the same file
         df1.to_json(path, mode="a", lines=True, orient="records")
@@ -407,7 +407,7 @@ def to_json_append_output_different_columns():
         tm.assert_frame_equal(result, expected)
 
 
-def to_json_append_output_different_columns_reordered():
+def test_to_json_append_output_different_columns_reordered():
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing specific result column order.
@@ -424,7 +424,7 @@ def to_json_append_output_different_columns_reordered():
             "col3": [None, None, "!", "#", None, None, None, None],
             "col1": [None, None, None, None, 3, 4, 1, 2],
         }
-    )
+    ).astype({"col4": "float"})
     with tm.ensure_clean("test.json") as path:
         # Save dataframes to the same file
         df4.to_json(path, mode="a", lines=True, orient="records")
