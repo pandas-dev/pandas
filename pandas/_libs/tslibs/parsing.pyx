@@ -828,9 +828,9 @@ def format_is_iso(f: str) -> bint:
         r"""
         ^                       # start of string
         \d{4}                   # match a 4-digit year
-        (-\d{2})?               # optionally match a 2-digit month
-        (-\d{2})?               # optionally match a 2-digit day
-        (T\d{2}:\d{2}:\d{2}     # match time in the format "THH:MM:SS"
+        ([ -/\\.]\d{2}|\d{2})?  # optionally match a 2-digit month
+        ([ -/\\.]\d{2}|\d{2})?  # optionally match a 2-digit day
+        ([ T]\d{2}:\d{2}:\d{2}  # match time in the format "THH:MM:SS"
         (\.\d+)?                # optionally match a decimal and fractional seconds
         ([+-]\d{2}:\d{2}|Z)?)?  # optional match timezone in the format "+HH:MM" or "Z"
         $                       # end of string
