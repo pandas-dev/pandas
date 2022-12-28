@@ -26,13 +26,6 @@ def test_startswith_endswith_non_str_patterns(pattern):
         ser.str.endswith(pattern)
 
 
-def assert_series_or_index_equal(left, right):
-    if isinstance(left, Series):
-        tm.assert_series_equal(left, right)
-    else:  # Index
-        tm.assert_index_equal(left, right)
-
-
 # test integer/float dtypes (inferred by constructor) and mixed
 
 

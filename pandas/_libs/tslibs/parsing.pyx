@@ -263,7 +263,7 @@ def parse_datetime_string(
         datetime dt
 
     if not _does_string_look_like_datetime(date_string):
-        raise ValueError(f"Given date string {date_string} not likely a datetime")
+        raise ValueError(f'Given date string "{date_string}" not likely a datetime')
 
     if does_string_look_like_time(date_string):
         # use current datetime as default, not pass _DEFAULT_DATETIME
@@ -297,7 +297,7 @@ def parse_datetime_string(
     except TypeError:
         # following may be raised from dateutil
         # TypeError: 'NoneType' object is not iterable
-        raise ValueError(f"Given date string {date_string} not likely a datetime")
+        raise ValueError(f'Given date string "{date_string}" not likely a datetime')
 
     return dt
 
@@ -373,7 +373,7 @@ cdef parse_datetime_string_with_reso(
         int out_tzoffset
 
     if not _does_string_look_like_datetime(date_string):
-        raise ValueError(f"Given date string {date_string} not likely a datetime")
+        raise ValueError(f'Given date string "{date_string}" not likely a datetime')
 
     parsed, reso = _parse_delimited_date(date_string, dayfirst)
     if parsed is not None:
@@ -661,7 +661,7 @@ cdef dateutil_parse(
 
 
 def try_parse_dates(
-    object[:] values, parser=None, bint dayfirst=False, default=None,
+    object[:] values, parser, bint dayfirst=False, default=None,
 ) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
@@ -670,32 +670,11 @@ def try_parse_dates(
     n = len(values)
     result = np.empty(n, dtype="O")
 
-    if parser is None:
-        if default is None:  # GH2618
-            date = datetime.now()
-            default = datetime(date.year, date.month, 1)
-
-        def parse_date(x):
-            return du_parse(x, dayfirst=dayfirst, default=default)
-
-        # EAFP here
-        try:
-            for i in range(n):
-                if values[i] == "":
-                    result[i] = np.nan
-                else:
-                    result[i] = parse_date(values[i])
-        except Exception:
-            # Since parser is user-defined, we can't guess what it might raise
-            return values
-    else:
-        parse_date = parser
-
-        for i in range(n):
-            if values[i] == "":
-                result[i] = np.nan
-            else:
-                result[i] = parse_date(values[i])
+    for i in range(n):
+        if values[i] == "":
+            result[i] = np.nan
+        else:
+            result[i] = parser(values[i])
 
     return result.base  # .base to access underlying ndarray
 
