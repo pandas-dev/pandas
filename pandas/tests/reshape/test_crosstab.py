@@ -795,6 +795,33 @@ class TestCrosstab:
         expected.index.name = "C"
         tm.assert_frame_equal(result, expected)
 
+    def test_margin_support_Float(self):
+        # GH 50313
+        # use Float64 formats and function aggfunc with margins
+        df = DataFrame(
+            {"A": [1, 2, 2, 1], "B": [3, 3, 4, 5], "C": [-1.0, 10.0, 1.0, 10.0]}
+        )
+        df = df.astype({"C": "Float64"})
+        result = crosstab(
+            df["A"],
+            df["B"],
+            values=df["C"],
+            aggfunc="sum",
+            margins=True,
+        )
+        expected = DataFrame(
+            [
+                [-1.0, pd.NA, 10.0, 9.0],
+                [10.0, 1.0, pd.NA, 11.0],
+                [9.0, 1.0, 10.0, 20.0],
+            ],
+            index=[1, 2, "All"],
+            dtype="Float64",
+        )
+        expected.columns = Index([3, 4, 5, "All"], dtype="object", name="B")
+        expected.index.name = "A"
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize("a_dtype", ["category", "int64"])
 @pytest.mark.parametrize("b_dtype", ["category", "int64"])
