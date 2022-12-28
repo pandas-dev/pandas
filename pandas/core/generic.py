@@ -9940,7 +9940,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         before=None,
         after=None,
         axis: Axis | None = None,
-        copy: bool_t = True,
+        copy: bool_t | None = None,
     ) -> NDFrameT:
         """
         Truncate a Series or DataFrame before and after some index value.
@@ -10091,8 +10091,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(ax, MultiIndex):
             setattr(result, self._get_axis_name(axis), ax.truncate(before, after))
 
-        if copy:
-            result = result.copy()
+        if copy or copy is None:
+            result = result.copy(deep=copy)
 
         return result
 
