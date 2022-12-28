@@ -1494,6 +1494,15 @@ class TestDataFrameIndexing:
 
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("indexer, idx", [(tm.loc, 1), (tm.iloc, 2)])
+    def test_setitem_value_coercing_dtypes(self, indexer, idx):
+        # GH#50467
+        df = DataFrame([["1", np.nan], ["2", np.nan], ["3", np.nan]], dtype=object)
+        rhs = DataFrame([[1, np.nan], [2, np.nan]])
+        indexer(df)[:idx, :] = rhs
+        expected = DataFrame([[1, np.nan], [2, np.nan], ["3", np.nan]], dtype=object)
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):
