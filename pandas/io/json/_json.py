@@ -59,10 +59,10 @@ from pandas.io.common import (
     IOHandles,
     _extension_to_compression,
     dedup_names,
-    is_potential_multi_index,
     file_exists,
     get_handle,
     is_fsspec_url,
+    is_potential_multi_index,
     is_url,
     stringify_path,
 )
