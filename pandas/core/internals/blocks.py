@@ -11,6 +11,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -35,6 +36,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import astype_array_safe
@@ -941,6 +943,13 @@ class Block(PandasObject):
             casted = np_can_hold_element(values.dtype, value)
         except LossySetitemError:
             # current dtype cannot store value, coerce to common dtype
+            warnings.warn(
+                f"Setting an item of incompatible dtype is deprecated "
+                "and will raise in a future error of pandas. "
+                f"Value {value} has dtype incompatible with {values.dtype}",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             nb = self.coerce_to_target_dtype(value)
             return nb.setitem(indexer, value)
         else:
