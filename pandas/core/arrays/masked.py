@@ -38,7 +38,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_bool,
@@ -74,7 +73,10 @@ from pandas.core.algorithms import (
     isin,
     take,
 )
-from pandas.core.array_algos import masked_reductions
+from pandas.core.array_algos import (
+    masked_accumulations,
+    masked_reductions,
+)
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -492,10 +494,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             raise ValueError("cannot convert float NaN to bool")
 
         data = self.to_numpy(dtype=dtype, na_value=na_value, copy=copy)
-        if self.dtype.kind == "f":
-            # TODO: make this consistent between IntegerArray/FloatingArray,
-            #  see test_astype_str
-            return astype_nansafe(data, dtype, copy=False)
         return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
@@ -611,9 +609,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if other is libmissing.NA:
                 # GH#45421 don't alter inplace
                 mask = mask | True
+            elif is_list_like(other) and len(other) == len(mask):
+                mask = mask | isna(other)
         else:
             mask = self._mask | mask
-        return mask
+        # Incompatible return value type (got "Optional[ndarray[Any, dtype[bool_]]]",
+        # expected "ndarray[Any, dtype[bool_]]")
+        return mask  # type: ignore[return-value]
 
     def _arith_method(self, other, op):
         op_name = op.__name__
@@ -725,12 +727,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             mask = np.ones(self._data.shape, dtype="bool")
         else:
             with warnings.catch_warnings():
-                # numpy may show a FutureWarning:
+                # numpy may show a FutureWarning or DeprecationWarning:
                 #     elementwise comparison failed; returning scalar instead,
                 #     but in the future will perform elementwise comparison
                 # before returning NotImplemented. We fall back to the correct
                 # behavior today, so that should be fine to ignore.
                 warnings.filterwarnings("ignore", "elementwise", FutureWarning)
+                warnings.filterwarnings("ignore", "elementwise", DeprecationWarning)
                 with np.errstate(all="ignore"):
                     method = getattr(self._data, f"__{op.__name__}__")
                     result = method(other)
@@ -1046,7 +1049,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # Reductions
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-        if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var"}:
+        if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
         data = self._data
@@ -1057,7 +1060,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if self._hasna:
             data = self.to_numpy("float64", na_value=np.nan)
 
-        # median, var, std, skew, kurt, idxmin, idxmax
+        # median, skew, kurt, idxmin, idxmax
         op = getattr(nanops, f"nan{name}")
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
@@ -1151,6 +1154,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result(
             "var", result, skipna=skipna, axis=axis, **kwargs
+        )
+
+    def std(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="std")
+        result = masked_reductions.std(
+            self._data,
+            self._mask,
+            skipna=skipna,
+            axis=axis,
+            ddof=ddof,
+        )
+        return self._wrap_reduction_result(
+            "std", result, skipna=skipna, axis=axis, **kwargs
         )
 
     def min(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
@@ -1333,3 +1351,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return result
             else:
                 return self.dtype.na_value
+
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> BaseMaskedArray:
+        data = self._data
+        mask = self._mask
+
+        op = getattr(masked_accumulations, name)
+        data, mask = op(data, mask, skipna=skipna, **kwargs)
+
+        return type(self)(data, mask, copy=False)

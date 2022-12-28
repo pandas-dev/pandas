@@ -30,6 +30,9 @@ from pandas._typing import (
     AxisInt,
     DtypeObj,
     IndexLabel,
+    JoinHow,
+    Literal,
+    MergeHow,
     Shape,
     Suffixes,
     npt,
@@ -120,7 +123,7 @@ _factorizers = {
 def merge(
     left: DataFrame | Series,
     right: DataFrame | Series,
-    how: str = "inner",
+    how: MergeHow = "inner",
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,
@@ -147,10 +150,6 @@ def merge(
         validate=validate,
     )
     return op.get_result(copy=copy)
-
-
-if __debug__:
-    merge.__doc__ = _merge_doc % "\nleft : DataFrame"
 
 
 def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
@@ -219,7 +218,7 @@ def merge_ordered(
     right_by=None,
     fill_method: str | None = None,
     suffixes: Suffixes = ("_x", "_y"),
-    how: str = "outer",
+    how: JoinHow = "outer",
 ) -> DataFrame:
     """
     Perform a merge for ordered data with optional filling/interpolation.
@@ -229,8 +228,8 @@ def merge_ordered(
 
     Parameters
     ----------
-    left : DataFrame
-    right : DataFrame
+    left : DataFrame or named Series
+    right : DataFrame or named Series
     on : label or list
         Field names to join on. Must be found in both DataFrames.
     left_on : label or list, or array-like
@@ -242,10 +241,10 @@ def merge_ordered(
         left_on docs.
     left_by : column name or list of column names
         Group left DataFrame by group columns and merge piece by piece with
-        right DataFrame.
+        right DataFrame. Must be None if either left or right are a Series.
     right_by : column name or list of column names
         Group right DataFrame by group columns and merge piece by piece with
-        left DataFrame.
+        left DataFrame. Must be None if either left or right are a Series.
     fill_method : {'ffill', None}, default None
         Interpolation method for data.
     suffixes : list-like, default is ("_x", "_y")
@@ -256,7 +255,6 @@ def merge_ordered(
         `right` should be left as-is, with no suffix. At least one of the
         values must not be None.
 
-        .. versionchanged:: 0.25.0
     how : {'left', 'right', 'outer', 'inner'}, default 'outer'
         * left: use only keys from left frame (SQL: left outer join)
         * right: use only keys from right frame (SQL: right outer join)
@@ -430,7 +428,7 @@ def merge_asof(
 
     Returns
     -------
-    merged : DataFrame
+    DataFrame
 
     See Also
     --------
@@ -634,7 +632,7 @@ class _MergeOperation:
     """
 
     _merge_type = "merge"
-    how: str
+    how: MergeHow | Literal["asof"]
     on: IndexLabel | None
     # left_on/right_on may be None when passed, but in validate_specification
     #  get replaced with non-None.
@@ -657,7 +655,7 @@ class _MergeOperation:
         self,
         left: DataFrame | Series,
         right: DataFrame | Series,
-        how: str = "inner",
+        how: MergeHow | Literal["asof"] = "inner",
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
@@ -1032,7 +1030,8 @@ class _MergeOperation:
     def _get_join_info(
         self,
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-
+        # make mypy happy
+        assert self.how != "cross"
         left_ax = self.left.axes[self.axis]
         right_ax = self.right.axes[self.axis]
 
@@ -1085,8 +1084,8 @@ class _MergeOperation:
             else:
                 join_index = default_index(len(left_indexer))
 
-        if len(join_index) == 0:
-            join_index = join_index.astype(object)
+        if len(join_index) == 0 and not isinstance(join_index, MultiIndex):
+            join_index = default_index(0).set_names(join_index.name)
         return join_index, left_indexer, right_indexer
 
     def _create_join_index(
@@ -1094,7 +1093,7 @@ class _MergeOperation:
         index: Index,
         other_index: Index,
         indexer: npt.NDArray[np.intp],
-        how: str = "left",
+        how: JoinHow = "left",
     ) -> Index:
         """
         Create a join index by rearranging one index to match another
@@ -1428,7 +1427,7 @@ class _MergeOperation:
 
     def _create_cross_configuration(
         self, left: DataFrame, right: DataFrame
-    ) -> tuple[DataFrame, DataFrame, str, str]:
+    ) -> tuple[DataFrame, DataFrame, JoinHow, str]:
         """
         Creates the configuration to dispatch the cross operation to inner join,
         e.g. adding a join column and resetting parameters. Join column is added
@@ -1446,7 +1445,7 @@ class _MergeOperation:
             to join over.
         """
         cross_col = f"_cross_{uuid.uuid4()}"
-        how = "inner"
+        how: JoinHow = "inner"
         return (
             left.assign(**{cross_col: 1}),
             right.assign(**{cross_col: 1}),
@@ -1606,7 +1605,11 @@ class _MergeOperation:
 
 
 def get_join_indexers(
-    left_keys, right_keys, sort: bool = False, how: str = "inner", **kwargs
+    left_keys,
+    right_keys,
+    sort: bool = False,
+    how: MergeHow | Literal["asof"] = "inner",
+    **kwargs,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     """
 
@@ -1779,7 +1782,7 @@ class _OrderedMerge(_MergeOperation):
         axis: AxisInt = 1,
         suffixes: Suffixes = ("_x", "_y"),
         fill_method: str | None = None,
-        how: str = "outer",
+        how: JoinHow | Literal["asof"] = "outer",
     ) -> None:
 
         self.fill_method = fill_method
@@ -1869,7 +1872,7 @@ class _AsOfMerge(_OrderedMerge):
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
         fill_method: str | None = None,
-        how: str = "asof",
+        how: Literal["asof"] = "asof",
         tolerance=None,
         allow_exact_matches: bool = True,
         direction: str = "backward",
@@ -1930,7 +1933,7 @@ class _AsOfMerge(_OrderedMerge):
                 lo_dtype = left_on_0.dtype
             else:
                 lo_dtype = (
-                    self.left[left_on_0].dtype
+                    self.left._get_label_or_level_values(left_on_0).dtype
                     if left_on_0 in self.left.columns
                     else self.left.index.get_level_values(left_on_0)
                 )
@@ -1943,7 +1946,7 @@ class _AsOfMerge(_OrderedMerge):
                 ro_dtype = right_on_0.dtype
             else:
                 ro_dtype = (
-                    self.right[right_on_0].dtype
+                    self.right._get_label_or_level_values(right_on_0).dtype
                     if right_on_0 in self.right.columns
                     else self.right.index.get_level_values(right_on_0)
                 )
@@ -2278,7 +2281,10 @@ def _left_join_on_index(
 
 
 def _factorize_keys(
-    lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
+    lk: ArrayLike,
+    rk: ArrayLike,
+    sort: bool = True,
+    how: MergeHow | Literal["asof"] = "inner",
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
     """
     Encode left and right keys as enumerated types.

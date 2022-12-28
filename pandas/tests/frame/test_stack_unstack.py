@@ -22,13 +22,9 @@ from pandas.core.reshape import reshape as reshape_lib
 
 
 class TestDataFrameReshape:
-    def test_stack_unstack(self, float_frame, using_array_manager):
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-
+    def test_stack_unstack(self, float_frame):
         df = float_frame.copy()
-        with tm.assert_produces_warning(warn, match=msg):
-            df[:] = np.arange(np.prod(df.shape)).reshape(df.shape)
+        df[:] = np.arange(np.prod(df.shape)).reshape(df.shape)
 
         stacked = df.stack()
         stacked_df = DataFrame({"foo": stacked, "bar": stacked})
@@ -1251,7 +1247,8 @@ def test_stack_timezone_aware_values():
 @pytest.mark.parametrize("dropna", [True, False])
 def test_stack_empty_frame(dropna):
     # GH 36113
-    expected = Series(index=MultiIndex([[], []], [[], []]), dtype=np.float64)
+    levels = [np.array([], dtype=np.int64), np.array([], dtype=np.int64)]
+    expected = Series(dtype=np.float64, index=MultiIndex(levels=levels, codes=[[], []]))
     result = DataFrame(dtype=np.float64).stack(dropna=dropna)
     tm.assert_series_equal(result, expected)
 

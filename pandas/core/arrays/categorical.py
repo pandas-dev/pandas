@@ -11,7 +11,6 @@ from typing import (
     Literal,
     Sequence,
     TypeVar,
-    Union,
     cast,
     overload,
 )
@@ -511,7 +510,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             result = self.copy() if copy else self
 
         elif is_categorical_dtype(dtype):
-            dtype = cast("Union[str, CategoricalDtype]", dtype)
+            dtype = cast(CategoricalDtype, dtype)
 
             # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
@@ -1568,9 +1567,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Return the indices that would sort the Categorical.
 
-        .. versionchanged:: 0.25.0
-
-           Changed to sort missing values at the end.
+        Missing values are sorted at the end.
 
         Parameters
         ----------

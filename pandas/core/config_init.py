@@ -458,12 +458,6 @@ tc_sim_interactive_doc = """
 with cf.config_prefix("mode"):
     cf.register_option("sim_interactive", False, tc_sim_interactive_doc)
 
-use_inf_as_null_doc = """
-: boolean
-    use_inf_as_null had been deprecated and will be removed in a future
-    version. Use `use_inf_as_na` instead.
-"""
-
 use_inf_as_na_doc = """
 : boolean
     True means treat None, NaN, INF, -INF as NA (old way),
@@ -483,14 +477,6 @@ def use_inf_as_na_cb(key) -> None:
 
 with cf.config_prefix("mode"):
     cf.register_option("use_inf_as_na", False, use_inf_as_na_doc, cb=use_inf_as_na_cb)
-    cf.register_option(
-        "use_inf_as_null", False, use_inf_as_null_doc, cb=use_inf_as_na_cb
-    )
-
-
-cf.deprecate_option(
-    "mode.use_inf_as_null", msg=use_inf_as_null_doc, rkey="mode.use_inf_as_na"
-)
 
 
 data_manager_doc = """
@@ -553,12 +539,25 @@ string_storage_doc = """
     The default storage for StringDtype.
 """
 
+dtype_backend_doc = """
+: string
+    The nullable dtype implementation to return. Only applicable to certain
+    operations where documented. Available options: 'pandas', 'pyarrow',
+    the default is 'pandas'.
+"""
+
 with cf.config_prefix("mode"):
     cf.register_option(
         "string_storage",
         "python",
         string_storage_doc,
         validator=is_one_of_factory(["python", "pyarrow"]),
+    )
+    cf.register_option(
+        "dtype_backend",
+        "pandas",
+        dtype_backend_doc,
+        validator=is_one_of_factory(["pandas", "pyarrow"]),
     )
 
 # Set up the io.excel specific reader configuration.
@@ -685,20 +684,6 @@ with cf.config_prefix("io.sql"):
         "auto",
         sql_engine_doc,
         validator=is_one_of_factory(["auto", "sqlalchemy"]),
-    )
-
-io_nullable_backend_doc = """
-: string
-    The nullable dtype implementation to return when ``use_nullable_dtypes=True``.
-    Available options: 'pandas', 'pyarrow', the default is 'pandas'.
-"""
-
-with cf.config_prefix("io.nullable_backend"):
-    cf.register_option(
-        "io_nullable_backend",
-        "pandas",
-        io_nullable_backend_doc,
-        validator=is_one_of_factory(["pandas", "pyarrow"]),
     )
 
 # --------

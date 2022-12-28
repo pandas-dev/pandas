@@ -385,10 +385,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if index is not None:
             index = ensure_index(index)
 
-        if data is None:
-            data = {}
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
+
+        if data is None:
+            index = index if index is not None else default_index(0)
+            if len(index) or dtype is not None:
+                data = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+            else:
+                data = []
 
         if isinstance(data, MultiIndex):
             raise NotImplementedError(
@@ -1818,7 +1823,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             # Not an object dtype => all types will be the same so let the default
             # indexer return native python type
-            return into_c((k, v) for k, v in self.items())
+            return into_c(self.items())
 
     def to_frame(self, name: Hashable = lib.no_default) -> DataFrame:
         """
@@ -2995,9 +3000,10 @@ Name: Max Speed, dtype: float64
             assert isinstance(res2, Series)
             return (res1, res2)
 
-        # We do not pass dtype to ensure that the Series constructor
-        #  does inference in the case where `result` has object-dtype.
-        out = self._constructor(result, index=self.index)
+        # TODO: result should always be ArrayLike, but this fails for some
+        #  JSONArray tests
+        dtype = getattr(result, "dtype", None)
+        out = self._constructor(result, index=self.index, dtype=dtype)
         out = out.__finalize__(self)
 
         # Set the result's name after __finalize__ is called because __finalize__
@@ -4117,8 +4123,6 @@ Keep all original rows and also all original values
         """
         Transform each element of a list-like to a row.
 
-        .. versionadded:: 0.25.0
-
         Parameters
         ----------
         ignore_index : bool, default False
@@ -4587,15 +4591,18 @@ Keep all original rows and also all original values
                 return op(delegate, skipna=skipna, **kwds)
 
     def _reindex_indexer(
-        self, new_index: Index | None, indexer: npt.NDArray[np.intp] | None, copy: bool
+        self,
+        new_index: Index | None,
+        indexer: npt.NDArray[np.intp] | None,
+        copy: bool | None,
     ) -> Series:
         # Note: new_index is None iff indexer is None
         # if not None, indexer is np.intp
         if indexer is None and (
             new_index is None or new_index.names == self.index.names
         ):
-            if copy:
-                return self.copy()
+            if copy or copy is None:
+                return self.copy(deep=copy)
             return self
 
         new_values = algorithms.take_nd(
@@ -4622,7 +4629,7 @@ Keep all original rows and also all original values
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
-        copy: bool = True,
+        copy: bool | None = None,
         fill_value: Hashable = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
@@ -4805,7 +4812,7 @@ Keep all original rows and also all original values
         labels,
         *,
         axis: Axis = 0,
-        copy: bool = True,
+        copy: bool | None = None,
     ) -> Series:
         return super().set_axis(labels, axis=axis, copy=copy)
 
@@ -5406,6 +5413,7 @@ Keep all original rows and also all original values
                 input_series = input_series.copy()
 
         if convert_string or convert_integer or convert_boolean or convert_floating:
+            dtype_backend = get_option("mode.dtype_backend")
             inferred_dtype = convert_dtypes(
                 input_series._values,
                 convert_string,
@@ -5413,6 +5421,7 @@ Keep all original rows and also all original values
                 convert_boolean,
                 convert_floating,
                 infer_objects,
+                dtype_backend,
             )
             result = input_series.astype(inferred_dtype)
         else:

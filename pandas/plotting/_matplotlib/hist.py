@@ -59,6 +59,8 @@ class HistPlot(LinePlot):
     ) -> None:
         self.bins = bins  # use mpl default
         self.bottom = bottom
+        self.xlabel = kwargs.get("xlabel")
+        self.ylabel = kwargs.get("ylabel")
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
 
@@ -78,7 +80,7 @@ class HistPlot(LinePlot):
 
     def _calculate_bins(self, data: DataFrame) -> np.ndarray:
         """Calculate bins given data"""
-        nd_values = data._convert(datetime=True)._get_numeric_data()
+        nd_values = data.infer_objects()._get_numeric_data()
         values = np.ravel(nd_values)
         values = values[~isna(values)]
 
@@ -179,9 +181,11 @@ class HistPlot(LinePlot):
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
         if self.orientation == "horizontal":
-            ax.set_xlabel("Frequency")
+            ax.set_xlabel("Frequency" if self.xlabel is None else self.xlabel)
+            ax.set_ylabel(self.ylabel)
         else:
-            ax.set_ylabel("Frequency")
+            ax.set_xlabel(self.xlabel)
+            ax.set_ylabel("Frequency" if self.ylabel is None else self.ylabel)
 
     @property
     def orientation(self) -> PlottingOrientation:

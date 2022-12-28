@@ -420,6 +420,24 @@ class TestMelt:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["Int8", "Int64"])
+    def test_melt_ea_dtype(self, dtype):
+        # GH#41570
+        df = DataFrame(
+            {
+                "a": pd.Series([1, 2], dtype="Int8"),
+                "b": pd.Series([3, 4], dtype=dtype),
+            }
+        )
+        result = df.melt()
+        expected = DataFrame(
+            {
+                "variable": ["a", "a", "b", "b"],
+                "value": pd.Series([1, 2, 3, 4], dtype=dtype),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLreshape:
     def test_pairs(self):
@@ -639,9 +657,6 @@ class TestLreshape:
         }
         exp = DataFrame(exp_data, columns=result.columns)
         tm.assert_frame_equal(result, exp)
-
-        with tm.assert_produces_warning(FutureWarning):
-            lreshape(df, spec, dropna=False, label="foo")
 
         spec = {
             "visitdt": [f"visitdt{i:d}" for i in range(1, 3)],

@@ -15,13 +15,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-def _check_cast(df, v):
-    """
-    Check if all dtypes of df are equal to v
-    """
-    assert all(s.dtype.name == v for _, s in df.items())
-
-
 class TestDataFrameDataTypes:
     def test_empty_frame_dtypes(self):
         empty_df = DataFrame()
