@@ -60,6 +60,36 @@ is an :class:`ArrowDtype`.
 `Pyarrow <https://arrow.apache.org/docs/python/index.html>`__ provides similar array and `data type <https://arrow.apache.org/docs/python/api/datatypes.html>`__
 support as NumPy including first-class nullability support for all data types, immutability and more.
 
+The table below shows the equivalent pyarrow-backed (``pa``), pandas extension, and numpy (``np``) types that are recognized by pandas.
+
+===================================== ========================== ===================
+Pyarrow type                          pandas extension type      Numpy type
+===================================== ========================== ===================
+``pd.ArroeDtype(pa.bool_())``         :class:`BooleanDtype`      ``np.bool_``
+``pd.ArrowDtype(pa.int8())``          :class:`Int8Dtype`         ``np.int8``
+``pd.ArrowDtype(pa.int16())``         :class:`Int16Dtype`        ``np.int16``
+``pd.ArrowDtype(pa.int32())``         :class:`Int32Dtype`        ``np.int32``
+``pd.ArrowDtype(pa.int64())``         :class:`Int64Dtype`        ``np.int64``
+``pd.ArrowDtype(pa.uint8())``         :class:`UInt8Dtype`        ``np.uint8``
+``pd.ArrowDtype(pa.uint16())``        :class:`UInt16Dtype`       ``np.uint16``
+``pd.ArrowDtype(pa.uint32())``        :class:`UInt32Dtype`       ``np.uint32``
+``pd.ArrowDtype(pa.uint64())``        :class:`UInt64Dtype`       ``np.uint64``
+``pd.ArrowDtype(pa.float32())``       :class:`Float32Dtype`      ``np.float32``
+``pd.ArrowDtype(pa.float64())``       :class:`Float64Dtype`      ``np.float64``
+``pd.ArrowDtype(pa.time32(...))``     (none)                     (none)
+``pd.ArrowDtype(pa.time64(...))``     (none)                     (none)
+``pd.ArrowDtype(pa.timestamp(...))``  :class:`DatetimeTZDtype`   ``np.datetime64``
+``pd.ArrowDtype(pa.date32())``        (none)                     (none)
+``pd.ArrowDtype(pa.date64())``        (none)                     (none)
+``pd.ArrowDtype(pa.duration(...))``   (none)                     ``np.timedelta64``
+``pd.ArrowDtype(pa.binary(...))``     (none)                     (none)
+``pd.ArrowDtype(pa.string())``        :class:`StringDtype`       ``np.str_``
+``pd.ArrowDtype(pa.decimal128(...))`` (none)                     (none)
+``pd.ArrowDtype(pa.list_(...))``      (none)                     (none)
+``pd.ArrowDtype(pa.map_(...))``       (none)                     (none)
+``pd.ArrowDtype(pa.dictionary(...))`` :class:`CategoricalDtype`  (none)
+===================================== ========================== ===================
+
 .. note::
 
     For string types (``pyarrow.string()``, ``string[pyarrow]``), PyArrow support is still facilitated
