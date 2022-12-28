@@ -259,7 +259,8 @@ class TestPandasContainer:
         assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.xfail(
-        reason="#50456 Column multiindex is stored and loaded differently"
+        reason="#50456 Column multiindex is stored and loaded differently",
+        raises=AssertionError,
     )
     @pytest.mark.parametrize(
         "columns",
