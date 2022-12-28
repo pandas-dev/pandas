@@ -67,28 +67,43 @@ This file implements string parsing and creation for NumPy datetime.
  * Returns 0 on success, -1 on failure.
  */
 
+enum Comparison {
+    ADVANCE,
+    RETURN,
+    ERROR
+};
 // This function will advance the pointer on format
 // and decrement characters_remaining by n on success
-// On failure will return -1 without incrementing
-static int compare_format(const char **format, int *characters_remaining,
-                 const char *compare_to, int n, const enum Exact exact) {
+// On failure will return ERROR without incrementing
+// If `exact` is PARTIAL_MATCH, and the `format` string has
+// been exhausted, then signal to the caller to finish parsing.
+static enum Comparison compare_format(
+        const char **format,
+        int *characters_remaining,
+        const char *compare_to,
+        int n,
+        const enum Exact exact
+) {
+  if (exact == PARTIAL_MATCH && !*characters_remaining) {
+    return RETURN;
+  }
   if (exact == NO_MATCH) {
-    return 0;
+    return ADVANCE;
   }
   if (*characters_remaining < n) {
     // TODO(pandas-dev): PyErr to differentiate what went wrong
-    return -1;
+    return ERROR;
   } else {
     if (strncmp(*format, compare_to, n)) {
       // TODO(pandas-dev): PyErr to differentiate what went wrong
-      return -1;
+      return ERROR;
     } else {
       *format += n;
       *characters_remaining -= n;
-      return 0;
+      return ADVANCE;
     }
   }
-  return 0;
+  return ADVANCE;
 }
 
 int parse_iso_8601_datetime(const char *str, int len, int want_exc,
@@ -104,6 +119,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     const char *substr;
     int sublen;
     NPY_DATETIMEUNIT bestunit = NPY_FR_GENERIC;
+    enum Comparison comparison;
 
     /* If year-month-day are separated by a valid separator,
      * months/days without leading zeroes will be parsed
@@ -133,11 +149,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
-        if (exact == PARTIAL_MATCH && !format_len) {
-            goto finish;
-        }
-        if (compare_format(&format, &format_len, " ", 1, exact)) {
+        comparison = compare_format(&format, &format_len, " ", 1, exact);
+        if (comparison == ERROR) {
             goto parse_error;
+        } else if (comparison == RETURN) {
+            goto finish;
         }
     }
 
@@ -155,8 +171,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     if (exact == PARTIAL_MATCH && !format_len) {
         goto finish;
     }
-    if (compare_format(&format, &format_len, "%Y", 2, exact)) {
+    comparison = compare_format(&format, &format_len, "%Y", 2, exact);
+    if (comparison == ERROR) {
         goto parse_error;
+    } else if (comparison == RETURN) {
+        goto finish;
     }
 
     out->year = 0;
@@ -202,11 +221,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         ++substr;
         --sublen;
 
-        if (exact == PARTIAL_MATCH && !format_len) {
-            goto finish;
-        }
-        if (compare_format(&format, &format_len, &ymd_sep, 1, exact)) {
+        comparison = compare_format(&format, &format_len, &ymd_sep, 1, exact);
+        if (comparison == ERROR) {
             goto parse_error;
+        } else if (comparison == RETURN) {
+            goto finish;
         }
         /* Cannot have trailing separator */
         if (sublen == 0 || !isdigit(*substr)) {
@@ -215,11 +234,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE MONTH */
-    if (exact == PARTIAL_MATCH && !format_len) {
-        goto finish;
-    }
-    if (compare_format(&format, &format_len, "%m", 2, exact)) {
+    comparison = compare_format(&format, &format_len, "%m", 2, exact);
+    if (comparison == ERROR) {
         goto parse_error;
+    } else if (comparison == RETURN) {
+        goto finish;
     }
     /* First digit required */
     out->month = (*substr - '0');
@@ -264,20 +283,20 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         }
         ++substr;
         --sublen;
-        if (exact == PARTIAL_MATCH && !format_len) {
-            goto finish;
-        }
-        if (compare_format(&format, &format_len, &ymd_sep, 1, exact)) {
+        comparison = compare_format(&format, &format_len, &ymd_sep, 1, exact);
+        if (comparison == ERROR) {
             goto parse_error;
+        } else if (comparison == RETURN) {
+            goto finish;
         }
     }
 
     /* PARSE THE DAY */
-    if (exact == PARTIAL_MATCH && !format_len) {
-        goto finish;
-    }
-    if (compare_format(&format, &format_len, "%d", 2, exact)) {
+    comparison = compare_format(&format, &format_len, "%d", 2, exact);
+    if (comparison == ERROR) {
         goto parse_error;
+    } else if (comparison == RETURN) {
+        goto finish;
     }
     /* First digit required */
     if (!isdigit(*substr)) {
@@ -318,21 +337,21 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     if ((*substr != 'T' && *substr != ' ') || sublen == 1) {
         goto parse_error;
     }
-        if (exact == PARTIAL_MATCH && !format_len) {
-            goto finish;
-        }
-        if (compare_format(&format, &format_len, substr, 1, exact)) {
-            goto parse_error;
-        }
+    comparison = compare_format(&format, &format_len, substr, 1, exact);
+    if (comparison == ERROR) {
+        goto parse_error;
+    } else if (comparison == RETURN) {
+        goto finish;
+    }
     ++substr;
     --sublen;
 
     /* PARSE THE HOURS */
-    if (exact == PARTIAL_MATCH && !format_len) {
-        goto finish;
-    }
-    if (compare_format(&format, &format_len, "%H", 2, exact)) {
+    comparison = compare_format(&format, &format_len, "%H", 2, exact);
+    if (comparison == ERROR) {
         goto parse_error;
+    } else if (comparison == RETURN) {
+        goto finish;
     }
     /* First digit required */
     if (!isdigit(*substr)) {
@@ -377,11 +396,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         if (sublen == 0 || !isdigit(*substr)) {
             goto parse_error;
         }
-        if (exact == PARTIAL_MATCH && !format_len) {
-            goto finish;
-        }
-        if (compare_format(&format, &format_len, ":", 1, exact)) {
+        comparison = compare_format(&format, &format_len, ":", 1, exact);
+        if (comparison == ERROR) {
             goto parse_error;
+        } else if (comparison == RETURN) {
+            goto finish;
         }
     } else if (!isdigit(*substr)) {
         if (!hour_was_2_digits) {
@@ -391,11 +410,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE MINUTES */
-    if (exact == PARTIAL_MATCH && !format_len) {
-        goto finish;
-    }
-    if (compare_format(&format, &format_len, "%M", 2, exact)) {
+    comparison = compare_format(&format, &format_len, "%M", 2, exact);
+    if (comparison == ERROR) {
         goto parse_error;
+    } else if (comparison == RETURN) {
+        goto finish;
     }
     /* First digit required */
     out->min = (*substr - '0');
@@ -429,11 +448,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     /* If we make it through this condition block, then the next
      * character is a digit. */
     if (has_hms_sep && *substr == ':') {
-        if (exact == PARTIAL_MATCH && !format_len) {
-            goto finish;
-        }
-        if (compare_format(&format, &format_len, ":", 1, exact)) {
+        comparison = compare_format(&format, &format_len, ":", 1, exact);
+        if (comparison == ERROR) {
             goto parse_error;
+        } else if (comparison == RETURN) {
+            goto finish;
         }
         ++substr;
         --sublen;
@@ -447,11 +466,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE SECONDS */
-    if (exact == PARTIAL_MATCH && !format_len) {
-            goto finish;
-        }
-    if (compare_format(&format, &format_len, "%S", 2, exact)) {
+    comparison = compare_format(&format, &format_len, "%S", 2, exact);
+    if (comparison == ERROR) {
         goto parse_error;
+    } else if (comparison == RETURN) {
+        goto finish;
     }
     /* First digit required */
     out->sec = (*substr - '0');
@@ -478,11 +497,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     if (sublen > 0 && *substr == '.') {
         ++substr;
         --sublen;
-        if (exact == PARTIAL_MATCH && !format_len) {
-            goto finish;
-        }
-        if (compare_format(&format, &format_len, ".", 1, exact)) {
+        comparison = compare_format(&format, &format_len, ".", 1, exact);
+        if (comparison == ERROR) {
             goto parse_error;
+        } else if (comparison == RETURN) {
+            goto finish;
         }
     } else {
         bestunit = NPY_FR_s;
@@ -490,11 +509,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE MICROSECONDS (0 to 6 digits) */
-    if (exact == PARTIAL_MATCH && !format_len) {
-            goto finish;
-        }
-    if (compare_format(&format, &format_len, "%f", 2, exact)) {
+    comparison = compare_format(&format, &format_len, "%f", 2, exact);
+    if (comparison == ERROR) {
         goto parse_error;
+    } else if (comparison == RETURN) {
+        goto finish;
     }
     numdigits = 0;
     for (i = 0; i < 6; ++i) {
@@ -560,11 +579,11 @@ parse_timezone:
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
-        if (exact == PARTIAL_MATCH && !format_len) {
-            goto finish;
-        }
-        if (compare_format(&format, &format_len, " ", 1, exact)) {
+        comparison = compare_format(&format, &format_len, " ", 1, exact);
+        if (comparison == ERROR) {
             goto parse_error;
+        } else if (comparison == RETURN) {
+            goto finish;
         }
     }
 
@@ -578,11 +597,11 @@ parse_timezone:
 
     /* UTC specifier */
     if (*substr == 'Z') {
-        if (exact == PARTIAL_MATCH && !format_len) {
-            goto finish;
-        }
-        if (compare_format(&format, &format_len, "%z", 2, exact)) {
+        comparison = compare_format(&format, &format_len, "%z", 2, exact);
+        if (comparison == ERROR) {
             goto parse_error;
+        } else if (comparison == RETURN) {
+            goto finish;
         }
         /* "Z" should be equivalent to tz offset "+00:00" */
         if (out_local != NULL) {
@@ -603,11 +622,11 @@ parse_timezone:
             --sublen;
         }
     } else if (*substr == '-' || *substr == '+') {
-        if (exact == PARTIAL_MATCH && !format_len) {
-            goto finish;
-        }
-        if (compare_format(&format, &format_len, "%z", 2, exact)) {
+        comparison = compare_format(&format, &format_len, "%z", 2, exact);
+        if (comparison == ERROR) {
             goto parse_error;
+        } else if (comparison == RETURN) {
+            goto finish;
         }
         /* Time zone offset */
         int offset_neg = 0, offset_hour = 0, offset_minute = 0;
