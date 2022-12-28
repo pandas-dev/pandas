@@ -76,7 +76,7 @@ class TestSeriesConstructors:
     def test_unparseable_strings_with_dt64_dtype(self):
         # pre-2.0 these would be silently ignored and come back with object dtype
         vals = ["aa"]
-        msg = "Unknown string format: aa present at position 0"
+        msg = "^Unknown string format: aa, at position 0$"
         with pytest.raises(ValueError, match=msg):
             Series(vals, dtype="datetime64[ns]")
 

@@ -550,8 +550,8 @@ cpdef array_to_datetime(
                             continue
                         elif is_raise:
                             raise ValueError(
-                                f"time data \"{val}\" at position {i} doesn't "
-                                f"match format \"{format}\""
+                                f"time data \"{val}\" doesn't "
+                                f"match format \"{format}\", at position {i}"
                             )
                         return values, tz_out
                     # these must be ns unit by-definition
@@ -599,8 +599,8 @@ cpdef array_to_datetime(
                                 continue
                             elif is_raise:
                                 raise ValueError(
-                                    f"time data \"{val}\" at position {i} doesn't "
-                                    f"match format \"{format}\""
+                                    f"time data \"{val}\" doesn't "
+                                    f"match format \"{format}\", at position {i}"
                                 )
                             return values, tz_out
 
@@ -617,8 +617,8 @@ cpdef array_to_datetime(
                                 iresult[i] = NPY_NAT
                                 continue
                             raise TypeError(
-                                f"invalid string coercion to datetime for \"{val}\" "
-                                f"at position {i}"
+                                f"invalid string coercion to datetime "
+                                f"for \"{val}\", at position {i}"
                             )
 
                         if tz is not None:
@@ -661,7 +661,7 @@ cpdef array_to_datetime(
                         raise TypeError(f"{type(val)} is not convertible to datetime")
 
             except OutOfBoundsDatetime as ex:
-                ex.args = (str(ex) + f" present at position {i}", )
+                ex.args = (f"{ex}, at position {i}",)
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
@@ -821,7 +821,7 @@ cdef _array_to_datetime_object(
                 pydatetime_to_dt64(oresult[i], &dts)
                 check_dts_bounds(&dts)
             except (ValueError, OverflowError) as ex:
-                ex.args = (f"{ex} present at position {i}", )
+                ex.args = (f"{ex}, at position {i}", )
                 if is_coerce:
                     oresult[i] = <object>NaT
                     continue
