@@ -831,7 +831,7 @@ def format_is_iso(f: str) -> bint:
     # \d{4} -> matches the four digit(0-9) which represent the year
     # -\d{2} -> matches the dash followed by 2 digits
     # T\d{2}:\d{2}:\d{2} \
-        -> "T" followed by three groups seperated by colon: represent H:M:S
+    #    -> "T" followed by three groups seperated by colon: represent H:M:S
     # (\.\d+)? -> represents the fractions of seconds
     # (([+-]\d{2}:\d{2})|Z)? -> optional part match the time zone info
     # ? -> The ? at the end makes the part of regex optional
