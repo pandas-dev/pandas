@@ -143,6 +143,7 @@ from pandas.core.internals import (
     SingleArrayManager,
     SingleBlockManager,
 )
+from pandas.core.internals.managers import _using_copy_on_write
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     ensure_key_mapped,
@@ -877,6 +878,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nv.validate_take((), kwargs)
 
         indices = ensure_platform_int(indices)
+
+        if _using_copy_on_write() and np.array_equal(indices, np.arange(0, len(self))):
+            return self.copy(deep=None)
+
         new_index = self.index.take(indices)
         new_values = self._values.take(indices)
 

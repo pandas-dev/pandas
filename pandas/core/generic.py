@@ -3779,6 +3779,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See the docstring of `take` for full explanation of the parameters.
         """
+        if axis == 0 and np.array_equal(indices, np.arange(0, len(self))):
+            return self.copy(deep=None)
 
         new_data = self._mgr.take(
             indices,
