@@ -454,8 +454,6 @@ cpdef array_to_datetime(
         npy_datetimestruct dts
         NPY_DATETIMEUNIT out_bestunit
         bint utc_convert = bool(utc)
-        bint seen_integer = False
-        bint seen_datetime = False
         bint seen_datetime_offset = False
         bint is_raise = errors=="raise"
         bint is_ignore = errors=="ignore"
@@ -486,7 +484,6 @@ cpdef array_to_datetime(
                     iresult[i] = NPY_NAT
 
                 elif PyDateTime_Check(val):
-                    seen_datetime = True
                     if val.tzinfo is not None:
                         found_tz = True
                     else:
@@ -501,12 +498,10 @@ cpdef array_to_datetime(
                     result[i] = parse_pydatetime(val, &dts, utc_convert)
 
                 elif PyDate_Check(val):
-                    seen_datetime = True
                     iresult[i] = pydate_to_dt64(val, &dts)
                     check_dts_bounds(&dts)
 
                 elif is_datetime64_object(val):
-                    seen_datetime = True
                     iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
 
                 elif is_integer_object(val) or is_float_object(val):
@@ -521,7 +516,6 @@ cpdef array_to_datetime(
                             )
                         return values, tz_out
                     # these must be ns unit by-definition
-                    seen_integer = True
 
                     if val != val or val == NPY_NAT:
                         iresult[i] = NPY_NAT
@@ -653,17 +647,6 @@ cpdef array_to_datetime(
 
     except TypeError:
         return _array_to_datetime_object(values, errors, dayfirst, yearfirst)
-
-    if seen_datetime and seen_integer:
-        # we have mixed datetimes & integers
-
-        if is_coerce:
-            # coerce all of the integers/floats to NaT, preserve
-            # the datetimes and other convertibles
-            for i in range(n):
-                val = values[i]
-                if is_integer_object(val) or is_float_object(val):
-                    result[i] = NPY_NAT
 
     if seen_datetime_offset and not utc_convert:
         # GH#17697

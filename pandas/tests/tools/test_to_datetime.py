@@ -1601,16 +1601,16 @@ class TestToDatetimeUnit:
         ],
     )
     def test_unit_mixed(self, cache, exp, arr):
-
+        # pre-2.0 with mixed numeric/datetimes and errors="coerce" the numeric
+        #  entries would be coerced to NaT, was never clear exactly why.
         # mixed integers/datetimes
-        expected = DatetimeIndex(exp)
+        expected = Index([Timestamp(x) for x in arr], dtype="M8[ns]")
         result = to_datetime(arr, errors="coerce", cache=cache)
         tm.assert_index_equal(result, expected)
 
         # GH#49037 pre-2.0 this raised, but it always worked with Series,
         #  was never clear why it was disallowed
         result = to_datetime(arr, errors="raise", cache=cache)
-        expected = Index([Timestamp(x) for x in arr], dtype="M8[ns]")
         tm.assert_index_equal(result, expected)
 
         result = DatetimeIndex(arr)
