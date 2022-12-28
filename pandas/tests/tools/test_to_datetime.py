@@ -1601,8 +1601,9 @@ class TestToDatetimeUnit:
         ],
     )
     def test_unit_mixed(self, cache, exp, arr):
-        # pre-2.0 with mixed numeric/datetimes and errors="coerce" the numeric
-        #  entries would be coerced to NaT, was never clear exactly why.
+        # GH#50453 pre-2.0 with mixed numeric/datetimes and errors="coerce"
+        #  the numeric entries would be coerced to NaT, was never clear exactly
+        #  why.
         # mixed integers/datetimes
         expected = Index([Timestamp(x) for x in arr], dtype="M8[ns]")
         result = to_datetime(arr, errors="coerce", cache=cache)
