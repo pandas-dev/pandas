@@ -48,7 +48,6 @@ from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.numeric import (
-    Float64Index,
     Int64Index,
     NumericIndex,
 )
@@ -386,7 +385,7 @@ class RangeIndex(NumericIndex):
         name = self.name if name is no_default else name
 
         if values.dtype.kind == "f":
-            return Float64Index(values, name=name)
+            return NumericIndex(values, name=name, dtype=np.float64)
         # GH 46675 & 43885: If values is equally spaced, return a
         # more memory-compact RangeIndex instead of Int64Index
         unique_diffs = unique_deltas(values)
@@ -395,7 +394,7 @@ class RangeIndex(NumericIndex):
             new_range = range(values[0], values[-1] + diff, diff)
             return type(self)._simple_new(new_range, name=name)
         else:
-            return Int64Index._simple_new(values, name=name)
+            return NumericIndex._simple_new(values, name=name)
 
     def _view(self: RangeIndex) -> RangeIndex:
         result = type(self)._simple_new(self._range, name=self._name)
@@ -848,7 +847,7 @@ class RangeIndex(NumericIndex):
                 # First non-empty index had only one element
                 if rng.start == start:
                     values = np.concatenate([x._values for x in rng_indexes])
-                    result = Int64Index(values)
+                    result = self._constructor(values)
                     return result.rename(name)
 
                 step = rng.start - start
@@ -857,7 +856,9 @@ class RangeIndex(NumericIndex):
                 next_ is not None and rng.start != next_
             )
             if non_consecutive:
-                result = Int64Index(np.concatenate([x._values for x in rng_indexes]))
+                result = self._constructor(
+                    np.concatenate([x._values for x in rng_indexes])
+                )
                 return result.rename(name)
 
             if step is not None:
@@ -905,7 +906,6 @@ class RangeIndex(NumericIndex):
                 "and integer or boolean "
                 "arrays are valid indices"
             )
-        # fall back to Int64Index
         return super().__getitem__(key)
 
     def _getitem_slice(self: RangeIndex, slobj: slice) -> RangeIndex:
@@ -1010,15 +1010,14 @@ class RangeIndex(NumericIndex):
             res_name = ops.get_op_result_name(self, other)
             result = type(self)(rstart, rstop, rstep, name=res_name)
 
-            # for compat with numpy / Int64Index
+            # for compat with numpy / Index with int64 dtype
             # even if we can represent as a RangeIndex, return
-            # as a Float64Index if we have float-like descriptors
+            # as a float64 Index if we have float-like descriptors
             if not all(is_integer(x) for x in [rstart, rstop, rstep]):
                 result = result.astype("float64")
 
             return result
 
         except (ValueError, TypeError, ZeroDivisionError):
-            # Defer to Int64Index implementation
             # test_arithmetic_explicit_conversions
             return super()._arith_method(other, op)
