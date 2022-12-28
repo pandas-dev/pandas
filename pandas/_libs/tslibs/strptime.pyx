@@ -236,17 +236,22 @@ def array_strptime(
             if exact:
                 found = format_regex.match(val)
                 if not found:
-                    raise ValueError(f"time data '{val}' does not match "
-                                     f"format '{fmt}' (match)")
+                    raise ValueError(f"time data \"{val}\" doesn't "
+                                     f"match format \"{fmt}\"")
                 if len(val) != found.end():
-                    raise ValueError(f"unconverted data remains: {val[found.end():]}")
+                    raise ValueError(
+                        f"unconverted data remains: "
+                        f'"{val[found.end():]}"'
+                    )
 
             # search
             else:
                 found = format_regex.search(val)
                 if not found:
-                    raise ValueError(f"time data {repr(val)} does not match format "
-                                     f"{repr(fmt)} (search)")
+                    raise ValueError(
+                        f"time data \"{val}\" doesn't match "
+                        f"format \"{fmt}\""
+                    )
 
             iso_year = -1
             year = 1900
@@ -396,7 +401,8 @@ def array_strptime(
 
             result_timezone[i] = tz
 
-        except (ValueError, OutOfBoundsDatetime):
+        except (ValueError, OutOfBoundsDatetime) as ex:
+            ex.args = (f"{str(ex)}, at position {i}",)
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
