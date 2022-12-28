@@ -1014,10 +1014,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         # This is a no-op for SeriesGroupBy
         grp = self.grouper
-        if not (
-            grp.groupings is not None
-            and self.obj.ndim > 1
-            and self._group_selection is None
+        if (
+            grp.groupings is None
+            or self.obj.ndim == 1
+            or self._group_selection is not None
         ):
             return
 
