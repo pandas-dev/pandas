@@ -2867,3 +2867,14 @@ def test_groupby_method_drop_na(method):
     else:
         expected = DataFrame({"A": ["a", "b", "c"], "B": [0, 2, 4]}, index=[0, 2, 4])
     tm.assert_frame_equal(result, expected)
+
+
+def test_selected_obj_duplicate_columns():
+    # GH#50806
+    df = DataFrame([[0, 1, 2, 3]])
+    df.columns = [0, 1, 2, 0]
+    gb = df.groupby(df[1])
+    with gb._group_selection_context():
+        result = gb._selected_obj
+    expected = df.take([0, 2, 3], axis=1)
+    tm.assert_frame_equal(result, expected)
