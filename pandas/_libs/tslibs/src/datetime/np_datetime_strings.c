@@ -82,7 +82,7 @@ static enum DatetimePartParseResult compare_format(
         int *characters_remaining,
         const char *compare_to,
         int n,
-        const enum DatetimeFormatRequirement format_requirement
+        const enum FormatRequirement format_requirement
 ) {
   if (format_requirement == PARTIAL_MATCH && !*characters_remaining) {
     return COMPLETED_PARTIAL_MATCH;
@@ -111,7 +111,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                             NPY_DATETIMEUNIT *out_bestunit,
                             int *out_local, int *out_tzoffset,
                             const char* format, int format_len,
-                            enum DatetimeFormatRequirement format_requirement) {
+                            enum FormatRequirement format_requirement) {
     if (len < 0 || format_len < 0)
         goto parse_error;
     int year_leap = 0;
