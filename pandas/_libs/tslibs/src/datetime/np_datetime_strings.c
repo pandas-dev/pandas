@@ -710,7 +710,7 @@ parse_timezone:
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
-        comparison = compare_format(&format, &format_len, " ", 1, format_requirement)
+        comparison = compare_format(&format, &format_len, " ", 1, format_requirement);
         if (comparison == COMPARISON_ERROR) {
             goto parse_error;
         } else if (comparison == COMPLETED_PARTIAL_MATCH) {
