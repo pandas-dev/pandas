@@ -898,7 +898,11 @@ class SeriesGroupBy(GroupBy[Series]):
         indices: TakeIndexer,
         axis: Axis = 0,
     ) -> Series:
-        result = self._op_via_apply("take", indices=indices, axis=axis,)
+        result = self._op_via_apply(
+            "take",
+            indices=indices,
+            axis=axis,
+        )
         return result
 
     @doc(Series.skew.__doc__)
@@ -2274,7 +2278,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         indices: TakeIndexer,
         axis: Axis | None = 0,
     ) -> DataFrame:
-        result = self._op_via_apply("take", indices=indices, axis=axis,)
+        result = self._op_via_apply(
+            "take",
+            indices=indices,
+            axis=axis,
+        )
         return result
 
     @doc(DataFrame.skew.__doc__)
