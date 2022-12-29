@@ -168,9 +168,6 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE YEAR (4 digits) */
-    if (format_requirement == PARTIAL_MATCH && !format_len) {
-        goto finish;
-    }
     comparison = compare_format(&format, &format_len, "%Y", 2, format_requirement);
     if (comparison == COMPARISON_ERROR) {
         goto parse_error;
@@ -713,11 +710,11 @@ parse_timezone:
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
-        if (format_requirement == PARTIAL_MATCH && !format_len) {
-            goto finish;
-        }
-        if (compare_format(&format, &format_len, " ", 1, format_requirement)) {
+        comparison = compare_format(&format, &format_len, " ", 1, format_requirement)
+        if (comparison == COMPARISON_ERROR) {
             goto parse_error;
+        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+            goto finish;
         }
     }
 
