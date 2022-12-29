@@ -806,7 +806,15 @@ def test_column_as_series_set_with_upcast(using_copy_on_write, using_array_manag
         s[0] = "foo"
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
+            msg = "|".join(
+                [
+                    "A value is trying to be set on a copy of a slice from a DataFrame",
+                    "Setting an item of incompatible dtype is deprecated",
+                ]
+            )
+            with tm.assert_produces_warning(
+                (SettingWithCopyWarning, FutureWarning), match=msg
+            ):
                 s[0] = "foo"
 
     expected = Series(["foo", 2, 3], dtype=object, name="a")

@@ -26,7 +26,13 @@ import pytz
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_complex_dtype,
+    is_datetime64_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_object_dtype,
+)
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
@@ -2529,8 +2535,19 @@ class TestDataFrameConstructors:
             check_views()
 
         # TODO: most of the rest of this test belongs in indexing tests
-        df.iloc[0, 0] = 0
-        df.iloc[0, 1] = 0
+        if (
+            is_float_dtype(df.dtypes[0])
+            or is_integer_dtype(df.dtypes[0])
+            or is_complex_dtype(df.dtypes[0])
+            or is_object_dtype(df.dtypes[0])
+            or is_datetime64_dtype(df.dtypes[0])  # TODO this one should warn
+        ):
+            warn = None
+        else:
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn):
+            df.iloc[0, 0] = 0
+            df.iloc[0, 1] = 0
         if not copy:
             check_views(True)
 

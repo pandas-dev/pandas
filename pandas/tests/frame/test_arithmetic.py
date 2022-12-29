@@ -1935,7 +1935,7 @@ def test_dataframe_series_extension_dtypes():
 def test_dataframe_blockwise_slicelike():
     # GH#34367
     arr = np.random.randint(0, 1000, (100, 10))
-    df1 = DataFrame(arr)
+    df1 = DataFrame(arr, dtype="float")
     df2 = df1.copy()
     df2.iloc[0, [1, 3, 7]] = np.nan
 
