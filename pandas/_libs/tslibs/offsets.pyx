@@ -379,7 +379,6 @@ cdef class BaseOffset:
     --------
     >>> pd.offsets.Hour(5).n
     5
-
     >>> pd.offsets.Hour(5).normalize
     False
     """
