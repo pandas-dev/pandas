@@ -863,8 +863,6 @@ class ArrayManager(BaseArrayManager):
 
         This is a method on the ArrayManager level, to avoid creating an
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
-
-
         """
         if not is_integer(loc):
             raise TypeError("The column index should be an integer")

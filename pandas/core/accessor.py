@@ -6,6 +6,7 @@ that can be mixed into or pinned onto other pandas classes.
 """
 from __future__ import annotations
 
+from typing import final
 import warnings
 
 from pandas.util._decorators import doc
@@ -16,6 +17,7 @@ class DirNamesMixin:
     _accessors: set[str] = set()
     _hidden_attrs: frozenset[str] = frozenset()
 
+    @final
     def _dir_deletions(self) -> set[str]:
         """
         Delete unwanted __dir__ for this object.
