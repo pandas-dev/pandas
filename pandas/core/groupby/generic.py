@@ -897,9 +897,8 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         indices: TakeIndexer,
         axis: Axis = 0,
-        **kwargs,
     ) -> Series:
-        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
+        result = self._op_via_apply("take", indices=indices, axis=axis,)
         return result
 
     @doc(Series.skew.__doc__)
@@ -908,14 +907,12 @@ class SeriesGroupBy(GroupBy[Series]):
         axis: Axis | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
-        **kwargs,
     ) -> Series:
         result = self._op_via_apply(
             "skew",
             axis=axis,
             skipna=skipna,
             numeric_only=numeric_only,
-            **kwargs,
         )
         return result
 
@@ -2276,9 +2273,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         indices: TakeIndexer,
         axis: Axis | None = 0,
-        **kwargs,
     ) -> DataFrame:
-        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
+        result = self._op_via_apply("take", indices=indices, axis=axis,)
         return result
 
     @doc(DataFrame.skew.__doc__)
@@ -2287,14 +2283,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
-        **kwargs,
     ) -> DataFrame:
         result = self._op_via_apply(
             "skew",
             axis=axis,
             skipna=skipna,
             numeric_only=numeric_only,
-            **kwargs,
         )
         return result
 
