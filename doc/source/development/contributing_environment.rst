@@ -171,7 +171,7 @@ If you are a new user and the image size is no concern to you, we suggest opting
 that includes all of the dependencies, as this will ensure you can run the test suite without any
 caveats.
 
-To use any of the images, you should first start with ``docker pull willayd/pandas-dev:<tag>``,
+To use any of the images, you should first start with ``docker pull pandas/pandas:<tag>``,
 where tag is one of *alpine*, *pip-minimal*, *mamba-minimal*, *pip-all* or *mamba-all*. You can then run
 the image without any extra configuration.
 
@@ -180,15 +180,15 @@ you would run:
 
 .. code-block:: bash
 
-   docker pull willayd/pandas-dev:pip-all
-   docker run --rm -it -v ${PWD}:/home/pandas willayd/pandas-dev:pip-all
+   docker pull pandas/pandas:pip-all
+   docker run --rm -it -v ${PWD}:/home/pandas pandas/pandas:pip-all
 
 Similarly for *mamba-all*
 
 .. code-block:: bash
 
-   docker pull willayd/pandas-dev:mamba-all
-   docker run --rm -it -v ${PWD}:/home/pandas willayd/pandas-dev:mamba-all
+   docker pull pandas/pandas:mamba-all
+   docker run --rm -it -v ${PWD}:/home/pandas pandas/pandas:mamba-all
 
 The *mamba-* images will automatically activate the appropriate virtual environment for you on entry.
 
