@@ -3419,7 +3419,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
         """
-        nv.validate_groupby_func("cumprod", ["numeric_only", "skipna"])
+        nv.validate_groupby_func("cumprod", (), {}, ["numeric_only", "skipna"])
         if axis != 0:
             f = lambda x: x.cumprod(
                 axis=axis,
@@ -3441,7 +3441,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
         """
-        nv.validate_groupby_func("cumsum", ["numeric_only", "skipna"])
+        nv.validate_groupby_func("cumsum", (), {}, ["numeric_only", "skipna"])
         if axis != 0:
             f = lambda x: x.cumsum(axis=axis)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
