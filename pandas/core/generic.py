@@ -10099,7 +10099,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def tz_convert(
-        self: NDFrameT, tz, axis: Axis = 0, level=None, copy: bool_t = True
+        self: NDFrameT, tz, axis: Axis = 0, level=None, copy: bool_t | None = None
     ) -> NDFrameT:
         """
         Convert tz-aware axis to target time zone.
@@ -10181,7 +10181,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         tz,
         axis: Axis = 0,
         level=None,
-        copy: bool_t = True,
+        copy: bool_t | None = None,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
     ) -> NDFrameT:

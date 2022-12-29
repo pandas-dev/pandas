@@ -5,6 +5,7 @@ from pandas import (
     DataFrame,
     MultiIndex,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -439,6 +440,28 @@ def test_frame_set_axis(using_copy_on_write):
     df2.iloc[0, 0] = 0
     assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "func, tz", [("tz_convert", "Europe/Berlin"), ("tz_localize", None)]
+)
+def test_tz_convert_localize(using_copy_on_write, func, tz):
+    # GH 49473
+    ser = Series(
+        [1, 2], index=date_range(start="2014-08-01 09:00", freq="H", periods=2, tz=tz)
+    )
+    ser_orig = ser.copy()
+    ser2 = getattr(ser, func)("US/Central")
+
+    if using_copy_on_write:
+        assert np.shares_memory(ser.values, ser2.values)
+    else:
+        assert not np.shares_memory(ser.values, ser2.values)
+
+    # mutating ser triggers a copy-on-write for the column / block
+    ser2.iloc[0] = 0
+    assert not np.shares_memory(ser2.values, ser.values)
+    tm.assert_series_equal(ser, ser_orig)
 
 
 def test_series_set_axis(using_copy_on_write):
