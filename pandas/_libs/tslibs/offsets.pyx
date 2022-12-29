@@ -372,7 +372,7 @@ cdef class BaseOffset:
     n : int
         Number of multiples of the frequency.
 
-    normalize : boolean
+    normalize : bool
         Whether the frequency can align with midnight.
 
     Examples
