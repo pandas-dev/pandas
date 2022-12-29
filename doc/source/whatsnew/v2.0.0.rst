@@ -476,7 +476,7 @@ Other API changes
 - Changed behavior of :meth:`Series.quantile` and :meth:`DataFrame.quantile` with :class:`SparseDtype` to retain sparse dtype (:issue:`49583`)
 - When creating a :class:`Series` with a object-dtype :class:`Index` of datetime objects, pandas no longer silently converts the index to a :class:`DatetimeIndex` (:issue:`39307`, :issue:`23598`)
 - :meth:`Series.unique` with dtype "timedelta64[ns]" or "datetime64[ns]" now returns :class:`TimedeltaArray` or :class:`DatetimeArray` instead of ``numpy.ndarray`` (:issue:`49176`)
-- :func:`to_datetime` and :class:`DatetimeIndex` now allow sequences containing both ``datetime`` objects and numeric entries, matching :class:`Series` behavior (:issue:`49037`)
+- :func:`to_datetime` and :class:`DatetimeIndex` now allow sequences containing both ``datetime`` objects and numeric entries, matching :class:`Series` behavior (:issue:`49037`, :issue:`50453`)
 - :func:`pandas.api.dtypes.is_string_dtype` now only returns ``True`` for array-likes with ``dtype=object`` when the elements are inferred to be strings (:issue:`15585`)
 - Passing a sequence containing ``datetime`` objects and ``date`` objects to :class:`Series` constructor will return with ``object`` dtype instead of ``datetime64[ns]`` dtype, consistent with :class:`Index` behavior (:issue:`49341`)
 - Passing strings that cannot be parsed as datetimes to :class:`Series` or :class:`DataFrame` with ``dtype="datetime64[ns]"`` will raise instead of silently ignoring the keyword and returning ``object`` dtype (:issue:`24435`)
