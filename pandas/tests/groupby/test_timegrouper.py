@@ -102,7 +102,7 @@ class TestGroupBy:
                 index=date_range(
                     "20130901", "20131205", freq="5D", name="Date", inclusive="left"
                 ),
-            )
+            ).astype({"Buyer": object})
             expected.iloc[0, 0] = "CarlCarlCarl"
             expected.iloc[6, 0] = "CarlCarl"
             expected.iloc[18, 0] = "Joe"
