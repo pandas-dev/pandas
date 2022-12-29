@@ -8318,7 +8318,7 @@ Parrot 2  Parrot       24.0
         Parameters
         ----------%s
         values : list-like or scalar, optional
-            column or columns to aggregate, optional
+            Column or columns to aggregate.
         index : column, Grouper, array, or list of the previous
             If an array is passed, it must be the same length as the data. The
             list can contain any of the other types (except list).
@@ -10927,7 +10927,7 @@ Parrot 2  Parrot       24.0
         Returns
         -------
         DataFrame
-            The DataFrame has a DatetimeIndex
+            The DataFrame has a DatetimeIndex.
         """
         new_obj = self.copy(deep=copy)
 
@@ -10962,7 +10962,7 @@ Parrot 2  Parrot       24.0
         Returns
         -------
         DataFrame:
-            The DataFrame has a PeriodIndex
+            The DataFrame has a PeriodIndex.
 
         Examples
         --------
