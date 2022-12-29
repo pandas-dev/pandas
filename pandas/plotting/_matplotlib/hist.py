@@ -156,8 +156,8 @@ class HistPlot(LinePlot):
                         weights = weights[:, i]
                     except IndexError:
                         raise ValueError(
-                            "weights must have the same shape as data "
-                            f"{np.shape(data)}, or be a single column"
+                            "weights must have the same shape as data, "
+                            "or be a single column"
                         )
                 weights = weights[~isna(y)]
                 kwds["weights"] = weights
