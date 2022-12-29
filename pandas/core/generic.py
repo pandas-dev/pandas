@@ -405,6 +405,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
+        copy : bool, default False
+            Specify if a copy of the object should be made.
         allows_duplicate_labels : bool, optional
             Whether the returned object allows duplicate labels.
 
