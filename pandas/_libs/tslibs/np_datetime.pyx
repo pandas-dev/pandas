@@ -296,7 +296,7 @@ cdef int string_to_dts(
         format_requirement = INFER_FORMAT
     else:
         format_buf = get_c_string_buf_and_size(format, &format_length)
-        format_requirement = int(exact)
+        format_requirement = <FormatRequirement>exact
     return parse_iso_8601_datetime(buf, length, want_exc,
                                    dts, out_bestunit, out_local, out_tzoffset,
                                    format_buf, format_length,
