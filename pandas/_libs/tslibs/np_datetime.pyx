@@ -53,7 +53,8 @@ cdef extern from "src/datetime/np_datetime_strings.h":
                                 npy_datetimestruct *out,
                                 NPY_DATETIMEUNIT *out_bestunit,
                                 int *out_local, int *out_tzoffset,
-                                const char *format, int format_len, Exact exact)
+                                const char *format, int format_len,
+                                FormatRequirement exact)
 
 
 # ----------------------------------------------------------------------
@@ -279,24 +280,27 @@ cdef int string_to_dts(
     int* out_tzoffset,
     bint want_exc,
     format: str | None=None,
-    Exact exact=EXACT_MATCH,
+    bint exact=EXACT_MATCH,
 ) except? -1:
     cdef:
         Py_ssize_t length
         const char* buf
         Py_ssize_t format_length
         const char* format_buf
+        FormatRequirement format_requirement
 
     buf = get_c_string_buf_and_size(val, &length)
     if format is None:
         format_buf = b""
         format_length = 0
-        exact = NO_MATCH
+        format_requirement = INFER_FORMAT
     else:
         format_buf = get_c_string_buf_and_size(format, &format_length)
+        format_requirement = int(exact)
     return parse_iso_8601_datetime(buf, length, want_exc,
                                    dts, out_bestunit, out_local, out_tzoffset,
-                                   format_buf, format_length, exact)
+                                   format_buf, format_length,
+                                   format_requirement)
 
 
 cpdef ndarray astype_overflowsafe(

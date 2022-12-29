@@ -67,43 +67,43 @@ This file implements string parsing and creation for NumPy datetime.
  * Returns 0 on success, -1 on failure.
  */
 
-enum Comparison {
-    ADVANCE,
-    RETURN,
-    ERROR
+enum DatetimePartParseResult {
+    COMPARISON_SUCCESS,
+    COMPLETED_PARTIAL_MATCH,
+    COMPARISON_ERROR
 };
 // This function will advance the pointer on format
 // and decrement characters_remaining by n on success
-// On failure will return ERROR without incrementing
-// If `exact` is PARTIAL_MATCH, and the `format` string has
-// been exhausted, then signal to the caller to finish parsing.
-static enum Comparison compare_format(
+// On failure will return COMPARISON_ERROR without incrementing
+// If `format_requirement` is PARTIAL_MATCH, and the `format` string has
+// been exhausted, then return COMPLETED_PARTIAL_MATCH.
+static enum DatetimePartParseResult compare_format(
         const char **format,
         int *characters_remaining,
         const char *compare_to,
         int n,
-        const enum Exact exact
+        const enum DatetimeFormatRequirement format_requirement
 ) {
-  if (exact == PARTIAL_MATCH && !*characters_remaining) {
-    return RETURN;
+  if (format_requirement == PARTIAL_MATCH && !*characters_remaining) {
+    return COMPLETED_PARTIAL_MATCH;
   }
-  if (exact == NO_MATCH) {
-    return ADVANCE;
+  if (format_requirement == INFER_FORMAT) {
+    return COMPARISON_SUCCESS;
   }
   if (*characters_remaining < n) {
     // TODO(pandas-dev): PyErr to differentiate what went wrong
-    return ERROR;
+    return COMPARISON_ERROR;
   } else {
     if (strncmp(*format, compare_to, n)) {
       // TODO(pandas-dev): PyErr to differentiate what went wrong
-      return ERROR;
+      return COMPARISON_ERROR;
     } else {
       *format += n;
       *characters_remaining -= n;
-      return ADVANCE;
+      return COMPARISON_SUCCESS;
     }
   }
-  return ADVANCE;
+  return COMPARISON_SUCCESS;
 }
 
 int parse_iso_8601_datetime(const char *str, int len, int want_exc,
@@ -111,7 +111,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                             NPY_DATETIMEUNIT *out_bestunit,
                             int *out_local, int *out_tzoffset,
                             const char* format, int format_len,
-                            enum Exact exact) {
+                            enum DatetimeFormatRequirement format_requirement) {
     if (len < 0 || format_len < 0)
         goto parse_error;
     int year_leap = 0;
@@ -119,7 +119,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     const char *substr;
     int sublen;
     NPY_DATETIMEUNIT bestunit = NPY_FR_GENERIC;
-    enum Comparison comparison;
+    enum DatetimePartParseResult comparison;
 
     /* If year-month-day are separated by a valid separator,
      * months/days without leading zeroes will be parsed
@@ -149,10 +149,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
-        comparison = compare_format(&format, &format_len, " ", 1, exact);
-        if (comparison == ERROR) {
+        comparison = compare_format(&format, &format_len, " ", 1, format_requirement);
+        if (comparison == COMPARISON_ERROR) {
             goto parse_error;
-        } else if (comparison == RETURN) {
+        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
             goto finish;
         }
     }
@@ -168,13 +168,13 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE YEAR (4 digits) */
-    if (exact == PARTIAL_MATCH && !format_len) {
+    if (format_requirement == PARTIAL_MATCH && !format_len) {
         goto finish;
     }
-    comparison = compare_format(&format, &format_len, "%Y", 2, exact);
-    if (comparison == ERROR) {
+    comparison = compare_format(&format, &format_len, "%Y", 2, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
         goto parse_error;
-    } else if (comparison == RETURN) {
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
         goto finish;
     }
 
@@ -221,10 +221,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         ++substr;
         --sublen;
 
-        comparison = compare_format(&format, &format_len, &ymd_sep, 1, exact);
-        if (comparison == ERROR) {
+        comparison = compare_format(&format, &format_len, &ymd_sep, 1,
+                                    format_requirement);
+        if (comparison == COMPARISON_ERROR) {
             goto parse_error;
-        } else if (comparison == RETURN) {
+        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
             goto finish;
         }
         /* Cannot have trailing separator */
@@ -234,10 +235,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE MONTH */
-    comparison = compare_format(&format, &format_len, "%m", 2, exact);
-    if (comparison == ERROR) {
+    comparison = compare_format(&format, &format_len, "%m", 2, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
         goto parse_error;
-    } else if (comparison == RETURN) {
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
         goto finish;
     }
     /* First digit required */
@@ -283,19 +284,20 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         }
         ++substr;
         --sublen;
-        comparison = compare_format(&format, &format_len, &ymd_sep, 1, exact);
-        if (comparison == ERROR) {
+        comparison = compare_format(&format, &format_len, &ymd_sep, 1,
+                                    format_requirement);
+        if (comparison == COMPARISON_ERROR) {
             goto parse_error;
-        } else if (comparison == RETURN) {
+        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
             goto finish;
         }
     }
 
     /* PARSE THE DAY */
-    comparison = compare_format(&format, &format_len, "%d", 2, exact);
-    if (comparison == ERROR) {
+    comparison = compare_format(&format, &format_len, "%d", 2, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
         goto parse_error;
-    } else if (comparison == RETURN) {
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
         goto finish;
     }
     /* First digit required */
@@ -337,20 +339,20 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     if ((*substr != 'T' && *substr != ' ') || sublen == 1) {
         goto parse_error;
     }
-    comparison = compare_format(&format, &format_len, substr, 1, exact);
-    if (comparison == ERROR) {
+    comparison = compare_format(&format, &format_len, substr, 1, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
         goto parse_error;
-    } else if (comparison == RETURN) {
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
         goto finish;
     }
     ++substr;
     --sublen;
 
     /* PARSE THE HOURS */
-    comparison = compare_format(&format, &format_len, "%H", 2, exact);
-    if (comparison == ERROR) {
+    comparison = compare_format(&format, &format_len, "%H", 2, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
         goto parse_error;
-    } else if (comparison == RETURN) {
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
         goto finish;
     }
     /* First digit required */
@@ -396,10 +398,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         if (sublen == 0 || !isdigit(*substr)) {
             goto parse_error;
         }
-        comparison = compare_format(&format, &format_len, ":", 1, exact);
-        if (comparison == ERROR) {
+        comparison = compare_format(&format, &format_len, ":", 1, format_requirement);
+        if (comparison == COMPARISON_ERROR) {
             goto parse_error;
-        } else if (comparison == RETURN) {
+        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
             goto finish;
         }
     } else if (!isdigit(*substr)) {
@@ -410,10 +412,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE MINUTES */
-    comparison = compare_format(&format, &format_len, "%M", 2, exact);
-    if (comparison == ERROR) {
+    comparison = compare_format(&format, &format_len, "%M", 2, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
         goto parse_error;
-    } else if (comparison == RETURN) {
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
         goto finish;
     }
     /* First digit required */
@@ -448,10 +450,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     /* If we make it through this condition block, then the next
      * character is a digit. */
     if (has_hms_sep && *substr == ':') {
-        comparison = compare_format(&format, &format_len, ":", 1, exact);
-        if (comparison == ERROR) {
+        comparison = compare_format(&format, &format_len, ":", 1, format_requirement);
+        if (comparison == COMPARISON_ERROR) {
             goto parse_error;
-        } else if (comparison == RETURN) {
+        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
             goto finish;
         }
         ++substr;
@@ -466,10 +468,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE SECONDS */
-    comparison = compare_format(&format, &format_len, "%S", 2, exact);
-    if (comparison == ERROR) {
+    comparison = compare_format(&format, &format_len, "%S", 2, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
         goto parse_error;
-    } else if (comparison == RETURN) {
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
         goto finish;
     }
     /* First digit required */
@@ -497,10 +499,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     if (sublen > 0 && *substr == '.') {
         ++substr;
         --sublen;
-        comparison = compare_format(&format, &format_len, ".", 1, exact);
-        if (comparison == ERROR) {
+        comparison = compare_format(&format, &format_len, ".", 1, format_requirement);
+        if (comparison == COMPARISON_ERROR) {
             goto parse_error;
-        } else if (comparison == RETURN) {
+        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
             goto finish;
         }
     } else {
@@ -509,10 +511,10 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
     /* PARSE THE MICROSECONDS (0 to 6 digits) */
-    comparison = compare_format(&format, &format_len, "%f", 2, exact);
-    if (comparison == ERROR) {
+    comparison = compare_format(&format, &format_len, "%f", 2, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
         goto parse_error;
-    } else if (comparison == RETURN) {
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
         goto finish;
     }
     numdigits = 0;
@@ -579,10 +581,10 @@ parse_timezone:
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
-        comparison = compare_format(&format, &format_len, " ", 1, exact);
-        if (comparison == ERROR) {
+        comparison = compare_format(&format, &format_len, " ", 1, format_requirement);
+        if (comparison == COMPARISON_ERROR) {
             goto parse_error;
-        } else if (comparison == RETURN) {
+        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
             goto finish;
         }
     }
@@ -597,10 +599,10 @@ parse_timezone:
 
     /* UTC specifier */
     if (*substr == 'Z') {
-        comparison = compare_format(&format, &format_len, "%z", 2, exact);
-        if (comparison == ERROR) {
+        comparison = compare_format(&format, &format_len, "%z", 2, format_requirement);
+        if (comparison == COMPARISON_ERROR) {
             goto parse_error;
-        } else if (comparison == RETURN) {
+        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
             goto finish;
         }
         /* "Z" should be equivalent to tz offset "+00:00" */
@@ -622,10 +624,10 @@ parse_timezone:
             --sublen;
         }
     } else if (*substr == '-' || *substr == '+') {
-        comparison = compare_format(&format, &format_len, "%z", 2, exact);
-        if (comparison == ERROR) {
+        comparison = compare_format(&format, &format_len, "%z", 2, format_requirement);
+        if (comparison == COMPARISON_ERROR) {
             goto parse_error;
-        } else if (comparison == RETURN) {
+        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
             goto finish;
         }
         /* Time zone offset */
@@ -711,10 +713,10 @@ parse_timezone:
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
-        if (exact == PARTIAL_MATCH && !format_len) {
+        if (format_requirement == PARTIAL_MATCH && !format_len) {
             goto finish;
         }
-        if (compare_format(&format, &format_len, " ", 1, exact)) {
+        if (compare_format(&format, &format_len, " ", 1, format_requirement)) {
             goto parse_error;
         }
     }

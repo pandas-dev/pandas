@@ -28,7 +28,6 @@ cnp.import_array()
 
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
-    Exact,
     NPY_FR_ns,
     check_dts_bounds,
     get_datetime64_value,
@@ -404,7 +403,7 @@ cpdef array_to_datetime(
     bint utc=False,
     bint require_iso8601=False,
     format: str | None=None,
-    Exact exact=Exact.EXACT_MATCH,
+    bint exact=True,
 ):
     """
     Converts a 1D array of date-like values to a numpy array of either:

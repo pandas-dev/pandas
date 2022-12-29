@@ -33,13 +33,12 @@ This file implements string parsing and creation for NumPy datetime.
  *      * EXACT_MATCH : require an exact match with 'format'. If the
  *           string is '2020-01-01', then the only format which will
  *           be able to parse it without error is '%Y-%m-%d';
- *      * NO_MATCH: don't require any match - parse without comparing
- *                  with 'format'.
+ *      * INFER_FORMAT: parse without comparing 'format' (i.e. infer it).
  */
-enum Exact {
+enum FormatRequirement {
     PARTIAL_MATCH,
     EXACT_MATCH,
-    NO_MATCH
+    INFER_FORMAT
 };
 
 /*
@@ -77,7 +76,7 @@ parse_iso_8601_datetime(const char *str, int len, int want_exc,
                         int *out_tzoffset,
                         const char* format,
                         int format_len,
-                        enum Exact exact);
+                        enum FormatRequirement format_requirement);
 
 /*
  * Provides a string length to use for converting datetime

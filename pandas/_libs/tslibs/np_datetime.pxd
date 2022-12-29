@@ -96,7 +96,7 @@ cdef int string_to_dts(
     int* out_tzoffset,
     bint want_exc,
     format: str | None = *,
-    Exact exact = *
+    bint exact = *
 ) except? -1
 
 cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype)
@@ -122,7 +122,7 @@ cdef int64_t convert_reso(
 ) except? -1
 
 cdef extern from "src/datetime/np_datetime_strings.h":
-    cdef enum Exact:
+    cdef enum FormatRequirement:
         PARTIAL_MATCH
         EXACT_MATCH
-        NO_MATCH
+        INFER_FORMAT
