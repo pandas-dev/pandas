@@ -185,7 +185,6 @@ def test_transform_axis_1_reducer(request, reduction_func):
     # GH#45715
     if reduction_func in (
         "corrwith",
-        "idxmax",
         "ngroup",
         "nth",
     ):
