@@ -98,7 +98,7 @@ jobs:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
       EXTRA_APT: ${{ matrix.extra_apt || '' }}
-      ERROR_ON_WARNINGS: ${{ matrix.error_on_warnings || "1" }}
+      ERROR_ON_WARNINGS: ${{ matrix.error_on_warnings || '1' }}
       LANG: ${{ matrix.lang || '' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
