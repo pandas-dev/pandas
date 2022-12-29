@@ -382,25 +382,26 @@ cdef class BaseOffset:
     #    dict _cache
 
     def __init__(self, n=1, normalize=False):
-        n = self._validate_n(n)
-        self.n = n
         """
-        Number of multiples of the frequency.
+        Parameters:
+        -----------
+        n : int
+            Number of multiples of the frequency.
+
+        normalize : boolean
+            Whether the frequency can align with midnight.
 
         Examples
         --------
         >>> pd.offsets.Hour(5).n
         5
-        """
-        self.normalize = normalize
-        """
-        Return boolean whether the frequency can align with midnight.
 
-        Examples
-        --------
         >>> pd.offsets.Hour(5).normalize
         False
         """
+        n = self._validate_n(n)
+        self.n = n
+        self.normalize = normalize
         self._cache = {}
 
     def __eq__(self, other) -> bool:
