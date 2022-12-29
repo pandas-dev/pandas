@@ -84,11 +84,14 @@ static DatetimePartParseResult compare_format(
         int n,
         const FormatRequirement format_requirement
 ) {
-  if (format_requirement == PARTIAL_MATCH && !*characters_remaining) {
-    return COMPLETED_PARTIAL_MATCH;
-  }
   if (format_requirement == INFER_FORMAT) {
     return COMPARISON_SUCCESS;
+  }
+  if (*characters_remaining < 0) {
+    return COMPARISON_ERROR;
+  }
+  if (format_requirement == PARTIAL_MATCH && *characters_remaining == 0) {
+    return COMPLETED_PARTIAL_MATCH;
   }
   if (*characters_remaining < n) {
     // TODO(pandas-dev): PyErr to differentiate what went wrong
