@@ -367,8 +367,8 @@ cdef class BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     n : int
         Number of multiples of the frequency.
 
