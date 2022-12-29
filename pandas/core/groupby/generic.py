@@ -24,7 +24,6 @@ from typing import (
     Union,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -51,7 +50,6 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -429,7 +427,51 @@ class SeriesGroupBy(GroupBy[Series]):
 
         return result
 
-    @Substitution(klass="Series")
+    __examples_series_doc = dedent(
+        """
+    >>> ser = pd.Series(
+    ...    [390.0, 350.0, 30.0, 20.0],
+    ...    index=["Falcon", "Falcon", "Parrot", "Parrot"],
+    ...    name="Max Speed")
+    >>> grouped = ser.groupby([1, 1, 2, 2])
+    >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
+        Falcon    0.707107
+        Falcon   -0.707107
+        Parrot    0.707107
+        Parrot   -0.707107
+        Name: Max Speed, dtype: float64
+
+    Broadcast result of the transformation
+
+    >>> grouped.transform(lambda x: x.max() - x.min())
+    Falcon    40.0
+    Falcon    40.0
+    Parrot    10.0
+    Parrot    10.0
+    Name: Max Speed, dtype: float64
+
+    >>> grouped.transform("mean")
+    Falcon    370.0
+    Falcon    370.0
+    Parrot     25.0
+    Parrot     25.0
+    Name: Max Speed, dtype: float64
+
+    .. versionchanged:: 1.3.0
+
+    The resulting dtype will reflect the return value of the passed ``func``,
+    for example:
+
+    >>> grouped.transform(lambda x: x.astype(int).max())
+    Falcon    390
+    Falcon    390
+    Parrot     30
+    Parrot     30
+    Name: Max Speed, dtype: int64
+    """
+    )
+
+    @Substitution(klass="Series", example=__examples_series_doc)
     @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         return self._transform(
@@ -498,7 +540,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Returns
         -------
-        filtered : Series
+        Series
 
         Notes
         -----
@@ -587,7 +629,9 @@ class SeriesGroupBy(GroupBy[Series]):
         # we might have duplications among the bins
         if len(res) != len(ri):
             res, out = np.zeros(len(ri), dtype=out.dtype), res
-            res[ids[idx]] = out
+            if len(ids) > 0:
+                # GH#21334s
+                res[ids[idx]] = out
 
         result = self.obj._constructor(res, index=ri, name=self.obj.name)
         return self._reindex_output(result, fill_value=0)
@@ -1392,32 +1436,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 applied.append(res)
 
         # Compute and process with the remaining groups
-        emit_alignment_warning = False
         for name, group in gen:
             if group.size == 0:
                 continue
             object.__setattr__(group, "name", name)
             res = path(group)
-            if (
-                not emit_alignment_warning
-                and res.ndim == 2
-                and not res.index.equals(group.index)
-            ):
-                emit_alignment_warning = True
 
             res = _wrap_transform_general_frame(self.obj, group, res)
             applied.append(res)
-
-        if emit_alignment_warning:
-            # GH#45648
-            warnings.warn(
-                "In a future version of pandas, returning a DataFrame in "
-                "groupby.transform will align with the input's index. Apply "
-                "`.to_numpy()` to the result in the transform function to keep "
-                "the current behavior and silence this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
         concat_index = obj.columns if self.axis == 0 else obj.index
         other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1
@@ -1425,7 +1451,61 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         concatenated = concatenated.reindex(concat_index, axis=other_axis, copy=False)
         return self._set_result_index_ordered(concatenated)
 
-    @Substitution(klass="DataFrame")
+    __examples_dataframe_doc = dedent(
+        """
+    >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+    ...                           'foo', 'bar'],
+    ...                    'B' : ['one', 'one', 'two', 'three',
+    ...                           'two', 'two'],
+    ...                    'C' : [1, 5, 5, 2, 5, 5],
+    ...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
+    >>> grouped = df.groupby('A')[['C', 'D']]
+    >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
+            C         D
+    0 -1.154701 -0.577350
+    1  0.577350  0.000000
+    2  0.577350  1.154701
+    3 -1.154701 -1.000000
+    4  0.577350 -0.577350
+    5  0.577350  1.000000
+
+    Broadcast result of the transformation
+
+    >>> grouped.transform(lambda x: x.max() - x.min())
+        C    D
+    0  4.0  6.0
+    1  3.0  8.0
+    2  4.0  6.0
+    3  3.0  8.0
+    4  4.0  6.0
+    5  3.0  8.0
+
+    >>> grouped.transform("mean")
+        C    D
+    0  3.666667  4.0
+    1  4.000000  5.0
+    2  3.666667  4.0
+    3  4.000000  5.0
+    4  3.666667  4.0
+    5  4.000000  5.0
+
+    .. versionchanged:: 1.3.0
+
+    The resulting dtype will reflect the return value of the passed ``func``,
+    for example:
+
+    >>> grouped.transform(lambda x: x.astype(int).max())
+    C  D
+    0  5  8
+    1  5  9
+    2  5  8
+    3  5  9
+    4  5  8
+    5  5  9
+    """
+    )
+
+    @Substitution(klass="DataFrame", example=__examples_dataframe_doc)
     @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         return self._transform(
@@ -1516,7 +1596,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Returns
         -------
-        filtered : DataFrame
+        DataFrame
 
         Notes
         -----
@@ -2336,5 +2416,7 @@ def _wrap_transform_general_frame(
             )
         assert isinstance(res_frame, DataFrame)
         return res_frame
+    elif isinstance(res, DataFrame) and not res.index.is_(group.index):
+        return res._align_frame(group)[0]
     else:
         return res

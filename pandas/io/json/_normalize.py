@@ -66,8 +66,6 @@ def nested_to_record(
     max_level: int, optional, default: None
         The max depth to normalize.
 
-        .. versionadded:: 0.25.0
-
     Returns
     -------
     d - dict or list of dicts, matching `ds`
@@ -288,8 +286,6 @@ def _json_normalize(
     max_level : int, default None
         Max number of levels(depth of dict) to normalize.
         if None, normalizes all levels.
-
-        .. versionadded:: 0.25.0
 
     Returns
     -------

@@ -59,7 +59,7 @@ cdef extern from "src/datetime/np_datetime_strings.h":
 # ----------------------------------------------------------------------
 # numpy object inspection
 
-cdef inline npy_datetime get_datetime64_value(object obj) nogil:
+cdef npy_datetime get_datetime64_value(object obj) nogil:
     """
     returns the int64 value underlying scalar numpy datetime64 object
 
@@ -69,14 +69,14 @@ cdef inline npy_datetime get_datetime64_value(object obj) nogil:
     return (<PyDatetimeScalarObject*>obj).obval
 
 
-cdef inline npy_timedelta get_timedelta64_value(object obj) nogil:
+cdef npy_timedelta get_timedelta64_value(object obj) nogil:
     """
     returns the int64 value underlying scalar numpy timedelta64 object
     """
     return (<PyTimedeltaScalarObject*>obj).obval
 
 
-cdef inline NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
+cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
     """
     returns the unit part of the dtype for a numpy datetime64 object.
     """
@@ -136,7 +136,7 @@ cdef bint cmp_dtstructs(
         return cmp_res == -1 or cmp_res == 0
 
 
-cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
+cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
     """
     cmp_scalar is a more performant version of PyObject_RichCompare
     typed for int64_t arguments.
@@ -229,7 +229,7 @@ def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
     return tds  # <- returned as a dict to python
 
 
-cdef inline void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
+cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
     if PyDateTime_CheckExact(dt):
         dts.year = PyDateTime_GET_YEAR(dt)
     else:
@@ -246,9 +246,9 @@ cdef inline void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
     dts.ps = dts.as = 0
 
 
-cdef inline int64_t pydatetime_to_dt64(datetime val,
-                                       npy_datetimestruct *dts,
-                                       NPY_DATETIMEUNIT reso=NPY_FR_ns):
+cdef int64_t pydatetime_to_dt64(datetime val,
+                                npy_datetimestruct *dts,
+                                NPY_DATETIMEUNIT reso=NPY_FR_ns):
     """
     Note we are assuming that the datetime object is timezone-naive.
     """
@@ -256,7 +256,7 @@ cdef inline int64_t pydatetime_to_dt64(datetime val,
     return npy_datetimestruct_to_datetime(reso, dts)
 
 
-cdef inline void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
+cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
@@ -264,14 +264,14 @@ cdef inline void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
     dts.ps = dts.as = 0
     return
 
-cdef inline int64_t pydate_to_dt64(
+cdef int64_t pydate_to_dt64(
     date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=NPY_FR_ns
 ):
     pydate_to_dtstruct(val, dts)
     return npy_datetimestruct_to_datetime(reso, dts)
 
 
-cdef inline int string_to_dts(
+cdef int string_to_dts(
     str val,
     npy_datetimestruct* dts,
     NPY_DATETIMEUNIT* out_bestunit,
@@ -312,10 +312,10 @@ cpdef ndarray astype_overflowsafe(
     """
     if values.descr.type_num == dtype.type_num == cnp.NPY_DATETIME:
         # i.e. dtype.kind == "M"
-        pass
+        dtype_name = "datetime64"
     elif values.descr.type_num == dtype.type_num == cnp.NPY_TIMEDELTA:
         # i.e. dtype.kind == "m"
-        pass
+        dtype_name = "timedelta64"
     else:
         raise TypeError(
             "astype_overflowsafe values.dtype and dtype must be either "
@@ -326,14 +326,14 @@ cpdef ndarray astype_overflowsafe(
         NPY_DATETIMEUNIT from_unit = get_unit_from_dtype(values.dtype)
         NPY_DATETIMEUNIT to_unit = get_unit_from_dtype(dtype)
 
-    if (
-        from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
-        or to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
-    ):
+    if from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        raise TypeError(f"{dtype_name} values must have a unit specified")
+
+    if to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # without raising explicitly here, we end up with a SystemError
         # built-in function [...] returned a result with an error
         raise ValueError(
-            "datetime64/timedelta64 values and dtype must have a unit specified"
+            f"{dtype_name} dtype must have a unit specified"
         )
 
     if from_unit == to_unit:

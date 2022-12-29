@@ -456,7 +456,6 @@ class StringMethods(NoNewAttributesMixin):
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
-            .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
                 Changed default of `join` from None to `'left'`.
 
@@ -1602,7 +1601,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    filled : Series/Index of objects.
+    Series/Index of objects.
     """
 
     @Appender(_shared_docs["str_pad"] % {"side": "left and right", "method": "center"})
@@ -1881,7 +1880,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        encoded : Series/Index of objects
+        Series/Index of objects
         """
         result = self._data.array._str_encode(encoding, errors)
         return self._wrap_result(result, returns_string=False)
@@ -2768,7 +2767,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        normalized : Series/Index of objects
+        Series/Index of objects
         """
         result = self._data.array._str_normalize(form)
         return self._wrap_result(result)
@@ -2978,7 +2977,7 @@ class StringMethods(NoNewAttributesMixin):
     _doc_args["casefold"] = {
         "type": "be casefolded",
         "method": "casefold",
-        "version": "\n    .. versionadded:: 0.25.0\n",
+        "version": "",
     }
 
     @Appender(_shared_docs["casemethods"] % _doc_args["lower"])

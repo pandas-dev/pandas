@@ -265,8 +265,6 @@ cdef class _NaT(datetime):
         """
         Convert the Timestamp to a NumPy datetime64 or timedelta64.
 
-        .. versionadded:: 0.25.0
-
         With the default 'dtype', this is an alias method for `NaT.to_datetime64()`.
 
         The copy parameter is available here only for compatibility. Its value
@@ -1218,14 +1216,14 @@ NaT = c_NaT        # Python-visible
 
 # ----------------------------------------------------------------------
 
-cdef inline bint checknull_with_nat(object val):
+cdef bint checknull_with_nat(object val):
     """
     Utility to check if a value is a nat or not.
     """
     return val is None or util.is_nan(val) or val is c_NaT
 
 
-cdef inline bint is_dt64nat(object val):
+cdef bint is_dt64nat(object val):
     """
     Is this a np.datetime64 object np.datetime64("NaT").
     """
@@ -1234,7 +1232,7 @@ cdef inline bint is_dt64nat(object val):
     return False
 
 
-cdef inline bint is_td64nat(object val):
+cdef bint is_td64nat(object val):
     """
     Is this a np.timedelta64 object np.timedelta64("NaT").
     """

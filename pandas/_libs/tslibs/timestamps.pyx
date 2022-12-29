@@ -6,8 +6,8 @@ construction requirements, we need to do object instantiation in python
 (see Timestamp class below). This will serve as a C extension type that
 shadows the python class, where we do any heavy lifting.
 """
-import warnings
 
+import warnings
 cimport cython
 
 import numpy as np
@@ -111,7 +111,7 @@ from pandas._libs.tslibs.timezones cimport (
     is_utc,
     maybe_get_tz,
     treat_tz_as_pytz,
-    utc_pytz as UTC,
+    utc_stdlib as UTC,
 )
 from pandas._libs.tslibs.tzconversion cimport (
     tz_convert_from_utc_single,
@@ -126,7 +126,7 @@ _no_input = object()
 # ----------------------------------------------------------------------
 
 
-cdef inline _Timestamp create_timestamp_from_ts(
+cdef _Timestamp create_timestamp_from_ts(
     int64_t value,
     npy_datetimestruct dts,
     tzinfo tz,
@@ -361,7 +361,7 @@ cdef class _Timestamp(ABCTimestamp):
         return self._compare_mismatched_resos(ots, op)
 
     # TODO: copied from Timedelta; try to de-duplicate
-    cdef inline bint _compare_mismatched_resos(self, _Timestamp other, int op):
+    cdef bint _compare_mismatched_resos(self, _Timestamp other, int op):
         # Can't just dispatch to numpy as they silently overflow and get it wrong
         cdef:
             npy_datetimestruct dts_self
@@ -448,6 +448,7 @@ cdef class _Timestamp(ABCTimestamp):
             # cython semantics, args have been switched and this is __radd__
             # TODO(cython3): remove this it moved to __radd__
             return other.__add__(self)
+
         return NotImplemented
 
     def __radd__(self, other):
@@ -1090,8 +1091,6 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Convert the Timestamp to a NumPy datetime64.
 
-        .. versionadded:: 0.25.0
-
         This is an alias method for `Timestamp.to_datetime64()`. The dtype and
         copy parameters are available here only for compatibility. Their values
         will not affect the return value.
@@ -1562,8 +1561,17 @@ class Timestamp(_Timestamp):
         cdef:
             int64_t nanos
 
-        to_offset(freq).nanos  # raises on non-fixed freq
-        nanos = delta_to_nanoseconds(to_offset(freq), self._creso)
+        freq = to_offset(freq)
+        freq.nanos  # raises on non-fixed freq
+        nanos = delta_to_nanoseconds(freq, self._creso)
+        if nanos == 0:
+            if freq.nanos == 0:
+                raise ValueError("Division by zero in rounding")
+
+            # e.g. self.unit == "s" and sub-second freq
+            return self
+
+        # TODO: problem if nanos==0
 
         if self.tz is not None:
             value = self.tz_localize(None).value
@@ -1946,8 +1954,11 @@ default 'raise'
         >>> pd.NaT.tz_localize()
         NaT
         """
-        if ambiguous == "infer":
-            raise ValueError("Cannot infer offset with only one time.")
+        if not isinstance(ambiguous, bool) and ambiguous not in {"NaT", "raise"}:
+            raise ValueError(
+                        "'ambiguous' parameter must be one of: "
+                        "True, False, 'NaT', 'raise' (default)"
+                    )
 
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not PyDelta_Check(nonexistent):
@@ -2226,7 +2237,7 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 
 
 @cython.cdivision(False)
-cdef inline int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) nogil:
+cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) nogil:
     """
     Round the localized nanosecond timestamp down to the previous midnight.
 

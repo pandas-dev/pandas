@@ -32,7 +32,6 @@ from typing import (
     cast,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -44,6 +43,7 @@ from pandas._libs import (
 )
 from pandas._libs.algos import rank_1d
 import pandas._libs.groupby as libgroupby
+from pandas._libs.missing import NA
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -70,7 +70,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
 from pandas.core.dtypes.common import (
@@ -373,7 +372,7 @@ kwargs : dict, optional
 
 Returns
 -------
-object : the return type of `func`.
+the return type of `func`.
 
 See Also
 --------
@@ -403,14 +402,21 @@ Parameters
 f : function, str
     Function to apply to each group. See the Notes section below for requirements.
 
-    Can also accept a Numba JIT function with
-    ``engine='numba'`` specified.
+    Accepted inputs are:
 
+    - String
+    - Python function
+    - Numba JIT function with ``engine='numba'`` specified.
+
+    Only passing a single function is supported with this engine.
     If the ``'numba'`` engine is chosen, the function must be
     a user defined function with ``values`` and ``index`` as the
     first and second arguments respectively in the function signature.
     Each group's index will be passed to the user defined function
     and optionally available for use.
+
+    If a string is chosen, then it needs to be the name
+    of the groupby method you want to use.
 
     .. versionchanged:: 1.1.0
 *args
@@ -472,65 +478,23 @@ user defined function, and no alternative execution attempts will be tried.
     The resulting dtype will reflect the return value of the passed ``func``,
     see the examples below.
 
-.. deprecated:: 1.5.0
+.. versionchanged:: 2.0.0
 
     When using ``.transform`` on a grouped DataFrame and the transformation function
-    returns a DataFrame, currently pandas does not align the result's index
-    with the input's index. This behavior is deprecated and alignment will
-    be performed in a future version of pandas. You can apply ``.to_numpy()`` to the
+    returns a DataFrame, pandas now aligns the result's index
+    with the input's index. You can call ``.to_numpy()`` on the
     result of the transformation function to avoid alignment.
 
 Examples
 --------
-
->>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-...                           'foo', 'bar'],
-...                    'B' : ['one', 'one', 'two', 'three',
-...                           'two', 'two'],
-...                    'C' : [1, 5, 5, 2, 5, 5],
-...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
->>> grouped = df.groupby('A')[['C', 'D']]
->>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-          C         D
-0 -1.154701 -0.577350
-1  0.577350  0.000000
-2  0.577350  1.154701
-3 -1.154701 -1.000000
-4  0.577350 -0.577350
-5  0.577350  1.000000
-
-Broadcast result of the transformation
-
->>> grouped.transform(lambda x: x.max() - x.min())
-     C    D
-0  4.0  6.0
-1  3.0  8.0
-2  4.0  6.0
-3  3.0  8.0
-4  4.0  6.0
-5  3.0  8.0
-
-.. versionchanged:: 1.3.0
-
-    The resulting dtype will reflect the return value of the passed ``func``,
-    for example:
-
->>> grouped.transform(lambda x: x.astype(int).max())
-   C  D
-0  5  8
-1  5  9
-2  5  8
-3  5  9
-4  5  8
-5  5  9
-"""
+%(example)s"""
 
 _agg_template = """
 Aggregate using one or more operations over the specified axis.
 
 Parameters
 ----------
-func : function, str, list or dict
+func : function, str, list, dict or None
     Function to use for aggregating the data. If a function, must either
     work when passed a {klass} or when passed to {klass}.apply.
 
@@ -540,6 +504,10 @@ func : function, str, list or dict
     - string function name
     - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
     - dict of axis labels -> functions, function names or list of such.
+    - None, in which case ``**kwargs`` are used with Named Aggregation. Here the
+      output has one column for each element in ``**kwargs``. The name of the
+      column is keyword, whereas the value determines the aggregation used to compute
+      the values in the column.
 
     Can also accept a Numba JIT function with
     ``engine='numba'`` specified. Only passing a single function is supported
@@ -570,7 +538,9 @@ engine_kwargs : dict, default None
 
     .. versionadded:: 1.1.0
 **kwargs
-    Keyword arguments to be passed into func.
+    * If ``func`` is None, ``**kwargs`` are used to define the output names and
+      aggregations via Named Aggregation. See ``func`` entry.
+    * Otherwise, keyword arguments to be passed into func.
 
 Returns
 -------
@@ -580,10 +550,10 @@ See Also
 --------
 {klass}.groupby.apply : Apply function func group-wise
     and combine the results together.
-{klass}.groupby.transform : Aggregate using one or more
-    operations over the specified axis.
-{klass}.aggregate : Transforms the Series on each group
+{klass}.groupby.transform : Transforms the Series on each group
     based on the given function.
+{klass}.aggregate : Aggregate using one or more
+    operations over the specified axis.
 
 Notes
 -----
@@ -810,7 +780,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         Returns
         -------
-        group : same type as obj
+        same type as obj
         """
         if obj is None:
             obj = self._selected_obj
@@ -832,19 +802,11 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         for each group
         """
         keys = self.keys
+        result = self.grouper.get_iterator(self._selected_obj, axis=self.axis)
         if isinstance(keys, list) and len(keys) == 1:
-            warnings.warn(
-                (
-                    "In a future version of pandas, a length 1 "
-                    "tuple will be returned when iterating over a "
-                    "groupby with a grouper equal to a list of "
-                    "length 1. Don't supply a list with a single grouper "
-                    "to avoid this warning."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return self.grouper.get_iterator(self._selected_obj, axis=self.axis)
+            # GH#42795 - when keys is a list, return tuples even when length is 1
+            result = (((key,), group) for key, group in result)
+        return result
 
 
 # To track operations that expand dimensions, like ohlc
@@ -1051,14 +1013,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         # This is a no-op for SeriesGroupBy
         grp = self.grouper
-        if not (
-            grp.groupings is not None
-            and self.obj.ndim > 1
-            and self._group_selection is None
+        if (
+            grp.groupings is None
+            or self.obj.ndim == 1
+            or self._group_selection is not None
         ):
             return
 
-        groupers = [g.name for g in grp.groupings if g.level is None and g.in_axis]
+        groupers = self.exclusions
 
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
@@ -1648,8 +1610,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return result
 
-        # TypeError -> we may have an exception in trying to aggregate
-        #  continue and exclude the block
         new_mgr = data.grouped_reduce(array_func)
 
         res = self._wrap_agged_manager(new_mgr)
@@ -2239,13 +2199,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             counts = self.count()
             result_ilocs = result.columns.get_indexer_for(cols)
             count_ilocs = counts.columns.get_indexer_for(cols)
-            with warnings.catch_warnings():
-                # TODO(2.0): once iloc[:, foo] = bar depecation is enforced,
-                #  this catching will be unnecessary
-                warnings.filterwarnings(
-                    "ignore", ".*will attempt to set the values inplace.*"
-                )
-                result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
+
+            result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
         return result
 
     @final
@@ -2973,7 +2928,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # (e.g. we have selected out
             # a column that is not in the current object)
             axis = self.grouper.axis
-            grouper = axis[axis.isin(dropped.index)]
+            grouper = self.grouper.codes_info[axis.isin(dropped.index)]
+            if self.grouper.has_dropped_na:
+                # Null groups need to still be encoded as -1 when passed to groupby
+                nulls = grouper == -1
+                # error: No overload variant of "where" matches argument types
+                #        "Any", "NAType", "Any"
+                values = np.where(nulls, NA, grouper)  # type: ignore[call-overload]
+                grouper = Index(values, dtype="Int64")
 
         else:
 

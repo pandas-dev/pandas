@@ -891,6 +891,8 @@ def value_counts(
         else:
             values = _ensure_arraylike(values)
             keys, counts = value_counts_arraylike(values, dropna)
+            if keys.dtype == np.float16:
+                keys = keys.astype(np.float32)
 
             # For backwards compatibility, we let Index do its normal type
             #  inference, _except_ for if if infers from object to bool.
@@ -1499,8 +1501,6 @@ def searchsorted(
     """
     Find indices where elements should be inserted to maintain order.
 
-    .. versionadded:: 0.25.0
-
     Find the indices into a sorted array `arr` (a) such that, if the
     corresponding elements in `value` were inserted before the indices,
     the order of `arr` would be preserved.
@@ -1726,8 +1726,6 @@ def safe_sort(
         Check if codes are out of bound for the values and put out of bound
         codes equal to ``-1``. If ``verify=False``, it is assumed there
         are no out of bound codes. Ignored when ``codes`` is None.
-
-        .. versionadded:: 0.25.0
 
     Returns
     -------

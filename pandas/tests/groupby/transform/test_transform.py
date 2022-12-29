@@ -426,11 +426,7 @@ def test_transform_nuisance_raises(df):
 
 
 def test_transform_function_aliases(df):
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby("A").transform("mean")
     result = df.groupby("A").transform("mean", numeric_only=True)
-    with pytest.raises(TypeError, match="Could not convert"):
-        df.groupby("A").transform(np.mean)
     expected = df.groupby("A")[["C", "D"]].transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
@@ -508,8 +504,6 @@ def test_groupby_transform_with_int():
         }
     )
     with np.errstate(all="ignore"):
-        with pytest.raises(TypeError, match="Could not convert"):
-            df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
         result = df.groupby("A")[["B", "C"]].transform(
             lambda x: (x - x.mean()) / x.std()
         )
@@ -554,8 +548,6 @@ def test_groupby_transform_with_int():
     tm.assert_frame_equal(result, expected)
 
     # int doesn't get downcasted
-    with pytest.raises(TypeError, match="unsupported operand type"):
-        df.groupby("A").transform(lambda x: x * 2 / 2)
     result = df.groupby("A")[["B", "C"]].transform(lambda x: x * 2 / 2)
     expected = DataFrame({"B": 1.0, "C": [2.0, 3.0, 4.0, 10.0, 5.0, -1.0]})
     tm.assert_frame_equal(result, expected)
@@ -748,14 +740,8 @@ def test_cython_transform_frame(op, args, targop):
 
             expected = expected.sort_index(axis=1)
 
-            if op != "shift":
-                with pytest.raises(TypeError, match="datetime64 type does not support"):
-                    gb.transform(op, *args).sort_index(axis=1)
             result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
             tm.assert_frame_equal(result, expected)
-            if op != "shift":
-                with pytest.raises(TypeError, match="datetime64 type does not support"):
-                    getattr(gb, op)(*args).sort_index(axis=1)
             result = getattr(gb[expected.columns], op)(*args).sort_index(axis=1)
             tm.assert_frame_equal(result, expected)
             # individual columns
@@ -1466,8 +1452,8 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
 @pytest.mark.parametrize(
     "func, series, expected_values",
     [
-        (Series.sort_values, False, [4, 5, 3, 1, 2]),
-        (lambda x: x.head(1), False, ValueError),
+        (Series.sort_values, False, [5, 4, 3, 2, 1]),
+        (lambda x: x.head(1), False, [5.0, np.nan, 3, 2, np.nan]),
         # SeriesGroupBy already has correct behavior
         (Series.sort_values, True, [5, 4, 3, 2, 1]),
         (lambda x: x.head(1), True, [5.0, np.nan, 3.0, 2.0, np.nan]),
@@ -1475,7 +1461,7 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
 )
 @pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
 @pytest.mark.parametrize("keys_in_index", [True, False])
-def test_transform_aligns_depr(func, series, expected_values, keys, keys_in_index):
+def test_transform_aligns(func, series, expected_values, keys, keys_in_index):
     # GH#45648 - transform should align with the input's index
     df = DataFrame({"a1": [1, 1, 3, 2, 2], "b": [5, 4, 3, 2, 1]})
     if "a2" in keys:
@@ -1487,19 +1473,11 @@ def test_transform_aligns_depr(func, series, expected_values, keys, keys_in_inde
     if series:
         gb = gb["b"]
 
-    warn = None if series else FutureWarning
-    msg = "returning a DataFrame in groupby.transform will align"
-    if expected_values is ValueError:
-        with tm.assert_produces_warning(warn, match=msg):
-            with pytest.raises(ValueError, match="Length mismatch"):
-                gb.transform(func)
-    else:
-        with tm.assert_produces_warning(warn, match=msg):
-            result = gb.transform(func)
-        expected = DataFrame({"b": expected_values}, index=df.index)
-        if series:
-            expected = expected["b"]
-        tm.assert_equal(result, expected)
+    result = gb.transform(func)
+    expected = DataFrame({"b": expected_values}, index=df.index)
+    if series:
+        expected = expected["b"]
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("keys", ["A", ["A", "B"]])

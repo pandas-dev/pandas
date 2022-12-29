@@ -1,4 +1,5 @@
 import collections
+import warnings
 
 cimport cython
 from cpython.object cimport (
@@ -455,7 +456,7 @@ def array_to_timedelta64(
     return result
 
 
-cdef inline int64_t _item_to_timedelta64_fastpath(object item) except? -1:
+cdef int64_t _item_to_timedelta64_fastpath(object item) except? -1:
     """
     See array_to_timedelta64.
     """
@@ -467,7 +468,7 @@ cdef inline int64_t _item_to_timedelta64_fastpath(object item) except? -1:
         return parse_timedelta_string(item)
 
 
-cdef inline int64_t _item_to_timedelta64(
+cdef int64_t _item_to_timedelta64(
     object item,
     str parsed_unit,
     str errors
@@ -488,7 +489,7 @@ cdef inline int64_t _item_to_timedelta64(
             raise
 
 
-cdef inline int64_t parse_timedelta_string(str ts) except? -1:
+cdef int64_t parse_timedelta_string(str ts) except? -1:
     """
     Parse a regular format timedelta string. Return an int64_t (in ns)
     or raise a ValueError on an invalid parse.
@@ -658,7 +659,7 @@ cdef inline int64_t parse_timedelta_string(str ts) except? -1:
     return result
 
 
-cdef inline int64_t timedelta_as_neg(int64_t value, bint neg):
+cdef int64_t timedelta_as_neg(int64_t value, bint neg):
     """
 
     Parameters
@@ -671,7 +672,7 @@ cdef inline int64_t timedelta_as_neg(int64_t value, bint neg):
     return value
 
 
-cdef inline timedelta_from_spec(object number, object frac, object unit):
+cdef timedelta_from_spec(object number, object frac, object unit):
     """
 
     Parameters
@@ -813,7 +814,7 @@ def _binary_op_method_timedeltalike(op, name):
 # ----------------------------------------------------------------------
 # Timedelta Construction
 
-cdef inline int64_t parse_iso_format_string(str ts) except? -1:
+cdef int64_t parse_iso_format_string(str ts) except? -1:
     """
     Extracts and cleanses the appropriate values from a match object with
     groups for each component of an ISO 8601 duration
@@ -1151,7 +1152,7 @@ cdef class _Timedelta(timedelta):
         return self._compare_mismatched_resos(ots, op)
 
     # TODO: re-use/share with Timestamp
-    cdef inline bint _compare_mismatched_resos(self, _Timedelta other, op):
+    cdef bint _compare_mismatched_resos(self, _Timedelta other, op):
         # Can't just dispatch to numpy as they silently overflow and get it wrong
         cdef:
             npy_datetimestruct dts_self
@@ -1242,8 +1243,6 @@ cdef class _Timedelta(timedelta):
     def to_numpy(self, dtype=None, copy=False) -> np.timedelta64:
         """
         Convert the Timedelta to a NumPy timedelta64.
-
-        .. versionadded:: 0.25.0
 
         This is an alias method for `Timedelta.to_timedelta64()`. The dtype and
         copy parameters are available here only for compatibility. Their values
@@ -1949,9 +1948,13 @@ class Timedelta(_Timedelta):
 
             if other.dtype.kind == "m":
                 # also timedelta-like
-                # TODO: could suppress
-                #  RuntimeWarning: invalid value encountered in floor_divide
-                result = self.asm8 // other
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "invalid value encountered in floor_divide",
+                        RuntimeWarning
+                    )
+                    result = self.asm8 // other
                 mask = other.view("i8") == NPY_NAT
                 if mask.any():
                     # We differ from numpy here
@@ -1989,9 +1992,13 @@ class Timedelta(_Timedelta):
 
             if other.dtype.kind == "m":
                 # also timedelta-like
-                # TODO: could suppress
-                #  RuntimeWarning: invalid value encountered in floor_divide
-                result = other // self.asm8
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "invalid value encountered in floor_divide",
+                        RuntimeWarning
+                    )
+                    result = other // self.asm8
                 mask = other.view("i8") == NPY_NAT
                 if mask.any():
                     # We differ from numpy here
@@ -2021,6 +2028,64 @@ class Timedelta(_Timedelta):
         # Naive implementation, room for optimization
         div = other // self
         return div, other - div * self
+
+
+def truediv_object_array(ndarray left, ndarray right):
+    cdef:
+        ndarray[object] result = np.empty((<object>left).shape, dtype=object)
+        object td64  # really timedelta64 if we find a way to declare that
+        object obj, res_value
+        _Timedelta td
+        Py_ssize_t i
+
+    for i in range(len(left)):
+        td64 = left[i]
+        obj = right[i]
+
+        if get_timedelta64_value(td64) == NPY_NAT:
+            # td here should be interpreted as a td64 NaT
+            if _should_cast_to_timedelta(obj):
+                res_value = np.nan
+            else:
+                # if its a number then let numpy handle division, otherwise
+                #  numpy will raise
+                res_value = td64 / obj
+        else:
+            td = Timedelta(td64)
+            res_value = td / obj
+
+        result[i] = res_value
+
+    return result
+
+
+def floordiv_object_array(ndarray left, ndarray right):
+    cdef:
+        ndarray[object] result = np.empty((<object>left).shape, dtype=object)
+        object td64  # really timedelta64 if we find a way to declare that
+        object obj, res_value
+        _Timedelta td
+        Py_ssize_t i
+
+    for i in range(len(left)):
+        td64 = left[i]
+        obj = right[i]
+
+        if get_timedelta64_value(td64) == NPY_NAT:
+            # td here should be interpreted as a td64 NaT
+            if _should_cast_to_timedelta(obj):
+                res_value = np.nan
+            else:
+                # if its a number then let numpy handle division, otherwise
+                #  numpy will raise
+                res_value = td64 // obj
+        else:
+            td = Timedelta(td64)
+            res_value = td // obj
+
+        result[i] = res_value
+
+    return result
 
 
 cdef bint is_any_td_scalar(object obj):

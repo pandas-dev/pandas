@@ -387,6 +387,22 @@ class TestAstype:
         with pytest.raises(TypeError, match="Cannot cast"):
             df.astype(f"M8[{unit}]")
 
+    @pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "m"])
+    def test_astype_from_object_to_timedelta_unit(self, unit):
+        vals = [
+            ["1 Day", "2 Days", "3 Days"],
+            ["4 Days", "5 Days", "6 Days"],
+        ]
+        df = DataFrame(vals, dtype=object)
+        msg = (
+            r"Cannot convert from timedelta64\[ns\] to timedelta64\[.*\]. "
+            "Supported resolutions are 's', 'ms', 'us', 'ns'"
+        )
+        with pytest.raises(ValueError, match=msg):
+            # TODO: this is ValueError while for DatetimeArray it is TypeError;
+            #  get these consistent
+            df.astype(f"m8[{unit}]")
+
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
     def test_astype_from_datetimelike_to_object(self, dtype, unit):
@@ -681,7 +697,7 @@ class TestAstype:
             pytest.param(
                 ["x", "y", "z"],
                 "string[pyarrow]",
-                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
+                marks=td.skip_if_no("pyarrow"),
             ),
             (["x", "y", "z"], "category"),
             (3 * [Timestamp("2020-01-01", tz="UTC")], None),
