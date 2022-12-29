@@ -40,7 +40,6 @@ def try_parse_datetime_components(
     minutes: npt.NDArray[np.object_],  # object[:]
     seconds: npt.NDArray[np.object_],  # object[:]
 ) -> npt.NDArray[np.object_]: ...
-def format_is_iso(f: str) -> bool: ...
 def guess_datetime_format(
     dt_str,
     dayfirst: bool | None = ...,

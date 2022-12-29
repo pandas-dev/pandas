@@ -781,6 +781,7 @@ Performance improvements
 - Performance improvement in :func:`merge` when not merging on the index - the new index will now be :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`49478`)
 - Performance improvement in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` when using any non-object dtypes (:issue:`46470`)
 - Performance improvement in :func:`read_html` when there are multiple tables (:issue:`49929`)
+- Performance improvement in :func:`to_datetime` when using ``'%Y%m%d'`` format (:issue:`17410`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
@@ -810,6 +811,13 @@ Datetimelike
 - Bug in :meth:`Timestamp.round` when the ``freq`` argument has zero-duration (e.g. "0ns") returning incorrect results instead of raising (:issue:`49737`)
 - Bug in :func:`to_datetime` was not raising ``ValueError`` when invalid format was passed and ``errors`` was ``'ignore'`` or ``'coerce'`` (:issue:`50266`)
 - Bug in :class:`DateOffset` was throwing ``TypeError`` when constructing with milliseconds and another super-daily argument (:issue:`49897`)
+- Bug in :func:`to_datetime` was not raising ``ValueError`` when parsing string with decimal date with format ``'%Y%m%d'`` (:issue:`50051`)
+- Bug in :func:`to_datetime` was not converting ``None`` to ``NaT`` when parsing mixed-offset date strings with ISO8601 format (:issue:`50071`)
+- Bug in :func:`to_datetime` was not returning input when parsing out-of-bounds date string with ``errors='ignore'`` and ``format='%Y%m%d'`` (:issue:`14487`)
+- Bug in :func:`to_datetime` was converting timezone-naive ``datetime.datetime`` to timezone-aware when parsing with timezone-aware strings, ISO8601 format, and ``utc=False`` (:issue:`50254`)
+- Bug in :func:`to_datetime` was throwing ``ValueError`` when parsing dates with ISO8601 format where some values were not zero-padded (:issue:`21422`)
+- Bug in :func:`to_datetime` was giving incorrect results when using ``format='%Y%m%d'`` and ``errors='ignore'`` (:issue:`26493`)
+- Bug in :func:`to_datetime` was failing to parse date strings ``'today'`` and ``'now'`` if ``format`` was not ISO8601 (:issue:`50359`)
 -
 
 Timedelta
