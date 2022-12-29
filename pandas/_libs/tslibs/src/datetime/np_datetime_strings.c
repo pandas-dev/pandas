@@ -67,22 +67,22 @@ This file implements string parsing and creation for NumPy datetime.
  * Returns 0 on success, -1 on failure.
  */
 
-enum DatetimePartParseResult {
+typedef enum {
     COMPARISON_SUCCESS,
     COMPLETED_PARTIAL_MATCH,
     COMPARISON_ERROR
-};
+} DatetimePartParseResult;
 // This function will advance the pointer on format
 // and decrement characters_remaining by n on success
 // On failure will return COMPARISON_ERROR without incrementing
 // If `format_requirement` is PARTIAL_MATCH, and the `format` string has
 // been exhausted, then return COMPLETED_PARTIAL_MATCH.
-static enum DatetimePartParseResult compare_format(
+static DatetimePartParseResult compare_format(
         const char **format,
         int *characters_remaining,
         const char *compare_to,
         int n,
-        const enum FormatRequirement format_requirement
+        const FormatRequirement format_requirement
 ) {
   if (format_requirement == PARTIAL_MATCH && !*characters_remaining) {
     return COMPLETED_PARTIAL_MATCH;
@@ -111,7 +111,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                             NPY_DATETIMEUNIT *out_bestunit,
                             int *out_local, int *out_tzoffset,
                             const char* format, int format_len,
-                            enum FormatRequirement format_requirement) {
+                            FormatRequirement format_requirement) {
     if (len < 0 || format_len < 0)
         goto parse_error;
     int year_leap = 0;
@@ -119,7 +119,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     const char *substr;
     int sublen;
     NPY_DATETIMEUNIT bestunit = NPY_FR_GENERIC;
-    enum DatetimePartParseResult comparison;
+    DatetimePartParseResult comparison;
 
     /* If year-month-day are separated by a valid separator,
      * months/days without leading zeroes will be parsed

@@ -122,7 +122,7 @@ cdef int64_t convert_reso(
 ) except? -1
 
 cdef extern from "src/datetime/np_datetime_strings.h":
-    cdef enum FormatRequirement:
+    ctypedef enum FormatRequirement:
         PARTIAL_MATCH
         EXACT_MATCH
         INFER_FORMAT

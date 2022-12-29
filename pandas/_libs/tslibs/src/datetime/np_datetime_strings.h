@@ -35,11 +35,11 @@ This file implements string parsing and creation for NumPy datetime.
  *           be able to parse it without error is '%Y-%m-%d';
  *      * INFER_FORMAT: parse without comparing 'format' (i.e. infer it).
  */
-enum FormatRequirement {
+typedef enum  {
     PARTIAL_MATCH,
     EXACT_MATCH,
     INFER_FORMAT
-};
+} FormatRequirement;
 
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
@@ -76,7 +76,7 @@ parse_iso_8601_datetime(const char *str, int len, int want_exc,
                         int *out_tzoffset,
                         const char* format,
                         int format_len,
-                        enum FormatRequirement format_requirement);
+                        FormatRequirement format_requirement);
 
 /*
  * Provides a string length to use for converting datetime
