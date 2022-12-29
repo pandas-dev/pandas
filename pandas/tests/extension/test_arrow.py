@@ -1471,6 +1471,14 @@ def test_astype_from_non_pyarrow(data):
     tm.assert_extension_array_equal(result, data)
 
 
+def test_astype_float_from_non_pyarrow_str():
+    # GH50430
+    ser = pd.Series(["1.0"])
+    result = ser.astype("float64[pyarrow]")
+    expected = pd.Series([1.0], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 def test_to_numpy_with_defaults(data):
     # GH49973
     result = data.to_numpy()
@@ -1531,3 +1539,17 @@ def test_setitem_invalid_dtype(data):
         msg = "cannot be converted"
     with pytest.raises(err, match=msg):
         data[:] = fill_value
+
+
+def test_round():
+    dtype = "float64[pyarrow]"
+
+    ser = pd.Series([0.0, 1.23, 2.56, pd.NA], dtype=dtype)
+    result = ser.round(1)
+    expected = pd.Series([0.0, 1.2, 2.6, pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser = pd.Series([123.4, pd.NA, 56.78], dtype=dtype)
+    result = ser.round(-1)
+    expected = pd.Series([120.0, pd.NA, 60.0], dtype=dtype)
+    tm.assert_series_equal(result, expected)

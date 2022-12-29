@@ -206,17 +206,17 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         Construct a new ExtensionArray from a sequence of scalars.
         """
         pa_dtype = to_pyarrow_type(dtype)
-        is_cls = isinstance(scalars, cls)
-        if is_cls or isinstance(scalars, (pa.Array, pa.ChunkedArray)):
-            if is_cls:
-                scalars = scalars._data
-            if pa_dtype:
-                scalars = scalars.cast(pa_dtype)
-            return cls(scalars)
-        else:
-            return cls(
-                pa.chunked_array(pa.array(scalars, type=pa_dtype, from_pandas=True))
-            )
+        if isinstance(scalars, cls):
+            scalars = scalars._data
+        elif not isinstance(scalars, (pa.Array, pa.ChunkedArray)):
+            try:
+                scalars = pa.array(scalars, type=pa_dtype, from_pandas=True)
+            except pa.ArrowInvalid:
+                # GH50430: let pyarrow infer type, then cast
+                scalars = pa.array(scalars, from_pandas=True)
+        if pa_dtype:
+            scalars = scalars.cast(pa_dtype)
+        return cls(scalars)
 
     @classmethod
     def _from_sequence_of_strings(
@@ -660,6 +660,32 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             f"{type(self)} does not support reshape "
             f"as backed by a 1D pyarrow.ChunkedArray."
         )
+
+    def round(
+        self: ArrowExtensionArrayT, decimals: int = 0, *args, **kwargs
+    ) -> ArrowExtensionArrayT:
+        """
+        Round each value in the array a to the given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, default 0
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point.
+        *args, **kwargs
+            Additional arguments and keywords have no effect.
+
+        Returns
+        -------
+        ArrowExtensionArray
+            Rounded values of the ArrowExtensionArray.
+
+        See Also
+        --------
+        DataFrame.round : Round values of a DataFrame.
+        Series.round : Round values of a Series.
+        """
+        return type(self)(pc.round(self._data, ndigits=decimals))
 
     def take(
         self,

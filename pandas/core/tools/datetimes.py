@@ -398,10 +398,7 @@ def _convert_listlike_datetimes(
 
     elif is_datetime64_ns_dtype(arg_dtype):
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
-            try:
-                return DatetimeIndex(arg, tz=tz, name=name)
-            except ValueError:
-                pass
+            return DatetimeIndex(arg, tz=tz, name=name)
         elif utc:
             # DatetimeArray, DatetimeIndex
             return arg.tz_localize("utc")
