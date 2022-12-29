@@ -1756,12 +1756,18 @@ class TestTimedeltaArraylikeMulDivOps:
             # columns without missing values
             expected[[0, 1]] = expected[[0, 1]].astype("int64")
 
-        result = left // right
+        with tm.maybe_produces_warning(
+            RuntimeWarning, box is pd.array, check_stacklevel=False
+        ):
+            result = left // right
 
         tm.assert_equal(result, expected)
 
         # case that goes through __rfloordiv__ with arraylike
-        result = np.asarray(left) // right
+        with tm.maybe_produces_warning(
+            RuntimeWarning, box is pd.array, check_stacklevel=False
+        ):
+            result = np.asarray(left) // right
         tm.assert_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:invalid value encountered:RuntimeWarning")
