@@ -425,14 +425,22 @@ class Grouping:
         If we are a Categorical, use the observed values
     in_axis : if the Grouping is a column in self.obj and hence among
         Groupby.exclusions list
+    dropna : bool, default True
+        Whether to drop NA groups.
+    uniques : Array-like, optional
+        When specified, will be used for unique values. Enables including empty groups
+        in the result for a BinGrouper. Must not contain duplicates.
 
-    Returns
+    Attributes
     -------
-    **Attributes**:
-      * indices : dict of {group -> index_list}
-      * codes : ndarray, group codes
-      * group_index : unique groups
-      * groups : dict of {group -> label_list}
+    indices : dict
+        Mapping of {group -> index_list}
+    codes : ndarray
+        Group codes
+    group_index : Index or None
+        unique groups
+    groups : dict
+        Mapping of {group -> label_list}
     """
 
     _codes: npt.NDArray[np.signedinteger] | None = None
@@ -452,6 +460,7 @@ class Grouping:
         observed: bool = False,
         in_axis: bool = False,
         dropna: bool = True,
+        uniques: ArrayLike | None = None,
     ) -> None:
         self.level = level
         self._orig_grouper = grouper
@@ -464,6 +473,7 @@ class Grouping:
         self._observed = observed
         self.in_axis = in_axis
         self._dropna = dropna
+        self._uniques = uniques
 
         self._passed_categorical = False
 
@@ -702,6 +712,12 @@ class Grouping:
             uniques = (
                 self.grouping_vector.result_index._values  # type: ignore[assignment]
             )
+        elif self._uniques is not None:
+            # GH#50486 Code grouping_vector using _uniques; allows
+            # including uniques that are not present in grouping_vector.
+            cat = Categorical(self.grouping_vector, categories=self._uniques)
+            codes = cat.codes
+            uniques = self._uniques
         else:
             # GH35667, replace dropna=False with use_na_sentinel=False
             # error: Incompatible types in assignment (expression has type "Union[
