@@ -4846,8 +4846,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4   96hr     50
         >>> from natsort import index_natsorted
         >>> df.sort_values(
-        ...    by="time",
-        ...    key=lambda x: np.argsort(index_natsorted(df["time"]))
+        ...     by="time",
+        ...     key=lambda x: np.argsort(index_natsorted(df["time"]))
         ... )
             time  value
         0    0hr     10
@@ -7694,10 +7694,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Show which entries in a DataFrame are NA.
 
         >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
-        ...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-        ...                          pd.Timestamp('1940-04-25')],
-        ...                    name=['Alfred', 'Batman', ''],
-        ...                    toy=[None, 'Batmobile', 'Joker']))
+        ...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+        ...                              pd.Timestamp('1940-04-25')],
+        ...                        name=['Alfred', 'Batman', ''],
+        ...                        toy=[None, 'Batmobile', 'Joker']))
         >>> df
            age       born    name        toy
         0  5.0        NaT  Alfred       None
@@ -7761,10 +7761,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Show which entries in a DataFrame are not NA.
 
         >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
-        ...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-        ...                          pd.Timestamp('1940-04-25')],
-        ...                    name=['Alfred', 'Batman', ''],
-        ...                    toy=[None, 'Batmobile', 'Joker']))
+        ...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
+        ...                              pd.Timestamp('1940-04-25')],
+        ...                        name=['Alfred', 'Batman', ''],
+        ...                        toy=[None, 'Batmobile', 'Joker']))
         >>> df
            age       born    name        toy
         0  5.0        NaT  Alfred       None
@@ -8153,6 +8153,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Parameters
         ----------
         time : datetime.time or str
+            The values to select.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             For `Series` this parameter is unused and defaults to 0.
 
@@ -10109,7 +10110,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         tz : str or tzinfo object or None
             Target time zone. Passing ``None`` will convert to
             UTC and remove the timezone information.
-        axis : the axis to convert
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+            The axis to convert
         level : int, str, default None
             If axis is a MultiIndex, convert a specific level. Otherwise
             must be None.
@@ -10130,8 +10132,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Change to another time zone:
 
-        >>> s = pd.Series([1],
-        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
+        >>> s = pd.Series(
+        ...     [1],
+        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']),
+        ... )
         >>> s.tz_convert('Asia/Shanghai')
         2018-09-15 07:30:00+08:00    1
         dtype: int64
@@ -10196,7 +10200,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         tz : str or tzinfo or None
             Time zone to localize. Passing ``None`` will remove the
             time zone information and preserve local time.
-        axis : the axis to localize
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
+            The axis to localize
         level : int, str, default None
             If axis ia a MultiIndex, localize a specific level. Otherwise
             must be None.
@@ -10245,8 +10250,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Localize local times:
 
-        >>> s = pd.Series([1],
-        ...               index=pd.DatetimeIndex(['2018-09-15 01:30:00']))
+        >>> s = pd.Series(
+        ...     [1],
+        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00']),
+        ... )
         >>> s.tz_localize('CET')
         2018-09-15 01:30:00+02:00    1
         dtype: int64
@@ -10480,9 +10487,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Describing a timestamp ``Series``.
 
         >>> s = pd.Series([
-        ...   np.datetime64("2000-01-01"),
-        ...   np.datetime64("2010-01-01"),
-        ...   np.datetime64("2010-01-01")
+        ...     np.datetime64("2000-01-01"),
+        ...     np.datetime64("2010-01-01"),
+        ...     np.datetime64("2010-01-01")
         ... ])
         >>> s.describe()
         count                      3
@@ -11740,9 +11747,9 @@ _std_examples = """
 Examples
 --------
 >>> df = pd.DataFrame({'person_id': [0, 1, 2, 3],
-...                   'age': [21, 25, 62, 43],
-...                   'height': [1.61, 1.87, 1.49, 2.01]}
-...                  ).set_index('person_id')
+...                    'age': [21, 25, 62, 43],
+...                    'height': [1.61, 1.87, 1.49, 2.01]}
+...                   ).set_index('person_id')
 >>> df
            age  height
 person_id
@@ -11960,7 +11967,7 @@ dtype: float64
 >>> df = pd.DataFrame([[2.0, 1.0],
 ...                    [3.0, np.nan],
 ...                    [1.0, 0.0]],
-...                    columns=list('AB'))
+...                   columns=list('AB'))
 >>> df
      A    B
 0  2.0  1.0
@@ -12025,7 +12032,7 @@ dtype: float64
 >>> df = pd.DataFrame([[2.0, 1.0],
 ...                    [3.0, np.nan],
 ...                    [1.0, 0.0]],
-...                    columns=list('AB'))
+...                   columns=list('AB'))
 >>> df
      A    B
 0  2.0  1.0
@@ -12090,7 +12097,7 @@ dtype: float64
 >>> df = pd.DataFrame([[2.0, 1.0],
 ...                    [3.0, np.nan],
 ...                    [1.0, 0.0]],
-...                    columns=list('AB'))
+...                   columns=list('AB'))
 >>> df
      A    B
 0  2.0  1.0
@@ -12155,7 +12162,7 @@ dtype: float64
 >>> df = pd.DataFrame([[2.0, 1.0],
 ...                    [3.0, np.nan],
 ...                    [1.0, 0.0]],
-...                    columns=list('AB'))
+...                   columns=list('AB'))
 >>> df
      A    B
 0  2.0  1.0
