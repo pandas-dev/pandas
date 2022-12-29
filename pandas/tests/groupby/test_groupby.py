@@ -2830,9 +2830,11 @@ def test_groupby_index_name_in_index_content(val_in, index, val_out):
     tm.assert_frame_equal(result, expected)
 
 
-def test_sum_of_booleans():
+@pytest.mark.parametrize("n", [1, 10, 100, 1000])
+def test_sum_of_booleans(n):
     # GH 50347
-    n = 32
     df = DataFrame({"groupby_col": 1, "bool": [True] * n})
     df["bool"] = df["bool"].eq(True)
-    assert df.groupby("groupby_col").sum().iloc[0, 0] == 32
+    result = df.groupby("groupby_col").sum()
+    expected = DataFrame({"bool": [n]}, index=Index([1], name="groupby_col"))
+    tm.assert_frame_equal(result, expected)
