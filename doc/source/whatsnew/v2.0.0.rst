@@ -95,7 +95,7 @@ was added to the following methods:
 - :meth:`DataFrame.dropna` / :meth:`Series.dropna`
 - :meth:`DataFrame.select_dtypes`
 - :meth:`DataFrame.align` / :meth:`Series.align`
-- ::meth:`Series.to_frame`
+- :meth:`Series.to_frame`
 - :meth:`DataFrame.rename` / :meth:`Series.rename`
 - :meth:`DataFrame.add_prefix` / :meth:`Series.add_prefix`
 - :meth:`DataFrame.add_suffix` / :meth:`Series.add_suffix`
@@ -103,7 +103,7 @@ was added to the following methods:
 - :meth:`DataFrame.reorder_levels` / :meth:`Series.reorder_levels`
 
 These methods return views when copy on write is enabled, which provides a significant
-performance improvement compared to the regular execution.
+performance improvement compared to the regular execution (:issue:`49473`).
 
 .. _whatsnew_200.enhancements.other:
 
