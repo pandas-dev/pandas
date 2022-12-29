@@ -26,7 +26,7 @@ This file implements string parsing and creation for NumPy datetime.
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif  // NPY_NO_DEPRECATED_API
 
-/* 'exact' can be one of three values:
+/* 'format_requirement' can be one of three values:
  *      * PARTIAL_MATCH : Only require a partial match with 'format'.
  *           For example, if the string is '2020-01-01 05:00:00' and
  *           'format' is '%Y-%m-%d', then parse '2020-01-01';
