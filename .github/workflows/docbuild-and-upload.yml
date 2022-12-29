@@ -15,6 +15,7 @@ on:
 env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 permissions:
   contents: read
