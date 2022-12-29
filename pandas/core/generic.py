@@ -4934,7 +4934,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if inplace:
                 result = self
             else:
-                result = self.copy()
+                result = self.copy(deep=None)
 
             if ignore_index:
                 result.index = default_index(len(self))
