@@ -16,11 +16,16 @@ import pytest
 
 from pandas.errors import EmptyDataError
 
+import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 from pandas.tests.io.test_compression import _compression_to_extension
 
 from pandas.io.parsers import (
@@ -938,6 +943,40 @@ def test_widths_and_usecols():
             "c0": 0,
             "c1": [1, 2, 3],
             "c3": [-0.4, 0.2, -0.3],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_use_nullable_dtypes(string_storage):
+    # GH#50289
+
+    data = """a  b    c      d  e     f  g    h  i
+1  2.5  True  a
+3  4.5  False b  True  6  7.5  a"""
+    with pd.option_context("mode.string_storage", string_storage):
+        result = read_fwf(StringIO(data), use_nullable_dtypes=True)
+
+    if string_storage == "python":
+        arr = StringArray(np.array(["a", "b"], dtype=np.object_))
+        arr_na = StringArray(np.array([pd.NA, "a"], dtype=np.object_))
+    else:
+        import pyarrow as pa
+
+        arr = ArrowStringArray(pa.array(["a", "b"]))
+        arr_na = ArrowStringArray(pa.array([None, "a"]))
+
+    expected = DataFrame(
+        {
+            "a": pd.Series([1, 3], dtype="Int64"),
+            "b": pd.Series([2.5, 4.5], dtype="Float64"),
+            "c": pd.Series([True, False], dtype="boolean"),
+            "d": arr,
+            "e": pd.Series([pd.NA, True], dtype="boolean"),
+            "f": pd.Series([pd.NA, 6], dtype="Int64"),
+            "g": pd.Series([pd.NA, 7.5], dtype="Float64"),
+            "h": arr_na,
+            "i": pd.Series([pd.NA, pd.NA], dtype="Int64"),
         }
     )
     tm.assert_frame_equal(result, expected)
