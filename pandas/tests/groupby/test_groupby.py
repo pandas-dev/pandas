@@ -2828,3 +2828,11 @@ def test_groupby_index_name_in_index_content(val_in, index, val_out):
     result = series.to_frame().groupby("blah").sum()
     expected = expected.to_frame()
     tm.assert_frame_equal(result, expected)
+
+
+def test_sum_of_booleans():
+    # GH 50347
+    n = 32
+    df = DataFrame({"groupby_col": 1, "bool": [True] * n})
+    df["bool"] = df["bool"].eq(True)
+    assert df.groupby("groupby_col").sum().iloc[0, 0] == 32
