@@ -322,12 +322,18 @@ class TestDataFrameIndexing:
     def test_setitem2(self):
         # dtype changing GH4204
         df = DataFrame([[0, 0]])
-        df.iloc[0] = np.nan
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            df.iloc[0] = np.nan
         expected = DataFrame([[np.nan, np.nan]])
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame([[0, 0]])
-        df.loc[0] = np.nan
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            df.loc[0] = np.nan
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_boolean(self, float_frame):
@@ -1533,8 +1539,11 @@ class TestDataFrameIndexingUInt64:
         # With NaN: because uint64 has no NaN element,
         # the column should be cast to object.
         df2 = df.copy()
-        df2.iloc[1, 1] = pd.NaT
-        df2.iloc[1, 2] = pd.NaT
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            df2.iloc[1, 1] = pd.NaT
+            df2.iloc[1, 2] = pd.NaT
         result = df2["B"]
         tm.assert_series_equal(notna(result), Series([True, False, True], name="B"))
         tm.assert_series_equal(
